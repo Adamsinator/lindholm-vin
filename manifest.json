@@ -1,0 +1,12 @@
+{
+  "name": "Lindholm Vin",
+  "short_name": "Lindholm Vin",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#7C2D3E",
+  "theme_color": "#7C2D3E",
+  "icons": [
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+  ]
+}
