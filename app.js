@@ -20,7 +20,7 @@ const state = {q:"", region:"", style:"", status:"cellar", sortK:"price", sortDi
 
 /* ---------- config / auth ---------- */
 const cfg = {
-  api: (window.WINE_CONFIG && window.WINE_CONFIG.API_URL) || localStorage.getItem("vinApi") || "",
+  api: localStorage.getItem("vinApi") || (window.WINE_CONFIG && window.WINE_CONFIG.API_URL) || "",
   code: localStorage.getItem("vinCode") || "",
   pricecode: sessionStorage.getItem("vinPriceCode") || "",
 };
@@ -133,6 +133,29 @@ function renderOverview(){
       state.style = state.style===s ? "" : s;
       $("fStyle").value = state.style; renderTable(); }));
 
+  /* producers */
+  const prodAgg = {};
+  cellar.forEach(w=>{ const p=prodAgg[w.producer] ??= {b:0,v:0,n:0}; p.b+=w.left; p.v+=(w.price||0)*w.left; p.n++; });
+  const prods = Object.entries(prodAgg).sort((a,b)=>b[1].b-a[1].b);
+  const topProds = prods.slice(0,8);
+  const maxPB = topProds.length ? topProds[0][1].b : 1;
+  $("producers").innerHTML = topProds.map(([name,p])=>`
+    <button class="rbar" data-prod="${esc(name)}" aria-label="${esc(name)}: ${p.b} bottles">
+      <span class="rb-name">${esc(name)}</span>
+      <span class="rb-track"><span class="rb-fill" style="width:${Math.max(1.5,p.b/maxPB*100)}%"></span></span>
+      <span class="rb-n">${p.b} btl.</span>
+    </button>`).join("") + (prods.length>8?`<div class="morep">+ ${prods.length-8} more producers — use the search box</div>`:"");
+  document.querySelectorAll("#producers .rbar").forEach(el=>{
+    const name = el.dataset.prod, p = prodAgg[name];
+    el.addEventListener("mousemove",e=>showTip(`<b>${esc(name)}</b><br>${p.b} bottle${p.b>1?"s":""} · ${p.n} wine${p.n>1?"s":""}${HAS_PRICES?" · "+kr(p.v):""}`,e.clientX,e.clientY));
+    el.addEventListener("mouseleave",hideTip);
+    el.addEventListener("click",()=>{
+      state.q = state.q.trim()===name ? "" : name;
+      $("q").value = state.q; renderTable(); });
+  });
+
+  updateMap(cellar);
+
   /* vintage histogram */
   const byV = {};
   cellar.forEach(w=>{ const k = typeof w.vintage==="number" ? w.vintage : "NV";
@@ -150,6 +173,7 @@ function renderOverview(){
     html+=`<g class="vcol" data-k="${k}">
       <rect x="${x+bw*0.12}" y="${P.t}" width="${bw*0.76}" height="${H-P.t-P.b}" fill="transparent"></rect>
       <rect class="bar" x="${x+bw*0.12}" y="${y}" width="${bw*0.76}" height="${h}" rx="3"></rect>
+      <text class="vnum" x="${x+bw/2}" y="${y-4}" text-anchor="middle">${d.b}</text>
       <text class="vaxis" x="${x+bw/2}" y="${H-7}" text-anchor="middle">${typeof k==="number"?String(k).slice(2):"NV"}</text>
     </g>`;
   });
@@ -237,6 +261,7 @@ function renderTable(){
 
   document.querySelectorAll(".rbar").forEach(el=>el.classList.toggle("active", el.dataset.region===state.region && !!state.region));
   document.querySelectorAll("#slegend button").forEach(el=>el.classList.toggle("active", el.dataset.style===state.style && !!state.style));
+  document.querySelectorAll("#producers .rbar").forEach(el=>el.classList.toggle("active", el.dataset.prod===state.q.trim() && !!state.q.trim()));
 
   $("rows").innerHTML = list.map((w,i)=>{
     const pn = PRODUCER_NOTES[w.producer];
@@ -244,7 +269,7 @@ function renderTable(){
     const nm = [w.name, w.commune && w.commune!==w.name ? w.commune : ""].filter(Boolean).join(" · ");
     return `<tr class="main${w.left===0?" gone":""}" data-i="${i}" tabindex="0" aria-expanded="false">
       <td><span class="prod">${esc(w.producer)}</span>${badge}<br><span class="wname">${esc(nm)}${w.classification&&w.classification!=="AOC"?" · <b>"+esc(w.classification)+"</b>":""}</span></td>
-      <td class="num">${w.vintage||"—"}</td>
+      <td class="num">${esc(w.vintage||"—")}</td>
       <td>${esc(w.region)}</td>
       <td><span class="sdot" style="background:var(${STYLE_VAR[w.style]||"--muted"})"></span>${STYLE_EN[w.style]||esc(w.style)}</td>
       <td class="num">${state.status==="drunk"?w.drunk:w.left}</td>
@@ -388,6 +413,72 @@ document.querySelectorAll("th[data-k]").forEach(th=>th.addEventListener("click",
   if(state.sortK===k) state.sortDir*=-1; else { state.sortK=k; state.sortDir = (k==="price"||k==="left") ? -1 : 1; }
   renderTable();
 }));
+
+/* ---------- map ---------- */
+const REGION_GEO = {
+  "Bourgogne":[47.03,4.84], "Champagne":[49.04,4.00], "Chablis":[47.82,3.80],
+  "Beaujolais":[46.15,4.72], "Rhône":[44.93,4.89], "Bordeaux":[44.84,-0.58],
+  "Loire":[47.33,2.84], "Languedoc":[43.51,3.32], "Roussillon":[42.65,2.88],
+  "Béarn":[43.30,-0.37], "Mosel":[49.91,6.99], "Piemonte":[44.61,7.99],
+  "Veneto":[45.44,11.00], "Rioja":[42.46,-2.45], "Ribera del Duero":[41.62,-3.69],
+};
+let MAP=null, MAPLAYER=null, PENDING_MAP=null;
+function updateMap(cellar){
+  if(typeof L === "undefined"){
+    if(!PENDING_MAP) window.addEventListener("load",()=>{ if(PENDING_MAP) updateMap(PENDING_MAP); },{once:true});
+    PENDING_MAP = cellar;
+    return;
+  }
+  PENDING_MAP = null;
+  if(!MAP){
+    const dark = matchMedia("(prefers-color-scheme: dark)").matches;
+    MAP = L.map("map",{scrollWheelZoom:false});
+    L.tileLayer(`https://{s}.basemaps.cartocdn.com/${dark?"dark_all":"light_all"}/{z}/{x}/{y}{r}.png`,
+      {attribution:"&copy; OpenStreetMap &copy; CARTO", maxZoom:10}).addTo(MAP);
+  }
+  if(MAPLAYER) MAPLAYER.remove();
+  const agg = {};
+  cellar.forEach(w=>{ const a=agg[w.region] ??= {b:0,n:0}; a.b+=w.left; a.n++; });
+  const accent = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || "#7C2D3E";
+  const ms = [];
+  for(const [name,a] of Object.entries(agg)){
+    const geo = REGION_GEO[name]; if(!geo) continue;
+    const m = L.circleMarker(geo,{radius:5+Math.sqrt(a.b)*2, color:accent, weight:1.5, fillColor:accent, fillOpacity:.55});
+    m.bindTooltip(`<b>${esc(name)}</b><br>${a.b} bottle${a.b>1?"s":""} · ${a.n} wine${a.n>1?"s":""}`);
+    m.on("click",()=>{ state.region = state.region===name ? "" : name;
+      $("fRegion").value = state.region; renderTable(); });
+    ms.push(m);
+  }
+  MAPLAYER = L.featureGroup(ms).addTo(MAP);
+  if(ms.length) MAP.fitBounds(MAPLAYER.getBounds().pad(0.25),{maxZoom:6});
+}
+
+/* ---------- tonight's bottle ---------- */
+function pickTonight(){
+  const pool = WINES.filter(w=>w.left>0);
+  if(!pool.length){ toast("The cellar is empty…"); return; }
+  const total = pool.reduce((s,w)=>s+w.left,0);
+  let pick = pool[pool.length-1], r = Math.random()*total;
+  for(const w of pool){ r -= w.left; if(r<=0){ pick = w; break; } }
+  const m = document.createElement("div");
+  m.className = "modal open";
+  m.innerHTML = `<div class="card" style="max-width:560px">
+    <h2>Tonight's bottle 🍷</h2>
+    <p style="margin:0 0 2px;font-size:16px"><b>${esc(pick.producer)}</b> · ${esc(pick.name)}${pick.vintage?" · "+esc(pick.vintage):""}</p>
+    <p style="color:var(--muted);font-size:13px;margin:0 0 12px">${esc(pick.region)}${pick.commune&&pick.commune!==pick.name?" · "+esc(pick.commune):""}</p>
+    ${detailHTML(pick)}
+    <div class="mact">
+      <button type="button" class="btn" data-x="again">🎲 Pick another</button>
+      <button type="button" class="btn primary" data-x="close">Close</button>
+    </div></div>`;
+  document.body.appendChild(m);
+  m.addEventListener("click",e=>{ if(e.target===m) m.remove(); });
+  m.querySelector('[data-x="close"]').addEventListener("click",()=>m.remove());
+  m.querySelector('[data-x="again"]').addEventListener("click",()=>{ m.remove(); pickTonight(); });
+  const db = m.querySelector("button.drink");
+  if(db) db.addEventListener("click", async ()=>{ await drinkOne(Number(db.dataset.row), db); m.remove(); });
+}
+$("tonightBtn").addEventListener("click", pickTonight);
 
 /* ---------- boot ---------- */
 if(cfg.api && cfg.code){ $("app").hidden=false; loadData(); }

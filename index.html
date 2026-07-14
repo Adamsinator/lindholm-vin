@@ -10,6 +10,8 @@
 <meta name="apple-mobile-web-app-title" content="Lindholm Vin">
 <meta name="theme-color" content="#7C2D3E">
 <script src="config.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 :root{
   --bg:#F7F4F1; --card:#FFFFFF; --card2:#FBF9F7; --ink:#2A2126; --muted:#756A70;
@@ -158,6 +160,13 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
 .spin{text-align:center;color:var(--muted);padding:60px 0;font-size:14px}
 #toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:var(--ink);color:var(--bg);
   padding:9px 16px;border-radius:8px;font-size:13.5px;z-index:120;opacity:0;transition:opacity .2s;pointer-events:none}
+#map{height:300px;border-radius:8px;background:var(--card2);position:relative;z-index:0}
+.morep{font-size:12px;color:var(--muted);padding:6px 0 0}
+.vnum{font-size:9.5px;fill:var(--muted);font-variant-numeric:tabular-nums}
+/* iOS zooms into any focused field with font-size < 16px — keep inputs at 16px on small screens */
+@media(max-width:640px){
+  .filters input[type=search],.filters select,.modal input,.modal select,.modal textarea,.gate input{font-size:16px}
+}
 @media (prefers-reduced-motion: reduce){*{transition:none !important}}
 </style>
 </head>
@@ -186,6 +195,7 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
 
 <div class="actions">
   <button class="btn primary" id="addBtn">＋ Add wine</button>
+  <button class="btn" id="tonightBtn">🎲 Tonight</button>
   <button class="btn" id="priceBtn">Show prices</button>
   <button class="btn" id="refreshBtn">Refresh</button>
   <span class="stamp" id="stamp"></span>
@@ -208,6 +218,19 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
     <p class="ph">Bottles in the cellar</p>
     <div class="stack" id="stack" aria-hidden="true"></div>
     <div class="slegend" id="slegend"></div>
+  </div>
+</div>
+
+<div class="grid">
+  <div class="panel">
+    <h2>Producers</h2>
+    <p class="ph">Bottles in the cellar · click to filter the list</p>
+    <div id="producers"></div>
+  </div>
+  <div class="panel">
+    <h2>Map</h2>
+    <p class="ph">Where the cellar comes from · click a dot to filter</p>
+    <div id="map" aria-label="Map of wine regions in the cellar"></div>
   </div>
 </div>
 
