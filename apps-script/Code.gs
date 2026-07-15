@@ -14,6 +14,8 @@ const ACCESS_CODE = 'CHANGE-ME';        // code to open the site
 const SHEET_NAME  = 'Ark1';             // tab name that holds the wine list
 // ─────────────────────────────────────────────────────────────────────────────
 
+const API_VERSION = 3; // returned in every response; used to verify deployments
+
 // Column headers in row 1 of the sheet, mapped to API field names.
 const HEADERS = {
   producer: 'Producent',
@@ -124,6 +126,7 @@ function markDrunk(rowNum, n) {
 }
 
 function json(obj) {
+  obj.v = API_VERSION;
   return ContentService.createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
 }

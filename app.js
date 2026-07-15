@@ -295,7 +295,7 @@ async function loadData(){
     WINES = normalize(res.wines);
     $("priceBtn").textContent = SHOW_PRICES ? "Hide prices" : "Show prices";
     renderOverview(); renderTable();
-    $("stamp").textContent = "Updated "+new Date().toLocaleTimeString("da-DK",{hour:"2-digit",minute:"2-digit"});
+    $("stamp").textContent = "Updated "+new Date().toLocaleString("da-DK",{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"});
     $("spin").hidden = true; $("content").hidden = false;
   }catch(err){
     if(err.message==="bad-code"){ forgetAuth(); showGate("Wrong access code — try again."); }
