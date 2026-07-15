@@ -11,8 +11,6 @@
 <meta name="apple-mobile-web-app-title" content="Lindholm Vin">
 <meta name="theme-color" content="#7C2D3E">
 <script src="config.js"></script>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 :root{
   --bg:#F7F4F1; --card:#FFFFFF; --card2:#FBF9F7; --ink:#2A2126; --muted:#756A70;
@@ -61,7 +59,7 @@ header.top h1 em{font-style:italic;color:var(--accent)}
 .kpi .hint{font-size:12px;color:var(--muted);margin-top:2px}
 .kpi.locked .val{color:var(--muted);font-size:22px}
 
-.grid{display:grid;grid-template-columns:1.15fr .85fr;gap:12px;margin-bottom:24px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px;align-items:start}
 @media(max-width:820px){.grid{grid-template-columns:1fr}}
 .panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 18px;box-shadow:var(--shadow)}
 .panel h2{margin:0 0 2px;font-size:15px;font-weight:650;font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif}
@@ -161,8 +159,14 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
 .spin{text-align:center;color:var(--muted);padding:60px 0;font-size:14px}
 #toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:var(--ink);color:var(--bg);
   padding:9px 16px;border-radius:8px;font-size:13.5px;z-index:120;opacity:0;transition:opacity .2s;pointer-events:none}
-#map{height:300px;border-radius:8px;background:var(--card2);position:relative;z-index:0}
-.morep{font-size:12px;color:var(--muted);padding:6px 0 0}
+#map{display:block;width:100%;max-width:640px;margin:0 auto;height:auto}
+#map .land{fill:var(--chip);stroke:var(--line);stroke-width:1;stroke-linejoin:round}
+#map .sea{fill:none}
+#map .dot{fill:var(--accent);fill-opacity:.55;stroke:var(--accent);stroke-width:1.5;cursor:pointer;transition:fill-opacity .1s}
+#map .dot:hover,#map .dot.on{fill-opacity:.9}
+#map .dlabel{fill:var(--ink);font-size:11px;font-weight:600;paint-order:stroke;stroke:var(--card);stroke-width:3px;stroke-linejoin:round;pointer-events:none}
+#map .dsub{fill:var(--muted);font-size:9px;paint-order:stroke;stroke:var(--card);stroke-width:3px;pointer-events:none}
+.morep{font-size:12px;color:var(--muted);padding:8px 0 0}
 .vnum{font-size:9.5px;fill:var(--muted);font-variant-numeric:tabular-nums}
 /* iOS zooms into any focused field with font-size < 16px — keep inputs at 16px on small screens */
 @media(max-width:640px){
@@ -215,30 +219,30 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
     <div id="regions"></div>
   </div>
   <div class="panel">
-    <h2>By style</h2>
-    <p class="ph">Bottles in the cellar</p>
-    <div class="stack" id="stack" aria-hidden="true"></div>
-    <div class="slegend" id="slegend"></div>
+    <h2>Producers</h2>
+    <p class="ph">Bottles in the cellar · click to filter the list</p>
+    <div id="producers"></div>
   </div>
 </div>
 
 <div class="grid">
   <div class="panel">
-    <h2>Producers</h2>
-    <p class="ph">Bottles in the cellar · click to filter the list</p>
-    <div id="producers"></div>
+    <h2>By style</h2>
+    <p class="ph">Bottles in the cellar</p>
+    <div class="stack" id="stack" aria-hidden="true"></div>
+    <div class="slegend" id="slegend"></div>
   </div>
   <div class="panel">
-    <h2>Map</h2>
-    <p class="ph">Where the cellar comes from · click a dot to filter</p>
-    <div id="map" aria-label="Map of wine regions in the cellar"></div>
+    <h2>Vintages</h2>
+    <p class="ph">Bottles in the cellar by vintage · NV = non-vintage champagne</p>
+    <svg id="vintChart" role="img" aria-label="Bar chart of bottles per vintage year"></svg>
   </div>
 </div>
 
 <div class="panel" style="margin-bottom:24px">
-  <h2>Vintages</h2>
-  <p class="ph">Bottles in the cellar by vintage · NV = non-vintage champagne</p>
-  <svg id="vintChart" role="img" aria-label="Bar chart of bottles per vintage year"></svg>
+  <h2>Where the cellar comes from</h2>
+  <p class="ph">Each region sized by bottles · click a dot to filter the list</p>
+  <svg id="map" role="img" aria-label="Stylized map of the wine regions in the cellar"></svg>
 </div>
 
 <div class="filters">

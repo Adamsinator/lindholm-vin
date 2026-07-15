@@ -42,8 +42,34 @@ function doPost(e) {
   return handle(p);
 }
 
+// Brute-force throttle. Apps Script cannot see the caller's IP, so this is a
+// GLOBAL counter kept in the script's short-term cache (not per-user): after
+// MAX_FAILS wrong access codes in a row the endpoint locks for LOCK_SECONDS for
+// everyone. A correct code clears it. Wrong PRICE codes never count (already in).
+const MAX_FAILS = 3;
+const LOCK_SECONDS = 300; // 5 minutes
+
 function handle(p) {
-  if (String(p.code || '') !== ACCESS_CODE) return json({ ok: false, error: 'bad-code' });
+  const cache = CacheService.getScriptCache();
+  const now = Date.now();
+
+  const lockUntil = Number(cache.get('lockUntil') || 0);
+  if (now < lockUntil) {
+    return json({ ok: false, error: 'locked', retryAfter: Math.ceil((lockUntil - now) / 1000) });
+  }
+
+  if (String(p.code || '') !== ACCESS_CODE) {
+    const fails = Number(cache.get('fails') || 0) + 1;
+    if (fails >= MAX_FAILS) {
+      cache.put('lockUntil', String(now + LOCK_SECONDS * 1000), LOCK_SECONDS + 60);
+      cache.remove('fails');
+      return json({ ok: false, error: 'locked', retryAfter: LOCK_SECONDS });
+    }
+    cache.put('fails', String(fails), LOCK_SECONDS + 60);
+    return json({ ok: false, error: 'bad-code', triesLeft: MAX_FAILS - fails });
+  }
+  cache.remove('fails');
+
   const showPrices = String(p.pricecode || '') === PRICE_CODE;
 
   try {

@@ -39,8 +39,20 @@ Add and "mark as drunk" happen in the site; anything else (editing a price,
 fixing a typo) you do directly in the Google Sheet — the site picks it up on
 the next refresh.
 
-## Changing the codes
+## Brute-force lockout
 
-Edit the two constants in Apps Script and create a **new deployment**
-(Deploy → Manage deployments → edit → new version). Then press **Lock** in the
-site and sign in with the new code.
+After 3 wrong access codes in a row the API locks for 5 minutes (`MAX_FAILS` /
+`LOCK_SECONDS` in `Code.gs`). This is enforced **server-side** — a correct code
+is refused while locked too, so clearing browser storage or switching device
+does not bypass it. Apps Script cannot see the caller's IP, so the counter is
+**global** (shared across everyone), not per-IP. Trade-offs: it can briefly lock
+you out too, and someone who knows the URL could keep it locked by failing every
+5 minutes — annoying but harmless, since they still can't read anything.
+
+## Changing the code / deploying `Code.gs` updates
+
+Edit the constants at the top of `Code.gs`, then **redeploy**: Deploy → Manage
+deployments → pencil ✏️ on the active one → Version: **New version** → Deploy.
+Editing the existing deployment keeps the same URL (no site change needed). Then
+press **Lock** in the site and sign in again. The lockout only becomes active
+once this redeploy is done.

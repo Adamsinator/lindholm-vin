@@ -30,7 +30,7 @@ async function api(params){
   const res = await fetch(cfg.api, {method:"POST", body, redirect:"follow"});
   if(!res.ok) throw new Error("HTTP "+res.status);
   const data = await res.json();
-  if(!data.ok) throw new Error(data.error || "unknown-error");
+  if(!data.ok){ const e = new Error(data.error || "unknown-error"); e.data = data; throw e; }
   return data;
 }
 
@@ -137,14 +137,14 @@ function renderOverview(){
   const prodAgg = {};
   cellar.forEach(w=>{ const p=prodAgg[w.producer] ??= {b:0,v:0,n:0}; p.b+=w.left; p.v+=(w.price||0)*w.left; p.n++; });
   const prods = Object.entries(prodAgg).sort((a,b)=>b[1].b-a[1].b);
-  const topProds = prods.slice(0,8);
+  const topProds = prods.slice(0,10);
   const maxPB = topProds.length ? topProds[0][1].b : 1;
   $("producers").innerHTML = topProds.map(([name,p])=>`
     <button class="rbar" data-prod="${esc(name)}" aria-label="${esc(name)}: ${p.b} bottles">
       <span class="rb-name">${esc(name)}</span>
       <span class="rb-track"><span class="rb-fill" style="width:${Math.max(1.5,p.b/maxPB*100)}%"></span></span>
       <span class="rb-n">${p.b} btl.</span>
-    </button>`).join("") + (prods.length>8?`<div class="morep">+ ${prods.length-8} more producers — use the search box</div>`:"");
+    </button>`).join("") + (prods.length>10?`<div class="morep">+ ${prods.length-10} more producers — use the search box</div>`:"");
   document.querySelectorAll("#producers .rbar").forEach(el=>{
     const name = el.dataset.prod, p = prodAgg[name];
     el.addEventListener("mousemove",e=>showTip(`<b>${esc(name)}</b><br>${p.b} bottle${p.b>1?"s":""} · ${p.n} wine${p.n>1?"s":""}${HAS_PRICES?" · "+kr(p.v):""}`,e.clientX,e.clientY));
@@ -262,6 +262,7 @@ function renderTable(){
   document.querySelectorAll(".rbar").forEach(el=>el.classList.toggle("active", el.dataset.region===state.region && !!state.region));
   document.querySelectorAll("#slegend button").forEach(el=>el.classList.toggle("active", el.dataset.style===state.style && !!state.style));
   document.querySelectorAll("#producers .rbar").forEach(el=>el.classList.toggle("active", el.dataset.prod===state.q.trim() && !!state.q.trim()));
+  syncMapActive();
 
   $("rows").innerHTML = list.map((w,i)=>{
     const pn = PRODUCER_NOTES[w.producer];
@@ -299,7 +300,10 @@ async function loadData(){
     $("stamp").textContent = "Updated "+new Date().toLocaleTimeString("da-DK",{hour:"2-digit",minute:"2-digit"});
     $("spin").hidden = true; $("content").hidden = false;
   }catch(err){
-    if(String(err.message).includes("bad-code")){ forgetAuth(); showGate("Wrong access code — try again."); }
+    const d = err.data || {};
+    if(err.message==="locked"){ forgetAuth(); lockGate(d.retryAfter || 300); }
+    else if(err.message==="bad-code"){ forgetAuth();
+      showGate(d.triesLeft!=null ? `Wrong access code — ${d.triesLeft} ${d.triesLeft===1?"try":"tries"} left.` : "Wrong access code — try again."); }
     else { $("spin").textContent = "Could not reach the cellar API ("+err.message+"). Check your connection and refresh."; }
   }
 }
@@ -339,11 +343,32 @@ async function addWine(e){
 }
 
 /* ---------- gate ---------- */
+let lockTimer = null;
 function showGate(msg){
+  clearInterval(lockTimer);
   $("app").hidden = true; $("gate").hidden = false;
   $("gateApiWrap").hidden = !!cfg.api;
+  const btn = $("gateForm").querySelector("button[type=submit]");
+  btn.disabled = false; btn.textContent = "Open the cellar"; $("gateCode").disabled = false;
   $("gateErr").textContent = msg||"";
   setTimeout(()=>$("gateCode").focus(), 50);
+}
+function lockGate(seconds){
+  clearInterval(lockTimer);
+  $("app").hidden = true; $("gate").hidden = false;
+  $("gateApiWrap").hidden = !!cfg.api;
+  const btn = $("gateForm").querySelector("button[type=submit]"), input = $("gateCode");
+  let left = Math.max(1, Math.round(seconds));
+  const tick = ()=>{
+    if(left<=0){ clearInterval(lockTimer);
+      btn.disabled=false; input.disabled=false; btn.textContent="Open the cellar";
+      $("gateErr").textContent="You can try again now."; input.focus(); return; }
+    const m=Math.floor(left/60), s=String(left%60).padStart(2,"0");
+    $("gateErr").textContent = `Too many wrong attempts. Locked for ${m}:${s}.`;
+    btn.disabled=true; input.disabled=true; btn.textContent="Locked 🔒";
+    left--;
+  };
+  tick(); lockTimer = setInterval(tick, 1000);
 }
 function forgetAuth(){
   localStorage.removeItem("vinCode"); sessionStorage.removeItem("vinPriceCode");
@@ -414,43 +439,71 @@ document.querySelectorAll("th[data-k]").forEach(th=>th.addEventListener("click",
   renderTable();
 }));
 
-/* ---------- map ---------- */
-const REGION_GEO = {
+/* ---------- stylized SVG map (no external tiles/CDN) ---------- */
+const REGION_GEO = {  // [lat, lng]
   "Bourgogne":[47.03,4.84], "Champagne":[49.04,4.00], "Chablis":[47.82,3.80],
   "Beaujolais":[46.15,4.72], "Rhône":[44.93,4.89], "Bordeaux":[44.84,-0.58],
-  "Loire":[47.33,2.84], "Languedoc":[43.51,3.32], "Roussillon":[42.65,2.88],
+  "Loire":[47.33,0.68], "Languedoc":[43.51,3.32], "Roussillon":[42.65,2.88],
   "Béarn":[43.30,-0.37], "Mosel":[49.91,6.99], "Piemonte":[44.61,7.99],
   "Veneto":[45.44,11.00], "Rioja":[42.46,-2.45], "Ribera del Duero":[41.62,-3.69],
 };
-let MAP=null, MAPLAYER=null, PENDING_MAP=null;
+// Simplified country outlines as [lng, lat], for a stylized reference frame — not survey-accurate.
+const LANDS = {
+  France:[[2.5,51.0],[4.0,50.3],[5.9,49.5],[7.6,49.0],[8.2,48.6],[7.6,47.6],[7.0,47.4],[6.8,46.4],[6.1,46.1],[7.0,45.5],[6.9,44.4],[7.7,43.9],[7.4,43.7],[6.0,43.1],[5.0,43.3],[4.0,43.5],[3.0,43.2],[3.0,42.5],[1.0,42.6],[-0.5,42.8],[-1.4,43.3],[-1.2,44.6],[-1.1,45.6],[-1.8,46.5],[-2.2,47.2],[-4.7,47.8],[-4.8,48.4],[-3.5,48.8],[-1.6,48.6],[-1.4,49.7],[0.2,49.5],[1.6,50.1]],
+  Switzerland:[[6.1,46.1],[7.0,45.9],[8.4,46.4],[9.5,46.4],[10.5,46.9],[9.6,47.6],[8.4,47.7],[7.0,47.4],[6.8,46.4]],
+  Germany:[[5.9,49.5],[6.1,50.8],[7.2,51.3],[8.7,50.6],[9.5,49.8],[10.0,50.6],[11.5,50.4],[12.5,50.2],[13.0,49.3],[13.4,48.9],[12.8,48.2],[11.0,47.9],[9.6,47.6],[8.4,47.7],[7.6,47.6],[8.2,48.6],[7.6,49.0],[6.4,49.2]],
+  Italy:[[7.0,45.5],[7.9,45.0],[9.0,45.8],[10.6,46.5],[12.4,46.8],[13.6,45.8],[13.1,45.6],[12.3,45.4],[12.5,44.6],[11.2,44.2],[9.9,44.1],[8.8,44.4],[7.6,44.1],[7.0,44.7]],
+  Spain:[[-1.4,43.4],[-3.8,43.5],[-4.9,43.4],[-4.6,42.6],[-4.2,41.8],[-4.0,41.4],[-2.5,41.5],[-0.5,41.5],[0.9,41.0],[2.2,41.3],[3.3,42.3],[1.5,42.6],[-0.5,42.8]],
+};
+const COS = Math.cos(46*Math.PI/180);
+function buildProjector(W, pad){
+  let minx=Infinity,maxx=-Infinity,miny=Infinity,maxy=-Infinity;
+  for(const poly of Object.values(LANDS)) for(const [lng,lat] of poly){
+    const x=lng*COS; if(x<minx)minx=x; if(x>maxx)maxx=x;
+    if(lat<miny)miny=lat; if(lat>maxy)maxy=lat;
+  }
+  const s=(W-2*pad)/(maxx-minx);
+  const H=(maxy-miny)*s+2*pad;
+  return { W, H, proj:([lng,lat])=>[pad+(lng*COS-minx)*s, pad+(maxy-lat)*s], r:(b)=>4+Math.sqrt(b)*1.7 };
+}
 function updateMap(cellar){
-  if(typeof L === "undefined"){
-    if(!PENDING_MAP) window.addEventListener("load",()=>{ if(PENDING_MAP) updateMap(PENDING_MAP); },{once:true});
-    PENDING_MAP = cellar;
-    return;
-  }
-  PENDING_MAP = null;
-  if(!MAP){
-    const dark = matchMedia("(prefers-color-scheme: dark)").matches;
-    MAP = L.map("map",{scrollWheelZoom:false});
-    L.tileLayer(`https://{s}.basemaps.cartocdn.com/${dark?"dark_all":"light_all"}/{z}/{x}/{y}{r}.png`,
-      {attribution:"&copy; OpenStreetMap &copy; CARTO", maxZoom:10}).addTo(MAP);
-  }
-  if(MAPLAYER) MAPLAYER.remove();
-  const agg = {};
+  const svg=$("map"); if(!svg) return;
+  const {W,H,proj,r}=buildProjector(600,24);
+  const agg={};
   cellar.forEach(w=>{ const a=agg[w.region] ??= {b:0,n:0}; a.b+=w.left; a.n++; });
-  const accent = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || "#7C2D3E";
-  const ms = [];
-  for(const [name,a] of Object.entries(agg)){
-    const geo = REGION_GEO[name]; if(!geo) continue;
-    const m = L.circleMarker(geo,{radius:5+Math.sqrt(a.b)*2, color:accent, weight:1.5, fillColor:accent, fillOpacity:.55});
-    m.bindTooltip(`<b>${esc(name)}</b><br>${a.b} bottle${a.b>1?"s":""} · ${a.n} wine${a.n>1?"s":""}`);
-    m.on("click",()=>{ state.region = state.region===name ? "" : name;
+  const entries = Object.entries(agg).filter(([n])=>REGION_GEO[n]).sort((a,b)=>b[1].b-a[1].b);
+  const pt = name => proj([REGION_GEO[name][1], REGION_GEO[name][0]]);
+
+  let html = Object.values(LANDS).map(poly=>{
+    const d = poly.map((p,i)=>(i?"L":"M")+proj(p).map(n=>n.toFixed(1)).join(" ")).join("")+"Z";
+    return `<path class="land" d="${d}"/>`;
+  }).join("");
+  // dots, largest first so small ones stay hoverable on top
+  html += entries.map(([name,a])=>{
+    const [x,y]=pt(name);
+    return `<circle class="dot" data-region="${esc(name)}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r(a.b).toFixed(1)}"/>`;
+  }).join("");
+  // labels for the biggest regions, flipped left near the right edge (rest on hover)
+  html += entries.slice(0,4).map(([name,a])=>{
+    const [x,y]=pt(name); const rad=r(a.b), left=x>W*0.6;
+    const lx=(left?x-rad-4:x+rad+4).toFixed(1), anc=left?"end":"start";
+    return `<text class="dlabel" text-anchor="${anc}" x="${lx}" y="${(y-1).toFixed(1)}">${esc(name)}</text>
+      <text class="dsub" text-anchor="${anc}" x="${lx}" y="${(y+10).toFixed(1)}">${a.b} btl.</text>`;
+  }).join("");
+  svg.setAttribute("viewBox",`0 0 ${W} ${Math.round(H)}`);
+  svg.innerHTML = html;
+  svg.querySelectorAll(".dot").forEach(c=>{
+    const name=c.dataset.region, a=agg[name];
+    c.addEventListener("mousemove",e=>showTip(`<b>${esc(name)}</b><br>${a.b} bottle${a.b>1?"s":""} · ${a.n} wine${a.n>1?"s":""}`,e.clientX,e.clientY));
+    c.addEventListener("mouseleave",hideTip);
+    c.addEventListener("click",()=>{ state.region = state.region===name ? "" : name;
       $("fRegion").value = state.region; renderTable(); });
-    ms.push(m);
-  }
-  MAPLAYER = L.featureGroup(ms).addTo(MAP);
-  if(ms.length) MAP.fitBounds(MAPLAYER.getBounds().pad(0.25),{maxZoom:6});
+  });
+  syncMapActive();
+}
+function syncMapActive(){
+  document.querySelectorAll("#map .dot").forEach(c=>
+    c.classList.toggle("on", c.dataset.region===state.region && !!state.region));
 }
 
 /* ---------- tonight's bottle ---------- */
