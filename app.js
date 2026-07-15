@@ -15,18 +15,17 @@ const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>
 const $ = id => document.getElementById(id);
 
 let WINES = [];          // normalized
-let HAS_PRICES = false;
+let SHOW_PRICES = localStorage.getItem("vinHidePrices") !== "1"; // prices shown by default
 const state = {q:"", region:"", style:"", status:"cellar", sortK:"price", sortDir:-1};
 
 /* ---------- config / auth ---------- */
 const cfg = {
   api: localStorage.getItem("vinApi") || (window.WINE_CONFIG && window.WINE_CONFIG.API_URL) || "",
   code: localStorage.getItem("vinCode") || "",
-  pricecode: sessionStorage.getItem("vinPriceCode") || "",
 };
 
 async function api(params){
-  const body = JSON.stringify({code:cfg.code, pricecode:cfg.pricecode, ...params});
+  const body = JSON.stringify({code:cfg.code, ...params});
   const res = await fetch(cfg.api, {method:"POST", body, redirect:"follow"});
   if(!res.ok) throw new Error("HTTP "+res.status);
   const data = await res.json();
@@ -80,12 +79,12 @@ function renderOverview(){
   const kpis = [
     ["Bottles in cellar", fmt(bottlesLeft), cellar.length+" different wines", ""],
   ];
-  if(HAS_PRICES){
+  if(SHOW_PRICES){
     const valueLeft = cellar.reduce((s,w)=>s+(w.price||0)*w.left,0);
     kpis.push(["Cellar value", kr(valueLeft), "at purchase price", ""]);
     kpis.push(["Avg. bottle", kr(bottlesLeft?valueLeft/bottlesLeft:0), "cellar average", ""]);
   }else{
-    kpis.push(["Cellar value", "🔒 hidden", "unlock with price code", "locked"]);
+    kpis.push(["Cellar value", "🔒 hidden", "press Show prices above", "locked"]);
   }
   kpis.push(["Icon-producer bottles", fmt(iconCount), "Roumier, Rouget, Egon Müller…", ""]);
   kpis.push(["Enjoyed so far", fmt(drunk), "bottles drunk", ""]);
@@ -111,7 +110,7 @@ function renderOverview(){
     el.addEventListener("mousemove",e=>{
       const label = el.querySelector(".rb-name").textContent;
       const r = topRegs.find(t=>t[0]===label)[1];
-      showTip(`<b>${esc(label)}</b><br>${r.b} bottles${HAS_PRICES?" · "+kr(r.v):""}`,e.clientX,e.clientY);
+      showTip(`<b>${esc(label)}</b><br>${r.b} bottles${SHOW_PRICES?" · "+kr(r.v):""}`,e.clientX,e.clientY);
     });
     el.addEventListener("mouseleave",hideTip);
     el.addEventListener("click",()=>{ const name=el.dataset.region; if(!name) return;
@@ -147,7 +146,7 @@ function renderOverview(){
     </button>`).join("") + (prods.length>10?`<div class="morep">+ ${prods.length-10} more producers — use the search box</div>`:"");
   document.querySelectorAll("#producers .rbar").forEach(el=>{
     const name = el.dataset.prod, p = prodAgg[name];
-    el.addEventListener("mousemove",e=>showTip(`<b>${esc(name)}</b><br>${p.b} bottle${p.b>1?"s":""} · ${p.n} wine${p.n>1?"s":""}${HAS_PRICES?" · "+kr(p.v):""}`,e.clientX,e.clientY));
+    el.addEventListener("mousemove",e=>showTip(`<b>${esc(name)}</b><br>${p.b} bottle${p.b>1?"s":""} · ${p.n} wine${p.n>1?"s":""}${SHOW_PRICES?" · "+kr(p.v):""}`,e.clientX,e.clientY));
     el.addEventListener("mouseleave",hideTip);
     el.addEventListener("click",()=>{
       state.q = state.q.trim()===name ? "" : name;
@@ -216,7 +215,7 @@ function detailHTML(w){
   const cells = [
     ["Commune", w.commune],["Classification", w.classification],["Grape", w.grape],
     ["Bought", w.qty+" btl."],["Enjoyed", w.drunk?w.drunk+" btl.":""],["Source", w.source],
-    ["Price", HAS_PRICES && w.price ? kr(w.price) : ""],
+    ["Price", SHOW_PRICES && w.price ? kr(w.price) : ""],
   ].filter(c=>c[1]).map(([k,v])=>`<div><div class="k">${k}</div>${esc(v)}</div>`).join("");
   return `<div class="dgrid">${cells}</div>
     ${w.note?`<div class="unote">“${esc(w.note)}” — cellar note</div>`:""}
@@ -252,7 +251,7 @@ function renderTable(){
 
   const bl = list.reduce((s,w)=>s+(state.status==="drunk"?w.drunk:w.left),0);
   let countTxt = `${list.length} wines · ${fmt(bl)} btl.`;
-  if(HAS_PRICES){
+  if(SHOW_PRICES){
     const vl = list.reduce((s,w)=>s+(w.price||0)*(state.status==="drunk"?w.drunk:w.left),0);
     countTxt += ` · ${kr(vl)}`;
   }
@@ -274,7 +273,7 @@ function renderTable(){
       <td>${esc(w.region)}</td>
       <td><span class="sdot" style="background:var(${STYLE_VAR[w.style]||"--muted"})"></span>${STYLE_EN[w.style]||esc(w.style)}</td>
       <td class="num">${state.status==="drunk"?w.drunk:w.left}</td>
-      <td class="num">${HAS_PRICES ? (w.price?kr(w.price):"—") : "···"}</td>
+      <td class="num">${SHOW_PRICES ? (w.price?kr(w.price):"—") : "···"}</td>
     </tr>
     <tr class="detail" hidden><td colspan="6">${detailHTML(w)}</td></tr>`;
   }).join("");
@@ -294,16 +293,12 @@ async function loadData(){
   try{
     const res = await api({action:"data"});
     WINES = normalize(res.wines);
-    HAS_PRICES = !!res.prices;
-    $("priceBtn").textContent = HAS_PRICES ? "Hide prices" : "Show prices";
+    $("priceBtn").textContent = SHOW_PRICES ? "Hide prices" : "Show prices";
     renderOverview(); renderTable();
     $("stamp").textContent = "Updated "+new Date().toLocaleTimeString("da-DK",{hour:"2-digit",minute:"2-digit"});
     $("spin").hidden = true; $("content").hidden = false;
   }catch(err){
-    const d = err.data || {};
-    if(err.message==="locked"){ forgetAuth(); lockGate(d.retryAfter || 300); }
-    else if(err.message==="bad-code"){ forgetAuth();
-      showGate(d.triesLeft!=null ? `Wrong access code — ${d.triesLeft} ${d.triesLeft===1?"try":"tries"} left.` : "Wrong access code — try again."); }
+    if(err.message==="bad-code"){ forgetAuth(); showGate("Wrong access code — try again."); }
     else { $("spin").textContent = "Could not reach the cellar API ("+err.message+"). Check your connection and refresh."; }
   }
 }
@@ -312,7 +307,7 @@ async function drinkOne(row, btn){
   btn.disabled = true; btn.textContent = "Updating…";
   try{
     const res = await api({action:"drink", row, qty:1});
-    WINES = normalize(res.wines); HAS_PRICES = !!res.prices;
+    WINES = normalize(res.wines);
     renderOverview(); renderTable();
     toast("Skål! Bottle marked as drunk 🍷");
   }catch(err){ toast("Could not update: "+err.message); btn.disabled=false; btn.textContent="🍷 Mark 1 bottle as drunk"; }
@@ -333,7 +328,7 @@ async function addWine(e){
   };
   try{
     const res = await api({action:"add", wine});
-    WINES = normalize(res.wines); HAS_PRICES = !!res.prices;
+    WINES = normalize(res.wines);
     renderOverview(); renderTable();
     $("addModal").classList.remove("open");
     $("addForm").reset(); $("aQty").value = 1; $("aCountry").value = "Frankrig";
@@ -343,36 +338,15 @@ async function addWine(e){
 }
 
 /* ---------- gate ---------- */
-let lockTimer = null;
 function showGate(msg){
-  clearInterval(lockTimer);
   $("app").hidden = true; $("gate").hidden = false;
   $("gateApiWrap").hidden = !!cfg.api;
-  const btn = $("gateForm").querySelector("button[type=submit]");
-  btn.disabled = false; btn.textContent = "Open the cellar"; $("gateCode").disabled = false;
   $("gateErr").textContent = msg||"";
   setTimeout(()=>$("gateCode").focus(), 50);
 }
-function lockGate(seconds){
-  clearInterval(lockTimer);
-  $("app").hidden = true; $("gate").hidden = false;
-  $("gateApiWrap").hidden = !!cfg.api;
-  const btn = $("gateForm").querySelector("button[type=submit]"), input = $("gateCode");
-  let left = Math.max(1, Math.round(seconds));
-  const tick = ()=>{
-    if(left<=0){ clearInterval(lockTimer);
-      btn.disabled=false; input.disabled=false; btn.textContent="Open the cellar";
-      $("gateErr").textContent="You can try again now."; input.focus(); return; }
-    const m=Math.floor(left/60), s=String(left%60).padStart(2,"0");
-    $("gateErr").textContent = `Too many wrong attempts. Locked for ${m}:${s}.`;
-    btn.disabled=true; input.disabled=true; btn.textContent="Locked 🔒";
-    left--;
-  };
-  tick(); lockTimer = setInterval(tick, 1000);
-}
 function forgetAuth(){
-  localStorage.removeItem("vinCode"); sessionStorage.removeItem("vinPriceCode");
-  cfg.code=""; cfg.pricecode="";
+  localStorage.removeItem("vinCode");
+  cfg.code="";
 }
 $("gateForm").addEventListener("submit",e=>{
   e.preventDefault();
@@ -389,36 +363,11 @@ $("gateForm").addEventListener("submit",e=>{
 /* ---------- header actions ---------- */
 $("refreshBtn").addEventListener("click", loadData);
 $("lockBtn").addEventListener("click", ()=>{ forgetAuth(); showGate("Locked. Enter the access code to reopen."); });
-function askPriceCode(){
-  const m = document.createElement("div");
-  m.className = "modal open";
-  m.innerHTML = `<form class="card" style="max-width:340px">
-    <h2>Unlock prices</h2>
-    <label for="pCode">Price code</label>
-    <input id="pCode" type="password" style="width:100%" autocomplete="off">
-    <div class="mact"><button type="button" class="btn" data-x="cancel">Cancel</button>
-    <button type="submit" class="btn primary">Unlock</button></div></form>`;
-  document.body.appendChild(m);
-  const input = m.querySelector("#pCode");
-  setTimeout(()=>input.focus(), 30);
-  const close = ()=>m.remove();
-  m.querySelector('[data-x="cancel"]').addEventListener("click", close);
-  m.addEventListener("click", e=>{ if(e.target===m) close(); });
-  m.querySelector("form").addEventListener("submit", e=>{
-    e.preventDefault();
-    cfg.pricecode = input.value.trim(); sessionStorage.setItem("vinPriceCode", cfg.pricecode);
-    api({action:"data"}).then(res=>{
-      if(!res.prices){ toast("Wrong price code"); cfg.pricecode=""; sessionStorage.removeItem("vinPriceCode"); return; }
-      close();
-      WINES = normalize(res.wines); HAS_PRICES = true;
-      $("priceBtn").textContent = "Hide prices";
-      renderOverview(); renderTable();
-    }).catch(err=>toast("Error: "+err.message));
-  });
-}
 $("priceBtn").addEventListener("click", ()=>{
-  if(HAS_PRICES){ cfg.pricecode=""; sessionStorage.removeItem("vinPriceCode"); loadData(); return; }
-  askPriceCode();
+  SHOW_PRICES = !SHOW_PRICES;
+  localStorage.setItem("vinHidePrices", SHOW_PRICES ? "0" : "1");
+  $("priceBtn").textContent = SHOW_PRICES ? "Hide prices" : "Show prices";
+  renderOverview(); renderTable();
 });
 $("addBtn").addEventListener("click", ()=>{ $("addModal").classList.add("open"); $("aProducer").focus(); });
 $("addCancel").addEventListener("click", ()=>$("addModal").classList.remove("open"));

@@ -2,17 +2,15 @@
  * Lindholm Vin — cellar API (Google Apps Script)
  *
  * Attach this to the Google Sheet that holds the cellar:
- *   Extensions → Apps Script → paste this file → set the two codes below →
+ *   Extensions → Apps Script → paste this file → set the code below →
  *   Deploy → New deployment → Web app → Execute as: Me → Who has access: Anyone
  *
  * The sheet itself stays private. This script is the only way in, and it
- * refuses everything without the access code. Prices are only included in
- * responses that also carry the price code.
+ * refuses everything without the access code.
  */
 
-// ── EDIT THESE ────────────────────────────────────────────────────────────────
+// ── EDIT THIS ─────────────────────────────────────────────────────────────────
 const ACCESS_CODE = 'CHANGE-ME';        // code to open the site
-const PRICE_CODE  = 'CHANGE-ME-TOO';    // second code to reveal prices
 const SHEET_NAME  = 'Ark1';             // tab name that holds the wine list
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -42,46 +40,19 @@ function doPost(e) {
   return handle(p);
 }
 
-// Brute-force throttle. Apps Script cannot see the caller's IP, so this is a
-// GLOBAL counter kept in the script's short-term cache (not per-user): after
-// MAX_FAILS wrong access codes in a row the endpoint locks for LOCK_SECONDS for
-// everyone. A correct code clears it. Wrong PRICE codes never count (already in).
-const MAX_FAILS = 3;
-const LOCK_SECONDS = 300; // 5 minutes
-
 function handle(p) {
-  const cache = CacheService.getScriptCache();
-  const now = Date.now();
-
-  const lockUntil = Number(cache.get('lockUntil') || 0);
-  if (now < lockUntil) {
-    return json({ ok: false, error: 'locked', retryAfter: Math.ceil((lockUntil - now) / 1000) });
-  }
-
-  if (String(p.code || '') !== ACCESS_CODE) {
-    const fails = Number(cache.get('fails') || 0) + 1;
-    if (fails >= MAX_FAILS) {
-      cache.put('lockUntil', String(now + LOCK_SECONDS * 1000), LOCK_SECONDS + 60);
-      cache.remove('fails');
-      return json({ ok: false, error: 'locked', retryAfter: LOCK_SECONDS });
-    }
-    cache.put('fails', String(fails), LOCK_SECONDS + 60);
-    return json({ ok: false, error: 'bad-code', triesLeft: MAX_FAILS - fails });
-  }
-  cache.remove('fails');
-
-  const showPrices = String(p.pricecode || '') === PRICE_CODE;
+  if (String(p.code || '') !== ACCESS_CODE) return json({ ok: false, error: 'bad-code' });
 
   try {
     switch (p.action) {
       case 'data':
-        return json({ ok: true, prices: showPrices, wines: readAll(showPrices) });
+        return json({ ok: true, wines: readAll() });
       case 'add':
         addWine(p.wine || {});
-        return json({ ok: true, prices: showPrices, wines: readAll(showPrices) });
+        return json({ ok: true, wines: readAll() });
       case 'drink':
         markDrunk(Number(p.row), Number(p.qty) || 1);
-        return json({ ok: true, prices: showPrices, wines: readAll(showPrices) });
+        return json({ ok: true, wines: readAll() });
       default:
         return json({ ok: false, error: 'bad-action' });
     }
@@ -107,7 +78,7 @@ function colIndexes(sh) {
   return idx;
 }
 
-function readAll(showPrices) {
+function readAll() {
   const sh = sheet();
   const idx = colIndexes(sh);
   const last = sh.getLastRow();
@@ -122,7 +93,6 @@ function readAll(showPrices) {
       if (v instanceof Date) v = v.getFullYear(); // vintage cells sometimes parse as dates
       w[field] = v === null || v === undefined ? '' : v;
     }
-    if (!showPrices) w.price = null;
     wines.push(w);
   });
   return wines;
