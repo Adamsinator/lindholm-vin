@@ -221,8 +221,10 @@ function detailHTML(w){
     ${w.note?`<div class="unote">“${esc(w.note)}” — cellar note</div>`:""}
     ${pn?`<div class="pnote"><b>${esc(w.producer)}</b> · ${TIER_LABEL[pn[0]]} — ${pn[1]}</div>`:""}
     <div class="links">
-      ${w.left>0?`<button class="drink" data-row="${w.row}">🍷 Mark 1 bottle as drunk</button>`:""}
+      ${w.left>0?`<button class="drink" data-act="drink" data-row="${w.row}">🍷 Mark 1 bottle as drunk</button>`:""}
+      ${w.drunk>0?`<button class="drink" data-act="undrink" data-row="${w.row}">↩︎ Undo drink</button>`:""}
       ${searchLinks(w)}
+      <button class="drink del" data-act="delete" data-row="${w.row}">🗑 Delete wine</button>
     </div>`;
 }
 
@@ -284,7 +286,7 @@ function renderTable(){
     tr.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); open(); } });
   });
   document.querySelectorAll("button.drink").forEach(b=>
-    b.addEventListener("click",()=>drinkOne(Number(b.dataset.row), b)));
+    b.addEventListener("click",()=>rowAction(b.dataset.act, Number(b.dataset.row), b)));
 }
 
 /* ---------- actions ---------- */
@@ -303,14 +305,21 @@ async function loadData(){
   }
 }
 
-async function drinkOne(row, btn){
+async function rowAction(act, row, btn){
+  const w = WINES.find(x=>x.row===row);
+  if(act==="delete"){
+    const name = w ? `${w.producer} ${w.name} ${w.vintage||""}`.trim() : "this wine";
+    if(!confirm(`Delete ${name} from the cellar?\nThis removes the whole row from the sheet.`)) return;
+  }
   btn.disabled = true; btn.textContent = "Updating…";
   try{
-    const res = await api({action:"drink", row, qty:1});
+    const res = await api({action:act, row, qty:1});
     WINES = normalize(res.wines);
     renderOverview(); renderTable();
-    toast("Skål! Bottle marked as drunk 🍷");
-  }catch(err){ toast("Could not update: "+err.message); btn.disabled=false; btn.textContent="🍷 Mark 1 bottle as drunk"; }
+    toast(act==="drink" ? "Skål! Bottle marked as drunk 🍷"
+        : act==="undrink" ? "Bottle back in the cellar 🍾"
+        : "Wine deleted from the sheet");
+  }catch(err){ toast("Could not update: "+err.message); btn.disabled=false; }
 }
 
 async function addWine(e){
@@ -477,8 +486,8 @@ function pickTonight(){
   m.addEventListener("click",e=>{ if(e.target===m) m.remove(); });
   m.querySelector('[data-x="close"]').addEventListener("click",()=>m.remove());
   m.querySelector('[data-x="again"]').addEventListener("click",()=>{ m.remove(); pickTonight(); });
-  const db = m.querySelector("button.drink");
-  if(db) db.addEventListener("click", async ()=>{ await drinkOne(Number(db.dataset.row), db); m.remove(); });
+  m.querySelectorAll("button.drink").forEach(db=>
+    db.addEventListener("click", async ()=>{ await rowAction(db.dataset.act, Number(db.dataset.row), db); m.remove(); }));
 }
 $("tonightBtn").addEventListener("click", pickTonight);
 

@@ -14,7 +14,7 @@ const ACCESS_CODE = 'CHANGE-ME';        // code to open the site
 const SHEET_NAME  = 'Ark1';             // tab name that holds the wine list
 // ─────────────────────────────────────────────────────────────────────────────
 
-const API_VERSION = 3; // returned in every response; used to verify deployments
+const API_VERSION = 4; // returned in every response; used to verify deployments
 
 // Column headers in row 1 of the sheet, mapped to API field names.
 const HEADERS = {
@@ -54,6 +54,12 @@ function handle(p) {
         return json({ ok: true, wines: readAll() });
       case 'drink':
         markDrunk(Number(p.row), Number(p.qty) || 1);
+        return json({ ok: true, wines: readAll() });
+      case 'undrink':
+        markDrunk(Number(p.row), -(Number(p.qty) || 1));
+        return json({ ok: true, wines: readAll() });
+      case 'delete':
+        deleteWine(Number(p.row));
         return json({ ok: true, wines: readAll() });
       default:
         return json({ ok: false, error: 'bad-action' });
@@ -122,7 +128,13 @@ function markDrunk(rowNum, n) {
   const qty = Number(qtyCell.getValue()) || 1;
   let drunk = drunkCell.getValue();
   drunk = String(drunk).trim().toLowerCase() === 'x' ? qty : Number(drunk) || 0;
-  drunkCell.setValue(Math.min(qty, drunk + n));
+  drunkCell.setValue(Math.min(qty, Math.max(0, drunk + n)));
+}
+
+function deleteWine(rowNum) {
+  const sh = sheet();
+  if (!rowNum || rowNum < 2 || rowNum > sh.getLastRow()) throw new Error('Bad row');
+  sh.deleteRow(rowNum);
 }
 
 function json(obj) {
