@@ -53,6 +53,7 @@ function normalize(rows){
       classification:cls, style, grape:String(r.grape).trim(),
       vintage, qty, drunk, left:qty-drunk,
       price: (r.price===null||r.price===""||r.price===undefined) ? null : Number(r.price),
+      rating: (r.rating===null||r.rating===""||r.rating===undefined) ? null : Number(r.rating),
       source:String(r.source).trim(), note:String(r.note).trim(),
     };
   });
@@ -254,6 +255,11 @@ function detailHTML(w){
     <div class="links">
       ${w.left>0?`<button class="drink" data-act="drink" data-row="${w.row}">🍷 Mark 1 bottle as drunk</button>`:""}
       ${w.drunk>0?`<button class="drink" data-act="undrink" data-row="${w.row}">↩︎ Undo drink</button>`:""}
+      <label class="ratewrap">My score
+        <select class="rate" data-row="${w.row}">
+          <option value="">—</option>
+          ${Array.from({length:10},(_,i)=>`<option value="${i+1}"${w.rating===i+1?" selected":""}>${i+1}</option>`).join("")}
+        </select></label>
       <button class="jlog" data-row="${w.row}">📓 Log in journal</button>
       ${searchLinks(w)}
       <button class="drink del" data-act="delete" data-row="${w.row}">🗑 Delete wine</button>
@@ -303,7 +309,7 @@ function renderTable(){
     const badge = pn?`<span class="badge ${pn[0]}">${TIER_LABEL[pn[0]]}</span>`:"";
     const nm = [w.name, w.commune && w.commune!==w.name ? w.commune : ""].filter(Boolean).join(" · ");
     return `<tr class="main${w.left===0?" gone":""}" data-i="${i}" tabindex="0" aria-expanded="false">
-      <td><span class="prod">${esc(w.producer)}</span>${badge}<br><span class="wname">${esc(nm)}${w.classification&&w.classification!=="AOC"?" · <b>"+esc(w.classification)+"</b>":""}</span></td>
+      <td><span class="prod">${esc(w.producer)}</span>${badge}<br><span class="wname">${esc(nm)}${w.classification&&w.classification!=="AOC"?" · <b>"+esc(w.classification)+"</b>":""}${w.rating?` · <span class="myscore">${w.rating}/10</span>`:""}</span></td>
       <td class="num">${esc(w.vintage||"—")}</td>
       <td>${esc(w.region)}</td>
       <td><span class="sdot" style="background:var(${STYLE_VAR[w.style]||"--muted"})"></span>${STYLE_EN[w.style]||esc(w.style)}</td>
@@ -320,6 +326,8 @@ function renderTable(){
   });
   document.querySelectorAll("button.drink").forEach(b=>
     b.addEventListener("click",()=>rowAction(b.dataset.act, Number(b.dataset.row), b)));
+  document.querySelectorAll("select.rate").forEach(sel=>
+    sel.addEventListener("change",()=>rateWine(Number(sel.dataset.row), sel.value, sel)));
   document.querySelectorAll("button.jlog").forEach(b=>
     b.addEventListener("click",()=>{
       const w = WINES.find(x=>x.row===Number(b.dataset.row));
@@ -341,6 +349,17 @@ async function loadData(){
     if(err.message==="bad-code"){ forgetAuth(); showGate("Wrong access code — try again."); }
     else { $("spin").textContent = "Could not reach the cellar API ("+err.message+"). Check your connection and refresh."; }
   }
+}
+
+async function rateWine(row, val, sel){
+  sel.disabled = true;
+  try{
+    const res = await api({action:"rate", row, rating: val===""?"":Number(val)});
+    WINES = normalize(res.wines);
+    renderOverview(); renderTable();
+    toast(val==="" ? "Score cleared" : "Scored "+val+"/10 🍷");
+  }catch(err){ toast("Could not save score: "+err.message); }
+  sel.disabled = false;
 }
 
 async function rowAction(act, row, btn){
@@ -679,6 +698,8 @@ function pickTonight(){
   m.querySelector('[data-x="again"]').addEventListener("click",()=>{ m.remove(); pickTonight(); });
   m.querySelectorAll("button.drink").forEach(db=>
     db.addEventListener("click", async ()=>{ await rowAction(db.dataset.act, Number(db.dataset.row), db); m.remove(); }));
+  m.querySelectorAll("select.rate").forEach(sel=>
+    sel.addEventListener("change",()=>rateWine(Number(sel.dataset.row), sel.value, sel)));
 }
 $("tonightBtn").addEventListener("click", pickTonight);
 
@@ -705,8 +726,8 @@ function renderJournal(){
   $("jList").innerHTML = list.length ? list.map(e=>{
     const d = e.date ? new Date(String(e.date).slice(0,10)+"T12:00:00") : null;
     const ds = d && !isNaN(d) ? d.toLocaleDateString("da-DK",{day:"numeric",month:"long",year:"numeric"}) : esc(String(e.date));
-    const n = Math.max(0, Math.min(5, Number(e.rating)||0));
-    const glasses = n ? "🍷".repeat(n) : "";
+    const n = Math.max(0, Math.min(10, Number(e.rating)||0));
+    const glasses = n ? n+"/10 🍷" : "";
     return `<div class="jentry">
       <div class="jtop"><span class="jdate">${ds}</span>
         ${e.place?`<span class="jplace">📍 ${esc(e.place)}</span>`:""}

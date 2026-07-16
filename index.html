@@ -135,6 +135,10 @@ tr.detail td{background:var(--card2);padding:14px 16px 16px}
   border:1px solid var(--line);background:var(--card);border-radius:7px;padding:5px 10px;cursor:pointer;font-family:inherit}
 .links a:hover,.links button:hover{border-color:var(--accent)}
 .links button.drink{color:var(--ink)}
+.ratewrap{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--accent)}
+.ratewrap select{background:var(--card);border:1px solid var(--line);color:var(--ink);border-radius:7px;
+  padding:4px 6px;font-size:12.5px;font-family:inherit}
+.myscore{color:var(--gold);font-weight:650}
 .links button.del{color:var(--muted);margin-left:auto}
 .links button.del:hover{color:var(--accent);border-color:var(--accent)}
 
@@ -394,11 +398,11 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
     <label for="jRating">Rating</label>
     <select id="jRating">
       <option value="">—</option>
-      <option value="1">🍷 (1)</option>
-      <option value="2">🍷🍷 (2)</option>
-      <option value="3">🍷🍷🍷 (3)</option>
-      <option value="4">🍷🍷🍷🍷 (4)</option>
-      <option value="5">🍷🍷🍷🍷🍷 (5)</option>
+      <option value="1">1 / 10</option><option value="2">2 / 10</option>
+      <option value="3">3 / 10</option><option value="4">4 / 10</option>
+      <option value="5">5 / 10</option><option value="6">6 / 10</option>
+      <option value="7">7 / 10</option><option value="8">8 / 10</option>
+      <option value="9">9 / 10</option><option value="10">10 / 10</option>
     </select>
     <label for="jNote">Note</label><textarea id="jNote" rows="3" placeholder="How was it?"></textarea>
     <div class="mact">

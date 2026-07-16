@@ -14,7 +14,7 @@ const ACCESS_CODE = 'CHANGE-ME';        // code to open the site
 const SHEET_NAME  = 'Ark1';             // tab name that holds the wine list
 // ─────────────────────────────────────────────────────────────────────────────
 
-const API_VERSION = 5; // returned in every response; used to verify deployments
+const API_VERSION = 6; // returned in every response; used to verify deployments
 
 // Column headers in row 1 of the sheet, mapped to API field names.
 const HEADERS = {
@@ -33,6 +33,9 @@ const HEADERS = {
   source: 'Kilde',
   note: 'Note',
 };
+
+// Optional own-score column in the wine tab; auto-created on first rating.
+const RATING_HEADER = 'Rating';
 
 function doGet(e) { return handle((e && e.parameter) || {}); }
 
@@ -60,6 +63,9 @@ function handle(p) {
         return json({ ok: true, wines: readAll() });
       case 'delete':
         deleteWine(Number(p.row));
+        return json({ ok: true, wines: readAll() });
+      case 'rate':
+        rateWine(Number(p.row), p.rating);
         return json({ ok: true, wines: readAll() });
       case 'journal':
         return json({ ok: true, entries: readJournal() });
@@ -91,6 +97,7 @@ function colIndexes(sh) {
     if (i === -1) throw new Error('Missing column "' + header + '" in row 1');
     idx[field] = i;
   }
+  idx.rating = head.indexOf(RATING_HEADER); // -1 until first rating creates it
   return idx;
 }
 
@@ -109,6 +116,7 @@ function readAll() {
       if (v instanceof Date) v = v.getFullYear(); // vintage cells sometimes parse as dates
       w[field] = v === null || v === undefined ? '' : v;
     }
+    w.rating = idx.rating >= 0 ? (r[idx.rating] === null || r[idx.rating] === undefined ? '' : r[idx.rating]) : '';
     wines.push(w);
   });
   return wines;
@@ -137,6 +145,26 @@ function markDrunk(rowNum, n) {
   let drunk = drunkCell.getValue();
   drunk = String(drunk).trim().toLowerCase() === 'x' ? qty : Number(drunk) || 0;
   drunkCell.setValue(Math.min(qty, Math.max(0, drunk + n)));
+}
+
+function ensureRatingCol(sh) {
+  const head = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String);
+  let i = head.indexOf(RATING_HEADER);
+  if (i === -1) {
+    i = head.findIndex(h => !String(h).trim()); // first empty header cell
+    if (i === -1) i = head.length;
+    sh.getRange(1, i + 1).setValue(RATING_HEADER);
+  }
+  return i;
+}
+
+function rateWine(rowNum, rating) {
+  const sh = sheet();
+  if (!rowNum || rowNum < 2 || rowNum > sh.getLastRow()) throw new Error('Bad row');
+  const i = ensureRatingCol(sh);
+  const empty = rating === '' || rating === null || rating === undefined;
+  const v = empty ? '' : Math.max(1, Math.min(10, Number(rating) || 0));
+  sh.getRange(rowNum, i + 1).setValue(v || '');
 }
 
 function deleteWine(rowNum) {
