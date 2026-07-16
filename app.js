@@ -882,6 +882,7 @@ function renderJournal(){
 function prepJournalModal(){
   $("jForm").reset();
   J_PHOTO_REMOVE = false;
+  $("jErr").hidden = true; $("jErr").textContent = "";
   $("jPhotoPrev").hidden = true; $("jPhotoPrev").removeAttribute("src");
   $("jPhotoRemoveBtn").hidden = true;
   $("jProducers").innerHTML = [...new Set(WINES.map(w=>w.producer).filter(Boolean))].sort().map(x=>`<option>${esc(x)}</option>`).join("");
@@ -946,6 +947,7 @@ $("jModal").addEventListener("click", e=>{ if(e.target===$("jModal")) $("jModal"
 $("jForm").addEventListener("submit", async e=>{
   e.preventDefault();
   const editing = J_EDIT !== null;
+  $("jErr").hidden = true; $("jErr").textContent = "";
   const btn = $("jSave"); btn.disabled = true; btn.textContent = "Saving…";
   const v = id => $(id).value.trim();
   const entry = {
@@ -972,7 +974,15 @@ $("jForm").addEventListener("submit", async e=>{
     renderJournal();
     if(location.hash!=="#journal") location.hash = "#journal";
     toast(editing ? "Journal entry updated 📓" : "Journal entry saved 📓");
-  }catch(err){ toast("Could not save: "+err.message); }
+  }catch(err){
+    const m = String(err.message||"");
+    const hint = /authori[sz]|permission/i.test(m)
+      ? " — the API needs Drive access. In Apps Script, run the “authorize” function once and approve, then try again."
+      : "";
+    $("jErr").textContent = "Could not save: "+m+hint;
+    $("jErr").hidden = false;
+    toast("Could not save — see the message in the form");
+  }
   btn.disabled = false; btn.textContent = editing ? "Save changes" : "Save entry";
 });
 

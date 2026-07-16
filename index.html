@@ -218,6 +218,8 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
 .jwine{font-weight:650;margin-top:2px;font-size:15px}
 .jwine .jglasses{font-weight:400;font-size:13px;margin-left:6px}
 .jmeta{font-size:12.5px;color:var(--muted);margin-top:1px}
+.jerr{margin-top:12px;font-size:13px;color:var(--accent);background:var(--chip);border:1px solid var(--accent);
+  border-radius:8px;padding:8px 10px;line-height:1.4}
 .jnote{font-size:13.5px;margin-top:6px;color:var(--ink);max-width:70ch}
 .jphoto{margin-top:10px;width:120px;height:120px;border-radius:8px;overflow:hidden;border:1px solid var(--line);
   background:var(--card2);display:flex;align-items:center;justify-content:center}
@@ -434,6 +436,7 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
     <input id="jPhoto" type="file" accept="image/*">
     <img id="jPhotoPrev" class="jphoto-prev" alt="Selected photo preview" hidden>
     <button type="button" class="btn quiet" id="jPhotoRemoveBtn" hidden>Remove photo</button>
+    <div class="jerr" id="jErr" role="alert" hidden></div>
     <div class="mact">
       <button type="button" class="btn" id="jCancel">Cancel</button>
       <button type="submit" class="btn primary" id="jSave">Save entry</button>

@@ -41,6 +41,18 @@ const RATING_HEADER = 'Rating';
 // auto-created the first time you set a value in the site.
 const VALUE_HEADER = 'Værdi kr';
 
+/**
+ * Run this ONCE from the Apps Script editor to grant the permissions the web app
+ * needs (Sheets + Drive). Pick "authorize" in the toolbar's function dropdown,
+ * press Run, and approve the dialog (Advanced → Go to project → Allow). Photo
+ * upload fails until this is done, because saving a photo writes to your Drive.
+ */
+function authorize() {
+  SpreadsheetApp.getActiveSpreadsheet().getName(); // Sheets scope
+  photoFolder();                                   // Drive scope (creates the photos folder)
+  return 'Authorized. You can close this.';
+}
+
 function doGet(e) { return handle((e && e.parameter) || {}); }
 
 function doPost(e) {
