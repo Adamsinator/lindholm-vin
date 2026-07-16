@@ -12,14 +12,9 @@
 // ── EDIT THIS ─────────────────────────────────────────────────────────────────
 const ACCESS_CODE = 'CHANGE-ME';        // code to open the site
 const SHEET_NAME  = 'Ark1';             // tab name that holds the wine list
-// CellarTracker (optional) — powers the "Sync values" button in the site.
-// Your CT handle + password; valuations arrive in the currency chosen in your
-// CellarTracker preferences, so set that to DKK. Leave empty to disable.
-const CT_USER     = '';
-const CT_PASSWORD = '';
 // ─────────────────────────────────────────────────────────────────────────────
 
-const API_VERSION = 7; // returned in every response; used to verify deployments
+const API_VERSION = 8; // returned in every response; used to verify deployments
 
 // Column headers in row 1 of the sheet, mapped to API field names.
 const HEADERS = {
@@ -42,9 +37,9 @@ const HEADERS = {
 // Optional own-score column in the wine tab; auto-created on first rating.
 const RATING_HEADER = 'Rating';
 
-// Optional CellarTracker columns; auto-created when first used.
-const CT_ID_HEADER    = 'CT iWine';       // the wine's id on CellarTracker
-const CT_VALUE_HEADER = 'Værdi kr (CT)';  // community average value, filled by ctsync
+// Optional current-value column (what a bottle is worth now — your own figure);
+// auto-created the first time you set a value in the site.
+const VALUE_HEADER = 'Værdi kr';
 
 function doGet(e) { return handle((e && e.parameter) || {}); }
 
@@ -60,7 +55,7 @@ function handle(p) {
   try {
     switch (p.action) {
       case 'data':
-        return json({ ok: true, wines: readAll(), ctLast: ctLastInfo() });
+        return json({ ok: true, wines: readAll() });
       case 'add':
         addWine(p.wine || {});
         return json({ ok: true, wines: readAll() });
@@ -76,11 +71,9 @@ function handle(p) {
       case 'rate':
         rateWine(Number(p.row), p.rating);
         return json({ ok: true, wines: readAll() });
-      case 'setct':
-        setCtId(Number(p.row), p.ctid);
+      case 'setvalue':
+        setValue(Number(p.row), p.value);
         return json({ ok: true, wines: readAll() });
-      case 'ctsync':
-        return json({ ok: true, ct: syncCellarTracker(), wines: readAll() });
       case 'journal':
         return json({ ok: true, entries: readJournal() });
       case 'jadd':
@@ -112,8 +105,7 @@ function colIndexes(sh) {
     idx[field] = i;
   }
   idx.rating = head.indexOf(RATING_HEADER); // -1 until first rating creates it
-  idx.ctid   = head.indexOf(CT_ID_HEADER);  // -1 until first CT link creates them
-  idx.value  = head.indexOf(CT_VALUE_HEADER);
+  idx.value  = head.indexOf(VALUE_HEADER);  // -1 until first value creates it
   return idx;
 }
 
@@ -133,7 +125,6 @@ function readAll() {
       w[field] = v === null || v === undefined ? '' : v;
     }
     w.rating = idx.rating >= 0 ? (r[idx.rating] === null || r[idx.rating] === undefined ? '' : r[idx.rating]) : '';
-    w.ctid   = idx.ctid   >= 0 ? String(r[idx.ctid] === null || r[idx.ctid] === undefined ? '' : r[idx.ctid]).trim() : '';
     w.value  = idx.value  >= 0 ? (r[idx.value] === null || r[idx.value] === undefined ? '' : r[idx.value]) : '';
     wines.push(w);
   });
@@ -191,11 +182,9 @@ function deleteWine(rowNum) {
   sh.deleteRow(rowNum);
 }
 
-// ── CellarTracker valuation sync ─────────────────────────────────────────────
-// Pulls your CellarTracker cellar (the "List" table) and writes each wine's
-// community average value (per bottle) into the sheet. A wine is matched to CT
-// by a stored iWine id when present, else by producer + vintage + cuvée; a fresh
-// match stores the iWine back so later syncs are exact.
+// ── Current value (your own per-bottle figure) ───────────────────────────────
+// A wine's current market worth, entered in the site. Stored in its own column,
+// auto-created the first time you set one; blank means "no value tracked".
 
 function ensureCol(sh, header) {
   const head = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String);
@@ -208,126 +197,13 @@ function ensureCol(sh, header) {
   return i;
 }
 
-function setCtId(rowNum, ctid) {
+function setValue(rowNum, value) {
   const sh = sheet();
   if (!rowNum || rowNum < 2 || rowNum > sh.getLastRow()) throw new Error('Bad row');
-  const i = ensureCol(sh, CT_ID_HEADER);
-  sh.getRange(rowNum, i + 1).setValue(ctid == null ? '' : String(ctid).trim());
-}
-
-// producer|vintage|cuvée, accent- and punctuation-insensitive; NV/blank collapse.
-function ctKey(producer, vintage, wine) {
-  const norm = s => String(s == null ? '' : s).toLowerCase()
-    .normalize('NFD').replace(/[̀-ͯ]/g, '')
-    .replace(/[^a-z0-9]+/g, ' ').trim();
-  let v = String(vintage == null ? '' : vintage).trim();
-  const m = v.match(/\d{4}/);
-  v = m ? m[0] : 'nv'; // "1998", else NV / blank / non-vintage
-  if (v === '1000' || v === '1001') v = 'nv'; // CellarTracker's non-vintage sentinel
-  return norm(producer) + '|' + v + '|' + norm(wine);
-}
-
-function ctNumber(x) {
-  if (x == null) return NaN;
-  const n = Number(String(x).replace(/[^0-9.\-]/g, ''));
-  return isNaN(n) ? NaN : n;
-}
-
-function fetchCtList() {
-  if (!CT_USER || !CT_PASSWORD) throw new Error('CellarTracker not configured');
-  const url = 'https://www.cellartracker.com/xlquery.asp'
-    + '?User=' + encodeURIComponent(CT_USER)
-    + '&Password=' + encodeURIComponent(CT_PASSWORD)
-    + '&Format=xml&Table=List';
-  const res = UrlFetchApp.fetch(url, { muteHttpExceptions: true, followRedirects: true });
-  const code = res.getResponseCode();
-  const body = res.getContentText();
-  if (code !== 200) throw new Error('CellarTracker HTTP ' + code);
-  const head = body.slice(0, 200);
-  if (head.indexOf('<') !== 0 && head.indexOf('<?xml') === -1)
-    throw new Error('CellarTracker rejected the request (check user/password)');
-  let doc;
-  try { doc = XmlService.parse(body); }
-  catch (e) { throw new Error('CellarTracker returned an unexpected response'); }
-  const rows = [];
-  collectCtRows(doc.getRootElement(), rows);
-  return rows;
-}
-
-// Depth-first: any element whose children include iWine/Wine/Producer is one row.
-function collectCtRows(el, out) {
-  const kids = el.getChildren();
-  const o = {};
-  let looksLikeRow = false;
-  kids.forEach(c => {
-    const name = c.getName();
-    o[name] = c.getText();
-    if (name === 'iWine' || name === 'Wine' || name === 'Producer') looksLikeRow = true;
-  });
-  if (looksLikeRow) { out.push(o); return; }
-  kids.forEach(c => collectCtRows(c, out));
-}
-
-function syncCellarTracker() {
-  const rows = fetchCtList();
-  const byId = {}, byKey = {};
-  rows.forEach(o => {
-    const rec = {
-      iWine: String(o.iWine || '').trim(),
-      value: ctNumber(o.Valuation),
-      producer: o.Producer || '', wine: o.Wine || '', vintage: o.Vintage || '',
-    };
-    if (rec.iWine) byId[rec.iWine] = rec;
-    const k = ctKey(rec.producer, rec.vintage, rec.wine);
-    if (!(k in byKey) || (isNaN(byKey[k].value) && !isNaN(rec.value))) byKey[k] = rec;
-  });
-
-  const sh = sheet();
-  ensureCol(sh, CT_ID_HEADER);
-  ensureCol(sh, CT_VALUE_HEADER);
-  const idx = colIndexes(sh); // re-read; the two columns may have just been created
-  const last = sh.getLastRow();
-
-  const info = { at: new Date().toISOString(), matched: 0, valued: 0, total: 0, ctRows: rows.length };
-  if (last >= 2) {
-    const width = sh.getLastColumn();
-    const data = sh.getRange(2, 1, last - 1, width).getValues();
-    const valOut = [], idOut = [];
-    data.forEach(r => {
-      const producer = String(r[idx.producer] || '').trim();
-      if (!producer) { valOut.push([r[idx.value]]); idOut.push([r[idx.ctid]]); return; }
-      info.total++;
-      let vintage = r[idx.vintage];
-      if (vintage instanceof Date) vintage = vintage.getFullYear();
-      const name = String(r[idx.name] || '').trim();
-      let id = String(r[idx.ctid] == null ? '' : r[idx.ctid]).trim();
-      const rec = (id && byId[id]) ? byId[id] : byKey[ctKey(producer, vintage, name)];
-      if (rec) {
-        info.matched++;
-        if (!id && rec.iWine) id = rec.iWine; // learn the id for next time
-        if (!isNaN(rec.value)) { info.valued++; valOut.push([rec.value]); }
-        else valOut.push([r[idx.value]]); // CT has no value → keep whatever was there
-      } else {
-        valOut.push([r[idx.value]]);
-      }
-      idOut.push([id]);
-    });
-    sh.getRange(2, idx.value + 1, valOut.length, 1).setValues(valOut);
-    sh.getRange(2, idx.ctid + 1, idOut.length, 1).setValues(idOut);
-  }
-
-  PropertiesService.getDocumentProperties().setProperty('ctLast', JSON.stringify(info));
-  return info;
-}
-
-function ctLastInfo() {
-  const configured = !!(CT_USER && CT_PASSWORD);
-  let last = null;
-  try {
-    const raw = PropertiesService.getDocumentProperties().getProperty('ctLast');
-    if (raw) last = JSON.parse(raw);
-  } catch (e) {}
-  return { configured: configured, last: last };
+  const i = ensureCol(sh, VALUE_HEADER);
+  const empty = value === '' || value === null || value === undefined;
+  const v = empty ? '' : Math.max(0, Number(value) || 0);
+  sh.getRange(rowNum, i + 1).setValue(v);
 }
 
 // ── Journal (tasting log) — lives in its own tab, auto-created on first use ──

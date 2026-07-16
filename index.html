@@ -135,9 +135,10 @@ tr.detail td{background:var(--card2);padding:14px 16px 16px}
   border:1px solid var(--line);background:var(--card);border-radius:7px;padding:5px 10px;cursor:pointer;font-family:inherit}
 .links a:hover,.links button:hover{border-color:var(--accent)}
 .links button.drink{color:var(--ink)}
-.ratewrap{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--accent)}
-.ratewrap select{background:var(--card);border:1px solid var(--line);color:var(--ink);border-radius:7px;
+.ratewrap,.valwrap{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--accent)}
+.ratewrap select,.valwrap input{background:var(--card);border:1px solid var(--line);color:var(--ink);border-radius:7px;
   padding:4px 6px;font-size:12.5px;font-family:inherit}
+.valwrap input{width:84px}
 .myscore{color:var(--gold);font-weight:650}
 .links button.del{color:var(--muted);margin-left:auto}
 .links button.del:hover{color:var(--accent);border-color:var(--accent)}
@@ -176,7 +177,8 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
 .vnum{font-size:9.5px;fill:var(--muted);font-variant-numeric:tabular-nums}
 /* iOS zooms into any focused field with font-size < 16px — keep inputs at 16px on small screens */
 @media(max-width:640px){
-  .filters input[type=search],.filters select,.modal input,.modal select,.modal textarea,.gate input{font-size:16px}
+  .filters input[type=search],.filters select,.modal input,.modal select,.modal textarea,.gate input,
+  .valwrap input,.ratewrap select{font-size:16px}
 }
 /* tabs */
 .tabs{display:flex;gap:4px;margin:-6px 0 18px}
@@ -253,7 +255,6 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
   <button class="btn primary" id="addBtn">＋ Add wine</button>
   <button class="btn" id="tonightBtn">🎲 Tonight</button>
   <button class="btn" id="priceBtn">Show prices</button>
-  <button class="btn" id="ctSyncBtn" hidden>🔄 Sync CT values</button>
   <button class="btn" id="refreshBtn">Refresh</button>
   <span class="stamp" id="stamp"></span>
   <button class="btn quiet" id="lockBtn" title="Forget the access code on this device">🔒 Lock</button>
@@ -332,9 +333,9 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
   <p><strong>About ratings:</strong> badges and producer profiles are general critic-reputation summaries
   (Icon &gt; Top tier &gt; Well regarded), not bottle-level scores. Open a wine and use the
   <em>Vivino</em> / <em>Wine-Searcher</em> links for live ratings and market prices.</p>
-  <p><strong>Market value:</strong> when a CellarTracker login is set in the API, <em>Sync CT values</em>
-  pulls each wine's community average value and shows the cellar's market worth (and gain vs. what you paid)
-  alongside the purchase-price totals.</p>
+  <p><strong>Current value:</strong> open a wine and type today's worth in the <em>Value kr</em> box. The
+  overview then shows the cellar's current value and the unrealised gain or loss vs. what you paid, over the
+  wines you've valued. Leave it blank for wines you're not tracking.</p>
   <p>Data lives in the Google Sheet — this page reads and writes it through a private API.</p>
 </footer>
 </div><!-- /content -->

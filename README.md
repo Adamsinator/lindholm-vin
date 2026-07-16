@@ -38,29 +38,22 @@ showing the site to someone over your shoulder); pressing **Show prices**
 brings them straight back — no extra code. The choice is remembered per
 browser.
 
-## Live market values (CellarTracker)
+## Current value
 
-If you keep the same wines on [CellarTracker](https://www.cellartracker.com),
-the site can pull each wine's **community average value** and show what the
-cellar is worth today next to what you paid.
+Beyond the purchase price, you can track what each wine is **worth now**. Open a
+wine and type a figure in the **Value kr** box (shown when prices are visible).
+It saves to a **Værdi kr** column in the sheet, created automatically the first
+time you set one; clearing the box removes it.
 
-1. In `Code.gs`, set `CT_USER` and `CT_PASSWORD` to your CellarTracker login,
-   then redeploy (see below).
-2. In CellarTracker, set your display currency to **DKK**
-   (Account → Preferences) so the values come back in kroner.
-3. In the site, press **🔄 Sync CT values**. Each cellar wine is matched to
-   CellarTracker — by a stored `iWine` id if it has one, otherwise by producer +
-   vintage + cuvée — and its value is written back to the sheet (new columns
-   **CT iWine** and **Værdi kr (CT)** are created automatically). A first fuzzy
-   match stores the `iWine` id, so later syncs are exact.
+The overview then adds two figures, computed over just the wines you've valued:
 
-The overview then adds **Market value (CT)** and an **unrealised gain/loss** vs.
-the purchase price (over the wines CellarTracker could value), and each wine's
-detail shows its per-bottle CellarTracker value. If a match is wrong, put the
-correct CellarTracker `iWine` number in the **CT iWine** column and re-sync.
+- **Current value** — the cellar's worth today (value per bottle × bottles left).
+- **Unrealised gain / loss** — that current value vs. what you paid for the same
+  wines, in kroner and percent.
 
-Leaving `CT_USER`/`CT_PASSWORD` empty simply hides the button — everything else
-works as before.
+Wines you leave blank simply don't count toward those totals, so you can value
+only the bottles you care about. Update a figure whenever you like — it's your
+own number, no external service involved.
 
 ## Journal
 
