@@ -5,6 +5,8 @@ const TIER_LABEL = {legend:"Icon", top:"Top tier", solid:"Well regarded"};
 const STYLES = ["Rød","Hvid","Bobler","Rosé"];
 const STYLE_EN = {"Rød":"Red","Hvid":"White","Bobler":"Sparkling","Rosé":"Rosé"};
 const STYLE_VAR = {"Rød":"--c-red","Hvid":"--c-white","Bobler":"--c-spark","Rosé":"--c-rose"};
+// history markers coloured by wine: red = red, white = white, gold = sparkling, pink = rosé
+const HIST_COLOR = {"Rød":"var(--h-red)","Hvid":"var(--h-white)","Bobler":"var(--h-gold)","Rosé":"var(--h-rose)"};
 const COUNTRY_FIX = {"Franrkig":"Frankrig","Fankrig":"Frankrig"};
 const REGION_FIX = {"Cote-de-Rhone":"Rhône","Cotes du Rhone":"Rhône","Laungedoc":"Languedoc","Bearn":"Béarn"};
 const CLASS_FIX = {"1. Cru":"1. cru","1. cr":"1. cru"};
@@ -284,49 +286,54 @@ function drawHistory(){
     cap.textContent = "Add an “Acquired” date to your wines (in the sheet, or when adding one) to see the collection grow over time.";
     return;
   }
-  const W=980,Hh=240,P={l:34,r:12,t:16,b:26};
+  const W=980,Hh=250,P={l:26,r:16,t:20,b:30};
   let tMin=H.tMin, tMax=Math.max(H.tMax, H.points[H.points.length-1].t);
   if(tMax<=tMin) tMax = tMin + 30*864e5;
+  const padT=(tMax-tMin)*0.03; tMin-=padT; tMax+=padT; // keep first/last glyphs off the edge
   const maxY=Math.max(1,H.max);
   const X=t=>P.l+(t-tMin)/(tMax-tMin)*(W-P.l-P.r);
   const Y=v=>Hh-P.b-(v/maxY)*(Hh-P.t-P.b);
 
   let parts=[];
-  // year gridlines
+  // faint year ticks
   const y0=new Date(tMin).getFullYear(), y1=new Date(tMax).getFullYear();
   for(let y=y0; y<=y1; y++){
     const tx=new Date(y+"-01-01T12:00:00").getTime();
     if(tx<tMin||tx>tMax) continue;
-    parts.push(`<line class="hist-grid" x1="${X(tx).toFixed(1)}" y1="${P.t}" x2="${X(tx).toFixed(1)}" y2="${Hh-P.b}"/>
-      <text class="hist-axis" x="${X(tx).toFixed(1)}" y="${Hh-8}" text-anchor="middle">${y}</text>`);
+    parts.push(`<line class="hist-grid" x1="${X(tx).toFixed(1)}" y1="${P.t}" x2="${X(tx).toFixed(1)}" y2="${(Hh-P.b).toFixed(1)}"/>
+      <text class="hist-axis" x="${X(tx).toFixed(1)}" y="${Hh-10}" text-anchor="middle">${y}</text>`);
   }
-  // y max label + baseline
-  parts.push(`<text class="hist-axis" x="4" y="${(Y(maxY)+3).toFixed(1)}">${maxY}</text>
-    <text class="hist-axis" x="4" y="${(Y(0)+3).toFixed(1)}">0</text>`);
+  parts.push(`<line class="hist-base" x1="${P.l}" y1="${Y(0).toFixed(1)}" x2="${(W-P.r).toFixed(1)}" y2="${Y(0).toFixed(1)}"/>
+    <text class="hist-axis" x="2" y="${(Y(maxY)+3).toFixed(1)}">${maxY}</text>`);
 
-  // stepped cumulative path (aggregate)
+  // smooth cumulative line + soft area (the aggregate)
   let d=`M ${X(tMin).toFixed(1)} ${Y(0).toFixed(1)}`, prev=0;
   H.points.forEach(p=>{ d+=` L ${X(p.t).toFixed(1)} ${Y(prev).toFixed(1)} L ${X(p.t).toFixed(1)} ${Y(p.cum).toFixed(1)}`; prev=p.cum; });
   d+=` L ${X(tMax).toFixed(1)} ${Y(prev).toFixed(1)}`;
   parts.push(`<path class="hist-area" d="${d} L ${X(tMax).toFixed(1)} ${Y(0).toFixed(1)} L ${X(tMin).toFixed(1)} ${Y(0).toFixed(1)} Z"/>`);
   parts.push(`<path class="hist-line" d="${d}"/>`);
 
-  // event dots (increments / decrements)
+  // event markers: ＋ added / − drunk, coloured by wine style
   H.points.forEach(p=>{
-    const r=Math.min(7,3+Math.sqrt(Math.abs(p.d))*1.4);
-    parts.push(`<circle class="hist-dot ${p.kind==="acq"?"acq":"drink"}" cx="${X(p.t).toFixed(1)}" cy="${Y(p.cum).toFixed(1)}" r="${r.toFixed(1)}"
-      data-t="${p.t}" data-d="${p.d}" data-cum="${p.cum}" data-w="${esc((p.w.producer||"")+(p.w.name?" · "+p.w.name:""))}"/>`);
+    const a=4.5, cx=X(p.t), cy=Y(p.cum), col=HIST_COLOR[p.w.style]||"var(--muted)";
+    const hz=`M ${(cx-a).toFixed(1)} ${cy.toFixed(1)} H ${(cx+a).toFixed(1)}`;
+    const gd = p.kind==="acq" ? `${hz} M ${cx.toFixed(1)} ${(cy-a).toFixed(1)} V ${(cy+a).toFixed(1)}` : hz;
+    parts.push(`<g class="hist-ev" data-t="${p.t}" data-d="${p.d}" data-cum="${p.cum}"
+        data-style="${esc(STYLE_EN[p.w.style]||p.w.style||"")}" data-w="${esc((p.w.producer||"")+(p.w.name?" · "+p.w.name:""))}">
+      <path class="hist-halo" d="${gd}"/>
+      <path class="hist-glyph" style="stroke:${col}" d="${gd}"/>
+      <circle class="hist-hit" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="10"/></g>`);
   });
 
   svg.setAttribute("viewBox",`0 0 ${W} ${Hh}`);
   svg.innerHTML=parts.join("");
-  svg.querySelectorAll(".hist-dot").forEach(c=>{
-    c.addEventListener("mousemove",e=>{
-      const n=Number(c.dataset.d), when=fmtDate(new Date(Number(c.dataset.t)).toISOString().slice(0,10));
-      const what = n>0 ? `+${n} added` : `${n} drunk`;
-      showTip(`<b>${when}</b><br>${what} · ${esc(c.dataset.w)}<br><span style="opacity:.75">${c.dataset.cum} in cellar</span>`,e.clientX,e.clientY);
+  svg.querySelectorAll(".hist-ev").forEach(g=>{
+    g.addEventListener("mousemove",e=>{
+      const n=Number(g.dataset.d), when=fmtDate(new Date(Number(g.dataset.t)).toISOString().slice(0,10));
+      const what = n>0 ? `added ${n}` : `drunk ${-n}`;
+      showTip(`<b>${when}</b> · ${esc(g.dataset.style)}<br>${what} — ${esc(g.dataset.w)}<br><span style="opacity:.75">${g.dataset.cum} in cellar after</span>`,e.clientX,e.clientY);
     });
-    c.addEventListener("mouseleave",hideTip);
+    g.addEventListener("mouseleave",hideTip);
   });
 
   const bits=[`${H.withAcq} wine${H.withAcq===1?"":"s"} on the timeline`, `${H.drinkEvents} drunk`];
