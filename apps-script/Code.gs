@@ -14,7 +14,7 @@ const ACCESS_CODE = 'CHANGE-ME';        // code to open the site
 const SHEET_NAME  = 'Ark1';             // tab name that holds the wine list
 // ─────────────────────────────────────────────────────────────────────────────
 
-const API_VERSION = 4; // returned in every response; used to verify deployments
+const API_VERSION = 5; // returned in every response; used to verify deployments
 
 // Column headers in row 1 of the sheet, mapped to API field names.
 const HEADERS = {
@@ -61,6 +61,14 @@ function handle(p) {
       case 'delete':
         deleteWine(Number(p.row));
         return json({ ok: true, wines: readAll() });
+      case 'journal':
+        return json({ ok: true, entries: readJournal() });
+      case 'jadd':
+        addJournal(p.entry || {});
+        return json({ ok: true, entries: readJournal() });
+      case 'jdelete':
+        deleteJournal(Number(p.row));
+        return json({ ok: true, entries: readJournal() });
       default:
         return json({ ok: false, error: 'bad-action' });
     }
@@ -133,6 +141,60 @@ function markDrunk(rowNum, n) {
 
 function deleteWine(rowNum) {
   const sh = sheet();
+  if (!rowNum || rowNum < 2 || rowNum > sh.getLastRow()) throw new Error('Bad row');
+  sh.deleteRow(rowNum);
+}
+
+// ── Journal (tasting log) — lives in its own tab, auto-created on first use ──
+const JOURNAL_SHEET = 'Journal';
+const JHEADERS = { date: 'Dato', producer: 'Producent', wine: 'Vin', vintage: 'Årgang',
+                   place: 'Sted', rating: 'Rating', note: 'Note' };
+
+function journalSheet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sh = ss.getSheetByName(JOURNAL_SHEET);
+  if (!sh) {
+    sh = ss.insertSheet(JOURNAL_SHEET);
+    sh.appendRow(Object.values(JHEADERS));
+  }
+  return sh;
+}
+
+function readJournal() {
+  const sh = journalSheet();
+  const last = sh.getLastRow();
+  if (last < 2) return [];
+  const head = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String);
+  const idx = {};
+  for (const [f, h] of Object.entries(JHEADERS)) idx[f] = head.indexOf(h);
+  const values = sh.getRange(2, 1, last - 1, sh.getLastColumn()).getValues();
+  const out = [];
+  values.forEach((r, i) => {
+    const e = { row: i + 2 };
+    for (const f of Object.keys(JHEADERS)) {
+      let v = idx[f] >= 0 ? r[idx[f]] : '';
+      if (v instanceof Date) v = Utilities.formatDate(v, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+      e[f] = v === null || v === undefined ? '' : v;
+    }
+    if (String(e.producer).trim() || String(e.wine).trim() || String(e.note).trim()) out.push(e);
+  });
+  return out;
+}
+
+function addJournal(e) {
+  const sh = journalSheet();
+  const head = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String);
+  const row = new Array(sh.getLastColumn()).fill('');
+  for (const [f, h] of Object.entries(JHEADERS)) {
+    const i = head.indexOf(h);
+    if (i >= 0 && e[f] !== undefined && e[f] !== null && e[f] !== '') row[i] = e[f];
+  }
+  if (!row.some(v => String(v).trim())) throw new Error('Empty entry');
+  sh.appendRow(row);
+}
+
+function deleteJournal(rowNum) {
+  const sh = journalSheet();
   if (!rowNum || rowNum < 2 || rowNum > sh.getLastRow()) throw new Error('Bad row');
   sh.deleteRow(rowNum);
 }

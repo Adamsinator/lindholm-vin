@@ -122,8 +122,7 @@ function renderOverview(){
   const styAgg = {};
   cellar.forEach(w=>{ styAgg[w.style]=(styAgg[w.style]||0)+w.left; });
   const styList = STYLES.filter(s=>styAgg[s]);
-  $("stack").innerHTML = styList.map(s=>
-    `<div style="flex:${styAgg[s]};background:var(${STYLE_VAR[s]})" title="${STYLE_EN[s]}"></div>`).join("");
+  drawPie(styList, styAgg, bottlesLeft);
   $("slegend").innerHTML = styList.map(s=>`
     <button data-style="${s}"><span class="dot" style="background:var(${STYLE_VAR[s]})"></span>
     <span>${STYLE_EN[s]}</span><span class="n">${styAgg[s]} btl. · ${Math.round(styAgg[s]/Math.max(1,bottlesLeft)*100)}%</span></button>`).join("");
@@ -201,6 +200,38 @@ function renderOverview(){
   $("grapes").innerHTML = [...new Set(WINES.map(w=>w.grape).filter(Boolean))].sort().map(r=>`<option>${esc(r)}</option>`).join("");
 }
 
+/* ---------- style pie ---------- */
+function donutArc(cx,cy,R,r,a0,a1){
+  if(a1-a0 >= 2*Math.PI-0.001){
+    return `M ${cx} ${cy-R} A ${R} ${R} 0 1 1 ${(cx-0.01).toFixed(2)} ${cy-R} L ${(cx-0.01).toFixed(2)} ${cy-r} A ${r} ${r} 0 1 0 ${cx} ${cy-r} Z`;
+  }
+  const large=(a1-a0)>Math.PI?1:0;
+  const x0=cx+R*Math.cos(a0),y0=cy+R*Math.sin(a0),x1=cx+R*Math.cos(a1),y1=cy+R*Math.sin(a1);
+  const xi=cx+r*Math.cos(a1),yi=cy+r*Math.sin(a1),xj=cx+r*Math.cos(a0),yj=cy+r*Math.sin(a0);
+  return `M ${x0.toFixed(2)} ${y0.toFixed(2)} A ${R} ${R} 0 ${large} 1 ${x1.toFixed(2)} ${y1.toFixed(2)} L ${xi.toFixed(2)} ${yi.toFixed(2)} A ${r} ${r} 0 ${large} 0 ${xj.toFixed(2)} ${yj.toFixed(2)} Z`;
+}
+function drawPie(styList, styAgg, total){
+  const svg=$("stylePie"); if(!svg) return;
+  const C=115,R=100,IR=60;
+  svg.setAttribute("viewBox","0 0 230 230");
+  let a0=-Math.PI/2, html="";
+  styList.forEach(st=>{
+    const a1=a0+(styAgg[st]/Math.max(1,total))*2*Math.PI;
+    html+=`<path class="pslice" data-style="${st}" d="${donutArc(C,C,R,IR,a0,a1)}" style="fill:var(${STYLE_VAR[st]})"></path>`;
+    a0=a1;
+  });
+  html+=`<text class="pcen" x="${C}" y="${C+2}" text-anchor="middle">${fmt(total)}</text>
+    <text class="pcen2" x="${C}" y="${C+22}" text-anchor="middle">bottles</text>`;
+  svg.innerHTML=html;
+  svg.querySelectorAll(".pslice").forEach(pl=>{
+    const st=pl.dataset.style;
+    pl.addEventListener("mousemove",e=>showTip(`<b>${STYLE_EN[st]}</b><br>${styAgg[st]} btl. · ${Math.round(styAgg[st]/Math.max(1,total)*100)}%`,e.clientX,e.clientY));
+    pl.addEventListener("mouseleave",hideTip);
+    pl.addEventListener("click",()=>{ state.style = state.style===st ? "" : st;
+      $("fStyle").value = state.style; renderTable(); });
+  });
+}
+
 /* ---------- table ---------- */
 function searchLinks(w){
   const q = [w.producer, w.name!==w.commune?w.name:"", w.commune, typeof w.vintage==="number"?w.vintage:""]
@@ -223,6 +254,7 @@ function detailHTML(w){
     <div class="links">
       ${w.left>0?`<button class="drink" data-act="drink" data-row="${w.row}">🍷 Mark 1 bottle as drunk</button>`:""}
       ${w.drunk>0?`<button class="drink" data-act="undrink" data-row="${w.row}">↩︎ Undo drink</button>`:""}
+      <button class="jlog" data-row="${w.row}">📓 Log in journal</button>
       ${searchLinks(w)}
       <button class="drink del" data-act="delete" data-row="${w.row}">🗑 Delete wine</button>
     </div>`;
@@ -262,6 +294,7 @@ function renderTable(){
 
   document.querySelectorAll(".rbar").forEach(el=>el.classList.toggle("active", el.dataset.region===state.region && !!state.region));
   document.querySelectorAll("#slegend button").forEach(el=>el.classList.toggle("active", el.dataset.style===state.style && !!state.style));
+  document.querySelectorAll("#stylePie .pslice").forEach(el=>el.classList.toggle("on", el.dataset.style===state.style && !!state.style));
   document.querySelectorAll("#producers .rbar").forEach(el=>el.classList.toggle("active", el.dataset.prod===state.q.trim() && !!state.q.trim()));
   syncMapActive();
 
@@ -287,6 +320,11 @@ function renderTable(){
   });
   document.querySelectorAll("button.drink").forEach(b=>
     b.addEventListener("click",()=>rowAction(b.dataset.act, Number(b.dataset.row), b)));
+  document.querySelectorAll("button.jlog").forEach(b=>
+    b.addEventListener("click",()=>{
+      const w = WINES.find(x=>x.row===Number(b.dataset.row));
+      openJournalModal(w ? {producer:w.producer, wine:w.name, vintage:w.vintage} : null);
+    }));
 }
 
 /* ---------- actions ---------- */
@@ -366,7 +404,7 @@ $("gateForm").addEventListener("submit",e=>{
   if(!cfg.code){ $("gateErr").textContent = "Enter the access code."; return; }
   localStorage.setItem("vinCode", cfg.code);
   $("gate").hidden = true; $("app").hidden = false;
-  loadData();
+  loadData(); route();
 });
 
 /* ---------- header actions ---------- */
@@ -405,7 +443,7 @@ const REGION_GEO = {  // [lat, lng]
   "Béarn":[43.30,-0.37], "Mosel":[49.91,6.99], "Piemonte":[44.61,7.99],
   "Veneto":[45.44,11.00], "Rioja":[42.46,-2.45], "Ribera del Duero":[41.62,-3.69],
 };
-// Simplified country outlines as [lng, lat], for a stylized reference frame — not survey-accurate.
+// Simplified country outlines as [lng, lat] — a stylized reference frame, not survey-accurate.
 const LANDS = {
   France:[[2.5,51.0],[4.0,50.3],[5.9,49.5],[7.6,49.0],[8.2,48.6],[7.6,47.6],[7.0,47.4],[6.8,46.4],[6.1,46.1],[7.0,45.5],[6.9,44.4],[7.7,43.9],[7.4,43.7],[6.0,43.1],[5.0,43.3],[4.0,43.5],[3.0,43.2],[3.0,42.5],[1.0,42.6],[-0.5,42.8],[-1.4,43.3],[-1.2,44.6],[-1.1,45.6],[-1.8,46.5],[-2.2,47.2],[-4.7,47.8],[-4.8,48.4],[-3.5,48.8],[-1.6,48.6],[-1.4,49.7],[0.2,49.5],[1.6,50.1]],
   Switzerland:[[6.1,46.1],[7.0,45.9],[8.4,46.4],[9.5,46.4],[10.5,46.9],[9.6,47.6],[8.4,47.7],[7.0,47.4],[6.8,46.4]],
@@ -413,6 +451,49 @@ const LANDS = {
   Italy:[[7.0,45.5],[7.9,45.0],[9.0,45.8],[10.6,46.5],[12.4,46.8],[13.6,45.8],[13.1,45.6],[12.3,45.4],[12.5,44.6],[11.2,44.2],[9.9,44.1],[8.8,44.4],[7.6,44.1],[7.0,44.7]],
   Spain:[[-1.4,43.4],[-3.8,43.5],[-4.9,43.4],[-4.6,42.6],[-4.2,41.8],[-4.0,41.4],[-2.5,41.5],[-0.5,41.5],[0.9,41.0],[2.2,41.3],[3.3,42.3],[1.5,42.6],[-0.5,42.8]],
 };
+const normName = t => String(t).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[-'’]/g," ").replace(/\s+/g," ").trim();
+
+// Côte d'Or as a wine-route "metro line", north → south. [display, matcher keys]
+const COTE_SECTIONS = [
+  ["Côte de Nuits", [
+    ["Marsannay",["marsannay","marsannay la cote"]],
+    ["Gevrey-Chambertin",["gevrey chambertin"]],
+    ["Morey-Saint-Denis",["morey saint denis"]],
+    ["Chambolle-Musigny",["chambolle musigny"]],
+    ["Vosne-Romanée",["vosne romanee"]],
+    ["Nuits-Saint-Georges",["nuits saint georges"]],
+    ["Hautes-Côtes de Nuits",["hautes cotes de nuits"]],
+  ]],
+  ["Côte de Beaune", [
+    ["Aloxe-Corton",["aloxe corton"]],
+    ["Pernand-Vergelesses",["pernand vergelesses"]],
+    ["Savigny-lès-Beaune",["savigny les beaune"]],
+    ["Beaune",["beaune"]],
+    ["Pommard",["pommard"]],
+    ["Volnay",["volnay"]],
+    ["Monthélie",["monthelie"]],
+    ["Auxey-Duresses",["auxey duresses"]],
+    ["Meursault",["meursault"]],
+    ["Puligny-Montrachet",["puligny montrachet"]],
+    ["Saint-Aubin",["saint aubin"]],
+    ["Chassagne-Montrachet",["chassagne montrachet"]],
+    ["Hautes-Côtes de Beaune",["hautes cotes de beaune"]],
+  ]],
+  ["South & regional", [
+    ["Mâconnais",["macon","maconnais"]],
+    ["Regional cuvées",["bourgogne","bourgogne cote d or"]],
+  ]],
+];
+const CHAMP_GEO = { // normalized commune -> [lat, lng]
+  "reims":[49.258,4.032], "verzenay":[49.159,4.145], "bouzy":[49.139,4.155],
+  "montagne de reims":[49.150,4.020], "montigny":[49.079,3.766], "hautvillers":[49.086,3.945],
+  "ay":[49.054,4.003], "epernay":[49.043,3.959], "chouilly":[49.023,4.017],
+  "moussy":[49.017,3.917], "chavot courcourt":[49.008,3.928], "cramant":[48.995,4.005],
+  "avize":[48.973,4.011], "vincelles":[49.070,3.630], "azy sur marne":[49.026,3.335],
+};
+const CITY_ANCHORS = [["REIMS",49.258,4.032],["ÉPERNAY",49.043,3.959]];
+
+let MAP_VIEW = "europe", LAST_CELLAR = [];
 const COS = Math.cos(46*Math.PI/180);
 function buildProjector(W, pad){
   let minx=Infinity,maxx=-Infinity,miny=Infinity,maxy=-Infinity;
@@ -424,24 +505,37 @@ function buildProjector(W, pad){
   const H=(maxy-miny)*s+2*pad;
   return { W, H, proj:([lng,lat])=>[pad+(lng*COS-minx)*s, pad+(maxy-lat)*s], r:(b)=>4+Math.sqrt(b)*1.7 };
 }
-function updateMap(cellar){
+
+function updateMap(cellar){ LAST_CELLAR = cellar; renderMap(); }
+
+function renderMap(){
   const svg=$("map"); if(!svg) return;
+  $("mapbar").hidden = MAP_VIEW==="europe";
+  if(MAP_VIEW==="Bourgogne") return renderCoteMap(svg);
+  if(MAP_VIEW==="Champagne") return renderChampagneMap(svg);
+  renderEuropeMap(svg);
+}
+
+function bindDot(c, tipHtml, onClick){
+  c.addEventListener("mousemove",e=>showTip(tipHtml,e.clientX,e.clientY));
+  c.addEventListener("mouseleave",hideTip);
+  c.addEventListener("click",onClick);
+}
+
+function renderEuropeMap(svg){
   const {W,H,proj,r}=buildProjector(600,24);
   const agg={};
-  cellar.forEach(w=>{ const a=agg[w.region] ??= {b:0,n:0}; a.b+=w.left; a.n++; });
+  LAST_CELLAR.forEach(w=>{ const a=agg[w.region] ??= {b:0,n:0}; a.b+=w.left; a.n++; });
   const entries = Object.entries(agg).filter(([n])=>REGION_GEO[n]).sort((a,b)=>b[1].b-a[1].b);
   const pt = name => proj([REGION_GEO[name][1], REGION_GEO[name][0]]);
-
   let html = Object.values(LANDS).map(poly=>{
     const d = poly.map((p,i)=>(i?"L":"M")+proj(p).map(n=>n.toFixed(1)).join(" ")).join("")+"Z";
     return `<path class="land" d="${d}"/>`;
   }).join("");
-  // dots, largest first so small ones stay hoverable on top
   html += entries.map(([name,a])=>{
     const [x,y]=pt(name);
     return `<circle class="dot" data-region="${esc(name)}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r(a.b).toFixed(1)}"/>`;
   }).join("");
-  // labels for the biggest regions, flipped left near the right edge (rest on hover)
   html += entries.slice(0,4).map(([name,a])=>{
     const [x,y]=pt(name); const rad=r(a.b), left=x>W*0.6;
     const lx=(left?x-rad-4:x+rad+4).toFixed(1), anc=left?"end":"start";
@@ -452,14 +546,111 @@ function updateMap(cellar){
   svg.innerHTML = html;
   svg.querySelectorAll(".dot").forEach(c=>{
     const name=c.dataset.region, a=agg[name];
-    c.addEventListener("mousemove",e=>showTip(`<b>${esc(name)}</b><br>${a.b} bottle${a.b>1?"s":""} · ${a.n} wine${a.n>1?"s":""}`,e.clientX,e.clientY));
-    c.addEventListener("mouseleave",hideTip);
-    c.addEventListener("click",()=>{ state.region = state.region===name ? "" : name;
-      $("fRegion").value = state.region; renderTable(); });
+    const zoomable = name==="Bourgogne"||name==="Champagne";
+    bindDot(c,
+      `<b>${esc(name)}</b><br>${a.b} bottle${a.b>1?"s":""} · ${a.n} wine${a.n>1?"s":""}${zoomable?"<br><i>click to explore</i>":""}`,
+      ()=>{
+        if(zoomable){
+          MAP_VIEW=name; state.region=name; $("fRegion").value=name;
+          state.q=""; $("q").value="";
+          renderTable(); renderMap(); return;
+        }
+        state.region = state.region===name ? "" : name;
+        $("fRegion").value = state.region; renderTable();
+      });
   });
   syncMapActive();
 }
+
+function renderCoteMap(svg){
+  $("mapTitle").textContent = "Bourgogne — the Côte, north to south";
+  const agg={}; // stop label -> {b,n,q(raw commune for search)}
+  LAST_CELLAR.forEach(w=>{
+    if(w.region!=="Bourgogne") return;
+    const key=normName(w.commune);
+    let hit=null;
+    for(const [,stops] of COTE_SECTIONS) for(const [label,keys] of stops)
+      if(keys.includes(key)) hit=label;
+    const label = hit || "Other Bourgogne";
+    const a = agg[label] ??= {b:0,n:0,q:w.commune};
+    a.b+=w.left; a.n++;
+  });
+  const W=640, X=170, LH=30, SH=24; let y=18, parts=[], dots=[];
+  for(const [sec,stops] of COTE_SECTIONS){
+    const present = stops.filter(([label])=>agg[label]);
+    if(!present.length) continue;
+    y+=SH; parts.push(`<text class="sec" x="${X-12}" y="${y}" text-anchor="end">${sec}</text>`);
+    const y0=y+LH-14;
+    present.forEach(([label])=>{ y+=LH; dots.push([label,y]); });
+    if(sec!=="South & regional" && present.length>1)
+      parts.push(`<path class="route" d="M ${X} ${y0} L ${X} ${y}"/>`);
+    y+=6;
+  }
+  if(agg["Other Bourgogne"]){ y+=LH; dots.push(["Other Bourgogne",y]); }
+  dots.forEach(([label,yy])=>{
+    const a=agg[label], rad=(4+Math.sqrt(a.b)*1.9).toFixed(1);
+    parts.push(`<circle class="dot" data-q="${esc(a.q)}" data-label="${esc(label)}" cx="${X}" cy="${yy}" r="${rad}"/>
+      <text class="dlabel" x="${X+26}" y="${yy+4}">${esc(label)}</text>
+      <text class="cnt" x="${W-16}" y="${yy+4}" text-anchor="end">${a.b} btl.</text>`);
+  });
+  svg.setAttribute("viewBox",`0 0 ${W} ${y+24}`);
+  svg.innerHTML = parts.join("");
+  bindDetailDots(svg, agg);
+}
+
+function renderChampagneMap(svg){
+  $("mapTitle").textContent = "Champagne — villages";
+  const agg={}; let other=null;
+  LAST_CELLAR.forEach(w=>{
+    if(w.region!=="Champagne") return;
+    const key=normName(w.commune);
+    if(CHAMP_GEO[key]){ const a=agg[key] ??= {b:0,n:0,q:w.commune,label:w.commune}; a.b+=w.left; a.n++; }
+    else { other = other||{b:0,n:0,q:w.commune,label:"Elsewhere in Champagne"}; other.b+=w.left; other.n++; }
+  });
+  // local projector over champagne coords
+  const pts=Object.keys(agg).map(k=>CHAMP_GEO[k]);
+  CITY_ANCHORS.forEach(([,la,ln])=>pts.push([la,ln]));
+  const cos=Math.cos(49*Math.PI/180), pad=40, W=640;
+  let minx=Infinity,maxx=-Infinity,miny=Infinity,maxy=-Infinity;
+  pts.forEach(([la,ln])=>{ const x=ln*cos; if(x<minx)minx=x; if(x>maxx)maxx=x; if(la<miny)miny=la; if(la>maxy)maxy=la; });
+  const sc=(W-2*pad)/Math.max(0.0001,(maxx-minx));
+  const H=Math.max(220,(maxy-miny)*sc+2*pad);
+  const proj=([la,ln])=>[pad+(ln*cos-minx)*sc, (H-pad)-(la-miny)*sc];
+  let parts=[];
+  CITY_ANCHORS.forEach(([name,la,ln])=>{
+    const [x,y]=proj([la,ln]);
+    parts.push(`<text class="city" x="${(x+10).toFixed(1)}" y="${(y-8).toFixed(1)}">${name}</text>
+      <path class="route" d="M ${(x-5).toFixed(1)} ${y.toFixed(1)} L ${(x+5).toFixed(1)} ${y.toFixed(1)} M ${x.toFixed(1)} ${(y-5).toFixed(1)} L ${x.toFixed(1)} ${(y+5).toFixed(1)}"/>`);
+  });
+  const entries=Object.entries(agg).sort((a,b)=>b[1].b-a[1].b);
+  entries.forEach(([key,a])=>{
+    const [x,y]=proj(CHAMP_GEO[key]);
+    parts.push(`<circle class="dot" data-q="${esc(a.q)}" data-label="${esc(a.label)}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(4+Math.sqrt(a.b)*2.2).toFixed(1)}"/>`);
+    if(a.b>=2){
+      const left=x>W*0.62;
+      parts.push(`<text class="dlabel" text-anchor="${left?"end":"start"}" x="${(left?x-12:x+12).toFixed(1)}" y="${(y+4).toFixed(1)}">${esc(a.label)} · ${a.b}</text>`);
+    }
+  });
+  if(other) parts.push(`<text class="dsub" x="${pad}" y="${(H-12).toFixed(1)}">+ ${other.b} btl. elsewhere (${esc(other.q)}…)</text>`);
+  svg.setAttribute("viewBox",`0 0 ${W} ${Math.round(H)}`);
+  svg.innerHTML=parts.join("");
+  bindDetailDots(svg, null);
+}
+
+function bindDetailDots(svg){
+  svg.querySelectorAll(".dot").forEach(c=>{
+    const q=c.dataset.q, label=c.dataset.label||q;
+    bindDot(c, `<b>${esc(label)}</b><br><i>click to filter the list</i>`, ()=>{
+      state.q = state.q===q ? "" : q;
+      $("q").value = state.q; renderTable();
+    });
+  });
+}
+
+$("mapBack").addEventListener("click", ()=>{ MAP_VIEW="europe"; renderMap(); });
+
 function syncMapActive(){
+  if(MAP_VIEW!=="europe") return;
   document.querySelectorAll("#map .dot").forEach(c=>
     c.classList.toggle("on", c.dataset.region===state.region && !!state.region));
 }
@@ -491,6 +682,99 @@ function pickTonight(){
 }
 $("tonightBtn").addEventListener("click", pickTonight);
 
+/* ---------- journal ---------- */
+let JENTRIES = null;
+
+async function loadJournal(force){
+  if(JENTRIES && !force){ renderJournal(); return; }
+  $("jSpin").hidden = false; $("jList").innerHTML = "";
+  try{
+    const res = await api({action:"journal"});
+    JENTRIES = res.entries || [];
+    renderJournal();
+  }catch(err){
+    if(String(err.message).includes("bad-code")){ forgetAuth(); showGate("Wrong access code — try again."); }
+    else $("jList").innerHTML = `<div class="spin">Could not load the journal (${esc(err.message)}). The Apps Script may need the latest redeploy.</div>`;
+  }
+  $("jSpin").hidden = true;
+}
+
+function renderJournal(){
+  const list = [...(JENTRIES||[])].sort((a,b)=>String(b.date).localeCompare(String(a.date)) || b.row-a.row);
+  $("jCount").textContent = list.length ? list.length+(list.length===1?" entry":" entries") : "";
+  $("jList").innerHTML = list.length ? list.map(e=>{
+    const d = e.date ? new Date(String(e.date).slice(0,10)+"T12:00:00") : null;
+    const ds = d && !isNaN(d) ? d.toLocaleDateString("da-DK",{day:"numeric",month:"long",year:"numeric"}) : esc(String(e.date));
+    const n = Math.max(0, Math.min(5, Number(e.rating)||0));
+    const glasses = n ? "🍷".repeat(n) : "";
+    return `<div class="jentry">
+      <div class="jtop"><span class="jdate">${ds}</span>
+        ${e.place?`<span class="jplace">📍 ${esc(e.place)}</span>`:""}
+        <button class="jdel" data-row="${e.row}" title="Delete entry">🗑</button></div>
+      <div class="jwine">${esc(e.producer)}${e.wine?" · "+esc(e.wine):""}${e.vintage?" · "+esc(e.vintage):""}
+        ${glasses?`<span class="jglasses">${glasses}</span>`:""}</div>
+      ${e.note?`<div class="jnote">${esc(e.note)}</div>`:""}
+    </div>`;
+  }).join("") : `<div class="spin">No entries yet — press “＋ New entry” after your next good bottle.</div>`;
+  document.querySelectorAll(".jdel").forEach(b=>b.addEventListener("click", async ()=>{
+    if(!confirm("Delete this journal entry?")) return;
+    try{
+      const res = await api({action:"jdelete", row:Number(b.dataset.row)});
+      JENTRIES = res.entries || []; renderJournal(); toast("Entry deleted");
+    }catch(err){ toast("Could not delete: "+err.message); }
+  }));
+}
+
+function openJournalModal(prefill){
+  $("jForm").reset();
+  $("jDate").value = new Date().toISOString().slice(0,10);
+  if(prefill){
+    $("jProducer").value = prefill.producer || "";
+    $("jWine").value = prefill.wine || "";
+    $("jVintage").value = prefill.vintage || "";
+  }
+  $("jProducers").innerHTML = [...new Set(WINES.map(w=>w.producer).filter(Boolean))].sort().map(x=>`<option>${esc(x)}</option>`).join("");
+  $("jPlaces").innerHTML = [...new Set((JENTRIES||[]).map(e=>e.place).filter(Boolean))].sort().map(x=>`<option>${esc(x)}</option>`).join("");
+  $("jModal").classList.add("open");
+  setTimeout(()=>$(prefill?"jPlace":"jProducer").focus(), 40);
+}
+
+$("jAddBtn").addEventListener("click", ()=>openJournalModal(null));
+$("jCancel").addEventListener("click", ()=>$("jModal").classList.remove("open"));
+$("jModal").addEventListener("click", e=>{ if(e.target===$("jModal")) $("jModal").classList.remove("open"); });
+$("jForm").addEventListener("submit", async e=>{
+  e.preventDefault();
+  const btn = $("jSave"); btn.disabled = true; btn.textContent = "Saving…";
+  const v = id => $(id).value.trim();
+  const entry = {
+    date: v("jDate"), producer: v("jProducer"), wine: v("jWine"),
+    vintage: /^\d{4}$/.test(v("jVintage")) ? Number(v("jVintage")) : v("jVintage"),
+    place: v("jPlace"), rating: v("jRating") ? Number(v("jRating")) : "", note: v("jNote"),
+  };
+  try{
+    const res = await api({action:"jadd", entry});
+    JENTRIES = res.entries || [];
+    $("jModal").classList.remove("open");
+    renderJournal();
+    if(location.hash!=="#journal") location.hash = "#journal";
+    toast("Journal entry saved 📓");
+  }catch(err){ toast("Could not save: "+err.message); }
+  btn.disabled = false; btn.textContent = "Save entry";
+});
+
+/* ---------- page routing ---------- */
+function route(){
+  const j = location.hash === "#journal";
+  $("pageCellar").hidden = j;
+  $("pageJournal").hidden = !j;
+  document.querySelectorAll(".tab").forEach(t=>
+    t.classList.toggle("active", (t.dataset.page==="journal") === j));
+  if(j && cfg.code) loadJournal();
+}
+document.querySelectorAll(".tab").forEach(t=>
+  t.addEventListener("click", ()=>{ location.hash = t.dataset.page==="journal" ? "#journal" : ""; }));
+window.addEventListener("hashchange", route);
+
 /* ---------- boot ---------- */
-if(cfg.api && cfg.code){ $("app").hidden=false; loadData(); }
+if(cfg.api && cfg.code){ $("app").hidden=false; loadData(); route(); }
 else showGate();

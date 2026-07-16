@@ -38,6 +38,14 @@ showing the site to someone over your shoulder); pressing **Show prices**
 brings them straight back — no extra code. The choice is remembered per
 browser.
 
+## Journal
+
+The **Journal** tab is a tasting log for any wine, anywhere — bottles from the
+cellar (open a wine → "Log in journal" prefills it), or wines had at a
+restaurant or a friend's place. Entries have a date, place, 1–5 rating and a
+note, and live in a separate **Journal** tab in the same Google Sheet
+(auto-created on first use).
+
 ## Changing a wine's details
 
 Add and "mark as drunk" happen in the site; anything else (editing a price,

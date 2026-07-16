@@ -174,6 +174,42 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
 @media(max-width:640px){
   .filters input[type=search],.filters select,.modal input,.modal select,.modal textarea,.gate input{font-size:16px}
 }
+/* tabs */
+.tabs{display:flex;gap:4px;margin:-6px 0 18px}
+.tab{border:0;background:none;color:var(--muted);font:inherit;font-size:14px;font-weight:600;
+  padding:8px 2px;margin-right:14px;cursor:pointer;border-bottom:2px solid transparent}
+.tab.active{color:var(--ink);border-bottom-color:var(--accent)}
+.tab:hover{color:var(--ink)}
+
+/* style pie */
+#stylePie{display:block;width:100%;max-width:230px;margin:2px auto 12px}
+.pslice{stroke:var(--card);stroke-width:2;cursor:pointer}
+.pslice:hover{opacity:.85}
+.pslice.on{stroke:var(--ink);stroke-width:2.5}
+.pcen{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;font-size:32px;font-weight:600;fill:var(--ink)}
+.pcen2{font-size:10px;fill:var(--muted);letter-spacing:.12em;text-transform:uppercase}
+
+/* map detail bar */
+#mapbar{display:flex;align-items:center;gap:10px;margin:0 0 10px}
+#mapbar .btn{padding:5px 10px;font-size:12.5px}
+#mapTitle{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;font-weight:650;font-size:14px}
+#map .route{stroke:var(--line);stroke-width:4;stroke-linecap:round;fill:none}
+#map .sec{fill:var(--muted);font-size:10px;letter-spacing:.12em;text-transform:uppercase}
+#map .cnt{fill:var(--muted);font-size:11px;font-variant-numeric:tabular-nums}
+#map .city{fill:var(--muted);font-size:10px;letter-spacing:.08em;text-transform:uppercase}
+
+/* journal */
+.jentry{background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);
+  padding:14px 16px;margin-bottom:10px}
+.jtop{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.jdate{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.jplace{font-size:12px;color:var(--muted)}
+.jdel{margin-left:auto;border:0;background:none;cursor:pointer;font-size:13px;opacity:.45}
+.jdel:hover{opacity:1}
+.jwine{font-weight:650;margin-top:2px;font-size:15px}
+.jwine .jglasses{font-weight:400;font-size:13px;margin-left:6px}
+.jnote{font-size:13.5px;margin-top:6px;color:var(--ink);max-width:70ch}
+
 @media (prefers-reduced-motion: reduce){*{transition:none !important}}
 </style>
 </head>
@@ -199,6 +235,13 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
   <h1>Lindholm <em>Vin</em></h1>
   <div class="sub">Cellar overview</div>
 </header>
+
+<nav class="tabs" aria-label="Pages">
+  <button class="tab active" data-page="cellar">Cellar</button>
+  <button class="tab" data-page="journal">Journal</button>
+</nav>
+
+<div id="pageCellar">
 
 <div class="actions">
   <button class="btn primary" id="addBtn">＋ Add wine</button>
@@ -230,21 +273,25 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
 <div class="grid">
   <div class="panel">
     <h2>By style</h2>
-    <p class="ph">Bottles in the cellar</p>
-    <div class="stack" id="stack" aria-hidden="true"></div>
+    <p class="ph">Bottles in the cellar · click a slice to filter</p>
+    <svg id="stylePie" role="img" aria-label="Pie chart of the cellar by style"></svg>
     <div class="slegend" id="slegend"></div>
   </div>
   <div class="panel">
-    <h2>Vintages</h2>
-    <p class="ph">Bottles in the cellar by vintage · NV = non-vintage champagne</p>
-    <svg id="vintChart" role="img" aria-label="Bar chart of bottles per vintage year"></svg>
+    <h2>Map</h2>
+    <p class="ph">Bottles by region · click Bourgogne or Champagne to explore</p>
+    <div id="mapbar" hidden>
+      <button class="btn" id="mapBack">← All regions</button>
+      <span id="mapTitle"></span>
+    </div>
+    <svg id="map" role="img" aria-label="Stylized map of the wine regions in the cellar"></svg>
   </div>
 </div>
 
 <div class="panel" style="margin-bottom:24px">
-  <h2>Where the cellar comes from</h2>
-  <p class="ph">Each region sized by bottles · click a dot to filter the list</p>
-  <svg id="map" role="img" aria-label="Stylized map of the wine regions in the cellar"></svg>
+  <h2>Vintages</h2>
+  <p class="ph">Bottles in the cellar by vintage · NV = non-vintage champagne · click a bar to filter</p>
+  <svg id="vintChart" role="img" aria-label="Bar chart of bottles per vintage year"></svg>
 </div>
 
 <div class="filters">
@@ -281,6 +328,17 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
   <p>Data lives in the Google Sheet — this page reads and writes it through a private API.</p>
 </footer>
 </div><!-- /content -->
+</div><!-- /pageCellar -->
+
+<div id="pageJournal" hidden>
+  <div class="actions">
+    <button class="btn primary" id="jAddBtn">＋ New entry</button>
+    <span class="stamp" id="jCount"></span>
+  </div>
+  <p class="ph" style="margin:0 0 14px">Tasting log — any wine, any place: from the cellar, a restaurant, or a friend's table.</p>
+  <div class="spin" id="jSpin" hidden>Fetching the journal…</div>
+  <div id="jList"></div>
+</div>
 </div><!-- /app -->
 
 <div class="modal" id="addModal" role="dialog" aria-modal="true" aria-labelledby="addTitle">
@@ -315,6 +373,37 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
     <div class="mact">
       <button type="button" class="btn" id="addCancel">Cancel</button>
       <button type="submit" class="btn primary" id="addSave">Add to cellar</button>
+    </div>
+  </form>
+</div>
+
+<div class="modal" id="jModal" role="dialog" aria-modal="true" aria-labelledby="jTitle">
+  <form class="card" id="jForm">
+    <h2 id="jTitle">New journal entry</h2>
+    <div class="row2">
+      <div><label for="jDate">Date</label><input id="jDate" type="date" required></div>
+      <div><label for="jPlace">Place</label><input id="jPlace" placeholder="Home · restaurant · hos …" list="jPlaces">
+        <datalist id="jPlaces"></datalist></div>
+    </div>
+    <label for="jProducer">Producer</label><input id="jProducer" list="jProducers" required>
+    <datalist id="jProducers"></datalist>
+    <div class="row2">
+      <div><label for="jWine">Wine / cuvée</label><input id="jWine"></div>
+      <div><label for="jVintage">Vintage</label><input id="jVintage" placeholder="2019 or NV"></div>
+    </div>
+    <label for="jRating">Rating</label>
+    <select id="jRating">
+      <option value="">—</option>
+      <option value="1">🍷 (1)</option>
+      <option value="2">🍷🍷 (2)</option>
+      <option value="3">🍷🍷🍷 (3)</option>
+      <option value="4">🍷🍷🍷🍷 (4)</option>
+      <option value="5">🍷🍷🍷🍷🍷 (5)</option>
+    </select>
+    <label for="jNote">Note</label><textarea id="jNote" rows="3" placeholder="How was it?"></textarea>
+    <div class="mact">
+      <button type="button" class="btn" id="jCancel">Cancel</button>
+      <button type="submit" class="btn primary" id="jSave">Save entry</button>
     </div>
   </form>
 </div>
