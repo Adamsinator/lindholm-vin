@@ -14,7 +14,7 @@ const ACCESS_CODE = 'CHANGE-ME';        // code to open the site
 const SHEET_NAME  = 'Ark1';             // tab name that holds the wine list
 // ─────────────────────────────────────────────────────────────────────────────
 
-const API_VERSION = 9; // returned in every response; used to verify deployments
+const API_VERSION = 10; // returned in every response; used to verify deployments
 
 // Column headers in row 1 of the sheet, mapped to API field names.
 const HEADERS = {
@@ -78,6 +78,9 @@ function handle(p) {
         return json({ ok: true, entries: readJournal() });
       case 'jadd':
         addJournal(p.entry || {});
+        return json({ ok: true, entries: readJournal() });
+      case 'jedit':
+        updateJournal(Number(p.row), p.entry || {});
         return json({ ok: true, entries: readJournal() });
       case 'jdelete':
         deleteJournal(Number(p.row));
@@ -261,16 +264,39 @@ function addJournal(e) {
   sh.appendRow(row);
 }
 
+// Update an existing entry in place. Text fields are overwritten from `e`; the
+// photo is replaced when `e.photo` (a new data URL) is given, removed when
+// `e.photoRemove` is set, and otherwise left untouched.
+function updateJournal(rowNum, e) {
+  const sh = journalSheet();
+  if (!rowNum || rowNum < 2 || rowNum > sh.getLastRow()) throw new Error('Bad row');
+  if (e.photo || e.photoRemove) ensureCol(sh, JHEADERS.photo);
+  const head = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String);
+  const photoCol = head.indexOf(JHEADERS.photo);
+  const oldId = photoCol >= 0 ? String(sh.getRange(rowNum, photoCol + 1).getValue() || '').trim() : '';
+  let newId = oldId;
+  if (e.photo) { newId = savePhoto(e.photo, photoName(e)); if (oldId) trashPhoto(oldId); }
+  else if (e.photoRemove) { if (oldId) trashPhoto(oldId); newId = ''; }
+  for (const [f, h] of Object.entries(JHEADERS)) {
+    if (f === 'photo') continue;
+    const i = head.indexOf(h);
+    if (i >= 0) sh.getRange(rowNum, i + 1).setValue(e[f] === undefined || e[f] === null ? '' : e[f]);
+  }
+  if (photoCol >= 0) sh.getRange(rowNum, photoCol + 1).setValue(newId);
+}
+
 function deleteJournal(rowNum) {
   const sh = journalSheet();
   if (!rowNum || rowNum < 2 || rowNum > sh.getLastRow()) throw new Error('Bad row');
   const head = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String);
   const i = head.indexOf(JHEADERS.photo);
-  if (i >= 0) {
-    const id = String(sh.getRange(rowNum, i + 1).getValue() || '').trim();
-    if (id) { try { DriveApp.getFileById(id).setTrashed(true); } catch (err) {} }
-  }
+  if (i >= 0) trashPhoto(String(sh.getRange(rowNum, i + 1).getValue() || '').trim());
   sh.deleteRow(rowNum);
+}
+
+function trashPhoto(id) {
+  if (!id) return;
+  try { DriveApp.getFileById(id).setTrashed(true); } catch (err) {}
 }
 
 // ── Journal photos (stored privately in Drive, served through this API) ───────

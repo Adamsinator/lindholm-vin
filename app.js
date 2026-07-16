@@ -783,6 +783,8 @@ $("tonightBtn").addEventListener("click", pickTonight);
 
 /* ---------- journal ---------- */
 let JENTRIES = null;
+let J_EDIT = null;       // row number when editing an entry, else null (adding)
+let J_PHOTO_REMOVE = false; // edit mode: user asked to drop the existing photo
 const PHOTOS = {};       // file id -> data URL, cached once fetched
 
 // Downscale + re-encode a chosen image to a compact JPEG data URL before upload.
@@ -846,6 +848,7 @@ function renderJournal(){
     return `<div class="jentry">
       <div class="jtop"><span class="jdate">${ds}</span>
         ${e.place?`<span class="jplace">📍 ${esc(e.place)}</span>`:""}
+        <button class="jedit" data-row="${e.row}" title="Edit entry">✏️</button>
         <button class="jdel" data-row="${e.row}" title="Delete entry">🗑</button></div>
       <div class="jwine">${esc(e.producer)}${e.wine?" · "+esc(e.wine):""}${e.vintage?" · "+esc(e.vintage):""}
         ${glasses?`<span class="jglasses">${glasses}</span>`:""}</div>
@@ -861,6 +864,10 @@ function renderJournal(){
       el.addEventListener("click",()=>openPhotoLightbox(src));
     }).catch(()=>{ el.innerHTML = `<span class="jphoto-ph err">photo unavailable</span>`; });
   });
+  document.querySelectorAll(".jedit").forEach(b=>b.addEventListener("click",()=>{
+    const e = (JENTRIES||[]).find(x=>x.row===Number(b.dataset.row));
+    if(e) openJournalEdit(e);
+  }));
   document.querySelectorAll(".jdel").forEach(b=>b.addEventListener("click", async ()=>{
     if(!confirm("Delete this journal entry?")) return;
     try{
@@ -870,31 +877,67 @@ function renderJournal(){
   }));
 }
 
-function openJournalModal(prefill){
+function prepJournalModal(){
   $("jForm").reset();
+  J_PHOTO_REMOVE = false;
   $("jPhotoPrev").hidden = true; $("jPhotoPrev").removeAttribute("src");
+  $("jPhotoRemoveBtn").hidden = true;
+  $("jProducers").innerHTML = [...new Set(WINES.map(w=>w.producer).filter(Boolean))].sort().map(x=>`<option>${esc(x)}</option>`).join("");
+  $("jPlaces").innerHTML = [...new Set((JENTRIES||[]).map(e=>e.place).filter(Boolean))].sort().map(x=>`<option>${esc(x)}</option>`).join("");
+  $("jModal").classList.add("open");
+}
+
+function openJournalModal(prefill){
+  J_EDIT = null;
+  prepJournalModal();
+  $("jTitle").textContent = "New journal entry";
+  $("jSave").textContent = "Save entry";
   $("jDate").value = new Date().toISOString().slice(0,10);
   if(prefill){
     $("jProducer").value = prefill.producer || "";
     $("jWine").value = prefill.wine || "";
     $("jVintage").value = prefill.vintage || "";
   }
-  $("jProducers").innerHTML = [...new Set(WINES.map(w=>w.producer).filter(Boolean))].sort().map(x=>`<option>${esc(x)}</option>`).join("");
-  $("jPlaces").innerHTML = [...new Set((JENTRIES||[]).map(e=>e.place).filter(Boolean))].sort().map(x=>`<option>${esc(x)}</option>`).join("");
-  $("jModal").classList.add("open");
   setTimeout(()=>$(prefill?"jPlace":"jProducer").focus(), 40);
+}
+
+function openJournalEdit(e){
+  J_EDIT = e.row;
+  prepJournalModal();
+  $("jTitle").textContent = "Edit journal entry";
+  $("jSave").textContent = "Save changes";
+  $("jDate").value = String(e.date||"").slice(0,10) || new Date().toISOString().slice(0,10);
+  $("jProducer").value = e.producer || "";
+  $("jWine").value = e.wine || "";
+  $("jVintage").value = e.vintage!==""&&e.vintage!=null ? e.vintage : "";
+  $("jPlace").value = e.place || "";
+  $("jRating").value = e.rating ? String(e.rating) : "";
+  $("jNote").value = e.note || "";
+  if(e.photo){
+    $("jPhotoRemoveBtn").hidden = false;
+    loadPhoto(e.photo).then(src=>{ if(J_EDIT===e.row && !J_PHOTO_REMOVE && !$("jPhoto").files[0]){
+      $("jPhotoPrev").src = src; $("jPhotoPrev").hidden = false; } }).catch(()=>{});
+  }
+  setTimeout(()=>$("jNote").focus(), 40);
 }
 
 $("jAddBtn").addEventListener("click", ()=>openJournalModal(null));
 $("jPhoto").addEventListener("change", ()=>{
   const f = $("jPhoto").files[0], prev = $("jPhotoPrev");
-  if(f){ prev.src = URL.createObjectURL(f); prev.hidden = false; }
+  if(f){ J_PHOTO_REMOVE = false; prev.src = URL.createObjectURL(f); prev.hidden = false; }
   else { prev.hidden = true; prev.removeAttribute("src"); }
+});
+$("jPhotoRemoveBtn").addEventListener("click", ()=>{
+  J_PHOTO_REMOVE = true;
+  $("jPhoto").value = "";
+  $("jPhotoPrev").hidden = true; $("jPhotoPrev").removeAttribute("src");
+  $("jPhotoRemoveBtn").hidden = true;
 });
 $("jCancel").addEventListener("click", ()=>$("jModal").classList.remove("open"));
 $("jModal").addEventListener("click", e=>{ if(e.target===$("jModal")) $("jModal").classList.remove("open"); });
 $("jForm").addEventListener("submit", async e=>{
   e.preventDefault();
+  const editing = J_EDIT !== null;
   const btn = $("jSave"); btn.disabled = true; btn.textContent = "Saving…";
   const v = id => $(id).value.trim();
   const entry = {
@@ -907,17 +950,21 @@ $("jForm").addEventListener("submit", async e=>{
     btn.textContent = "Preparing photo…";
     try{ entry.photo = await shrinkImage(file); }
     catch(err){ toast("Couldn't read that photo — saving without it"); }
+  }else if(editing && J_PHOTO_REMOVE){
+    entry.photoRemove = true;
   }
   try{
     btn.textContent = "Saving…";
-    const res = await api({action:"jadd", entry});
+    const res = editing
+      ? await api({action:"jedit", row:J_EDIT, entry})
+      : await api({action:"jadd", entry});
     JENTRIES = res.entries || [];
     $("jModal").classList.remove("open");
     renderJournal();
     if(location.hash!=="#journal") location.hash = "#journal";
-    toast("Journal entry saved 📓");
+    toast(editing ? "Journal entry updated 📓" : "Journal entry saved 📓");
   }catch(err){ toast("Could not save: "+err.message); }
-  btn.disabled = false; btn.textContent = "Save entry";
+  btn.disabled = false; btn.textContent = editing ? "Save changes" : "Save entry";
 });
 
 /* ---------- page routing ---------- */

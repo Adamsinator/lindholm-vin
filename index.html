@@ -212,8 +212,9 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
 .jtop{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
 .jdate{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
 .jplace{font-size:12px;color:var(--muted)}
-.jdel{margin-left:auto;border:0;background:none;cursor:pointer;font-size:13px;opacity:.45}
-.jdel:hover{opacity:1}
+.jedit{margin-left:auto;border:0;background:none;cursor:pointer;font-size:13px;opacity:.45}
+.jdel{border:0;background:none;cursor:pointer;font-size:13px;opacity:.45}
+.jedit:hover,.jdel:hover{opacity:1}
 .jwine{font-weight:650;margin-top:2px;font-size:15px}
 .jwine .jglasses{font-weight:400;font-size:13px;margin-left:6px}
 .jnote{font-size:13.5px;margin-top:6px;color:var(--ink);max-width:70ch}
@@ -426,6 +427,7 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
     <label for="jPhoto">Photo <span class="lopt">(optional — label, bottle, the moment)</span></label>
     <input id="jPhoto" type="file" accept="image/*">
     <img id="jPhotoPrev" class="jphoto-prev" alt="Selected photo preview" hidden>
+    <button type="button" class="btn quiet" id="jPhotoRemoveBtn" hidden>Remove photo</button>
     <div class="mact">
       <button type="button" class="btn" id="jCancel">Cancel</button>
       <button type="submit" class="btn primary" id="jSave">Save entry</button>

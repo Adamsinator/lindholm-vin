@@ -63,6 +63,9 @@ restaurant or a friend's place. Entries have a date, place, 1–10 rating and a
 note, and live in a separate **Journal** tab in the same Google Sheet
 (auto-created on first use).
 
+Each entry can be reopened and revised: press **✏️** to edit any field (or
+its photo — replace it, or **Remove photo**), or **🗑** to delete it.
+
 ### Photos
 
 Each entry can carry a **photo** — a label, the bottle, the table. Pick one when
