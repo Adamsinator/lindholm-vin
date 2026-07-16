@@ -472,36 +472,36 @@ const LANDS = {
 };
 const normName = t => String(t).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[-'’]/g," ").replace(/\s+/g," ").trim();
 
-// Côte d'Or as a wine-route "metro line", north → south. [display, matcher keys]
+// Côte d'Or communes with real coordinates [display, matcher keys, [lat,lng]].
 const COTE_SECTIONS = [
   ["Côte de Nuits", [
-    ["Marsannay",["marsannay","marsannay la cote"]],
-    ["Gevrey-Chambertin",["gevrey chambertin"]],
-    ["Morey-Saint-Denis",["morey saint denis"]],
-    ["Chambolle-Musigny",["chambolle musigny"]],
-    ["Vosne-Romanée",["vosne romanee"]],
-    ["Nuits-Saint-Georges",["nuits saint georges"]],
-    ["Hautes-Côtes de Nuits",["hautes cotes de nuits"]],
+    ["Marsannay",["marsannay","marsannay la cote"],[47.269,4.988]],
+    ["Gevrey-Chambertin",["gevrey chambertin"],[47.227,4.968]],
+    ["Morey-Saint-Denis",["morey saint denis"],[47.196,4.955]],
+    ["Chambolle-Musigny",["chambolle musigny"],[47.180,4.945]],
+    ["Vosne-Romanée",["vosne romanee"],[47.160,4.951]],
+    ["Nuits-Saint-Georges",["nuits saint georges"],[47.137,4.949]],
+    ["Hautes-Côtes de Nuits",["hautes cotes de nuits"],[47.190,4.850]],
   ]],
   ["Côte de Beaune", [
-    ["Aloxe-Corton",["aloxe corton"]],
-    ["Pernand-Vergelesses",["pernand vergelesses"]],
-    ["Savigny-lès-Beaune",["savigny les beaune"]],
-    ["Beaune",["beaune"]],
-    ["Pommard",["pommard"]],
-    ["Volnay",["volnay"]],
-    ["Monthélie",["monthelie"]],
-    ["Auxey-Duresses",["auxey duresses"]],
-    ["Meursault",["meursault"]],
-    ["Puligny-Montrachet",["puligny montrachet"]],
-    ["Saint-Aubin",["saint aubin"]],
-    ["Chassagne-Montrachet",["chassagne montrachet"]],
-    ["Hautes-Côtes de Beaune",["hautes cotes de beaune"]],
+    ["Aloxe-Corton",["aloxe corton"],[47.065,4.862]],
+    ["Pernand-Vergelesses",["pernand vergelesses"],[47.076,4.846]],
+    ["Savigny-lès-Beaune",["savigny les beaune"],[47.066,4.817]],
+    ["Beaune",["beaune"],[47.026,4.840]],
+    ["Pommard",["pommard"],[47.005,4.795]],
+    ["Volnay",["volnay"],[46.995,4.780]],
+    ["Monthélie",["monthelie"],[46.990,4.767]],
+    ["Auxey-Duresses",["auxey duresses"],[46.985,4.740]],
+    ["Meursault",["meursault"],[46.976,4.770]],
+    ["Puligny-Montrachet",["puligny montrachet"],[46.945,4.752]],
+    ["Saint-Aubin",["saint aubin"],[46.940,4.712]],
+    ["Chassagne-Montrachet",["chassagne montrachet"],[46.930,4.737]],
+    ["Hautes-Côtes de Beaune",["hautes cotes de beaune"],[46.980,4.680]],
   ]],
-  ["South & regional", [
-    ["Mâconnais",["macon","maconnais"]],
-    ["Regional cuvées",["bourgogne","bourgogne cote d or"]],
-  ]],
+];
+const COTE_BUCKETS = [ // no single spot on the Côte — shown as a bottom row
+  ["Mâconnais",["macon","maconnais"]],
+  ["Regional cuvées",["bourgogne","bourgogne cote d or"]],
 ];
 const CHAMP_GEO = { // normalized commune -> [lat, lng]
   "reims":[49.258,4.032], "verzenay":[49.159,4.145], "bouzy":[49.139,4.155],
@@ -511,6 +511,7 @@ const CHAMP_GEO = { // normalized commune -> [lat, lng]
   "avize":[48.973,4.011], "vincelles":[49.070,3.630], "azy sur marne":[49.026,3.335],
 };
 const CITY_ANCHORS = [["REIMS",49.258,4.032],["ÉPERNAY",49.043,3.959]];
+const CHAMP_AREAS = [["MONTAGNE DE REIMS",49.185,4.010],["VALLÉE DE LA MARNE",49.078,3.660],["CÔTE DES BLANCS",48.952,4.055]];
 
 let MAP_VIEW = "europe", LAST_CELLAR = [];
 const COS = Math.cos(46*Math.PI/180);
@@ -582,39 +583,75 @@ function renderEuropeMap(svg){
 }
 
 function renderCoteMap(svg){
-  $("mapTitle").textContent = "Bourgogne — the Côte, north to south";
-  const agg={}; // stop label -> {b,n,q(raw commune for search)}
+  $("mapTitle").textContent = "Bourgogne — Côte de Nuits & Côte de Beaune";
+  const geoOf={}, secOf={};
+  for(const [sec,stops] of COTE_SECTIONS)
+    for(const [label,,geo] of stops){ geoOf[label]=geo; secOf[label]=sec; }
+  const agg={};
   LAST_CELLAR.forEach(w=>{
     if(w.region!=="Bourgogne") return;
     const key=normName(w.commune);
     let hit=null;
-    for(const [,stops] of COTE_SECTIONS) for(const [label,keys] of stops)
-      if(keys.includes(key)) hit=label;
+    for(const [,stops] of COTE_SECTIONS) for(const [label,keys] of stops) if(keys.includes(key)) hit=label;
+    if(!hit) for(const [label,keys] of COTE_BUCKETS) if(keys.includes(key)) hit=label;
     const label = hit || "Other Bourgogne";
     const a = agg[label] ??= {b:0,n:0,q:w.commune};
     a.b+=w.left; a.n++;
   });
-  const W=640, X=170, LH=30, SH=24; let y=18, parts=[], dots=[];
-  for(const [sec,stops] of COTE_SECTIONS){
-    const present = stops.filter(([label])=>agg[label]);
-    if(!present.length) continue;
-    y+=SH; parts.push(`<text class="sec" x="${X-12}" y="${y}" text-anchor="end">${sec}</text>`);
-    const y0=y+LH-14;
-    present.forEach(([label])=>{ y+=LH; dots.push([label,y]); });
-    if(sec!=="South & regional" && present.length>1)
-      parts.push(`<path class="route" d="M ${X} ${y0} L ${X} ${y}"/>`);
-    y+=6;
+  const present = Object.keys(agg).filter(l=>geoOf[l]);
+  const buckets = Object.keys(agg).filter(l=>!geoOf[l]);
+
+  // project the Côte into the left part of the panel; labels get a right column
+  const cos=Math.cos(47*Math.PI/180);
+  const DIJON=[47.322,5.041];
+  const pts=present.map(l=>geoOf[l]).concat([DIJON]);
+  let minx=1e9,maxx=-1e9,miny=1e9,maxy=-1e9;
+  pts.forEach(([la,ln])=>{ const x=ln*cos;
+    minx=Math.min(minx,x); maxx=Math.max(maxx,x); miny=Math.min(miny,la); maxy=Math.max(maxy,la); });
+  const W=640, H=Math.max(430, present.length*26+150);
+  const X0=76, X1=300, Y0=42, Y1=H-(buckets.length?96:44);
+  const sx=(X1-X0)/Math.max(1e-9,maxx-minx), sy=(Y1-Y0)/Math.max(1e-9,maxy-miny);
+  const proj=([la,ln])=>[X0+(ln*cos-minx)*sx, Y0+(maxy-la)*sy];
+
+  let parts=[];
+  // the Côte itself as a soft ridge through the main communes (Hautes-Côtes sit west of it)
+  const ridge = present.filter(l=>!l.startsWith("Hautes"))
+    .sort((a,b)=>geoOf[b][0]-geoOf[a][0]).map(l=>proj(geoOf[l]));
+  if(ridge.length>1)
+    parts.push(`<path class="ridge" d="${ridge.map((p,i)=>(i?"L":"M")+p.map(n=>n.toFixed(1)).join(" ")).join("")}"/>`);
+  // Dijon anchor
+  { const [x,y]=proj(DIJON);
+    parts.push(`<text class="city" x="${(x+9).toFixed(1)}" y="${(y+3).toFixed(1)}">DIJON</text>
+      <path class="route" d="M ${(x-4).toFixed(1)} ${y.toFixed(1)} H ${(x+4).toFixed(1)} M ${x.toFixed(1)} ${(y-4).toFixed(1)} V ${(y+4).toFixed(1)}"/>`); }
+  // sub-region labels at the mean latitude of their communes
+  for(const [sec] of COTE_SECTIONS){
+    const ys=present.filter(l=>secOf[l]===sec && !l.startsWith("Hautes")).map(l=>proj(geoOf[l])[1]);
+    if(ys.length) parts.push(`<text class="sec" x="12" y="${(ys.reduce((a,b)=>a+b,0)/ys.length).toFixed(1)}">${sec.toUpperCase()}</text>`);
   }
-  if(agg["Other Bourgogne"]){ y+=LH; dots.push(["Other Bourgogne",y]); }
-  dots.forEach(([label,yy])=>{
-    const a=agg[label], rad=(4+Math.sqrt(a.b)*1.9).toFixed(1);
-    parts.push(`<circle class="dot" data-q="${esc(a.q)}" data-label="${esc(label)}" cx="${X}" cy="${yy}" r="${rad}"/>
-      <text class="dlabel" x="${X+26}" y="${yy+4}">${esc(label)}</text>
-      <text class="cnt" x="${W-16}" y="${yy+4}" text-anchor="end">${a.b} btl.</text>`);
+  // dots at true positions; labels in a staggered right column with leader lines
+  const ordered = present.map(l=>({l,p:proj(geoOf[l])})).sort((a,b)=>a.p[1]-b.p[1]);
+  let lastY=-1e9; const LX=340;
+  ordered.forEach(o=>{
+    const a=agg[o.l], [x,y]=o.p, rad=4+Math.sqrt(a.b)*1.9;
+    const ly=Math.max(y, lastY+16); lastY=ly;
+    parts.push(`<path class="lead" d="M ${(x+rad+2).toFixed(1)} ${y.toFixed(1)} L ${(LX-6).toFixed(1)} ${ly.toFixed(1)}"/>
+      <circle class="dot" data-q="${esc(a.q)}" data-label="${esc(o.l)}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${rad.toFixed(1)}"/>
+      <text class="dlabel" x="${LX}" y="${(ly+4).toFixed(1)}">${esc(o.l)} · ${a.b}</text>`);
   });
-  svg.setAttribute("viewBox",`0 0 ${W} ${y+24}`);
+  // wines without a single spot on the Côte
+  if(buckets.length){
+    const by=H-42; let bx=X0;
+    parts.push(`<text class="dsub" x="18" y="${by-26}">Without a spot on the Côte:</text>`);
+    buckets.forEach(l=>{
+      const a=agg[l], rad=4+Math.sqrt(a.b)*1.9;
+      parts.push(`<circle class="dot" data-q="${esc(a.q)}" data-label="${esc(l)}" cx="${bx.toFixed(1)}" cy="${by}" r="${rad.toFixed(1)}"/>
+        <text class="dlabel" x="${(bx+rad+7).toFixed(1)}" y="${by+4}">${esc(l)} · ${a.b}</text>`);
+      bx += rad + 7 + (l.length+String(a.b).length+3)*7.2 + 44;
+    });
+  }
+  svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
   svg.innerHTML = parts.join("");
-  bindDetailDots(svg, agg);
+  bindDetailDots(svg);
 }
 
 function renderChampagneMap(svg){
@@ -629,6 +666,7 @@ function renderChampagneMap(svg){
   // local projector over champagne coords
   const pts=Object.keys(agg).map(k=>CHAMP_GEO[k]);
   CITY_ANCHORS.forEach(([,la,ln])=>pts.push([la,ln]));
+  CHAMP_AREAS.forEach(([,la,ln])=>pts.push([la,ln]));
   const cos=Math.cos(49*Math.PI/180), pad=40, W=640;
   let minx=Infinity,maxx=-Infinity,miny=Infinity,maxy=-Infinity;
   pts.forEach(([la,ln])=>{ const x=ln*cos; if(x<minx)minx=x; if(x>maxx)maxx=x; if(la<miny)miny=la; if(la>maxy)maxy=la; });
@@ -638,8 +676,13 @@ function renderChampagneMap(svg){
   let parts=[];
   CITY_ANCHORS.forEach(([name,la,ln])=>{
     const [x,y]=proj([la,ln]);
-    parts.push(`<text class="city" x="${(x+10).toFixed(1)}" y="${(y-8).toFixed(1)}">${name}</text>
+    const left = name==="ÉPERNAY"; // its label collides with the Aÿ/Chouilly cluster on the right
+    parts.push(`<text class="city" text-anchor="${left?"end":"start"}" x="${(left?x-10:x+10).toFixed(1)}" y="${(y-8).toFixed(1)}">${name}</text>
       <path class="route" d="M ${(x-5).toFixed(1)} ${y.toFixed(1)} L ${(x+5).toFixed(1)} ${y.toFixed(1)} M ${x.toFixed(1)} ${(y-5).toFixed(1)} L ${x.toFixed(1)} ${(y+5).toFixed(1)}"/>`);
+  });
+  CHAMP_AREAS.forEach(([name,la,ln])=>{
+    const [x,y]=proj([la,ln]);
+    parts.push(`<text class="sec" text-anchor="middle" x="${x.toFixed(1)}" y="${y.toFixed(1)}">${name}</text>`);
   });
   const entries=Object.entries(agg).sort((a,b)=>b[1].b-a[1].b);
   entries.forEach(([key,a])=>{
