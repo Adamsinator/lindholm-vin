@@ -253,6 +253,7 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
   <button class="btn primary" id="addBtn">＋ Add wine</button>
   <button class="btn" id="tonightBtn">🎲 Tonight</button>
   <button class="btn" id="priceBtn">Show prices</button>
+  <button class="btn" id="ctSyncBtn" hidden>🔄 Sync CT values</button>
   <button class="btn" id="refreshBtn">Refresh</button>
   <span class="stamp" id="stamp"></span>
   <button class="btn quiet" id="lockBtn" title="Forget the access code on this device">🔒 Lock</button>
@@ -331,6 +332,9 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
   <p><strong>About ratings:</strong> badges and producer profiles are general critic-reputation summaries
   (Icon &gt; Top tier &gt; Well regarded), not bottle-level scores. Open a wine and use the
   <em>Vivino</em> / <em>Wine-Searcher</em> links for live ratings and market prices.</p>
+  <p><strong>Market value:</strong> when a CellarTracker login is set in the API, <em>Sync CT values</em>
+  pulls each wine's community average value and shows the cellar's market worth (and gain vs. what you paid)
+  alongside the purchase-price totals.</p>
   <p>Data lives in the Google Sheet — this page reads and writes it through a private API.</p>
 </footer>
 </div><!-- /content -->

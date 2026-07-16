@@ -15,6 +15,7 @@ const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>
 const $ = id => document.getElementById(id);
 
 let WINES = [];          // normalized
+let CT_LAST = null;      // {configured, last:{at,matched,valued,total}} from the API
 let SHOW_PRICES = localStorage.getItem("vinHidePrices") !== "1"; // prices shown by default
 const state = {q:"", region:"", style:"", status:"cellar", sortK:"price", sortDir:-1};
 
@@ -54,6 +55,8 @@ function normalize(rows){
       vintage, qty, drunk, left:qty-drunk,
       price: (r.price===null||r.price===""||r.price===undefined) ? null : Number(r.price),
       rating: (r.rating===null||r.rating===""||r.rating===undefined) ? null : Number(r.rating),
+      ctid: String(r.ctid||"").trim(),
+      ctValue: (r.value===null||r.value===""||r.value===undefined) ? null : Number(r.value),
       source:String(r.source).trim(), note:String(r.note).trim(),
     };
   });
@@ -84,6 +87,21 @@ function renderOverview(){
     const valueLeft = cellar.reduce((s,w)=>s+(w.price||0)*w.left,0);
     kpis.push(["Cellar value", kr(valueLeft), "at purchase price", ""]);
     kpis.push(["Avg. bottle", kr(bottlesLeft?valueLeft/bottlesLeft:0), "cellar average", ""]);
+    const valued = cellar.filter(w=>w.ctValue!=null);
+    if(valued.length){
+      const market = valued.reduce((s,w)=>s+w.ctValue*w.left,0);
+      const paid = valued.reduce((s,w)=>s+(w.price||0)*w.left,0);
+      const nBtl = valued.reduce((s,w)=>s+w.left,0);
+      kpis.push(["Market value (CT)", kr(market),
+        valued.length+" of "+cellar.length+" wines · "+fmt(nBtl)+" btl.", ""]);
+      if(paid>0){
+        const gain = market-paid, pct = Math.round(gain/paid*100);
+        kpis.push([(gain>=0?"Unrealised gain":"Unrealised loss"),
+          (gain>=0?"+":"−")+kr(Math.abs(gain)),
+          "vs. paid on valued wines"+(isFinite(pct)?" · "+(gain>=0?"+":"−")+Math.abs(pct)+"%":""),
+          ""]);
+      }
+    }
   }else{
     kpis.push(["Cellar value", "🔒 hidden", "press Show prices above", "locked"]);
   }
@@ -248,6 +266,7 @@ function detailHTML(w){
     ["Commune", w.commune],["Classification", w.classification],["Grape", w.grape],
     ["Bought", w.qty+" btl."],["Enjoyed", w.drunk?w.drunk+" btl.":""],["Source", w.source],
     ["Price", SHOW_PRICES && w.price ? kr(w.price) : ""],
+    ["CellarTracker value", SHOW_PRICES && w.ctValue!=null ? kr(w.ctValue)+" / btl." : ""],
   ].filter(c=>c[1]).map(([k,v])=>`<div><div class="k">${k}</div>${esc(v)}</div>`).join("");
   return `<div class="dgrid">${cells}</div>
     ${w.note?`<div class="unote">“${esc(w.note)}” — cellar note</div>`:""}
@@ -341,7 +360,9 @@ async function loadData(){
   try{
     const res = await api({action:"data"});
     WINES = normalize(res.wines);
+    CT_LAST = res.ctLast || null;
     $("priceBtn").textContent = SHOW_PRICES ? "Hide prices" : "Show prices";
+    updateCtButton();
     renderOverview(); renderTable();
     $("stamp").textContent = "Updated "+new Date().toLocaleString("da-DK",{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"});
     $("spin").hidden = true; $("content").hidden = false;
@@ -435,6 +456,36 @@ $("priceBtn").addEventListener("click", ()=>{
   $("priceBtn").textContent = SHOW_PRICES ? "Hide prices" : "Show prices";
   renderOverview(); renderTable();
 });
+function ctStampText(){
+  const last = CT_LAST && CT_LAST.last;
+  if(!last || !last.at) return "Sync values from CellarTracker";
+  const d = new Date(last.at);
+  const when = isNaN(d) ? "" : d.toLocaleDateString("da-DK",{day:"numeric",month:"short"});
+  return `Last CellarTracker sync ${when} · ${last.valued}/${last.total} wines valued`;
+}
+function updateCtButton(){
+  const btn = $("ctSyncBtn"); if(!btn) return;
+  btn.hidden = !(CT_LAST && CT_LAST.configured);
+  btn.title = ctStampText();
+}
+async function syncCt(){
+  const btn = $("ctSyncBtn");
+  btn.disabled = true; const label = btn.textContent; btn.textContent = "Syncing…";
+  try{
+    const res = await api({action:"ctsync"});
+    WINES = normalize(res.wines);
+    if(res.ct) CT_LAST = {configured:true, last:res.ct};
+    updateCtButton(); renderOverview(); renderTable();
+    const c = res.ct || {};
+    toast(`CellarTracker: ${c.valued||0} of ${c.total||0} wines valued 🍷`);
+  }catch(err){
+    toast(err.message==="CellarTracker not configured"
+      ? "Set your CellarTracker login in Code.gs first"
+      : "CellarTracker sync failed: "+err.message);
+  }
+  btn.disabled = false; btn.textContent = label;
+}
+$("ctSyncBtn").addEventListener("click", syncCt);
 $("addBtn").addEventListener("click", ()=>{ $("addModal").classList.add("open"); $("aProducer").focus(); });
 $("addCancel").addEventListener("click", ()=>$("addModal").classList.remove("open"));
 $("addModal").addEventListener("click", e=>{ if(e.target===$("addModal")) $("addModal").classList.remove("open"); });

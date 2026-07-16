@@ -38,6 +38,30 @@ showing the site to someone over your shoulder); pressing **Show prices**
 brings them straight back — no extra code. The choice is remembered per
 browser.
 
+## Live market values (CellarTracker)
+
+If you keep the same wines on [CellarTracker](https://www.cellartracker.com),
+the site can pull each wine's **community average value** and show what the
+cellar is worth today next to what you paid.
+
+1. In `Code.gs`, set `CT_USER` and `CT_PASSWORD` to your CellarTracker login,
+   then redeploy (see below).
+2. In CellarTracker, set your display currency to **DKK**
+   (Account → Preferences) so the values come back in kroner.
+3. In the site, press **🔄 Sync CT values**. Each cellar wine is matched to
+   CellarTracker — by a stored `iWine` id if it has one, otherwise by producer +
+   vintage + cuvée — and its value is written back to the sheet (new columns
+   **CT iWine** and **Værdi kr (CT)** are created automatically). A first fuzzy
+   match stores the `iWine` id, so later syncs are exact.
+
+The overview then adds **Market value (CT)** and an **unrealised gain/loss** vs.
+the purchase price (over the wines CellarTracker could value), and each wine's
+detail shows its per-bottle CellarTracker value. If a match is wrong, put the
+correct CellarTracker `iWine` number in the **CT iWine** column and re-sync.
+
+Leaving `CT_USER`/`CT_PASSWORD` empty simply hides the button — everything else
+works as before.
+
 ## Journal
 
 The **Journal** tab is a tasting log for any wine, anywhere — bottles from the
