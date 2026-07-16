@@ -11,6 +11,8 @@ const CLASS_FIX = {"1. Cru":"1. cru","1. cr":"1. cru"};
 
 const fmt = n => new Intl.NumberFormat("da-DK",{maximumFractionDigits:0}).format(n);
 const kr = n => fmt(n)+" kr.";
+const fmtDate = s => { const d=new Date(String(s).slice(0,10)+"T12:00:00");
+  return isNaN(d)?String(s):d.toLocaleDateString("da-DK",{day:"numeric",month:"short",year:"numeric"}); };
 const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 const $ = id => document.getElementById(id);
 
@@ -55,6 +57,8 @@ function normalize(rows){
       price: (r.price===null||r.price===""||r.price===undefined) ? null : Number(r.price),
       rating: (r.rating===null||r.rating===""||r.rating===undefined) ? null : Number(r.rating),
       value: (r.value===null||r.value===""||r.value===undefined) ? null : Number(r.value),
+      acquired: String(r.acquired||"").slice(0,10),
+      drunkDate: String(r.drunkDate||"").slice(0,10),
       source:String(r.source).trim(), note:String(r.note).trim(),
     };
   });
@@ -170,6 +174,7 @@ function renderOverview(){
   });
 
   updateMap(cellar);
+  drawHistory();
 
   /* vintage histogram */
   const byV = {};
@@ -249,6 +254,86 @@ function drawPie(styList, styAgg, total){
   });
 }
 
+/* ---------- collection over time ---------- */
+// Pure: turn wines into dated +acquire / -drunk events and a running total.
+function buildHistory(wines, now){
+  now = now || Date.now();
+  const parse = s => { const d = new Date(String(s||"").slice(0,10)+"T12:00:00"); return isNaN(d)?null:d.getTime(); };
+  const ev = []; let withAcq=0, withoutAcq=0, drinkEvents=0;
+  wines.forEach(w=>{
+    const a = parse(w.acquired);
+    if(a===null){ if(w.qty>0) withoutAcq++; return; }
+    withAcq++;
+    ev.push({t:a, d:w.qty, kind:"acq", w});
+    const dd = parse(w.drunkDate);
+    if(dd!==null && w.drunk>0){ ev.push({t:dd, d:-w.drunk, kind:"drink", w}); drinkEvents++; }
+  });
+  ev.sort((x,y)=> x.t-y.t || (x.kind==="acq"?-1:1)); // same-day acquisitions before drinks
+  let cum=0; const points=[];
+  ev.forEach(e=>{ cum+=e.d; points.push({t:e.t, cum, d:e.d, kind:e.kind, w:e.w}); });
+  return { events:ev, points, cum, withAcq, withoutAcq, drinkEvents,
+           tMin: ev.length?ev[0].t:now, tMax: now,
+           max: points.reduce((m,p)=>Math.max(m,p.cum),0) };
+}
+
+function drawHistory(){
+  const svg=$("histChart"), cap=$("histCap"); if(!svg) return;
+  const H = buildHistory(WINES);
+  if(!H.events.length){
+    svg.innerHTML=""; svg.removeAttribute("viewBox");
+    cap.textContent = "Add an “Acquired” date to your wines (in the sheet, or when adding one) to see the collection grow over time.";
+    return;
+  }
+  const W=980,Hh=240,P={l:34,r:12,t:16,b:26};
+  let tMin=H.tMin, tMax=Math.max(H.tMax, H.points[H.points.length-1].t);
+  if(tMax<=tMin) tMax = tMin + 30*864e5;
+  const maxY=Math.max(1,H.max);
+  const X=t=>P.l+(t-tMin)/(tMax-tMin)*(W-P.l-P.r);
+  const Y=v=>Hh-P.b-(v/maxY)*(Hh-P.t-P.b);
+
+  let parts=[];
+  // year gridlines
+  const y0=new Date(tMin).getFullYear(), y1=new Date(tMax).getFullYear();
+  for(let y=y0; y<=y1; y++){
+    const tx=new Date(y+"-01-01T12:00:00").getTime();
+    if(tx<tMin||tx>tMax) continue;
+    parts.push(`<line class="hist-grid" x1="${X(tx).toFixed(1)}" y1="${P.t}" x2="${X(tx).toFixed(1)}" y2="${Hh-P.b}"/>
+      <text class="hist-axis" x="${X(tx).toFixed(1)}" y="${Hh-8}" text-anchor="middle">${y}</text>`);
+  }
+  // y max label + baseline
+  parts.push(`<text class="hist-axis" x="4" y="${(Y(maxY)+3).toFixed(1)}">${maxY}</text>
+    <text class="hist-axis" x="4" y="${(Y(0)+3).toFixed(1)}">0</text>`);
+
+  // stepped cumulative path (aggregate)
+  let d=`M ${X(tMin).toFixed(1)} ${Y(0).toFixed(1)}`, prev=0;
+  H.points.forEach(p=>{ d+=` L ${X(p.t).toFixed(1)} ${Y(prev).toFixed(1)} L ${X(p.t).toFixed(1)} ${Y(p.cum).toFixed(1)}`; prev=p.cum; });
+  d+=` L ${X(tMax).toFixed(1)} ${Y(prev).toFixed(1)}`;
+  parts.push(`<path class="hist-area" d="${d} L ${X(tMax).toFixed(1)} ${Y(0).toFixed(1)} L ${X(tMin).toFixed(1)} ${Y(0).toFixed(1)} Z"/>`);
+  parts.push(`<path class="hist-line" d="${d}"/>`);
+
+  // event dots (increments / decrements)
+  H.points.forEach(p=>{
+    const r=Math.min(7,3+Math.sqrt(Math.abs(p.d))*1.4);
+    parts.push(`<circle class="hist-dot ${p.kind==="acq"?"acq":"drink"}" cx="${X(p.t).toFixed(1)}" cy="${Y(p.cum).toFixed(1)}" r="${r.toFixed(1)}"
+      data-t="${p.t}" data-d="${p.d}" data-cum="${p.cum}" data-w="${esc((p.w.producer||"")+(p.w.name?" · "+p.w.name:""))}"/>`);
+  });
+
+  svg.setAttribute("viewBox",`0 0 ${W} ${Hh}`);
+  svg.innerHTML=parts.join("");
+  svg.querySelectorAll(".hist-dot").forEach(c=>{
+    c.addEventListener("mousemove",e=>{
+      const n=Number(c.dataset.d), when=fmtDate(new Date(Number(c.dataset.t)).toISOString().slice(0,10));
+      const what = n>0 ? `+${n} added` : `${n} drunk`;
+      showTip(`<b>${when}</b><br>${what} · ${esc(c.dataset.w)}<br><span style="opacity:.75">${c.dataset.cum} in cellar</span>`,e.clientX,e.clientY);
+    });
+    c.addEventListener("mouseleave",hideTip);
+  });
+
+  const bits=[`${H.withAcq} wine${H.withAcq===1?"":"s"} on the timeline`, `${H.drinkEvents} drunk`];
+  if(H.withoutAcq) bits.push(`${H.withoutAcq} without an acquired date (not shown)`);
+  cap.textContent = bits.join(" · ");
+}
+
 /* ---------- table ---------- */
 function searchLinks(w){
   const q = [w.producer, w.name!==w.commune?w.name:"", w.commune, typeof w.vintage==="number"?w.vintage:""]
@@ -264,6 +349,8 @@ function detailHTML(w){
     ["Commune", w.commune],["Classification", w.classification],["Grape", w.grape],
     ["Bought", w.qty+" btl."],["Enjoyed", w.drunk?w.drunk+" btl.":""],["Source", w.source],
     ["Price", SHOW_PRICES && w.price ? kr(w.price) : ""],
+    ["Acquired", w.acquired?fmtDate(w.acquired):""],
+    ["Last drunk", w.drunkDate?fmtDate(w.drunkDate):""],
   ].filter(c=>c[1]).map(([k,v])=>`<div><div class="k">${k}</div>${esc(v)}</div>`).join("");
   return `<div class="dgrid">${cells}</div>
     ${w.note?`<div class="unote">“${esc(w.note)}” — cellar note</div>`:""}
@@ -424,7 +511,7 @@ async function addWine(e){
     vintage: /^\d{4}$/.test(v("aVintage")) ? Number(v("aVintage")) : v("aVintage"),
     qty: Number(v("aQty"))||1,
     price: v("aPrice")===""? "" : Number(v("aPrice")),
-    source:v("aSource"), note:v("aNote"),
+    acquired: v("aAcquired"), source:v("aSource"), note:v("aNote"),
   };
   try{
     const res = await api({action:"add", wine});
@@ -469,7 +556,10 @@ $("priceBtn").addEventListener("click", ()=>{
   $("priceBtn").textContent = SHOW_PRICES ? "Hide prices" : "Show prices";
   renderOverview(); renderTable();
 });
-$("addBtn").addEventListener("click", ()=>{ $("addModal").classList.add("open"); $("aProducer").focus(); });
+$("addBtn").addEventListener("click", ()=>{
+  if(!$("aAcquired").value) $("aAcquired").value = new Date().toISOString().slice(0,10);
+  $("addModal").classList.add("open"); $("aProducer").focus();
+});
 $("addCancel").addEventListener("click", ()=>$("addModal").classList.remove("open"));
 $("addModal").addEventListener("click", e=>{ if(e.target===$("addModal")) $("addModal").classList.remove("open"); });
 $("addForm").addEventListener("submit", addWine);

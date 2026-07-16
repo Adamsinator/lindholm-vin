@@ -55,6 +55,19 @@ Wines you leave blank simply don't count toward those totals, so you can value
 only the bottles you care about. Update a figure whenever you like — it's your
 own number, no external service involved.
 
+## Collection over time
+
+Two date columns are tracked automatically (created on demand): **Anskaffet**
+(when a wine was acquired) and **Drukket dato** (when it was last drunk).
+Acquired is set to the date you enter when adding a wine (defaulting to today),
+and the drunk date is stamped whenever you mark a bottle as drunk. Both show on
+a wine's detail, and you can backfill or correct either straight in the sheet.
+
+The overview's **Collection over time** chart draws from these: a running line
+of how many bottles you held since your first acquisition, with a green dot for
+each addition and a red dot for each drink. Wines without an acquired date
+aren't plotted (the caption says how many) — add dates to include them.
+
 ## Journal
 
 The **Journal** tab is a tasting log for any wine, anywhere — bottles from the

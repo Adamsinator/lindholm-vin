@@ -14,7 +14,7 @@ const ACCESS_CODE = 'CHANGE-ME';        // code to open the site
 const SHEET_NAME  = 'Ark1';             // tab name that holds the wine list
 // ─────────────────────────────────────────────────────────────────────────────
 
-const API_VERSION = 11; // returned in every response; used to verify deployments
+const API_VERSION = 12; // returned in every response; used to verify deployments
 
 // Column headers in row 1 of the sheet, mapped to API field names.
 const HEADERS = {
@@ -40,6 +40,17 @@ const RATING_HEADER = 'Rating';
 // Optional current-value column (what a bottle is worth now — your own figure);
 // auto-created the first time you set a value in the site.
 const VALUE_HEADER = 'Værdi kr';
+
+// Optional date columns, auto-created on demand: when the wine was acquired
+// (set on add), and when it was last drunk (set when a bottle is marked drunk).
+const ACQUIRED_HEADER   = 'Anskaffet';
+const DRUNK_DATE_HEADER = 'Drukket dato';
+
+function today() { return Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd'); }
+function ymd(v) {
+  if (v instanceof Date) return Utilities.formatDate(v, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  return v === null || v === undefined ? '' : String(v).trim();
+}
 
 /**
  * Run this ONCE from the Apps Script editor to grant the permissions the web app
@@ -121,8 +132,10 @@ function colIndexes(sh) {
     if (i === -1) throw new Error('Missing column "' + header + '" in row 1');
     idx[field] = i;
   }
-  idx.rating = head.indexOf(RATING_HEADER); // -1 until first rating creates it
-  idx.value  = head.indexOf(VALUE_HEADER);  // -1 until first value creates it
+  idx.rating    = head.indexOf(RATING_HEADER); // -1 until first rating creates it
+  idx.value     = head.indexOf(VALUE_HEADER);  // -1 until first value creates it
+  idx.acquired  = head.indexOf(ACQUIRED_HEADER);
+  idx.drunkDate = head.indexOf(DRUNK_DATE_HEADER);
   return idx;
 }
 
@@ -143,6 +156,8 @@ function readAll() {
     }
     w.rating = idx.rating >= 0 ? (r[idx.rating] === null || r[idx.rating] === undefined ? '' : r[idx.rating]) : '';
     w.value  = idx.value  >= 0 ? (r[idx.value] === null || r[idx.value] === undefined ? '' : r[idx.value]) : '';
+    w.acquired  = idx.acquired  >= 0 ? ymd(r[idx.acquired])  : '';
+    w.drunkDate = idx.drunkDate >= 0 ? ymd(r[idx.drunkDate]) : '';
     wines.push(w);
   });
   return wines;
@@ -150,6 +165,7 @@ function readAll() {
 
 function addWine(wine) {
   const sh = sheet();
+  ensureCol(sh, ACQUIRED_HEADER);
   const idx = colIndexes(sh);
   const row = new Array(sh.getLastColumn()).fill('');
   for (const field of Object.keys(HEADERS)) {
@@ -158,11 +174,13 @@ function addWine(wine) {
     }
   }
   if (!String(row[idx.producer]).trim()) throw new Error('Producer is required');
+  row[idx.acquired] = ymd(wine.acquired) || today();
   sh.appendRow(row);
 }
 
 function markDrunk(rowNum, n) {
   const sh = sheet();
+  ensureCol(sh, DRUNK_DATE_HEADER);
   const idx = colIndexes(sh);
   if (!rowNum || rowNum < 2 || rowNum > sh.getLastRow()) throw new Error('Bad row');
   const qtyCell = sh.getRange(rowNum, idx.qty + 1);
@@ -170,7 +188,11 @@ function markDrunk(rowNum, n) {
   const qty = Number(qtyCell.getValue()) || 1;
   let drunk = drunkCell.getValue();
   drunk = String(drunk).trim().toLowerCase() === 'x' ? qty : Number(drunk) || 0;
-  drunkCell.setValue(Math.min(qty, Math.max(0, drunk + n)));
+  const newDrunk = Math.min(qty, Math.max(0, drunk + n));
+  drunkCell.setValue(newDrunk);
+  const dateCell = sh.getRange(rowNum, idx.drunkDate + 1);
+  if (newDrunk === 0) dateCell.setValue('');        // all bottles back in the cellar
+  else if (n > 0) dateCell.setValue(today());       // a bottle was just drunk
 }
 
 function ensureRatingCol(sh) {

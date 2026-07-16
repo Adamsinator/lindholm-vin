@@ -15,7 +15,7 @@
 :root{
   --bg:#F7F4F1; --card:#FFFFFF; --card2:#FBF9F7; --ink:#2A2126; --muted:#756A70;
   --line:#E7DFDD; --accent:#7C2D3E; --accent-ink:#FFFFFF; --gold:#A87E2F;
-  --c-red:#9C3352; --c-white:#A87E2F; --c-spark:#3F7CB6; --c-rose:#C7758B;
+  --c-red:#9C3352; --c-white:#A87E2F; --c-spark:#3F7CB6; --c-rose:#C7758B; --c-add:#3E9E68;
   --shadow:0 1px 2px rgba(42,33,38,.05),0 4px 16px rgba(42,33,38,.06);
   --chip:#F1EBE8;
 }
@@ -23,7 +23,7 @@
   :root{
     --bg:#171114; --card:#221A1F; --card2:#281F24; --ink:#EFE7E8; --muted:#A5949C;
     --line:#382C32; --accent:#C86A7C; --accent-ink:#1D1216; --gold:#C99B47;
-    --c-red:#C25B76; --c-white:#B8862C; --c-spark:#4E8AC0; --c-rose:#CE6E92;
+    --c-red:#C25B76; --c-white:#B8862C; --c-spark:#4E8AC0; --c-rose:#CE6E92; --c-add:#5FB985;
     --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 16px rgba(0,0,0,.25);
     --chip:#2E2329;
   }
@@ -84,6 +84,17 @@ header.top h1 em{font-style:italic;color:var(--accent)}
 .slegend button.active span:not(.n){color:var(--accent);font-weight:650}
 
 #vintChart{width:100%;display:block}
+#histChart{width:100%;display:block}
+.hist-area{fill:var(--accent);opacity:.12}
+.hist-line{fill:none;stroke:var(--accent);stroke-width:2;stroke-linejoin:round}
+.hist-grid{stroke:var(--line);stroke-width:1}
+.hist-axis{font-size:10px;fill:var(--muted)}
+.hist-dot{stroke:var(--card);stroke-width:1.5;cursor:pointer}
+.hist-dot.acq{fill:var(--c-add)}
+.hist-dot.drink{fill:var(--c-red)}
+.hleg{font-size:11px;vertical-align:1px}
+.hleg.add{color:var(--c-add)}
+.hleg.drink{color:var(--c-red)}
 .vcol{cursor:pointer}
 .vcol rect.bar{fill:var(--accent)}
 .vcol:hover rect.bar{fill:var(--gold)}
@@ -220,7 +231,7 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
 .jmeta{font-size:12.5px;color:var(--muted);margin-top:1px}
 .jerr{margin-top:12px;font-size:13px;color:var(--accent);background:var(--chip);border:1px solid var(--accent);
   border-radius:8px;padding:8px 10px;line-height:1.4}
-.jnote{font-size:13.5px;margin-top:6px;color:var(--ink);max-width:70ch}
+.jnote{font-size:13.5px;margin-top:6px;color:var(--ink);max-width:70ch;white-space:pre-wrap}
 .jphoto{margin-top:10px;width:120px;height:120px;border-radius:8px;overflow:hidden;border:1px solid var(--line);
   background:var(--card2);display:flex;align-items:center;justify-content:center}
 .jphoto.ready{cursor:zoom-in}
@@ -317,6 +328,13 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
   <svg id="vintChart" role="img" aria-label="Bar chart of bottles per vintage year"></svg>
 </div>
 
+<div class="panel" style="margin-bottom:24px">
+  <h2>Collection over time</h2>
+  <p class="ph">Bottles held since the first acquisition · <span class="hleg add">●</span> added · <span class="hleg drink">●</span> drunk</p>
+  <svg id="histChart" role="img" aria-label="Bottles in the collection over time"></svg>
+  <p class="ph" id="histCap" style="margin-top:8px"></p>
+</div>
+
 <div class="filters">
   <input type="search" id="q" placeholder="Search producer, wine, commune, grape…" aria-label="Search wines">
   <select id="fRegion" aria-label="Filter by region"></select>
@@ -394,7 +412,10 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
       <div><label for="aQty">Bottles</label><input id="aQty" type="number" min="1" value="1"></div>
       <div><label for="aPrice">Price per bottle (kr.)</label><input id="aPrice" type="number" min="0" step="1"></div>
     </div>
-    <label for="aSource">Source / bought at</label><input id="aSource">
+    <div class="row2">
+      <div><label for="aAcquired">Acquired</label><input id="aAcquired" type="date"></div>
+      <div><label for="aSource">Source / bought at</label><input id="aSource"></div>
+    </div>
     <label for="aNote">Note</label><input id="aNote">
     <div class="mact">
       <button type="button" class="btn" id="addCancel">Cancel</button>
