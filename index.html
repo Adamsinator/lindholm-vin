@@ -217,6 +217,17 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
 .jwine{font-weight:650;margin-top:2px;font-size:15px}
 .jwine .jglasses{font-weight:400;font-size:13px;margin-left:6px}
 .jnote{font-size:13.5px;margin-top:6px;color:var(--ink);max-width:70ch}
+.jphoto{margin-top:10px;width:120px;height:120px;border-radius:8px;overflow:hidden;border:1px solid var(--line);
+  background:var(--card2);display:flex;align-items:center;justify-content:center}
+.jphoto.ready{cursor:zoom-in}
+.jphoto img{width:100%;height:100%;object-fit:cover;display:block}
+.jphoto-ph{font-size:20px;opacity:.5}
+.jphoto-ph.err{font-size:11px;color:var(--muted);text-align:center;padding:0 8px}
+.jphoto-prev{display:block;margin-top:8px;max-width:100%;max-height:200px;border-radius:8px;border:1px solid var(--line);object-fit:contain}
+.lopt{text-transform:none;letter-spacing:0;font-weight:400;opacity:.7}
+.jlightbox{position:fixed;inset:0;background:rgba(10,6,8,.85);z-index:130;display:flex;align-items:center;
+  justify-content:center;padding:20px;cursor:zoom-out}
+.jlightbox img{max-width:100%;max-height:100%;border-radius:8px;box-shadow:0 8px 40px rgba(0,0,0,.5)}
 
 @media (prefers-reduced-motion: reduce){*{transition:none !important}}
 </style>
@@ -412,6 +423,9 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
       <option value="9">9 / 10</option><option value="10">10 / 10</option>
     </select>
     <label for="jNote">Note</label><textarea id="jNote" rows="3" placeholder="How was it?"></textarea>
+    <label for="jPhoto">Photo <span class="lopt">(optional — label, bottle, the moment)</span></label>
+    <input id="jPhoto" type="file" accept="image/*">
+    <img id="jPhotoPrev" class="jphoto-prev" alt="Selected photo preview" hidden>
     <div class="mact">
       <button type="button" class="btn" id="jCancel">Cancel</button>
       <button type="submit" class="btn primary" id="jSave">Save entry</button>

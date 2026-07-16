@@ -63,6 +63,20 @@ restaurant or a friend's place. Entries have a date, place, 1–10 rating and a
 note, and live in a separate **Journal** tab in the same Google Sheet
 (auto-created on first use).
 
+### Photos
+
+Each entry can carry a **photo** — a label, the bottle, the table. Pick one when
+writing the entry; the browser shrinks it before upload, so big phone photos are
+fine. It's stored privately in a **Lindholm Vin – Journalfotos** folder in your
+Google Drive (never shared), and the sheet's **Foto** column just holds the
+file's id. The site loads photos back through the same access-code API, so only
+someone with the code can see them; tap a thumbnail to view it full-size.
+Deleting an entry also removes its photo from Drive.
+
+> **One-time re-authorization:** because the script now writes to Drive, the
+> next redeploy will ask you to allow Drive access (in addition to Sheets).
+> That's expected — it only touches the photos folder it creates.
+
 ## Changing a wine's details
 
 Add and "mark as drunk" happen in the site; anything else (editing a price,

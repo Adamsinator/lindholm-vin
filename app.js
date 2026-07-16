@@ -783,6 +783,42 @@ $("tonightBtn").addEventListener("click", pickTonight);
 
 /* ---------- journal ---------- */
 let JENTRIES = null;
+const PHOTOS = {};       // file id -> data URL, cached once fetched
+
+// Downscale + re-encode a chosen image to a compact JPEG data URL before upload.
+function shrinkImage(file, maxEdge=1600, quality=0.82){
+  return new Promise((resolve,reject)=>{
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = ()=>{
+      URL.revokeObjectURL(url);
+      let w=img.naturalWidth, h=img.naturalHeight;
+      const scale = Math.min(1, maxEdge/Math.max(w,h||1));
+      w=Math.max(1,Math.round(w*scale)); h=Math.max(1,Math.round(h*scale));
+      const c=document.createElement("canvas"); c.width=w; c.height=h;
+      c.getContext("2d").drawImage(img,0,0,w,h);
+      try{ resolve(c.toDataURL("image/jpeg", quality)); }
+      catch(err){ reject(err); }
+    };
+    img.onerror = ()=>{ URL.revokeObjectURL(url); reject(new Error("bad image")); };
+    img.src = url;
+  });
+}
+
+async function loadPhoto(id){
+  if(PHOTOS[id]) return PHOTOS[id];
+  const res = await api({action:"photo", id});
+  PHOTOS[id] = res.photo;
+  return res.photo;
+}
+
+function openPhotoLightbox(src){
+  const m=document.createElement("div");
+  m.className="jlightbox";
+  m.innerHTML=`<img src="${src}" alt="Tasting photo">`;
+  m.addEventListener("click",()=>m.remove());
+  document.body.appendChild(m);
+}
 
 async function loadJournal(force){
   if(JENTRIES && !force){ renderJournal(); return; }
@@ -806,6 +842,7 @@ function renderJournal(){
     const ds = d && !isNaN(d) ? d.toLocaleDateString("da-DK",{day:"numeric",month:"long",year:"numeric"}) : esc(String(e.date));
     const n = Math.max(0, Math.min(10, Number(e.rating)||0));
     const glasses = n ? n+"/10 🍷" : "";
+    const photo = e.photo ? `<div class="jphoto" data-id="${esc(String(e.photo))}"><span class="jphoto-ph">📷</span></div>` : "";
     return `<div class="jentry">
       <div class="jtop"><span class="jdate">${ds}</span>
         ${e.place?`<span class="jplace">📍 ${esc(e.place)}</span>`:""}
@@ -813,8 +850,17 @@ function renderJournal(){
       <div class="jwine">${esc(e.producer)}${e.wine?" · "+esc(e.wine):""}${e.vintage?" · "+esc(e.vintage):""}
         ${glasses?`<span class="jglasses">${glasses}</span>`:""}</div>
       ${e.note?`<div class="jnote">${esc(e.note)}</div>`:""}
+      ${photo}
     </div>`;
   }).join("") : `<div class="spin">No entries yet — press “＋ New entry” after your next good bottle.</div>`;
+  document.querySelectorAll(".jphoto[data-id]").forEach(el=>{
+    const id = el.dataset.id;
+    loadPhoto(id).then(src=>{
+      el.innerHTML = `<img src="${src}" alt="Tasting photo" loading="lazy">`;
+      el.classList.add("ready");
+      el.addEventListener("click",()=>openPhotoLightbox(src));
+    }).catch(()=>{ el.innerHTML = `<span class="jphoto-ph err">photo unavailable</span>`; });
+  });
   document.querySelectorAll(".jdel").forEach(b=>b.addEventListener("click", async ()=>{
     if(!confirm("Delete this journal entry?")) return;
     try{
@@ -826,6 +872,7 @@ function renderJournal(){
 
 function openJournalModal(prefill){
   $("jForm").reset();
+  $("jPhotoPrev").hidden = true; $("jPhotoPrev").removeAttribute("src");
   $("jDate").value = new Date().toISOString().slice(0,10);
   if(prefill){
     $("jProducer").value = prefill.producer || "";
@@ -839,6 +886,11 @@ function openJournalModal(prefill){
 }
 
 $("jAddBtn").addEventListener("click", ()=>openJournalModal(null));
+$("jPhoto").addEventListener("change", ()=>{
+  const f = $("jPhoto").files[0], prev = $("jPhotoPrev");
+  if(f){ prev.src = URL.createObjectURL(f); prev.hidden = false; }
+  else { prev.hidden = true; prev.removeAttribute("src"); }
+});
 $("jCancel").addEventListener("click", ()=>$("jModal").classList.remove("open"));
 $("jModal").addEventListener("click", e=>{ if(e.target===$("jModal")) $("jModal").classList.remove("open"); });
 $("jForm").addEventListener("submit", async e=>{
@@ -850,7 +902,14 @@ $("jForm").addEventListener("submit", async e=>{
     vintage: /^\d{4}$/.test(v("jVintage")) ? Number(v("jVintage")) : v("jVintage"),
     place: v("jPlace"), rating: v("jRating") ? Number(v("jRating")) : "", note: v("jNote"),
   };
+  const file = $("jPhoto").files[0];
+  if(file){
+    btn.textContent = "Preparing photo…";
+    try{ entry.photo = await shrinkImage(file); }
+    catch(err){ toast("Couldn't read that photo — saving without it"); }
+  }
   try{
+    btn.textContent = "Saving…";
     const res = await api({action:"jadd", entry});
     JENTRIES = res.entries || [];
     $("jModal").classList.remove("open");

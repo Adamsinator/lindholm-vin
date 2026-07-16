@@ -14,7 +14,7 @@ const ACCESS_CODE = 'CHANGE-ME';        // code to open the site
 const SHEET_NAME  = 'Ark1';             // tab name that holds the wine list
 // ─────────────────────────────────────────────────────────────────────────────
 
-const API_VERSION = 8; // returned in every response; used to verify deployments
+const API_VERSION = 9; // returned in every response; used to verify deployments
 
 // Column headers in row 1 of the sheet, mapped to API field names.
 const HEADERS = {
@@ -82,6 +82,8 @@ function handle(p) {
       case 'jdelete':
         deleteJournal(Number(p.row));
         return json({ ok: true, entries: readJournal() });
+      case 'photo':
+        return json({ ok: true, photo: getPhoto(String(p.id || '')) });
       default:
         return json({ ok: false, error: 'bad-action' });
     }
@@ -209,7 +211,7 @@ function setValue(rowNum, value) {
 // ── Journal (tasting log) — lives in its own tab, auto-created on first use ──
 const JOURNAL_SHEET = 'Journal';
 const JHEADERS = { date: 'Dato', producer: 'Producent', wine: 'Vin', vintage: 'Årgang',
-                   place: 'Sted', rating: 'Rating', note: 'Note' };
+                   place: 'Sted', rating: 'Rating', note: 'Note', photo: 'Foto' };
 
 function journalSheet() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -244,12 +246,17 @@ function readJournal() {
 
 function addJournal(e) {
   const sh = journalSheet();
+  // a photo (base64 data URL) is saved to Drive first; only its file id goes in the row
+  let fileId = '';
+  if (e.photo) { ensureCol(sh, JHEADERS.photo); fileId = savePhoto(e.photo, photoName(e)); }
   const head = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String);
   const row = new Array(sh.getLastColumn()).fill('');
   for (const [f, h] of Object.entries(JHEADERS)) {
+    if (f === 'photo') continue; // handled above; never write the base64 into a cell
     const i = head.indexOf(h);
     if (i >= 0 && e[f] !== undefined && e[f] !== null && e[f] !== '') row[i] = e[f];
   }
+  if (fileId) { const i = head.indexOf(JHEADERS.photo); if (i >= 0) row[i] = fileId; }
   if (!row.some(v => String(v).trim())) throw new Error('Empty entry');
   sh.appendRow(row);
 }
@@ -257,7 +264,65 @@ function addJournal(e) {
 function deleteJournal(rowNum) {
   const sh = journalSheet();
   if (!rowNum || rowNum < 2 || rowNum > sh.getLastRow()) throw new Error('Bad row');
+  const head = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String);
+  const i = head.indexOf(JHEADERS.photo);
+  if (i >= 0) {
+    const id = String(sh.getRange(rowNum, i + 1).getValue() || '').trim();
+    if (id) { try { DriveApp.getFileById(id).setTrashed(true); } catch (err) {} }
+  }
   sh.deleteRow(rowNum);
+}
+
+// ── Journal photos (stored privately in Drive, served through this API) ───────
+// Photos live in a private Drive folder in your account — never shared. The site
+// asks for a photo by its file id and only ids present in the Journal are served,
+// so the API can't be used to read other files in your Drive.
+
+function photoFolder() {
+  const props = PropertiesService.getDocumentProperties();
+  const saved = props.getProperty('photoFolderId');
+  if (saved) { try { return DriveApp.getFolderById(saved); } catch (err) {} }
+  const folder = DriveApp.createFolder('Lindholm Vin – Journalfotos');
+  props.setProperty('photoFolderId', folder.getId());
+  return folder;
+}
+
+function photoName(e) {
+  const bits = [e.date, e.producer, e.wine].map(x => String(x || '').trim()).filter(Boolean);
+  return (bits.join(' – ') || 'foto') + '.jpg';
+}
+
+// Accepts a data URL ("data:image/jpeg;base64,…") or bare base64; returns the file id.
+function savePhoto(dataUrl, name) {
+  let b64 = String(dataUrl || ''), mime = 'image/jpeg';
+  const comma = b64.indexOf(',');
+  if (b64.slice(0, 5) === 'data:' && comma >= 0) {
+    mime = (b64.slice(5, comma).split(';')[0]) || mime;
+    b64 = b64.slice(comma + 1);
+  }
+  if (!b64) throw new Error('Empty photo');
+  const blob = Utilities.newBlob(Utilities.base64Decode(b64), mime, name || 'foto.jpg');
+  return photoFolder().createFile(blob).getId();
+}
+
+function journalPhotoIds() {
+  const sh = journalSheet();
+  const head = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String);
+  const i = head.indexOf(JHEADERS.photo);
+  const ids = {};
+  const last = sh.getLastRow();
+  if (i < 0 || last < 2) return ids;
+  sh.getRange(2, i + 1, last - 1, 1).getValues().forEach(r => {
+    const v = String(r[0] || '').trim(); if (v) ids[v] = true;
+  });
+  return ids;
+}
+
+function getPhoto(id) {
+  if (!id) throw new Error('No photo id');
+  if (!journalPhotoIds()[id]) throw new Error('Unknown photo'); // only serve journal photos
+  const blob = DriveApp.getFileById(id).getBlob();
+  return 'data:' + blob.getContentType() + ';base64,' + Utilities.base64Encode(blob.getBytes());
 }
 
 function json(obj) {
