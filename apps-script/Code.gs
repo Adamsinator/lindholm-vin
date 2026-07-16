@@ -14,7 +14,7 @@ const ACCESS_CODE = 'CHANGE-ME';        // code to open the site
 const SHEET_NAME  = 'Ark1';             // tab name that holds the wine list
 // ─────────────────────────────────────────────────────────────────────────────
 
-const API_VERSION = 10; // returned in every response; used to verify deployments
+const API_VERSION = 11; // returned in every response; used to verify deployments
 
 // Column headers in row 1 of the sheet, mapped to API field names.
 const HEADERS = {
@@ -214,6 +214,7 @@ function setValue(rowNum, value) {
 // ── Journal (tasting log) — lives in its own tab, auto-created on first use ──
 const JOURNAL_SHEET = 'Journal';
 const JHEADERS = { date: 'Dato', producer: 'Producent', wine: 'Vin', vintage: 'Årgang',
+                   country: 'Land', region: 'Område', grape: 'Drue',
                    place: 'Sted', rating: 'Rating', note: 'Note', photo: 'Foto' };
 
 function journalSheet() {
@@ -249,6 +250,7 @@ function readJournal() {
 
 function addJournal(e) {
   const sh = journalSheet();
+  ensureJournalCols(sh, e);
   // a photo (base64 data URL) is saved to Drive first; only its file id goes in the row
   let fileId = '';
   if (e.photo) { ensureCol(sh, JHEADERS.photo); fileId = savePhoto(e.photo, photoName(e)); }
@@ -270,6 +272,7 @@ function addJournal(e) {
 function updateJournal(rowNum, e) {
   const sh = journalSheet();
   if (!rowNum || rowNum < 2 || rowNum > sh.getLastRow()) throw new Error('Bad row');
+  ensureJournalCols(sh, e);
   if (e.photo || e.photoRemove) ensureCol(sh, JHEADERS.photo);
   const head = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String);
   const photoCol = head.indexOf(JHEADERS.photo);
@@ -297,6 +300,14 @@ function deleteJournal(rowNum) {
 function trashPhoto(id) {
   if (!id) return;
   try { DriveApp.getFileById(id).setTrashed(true); } catch (err) {}
+}
+
+// Create columns (on demand) for the non-photo fields this entry actually fills.
+function ensureJournalCols(sh, e) {
+  for (const [f, h] of Object.entries(JHEADERS)) {
+    if (f === 'photo') continue;
+    if (e[f] !== undefined && e[f] !== null && e[f] !== '') ensureCol(sh, h);
+  }
 }
 
 // ── Journal photos (stored privately in Drive, served through this API) ───────

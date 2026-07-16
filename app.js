@@ -352,7 +352,8 @@ function renderTable(){
   document.querySelectorAll("button.jlog").forEach(b=>
     b.addEventListener("click",()=>{
       const w = WINES.find(x=>x.row===Number(b.dataset.row));
-      openJournalModal(w ? {producer:w.producer, wine:w.name, vintage:w.vintage} : null);
+      openJournalModal(w ? {producer:w.producer, wine:w.name, vintage:w.vintage,
+        country:w.country, region:w.region, grape:w.grape} : null);
     }));
 }
 
@@ -852,6 +853,7 @@ function renderJournal(){
         <button class="jdel" data-row="${e.row}" title="Delete entry">🗑</button></div>
       <div class="jwine">${esc(e.producer)}${e.wine?" · "+esc(e.wine):""}${e.vintage?" · "+esc(e.vintage):""}
         ${glasses?`<span class="jglasses">${glasses}</span>`:""}</div>
+      ${(e.region||e.country||e.grape)?`<div class="jmeta">${[e.region,e.country,e.grape].filter(Boolean).map(esc).join(" · ")}</div>`:""}
       ${e.note?`<div class="jnote">${esc(e.note)}</div>`:""}
       ${photo}
     </div>`;
@@ -897,6 +899,9 @@ function openJournalModal(prefill){
     $("jProducer").value = prefill.producer || "";
     $("jWine").value = prefill.wine || "";
     $("jVintage").value = prefill.vintage || "";
+    $("jCountry").value = prefill.country || "";
+    $("jRegion").value = prefill.region || "";
+    $("jGrape").value = prefill.grape || "";
   }
   setTimeout(()=>$(prefill?"jPlace":"jProducer").focus(), 40);
 }
@@ -910,6 +915,9 @@ function openJournalEdit(e){
   $("jProducer").value = e.producer || "";
   $("jWine").value = e.wine || "";
   $("jVintage").value = e.vintage!==""&&e.vintage!=null ? e.vintage : "";
+  $("jCountry").value = e.country || "";
+  $("jRegion").value = e.region || "";
+  $("jGrape").value = e.grape || "";
   $("jPlace").value = e.place || "";
   $("jRating").value = e.rating ? String(e.rating) : "";
   $("jNote").value = e.note || "";
@@ -943,6 +951,7 @@ $("jForm").addEventListener("submit", async e=>{
   const entry = {
     date: v("jDate"), producer: v("jProducer"), wine: v("jWine"),
     vintage: /^\d{4}$/.test(v("jVintage")) ? Number(v("jVintage")) : v("jVintage"),
+    country: v("jCountry"), region: v("jRegion"), grape: v("jGrape"),
     place: v("jPlace"), rating: v("jRating") ? Number(v("jRating")) : "", note: v("jNote"),
   };
   const file = $("jPhoto").files[0];

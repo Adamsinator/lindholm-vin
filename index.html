@@ -217,6 +217,7 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
 .jedit:hover,.jdel:hover{opacity:1}
 .jwine{font-weight:650;margin-top:2px;font-size:15px}
 .jwine .jglasses{font-weight:400;font-size:13px;margin-left:6px}
+.jmeta{font-size:12.5px;color:var(--muted);margin-top:1px}
 .jnote{font-size:13.5px;margin-top:6px;color:var(--ink);max-width:70ch}
 .jphoto{margin-top:10px;width:120px;height:120px;border-radius:8px;overflow:hidden;border:1px solid var(--line);
   background:var(--card2);display:flex;align-items:center;justify-content:center}
@@ -414,6 +415,11 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
       <div><label for="jWine">Wine / cuvée</label><input id="jWine"></div>
       <div><label for="jVintage">Vintage</label><input id="jVintage" placeholder="2019 or NV"></div>
     </div>
+    <div class="row2">
+      <div><label for="jCountry">Country</label><input id="jCountry" list="countries"></div>
+      <div><label for="jRegion">Region</label><input id="jRegion" list="regionsList"></div>
+    </div>
+    <label for="jGrape">Grape / blend</label><input id="jGrape" list="grapes">
     <label for="jRating">Rating</label>
     <select id="jRating">
       <option value="">—</option>
