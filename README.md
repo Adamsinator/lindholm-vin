@@ -126,6 +126,14 @@ Deleting an entry also removes its photo from Drive.
 > next redeploy will ask you to allow Drive access (in addition to Sheets).
 > That's expected — it only touches the photos folder it creates.
 
+## Wishlist
+
+The **Wishlist** tab is for wines you're after but don't own yet. Add a wish
+(producer, cuvée, vintage, region, target price, note), edit or remove it, and
+when you actually buy a bottle press **＋ Add to cellar** — it copies the wine
+into the cellar (1 bottle, acquired today) and clears it from the list. Lives in
+its own **Ønskeliste** tab in the same Google Sheet, auto-created on first use.
+
 ## Journal ↔ cellar
 
 The two halves talk to each other. Open a cellar wine and, if you've logged it

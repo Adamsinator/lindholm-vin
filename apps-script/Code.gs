@@ -14,7 +14,7 @@ const ACCESS_CODE = 'CHANGE-ME';        // code to open the site
 const SHEET_NAME  = 'Ark1';             // tab name that holds the wine list
 // ─────────────────────────────────────────────────────────────────────────────
 
-const API_VERSION = 14; // returned in every response; used to verify deployments
+const API_VERSION = 15; // returned in every response; used to verify deployments
 
 // Column headers in row 1 of the sheet, mapped to API field names.
 const HEADERS = {
@@ -120,6 +120,20 @@ function handle(p) {
         return json({ ok: true, entries: readJournal() });
       case 'photo':
         return json({ ok: true, photo: getPhoto(String(p.id || '')) });
+      case 'wish':
+        return json({ ok: true, items: readWishlist() });
+      case 'wadd':
+        addWishlist(p.entry || {});
+        return json({ ok: true, items: readWishlist() });
+      case 'wedit':
+        updateWishlist(Number(p.row), p.entry || {});
+        return json({ ok: true, items: readWishlist() });
+      case 'wdelete':
+        deleteWishlist(Number(p.row));
+        return json({ ok: true, items: readWishlist() });
+      case 'wtocellar':
+        wishToCellar(Number(p.row));
+        return json({ ok: true, wines: readAll(), items: readWishlist() });
       default:
         return json({ ok: false, error: 'bad-action' });
     }
@@ -437,6 +451,76 @@ function getPhoto(id) {
   if (!journalPhotoIds()[id]) throw new Error('Unknown photo'); // only serve journal photos
   const blob = DriveApp.getFileById(id).getBlob();
   return 'data:' + blob.getContentType() + ';base64,' + Utilities.base64Encode(blob.getBytes());
+}
+
+// ── Wishlist — wines you want to buy; its own tab, auto-created on first use ──
+const WISHLIST_SHEET = 'Ønskeliste';
+const WHEADERS = { producer: 'Producent', wine: 'Vin', vintage: 'Årgang',
+                   region: 'Område', price: 'Målpris kr', note: 'Note' };
+
+function wishlistSheet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sh = ss.getSheetByName(WISHLIST_SHEET);
+  if (!sh) { sh = ss.insertSheet(WISHLIST_SHEET); sh.appendRow(Object.values(WHEADERS)); }
+  return sh;
+}
+
+function readWishlist() {
+  const sh = wishlistSheet();
+  const last = sh.getLastRow();
+  if (last < 2) return [];
+  const head = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String);
+  const idx = {};
+  for (const [f, h] of Object.entries(WHEADERS)) idx[f] = head.indexOf(h);
+  const values = sh.getRange(2, 1, last - 1, sh.getLastColumn()).getValues();
+  const out = [];
+  values.forEach((r, i) => {
+    const e = { row: i + 2 };
+    for (const f of Object.keys(WHEADERS)) {
+      let v = idx[f] >= 0 ? r[idx[f]] : '';
+      if (v instanceof Date) v = v.getFullYear();
+      e[f] = v === null || v === undefined ? '' : v;
+    }
+    if (String(e.producer).trim() || String(e.wine).trim()) out.push(e);
+  });
+  return out;
+}
+
+function addWishlist(e) {
+  if (!String(e.producer || '').trim()) throw new Error('Producer is required');
+  const sh = wishlistSheet();
+  const head = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String);
+  const row = new Array(sh.getLastColumn()).fill('');
+  for (const [f, h] of Object.entries(WHEADERS)) {
+    const i = head.indexOf(h);
+    if (i >= 0 && e[f] !== undefined && e[f] !== null && e[f] !== '') row[i] = e[f];
+  }
+  sh.appendRow(row);
+}
+
+function updateWishlist(rowNum, e) {
+  const sh = wishlistSheet();
+  if (!rowNum || rowNum < 2 || rowNum > sh.getLastRow()) throw new Error('Bad row');
+  const head = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String);
+  for (const [f, h] of Object.entries(WHEADERS)) {
+    const i = head.indexOf(h);
+    if (i >= 0) sh.getRange(rowNum, i + 1).setValue(e[f] === undefined || e[f] === null ? '' : e[f]);
+  }
+}
+
+function deleteWishlist(rowNum) {
+  const sh = wishlistSheet();
+  if (!rowNum || rowNum < 2 || rowNum > sh.getLastRow()) throw new Error('Bad row');
+  sh.deleteRow(rowNum);
+}
+
+// Buy it: copy a wishlist row into the cellar (1 bottle) and remove the wish.
+function wishToCellar(rowNum) {
+  const it = readWishlist().find(x => x.row === rowNum);
+  if (!it) throw new Error('Wish not found');
+  addWine({ producer: it.producer, name: it.wine, region: it.region,
+            vintage: it.vintage, price: it.price, qty: 1 });
+  deleteWishlist(rowNum);
 }
 
 function json(obj) {

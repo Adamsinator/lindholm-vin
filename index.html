@@ -262,6 +262,13 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
 .jerr{margin-top:12px;font-size:13px;color:var(--accent);background:var(--chip);border:1px solid var(--accent);
   border-radius:8px;padding:8px 10px;line-height:1.4}
 .jnote{font-size:13.5px;margin-top:6px;color:var(--ink);max-width:70ch;white-space:pre-wrap}
+.wedit{margin-left:auto;border:0;background:none;cursor:pointer;font-size:13px;opacity:.45}
+.wdel{border:0;background:none;cursor:pointer;font-size:13px;opacity:.45}
+.wedit:hover,.wdel:hover{opacity:1}
+.wact{margin-top:9px}
+.wmove{border:1px solid var(--line);background:var(--card);color:var(--accent);border-radius:7px;
+  padding:5px 11px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit}
+.wmove:hover{border-color:var(--accent)}
 .jphoto{margin-top:10px;width:120px;height:120px;border-radius:8px;overflow:hidden;border:1px solid var(--line);
   background:var(--card2);display:flex;align-items:center;justify-content:center}
 .jphoto.ready{cursor:zoom-in}
@@ -303,6 +310,7 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
 <nav class="tabs" aria-label="Pages">
   <button class="tab active" data-page="cellar">Cellar</button>
   <button class="tab" data-page="enjoyed">Enjoyed</button>
+  <button class="tab" data-page="wishlist">Wishlist</button>
   <button class="tab" data-page="journal">Journal</button>
 </nav>
 
@@ -465,6 +473,16 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
   </div>
 </div>
 
+<div id="pageWishlist" hidden>
+  <div class="actions">
+    <button class="btn primary" id="wAddBtn">＋ Add wish</button>
+    <span class="stamp" id="wCount"></span>
+  </div>
+  <p class="ph" style="margin:0 0 14px">Wines you're after — jot them down, then move one into the cellar when you buy it.</p>
+  <div class="spin" id="wSpin" hidden>Fetching the wishlist…</div>
+  <div id="wList"></div>
+</div>
+
 <div id="pageJournal" hidden>
   <div class="actions">
     <button class="btn primary" id="jAddBtn">＋ New entry</button>
@@ -511,6 +529,27 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
     <div class="mact">
       <button type="button" class="btn" id="addCancel">Cancel</button>
       <button type="submit" class="btn primary" id="addSave">Add to cellar</button>
+    </div>
+  </form>
+</div>
+
+<div class="modal" id="wModal" role="dialog" aria-modal="true" aria-labelledby="wTitle">
+  <form class="card" id="wForm">
+    <h2 id="wTitle">Add to wishlist</h2>
+    <label for="wProducer">Producer *</label><input id="wProducer" list="jProducers" required>
+    <div class="row2">
+      <div><label for="wWine">Wine / cuvée</label><input id="wWine"></div>
+      <div><label for="wVintage">Vintage</label><input id="wVintage" placeholder="2019 or NV"></div>
+    </div>
+    <div class="row2">
+      <div><label for="wRegion">Region</label><input id="wRegion" list="regionsList"></div>
+      <div><label for="wPrice">Target price (kr.)</label><input id="wPrice" type="number" min="0" step="1"></div>
+    </div>
+    <label for="wNote">Note</label><textarea id="wNote" rows="2" placeholder="Where to find it, why you want it…"></textarea>
+    <div class="jerr" id="wErr" role="alert" hidden></div>
+    <div class="mact">
+      <button type="button" class="btn" id="wCancel">Cancel</button>
+      <button type="submit" class="btn primary" id="wSave">Save</button>
     </div>
   </form>
 </div>

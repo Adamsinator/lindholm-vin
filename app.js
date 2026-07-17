@@ -1413,16 +1413,107 @@ document.querySelectorAll("#eTbl th[data-k]").forEach(th=>th.addEventListener("c
   renderEnjoyed();
 }));
 
+/* ---------- wishlist ---------- */
+let WITEMS = null, W_EDIT = null;
+
+async function loadWishlist(force){
+  if(WITEMS && !force){ renderWishlist(); return; }
+  $("wSpin").hidden = false; $("wList").innerHTML = "";
+  try{
+    const res = await api({action:"wish"});
+    WITEMS = res.items || [];
+    renderWishlist();
+  }catch(err){
+    if(String(err.message).includes("bad-code")){ forgetAuth(); showGate("Wrong access code — try again."); }
+    else $("wList").innerHTML = `<div class="spin">Could not load the wishlist (${esc(err.message)}). The Apps Script may need the latest redeploy.</div>`;
+  }
+  $("wSpin").hidden = true;
+}
+
+function renderWishlist(){
+  const list = [...(WITEMS||[])].sort((a,b)=>String(a.producer).localeCompare(String(b.producer)));
+  $("wCount").textContent = list.length ? list.length+(list.length===1?" wish":" wishes") : "";
+  $("wList").innerHTML = list.length ? list.map(e=>{
+    const meta=[e.region, e.price?("target "+kr(e.price)):""].filter(Boolean).map(esc).join(" · ");
+    return `<div class="jentry">
+      <div class="jtop"><span class="jwine">${esc(e.producer)}${e.wine?" · "+esc(e.wine):""}${e.vintage?" · "+esc(e.vintage):""}</span>
+        <button class="wedit" data-row="${e.row}" title="Edit">✏️</button>
+        <button class="wdel" data-row="${e.row}" title="Delete">🗑</button></div>
+      ${meta?`<div class="jmeta">${meta}</div>`:""}
+      ${e.note?`<div class="jnote">${esc(e.note)}</div>`:""}
+      <div class="wact"><button class="wmove" data-row="${e.row}">＋ Add to cellar</button></div>
+    </div>`;
+  }).join("") : `<div class="spin">Nothing on the wishlist yet — press “＋ Add wish”.</div>`;
+  document.querySelectorAll(".wedit").forEach(b=>b.addEventListener("click",()=>{
+    const e=(WITEMS||[]).find(x=>x.row===Number(b.dataset.row)); if(e) openWishEdit(e); }));
+  document.querySelectorAll(".wdel").forEach(b=>b.addEventListener("click", async ()=>{
+    if(!confirm("Remove this wish?")) return;
+    try{ const res=await api({action:"wdelete", row:Number(b.dataset.row)}); WITEMS=res.items||[]; renderWishlist(); toast("Wish removed"); }
+    catch(err){ toast("Could not remove: "+err.message); }
+  }));
+  document.querySelectorAll(".wmove").forEach(b=>b.addEventListener("click", async ()=>{
+    const e=(WITEMS||[]).find(x=>x.row===Number(b.dataset.row));
+    if(!confirm(`Move ${e?e.producer:"this wine"} into the cellar (1 bottle)?`)) return;
+    b.disabled=true; b.textContent="Adding…";
+    try{
+      const res=await api({action:"wtocellar", row:Number(b.dataset.row)});
+      WITEMS=res.items||[]; if(res.wines) WINES=normalize(res.wines);
+      renderWishlist(); renderOverview(); renderTable(); renderEnjoyed();
+      toast("Added to the cellar 🍷");
+    }catch(err){ toast("Could not move: "+err.message); b.disabled=false; b.textContent="＋ Add to cellar"; }
+  }));
+}
+
+function prepWishModal(){
+  $("wForm").reset(); $("wErr").hidden=true; $("wErr").textContent="";
+  $("jProducers").innerHTML = [...new Set(WINES.map(w=>w.producer).filter(Boolean))].sort().map(x=>`<option>${esc(x)}</option>`).join("");
+  $("wModal").classList.add("open");
+}
+function openWishModal(prefill){
+  W_EDIT=null; prepWishModal(); $("wTitle").textContent="Add to wishlist"; $("wSave").textContent="Save";
+  if(prefill){ $("wProducer").value=prefill.producer||""; $("wWine").value=prefill.wine||"";
+    $("wVintage").value=prefill.vintage||""; $("wRegion").value=prefill.region||""; }
+  setTimeout(()=>$("wProducer").focus(),40);
+}
+function openWishEdit(e){
+  W_EDIT=e.row; prepWishModal(); $("wTitle").textContent="Edit wish"; $("wSave").textContent="Save changes";
+  $("wProducer").value=e.producer||""; $("wWine").value=e.wine||"";
+  $("wVintage").value=e.vintage!==""&&e.vintage!=null?e.vintage:"";
+  $("wRegion").value=e.region||""; $("wPrice").value=e.price!==""&&e.price!=null?e.price:""; $("wNote").value=e.note||"";
+  setTimeout(()=>$("wProducer").focus(),40);
+}
+$("wAddBtn").addEventListener("click",()=>openWishModal(null));
+$("wCancel").addEventListener("click",()=>$("wModal").classList.remove("open"));
+$("wModal").addEventListener("click",e=>{ if(e.target===$("wModal")) $("wModal").classList.remove("open"); });
+$("wForm").addEventListener("submit", async e=>{
+  e.preventDefault();
+  const editing=W_EDIT!==null; $("wErr").hidden=true;
+  const btn=$("wSave"); btn.disabled=true; btn.textContent="Saving…";
+  const v=id=>$(id).value.trim();
+  const entry={ producer:v("wProducer"), wine:v("wWine"),
+    vintage: /^\d{4}$/.test(v("wVintage"))?Number(v("wVintage")):v("wVintage"),
+    region:v("wRegion"), price: v("wPrice")===""? "":Number(v("wPrice")), note:v("wNote") };
+  try{
+    const res= editing ? await api({action:"wedit", row:W_EDIT, entry}) : await api({action:"wadd", entry});
+    WITEMS=res.items||[]; $("wModal").classList.remove("open"); renderWishlist();
+    if(location.hash!=="#wishlist") location.hash="#wishlist";
+    toast(editing?"Wish updated":"Added to wishlist");
+  }catch(err){ $("wErr").textContent="Could not save: "+err.message; $("wErr").hidden=false; }
+  btn.disabled=false; btn.textContent= editing?"Save changes":"Save";
+});
+
 /* ---------- page routing ---------- */
 function route(){
   const h = location.hash;
-  const page = h==="#journal" ? "journal" : h==="#enjoyed" ? "enjoyed" : "cellar";
+  const page = h==="#journal" ? "journal" : h==="#enjoyed" ? "enjoyed" : h==="#wishlist" ? "wishlist" : "cellar";
   $("pageCellar").hidden = page!=="cellar";
   $("pageEnjoyed").hidden = page!=="enjoyed";
+  $("pageWishlist").hidden = page!=="wishlist";
   $("pageJournal").hidden = page!=="journal";
   document.querySelectorAll(".tab").forEach(t=>
     t.classList.toggle("active", t.dataset.page===page));
   if(page==="journal" && cfg.code) loadJournal();
+  if(page==="wishlist" && cfg.code) loadWishlist();
   if(page==="enjoyed") renderEnjoyed();
 }
 document.querySelectorAll(".tab").forEach(t=>
