@@ -390,6 +390,33 @@ function searchLinks(w){
     <a target="_blank" rel="noopener" href="https://www.wine-searcher.com/find/${enc.replace(/%20/g,"+")}">Scores &amp; prices on Wine-Searcher ↗</a>`;
 }
 
+// Journal entries that plausibly belong to this cellar wine.
+function journalFor(w){
+  const np = s => normName(String(s||""));
+  const wp = np(w.producer);
+  if(!wp) return [];
+  return (JENTRIES||[]).filter(e=>{
+    if(np(e.producer)!==wp) return false;
+    const nameMatch = e.wine && w.name && np(e.wine)===np(w.name);
+    const vintMatch = String(e.vintage||"")!=="" && String(e.vintage)===String(w.vintage);
+    return nameMatch || vintMatch || (!e.wine && !String(e.vintage||""));
+  }).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+}
+
+function journalHTML(w){
+  const js = journalFor(w);
+  if(!js.length) return "";
+  const rows = js.slice(0,3).map(e=>{
+    const bits = [fmtDate(e.date)];
+    if(e.place) bits.push("📍 "+esc(e.place));
+    if(e.rating) bits.push(e.rating+"/10 🍷");
+    const head = bits.join(" · ");
+    return `<div class="wj"><span class="wj-h">${head}</span>${e.note?`<span class="wj-n">${esc(e.note)}</span>`:""}</div>`;
+  }).join("");
+  const more = js.length>3 ? `<button class="wj-more" data-page="journal">+ ${js.length-3} more in the Journal ↗</button>` : "";
+  return `<div class="wjournal"><div class="k">From your journal</div>${rows}${more}</div>`;
+}
+
 function detailHTML(w){
   const pn = PRODUCER_NOTES[w.producer];
   const cells = [
@@ -400,6 +427,7 @@ function detailHTML(w){
   return `<div class="dgrid">${cells}</div>
     ${w.note?`<div class="unote">“${esc(w.note)}” — cellar note</div>`:""}
     ${pn?`<div class="pnote"><b>${esc(w.producer)}</b> · ${TIER_LABEL[pn[0]]} — ${pn[1]}</div>`:""}
+    ${journalHTML(w)}
     <div class="links">
       ${w.left>0?`<button class="drink" data-act="drink" data-row="${w.row}">🍷 Mark 1 bottle as drunk</button>`:""}
       ${w.drunk>0?`<button class="drink" data-act="undrink" data-row="${w.row}">↩︎ Undo drink</button>`:""}
@@ -512,6 +540,8 @@ function bindWineRows(scope){
     inp.addEventListener("change",()=>setDateApi(Number(inp.dataset.row), inp.dataset.field, inp.value, inp)));
   document.querySelectorAll(`${scope} input.setwin`).forEach(inp=>
     inp.addEventListener("change",()=>setWindowApi(inp)));
+  document.querySelectorAll(`${scope} .wj-more`).forEach(b=>
+    b.addEventListener("click",()=>{ location.hash="journal"; }));
   document.querySelectorAll(`${scope} button.jlog`).forEach(b=>
     b.addEventListener("click",()=>{
       const w = WINES.find(x=>x.row===Number(b.dataset.row));
@@ -530,10 +560,21 @@ async function loadData(){
     renderOverview(); renderTable(); renderEnjoyed();
     $("stamp").textContent = "Updated "+new Date().toLocaleString("da-DK",{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"});
     $("spin").hidden = true; $("content").hidden = false;
+    loadJournalSilently();
   }catch(err){
     if(err.message==="bad-code"){ forgetAuth(); showGate("Wrong access code — try again."); }
     else { $("spin").textContent = "Could not reach the cellar API ("+err.message+"). Check your connection and refresh."; }
   }
+}
+
+// Fetch the journal once in the background so wine details can show its entries.
+async function loadJournalSilently(){
+  if(JENTRIES){ renderTable(); renderEnjoyed(); return; }
+  try{
+    const res = await api({action:"journal"});
+    JENTRIES = res.entries || [];
+    renderTable(); renderEnjoyed();
+  }catch(err){ /* journal is optional here */ }
 }
 
 async function rateWine(row, val, sel){
@@ -593,6 +634,7 @@ async function rowAction(act, row, btn){
     const name = w ? `${w.producer} ${w.name} ${w.vintage||""}`.trim() : "this wine";
     if(!confirm(`Delete ${name} from the cellar?\nThis removes the whole row from the sheet.`)) return;
   }
+  const wasLast = act==="drink" && w && w.left===1;
   btn.disabled = true; btn.textContent = "Updating…";
   try{
     const res = await api({action:act, row, qty:1});
@@ -601,6 +643,14 @@ async function rowAction(act, row, btn){
     toast(act==="drink" ? "Skål! Bottle marked as drunk 🍷"
         : act==="undrink" ? "Bottle back in the cellar 🍾"
         : "Wine deleted from the sheet");
+    if(wasLast){
+      const nw = WINES.find(x=>x.row===row) || w;
+      setTimeout(()=>{
+        if(confirm(`That was your last ${nw.producer}${nw.name?" "+nw.name:""}${nw.vintage?" "+nw.vintage:""} 🍷\nLog a tasting note in the journal?`))
+          openJournalModal({producer:nw.producer, wine:nw.name, vintage:nw.vintage,
+            country:nw.country, region:nw.region, grape:nw.grape});
+      }, 250);
+    }
   }catch(err){ toast("Could not update: "+err.message); btn.disabled=false; }
 }
 

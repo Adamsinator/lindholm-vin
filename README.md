@@ -126,6 +126,14 @@ Deleting an entry also removes its photo from Drive.
 > next redeploy will ask you to allow Drive access (in addition to Sheets).
 > That's expected — it only touches the photos folder it creates.
 
+## Journal ↔ cellar
+
+The two halves talk to each other. Open a cellar wine and, if you've logged it
+before, its **journal entries show right in the detail** (date, place, score,
+note) — matched by producer with the wine name or vintage. And when you drink a
+wine's **last** bottle, the app offers to log a tasting note, prefilled from the
+wine, so the memory is captured before it leaves the cellar.
+
 ## Changing a wine's details
 
 Add and "mark as drunk" happen in the site; anything else (editing a price,
