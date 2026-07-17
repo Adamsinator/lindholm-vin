@@ -275,6 +275,7 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
 
 <nav class="tabs" aria-label="Pages">
   <button class="tab active" data-page="cellar">Cellar</button>
+  <button class="tab" data-page="enjoyed">Enjoyed</button>
   <button class="tab" data-page="journal">Journal</button>
 </nav>
 
@@ -380,6 +381,28 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
 </footer>
 </div><!-- /content -->
 </div><!-- /pageCellar -->
+
+<div id="pageEnjoyed" hidden>
+  <section class="kpis" id="eKpis" aria-label="Enjoyed totals"></section>
+  <div class="filters">
+    <input type="search" id="eq" placeholder="Search wines you've enjoyed…" aria-label="Search enjoyed wines">
+    <span class="count" id="eCount"></span>
+  </div>
+  <div class="tablewrap">
+    <table id="eTbl">
+      <thead><tr>
+        <th data-k="producer">Producer <span class="arr"></span></th>
+        <th data-k="vintage" class="num">Vintage <span class="arr"></span></th>
+        <th data-k="region">Region <span class="arr"></span></th>
+        <th data-k="style">Style <span class="arr"></span></th>
+        <th data-k="drunk" class="num">Enjoyed <span class="arr"></span></th>
+        <th data-k="drunkDate">Last drunk <span class="arr"></span></th>
+        <th data-k="price" class="num">Price <span class="arr"></span></th>
+      </tr></thead>
+      <tbody id="eRows"></tbody>
+    </table>
+  </div>
+</div>
 
 <div id="pageJournal" hidden>
   <div class="actions">

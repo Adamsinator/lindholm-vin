@@ -68,6 +68,16 @@ of how many bottles you held since your first acquisition, with a green dot for
 each addition and a red dot for each drink. Wines without an acquired date
 aren't plotted (the caption says how many) — add dates to include them.
 
+## Enjoyed
+
+The **Enjoyed** tab is a permanent record of everything you've finished — a wine
+doesn't vanish when its last bottle is drunk, it moves here. It lists every wine
+with `drukket > 0` (searchable and sortable, click a row for the full detail:
+rating, price, acquired/last-drunk dates, journal link), with its own totals at
+the top: **bottles enjoyed**, **value enjoyed** (at purchase price), and your
+**most-enjoyed producer**. Wines still in the cellar keep showing under
+**Cellar**; a partly-drunk wine appears in both.
+
 ## Journal
 
 The **Journal** tab is a tasting log for any wine, anywhere — bottles from the

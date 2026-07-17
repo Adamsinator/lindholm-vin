@@ -458,7 +458,7 @@ async function loadData(){
     const res = await api({action:"data"});
     WINES = normalize(res.wines);
     $("priceBtn").textContent = SHOW_PRICES ? "Hide prices" : "Show prices";
-    renderOverview(); renderTable();
+    renderOverview(); renderTable(); renderEnjoyed();
     $("stamp").textContent = "Updated "+new Date().toLocaleString("da-DK",{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"});
     $("spin").hidden = true; $("content").hidden = false;
   }catch(err){
@@ -472,7 +472,7 @@ async function rateWine(row, val, sel){
   try{
     const res = await api({action:"rate", row, rating: val===""?"":Number(val)});
     WINES = normalize(res.wines);
-    renderOverview(); renderTable();
+    renderOverview(); renderTable(); renderEnjoyed();
     toast(val==="" ? "Score cleared" : "Scored "+val+"/10 🍷");
   }catch(err){ toast("Could not save score: "+err.message); }
   sel.disabled = false;
@@ -484,7 +484,7 @@ async function setValueApi(row, val, inp){
   try{
     const res = await api({action:"setvalue", row, value: clean});
     WINES = normalize(res.wines);
-    renderOverview(); renderTable();
+    renderOverview(); renderTable(); renderEnjoyed();
     toast(clean==="" ? "Value cleared" : "Value set to "+kr(clean));
   }catch(err){ toast("Could not save value: "+err.message); }
   inp.disabled = false;
@@ -500,7 +500,7 @@ async function rowAction(act, row, btn){
   try{
     const res = await api({action:act, row, qty:1});
     WINES = normalize(res.wines);
-    renderOverview(); renderTable();
+    renderOverview(); renderTable(); renderEnjoyed();
     toast(act==="drink" ? "Skål! Bottle marked as drunk 🍷"
         : act==="undrink" ? "Bottle back in the cellar 🍾"
         : "Wine deleted from the sheet");
@@ -523,7 +523,7 @@ async function addWine(e){
   try{
     const res = await api({action:"add", wine});
     WINES = normalize(res.wines);
-    renderOverview(); renderTable();
+    renderOverview(); renderTable(); renderEnjoyed();
     $("addModal").classList.remove("open");
     $("addForm").reset(); $("aQty").value = 1; $("aCountry").value = "Frankrig";
     toast(wine.producer+" added to the cellar");
@@ -561,7 +561,7 @@ $("priceBtn").addEventListener("click", ()=>{
   SHOW_PRICES = !SHOW_PRICES;
   localStorage.setItem("vinHidePrices", SHOW_PRICES ? "0" : "1");
   $("priceBtn").textContent = SHOW_PRICES ? "Hide prices" : "Show prices";
-  renderOverview(); renderTable();
+  renderOverview(); renderTable(); renderEnjoyed();
 });
 $("addBtn").addEventListener("click", ()=>{
   if(!$("aAcquired").value) $("aAcquired").value = new Date().toISOString().slice(0,10);
@@ -1083,17 +1083,108 @@ $("jForm").addEventListener("submit", async e=>{
   btn.disabled = false; btn.textContent = editing ? "Save changes" : "Save entry";
 });
 
+/* ---------- enjoyed (cellar history) ---------- */
+const eState = {q:"", sortK:"drunkDate", sortDir:-1};
+
+function renderEnjoyed(){
+  const drunk = WINES.filter(w=>w.drunk>0);
+  // KPIs over everything enjoyed
+  const bottles = drunk.reduce((s,w)=>s+w.drunk,0);
+  const valueDrunk = drunk.reduce((s,w)=>s+(w.price||0)*w.drunk,0);
+  const prodAgg = {}; drunk.forEach(w=>{ prodAgg[w.producer]=(prodAgg[w.producer]||0)+w.drunk; });
+  const top = Object.entries(prodAgg).sort((a,b)=>b[1]-a[1])[0];
+  const kpis = [["Bottles enjoyed", fmt(bottles), drunk.length+" different wines", ""]];
+  if(SHOW_PRICES) kpis.push(["Value enjoyed", kr(valueDrunk), "at purchase price", ""]);
+  else kpis.push(["Value enjoyed", "🔒 hidden", "press Show prices", "locked"]);
+  if(top) kpis.push(["Most enjoyed", esc(top[0]), top[1]+" bottle"+(top[1]>1?"s":""), ""]);
+  $("eKpis").innerHTML = kpis.map(([l,v,h,c])=>
+    `<div class="kpi ${c}"><div class="lbl">${l}</div><div class="val">${v}</div><div class="hint">${h}</div></div>`).join("");
+
+  // filter + sort the list
+  const q = eState.q.trim().toLowerCase();
+  let list = drunk.filter(w=>{
+    if(!q) return true;
+    return [w.producer,w.name,w.commune,w.region,w.grape,w.classification,String(w.vintage)].join(" ").toLowerCase().includes(q);
+  });
+  const k=eState.sortK, dir=eState.sortDir;
+  list.sort((a,b)=>{
+    let va=a[k], vb=b[k];
+    if(k==="vintage"){ va=typeof va==="number"?va:9999; vb=typeof vb==="number"?vb:9999; }
+    if(k==="drunkDate"){ va=va||""; vb=vb||""; }
+    if(typeof va==="string") return va.localeCompare(vb)*dir;
+    return ((va??0)-(vb??0))*dir;
+  });
+  document.querySelectorAll("#eTbl th[data-k] .arr").forEach(s=>s.textContent="");
+  const th=document.querySelector(`#eTbl th[data-k="${k}"] .arr`); if(th) th.textContent = dir>0?"▲":"▼";
+
+  let ct = `${list.length} wines · ${fmt(list.reduce((s,w)=>s+w.drunk,0))} btl.`;
+  if(SHOW_PRICES) ct += ` · ${kr(list.reduce((s,w)=>s+(w.price||0)*w.drunk,0))}`;
+  $("eCount").textContent = ct;
+
+  if(!list.length){
+    $("eRows").innerHTML = `<tr><td colspan="7"><div class="spin">${q?"No enjoyed wines match your search.":"Nothing enjoyed yet — bottles you finish will collect here."}</div></td></tr>`;
+    return;
+  }
+  $("eRows").innerHTML = list.map((w,i)=>{
+    const pn = PRODUCER_NOTES[w.producer];
+    const badge = pn?`<span class="badge ${pn[0]}">${TIER_LABEL[pn[0]]}</span>`:"";
+    const nm = [w.name, w.commune && w.commune!==w.name ? w.commune : ""].filter(Boolean).join(" · ");
+    return `<tr class="main" data-i="${i}" tabindex="0" aria-expanded="false">
+      <td><span class="prod">${esc(w.producer)}</span>${badge}<br><span class="wname">${esc(nm)}${w.classification&&w.classification!=="AOC"?" · <b>"+esc(w.classification)+"</b>":""}${w.rating?` · <span class="myscore">${w.rating}/10</span>`:""}</span></td>
+      <td class="num">${esc(w.vintage||"—")}</td>
+      <td>${esc(w.region)}</td>
+      <td><span class="sdot" style="background:var(${STYLE_VAR[w.style]||"--muted"})"></span>${STYLE_EN[w.style]||esc(w.style)}</td>
+      <td class="num">${w.drunk}</td>
+      <td class="num">${w.drunkDate?esc(fmtDate(w.drunkDate)):"—"}</td>
+      <td class="num">${SHOW_PRICES ? (w.price?kr(w.price):"—") : "···"}</td>
+    </tr>
+    <tr class="detail" hidden><td colspan="7">${detailHTML(w)}</td></tr>`;
+  }).join("");
+  bindEnjoyedRows();
+}
+
+function bindEnjoyedRows(){
+  document.querySelectorAll("#eRows tr.main").forEach(tr=>{
+    const open = ()=>{ const d=tr.nextElementSibling; d.hidden=!d.hidden; tr.setAttribute("aria-expanded",String(!d.hidden)); };
+    tr.addEventListener("click",e=>{ if(e.target.closest("a,button,select,input")) return; open(); });
+    tr.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); open(); } });
+  });
+  document.querySelectorAll("#eRows button.drink").forEach(b=>
+    b.addEventListener("click",()=>rowAction(b.dataset.act, Number(b.dataset.row), b)));
+  document.querySelectorAll("#eRows select.rate").forEach(sel=>
+    sel.addEventListener("change",()=>rateWine(Number(sel.dataset.row), sel.value, sel)));
+  document.querySelectorAll("#eRows input.setval").forEach(inp=>
+    inp.addEventListener("change",()=>setValueApi(Number(inp.dataset.row), inp.value, inp)));
+  document.querySelectorAll("#eRows button.jlog").forEach(b=>
+    b.addEventListener("click",()=>{
+      const w = WINES.find(x=>x.row===Number(b.dataset.row));
+      openJournalModal(w ? {producer:w.producer, wine:w.name, vintage:w.vintage,
+        country:w.country, region:w.region, grape:w.grape} : null);
+    }));
+}
+
+$("eq").addEventListener("input",e=>{ eState.q=e.target.value; renderEnjoyed(); });
+document.querySelectorAll("#eTbl th[data-k]").forEach(th=>th.addEventListener("click",()=>{
+  const k=th.dataset.k;
+  if(eState.sortK===k) eState.sortDir*=-1;
+  else { eState.sortK=k; eState.sortDir = (k==="price"||k==="drunk"||k==="drunkDate") ? -1 : 1; }
+  renderEnjoyed();
+}));
+
 /* ---------- page routing ---------- */
 function route(){
-  const j = location.hash === "#journal";
-  $("pageCellar").hidden = j;
-  $("pageJournal").hidden = !j;
+  const h = location.hash;
+  const page = h==="#journal" ? "journal" : h==="#enjoyed" ? "enjoyed" : "cellar";
+  $("pageCellar").hidden = page!=="cellar";
+  $("pageEnjoyed").hidden = page!=="enjoyed";
+  $("pageJournal").hidden = page!=="journal";
   document.querySelectorAll(".tab").forEach(t=>
-    t.classList.toggle("active", (t.dataset.page==="journal") === j));
-  if(j && cfg.code) loadJournal();
+    t.classList.toggle("active", t.dataset.page===page));
+  if(page==="journal" && cfg.code) loadJournal();
+  if(page==="enjoyed") renderEnjoyed();
 }
 document.querySelectorAll(".tab").forEach(t=>
-  t.addEventListener("click", ()=>{ location.hash = t.dataset.page==="journal" ? "#journal" : ""; }));
+  t.addEventListener("click", ()=>{ location.hash = t.dataset.page==="cellar" ? "" : t.dataset.page; }));
 window.addEventListener("hashchange", route);
 
 /* ---------- boot ---------- */
