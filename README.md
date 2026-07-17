@@ -71,11 +71,14 @@ aren't plotted (the caption says how many) — add dates to include them.
 ## Enjoyed
 
 The **Enjoyed** tab is a permanent record of everything you've finished — a wine
-doesn't vanish when its last bottle is drunk, it moves here. It lists every wine
-with `drukket > 0` (searchable and sortable, click a row for the full detail:
-rating, price, acquired/last-drunk dates, journal link), with its own totals at
-the top: **bottles enjoyed**, **value enjoyed** (at purchase price), and your
-**most-enjoyed producer**. Wines still in the cellar keep showing under
+doesn't vanish when its last bottle is drunk, it moves here. Its own totals sit
+on top (**bottles enjoyed**, **value enjoyed** at purchase price, your
+**most-enjoyed producer**), followed by three visuals: a **by-style** donut, a
+**most-enjoyed producers** bar list, and a **drinking-over-time** chart (bottles
+enjoyed per month, stacked by style). Click a slice or a producer bar to filter
+the list below. The table lists every wine with `drukket > 0` — searchable and
+sortable, each row expanding to the full detail (rating, price, acquired/
+last-drunk dates, journal link). Wines still in the cellar keep showing under
 **Cellar**; a partly-drunk wine appears in both.
 
 ## Journal

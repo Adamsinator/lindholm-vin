@@ -87,6 +87,10 @@ header.top h1 em{font-style:italic;color:var(--accent)}
 
 #vintChart{width:100%;display:block}
 #histChart{width:100%;display:block}
+#ePie{display:block;width:100%;max-width:230px;margin:2px auto 12px}
+#eTime{width:100%;display:block}
+.etime-seg{stroke:var(--card);stroke-width:.75}
+.etime-hit{fill:transparent;cursor:default}
 .hist-area{fill:var(--accent);opacity:.09}
 .hist-line{fill:none;stroke:var(--accent);stroke-width:1.5;opacity:.5;stroke-linejoin:round}
 .hist-base{stroke:var(--line);stroke-width:1}
@@ -384,6 +388,28 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
 
 <div id="pageEnjoyed" hidden>
   <section class="kpis" id="eKpis" aria-label="Enjoyed totals"></section>
+
+  <div class="grid">
+    <div class="panel">
+      <h2>By style</h2>
+      <p class="ph">Bottles you've enjoyed · click a slice to filter</p>
+      <svg id="ePie" role="img" aria-label="Enjoyed bottles by style"></svg>
+      <div class="slegend" id="eLegend"></div>
+    </div>
+    <div class="panel">
+      <h2>Most enjoyed</h2>
+      <p class="ph">Producers by bottles enjoyed · click to filter</p>
+      <div id="eProducers"></div>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-bottom:24px">
+    <h2>Drinking over time</h2>
+    <p class="ph">Bottles enjoyed per month · coloured by style</p>
+    <svg id="eTime" role="img" aria-label="Bottles enjoyed per month"></svg>
+    <p class="ph" id="eTimeCap" style="margin-top:8px"></p>
+  </div>
+
   <div class="filters">
     <input type="search" id="eq" placeholder="Search wines you've enjoyed…" aria-label="Search enjoyed wines">
     <span class="count" id="eCount"></span>

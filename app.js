@@ -1084,10 +1084,12 @@ $("jForm").addEventListener("submit", async e=>{
 });
 
 /* ---------- enjoyed (cellar history) ---------- */
-const eState = {q:"", sortK:"drunkDate", sortDir:-1};
+const eState = {q:"", style:"", sortK:"drunkDate", sortDir:-1};
+const styleColor = s => HIST_COLOR[s] || "var(--muted)";
 
 function renderEnjoyed(){
   const drunk = WINES.filter(w=>w.drunk>0);
+  drawEnjoyedCharts(drunk);
   // KPIs over everything enjoyed
   const bottles = drunk.reduce((s,w)=>s+w.drunk,0);
   const valueDrunk = drunk.reduce((s,w)=>s+(w.price||0)*w.drunk,0);
@@ -1103,6 +1105,7 @@ function renderEnjoyed(){
   // filter + sort the list
   const q = eState.q.trim().toLowerCase();
   let list = drunk.filter(w=>{
+    if(eState.style && w.style!==eState.style) return false;
     if(!q) return true;
     return [w.producer,w.name,w.commune,w.region,w.grape,w.classification,String(w.vintage)].join(" ").toLowerCase().includes(q);
   });
@@ -1141,6 +1144,111 @@ function renderEnjoyed(){
     <tr class="detail" hidden><td colspan="7">${detailHTML(w)}</td></tr>`;
   }).join("");
   bindEnjoyedRows();
+}
+
+function drawEnjoyedCharts(drunk){
+  const total = drunk.reduce((s,w)=>s+w.drunk,0);
+  // by style donut
+  const styAgg={}; drunk.forEach(w=>{ styAgg[w.style]=(styAgg[w.style]||0)+w.drunk; });
+  const styList=STYLES.filter(s=>styAgg[s]);
+  drawEnjoyedPie($("ePie"), styList, styAgg, total);
+  $("eLegend").innerHTML = styList.map(s=>`
+    <button data-style="${s}"><span class="dot" style="background:${styleColor(s)}"></span>
+    <span>${STYLE_EN[s]}</span><span class="n">${styAgg[s]} btl. · ${Math.round(styAgg[s]/Math.max(1,total)*100)}%</span></button>`).join("");
+  document.querySelectorAll("#eLegend button").forEach(el=>{
+    el.classList.toggle("active", el.dataset.style===eState.style && !!eState.style);
+    el.addEventListener("click",()=>{ eState.style = eState.style===el.dataset.style ? "" : el.dataset.style; renderEnjoyed(); });
+  });
+  // most-enjoyed producers
+  const prodAgg={}; drunk.forEach(w=>{ prodAgg[w.producer]=(prodAgg[w.producer]||0)+w.drunk; });
+  const prods=Object.entries(prodAgg).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const maxB=prods.length?prods[0][1]:1;
+  $("eProducers").innerHTML = prods.map(([name,b])=>`
+    <button class="rbar" data-prod="${esc(name)}" aria-label="${esc(name)}: ${b} bottles">
+      <span class="rb-name">${esc(name)}</span>
+      <span class="rb-track"><span class="rb-fill" style="width:${Math.max(2,b/maxB*100)}%"></span></span>
+      <span class="rb-n">${b} btl.</span></button>`).join("") || `<div class="ph">Nothing yet.</div>`;
+  document.querySelectorAll("#eProducers .rbar").forEach(el=>{
+    el.classList.toggle("active", el.dataset.prod===eState.q.trim() && !!eState.q.trim());
+    el.addEventListener("click",()=>{ eState.q = eState.q.trim()===el.dataset.prod ? "" : el.dataset.prod; $("eq").value=eState.q; renderEnjoyed(); });
+  });
+  drawDrinkingTime(drunk);
+}
+
+function drawEnjoyedPie(svg, styList, styAgg, total){
+  if(!svg) return;
+  const C=115,R=100,IR=60;
+  svg.setAttribute("viewBox","0 0 230 230");
+  let a0=-Math.PI/2, html="";
+  styList.forEach(st=>{
+    const a1=a0+(styAgg[st]/Math.max(1,total))*2*Math.PI;
+    html+=`<path class="pslice" data-style="${st}" d="${donutArc(C,C,R,IR,a0,a1)}" style="fill:${styleColor(st)}"></path>`;
+    a0=a1;
+  });
+  html+=`<text class="pcen" x="${C}" y="${C+2}" text-anchor="middle">${fmt(total)}</text>
+    <text class="pcen2" x="${C}" y="${C+22}" text-anchor="middle">enjoyed</text>`;
+  svg.innerHTML=html;
+  svg.querySelectorAll(".pslice").forEach(pl=>{
+    const st=pl.dataset.style;
+    pl.classList.toggle("on", st===eState.style && !!eState.style);
+    pl.addEventListener("mousemove",e=>showTip(`<b>${STYLE_EN[st]}</b><br>${styAgg[st]} btl. · ${Math.round(styAgg[st]/Math.max(1,total)*100)}%`,e.clientX,e.clientY));
+    pl.addEventListener("mouseleave",hideTip);
+    pl.addEventListener("click",()=>{ eState.style = eState.style===st ? "" : st; renderEnjoyed(); });
+  });
+}
+
+function monthRange(a,b){
+  const out=[]; let [y,m]=a.split("-").map(Number); const [ey,em]=b.split("-").map(Number);
+  while(y<ey || (y===ey && m<=em)){ out.push(`${y}-${String(m).padStart(2,"0")}`); if(++m>12){ m=1; y++; } if(out.length>720) break; }
+  return out;
+}
+
+function drawDrinkingTime(drunk){
+  const svg=$("eTime"), cap=$("eTimeCap"); if(!svg) return;
+  const dm = w => /^\d{4}-\d{2}/.test(String(w.drunkDate));
+  const dated = drunk.filter(dm);
+  const nodate = drunk.reduce((s,w)=>s+(dm(w)?0:w.drunk),0);
+  if(!dated.length){
+    svg.innerHTML=""; svg.removeAttribute("viewBox");
+    cap.textContent = nodate ? `${nodate} bottle${nodate>1?"s":""} enjoyed without a date — mark drinks in the app so they’re dated.` : "";
+    return;
+  }
+  const byMonth={};
+  dated.forEach(w=>{ const m=String(w.drunkDate).slice(0,7); (byMonth[m]||(byMonth[m]={}))[w.style]=(byMonth[m][w.style]||0)+w.drunk; });
+  const ks=Object.keys(byMonth).sort();
+  const months=monthRange(ks[0], ks[ks.length-1]);
+  const maxY=Math.max(1,...months.map(m=>Object.values(byMonth[m]||{}).reduce((a,b)=>a+b,0)));
+  const W=980,H=210,P={l:22,r:10,t:14,b:26};
+  const bw=(W-P.l-P.r)/Math.max(1,months.length);
+  const Y=v=>H-P.b-(v/maxY)*(H-P.t-P.b);
+  let parts=[`<text class="hist-axis" x="2" y="${(Y(maxY)+3).toFixed(1)}">${maxY}</text>
+    <line class="hist-base" x1="${P.l}" y1="${Y(0).toFixed(1)}" x2="${(W-P.r).toFixed(1)}" y2="${Y(0).toFixed(1)}"/>`];
+  let lastYear=null;
+  months.forEach((m,i)=>{ const yr=m.slice(0,4), x=P.l+i*bw+bw/2;
+    if(yr!==lastYear){ lastYear=yr; parts.push(`<text class="hist-axis" x="${x.toFixed(1)}" y="${H-8}" text-anchor="middle">${yr}</text>`); } });
+  months.forEach((m,i)=>{
+    const seg=byMonth[m]; if(!seg) return;
+    const tot=Object.values(seg).reduce((a,b)=>a+b,0);
+    const x=P.l+i*bw+bw*0.14, w=Math.max(1.5,bw*0.72);
+    let yTop=Y(0);
+    STYLES.forEach(st=>{ const c=seg[st]; if(!c) return; const h=(c/maxY)*(H-P.t-P.b); yTop-=h;
+      parts.push(`<rect class="etime-seg" x="${x.toFixed(1)}" y="${yTop.toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" style="fill:${styleColor(st)}"></rect>`); });
+    parts.push(`<rect class="etime-hit" x="${(P.l+i*bw).toFixed(1)}" y="${P.t}" width="${bw.toFixed(1)}" height="${(H-P.t-P.b).toFixed(1)}"
+      data-m="${m}" data-tot="${tot}" data-seg="${esc(JSON.stringify(seg))}"></rect>`);
+  });
+  svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
+  svg.innerHTML=parts.join("");
+  svg.querySelectorAll(".etime-hit").forEach(r=>{
+    r.addEventListener("mousemove",e=>{
+      const seg=JSON.parse(r.dataset.seg);
+      const breakdown=STYLES.filter(s=>seg[s]).map(s=>`${STYLE_EN[s]} ${seg[s]}`).join(" · ");
+      const d=new Date(r.dataset.m+"-01T12:00:00");
+      const ml=isNaN(d)?r.dataset.m:d.toLocaleDateString("da-DK",{month:"short",year:"numeric"});
+      showTip(`<b>${ml}</b><br>${r.dataset.tot} bottle${r.dataset.tot>1?"s":""}<br><span style="opacity:.75">${esc(breakdown)}</span>`,e.clientX,e.clientY);
+    });
+    r.addEventListener("mouseleave",hideTip);
+  });
+  cap.textContent = nodate ? `${nodate} more enjoyed without a date (not shown)` : "";
 }
 
 function bindEnjoyedRows(){
