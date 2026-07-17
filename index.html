@@ -140,6 +140,19 @@ tr.main td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:no
 .badge.legend{background:var(--accent);color:var(--accent-ink)}
 .badge.top{background:var(--gold);color:var(--accent-ink)}
 .badge.solid{background:var(--chip);color:var(--muted)}
+.rbadge{display:inline-block;font-size:10px;font-weight:650;letter-spacing:.04em;border-radius:4px;
+  padding:1px 6px;margin-left:7px;vertical-align:1px;white-space:nowrap}
+.rbadge.now{background:rgba(62,158,104,.16);color:#2f8558}
+.rbadge.young{background:rgba(63,124,182,.16);color:#3068a0}
+.rbadge.past{background:var(--chip);color:var(--muted)}
+@media (prefers-color-scheme: dark){
+  .rbadge.now{background:rgba(95,185,133,.2);color:#7fcf9e}
+  .rbadge.young{background:rgba(78,138,192,.22);color:#88bce0}
+}
+.winwrap{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:600;color:var(--accent)}
+.winwrap .setwin{width:60px;background:var(--card);border:1px solid var(--line);color:var(--ink);
+  border-radius:7px;padding:4px 6px;font-size:12.5px;font-family:inherit}
+.winwrap .wsep{color:var(--muted);font-weight:400}
 .gone{opacity:.5}
 .gone .prod::after{content:" · enjoyed";font-weight:400;font-size:11px;color:var(--muted);font-style:italic}
 
@@ -196,7 +209,7 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
 /* iOS zooms into any focused field with font-size < 16px — keep inputs at 16px on small screens */
 @media(max-width:640px){
   .filters input[type=search],.filters select,.modal input,.modal select,.modal textarea,.gate input,
-  .valwrap input,.ratewrap select,.datewrap input{font-size:16px}
+  .valwrap input,.ratewrap select,.datewrap input,.winwrap .setwin{font-size:16px}
 }
 /* tabs */
 .tabs{display:flex;gap:4px;margin:-6px 0 18px}
@@ -355,6 +368,13 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
     <option value="cellar">In cellar</option>
     <option value="all">All wines</option>
     <option value="drunk">Enjoyed</option>
+  </select>
+  <select id="fReady" aria-label="Filter by drink window">
+    <option value="">Any readiness</option>
+    <option value="now">Drink now</option>
+    <option value="soon">Drink soon</option>
+    <option value="young">Too young</option>
+    <option value="past">Past peak</option>
   </select>
   <button class="clearbtn" id="clear">Clear filters</button>
   <span class="count" id="count"></span>

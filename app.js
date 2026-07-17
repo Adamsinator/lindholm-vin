@@ -15,12 +15,23 @@ const fmt = n => new Intl.NumberFormat("da-DK",{maximumFractionDigits:0}).format
 const kr = n => fmt(n)+" kr.";
 const fmtDate = s => { const d=new Date(String(s).slice(0,10)+"T12:00:00");
   return isNaN(d)?String(s):d.toLocaleDateString("da-DK",{day:"numeric",month:"short",year:"numeric"}); };
+
+// Drink-window readiness for a wine, relative to the current year.
+function readiness(w, now){
+  if(w.drinkFrom==null && w.drinkTo==null) return null;
+  const y = now || new Date().getFullYear();
+  if(w.drinkFrom!=null && y < w.drinkFrom) return {k:"young", label:"Too young", soon:w.drinkFrom===y+1};
+  if(w.drinkTo!=null && y > w.drinkTo) return {k:"past", label:"Past peak", soon:false};
+  const soon = w.drinkTo!=null && (w.drinkTo - y) <= 1; // closing this year or next
+  return {k:"now", label: soon?"Drink soon":"Drink now", soon};
+}
 const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 const $ = id => document.getElementById(id);
 
 let WINES = [];          // normalized
+let KEEP_OPEN = null;    // row number of the expanded detail, kept open across re-renders
 let SHOW_PRICES = localStorage.getItem("vinHidePrices") !== "1"; // prices shown by default
-const state = {q:"", region:"", style:"", status:"cellar", sortK:"price", sortDir:-1};
+const state = {q:"", region:"", style:"", status:"cellar", ready:"", sortK:"price", sortDir:-1};
 
 /* ---------- config / auth ---------- */
 const cfg = {
@@ -61,6 +72,8 @@ function normalize(rows){
       value: (r.value===null||r.value===""||r.value===undefined) ? null : Number(r.value),
       acquired: String(r.acquired||"").slice(0,10),
       drunkDate: String(r.drunkDate||"").slice(0,10),
+      drinkFrom: (r.drinkFrom===null||r.drinkFrom===""||r.drinkFrom===undefined) ? null : Number(r.drinkFrom),
+      drinkTo: (r.drinkTo===null||r.drinkTo===""||r.drinkTo===undefined) ? null : Number(r.drinkTo),
       source:String(r.source).trim(), note:String(r.note).trim(),
     };
   });
@@ -375,6 +388,11 @@ function detailHTML(w){
         <input class="setdate" type="date" data-field="acquired" data-row="${w.row}" value="${w.acquired||""}"></label>
       ${w.drunk>0?`<label class="datewrap">Last drunk
         <input class="setdate" type="date" data-field="drunkDate" data-row="${w.row}" value="${w.drunkDate||""}"></label>`:""}
+      <span class="winwrap">Drink window
+        <input class="setwin" type="number" inputmode="numeric" placeholder="from" data-end="from" data-row="${w.row}" value="${w.drinkFrom??""}">
+        <span class="wsep">–</span>
+        <input class="setwin" type="number" inputmode="numeric" placeholder="to" data-end="to" data-row="${w.row}" value="${w.drinkTo??""}">
+        ${(()=>{const r=readiness(w);return r?`<span class="rbadge ${r.k}">${r.label}</span>`:"";})()}</span>
       <button class="jlog" data-row="${w.row}">📓 Log in journal</button>
       ${searchLinks(w)}
       <button class="drink del" data-act="delete" data-row="${w.row}">🗑 Delete wine</button>
@@ -388,6 +406,11 @@ function renderTable(){
     if(state.status==="drunk" && w.drunk===0) return false;
     if(state.region && w.region!==state.region) return false;
     if(state.style && w.style!==state.style) return false;
+    if(state.ready){
+      const rd = readiness(w);
+      if(state.ready==="soon"){ if(!(rd && rd.soon)) return false; }
+      else if(!(rd && rd.k===state.ready)) return false;
+    }
     if(q){
       const hay = [w.producer,w.name,w.commune,w.region,w.grape,w.classification,String(w.vintage),w.note].join(" ").toLowerCase();
       if(!hay.includes(q)) return false;
@@ -411,7 +434,7 @@ function renderTable(){
     countTxt += ` · ${kr(vl)}`;
   }
   $("count").textContent = countTxt;
-  $("clear").classList.toggle("show", !!(q||state.region||state.style||state.status!=="cellar"));
+  $("clear").classList.toggle("show", !!(q||state.region||state.style||state.ready||state.status!=="cellar"));
 
   document.querySelectorAll(".rbar").forEach(el=>el.classList.toggle("active", el.dataset.region===state.region && !!state.region));
   document.querySelectorAll("#slegend button").forEach(el=>el.classList.toggle("active", el.dataset.style===state.style && !!state.style));
@@ -422,9 +445,11 @@ function renderTable(){
   $("rows").innerHTML = list.map((w,i)=>{
     const pn = PRODUCER_NOTES[w.producer];
     const badge = pn?`<span class="badge ${pn[0]}">${TIER_LABEL[pn[0]]}</span>`:"";
+    const rd = w.left>0 ? readiness(w) : null;
+    const rbadge = rd?`<span class="rbadge ${rd.k}" title="Drink window ${w.drinkFrom??"?"}–${w.drinkTo??"?"}">${rd.label}</span>`:"";
     const nm = [w.name, w.commune && w.commune!==w.name ? w.commune : ""].filter(Boolean).join(" · ");
-    return `<tr class="main${w.left===0?" gone":""}" data-i="${i}" tabindex="0" aria-expanded="false">
-      <td><span class="prod">${esc(w.producer)}</span>${badge}<br><span class="wname">${esc(nm)}${w.classification&&w.classification!=="AOC"?" · <b>"+esc(w.classification)+"</b>":""}${w.rating?` · <span class="myscore">${w.rating}/10</span>`:""}</span></td>
+    return `<tr class="main${w.left===0?" gone":""}" data-i="${i}" data-row="${w.row}" tabindex="0" aria-expanded="false">
+      <td><span class="prod">${esc(w.producer)}</span>${badge}${rbadge}<br><span class="wname">${esc(nm)}${w.classification&&w.classification!=="AOC"?" · <b>"+esc(w.classification)+"</b>":""}${w.rating?` · <span class="myscore">${w.rating}/10</span>`:""}</span></td>
       <td class="num">${esc(w.vintage||"—")}</td>
       <td>${esc(w.region)}</td>
       <td><span class="sdot" style="background:var(${STYLE_VAR[w.style]||"--muted"})"></span>${STYLE_EN[w.style]||esc(w.style)}</td>
@@ -440,10 +465,16 @@ function renderTable(){
 // Wire up expand + per-row controls for a wine table (cellar or enjoyed).
 function bindWineRows(scope){
   document.querySelectorAll(`${scope} tr.main`).forEach(tr=>{
-    const open = ()=>{ const d=tr.nextElementSibling; d.hidden=!d.hidden; tr.setAttribute("aria-expanded",String(!d.hidden)); };
+    const open = ()=>{ const d=tr.nextElementSibling; const show=d.hidden; d.hidden=!show;
+      tr.setAttribute("aria-expanded",String(show)); KEEP_OPEN = show ? Number(tr.dataset.row) : null; };
     tr.addEventListener("click",e=>{ if(e.target.closest("a,button,select,input,label")) return; open(); });
     tr.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); open(); } });
   });
+  // keep the actively-edited row expanded through re-renders
+  if(KEEP_OPEN!=null){
+    const tr=document.querySelector(`${scope} tr.main[data-row="${KEEP_OPEN}"]`);
+    if(tr && tr.nextElementSibling){ tr.nextElementSibling.hidden=false; tr.setAttribute("aria-expanded","true"); }
+  }
   document.querySelectorAll(`${scope} button.drink`).forEach(b=>
     b.addEventListener("click",()=>rowAction(b.dataset.act, Number(b.dataset.row), b)));
   document.querySelectorAll(`${scope} select.rate`).forEach(sel=>
@@ -452,6 +483,8 @@ function bindWineRows(scope){
     inp.addEventListener("change",()=>setValueApi(Number(inp.dataset.row), inp.value, inp)));
   document.querySelectorAll(`${scope} input.setdate`).forEach(inp=>
     inp.addEventListener("change",()=>setDateApi(Number(inp.dataset.row), inp.dataset.field, inp.value, inp)));
+  document.querySelectorAll(`${scope} input.setwin`).forEach(inp=>
+    inp.addEventListener("change",()=>setWindowApi(inp)));
   document.querySelectorAll(`${scope} button.jlog`).forEach(b=>
     b.addEventListener("click",()=>{
       const w = WINES.find(x=>x.row===Number(b.dataset.row));
@@ -497,6 +530,22 @@ async function setValueApi(row, val, inp){
     toast(clean==="" ? "Value cleared" : "Value set to "+kr(clean));
   }catch(err){ toast("Could not save value: "+err.message); }
   inp.disabled = false;
+}
+
+async function setWindowApi(inp){
+  const row = Number(inp.dataset.row);
+  const wrap = inp.closest(".winwrap");
+  const ins = wrap.querySelectorAll(".setwin");
+  const from = wrap.querySelector('.setwin[data-end="from"]').value;
+  const to = wrap.querySelector('.setwin[data-end="to"]').value;
+  ins.forEach(x=>x.disabled=true);
+  try{
+    const res = await api({action:"setwindow", row, from, to});
+    WINES = normalize(res.wines);
+    renderOverview(); renderTable(); renderEnjoyed();
+    toast((from||to) ? "Drink window saved" : "Drink window cleared");
+  }catch(err){ toast("Could not save window: "+err.message); }
+  ins.forEach(x=>x.disabled=false);
 }
 
 async function setDateApi(row, field, val, inp){
@@ -597,9 +646,10 @@ $("q").addEventListener("input",e=>{ state.q=e.target.value; renderTable(); });
 $("fRegion").addEventListener("change",e=>{ state.region=e.target.value; renderTable(); });
 $("fStyle").addEventListener("change",e=>{ state.style=e.target.value; renderTable(); });
 $("fStatus").addEventListener("change",e=>{ state.status=e.target.value; renderTable(); });
+$("fReady").addEventListener("change",e=>{ state.ready=e.target.value; renderTable(); });
 $("clear").addEventListener("click",()=>{
-  state.q=state.region=state.style=""; state.status="cellar";
-  $("q").value=""; $("fRegion").value=""; $("fStyle").value=""; $("fStatus").value="cellar"; renderTable(); });
+  state.q=state.region=state.style=state.ready=""; state.status="cellar";
+  $("q").value=""; $("fRegion").value=""; $("fStyle").value=""; $("fStatus").value="cellar"; $("fReady").value=""; renderTable(); });
 document.querySelectorAll("th[data-k]").forEach(th=>th.addEventListener("click",()=>{
   const k=th.dataset.k;
   if(state.sortK===k) state.sortDir*=-1; else { state.sortK=k; state.sortDir = (k==="price"||k==="left") ? -1 : 1; }
@@ -899,6 +949,8 @@ function pickTonight(){
     inp.addEventListener("change",()=>setValueApi(Number(inp.dataset.row), inp.value, inp)));
   m.querySelectorAll("input.setdate").forEach(inp=>
     inp.addEventListener("change",()=>setDateApi(Number(inp.dataset.row), inp.dataset.field, inp.value, inp)));
+  m.querySelectorAll("input.setwin").forEach(inp=>
+    inp.addEventListener("change",()=>setWindowApi(inp)));
 }
 $("tonightBtn").addEventListener("click", pickTonight);
 
@@ -1155,7 +1207,7 @@ function renderEnjoyed(){
     const pn = PRODUCER_NOTES[w.producer];
     const badge = pn?`<span class="badge ${pn[0]}">${TIER_LABEL[pn[0]]}</span>`:"";
     const nm = [w.name, w.commune && w.commune!==w.name ? w.commune : ""].filter(Boolean).join(" · ");
-    return `<tr class="main" data-i="${i}" tabindex="0" aria-expanded="false">
+    return `<tr class="main" data-i="${i}" data-row="${w.row}" tabindex="0" aria-expanded="false">
       <td><span class="prod">${esc(w.producer)}</span>${badge}<br><span class="wname">${esc(nm)}${w.classification&&w.classification!=="AOC"?" · <b>"+esc(w.classification)+"</b>":""}${w.rating?` · <span class="myscore">${w.rating}/10</span>`:""}</span></td>
       <td class="num">${esc(w.vintage||"—")}</td>
       <td>${esc(w.region)}</td>

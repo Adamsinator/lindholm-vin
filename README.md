@@ -84,6 +84,16 @@ sortable, each row expanding to the full detail (rating, price, acquired/
 last-drunk dates, journal link). Wines still in the cellar keep showing under
 **Cellar**; a partly-drunk wine appears in both.
 
+## Drink windows
+
+Give a wine a **drink window** (two year fields, *Drik fra* / *Drik til*) in its
+detail, and the app tells you when to open it: each cellar bottle gets a badge —
+**Too young**, **Drink now** (or **Drink soon** when the window is closing this
+year or next), or **Past peak**. The cellar filters gain a readiness dropdown so
+you can pull up, say, everything that's ready now or closing soon. Wines without
+a window just show no badge. Editing happens inline and the row stays open while
+you set both years.
+
 ## Journal
 
 The **Journal** tab is a tasting log for any wine, anywhere — bottles from the

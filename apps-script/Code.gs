@@ -14,7 +14,7 @@ const ACCESS_CODE = 'CHANGE-ME';        // code to open the site
 const SHEET_NAME  = 'Ark1';             // tab name that holds the wine list
 // ─────────────────────────────────────────────────────────────────────────────
 
-const API_VERSION = 13; // returned in every response; used to verify deployments
+const API_VERSION = 14; // returned in every response; used to verify deployments
 
 // Column headers in row 1 of the sheet, mapped to API field names.
 const HEADERS = {
@@ -45,6 +45,10 @@ const VALUE_HEADER = 'Værdi kr';
 // (set on add), and when it was last drunk (set when a bottle is marked drunk).
 const ACQUIRED_HEADER   = 'Anskaffet';
 const DRUNK_DATE_HEADER = 'Drukket dato';
+
+// Optional drink-window columns (years), auto-created on first use.
+const DRINK_FROM_HEADER = 'Drik fra';
+const DRINK_TO_HEADER    = 'Drik til';
 
 function today() { return Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd'); }
 function ymd(v) {
@@ -100,6 +104,9 @@ function handle(p) {
       case 'setdate':
         setDate(Number(p.row), String(p.field || ''), p.value);
         return json({ ok: true, wines: readAll() });
+      case 'setwindow':
+        setWindow(Number(p.row), p.from, p.to);
+        return json({ ok: true, wines: readAll() });
       case 'journal':
         return json({ ok: true, entries: readJournal() });
       case 'jadd':
@@ -139,6 +146,8 @@ function colIndexes(sh) {
   idx.value     = head.indexOf(VALUE_HEADER);  // -1 until first value creates it
   idx.acquired  = head.indexOf(ACQUIRED_HEADER);
   idx.drunkDate = head.indexOf(DRUNK_DATE_HEADER);
+  idx.drinkFrom = head.indexOf(DRINK_FROM_HEADER);
+  idx.drinkTo   = head.indexOf(DRINK_TO_HEADER);
   return idx;
 }
 
@@ -161,6 +170,8 @@ function readAll() {
     w.value  = idx.value  >= 0 ? (r[idx.value] === null || r[idx.value] === undefined ? '' : r[idx.value]) : '';
     w.acquired  = idx.acquired  >= 0 ? ymd(r[idx.acquired])  : '';
     w.drunkDate = idx.drunkDate >= 0 ? ymd(r[idx.drunkDate]) : '';
+    w.drinkFrom = idx.drinkFrom >= 0 ? (r[idx.drinkFrom] === null || r[idx.drinkFrom] === undefined ? '' : r[idx.drinkFrom]) : '';
+    w.drinkTo   = idx.drinkTo   >= 0 ? (r[idx.drinkTo]   === null || r[idx.drinkTo]   === undefined ? '' : r[idx.drinkTo])   : '';
     wines.push(w);
   });
   return wines;
@@ -246,6 +257,22 @@ function setValue(rowNum, value) {
   const empty = value === '' || value === null || value === undefined;
   const v = empty ? '' : Math.max(0, Number(value) || 0);
   sh.getRange(rowNum, i + 1).setValue(v);
+}
+
+// Set a wine's drink window (years). Blank clears an end.
+function setWindow(rowNum, from, to) {
+  const sh = sheet();
+  if (!rowNum || rowNum < 2 || rowNum > sh.getLastRow()) throw new Error('Bad row');
+  const yr = v => {
+    if (v === '' || v === null || v === undefined) return '';
+    const n = Math.round(Number(v));
+    if (!n || n < 1900 || n > 2100) throw new Error('Bad year');
+    return n;
+  };
+  const f = yr(from), t = yr(to);
+  const fi = ensureCol(sh, DRINK_FROM_HEADER), ti = ensureCol(sh, DRINK_TO_HEADER);
+  sh.getRange(rowNum, fi + 1).setValue(f);
+  sh.getRange(rowNum, ti + 1).setValue(t);
 }
 
 // Edit a wine's acquired ("acquired") or last-drunk ("drunkDate") date.
