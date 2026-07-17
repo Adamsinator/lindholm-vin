@@ -84,6 +84,13 @@ sortable, each row expanding to the full detail (rating, price, acquired/
 last-drunk dates, journal link). Wines still in the cellar keep showing under
 **Cellar**; a partly-drunk wine appears in both.
 
+## Cellar insights
+
+The overview shows a **Cellar insights** strip of at-a-glance facts about what's
+in the cellar: oldest vintage, priciest bottle, top region and grape, your
+average score, and how many bottles are in their drink window right now. It's
+all derived from the wines you already have — nothing to fill in.
+
 ## Drink windows
 
 Give a wine a **drink window** (two year fields, *Drik fra* / *Drik til*) in its

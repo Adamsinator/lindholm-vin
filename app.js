@@ -190,6 +190,7 @@ function renderOverview(){
 
   updateMap(cellar);
   drawHistory();
+  renderInsights(cellar);
 
   /* vintage histogram */
   const byV = {};
@@ -267,6 +268,32 @@ function drawPie(styList, styAgg, total){
     pl.addEventListener("click",()=>{ state.style = state.style===st ? "" : st;
       $("fStyle").value = state.style; renderTable(); });
   });
+}
+
+/* ---------- cellar insights ---------- */
+function renderInsights(cellar){
+  const el=$("insights"); if(!el) return;
+  const items=[];
+  const vintaged=cellar.filter(w=>typeof w.vintage==="number");
+  if(vintaged.length){ const o=vintaged.reduce((a,b)=>b.vintage<a.vintage?b:a);
+    items.push(["Oldest vintage", o.vintage, esc(o.producer)]); }
+  if(SHOW_PRICES){ const priced=cellar.filter(w=>w.price);
+    if(priced.length){ const p=priced.reduce((a,b)=>b.price>a.price?b:a);
+      items.push(["Priciest bottle", kr(p.price), esc(p.producer)]); } }
+  const reg={}; cellar.forEach(w=>{ if(w.region) reg[w.region]=(reg[w.region]||0)+w.left; });
+  const tr=Object.entries(reg).sort((a,b)=>b[1]-a[1])[0];
+  if(tr) items.push(["Top region", esc(tr[0]), tr[1]+" btl."]);
+  const gr={}; cellar.forEach(w=>{ if(w.grape) gr[w.grape]=(gr[w.grape]||0)+w.left; });
+  const tg=Object.entries(gr).sort((a,b)=>b[1]-a[1])[0];
+  if(tg) items.push(["Top grape", esc(tg[0]), tg[1]+" btl."]);
+  const rated=cellar.filter(w=>w.rating!=null);
+  if(rated.length){ const avg=rated.reduce((s,w)=>s+w.rating,0)/rated.length;
+    items.push(["Average score", avg.toFixed(1)+"/10", rated.length+" rated"]); }
+  const windowed=cellar.filter(w=>readiness(w));
+  if(windowed.length){ const ready=cellar.filter(w=>{const r=readiness(w);return r&&r.k==="now";}).reduce((s,w)=>s+w.left,0);
+    items.push(["Ready to drink", fmt(ready)+" btl.", "in their window now"]); }
+  el.innerHTML = items.map(([l,v,h])=>`<div class="ins"><div class="ins-l">${l}</div><div class="ins-v">${v}</div><div class="ins-h">${h}</div></div>`).join("");
+  const panel = el.closest(".panel"); if(panel) panel.hidden = !items.length;
 }
 
 /* ---------- collection over time ---------- */
