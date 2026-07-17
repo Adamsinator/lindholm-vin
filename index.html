@@ -153,8 +153,8 @@ tr.detail td{background:var(--card2);padding:14px 16px 16px}
   border:1px solid var(--line);background:var(--card);border-radius:7px;padding:5px 10px;cursor:pointer;font-family:inherit}
 .links a:hover,.links button:hover{border-color:var(--accent)}
 .links button.drink{color:var(--ink)}
-.ratewrap,.valwrap{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--accent)}
-.ratewrap select,.valwrap input{background:var(--card);border:1px solid var(--line);color:var(--ink);border-radius:7px;
+.ratewrap,.valwrap,.datewrap{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--accent)}
+.ratewrap select,.valwrap input,.datewrap input{background:var(--card);border:1px solid var(--line);color:var(--ink);border-radius:7px;
   padding:4px 6px;font-size:12.5px;font-family:inherit}
 .valwrap input{width:84px}
 .myscore{color:var(--gold);font-weight:650}
@@ -196,7 +196,7 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
 /* iOS zooms into any focused field with font-size < 16px — keep inputs at 16px on small screens */
 @media(max-width:640px){
   .filters input[type=search],.filters select,.modal input,.modal select,.modal textarea,.gate input,
-  .valwrap input,.ratewrap select{font-size:16px}
+  .valwrap input,.ratewrap select,.datewrap input{font-size:16px}
 }
 /* tabs */
 .tabs{display:flex;gap:4px;margin:-6px 0 18px}

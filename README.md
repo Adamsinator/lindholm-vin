@@ -60,8 +60,11 @@ own number, no external service involved.
 Two date columns are tracked automatically (created on demand): **Anskaffet**
 (when a wine was acquired) and **Drukket dato** (when it was last drunk).
 Acquired is set to the date you enter when adding a wine (defaulting to today),
-and the drunk date is stamped whenever you mark a bottle as drunk. Both show on
-a wine's detail, and you can backfill or correct either straight in the sheet.
+and the drunk date is stamped whenever you mark a bottle as drunk. Both are
+editable in the app — open any wine and use the date pickers in its detail to
+set the **Acquired** date, or the **Last drunk** date (shown once a bottle's
+been drunk); handy on the Enjoyed page for fixing when something was actually
+opened. You can also backfill or correct either straight in the sheet.
 
 The overview's **Collection over time** chart draws from these: a running line
 of how many bottles you held since your first acquisition, with a green dot for

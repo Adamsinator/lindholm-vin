@@ -356,8 +356,6 @@ function detailHTML(w){
     ["Commune", w.commune],["Classification", w.classification],["Grape", w.grape],
     ["Bought", w.qty+" btl."],["Enjoyed", w.drunk?w.drunk+" btl.":""],["Source", w.source],
     ["Price", SHOW_PRICES && w.price ? kr(w.price) : ""],
-    ["Acquired", w.acquired?fmtDate(w.acquired):""],
-    ["Last drunk", w.drunkDate?fmtDate(w.drunkDate):""],
   ].filter(c=>c[1]).map(([k,v])=>`<div><div class="k">${k}</div>${esc(v)}</div>`).join("");
   return `<div class="dgrid">${cells}</div>
     ${w.note?`<div class="unote">“${esc(w.note)}” — cellar note</div>`:""}
@@ -373,6 +371,10 @@ function detailHTML(w){
       ${SHOW_PRICES?`<label class="valwrap">Value kr
         <input class="setval" type="number" min="0" step="1" inputmode="numeric"
           data-row="${w.row}" value="${w.value!=null?w.value:""}" placeholder="—"></label>`:""}
+      <label class="datewrap">Acquired
+        <input class="setdate" type="date" data-field="acquired" data-row="${w.row}" value="${w.acquired||""}"></label>
+      ${w.drunk>0?`<label class="datewrap">Last drunk
+        <input class="setdate" type="date" data-field="drunkDate" data-row="${w.row}" value="${w.drunkDate||""}"></label>`:""}
       <button class="jlog" data-row="${w.row}">📓 Log in journal</button>
       ${searchLinks(w)}
       <button class="drink del" data-act="delete" data-row="${w.row}">🗑 Delete wine</button>
@@ -432,18 +434,25 @@ function renderTable(){
     <tr class="detail" hidden><td colspan="6">${detailHTML(w)}</td></tr>`;
   }).join("");
 
-  document.querySelectorAll("tr.main").forEach(tr=>{
+  bindWineRows("#rows");
+}
+
+// Wire up expand + per-row controls for a wine table (cellar or enjoyed).
+function bindWineRows(scope){
+  document.querySelectorAll(`${scope} tr.main`).forEach(tr=>{
     const open = ()=>{ const d=tr.nextElementSibling; d.hidden=!d.hidden; tr.setAttribute("aria-expanded",String(!d.hidden)); };
-    tr.addEventListener("click",e=>{ if(e.target.closest("a,button")) return; open(); });
+    tr.addEventListener("click",e=>{ if(e.target.closest("a,button,select,input,label")) return; open(); });
     tr.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); open(); } });
   });
-  document.querySelectorAll("button.drink").forEach(b=>
+  document.querySelectorAll(`${scope} button.drink`).forEach(b=>
     b.addEventListener("click",()=>rowAction(b.dataset.act, Number(b.dataset.row), b)));
-  document.querySelectorAll("select.rate").forEach(sel=>
+  document.querySelectorAll(`${scope} select.rate`).forEach(sel=>
     sel.addEventListener("change",()=>rateWine(Number(sel.dataset.row), sel.value, sel)));
-  document.querySelectorAll("input.setval").forEach(inp=>
+  document.querySelectorAll(`${scope} input.setval`).forEach(inp=>
     inp.addEventListener("change",()=>setValueApi(Number(inp.dataset.row), inp.value, inp)));
-  document.querySelectorAll("button.jlog").forEach(b=>
+  document.querySelectorAll(`${scope} input.setdate`).forEach(inp=>
+    inp.addEventListener("change",()=>setDateApi(Number(inp.dataset.row), inp.dataset.field, inp.value, inp)));
+  document.querySelectorAll(`${scope} button.jlog`).forEach(b=>
     b.addEventListener("click",()=>{
       const w = WINES.find(x=>x.row===Number(b.dataset.row));
       openJournalModal(w ? {producer:w.producer, wine:w.name, vintage:w.vintage,
@@ -487,6 +496,18 @@ async function setValueApi(row, val, inp){
     renderOverview(); renderTable(); renderEnjoyed();
     toast(clean==="" ? "Value cleared" : "Value set to "+kr(clean));
   }catch(err){ toast("Could not save value: "+err.message); }
+  inp.disabled = false;
+}
+
+async function setDateApi(row, field, val, inp){
+  inp.disabled = true;
+  const label = field==="acquired" ? "Acquired date" : "Last-drunk date";
+  try{
+    const res = await api({action:"setdate", row, field, value: val||""});
+    WINES = normalize(res.wines);
+    renderOverview(); renderTable(); renderEnjoyed();
+    toast(val ? label+" updated" : label+" cleared");
+  }catch(err){ toast("Could not save date: "+err.message); }
   inp.disabled = false;
 }
 
@@ -876,6 +897,8 @@ function pickTonight(){
     sel.addEventListener("change",()=>rateWine(Number(sel.dataset.row), sel.value, sel)));
   m.querySelectorAll("input.setval").forEach(inp=>
     inp.addEventListener("change",()=>setValueApi(Number(inp.dataset.row), inp.value, inp)));
+  m.querySelectorAll("input.setdate").forEach(inp=>
+    inp.addEventListener("change",()=>setDateApi(Number(inp.dataset.row), inp.dataset.field, inp.value, inp)));
 }
 $("tonightBtn").addEventListener("click", pickTonight);
 
@@ -1251,25 +1274,7 @@ function drawDrinkingTime(drunk){
   cap.textContent = nodate ? `${nodate} more enjoyed without a date (not shown)` : "";
 }
 
-function bindEnjoyedRows(){
-  document.querySelectorAll("#eRows tr.main").forEach(tr=>{
-    const open = ()=>{ const d=tr.nextElementSibling; d.hidden=!d.hidden; tr.setAttribute("aria-expanded",String(!d.hidden)); };
-    tr.addEventListener("click",e=>{ if(e.target.closest("a,button,select,input")) return; open(); });
-    tr.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); open(); } });
-  });
-  document.querySelectorAll("#eRows button.drink").forEach(b=>
-    b.addEventListener("click",()=>rowAction(b.dataset.act, Number(b.dataset.row), b)));
-  document.querySelectorAll("#eRows select.rate").forEach(sel=>
-    sel.addEventListener("change",()=>rateWine(Number(sel.dataset.row), sel.value, sel)));
-  document.querySelectorAll("#eRows input.setval").forEach(inp=>
-    inp.addEventListener("change",()=>setValueApi(Number(inp.dataset.row), inp.value, inp)));
-  document.querySelectorAll("#eRows button.jlog").forEach(b=>
-    b.addEventListener("click",()=>{
-      const w = WINES.find(x=>x.row===Number(b.dataset.row));
-      openJournalModal(w ? {producer:w.producer, wine:w.name, vintage:w.vintage,
-        country:w.country, region:w.region, grape:w.grape} : null);
-    }));
-}
+function bindEnjoyedRows(){ bindWineRows("#eRows"); }
 
 $("eq").addEventListener("input",e=>{ eState.q=e.target.value; renderEnjoyed(); });
 document.querySelectorAll("#eTbl th[data-k]").forEach(th=>th.addEventListener("click",()=>{

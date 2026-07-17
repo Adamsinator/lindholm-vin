@@ -14,7 +14,7 @@ const ACCESS_CODE = 'CHANGE-ME';        // code to open the site
 const SHEET_NAME  = 'Ark1';             // tab name that holds the wine list
 // ─────────────────────────────────────────────────────────────────────────────
 
-const API_VERSION = 12; // returned in every response; used to verify deployments
+const API_VERSION = 13; // returned in every response; used to verify deployments
 
 // Column headers in row 1 of the sheet, mapped to API field names.
 const HEADERS = {
@@ -96,6 +96,9 @@ function handle(p) {
         return json({ ok: true, wines: readAll() });
       case 'setvalue':
         setValue(Number(p.row), p.value);
+        return json({ ok: true, wines: readAll() });
+      case 'setdate':
+        setDate(Number(p.row), String(p.field || ''), p.value);
         return json({ ok: true, wines: readAll() });
       case 'journal':
         return json({ ok: true, entries: readJournal() });
@@ -242,6 +245,19 @@ function setValue(rowNum, value) {
   const i = ensureCol(sh, VALUE_HEADER);
   const empty = value === '' || value === null || value === undefined;
   const v = empty ? '' : Math.max(0, Number(value) || 0);
+  sh.getRange(rowNum, i + 1).setValue(v);
+}
+
+// Edit a wine's acquired ("acquired") or last-drunk ("drunkDate") date.
+function setDate(rowNum, field, value) {
+  const header = field === 'acquired' ? ACQUIRED_HEADER
+               : field === 'drunkDate' ? DRUNK_DATE_HEADER : null;
+  if (!header) throw new Error('Bad field');
+  const sh = sheet();
+  if (!rowNum || rowNum < 2 || rowNum > sh.getLastRow()) throw new Error('Bad row');
+  const v = value === null || value === undefined ? '' : String(value).trim();
+  if (v && !/^\d{4}-\d{2}-\d{2}$/.test(v)) throw new Error('Bad date (use YYYY-MM-DD)');
+  const i = ensureCol(sh, header);
   sh.getRange(rowNum, i + 1).setValue(v);
 }
 
