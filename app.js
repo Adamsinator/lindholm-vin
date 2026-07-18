@@ -16,14 +16,53 @@ const kr = n => fmt(n)+" kr.";
 const fmtDate = s => { const d=new Date(String(s).slice(0,10)+"T12:00:00");
   return isNaN(d)?String(s):d.toLocaleDateString("da-DK",{day:"numeric",month:"short",year:"numeric"}); };
 
+// A rough drink window estimated from the wine's type, origin and vintage.
+// Deliberately generic (grape/region/cru level → an ageing span) — a starting
+// point you can override per wine. Returns {from,to} or null.
+function defaultWindow(w){
+  const style=w.style, reg=normName(w.region), grape=normName(w.grape), cls=normName(w.classification);
+  const v = typeof w.vintage==="number" ? w.vintage : null;
+  const has=(s,arr)=>arr.some(a=>s.includes(a));
+  const grand = cls.includes("grand"), premier = cls.includes("1") && cls.includes("cru");
+  const span=(lo,hi)=>({from:v+lo, to:v+hi});
+  // sparkling / champagne
+  if(style==="Bobler" || has(reg,["champagne"])){
+    if(v==null){ const ay=/^\d{4}/.test(String(w.acquired))?Number(String(w.acquired).slice(0,4)):null;
+      return ay?{from:ay, to:ay+3}:null; }               // NV: ~3 yrs from purchase
+    return span(3,15);                                    // vintage champagne
+  }
+  if(style==="Rosé") return v!=null ? span(0,2) : null;   // drink young
+  if(v==null) return null;                                // still wines need a vintage
+  // Burgundy (and neighbours) — by colour and cru level
+  if(has(reg,["bourgogne","chablis","beaujolais","macon","cote de","cotes de"])){
+    if(style==="Hvid") return grand?span(4,16):premier?span(3,12):span(2,8);
+    return grand?span(8,25):premier?span(5,18):span(3,12);
+  }
+  if(has(reg,["piemonte","barolo","barbaresco"]) || grape.includes("nebbiolo")) return span(6,22);
+  if(has(reg,["bordeaux","medoc","pomerol","saint","pauillac","margaux","graves"]) || has(grape,["cabernet","merlot"]))
+    return (grand||cls.includes("classe"))?span(6,25):span(4,16);
+  if(has(reg,["rhone","rhône","cornas","hermitage","cote rotie","gigondas","chateauneuf"]) || grape.includes("syrah")) return span(4,18);
+  if(grape.includes("riesling") || has(reg,["mosel","rheingau","nahe","pfalz","alsace"])) return span(2,15);
+  return style==="Hvid" ? span(1,5) : span(2,8);          // generic white / red
+}
+
+// The window in effect for a wine: your own if set, else the estimate.
+function drinkWindow(w){
+  if(w.drinkFrom!=null || w.drinkTo!=null) return {from:w.drinkFrom, to:w.drinkTo, est:false};
+  const d = defaultWindow(w);
+  return d ? {from:d.from, to:d.to, est:true} : null;
+}
+
 // Drink-window readiness for a wine, relative to the current year.
 function readiness(w, now){
-  if(w.drinkFrom==null && w.drinkTo==null) return null;
+  const win = drinkWindow(w);
+  if(!win) return null;
   const y = now || new Date().getFullYear();
-  if(w.drinkFrom!=null && y < w.drinkFrom) return {k:"young", label:"Too young", soon:w.drinkFrom===y+1};
-  if(w.drinkTo!=null && y > w.drinkTo) return {k:"past", label:"Past peak", soon:false};
-  const soon = w.drinkTo!=null && (w.drinkTo - y) <= 1; // closing this year or next
-  return {k:"now", label: soon?"Drink soon":"Drink now", soon};
+  const {from,to,est} = win;
+  if(from!=null && y < from) return {k:"young", label:"Too young", soon:from===y+1, est};
+  if(to!=null && y > to) return {k:"past", label:"Past peak", soon:false, est};
+  const soon = to!=null && (to - y) <= 1; // closing this year or next
+  return {k:"now", label: soon?"Drink soon":"Drink now", soon, est};
 }
 const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 const $ = id => document.getElementById(id);
@@ -443,11 +482,14 @@ function detailHTML(w){
         <input class="setdate" type="date" data-field="acquired" data-row="${w.row}" value="${w.acquired||""}"></label>
       ${w.drunk>0?`<label class="datewrap">Last drunk
         <input class="setdate" type="date" data-field="drunkDate" data-row="${w.row}" value="${w.drunkDate||""}"></label>`:""}
-      <span class="winwrap">Drink window
-        <input class="setwin" type="number" inputmode="numeric" placeholder="from" data-end="from" data-row="${w.row}" value="${w.drinkFrom??""}">
+      ${(()=>{const est=defaultWindow(w), r=readiness(w);
+        const ph=(x,d)=>x!=null?"≈"+x:d;
+        return `<span class="winwrap">Drink window
+        <input class="setwin" type="number" inputmode="numeric" placeholder="${ph(est&&est.from,"from")}" data-end="from" data-row="${w.row}" value="${w.drinkFrom??""}">
         <span class="wsep">–</span>
-        <input class="setwin" type="number" inputmode="numeric" placeholder="to" data-end="to" data-row="${w.row}" value="${w.drinkTo??""}">
-        ${(()=>{const r=readiness(w);return r?`<span class="rbadge ${r.k}">${r.label}</span>`:"";})()}</span>
+        <input class="setwin" type="number" inputmode="numeric" placeholder="${ph(est&&est.to,"to")}" data-end="to" data-row="${w.row}" value="${w.drinkTo??""}">
+        ${r?`<span class="rbadge ${r.k}${r.est?" est":""}">${r.label}</span>`:""}
+        ${r&&r.est?`<span class="est-note">estimated · type to set your own</span>`:""}</span>`;})()}
       <button class="jlog" data-row="${w.row}">📓 Log in journal</button>
       ${searchLinks(w)}
       <button class="drink del" data-act="delete" data-row="${w.row}">🗑 Delete wine</button>
@@ -501,7 +543,8 @@ function renderTable(){
     const pn = PRODUCER_NOTES[w.producer];
     const badge = pn?`<span class="badge ${pn[0]}">${TIER_LABEL[pn[0]]}</span>`:"";
     const rd = w.left>0 ? readiness(w) : null;
-    const rbadge = rd?`<span class="rbadge ${rd.k}" title="Drink window ${w.drinkFrom??"?"}–${w.drinkTo??"?"}">${rd.label}</span>`:"";
+    const rwin = rd ? drinkWindow(w) : null;
+    const rbadge = rd?`<span class="rbadge ${rd.k}${rd.est?" est":""}" title="${rd.est?"Estimated":"Your"} drink window ${rwin.from??"?"}–${rwin.to??"?"}${rd.est?" — set your own in the wine":""}">${rd.label}</span>`:"";
     const nm = [w.name, w.commune && w.commune!==w.name ? w.commune : ""].filter(Boolean).join(" · ");
     return `<tr class="main${w.left===0?" gone":""}" data-i="${i}" data-row="${w.row}" tabindex="0" aria-expanded="false">
       <td><span class="prod">${esc(w.producer)}</span>${badge}${rbadge}<br><span class="wname">${esc(nm)}${w.classification&&w.classification!=="AOC"?" · <b>"+esc(w.classification)+"</b>":""}${w.rating?` · <span class="myscore">${w.rating}/10</span>`:""}</span></td>

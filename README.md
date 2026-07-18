@@ -93,13 +93,23 @@ all derived from the wines you already have — nothing to fill in.
 
 ## Drink windows
 
-Give a wine a **drink window** (two year fields, *Drik fra* / *Drik til*) in its
-detail, and the app tells you when to open it: each cellar bottle gets a badge —
-**Too young**, **Drink now** (or **Drink soon** when the window is closing this
-year or next), or **Past peak**. The cellar filters gain a readiness dropdown so
-you can pull up, say, everything that's ready now or closing soon. Wines without
-a window just show no badge. Editing happens inline and the row stays open while
-you set both years.
+Every wine gets a **drink window** so the app can tell you when to open it —
+each cellar bottle shows a badge: **Too young**, **Drink now** (or **Drink soon**
+when it's closing this year or next), or **Past peak**. The cellar filters gain a
+readiness dropdown so you can pull up, say, everything ready now or closing soon.
+
+**It's automatic by default.** With no input from you, the app *estimates* a
+window from the wine's type, origin and vintage — red Burgundy scaled by cru
+level, white Burgundy shorter, vintage Champagne vs NV, Barolo/Bordeaux/Riesling
+longer-lived, rosé young, and sensible fallbacks otherwise. Estimated badges show
+with a dashed outline (and the detail shows the guessed years as a placeholder)
+so you can tell them from ones you've set.
+
+**Override any wine** by typing your own years in the *Drink window* boxes in its
+detail (*Drik fra* / *Drik til*); a set window always wins over the estimate and
+loses the dashed styling. Editing is inline and the row stays open while you set
+both years. The estimates are frontend-only, so they work immediately; saving
+your own window needs the API redeploy.
 
 ## Journal
 
