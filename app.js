@@ -29,7 +29,8 @@ function defaultWindow(w){
   if(style==="Bobler" || has(reg,["champagne"])){
     if(v==null){ const ay=/^\d{4}/.test(String(w.acquired))?Number(String(w.acquired).slice(0,4)):null;
       return ay?{from:ay, to:ay+3}:null; }               // NV: ~3 yrs from purchase
-    return span(3,15);                                    // vintage champagne
+    // vintage champagne ages long, and late disgorgement (which we can't see) extends it further
+    return span(4, grand?40:30);
   }
   if(style==="Rosé") return v!=null ? span(0,2) : null;   // drink young
   if(v==null) return null;                                // still wines need a vintage
@@ -432,7 +433,7 @@ function drawDrinkTimeline(list){
     if(win.to!=null){lo=Math.min(lo,win.to);hi=Math.max(hi,win.to);} });
   lo=Math.min(lo,now)-1; hi=Math.max(hi,now)+1;
   const span=Math.max(1,hi-lo), pct=y=>((y-lo)/span)*100, nowPct=pct(now);
-  wins.sort((a,b)=>((a.win.to??hi)-(b.win.to??hi)) || ((a.win.from??lo)-(b.win.from??lo)));
+  wins.sort((a,b)=>((b.win.to??hi)-(a.win.to??hi)) || ((b.win.from??lo)-(a.win.from??lo)));
   const rows = wins.map(({w,win,rd})=>{
     const l=Math.max(0,pct(win.from??lo)), r=Math.min(100,pct(win.to??hi));
     const cls = rd.k==="now" && rd.soon ? "soon" : rd.k;

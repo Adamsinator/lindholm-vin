@@ -113,9 +113,9 @@ your own window needs the API redeploy.
 
 **When-to-drink timeline.** Above the cellar table, a *When to drink* chart draws
 every wine as a bar across its drink window — coloured too young / soon / now /
-past, with a line at today and the soonest-to-close on top. It **follows the
-current filters**, so narrow the list (a region, "Drink now", a search) and the
-chart narrows with it. Click a bar to jump to that producer.
+past, with a line at today. The year axis stays pinned as you scroll. It
+**follows the current filters**, so narrow the list (a region, "Drink now", a
+search) and the chart narrows with it. Click a bar to jump to that producer.
 
 ## Journal
 

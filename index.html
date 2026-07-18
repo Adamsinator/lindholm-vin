@@ -154,6 +154,7 @@ tr.main td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:no
 /* when-to-drink timeline */
 #dwtl{max-height:360px;overflow-y:auto;padding-right:4px}
 .dwrow{display:grid;grid-template-columns:150px 1fr;gap:10px;align-items:center;height:22px}
+.dw-axis{position:sticky;top:0;z-index:2;background:var(--card);height:20px;box-shadow:0 1px 0 var(--line)}
 .dwrow[data-row]{cursor:pointer}
 .dwrow[data-row]:hover .dw-label{color:var(--accent)}
 .dw-label{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
@@ -165,7 +166,6 @@ tr.main td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:no
 .dw-bar.past{background:var(--muted)}
 .dw-bar.est{opacity:.5}
 .dw-now{position:absolute;top:-4px;height:20px;width:2px;background:var(--accent)}
-.dw-axis{height:15px}
 .dw-axis-track{background:none;overflow:visible}
 .dw-tick{position:absolute;top:1px;font-size:9px;color:var(--muted);transform:translateX(-50%)}
 .dw-nowlabel{position:absolute;top:1px;font-size:9px;font-weight:700;color:var(--accent);transform:translateX(-50%)}
