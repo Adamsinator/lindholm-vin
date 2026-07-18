@@ -151,6 +151,27 @@ tr.main td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:no
 .rbadge.past{background:var(--chip);color:var(--muted)}
 .rbadge.est{opacity:.8;font-weight:600;border:1px dashed currentColor;background:transparent}
 .est-note{font-size:11px;color:var(--muted);font-weight:400;font-style:italic}
+/* when-to-drink timeline */
+#dwtl{max-height:360px;overflow-y:auto;padding-right:4px}
+.dwrow{display:grid;grid-template-columns:150px 1fr;gap:10px;align-items:center;height:22px}
+.dwrow[data-row]{cursor:pointer}
+.dwrow[data-row]:hover .dw-label{color:var(--accent)}
+.dw-label{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
+.dw-track{position:relative;height:12px;background:var(--card2);border-radius:6px}
+.dw-bar{position:absolute;top:0;height:12px;border-radius:6px;min-width:3px}
+.dw-bar.young{background:var(--c-spark)}
+.dw-bar.now{background:#3E9E68}
+.dw-bar.soon{background:var(--gold)}
+.dw-bar.past{background:var(--muted)}
+.dw-bar.est{opacity:.5}
+.dw-now{position:absolute;top:-4px;height:20px;width:2px;background:var(--accent)}
+.dw-axis{height:15px}
+.dw-axis-track{background:none;overflow:visible}
+.dw-tick{position:absolute;top:1px;font-size:9px;color:var(--muted);transform:translateX(-50%)}
+.dw-nowlabel{position:absolute;top:1px;font-size:9px;font-weight:700;color:var(--accent);transform:translateX(-50%)}
+.dwleg{font-weight:700;letter-spacing:-2px}
+.dwleg.young{color:var(--c-spark)}.dwleg.now{color:#3E9E68}.dwleg.soon{color:var(--gold)}.dwleg.past{color:var(--muted)}
+@media(max-width:640px){.dwrow{grid-template-columns:110px 1fr}}
 @media (prefers-color-scheme: dark){
   .rbadge.now{background:rgba(95,185,133,.2);color:#7fcf9e}
   .rbadge.young{background:rgba(78,138,192,.22);color:#88bce0}
@@ -403,6 +424,13 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
   </select>
   <button class="clearbtn" id="clear">Clear filters</button>
   <span class="count" id="count"></span>
+</div>
+
+<div class="panel" id="dwPanel" style="margin-bottom:16px" hidden>
+  <h2>When to drink <span class="stamp" id="dwCount"></span></h2>
+  <p class="ph">Each wine's drink window · <span class="dwleg young">▬</span> too young · <span class="dwleg soon">▬</span> soon
+    · <span class="dwleg now">▬</span> now · <span class="dwleg past">▬</span> past · dashed = estimated · <b>|</b> today · follows the filters</p>
+  <div id="dwtl"></div>
 </div>
 
 <div class="tablewrap">

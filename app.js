@@ -420,6 +420,46 @@ function drawHistory(){
   cap.textContent = bits.join(" · ");
 }
 
+/* ---------- when-to-drink timeline (respects the current table filters) ---------- */
+function drawDrinkTimeline(list){
+  const el=$("dwtl"), panel=$("dwPanel"); if(!el) return;
+  const wins = list.filter(w=>w.left>0 && readiness(w)).map(w=>({w, win:drinkWindow(w), rd:readiness(w)}));
+  if(!wins.length){ if(panel) panel.hidden=true; el.innerHTML=""; $("dwCount").textContent=""; return; }
+  if(panel) panel.hidden=false;
+  const now=new Date().getFullYear();
+  let lo=now, hi=now;
+  wins.forEach(({win})=>{ if(win.from!=null){lo=Math.min(lo,win.from);hi=Math.max(hi,win.from);}
+    if(win.to!=null){lo=Math.min(lo,win.to);hi=Math.max(hi,win.to);} });
+  lo=Math.min(lo,now)-1; hi=Math.max(hi,now)+1;
+  const span=Math.max(1,hi-lo), pct=y=>((y-lo)/span)*100, nowPct=pct(now);
+  wins.sort((a,b)=>((a.win.to??hi)-(b.win.to??hi)) || ((a.win.from??lo)-(b.win.from??lo)));
+  const rows = wins.map(({w,win,rd})=>{
+    const l=Math.max(0,pct(win.from??lo)), r=Math.min(100,pct(win.to??hi));
+    const cls = rd.k==="now" && rd.soon ? "soon" : rd.k;
+    const label=`${esc(w.producer)}${typeof w.vintage==="number"?" "+w.vintage:""}`;
+    return `<div class="dwrow" data-row="${w.row}">
+      <div class="dw-label" title="${esc(w.producer)}${w.name?" · "+esc(w.name):""}">${label}</div>
+      <div class="dw-track">
+        <div class="dw-bar ${cls}${rd.est?" est":""}" style="left:${l.toFixed(1)}%;width:${Math.max(1.5,r-l).toFixed(1)}%"
+          title="${win.from??"?"}–${win.to??"?"} · ${rd.label}${rd.est?" (estimated)":""}"></div>
+        <div class="dw-now" style="left:${nowPct.toFixed(1)}%"></div>
+      </div></div>`;
+  }).join("");
+  const step=Math.max(1,Math.ceil(span/9)); const ticks=[];
+  for(let y=Math.ceil(lo); y<=hi; y+=step){ const p=pct(y);
+    if(p>97 || Math.abs(p-nowPct)<5) continue; // avoid clipping / the today line
+    ticks.push(`<span class="dw-tick" style="left:${p.toFixed(1)}%">${y}</span>`); }
+  el.innerHTML = `<div class="dwrow dw-axis"><div class="dw-label"></div>
+    <div class="dw-track dw-axis-track">${ticks.join("")}
+      <span class="dw-nowlabel" style="left:${nowPct.toFixed(1)}%">${now}</span>
+      <div class="dw-now" style="left:${nowPct.toFixed(1)}%"></div></div></div>${rows}`;
+  $("dwCount").textContent = `${wins.length} wine${wins.length>1?"s":""}`;
+  el.querySelectorAll(".dwrow[data-row]").forEach(r=>r.addEventListener("click",()=>{
+    const w=WINES.find(x=>x.row===Number(r.dataset.row));
+    if(w){ state.q=w.producer; $("q").value=w.producer; renderTable(); }
+  }));
+}
+
 /* ---------- table ---------- */
 function searchLinks(w){
   const q = [w.producer, w.name!==w.commune?w.name:"", w.commune, typeof w.vintage==="number"?w.vintage:""]
@@ -532,6 +572,7 @@ function renderTable(){
   }
   $("count").textContent = countTxt;
   $("clear").classList.toggle("show", !!(q||state.region||state.style||state.ready||state.status!=="cellar"));
+  drawDrinkTimeline(list);
 
   document.querySelectorAll(".rbar").forEach(el=>el.classList.toggle("active", el.dataset.region===state.region && !!state.region));
   document.querySelectorAll("#slegend button").forEach(el=>el.classList.toggle("active", el.dataset.style===state.style && !!state.style));
