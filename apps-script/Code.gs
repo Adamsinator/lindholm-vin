@@ -10,11 +10,20 @@
  */
 
 // ── EDIT THIS ─────────────────────────────────────────────────────────────────
-const ACCESS_CODE = 'CHANGE-ME';        // code to open the site
+const ACCESS_CODE = 'CHANGE-ME';        // legacy single-user code (still works — see below)
 const SHEET_NAME  = 'Ark1';             // tab name that holds the wine list
+// Multi-user: share this invite code with friends so they can create their own
+// account. Each account gets its own private spreadsheet. Set to '' to turn
+// signups off. Leave ACCESS_CODE working for your own existing setup.
+const SIGNUP_CODE = '';                 // e.g. 'POUR-2026'; '' disables new signups
 // ─────────────────────────────────────────────────────────────────────────────
 
-const API_VERSION = 15; // returned in every response; used to verify deployments
+const API_VERSION = 16; // returned in every response; used to verify deployments
+
+// Per-request spreadsheet for the authenticated user. Set in handle(); every
+// sheet helper reads it via ss(). Falls back to the bound (owner's) spreadsheet.
+let CTX = null;
+function ss() { return CTX || SpreadsheetApp.getActiveSpreadsheet(); }
 
 // Column headers in row 1 of the sheet, mapped to API field names.
 const HEADERS = {
@@ -77,7 +86,23 @@ function doPost(e) {
 }
 
 function handle(p) {
-  if (String(p.code || '') !== ACCESS_CODE) return json({ ok: false, error: 'bad-code' });
+  CTX = null;
+
+  // Account actions need no session.
+  if (p.action === 'signup') { try { return doSignup(p); } catch (err) { return json({ ok: false, error: String(err) }); } }
+  if (p.action === 'login')  { try { return doLogin(p);  } catch (err) { return json({ ok: false, error: String(err) }); } }
+
+  // Authenticate: a multi-user token scopes to that user's own spreadsheet;
+  // otherwise fall back to the legacy single access code + the bound spreadsheet.
+  if (p.token || p.user) {
+    const u = authToken(p);
+    if (!u) return json({ ok: false, error: 'bad-token' });
+    try { CTX = SpreadsheetApp.openById(u.spreadsheetId); }
+    catch (err) { return json({ ok: false, error: 'no-cellar' }); }
+  } else {
+    if (String(p.code || '') !== ACCESS_CODE) return json({ ok: false, error: 'bad-code' });
+    CTX = SpreadsheetApp.getActiveSpreadsheet();
+  }
 
   try {
     switch (p.action) {
@@ -142,8 +167,114 @@ function handle(p) {
   }
 }
 
+// ── Accounts (registry + per-user spreadsheet) ───────────────────────────────
+// A "Users" tab in the bound (owner's) spreadsheet is the registry. Each row is
+// one account: a salted password hash and the id of that user's own private
+// spreadsheet. Passwords are never stored in the clear. Signups need SIGNUP_CODE.
+
+const USERS_SHEET = 'Users';
+const USER_COLS = ['Username', 'Salt', 'Hash', 'SpreadsheetId', 'Token', 'Created'];
+
+function usersSheet() {
+  const book = SpreadsheetApp.getActiveSpreadsheet(); // registry always lives in the bound book
+  let sh = book.getSheetByName(USERS_SHEET);
+  if (!sh) { sh = book.insertSheet(USERS_SHEET); sh.appendRow(USER_COLS); }
+  return sh;
+}
+
+function normUser(s) { return String(s || '').trim().toLowerCase(); }
+
+// Return {row, username, salt, hash, spreadsheetId, token} for a username, or null.
+function findUser(username) {
+  const u = normUser(username);
+  if (!u) return null;
+  const sh = usersSheet();
+  const last = sh.getLastRow();
+  if (last < 2) return null;
+  const rows = sh.getRange(2, 1, last - 1, USER_COLS.length).getValues();
+  for (let i = 0; i < rows.length; i++) {
+    if (normUser(rows[i][0]) === u) {
+      return { row: i + 2, username: rows[i][0], salt: String(rows[i][1]),
+               hash: String(rows[i][2]), spreadsheetId: String(rows[i][3]),
+               token: String(rows[i][4]) };
+    }
+  }
+  return null;
+}
+
+function randToken() { return Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, ''); }
+
+function hashPass(salt, pass) {
+  const bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, String(salt) + '|' + String(pass));
+  return Utilities.base64Encode(bytes);
+}
+
+// Constant-ish comparison (avoids trivial early-exit timing leaks).
+function safeEqual(a, b) {
+  a = String(a); b = String(b);
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+// Create a fresh private spreadsheet for a new account, seeded with the wine
+// header row. It lives in the script owner's Drive; the script reaches it by id.
+function createUserSpreadsheet(username) {
+  const book = SpreadsheetApp.create('Lindholm Vin — ' + username);
+  const sh = book.getSheets()[0];
+  sh.setName(SHEET_NAME);
+  sh.appendRow(Object.values(HEADERS)); // Producent, Land, Område, …
+  return book.getId();
+}
+
+function doSignup(p) {
+  if (!SIGNUP_CODE) return json({ ok: false, error: 'signup-disabled' });
+  if (String(p.code || '') !== SIGNUP_CODE) return json({ ok: false, error: 'bad-invite' });
+  const username = String(p.user || '').trim();
+  if (!/^[a-zA-Z0-9_.-]{3,24}$/.test(username)) return json({ ok: false, error: 'bad-username' });
+  if (String(p.pass || '').length < 6) return json({ ok: false, error: 'weak-pass' });
+  if (findUser(username)) return json({ ok: false, error: 'user-taken' });
+
+  const salt = randToken();
+  const token = randToken();
+  const spreadsheetId = createUserSpreadsheet(username);
+  usersSheet().appendRow([username, salt, hashPass(salt, p.pass), spreadsheetId, token, today()]);
+  return json({ ok: true, user: username, token: token });
+}
+
+function doLogin(p) {
+  const u = findUser(p.user);
+  const salt = u ? u.salt : 'x';                 // still hash on miss to blur timing
+  const ok = u && safeEqual(hashPass(salt, p.pass || ''), u.hash);
+  if (!ok) return json({ ok: false, error: 'bad-login' });
+  const token = randToken();
+  usersSheet().getRange(u.row, 5).setValue(token); // rotate token on each login
+  return json({ ok: true, user: u.username, token: token });
+}
+
+// Validate {user, token}; returns the user record or null.
+function authToken(p) {
+  const u = findUser(p.user);
+  if (!u || !u.token || !p.token) return null;
+  return safeEqual(p.token, u.token) ? u : null;
+}
+
+// Run ONCE from the editor to give yourself an account whose cellar is THIS
+// (the bound) spreadsheet, so your existing wines carry over. Edit the two
+// values, pick makeOwner in the dropdown, Run.
+function makeOwner() {
+  const username = 'adam';        // ← your login name
+  const password = 'change-this'; // ← your password (change immediately after)
+  if (findUser(username)) return 'That username already exists — nothing changed.';
+  const salt = randToken();
+  usersSheet().appendRow([username, salt, hashPass(salt, password),
+                          SpreadsheetApp.getActiveSpreadsheet().getId(), randToken(), today()]);
+  return 'Owner account "' + username + '" created, pointing at this spreadsheet.';
+}
+
 function sheet() {
-  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
+  const sh = ss().getSheetByName(SHEET_NAME);
   if (!sh) throw new Error('Sheet tab "' + SHEET_NAME + '" not found');
   return sh;
 }
@@ -309,10 +440,10 @@ const JHEADERS = { date: 'Dato', producer: 'Producent', wine: 'Vin', vintage: '�
                    place: 'Sted', rating: 'Rating', note: 'Note', photo: 'Foto' };
 
 function journalSheet() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  let sh = ss.getSheetByName(JOURNAL_SHEET);
+  const book = ss();
+  let sh = book.getSheetByName(JOURNAL_SHEET);
   if (!sh) {
-    sh = ss.insertSheet(JOURNAL_SHEET);
+    sh = book.insertSheet(JOURNAL_SHEET);
     sh.appendRow(Object.values(JHEADERS));
   }
   return sh;
@@ -459,9 +590,9 @@ const WHEADERS = { producer: 'Producent', wine: 'Vin', vintage: 'Årgang',
                    region: 'Område', price: 'Målpris kr', note: 'Note' };
 
 function wishlistSheet() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  let sh = ss.getSheetByName(WISHLIST_SHEET);
-  if (!sh) { sh = ss.insertSheet(WISHLIST_SHEET); sh.appendRow(Object.values(WHEADERS)); }
+  const book = ss();
+  let sh = book.getSheetByName(WISHLIST_SHEET);
+  if (!sh) { sh = book.insertSheet(WISHLIST_SHEET); sh.appendRow(Object.values(WHEADERS)); }
   return sh;
 }
 

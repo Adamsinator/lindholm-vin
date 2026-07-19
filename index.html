@@ -312,15 +312,22 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
 <div class="gate" id="gate" hidden>
   <form class="card" id="gateForm">
     <h1>Lindholm <em>Vin</em></h1>
-    <p>Private cellar. Enter the access code.</p>
+    <p id="gateLead">Your private cellar. Log in to continue.</p>
     <div id="gateApiWrap" hidden>
       <label for="gateApi">API URL (Apps Script deployment)</label>
       <input id="gateApi" type="url" placeholder="https://script.google.com/macros/s/…/exec">
     </div>
-    <label for="gateCode">Access code</label>
-    <input id="gateCode" type="password" autocomplete="current-password" autofocus>
+    <label for="gateUser">Username</label>
+    <input id="gateUser" autocomplete="username" autocapitalize="none" spellcheck="false" autofocus>
+    <label for="gatePass">Password</label>
+    <input id="gatePass" type="password" autocomplete="current-password">
+    <div id="gateInviteWrap" hidden>
+      <label for="gateInvite">Invite code</label>
+      <input id="gateInvite" type="text" autocomplete="off" autocapitalize="none">
+    </div>
     <div class="err" id="gateErr"></div>
-    <button class="btn primary" type="submit">Open the cellar</button>
+    <button class="btn primary" type="submit" id="gateSubmit" style="width:100%;margin-top:8px;padding:10px">Log in</button>
+    <button class="btn quiet" type="button" id="gateToggle" style="width:100%;margin-top:6px">Need an account? Sign up</button>
   </form>
 </div>
 
@@ -345,7 +352,7 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
   <button class="btn" id="priceBtn">Show prices</button>
   <button class="btn" id="refreshBtn">Refresh</button>
   <span class="stamp" id="stamp"></span>
-  <button class="btn quiet" id="lockBtn" title="Forget the access code on this device">🔒 Lock</button>
+  <button class="btn quiet" id="lockBtn" title="Sign out on this device">🔒 Log out</button>
 </div>
 
 <div class="spin" id="spin">Fetching the cellar…</div>
