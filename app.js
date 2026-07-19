@@ -829,13 +829,13 @@ const AUTH_MSG = {
   "no-cellar":"Your cellar couldn't be opened. Contact the owner.",
 };
 function forgetAuth(){
-  localStorage.removeItem("vinUser"); localStorage.removeItem("vinToken");
+  localStorage.removeItem("vinUser"); localStorage.removeItem("vinToken"); localStorage.removeItem("vinActive");
   cfg.user=""; cfg.token="";
   // Drop the previous user's cached data so the next login can't see it (the
   // journal/wishlist loaders short-circuit on these).
   WINES=[]; JENTRIES=null; WITEMS=null; KEEP_OPEN=null;
 }
-function enterApp(){ $("gate").hidden = true; $("app").hidden = false; loadData(); route(); }
+function enterApp(){ $("gate").hidden = true; $("app").hidden = false; markActive(); loadData(); route(); }
 
 $("gateToggle").addEventListener("click", ()=> setGateMode(GATE_MODE==="login" ? "signup" : "login"));
 
@@ -1895,6 +1895,35 @@ document.querySelectorAll(".tab").forEach(t=>
   t.addEventListener("click", ()=>{ location.hash = t.dataset.page==="cellar" ? "" : t.dataset.page; }));
 window.addEventListener("hashchange", route);
 
+/* ---------- inactivity auto-logout ---------- */
+// Sign out after 60 minutes with no interaction — and don't carry a session over
+// a long gap (e.g. overnight): a stale timestamp means log in again on return.
+const IDLE_MS = 60*60*1000;
+let lastActive = Date.now();
+function markActive(){
+  lastActive = Date.now();
+  const prev = Number(localStorage.getItem("vinActive")||0);
+  if(lastActive - prev > 15000) localStorage.setItem("vinActive", String(lastActive)); // throttle writes
+}
+function idleLogout(){
+  forgetAuth(); localStorage.removeItem("vinActive");
+  setGateMode("login"); showGate("Signed out after 60 minutes of inactivity — log in again.");
+}
+function checkIdle(){ if(cfg.token && Date.now()-lastActive > IDLE_MS) idleLogout(); }
+["click","keydown","pointerdown","scroll","touchstart"].forEach(ev=>
+  document.addEventListener(ev, markActive, {passive:true, capture:true}));
+document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) checkIdle(); });
+setInterval(checkIdle, 30*1000);
+
 /* ---------- boot ---------- */
-if(cfg.api && cfg.user && cfg.token){ $("app").hidden=false; loadData(); route(); }
-else { setGateMode("login"); showGate(); }
+const bootActive = Number(localStorage.getItem("vinActive")||0);
+const sessionFresh = bootActive && (Date.now()-bootActive < IDLE_MS);
+if(cfg.api && cfg.user && cfg.token && sessionFresh){
+  lastActive = bootActive; $("app").hidden=false; loadData(); route();
+}else{
+  const staleDrop = !!cfg.token && !sessionFresh; // had a session, but it went cold
+  if(staleDrop) forgetAuth();                     // (e.g. overnight) — drop it
+  localStorage.removeItem("vinActive");
+  setGateMode("login");
+  showGate(staleDrop ? "Your session expired after inactivity — log in again." : "");
+}
