@@ -18,7 +18,7 @@ const SHEET_NAME  = 'Ark1';             // tab name that holds the wine list
 const SIGNUP_CODE = '';                 // e.g. 'POUR-2026'; '' disables new signups
 // ─────────────────────────────────────────────────────────────────────────────
 
-const API_VERSION = 16; // returned in every response; used to verify deployments
+const API_VERSION = 17; // returned in every response; used to verify deployments
 
 // Per-request spreadsheet for the authenticated user. Set in handle(); every
 // sheet helper reads it via ss(). Falls back to the bound (owner's) spreadsheet.
@@ -218,13 +218,30 @@ function safeEqual(a, b) {
   return diff === 0;
 }
 
-// Create a fresh private spreadsheet for a new account, seeded with the wine
-// header row. It lives in the script owner's Drive; the script reaches it by id.
+// The folder that holds the master (bound) spreadsheet — everything is kept
+// inside it. Just move the master sheet into a folder in Drive and the rest
+// follows; falls back to My Drive root if it sits loose.
+function masterFolder() {
+  const parents = DriveApp.getFileById(SpreadsheetApp.getActiveSpreadsheet().getId()).getParents();
+  return parents.hasNext() ? parents.next() : DriveApp.getRootFolder();
+}
+
+// The folder holding the CURRENT user's spreadsheet: their own subfolder for a
+// signed-up user, or the master folder for the owner. Photos are kept here too.
+function userFolder() {
+  const parents = DriveApp.getFileById(ss().getId()).getParents();
+  return parents.hasNext() ? parents.next() : masterFolder();
+}
+
+// Create a fresh private spreadsheet for a new account inside its own subfolder
+// of the master folder, seeded with the wine header row.
 function createUserSpreadsheet(username) {
+  const folder = masterFolder().createFolder('Lindholm Vin — ' + username);
   const book = SpreadsheetApp.create('Lindholm Vin — ' + username);
   const sh = book.getSheets()[0];
   sh.setName(SHEET_NAME);
   sh.appendRow(Object.values(HEADERS)); // Producent, Land, Område, …
+  DriveApp.getFileById(book.getId()).moveTo(folder); // tuck the sheet into its folder
   return book.getId();
 }
 
@@ -533,17 +550,16 @@ function ensureJournalCols(sh, e) {
 }
 
 // ── Journal photos (stored privately in Drive, served through this API) ───────
-// Photos live in a private Drive folder in your account — never shared. The site
-// asks for a photo by its file id and only ids present in the Journal are served,
-// so the API can't be used to read other files in your Drive.
+// Each user's photos live in a "Journalfotos" folder next to their own sheet —
+// so a user's photos sit inside their own subfolder. The site asks for a photo
+// by file id and only ids present in that user's Journal are served, so the API
+// can't be used to read other files in Drive.
 
+const PHOTO_FOLDER = 'Journalfotos';
 function photoFolder() {
-  const props = PropertiesService.getDocumentProperties();
-  const saved = props.getProperty('photoFolderId');
-  if (saved) { try { return DriveApp.getFolderById(saved); } catch (err) {} }
-  const folder = DriveApp.createFolder('Lindholm Vin – Journalfotos');
-  props.setProperty('photoFolderId', folder.getId());
-  return folder;
+  const parent = userFolder();
+  const it = parent.getFoldersByName(PHOTO_FOLDER);
+  return it.hasNext() ? it.next() : parent.createFolder(PHOTO_FOLDER);
 }
 
 function photoName(e) {
