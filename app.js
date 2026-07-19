@@ -831,6 +831,9 @@ const AUTH_MSG = {
 function forgetAuth(){
   localStorage.removeItem("vinUser"); localStorage.removeItem("vinToken");
   cfg.user=""; cfg.token="";
+  // Drop the previous user's cached data so the next login can't see it (the
+  // journal/wishlist loaders short-circuit on these).
+  WINES=[]; JENTRIES=null; WITEMS=null; KEEP_OPEN=null;
 }
 function enterApp(){ $("gate").hidden = true; $("app").hidden = false; loadData(); route(); }
 
@@ -893,21 +896,57 @@ document.querySelectorAll("th[data-k]").forEach(th=>th.addEventListener("click",
 
 /* ---------- stylized SVG map (no external tiles/CDN) ---------- */
 const REGION_GEO = {  // [lat, lng]
+  // France
   "Bourgogne":[47.03,4.84], "Champagne":[49.04,4.00], "Chablis":[47.82,3.80],
   "Beaujolais":[46.15,4.72], "Rhône":[44.93,4.89], "Bordeaux":[44.84,-0.58],
   "Loire":[47.33,0.68], "Languedoc":[43.51,3.32], "Roussillon":[42.65,2.88],
-  "Béarn":[43.30,-0.37], "Mosel":[49.91,6.99], "Piemonte":[44.61,7.99],
-  "Veneto":[45.44,11.00], "Rioja":[42.46,-2.45], "Ribera del Duero":[41.62,-3.69],
+  "Béarn":[43.30,-0.37], "Alsace":[48.30,7.40], "Jura":[46.90,5.75],
+  "Savoie":[45.57,6.10], "Provence":[43.50,6.20], "Corse":[42.15,9.08], "Sud-Ouest":[44.00,0.50],
+  // Germany
+  "Mosel":[49.91,6.99], "Rheingau":[50.00,8.00], "Pfalz":[49.40,8.15], "Nahe":[49.85,7.65],
+  "Rheinhessen":[49.80,8.20], "Baden":[48.50,7.90], "Franken":[49.80,10.10], "Ahr":[50.53,7.00],
+  // Italy
+  "Piemonte":[44.61,7.99], "Veneto":[45.44,11.00], "Toscana":[43.40,11.30],
+  "Alto Adige":[46.50,11.35], "Friuli":[46.00,13.20], "Lombardia":[45.50,9.90], "Emilia-Romagna":[44.60,11.00],
+  // Spain
+  "Rioja":[42.46,-2.45], "Ribera del Duero":[41.62,-3.69], "Priorat":[41.20,0.80],
+  "Rías Baixas":[42.40,-8.70], "Toro":[41.52,-5.40], "Rueda":[41.40,-4.90],
+  // Portugal
+  "Douro":[41.16,-7.55], "Alentejo":[38.60,-7.90], "Dão":[40.50,-7.90],
+  "Vinho Verde":[41.50,-8.40], "Bairrada":[40.50,-8.55], "Lisboa":[39.00,-9.05], "Setúbal":[38.50,-8.80],
+  // Austria
+  "Wachau":[48.37,15.42], "Kamptal":[48.65,15.67], "Kremstal":[48.42,15.60],
+  "Burgenland":[47.75,16.70], "Steiermark":[46.90,15.50], "Weinviertel":[48.60,16.40], "Thermenregion":[48.00,16.25],
+  // Denmark (loosely placed — Danish wine regions aren't formalized)
+  "Jylland":[56.20,9.50], "Fyn":[55.30,10.40], "Sjælland":[55.50,11.80], "Bornholm":[55.15,15.00],
 };
 // Simplified country outlines as [lng, lat] — a stylized reference frame, not survey-accurate.
 const LANDS = {
   France:[[2.5,51.0],[4.0,50.3],[5.9,49.5],[7.6,49.0],[8.2,48.6],[7.6,47.6],[7.0,47.4],[6.8,46.4],[6.1,46.1],[7.0,45.5],[6.9,44.4],[7.7,43.9],[7.4,43.7],[6.0,43.1],[5.0,43.3],[4.0,43.5],[3.0,43.2],[3.0,42.5],[1.0,42.6],[-0.5,42.8],[-1.4,43.3],[-1.2,44.6],[-1.1,45.6],[-1.8,46.5],[-2.2,47.2],[-4.7,47.8],[-4.8,48.4],[-3.5,48.8],[-1.6,48.6],[-1.4,49.7],[0.2,49.5],[1.6,50.1]],
   Switzerland:[[6.1,46.1],[7.0,45.9],[8.4,46.4],[9.5,46.4],[10.5,46.9],[9.6,47.6],[8.4,47.7],[7.0,47.4],[6.8,46.4]],
   Germany:[[5.9,49.5],[6.1,50.8],[7.2,51.3],[8.7,50.6],[9.5,49.8],[10.0,50.6],[11.5,50.4],[12.5,50.2],[13.0,49.3],[13.4,48.9],[12.8,48.2],[11.0,47.9],[9.6,47.6],[8.4,47.7],[7.6,47.6],[8.2,48.6],[7.6,49.0],[6.4,49.2]],
-  Italy:[[7.0,45.5],[7.9,45.0],[9.0,45.8],[10.6,46.5],[12.4,46.8],[13.6,45.8],[13.1,45.6],[12.3,45.4],[12.5,44.6],[11.2,44.2],[9.9,44.1],[8.8,44.4],[7.6,44.1],[7.0,44.7]],
-  Spain:[[-1.4,43.4],[-3.8,43.5],[-4.9,43.4],[-4.6,42.6],[-4.2,41.8],[-4.0,41.4],[-2.5,41.5],[-0.5,41.5],[0.9,41.0],[2.2,41.3],[3.3,42.3],[1.5,42.6],[-0.5,42.8]],
+  Italy:[[7.0,45.5],[7.9,45.0],[9.0,45.8],[10.6,46.5],[12.4,46.8],[13.6,45.8],[13.1,45.6],[13.5,44.0],[14.0,42.0],[15.4,41.9],[16.2,41.4],[17.2,40.5],[16.5,39.9],[17.1,39.4],[16.1,38.9],[15.6,38.0],[15.9,38.9],[16.0,39.9],[15.0,40.0],[14.0,40.8],[13.6,41.3],[12.4,41.3],[11.2,42.4],[10.5,42.9],[10.7,43.6],[10.3,44.0],[9.9,44.1],[8.8,44.4],[7.6,44.1],[7.0,44.7]],
+  Spain:[[3.3,42.3],[0.7,41.0],[0.9,40.2],[-0.3,39.5],[0.0,38.8],[-0.7,37.6],[-2.2,36.7],[-4.4,36.7],[-5.6,36.0],[-6.3,36.9],[-7.4,37.2],[-7.5,38.0],[-7.0,38.5],[-7.0,39.5],[-6.9,41.0],[-8.2,41.9],[-8.8,42.0],[-8.0,43.2],[-5.8,43.6],[-3.8,43.5],[-1.4,43.4],[-0.5,42.8],[0.7,42.7],[1.5,42.6]],
+  Portugal:[[-8.9,37.0],[-8.2,37.1],[-7.4,37.2],[-7.0,38.0],[-7.5,38.8],[-7.0,39.7],[-6.9,41.0],[-8.2,41.9],[-8.8,41.9],[-9.0,41.0],[-9.4,39.4],[-9.0,38.5],[-8.8,37.7]],
+  Austria:[[9.6,47.0],[10.5,47.0],[11.0,46.8],[12.4,46.7],[13.7,46.5],[15.0,46.6],[16.0,46.8],[16.9,47.5],[16.5,48.3],[15.0,48.8],[13.7,48.6],[12.8,48.2],[11.0,47.5],[9.6,47.5]],
+  Denmark:[[8.1,55.0],[8.1,56.5],[8.6,57.1],[9.6,57.6],[10.5,57.3],[10.7,56.6],[10.2,56.0],[10.6,55.5],[12.6,55.6],[12.3,55.0],[11.0,54.8],[9.4,54.8],[8.5,54.9]],
 };
-const normName = t => String(t).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[-'’]/g," ").replace(/\s+/g," ").trim();
+// Focus countries for the top-level map: matcher keys (against the wine's country
+// field, which may be Danish or English) and a dot position inside the outline.
+const COUNTRIES = [
+  {key:"France",   geo:[46.80,2.60],  match:["frankrig","france"]},
+  {key:"Italy",    geo:[44.60,10.60], match:["italien","italy","italia"]},
+  {key:"Germany",  geo:[50.40,9.60],  match:["tyskland","germany","deutschland"]},
+  {key:"Spain",    geo:[40.40,-4.00], match:["spanien","spain","espana","espagne"]},
+  {key:"Portugal", geo:[39.80,-8.10], match:["portugal"]},
+  {key:"Austria",  geo:[47.60,14.60], match:["ostrig","oestrig","austria","osterreich","oesterreich"]},
+  {key:"Denmark",  geo:[56.00,9.40],  match:["danmark","denmark"]},
+];
+const COUNTRY_EN = {France:"France",Italy:"Italien",Germany:"Tyskland",Spain:"Spanien",Portugal:"Portugal",Austria:"Østrig",Denmark:"Danmark"};
+function countryOf(w){ const c=normName(w.country); return COUNTRIES.find(k=>k.match.some(m=>c.includes(m))) || null; }
+// Which country a drill-down region lives in (for the map's back button).
+const REGION_COUNTRY = {Bourgogne:"France",Champagne:"France",Mosel:"Germany",Piemonte:"Italy"};
+const normName = t => String(t).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ø/g,"o").replace(/æ/g,"ae").replace(/å/g,"a").replace(/[-'’]/g," ").replace(/\s+/g," ").trim();
 
 // Côte d'Or communes with real coordinates [display, matcher keys, [lat,lng]].
 const COTE_SECTIONS = [
@@ -1008,13 +1047,15 @@ const PIEMONTE_AREAS = [["BAROLO",44.605,7.950],["BARBARESCO",44.720,8.090],["AL
 
 let MAP_VIEW = "europe", LAST_CELLAR = [];
 const COS = Math.cos(46*Math.PI/180);
-function buildProjector(W, pad){
+// Fit a projector to the given [lng,lat] polygons (default: all of Europe), plus
+// optional extra [lat,lng] points so edge dots aren't clipped.
+function buildProjector(W, pad, polys, extraPts){
+  polys = polys || Object.values(LANDS);
   let minx=Infinity,maxx=-Infinity,miny=Infinity,maxy=-Infinity;
-  for(const poly of Object.values(LANDS)) for(const [lng,lat] of poly){
-    const x=lng*COS; if(x<minx)minx=x; if(x>maxx)maxx=x;
-    if(lat<miny)miny=lat; if(lat>maxy)maxy=lat;
-  }
-  const s=(W-2*pad)/(maxx-minx);
+  const acc=(lng,lat)=>{ const x=lng*COS; if(x<minx)minx=x; if(x>maxx)maxx=x; if(lat<miny)miny=lat; if(lat>maxy)maxy=lat; };
+  for(const poly of polys) for(const [lng,lat] of poly) acc(lng,lat);
+  (extraPts||[]).forEach(([lat,lng])=>acc(lng,lat));
+  const s=(W-2*pad)/Math.max(0.0001,(maxx-minx));
   const H=(maxy-miny)*s+2*pad;
   return { W, H, proj:([lng,lat])=>[pad+(lng*COS-minx)*s, pad+(maxy-lat)*s], r:(b)=>4+Math.sqrt(b)*1.7 };
 }
@@ -1025,6 +1066,11 @@ function renderMap(){
   const svg=$("map"); if(!svg) return;
   hideTip(); // re-rendering replaces the dots; any hover tip would otherwise be orphaned
   $("mapbar").hidden = MAP_VIEW==="europe";
+  if(MAP_VIEW!=="europe"){
+    $("mapBack").textContent = MAP_VIEW.startsWith("country:") ? "← Europe"
+      : REGION_COUNTRY[MAP_VIEW] ? "← "+COUNTRY_EN[REGION_COUNTRY[MAP_VIEW]] : "← Europe";
+  }
+  if(MAP_VIEW.startsWith("country:")) return renderCountryMap(svg, MAP_VIEW.slice(8));
   if(MAP_VIEW==="Bourgogne") return renderCoteMap(svg);
   if(MAP_VIEW==="Champagne") return renderChampagneMap(svg);
   if(MAP_VIEW==="Mosel") return renderScatterMap(svg, {
@@ -1042,41 +1088,80 @@ function bindDot(c, tipHtml, onClick){
   c.addEventListener("click",e=>{ hideTip(); onClick(e); }); // touch has no mouseleave — drop the tip on tap
 }
 
+const DRILLABLE = ["Bourgogne","Champagne","Mosel","Piemonte"];
+
+// Top level: the whole of (wine-)Europe, one dot per country. Click to zoom in.
 function renderEuropeMap(svg){
   const {W,H,proj,r}=buildProjector(600,24);
   const agg={};
-  LAST_CELLAR.forEach(w=>{ const a=agg[w.region] ??= {b:0,n:0}; a.b+=w.left; a.n++; });
-  const entries = Object.entries(agg).filter(([n])=>REGION_GEO[n]).sort((a,b)=>b[1].b-a[1].b);
-  const pt = name => proj([REGION_GEO[name][1], REGION_GEO[name][0]]);
+  LAST_CELLAR.forEach(w=>{ const k=countryOf(w); if(!k) return; const a=agg[k.key] ??= {b:0,n:0}; a.b+=w.left; a.n++; });
   let html = Object.values(LANDS).map(poly=>{
     const d = poly.map((p,i)=>(i?"L":"M")+proj(p).map(n=>n.toFixed(1)).join(" ")).join("")+"Z";
     return `<path class="land" d="${d}"/>`;
   }).join("");
-  html += entries.map(([name,a])=>{
-    const [x,y]=pt(name);
-    return `<circle class="dot" data-region="${esc(name)}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r(a.b).toFixed(1)}"/>`;
+  const present = COUNTRIES.filter(c=>agg[c.key]).sort((a,b)=>agg[b.key].b-agg[a.key].b);
+  html += present.map(c=>{
+    const [x,y]=proj([c.geo[1],c.geo[0]]); const a=agg[c.key];
+    return `<circle class="dot" data-country="${esc(c.key)}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r(a.b).toFixed(1)}"/>`;
   }).join("");
-  html += entries.slice(0,4).map(([name,a])=>{
-    const [x,y]=pt(name); const rad=r(a.b), left=x>W*0.6;
+  html += present.map(c=>{
+    const [x,y]=proj([c.geo[1],c.geo[0]]); const a=agg[c.key], rad=r(a.b), left=x>W*0.6;
     const lx=(left?x-rad-4:x+rad+4).toFixed(1), anc=left?"end":"start";
-    return `<text class="dlabel" text-anchor="${anc}" x="${lx}" y="${(y-1).toFixed(1)}">${esc(name)}</text>
+    return `<text class="dlabel" text-anchor="${anc}" x="${lx}" y="${(y-1).toFixed(1)}">${esc(COUNTRY_EN[c.key])}</text>
       <text class="dsub" text-anchor="${anc}" x="${lx}" y="${(y+10).toFixed(1)}">${a.b} btl.</text>`;
   }).join("");
   svg.setAttribute("viewBox",`0 0 ${W} ${Math.round(H)}`);
   svg.innerHTML = html;
   svg.querySelectorAll(".dot").forEach(c=>{
-    const name=c.dataset.region, a=agg[name];
-    const zoomable = name==="Bourgogne"||name==="Champagne"||name==="Mosel"||name==="Piemonte";
-    bindDot(c,
-      `<b>${esc(name)}</b><br>${a.b} bottle${a.b>1?"s":""} · ${a.n} wine${a.n>1?"s":""}${zoomable?"<br><i>click to explore</i>":""}`,
+    const key=c.dataset.country, a=agg[key];
+    bindDot(c, `<b>${esc(COUNTRY_EN[key])}</b><br>${a.b} bottle${a.b>1?"s":""} · ${a.n} wine${a.n>1?"s":""}<br><i>click to explore</i>`,
+      ()=>{ MAP_VIEW="country:"+key; state.q=""; $("q").value=""; renderMap(); });
+  });
+}
+
+// Middle level: one country, its regions as dots. Click a region to filter (or
+// drill further for Bourgogne / Champagne / Mosel / Piemonte).
+function renderCountryMap(svg, key){
+  $("mapTitle").textContent = COUNTRY_EN[key] + " — regions";
+  const agg={};
+  LAST_CELLAR.forEach(w=>{ if((countryOf(w)||{}).key!==key) return;
+    const a=agg[w.region] ??= {b:0,n:0}; a.b+=w.left; a.n++; });
+  const names = Object.keys(agg);
+  const present = names.filter(n=>REGION_GEO[n]).sort((a,b)=>agg[b].b-agg[a].b);
+  const buckets = names.filter(n=>!REGION_GEO[n] && n).sort((a,b)=>agg[b].b-agg[a].b);
+  const outline = LANDS[key] ? [LANDS[key]] : Object.values(LANDS);
+  const extra = present.map(n=>REGION_GEO[n]);
+  const {W,H,proj,r}=buildProjector(600,30,outline,extra);
+  const HB = buckets.length ? 30 : 0;
+  let parts = outline.map(poly=>`<path class="land" d="${poly.map((p,i)=>(i?"L":"M")+proj(p).map(n=>n.toFixed(1)).join(" ")).join("")}Z"/>`).join("");
+  const placedL=[], placedR=[];
+  present.forEach(n=>{
+    const [x,y]=proj([REGION_GEO[n][1],REGION_GEO[n][0]]); const a=agg[n], rad=r(a.b);
+    const drill = DRILLABLE.includes(n);
+    parts += `<circle class="dot${drill?" drill":""}" data-region="${esc(n)}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${rad.toFixed(1)}"/>`;
+    const left=x>W*0.6, placed=left?placedL:placedR; let ly=y+4;
+    while(placed.some(py=>Math.abs(py-ly)<12)) ly+=12; placed.push(ly);
+    parts += `<text class="dlabel" text-anchor="${left?"end":"start"}" x="${(left?x-rad-4:x+rad+4).toFixed(1)}" y="${ly.toFixed(1)}">${esc(n)} · ${a.b}</text>`;
+  });
+  // regions we can't place on the map get a row along the bottom
+  if(buckets.length){
+    let bx=34; const by=H+HB-12;
+    parts += `<text class="dsub" x="30" y="${(by-20).toFixed(1)}">Not placed:</text>`;
+    buckets.forEach(n=>{ const a=agg[n], rad=r(a.b);
+      parts += `<circle class="dot" data-region="${esc(n)}" cx="${bx.toFixed(1)}" cy="${by.toFixed(1)}" r="${rad.toFixed(1)}"/>
+        <text class="dlabel" x="${(bx+rad+6).toFixed(1)}" y="${(by+4).toFixed(1)}">${esc(n)} · ${a.b}</text>`;
+      bx += rad+6 + (n.length+String(a.b).length+3)*7 + 30;
+    });
+  }
+  svg.setAttribute("viewBox",`0 0 ${W} ${Math.round(H+HB)}`);
+  svg.innerHTML = parts;
+  svg.querySelectorAll(".dot").forEach(c=>{
+    const name=c.dataset.region, a=agg[name], drill=DRILLABLE.includes(name);
+    bindDot(c, `<b>${esc(name)}</b><br>${a.b} bottle${a.b>1?"s":""} · ${a.n} wine${a.n>1?"s":""}${drill?"<br><i>click to explore</i>":"<br><i>click to filter the list</i>"}`,
       ()=>{
-        if(zoomable){
-          MAP_VIEW=name; state.region=name; $("fRegion").value=name;
-          state.q=""; $("q").value="";
-          renderTable(); renderMap(); return;
-        }
+        if(drill){ MAP_VIEW=name; state.region=name; $("fRegion").value=name; state.q=""; $("q").value=""; renderTable(); renderMap(); return; }
         state.region = state.region===name ? "" : name;
-        $("fRegion").value = state.region; renderTable();
+        $("fRegion").value = state.region; renderTable(); syncMapActive();
       });
   });
   syncMapActive();
@@ -1272,11 +1357,17 @@ function bindDetailDots(svg){
   });
 }
 
-$("mapBack").addEventListener("click", ()=>{ MAP_VIEW="europe"; renderMap(); });
+$("mapBack").addEventListener("click", ()=>{
+  if(MAP_VIEW.startsWith("country:")) MAP_VIEW="europe";              // country → Europe
+  else if(REGION_COUNTRY[MAP_VIEW]) MAP_VIEW="country:"+REGION_COUNTRY[MAP_VIEW]; // region → its country
+  else MAP_VIEW="europe";
+  renderMap();
+});
 
+// Highlight the region matching the active list filter (country view only —
+// europe dots carry data-country, region drills carry data-q).
 function syncMapActive(){
-  if(MAP_VIEW!=="europe") return;
-  document.querySelectorAll("#map .dot").forEach(c=>
+  document.querySelectorAll("#map .dot[data-region]").forEach(c=>
     c.classList.toggle("on", c.dataset.region===state.region && !!state.region));
 }
 
