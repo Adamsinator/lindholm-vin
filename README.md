@@ -169,4 +169,40 @@ the next refresh.
 Edit the constants at the top of `Code.gs`, then **redeploy**: Deploy → Manage
 deployments → pencil ✏️ on the active one → Version: **New version** → Deploy.
 Editing the existing deployment keeps the same URL (no site change needed).
-Then press **Lock** in the site and sign in again.
+Then press **Log out** in the site and sign in again.
+
+## Accounts (multi-user)
+
+Others can keep their own cellar behind a username + password:
+
+- Set `SIGNUP_CODE` in `Code.gs` to an invite phrase (blank `''` turns signups
+  off), redeploy, and share the site URL + that phrase.
+- A friend taps **Sign up**, picks a username/password + the invite code, and
+  gets their own empty cellar. Everything (wines, enjoyed, journal, wishlist,
+  ratings) is scoped to their own spreadsheet — they never see anyone else's.
+- **Your own account:** set the username/password in `makeOwner()`, save, then
+  Run it once from the editor. It points your account at *this* (the master)
+  spreadsheet so your existing wines carry over. The old `ACCESS_CODE` path
+  still works too.
+- Remove someone: delete their row from the `Users` tab (and their folder from
+  your Drive).
+
+## Drive layout
+
+Keep everything inside one folder so it doesn't sprawl as people join:
+
+```
+Lindholm Vin/                     ← your master folder (put the master sheet here)
+├─ Lindholm Vin (spreadsheet)     ← your own cellar (the bound script lives on it)
+├─ Journalfotos/                  ← your journal photos
+├─ Lindholm Vin — anna/           ← auto-created for each signup
+│  ├─ Lindholm Vin — anna (sheet)
+│  └─ Journalfotos/
+└─ Lindholm Vin — bob/
+   └─ …
+```
+
+Just move the master spreadsheet into a folder — the script finds that folder
+and creates every new user's subfolder (sheet + photos) inside it automatically.
+Moving the sheet is safe: the script binds by file **id**, not location, so the
+URL never changes.

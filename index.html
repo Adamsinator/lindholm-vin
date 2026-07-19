@@ -44,6 +44,9 @@ header.top{display:flex;align-items:baseline;justify-content:space-between;flex-
 header.top h1{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
   font-size:clamp(28px,4.5vw,40px);font-weight:600;margin:0;letter-spacing:-.01em}
 header.top h1 em{font-style:italic;color:var(--accent)}
+.brand{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.who{font-size:13px;font-weight:600;color:var(--accent);background:var(--chip);
+  border-radius:20px;padding:3px 11px;white-space:nowrap}
 .sub{color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.12em}
 .actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
 .btn{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;
@@ -52,6 +55,8 @@ header.top h1 em{font-style:italic;color:var(--accent)}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .btn.quiet{border-color:transparent;background:none;color:var(--muted);font-weight:500}
 .stamp{margin-left:auto;align-self:center;font-size:12px;color:var(--muted)}
+.gbar{display:flex;align-items:center;gap:10px;margin:-8px 0 16px}
+.gbar .stamp{margin-left:0;margin-right:auto}
 
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:24px}
 .kpi{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;box-shadow:var(--shadow)}
@@ -333,9 +338,18 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
 
 <div class="wrap" id="app" hidden>
 <header class="top">
-  <h1>Lindholm <em>Vin</em></h1>
+  <div class="brand">
+    <h1>Lindholm <em>Vin</em></h1>
+    <span class="who" id="who" hidden></span>
+  </div>
   <div class="sub">Cellar overview</div>
 </header>
+
+<div class="gbar">
+  <span class="stamp" id="stamp"></span>
+  <button class="btn" id="refreshBtn">Refresh</button>
+  <button class="btn quiet" id="lockBtn" title="Sign out on this device">🔒 Log out</button>
+</div>
 
 <nav class="tabs" aria-label="Pages">
   <button class="tab active" data-page="cellar">Cellar</button>
@@ -350,9 +364,6 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
   <button class="btn primary" id="addBtn">＋ Add wine</button>
   <button class="btn" id="tonightBtn">🎲 Tonight</button>
   <button class="btn" id="priceBtn">Show prices</button>
-  <button class="btn" id="refreshBtn">Refresh</button>
-  <span class="stamp" id="stamp"></span>
-  <button class="btn quiet" id="lockBtn" title="Sign out on this device">🔒 Log out</button>
 </div>
 
 <div class="spin" id="spin">Fetching the cellar…</div>
@@ -387,7 +398,7 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
   </div>
   <div class="panel">
     <h2>Map</h2>
-    <p class="ph">Bottles by region · click Bourgogne, Champagne, Mosel or Piemonte to explore</p>
+    <p class="ph">Bottles by country · click a country, then a region (Bourgogne, Champagne, Mosel, Piemonte drill to villages)</p>
     <div id="mapbar" hidden>
       <button class="btn" id="mapBack">← All regions</button>
       <span id="mapTitle"></span>
