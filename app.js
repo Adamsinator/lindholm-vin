@@ -34,17 +34,26 @@ function defaultWindow(w){
   }
   if(style==="Rosé") return v!=null ? span(0,2) : null;   // drink young
   if(v==null) return null;                                // still wines need a vintage
-  // Burgundy (and neighbours) — by colour and cru level
-  if(has(reg,["bourgogne","chablis","beaujolais","macon","cote de","cotes de"])){
-    if(style==="Hvid") return grand?span(4,16):premier?span(3,12):span(2,8);
-    return grand?span(8,25):premier?span(5,18):span(3,12);
+  // Beaujolais — cru gamay ages a decade, generic drinks young
+  if(has(reg,["beaujolais"]))
+    return (grand||premier||cls.includes("cru")) ? span(2,12) : span(1,5);
+  // Burgundy (and neighbours) — by colour and cru level. Good Burgundy ages long:
+  // grand cru reds routinely 30+ yrs, top whites 20–30 (premox notwithstanding).
+  if(has(reg,["bourgogne","chablis","macon","cote de","cotes de","cote d"])){
+    if(style==="Hvid") return grand?span(4,28):premier?span(3,20):span(2,12);
+    return grand?span(8,38):premier?span(5,26):span(3,16);
   }
-  if(has(reg,["piemonte","barolo","barbaresco"]) || grape.includes("nebbiolo")) return span(6,22);
-  if(has(reg,["bordeaux","medoc","pomerol","saint","pauillac","margaux","graves"]) || has(grape,["cabernet","merlot"]))
-    return (grand||cls.includes("classe"))?span(6,25):span(4,16);
-  if(has(reg,["rhone","rhône","cornas","hermitage","cote rotie","gigondas","chateauneuf"]) || grape.includes("syrah")) return span(4,18);
-  if(grape.includes("riesling") || has(reg,["mosel","rheingau","nahe","pfalz","alsace"])) return span(2,15);
-  return style==="Hvid" ? span(1,5) : span(2,8);          // generic white / red
+  // Piemonte / Nebbiolo — Barolo & Barbaresco are decades-long agers
+  if(has(reg,["piemonte","barolo","barbaresco","langhe"]) || grape.includes("nebbiolo"))
+    return has(reg,["barbaresco"]) ? span(5,28) : span(6,32);
+  if(has(reg,["bordeaux","medoc","pomerol","saint","pauillac","margaux","graves","pessac"]) || has(grape,["cabernet","merlot"]))
+    return (grand||cls.includes("classe"))?span(6,32):span(4,18);
+  if(has(reg,["rhone","rhône","cornas","hermitage","cote rotie","côte rôtie","gigondas","chateauneuf","châteauneuf"]) || grape.includes("syrah"))
+    return has(reg,["hermitage","cornas","cote rotie","côte rôtie"]) ? span(5,28) : span(4,20);
+  // Riesling — Mosel/Saar & German/Alsace whites age superbly, often 20–40 yrs
+  if(grape.includes("riesling") || has(reg,["mosel","saar","ruwer","rheingau","nahe","pfalz","rheinhessen","alsace"]))
+    return grand?span(3,35):span(3,25);
+  return style==="Hvid" ? span(1,6) : span(2,10);         // generic white / red
 }
 
 // The window in effect for a wine: your own if set, else the estimate.
@@ -446,13 +455,19 @@ function drawDrinkTimeline(list){
         <div class="dw-now" style="left:${nowPct.toFixed(1)}%"></div>
       </div></div>`;
   }).join("");
-  const step=Math.max(1,Math.ceil(span/9)); const ticks=[];
-  for(let y=Math.ceil(lo); y<=hi; y+=step){ const p=pct(y);
-    if(p>97 || Math.abs(p-nowPct)<5) continue; // avoid clipping / the today line
-    ticks.push(`<span class="dw-tick" style="left:${p.toFixed(1)}%">${y}</span>`); }
+  // Fit the tick count to the track width so years don't crowd on narrow (mobile) screens.
+  const labelCol = window.matchMedia("(max-width:640px)").matches ? 110 : 150;
+  const trackW = Math.max(120, (el.clientWidth||el.parentElement.clientWidth||480) - labelCol - 10);
+  const maxTicks = Math.max(3, Math.min(10, Math.floor(trackW/48)));
+  const short = window.matchMedia("(max-width:640px)").matches; // ’24 instead of 2024 on mobile
+  const fmtYr = y => short ? "’"+String(y).slice(-2) : String(y);
+  const step=Math.max(1,Math.ceil(span/maxTicks)); const ticks=[];
+  for(let y=Math.ceil(lo/step)*step; y<=hi; y+=step){ const p=pct(y);
+    if(p<2 || p>97 || Math.abs(p-nowPct)<7) continue; // avoid clipping / the today line
+    ticks.push(`<span class="dw-tick" style="left:${p.toFixed(1)}%">${fmtYr(y)}</span>`); }
   el.innerHTML = `<div class="dwrow dw-axis"><div class="dw-label"></div>
     <div class="dw-track dw-axis-track">${ticks.join("")}
-      <span class="dw-nowlabel" style="left:${nowPct.toFixed(1)}%">${now}</span>
+      <span class="dw-nowlabel" style="left:${nowPct.toFixed(1)}%">${fmtYr(now)}</span>
       <div class="dw-now" style="left:${nowPct.toFixed(1)}%"></div></div></div>${rows}`;
   $("dwCount").textContent = `${wins.length} wine${wins.length>1?"s":""}`;
   el.querySelectorAll(".dwrow[data-row]").forEach(r=>r.addEventListener("click",()=>{
@@ -868,14 +883,70 @@ const COTE_BUCKETS = [ // no single spot on the Côte — shown as a bottom row
   ["Regional cuvées",["bourgogne","bourgogne cote d or"]],
 ];
 const CHAMP_GEO = { // normalized commune -> [lat, lng]
-  "reims":[49.258,4.032], "verzenay":[49.159,4.145], "bouzy":[49.139,4.155],
-  "montagne de reims":[49.150,4.020], "montigny":[49.079,3.766], "hautvillers":[49.086,3.945],
-  "ay":[49.054,4.003], "epernay":[49.043,3.959], "chouilly":[49.023,4.017],
-  "moussy":[49.017,3.917], "chavot courcourt":[49.008,3.928], "cramant":[48.995,4.005],
-  "avize":[48.973,4.011], "vincelles":[49.070,3.630], "azy sur marne":[49.026,3.335],
+  // Montagne de Reims
+  "reims":[49.258,4.032], "sillery":[49.194,4.100], "mailly champagne":[49.174,4.117],
+  "verzenay":[49.159,4.145], "verzy":[49.152,4.158], "ludes":[49.176,4.075],
+  "rilly la montagne":[49.183,4.055], "villers marmery":[49.132,4.155], "trepail":[49.126,4.170],
+  "ambonnay":[49.113,4.170], "bouzy":[49.139,4.155], "louvois":[49.129,4.106],
+  "tauxieres":[49.140,4.090], "montagne de reims":[49.150,4.020],
+  // Vallée de la Marne
+  "ay":[49.054,4.003], "mareuil sur ay":[49.049,4.033], "dizy":[49.061,3.978],
+  "hautvillers":[49.086,3.945], "cumieres":[49.063,3.943], "damery":[49.070,3.900],
+  "venteuil":[49.078,3.855], "oeuilly":[49.052,3.842], "vandieres":[49.070,3.782],
+  "montigny":[49.079,3.766], "vincelles":[49.070,3.630], "azy sur marne":[49.026,3.335],
+  "epernay":[49.043,3.959],
+  // Côte des Blancs
+  "chouilly":[49.023,4.017], "oiry":[49.017,4.030], "cuis":[49.011,3.997],
+  "grauves":[48.998,3.965], "moussy":[49.017,3.917], "chavot courcourt":[49.008,3.928],
+  "cramant":[48.995,4.005], "avize":[48.973,4.011], "oger":[48.955,4.020],
+  "le mesnil sur oger":[48.938,4.023], "bergeres les vertus":[48.885,4.000], "vertus":[48.905,4.010],
+  // Côte de Sézanne
+  "sezanne":[48.720,3.725], "vindey":[48.708,3.735],
+  // Côte des Bar (Aube)
+  "bar sur seine":[48.110,4.370], "les riceys":[47.998,4.366], "neuville sur seine":[48.070,4.430],
+  "celles sur ource":[48.077,4.470], "landreville":[48.093,4.480], "buxeuil":[48.093,4.463],
+  "urville":[48.113,4.567], "colombe le sec":[48.240,4.680], "bar sur aube":[48.230,4.710],
 };
 const CITY_ANCHORS = [["REIMS",49.258,4.032],["ÉPERNAY",49.043,3.959]];
+// Region labels: the three classic northern zones always show; the southern ones
+// only appear (and stretch the map south) when the cellar actually holds their wines.
 const CHAMP_AREAS = [["MONTAGNE DE REIMS",49.185,4.010],["VALLÉE DE LA MARNE",49.078,3.660],["CÔTE DES BLANCS",48.952,4.055]];
+// Southern zones are labelled only when a member village is actually in the cellar.
+const CHAMP_AREAS_SOUTH = [
+  ["CÔTE DE SÉZANNE",48.72,3.73,["sezanne","vindey"]],
+  ["CÔTE DES BAR",48.10,4.50,["bar sur seine","les riceys","neuville sur seine","celles sur ource","landreville","buxeuil","urville","colombe le sec","bar sur aube"]],
+];
+
+const MOSEL_GEO = { // normalized commune -> [lat, lng]
+  // Mittelmosel
+  "bernkastel":[49.917,7.070], "bernkastel kues":[49.917,7.070], "graach":[49.930,7.050],
+  "wehlen":[49.938,7.037], "zeltingen":[49.945,7.020], "zeltingen rachtig":[49.945,7.020],
+  "urzig":[49.968,7.020], "erden":[49.975,7.050], "krov":[49.985,7.085], "enkirch":[49.990,7.120],
+  "piesport":[49.878,6.930], "brauneberg":[49.900,6.978], "wintrich":[49.888,6.958],
+  "trittenheim":[49.822,6.900], "leiwen":[49.815,6.885], "dhron":[49.855,6.905], "neumagen":[49.858,6.895],
+  // Saar
+  "wiltingen":[49.660,6.585], "kanzem":[49.680,6.580], "ockfen":[49.615,6.585],
+  "ayl":[49.630,6.570], "saarburg":[49.606,6.550], "serrig":[49.570,6.570], "oberemmel":[49.660,6.610],
+  // Ruwer
+  "kasel":[49.750,6.720], "eitelsbach":[49.770,6.700], "mertesdorf":[49.770,6.700],
+};
+const MOSEL_CITIES = [["TRIER",49.756,6.641]];
+const MOSEL_AREAS = [["MITTELMOSEL",49.930,7.000],["SAAR",49.630,6.560],["RUWER",49.765,6.715]];
+
+const PIEMONTE_GEO = { // normalized commune -> [lat, lng]
+  // Barolo
+  "barolo":[44.611,7.941], "la morra":[44.636,7.918], "serralunga":[44.626,7.997],
+  "serralunga d alba":[44.626,7.997], "castiglione falletto":[44.622,7.968],
+  "monforte":[44.582,7.972], "monforte d alba":[44.582,7.972], "novello":[44.596,7.912],
+  "verduno":[44.660,7.930], "grinzane cavour":[44.652,7.988], "cherasco":[44.645,7.860],
+  // Barbaresco
+  "barbaresco":[44.723,8.087], "neive":[44.723,8.115], "treiso":[44.688,8.070],
+  // wider Piedmont
+  "gattinara":[45.616,8.366], "ghemme":[45.600,8.420], "asti":[44.900,8.206],
+  "nizza monferrato":[44.775,8.358], "canelli":[44.720,8.293], "dogliani":[44.530,7.940],
+};
+const PIEMONTE_CITIES = [["ALBA",44.700,8.035]];
+const PIEMONTE_AREAS = [["BAROLO",44.605,7.950],["BARBARESCO",44.720,8.090],["ALTO PIEMONTE",45.610,8.390]];
 
 let MAP_VIEW = "europe", LAST_CELLAR = [];
 const COS = Math.cos(46*Math.PI/180);
@@ -894,16 +965,23 @@ function updateMap(cellar){ LAST_CELLAR = cellar; renderMap(); }
 
 function renderMap(){
   const svg=$("map"); if(!svg) return;
+  hideTip(); // re-rendering replaces the dots; any hover tip would otherwise be orphaned
   $("mapbar").hidden = MAP_VIEW==="europe";
   if(MAP_VIEW==="Bourgogne") return renderCoteMap(svg);
   if(MAP_VIEW==="Champagne") return renderChampagneMap(svg);
+  if(MAP_VIEW==="Mosel") return renderScatterMap(svg, {
+    title:"Mosel · Saar · Ruwer — villages", region:"Mosel",
+    geo:MOSEL_GEO, cities:MOSEL_CITIES, areas:MOSEL_AREAS, lat:49.8 });
+  if(MAP_VIEW==="Piemonte") return renderScatterMap(svg, {
+    title:"Piemonte — Langhe & beyond", region:"Piemonte",
+    geo:PIEMONTE_GEO, cities:PIEMONTE_CITIES, areas:PIEMONTE_AREAS, lat:44.7 });
   renderEuropeMap(svg);
 }
 
 function bindDot(c, tipHtml, onClick){
   c.addEventListener("mousemove",e=>showTip(tipHtml,e.clientX,e.clientY));
   c.addEventListener("mouseleave",hideTip);
-  c.addEventListener("click",onClick);
+  c.addEventListener("click",e=>{ hideTip(); onClick(e); }); // touch has no mouseleave — drop the tip on tap
 }
 
 function renderEuropeMap(svg){
@@ -930,7 +1008,7 @@ function renderEuropeMap(svg){
   svg.innerHTML = html;
   svg.querySelectorAll(".dot").forEach(c=>{
     const name=c.dataset.region, a=agg[name];
-    const zoomable = name==="Bourgogne"||name==="Champagne";
+    const zoomable = name==="Bourgogne"||name==="Champagne"||name==="Mosel"||name==="Piemonte";
     bindDot(c,
       `<b>${esc(name)}</b><br>${a.b} bottle${a.b>1?"s":""} · ${a.n} wine${a.n>1?"s":""}${zoomable?"<br><i>click to explore</i>":""}`,
       ()=>{
@@ -1027,16 +1105,22 @@ function renderChampagneMap(svg){
     if(CHAMP_GEO[key]){ const a=agg[key] ??= {b:0,n:0,q:w.commune,label:w.commune}; a.b+=w.left; a.n++; }
     else { other = other||{b:0,n:0,q:w.commune,label:"Elsewhere in Champagne"}; other.b+=w.left; other.n++; }
   });
+  // Southern zones only get a label when the cellar actually holds a village near them,
+  // so the northern villages stay legible when there are no Aube/Sézanne wines.
+  const keys=Object.keys(agg);
+  const areas = CHAMP_AREAS.concat(CHAMP_AREAS_SOUTH.filter(([,,,members])=>members.some(m=>keys.includes(m))));
   // local projector over champagne coords
-  const pts=Object.keys(agg).map(k=>CHAMP_GEO[k]);
+  const pts=keys.map(k=>CHAMP_GEO[k]);
   CITY_ANCHORS.forEach(([,la,ln])=>pts.push([la,ln]));
-  CHAMP_AREAS.forEach(([,la,ln])=>pts.push([la,ln]));
-  const cos=Math.cos(49*Math.PI/180), pad=40, W=640;
+  areas.forEach(([,la,ln])=>pts.push([la,ln]));
+  const cos=Math.cos(49*Math.PI/180), pad=40, W=640, HMAX=520;
   let minx=Infinity,maxx=-Infinity,miny=Infinity,maxy=-Infinity;
   pts.forEach(([la,ln])=>{ const x=ln*cos; if(x<minx)minx=x; if(x>maxx)maxx=x; if(la<miny)miny=la; if(la>maxy)maxy=la; });
-  const sc=(W-2*pad)/Math.max(0.0001,(maxx-minx));
-  const H=Math.max(220,(maxy-miny)*sc+2*pad);
-  const proj=([la,ln])=>[pad+(ln*cos-minx)*sc, (H-pad)-(la-miny)*sc];
+  const sx=(W-2*pad)/Math.max(0.0001,(maxx-minx));
+  const latSpan=Math.max(0.0001,maxy-miny);
+  const sy=Math.min(sx,(HMAX-2*pad)/latSpan);
+  const H=Math.max(220,latSpan*sy+2*pad);
+  const proj=([la,ln])=>[pad+(ln*cos-minx)*sx, (H-pad)-(la-miny)*sy];
   let parts=[];
   CITY_ANCHORS.forEach(([name,la,ln])=>{
     const [x,y]=proj([la,ln]);
@@ -1044,23 +1128,80 @@ function renderChampagneMap(svg){
     parts.push(`<text class="city" text-anchor="${left?"end":"start"}" x="${(left?x-10:x+10).toFixed(1)}" y="${(y-8).toFixed(1)}">${name}</text>
       <path class="route" d="M ${(x-5).toFixed(1)} ${y.toFixed(1)} L ${(x+5).toFixed(1)} ${y.toFixed(1)} M ${x.toFixed(1)} ${(y-5).toFixed(1)} L ${x.toFixed(1)} ${(y+5).toFixed(1)}"/>`);
   });
-  CHAMP_AREAS.forEach(([name,la,ln])=>{
+  areas.forEach(([name,la,ln])=>{
     const [x,y]=proj([la,ln]);
-    parts.push(`<text class="sec" text-anchor="middle" x="${x.toFixed(1)}" y="${y.toFixed(1)}">${name}</text>`);
+    const cx=Math.max(78,Math.min(W-78,x)); // keep the centred label off the edges
+    parts.push(`<text class="sec" text-anchor="middle" x="${cx.toFixed(1)}" y="${y.toFixed(1)}">${name}</text>`);
   });
-  const entries=Object.entries(agg).sort((a,b)=>b[1].b-a[1].b);
-  entries.forEach(([key,a])=>{
-    const [x,y]=proj(CHAMP_GEO[key]);
-    parts.push(`<circle class="dot" data-q="${esc(a.q)}" data-label="${esc(a.label)}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(4+Math.sqrt(a.b)*2.2).toFixed(1)}"/>`);
-    if(a.b>=2){
-      const left=x>W*0.62;
-      parts.push(`<text class="dlabel" text-anchor="${left?"end":"start"}" x="${(left?x-12:x+12).toFixed(1)}" y="${(y+4).toFixed(1)}">${esc(a.label)} · ${a.b}</text>`);
-    }
+  // Label every village. Nudge labels apart when dots share nearly the same row so none overlap.
+  const entries=Object.entries(agg).map(([key,a])=>{ const [x,y]=proj(CHAMP_GEO[key]); return {key,a,x,y}; })
+    .sort((p,q)=>q.a.b-p.a.b);
+  const placedL=[], placedR=[]; // track label y-positions per side
+  entries.forEach(({a,x,y})=>{
+    const rad=4+Math.sqrt(a.b)*2.2;
+    parts.push(`<circle class="dot" data-q="${esc(a.q)}" data-label="${esc(a.label)}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${rad.toFixed(1)}"/>`);
+    const left = x>W*0.6, placed = left?placedL:placedR;
+    let ly = y+4;
+    while(placed.some(py=>Math.abs(py-ly)<11)) ly += 11; // push down off a crowded neighbour
+    placed.push(ly);
+    parts.push(`<text class="dlabel" text-anchor="${left?"end":"start"}" x="${(left?x-rad-5:x+rad+5).toFixed(1)}" y="${ly.toFixed(1)}">${esc(a.label)} · ${a.b}</text>`);
   });
   if(other) parts.push(`<text class="dsub" x="${pad}" y="${(H-12).toFixed(1)}">+ ${other.b} btl. elsewhere (${esc(other.q)}…)</text>`);
   svg.setAttribute("viewBox",`0 0 ${W} ${Math.round(H)}`);
   svg.innerHTML=parts.join("");
   bindDetailDots(svg, null);
+}
+
+// Generic village scatter (Mosel, Piemonte…): dots at real coords, area labels that
+// only appear when the cellar reaches them, every dot labelled with collision-nudging.
+function renderScatterMap(svg, cfg){
+  $("mapTitle").textContent = cfg.title;
+  const agg={}; let other=null;
+  LAST_CELLAR.forEach(w=>{
+    if(w.region!==cfg.region) return;
+    const key=normName(w.commune);
+    if(cfg.geo[key]){ const a=agg[key] ??= {b:0,n:0,q:w.commune,label:w.commune}; a.b+=w.left; a.n++; }
+    else { other = other||{b:0,n:0,q:w.commune,label:"Elsewhere"}; other.b+=w.left; other.n++; }
+  });
+  const keys=Object.keys(agg);
+  if(!keys.length){ // nothing mappable — fall back to the region overview
+    svg.innerHTML=`<text class="dsub" x="20" y="30">No mapped villages yet in this region.</text>`;
+    svg.setAttribute("viewBox","0 0 640 60"); return;
+  }
+  const near=(la,ln,dLa,dLn)=>keys.some(k=>Math.abs(cfg.geo[k][0]-la)<dLa && Math.abs(cfg.geo[k][1]-ln)<dLn);
+  const cities=(cfg.cities||[]).filter(([,la,ln])=>near(la,ln,0.6,0.8));
+  const areas=(cfg.areas||[]).filter(([,la,ln])=>near(la,ln,0.35,0.6));
+  const pts=keys.map(k=>cfg.geo[k]).concat(cities.map(c=>[c[1],c[2]]), areas.map(a=>[a[1],a[2]]));
+  const cos=Math.cos((cfg.lat||47)*Math.PI/180), pad=44, W=640, HMAX=520;
+  let minx=Infinity,maxx=-Infinity,miny=Infinity,maxy=-Infinity;
+  pts.forEach(([la,ln])=>{ const x=ln*cos; if(x<minx)minx=x; if(x>maxx)maxx=x; if(la<miny)miny=la; if(la>maxy)maxy=la; });
+  const sx=(W-2*pad)/Math.max(0.0001,(maxx-minx));
+  const latSpan=Math.max(0.0001,maxy-miny);
+  // keep x geographic; compress latitude only if the region is taller than the panel allows
+  const sy=Math.min(sx,(HMAX-2*pad)/latSpan);
+  const H=Math.max(240,latSpan*sy+2*pad);
+  const proj=([la,ln])=>[pad+(ln*cos-minx)*sx, (H-pad)-(la-miny)*sy];
+  let parts=[];
+  areas.forEach(([name,la,ln])=>{ const [x,y]=proj([la,ln]);
+    const cx=Math.max(78,Math.min(W-78,x));
+    parts.push(`<text class="sec" text-anchor="middle" x="${cx.toFixed(1)}" y="${y.toFixed(1)}">${esc(name)}</text>`); });
+  cities.forEach(([name,la,ln])=>{ const [x,y]=proj([la,ln]);
+    parts.push(`<text class="city" x="${(x+9).toFixed(1)}" y="${(y+3).toFixed(1)}">${esc(name)}</text>
+      <path class="route" d="M ${(x-5).toFixed(1)} ${y.toFixed(1)} L ${(x+5).toFixed(1)} ${y.toFixed(1)} M ${x.toFixed(1)} ${(y-5).toFixed(1)} L ${x.toFixed(1)} ${(y+5).toFixed(1)}"/>`); });
+  const entries=keys.map(k=>{ const a=agg[k], [x,y]=proj(cfg.geo[k]); return {a,x,y}; }).sort((p,q)=>q.a.b-p.a.b);
+  const placedL=[], placedR=[];
+  entries.forEach(({a,x,y})=>{
+    const rad=4+Math.sqrt(a.b)*2.0;
+    parts.push(`<circle class="dot" data-q="${esc(a.q)}" data-label="${esc(a.label)}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${rad.toFixed(1)}"/>`);
+    const left=x>W*0.6, placed=left?placedL:placedR; let ly=y+4;
+    while(placed.some(py=>Math.abs(py-ly)<11)) ly+=11;
+    placed.push(ly);
+    parts.push(`<text class="dlabel" text-anchor="${left?"end":"start"}" x="${(left?x-rad-5:x+rad+5).toFixed(1)}" y="${ly.toFixed(1)}">${esc(a.label)} · ${a.b}</text>`);
+  });
+  if(other) parts.push(`<text class="dsub" x="${pad}" y="${(H-12).toFixed(1)}">+ ${other.b} btl. elsewhere (${esc(other.q)}…)</text>`);
+  svg.setAttribute("viewBox",`0 0 ${W} ${Math.round(H)}`);
+  svg.innerHTML=parts.join("");
+  bindDetailDots(svg);
 }
 
 function bindDetailDots(svg){
