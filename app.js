@@ -76,17 +76,25 @@ const state = {q:"", region:"", style:"", status:"cellar", ready:"", sortK:"pric
 /* ---------- config / auth ---------- */
 const cfg = {
   api: localStorage.getItem("vinApi") || (window.WINE_CONFIG && window.WINE_CONFIG.API_URL) || "",
-  code: localStorage.getItem("vinCode") || "",
+  user: localStorage.getItem("vinUser") || "",
+  token: localStorage.getItem("vinToken") || "",
 };
 
-async function api(params){
-  const body = JSON.stringify({code:cfg.code, ...params});
-  const res = await fetch(cfg.api, {method:"POST", body, redirect:"follow"});
+// Raw POST that returns the parsed response (never throws on ok:false) — used by
+// the login/signup gate, which needs to read the error itself.
+async function post(params){
+  const res = await fetch(cfg.api, {method:"POST", body:JSON.stringify(params), redirect:"follow"});
   if(!res.ok) throw new Error("HTTP "+res.status);
-  const data = await res.json();
+  return res.json();
+}
+
+async function api(params){
+  const data = await post({user:cfg.user, token:cfg.token, ...params});
   if(!data.ok){ const e = new Error(data.error || "unknown-error"); e.data = data; throw e; }
   return data;
 }
+// Auth errors that mean "the session is no longer valid → show the gate".
+const AUTH_ERRORS = new Set(["bad-token","bad-code","no-cellar"]);
 
 function normalize(rows){
   return rows.map(r=>{
@@ -647,7 +655,7 @@ async function loadData(){
     $("spin").hidden = true; $("content").hidden = false;
     loadJournalSilently();
   }catch(err){
-    if(err.message==="bad-code"){ forgetAuth(); showGate("Wrong access code — try again."); }
+    if(AUTH_ERRORS.has(err.message)){ forgetAuth(); setGateMode("login"); showGate("Your session expired — log in again."); }
     else { $("spin").textContent = "Could not reach the cellar API ("+err.message+"). Check your connection and refresh."; }
   }
 }
@@ -764,31 +772,66 @@ async function addWine(e){
 }
 
 /* ---------- gate ---------- */
+let GATE_MODE = "login"; // or "signup"
 function showGate(msg){
   $("app").hidden = true; $("gate").hidden = false;
   $("gateApiWrap").hidden = !!cfg.api;
   $("gateErr").textContent = msg||"";
-  setTimeout(()=>$("gateCode").focus(), 50);
+  setTimeout(()=>$("gateUser").focus(), 50);
 }
+function setGateMode(mode){
+  GATE_MODE = mode;
+  const signup = mode==="signup";
+  $("gateInviteWrap").hidden = !signup;
+  $("gateLead").textContent = signup
+    ? "Create your own cellar. You'll need an invite code."
+    : "Your private cellar. Log in to continue.";
+  $("gateSubmit").textContent = signup ? "Create account" : "Log in";
+  $("gateToggle").textContent = signup ? "Have an account? Log in" : "Need an account? Sign up";
+  $("gatePass").setAttribute("autocomplete", signup ? "new-password" : "current-password");
+  $("gateErr").textContent = "";
+}
+// Friendly text for the error codes the API returns.
+const AUTH_MSG = {
+  "bad-login":"Wrong username or password.", "bad-invite":"That invite code isn't right.",
+  "signup-disabled":"Signups are closed right now.", "user-taken":"That username is taken.",
+  "bad-username":"Username: 3–24 letters, numbers, . _ or -.", "weak-pass":"Use a password of at least 6 characters.",
+  "no-cellar":"Your cellar couldn't be opened. Contact the owner.",
+};
 function forgetAuth(){
-  localStorage.removeItem("vinCode");
-  cfg.code="";
+  localStorage.removeItem("vinUser"); localStorage.removeItem("vinToken");
+  cfg.user=""; cfg.token="";
 }
-$("gateForm").addEventListener("submit",e=>{
+function enterApp(){ $("gate").hidden = true; $("app").hidden = false; loadData(); route(); }
+
+$("gateToggle").addEventListener("click", ()=> setGateMode(GATE_MODE==="login" ? "signup" : "login"));
+
+$("gateForm").addEventListener("submit", async e=>{
   e.preventDefault();
   const apiIn = $("gateApi").value.trim();
   if(!cfg.api && apiIn){ cfg.api = apiIn; localStorage.setItem("vinApi", apiIn); }
   if(!cfg.api){ $("gateErr").textContent = "The API URL is missing."; return; }
-  cfg.code = $("gateCode").value.trim();
-  if(!cfg.code){ $("gateErr").textContent = "Enter the access code."; return; }
-  localStorage.setItem("vinCode", cfg.code);
-  $("gate").hidden = true; $("app").hidden = false;
-  loadData(); route();
+  const user = $("gateUser").value.trim(), pass = $("gatePass").value;
+  if(!user || !pass){ $("gateErr").textContent = "Enter your username and password."; return; }
+  const signup = GATE_MODE==="signup";
+  $("gateSubmit").disabled = true; $("gateErr").textContent = signup ? "Creating…" : "Signing in…";
+  try{
+    const params = signup
+      ? {action:"signup", user, pass, code:$("gateInvite").value.trim()}
+      : {action:"login", user, pass};
+    const data = await post(params);
+    if(!data.ok){ $("gateErr").textContent = AUTH_MSG[data.error] || ("Could not sign in ("+data.error+")."); return; }
+    cfg.user = data.user; cfg.token = data.token;
+    localStorage.setItem("vinUser", cfg.user); localStorage.setItem("vinToken", cfg.token);
+    $("gatePass").value = ""; $("gateInvite").value = "";
+    enterApp();
+  }catch(err){ $("gateErr").textContent = "Could not reach the cellar API ("+err.message+")."; }
+  finally{ $("gateSubmit").disabled = false; }
 });
 
 /* ---------- header actions ---------- */
 $("refreshBtn").addEventListener("click", loadData);
-$("lockBtn").addEventListener("click", ()=>{ forgetAuth(); showGate("Locked. Enter the access code to reopen."); });
+$("lockBtn").addEventListener("click", ()=>{ forgetAuth(); setGateMode("login"); showGate("Signed out. Log in to reopen."); });
 $("priceBtn").addEventListener("click", ()=>{
   SHOW_PRICES = !SHOW_PRICES;
   localStorage.setItem("vinHidePrices", SHOW_PRICES ? "0" : "1");
@@ -1165,7 +1208,7 @@ async function loadJournal(force){
     JENTRIES = res.entries || [];
     renderJournal();
   }catch(err){
-    if(String(err.message).includes("bad-code")){ forgetAuth(); showGate("Wrong access code — try again."); }
+    if(AUTH_ERRORS.has(err.message)){ forgetAuth(); setGateMode("login"); showGate("Your session expired — log in again."); }
     else $("jList").innerHTML = `<div class="spin">Could not load the journal (${esc(err.message)}). The Apps Script may need the latest redeploy.</div>`;
   }
   $("jSpin").hidden = true;
@@ -1509,7 +1552,7 @@ async function loadWishlist(force){
     WITEMS = res.items || [];
     renderWishlist();
   }catch(err){
-    if(String(err.message).includes("bad-code")){ forgetAuth(); showGate("Wrong access code — try again."); }
+    if(AUTH_ERRORS.has(err.message)){ forgetAuth(); setGateMode("login"); showGate("Your session expired — log in again."); }
     else $("wList").innerHTML = `<div class="spin">Could not load the wishlist (${esc(err.message)}). The Apps Script may need the latest redeploy.</div>`;
   }
   $("wSpin").hidden = true;
@@ -1597,8 +1640,8 @@ function route(){
   $("pageJournal").hidden = page!=="journal";
   document.querySelectorAll(".tab").forEach(t=>
     t.classList.toggle("active", t.dataset.page===page));
-  if(page==="journal" && cfg.code) loadJournal();
-  if(page==="wishlist" && cfg.code) loadWishlist();
+  if(page==="journal" && cfg.token) loadJournal();
+  if(page==="wishlist" && cfg.token) loadWishlist();
   if(page==="enjoyed") renderEnjoyed();
 }
 document.querySelectorAll(".tab").forEach(t=>
@@ -1606,5 +1649,5 @@ document.querySelectorAll(".tab").forEach(t=>
 window.addEventListener("hashchange", route);
 
 /* ---------- boot ---------- */
-if(cfg.api && cfg.code){ $("app").hidden=false; loadData(); route(); }
-else showGate();
+if(cfg.api && cfg.user && cfg.token){ $("app").hidden=false; loadData(); route(); }
+else { setGateMode("login"); showGate(); }
