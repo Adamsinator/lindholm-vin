@@ -19,7 +19,7 @@ const fmtDate = s => { const d=new Date(String(s).slice(0,10)+"T12:00:00");
 // A rough drink window estimated from the wine's type, origin and vintage.
 // Deliberately generic (grape/region/cru level → an ageing span) — a starting
 // point you can override per wine. Returns {from,to} or null.
-function defaultWindow(w){
+function baseWindow(w){
   const style=w.style, reg=normName(w.region), grape=normName(w.grape), cls=normName(w.classification);
   const v = typeof w.vintage==="number" ? w.vintage : null;
   const has=(s,arr)=>arr.some(a=>s.includes(a));
@@ -54,6 +54,21 @@ function defaultWindow(w){
   if(grape.includes("riesling") || has(reg,["mosel","saar","ruwer","rheingau","nahe","pfalz","rheinhessen","alsace"]))
     return grand?span(3,35):span(3,25);
   return style==="Hvid" ? span(1,6) : span(2,10);         // generic white / red
+}
+
+// Icon/top producers make wines that outlive the generic region+cru estimate —
+// a Lafon village Meursault or a Roumier village Chambolle ages far longer than
+// the appellation average — so push the drink-window's close out for them.
+const TIER_LONGEVITY = {legend:14, top:7};
+function defaultWindow(w){
+  const d = baseWindow(w);
+  if(!d || d.to==null) return d;
+  // No bonus where a great address doesn't add years: rosé, and non-vintage bubbles.
+  const noBonus = w.style==="Rosé" || (w.style==="Bobler" && typeof w.vintage!=="number");
+  const tier = (typeof PRODUCER_NOTES!=="undefined" && PRODUCER_NOTES[w.producer]) ? PRODUCER_NOTES[w.producer][0] : null;
+  const bonus = noBonus ? 0 : (TIER_LONGEVITY[tier] || 0);
+  if(bonus){ d.to += bonus; if(d.from!=null && d.to - d.from > 45) d.to = d.from + 45; } // sane ceiling
+  return d;
 }
 
 // The window in effect for a wine: your own if set, else the estimate.
