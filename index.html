@@ -44,6 +44,9 @@ header.top{display:flex;align-items:baseline;justify-content:space-between;flex-
 header.top h1{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
   font-size:clamp(28px,4.5vw,40px);font-weight:600;margin:0;letter-spacing:-.01em}
 header.top h1 em{font-style:italic;color:var(--accent)}
+.brand{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.who{font-size:13px;font-weight:600;color:var(--accent);background:var(--chip);
+  border-radius:20px;padding:3px 11px;white-space:nowrap}
 .sub{color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.12em}
 .actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
 .btn{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;
@@ -335,7 +338,10 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
 
 <div class="wrap" id="app" hidden>
 <header class="top">
-  <h1>Lindholm <em>Vin</em></h1>
+  <div class="brand">
+    <h1>Lindholm <em>Vin</em></h1>
+    <span class="who" id="who" hidden></span>
+  </div>
   <div class="sub">Cellar overview</div>
 </header>
 

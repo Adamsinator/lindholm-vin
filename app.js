@@ -676,6 +676,7 @@ function bindWineRows(scope){
 /* ---------- actions ---------- */
 async function loadData(){
   $("spin").hidden = false; $("content").hidden = true;
+  if(cfg.user){ $("who").textContent = cfg.user; $("who").hidden = false; }
   try{
     const res = await api({action:"data"});
     WINES = normalize(res.wines);
@@ -805,6 +806,7 @@ async function addWine(e){
 let GATE_MODE = "login"; // or "signup"
 function showGate(msg){
   $("app").hidden = true; $("gate").hidden = false;
+  $("who").hidden = true; $("who").textContent = "";
   $("gateApiWrap").hidden = !!cfg.api;
   $("gateErr").textContent = msg||"";
   setTimeout(()=>$("gateUser").focus(), 50);
