@@ -237,9 +237,12 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
   padding:9px 16px;border-radius:8px;font-size:13.5px;z-index:120;opacity:0;transition:opacity .2s;pointer-events:none}
 #map{display:block;width:100%;max-width:640px;margin:0 auto;height:auto}
 #map .land{fill:var(--chip);stroke:var(--line);stroke-width:1;stroke-linejoin:round}
+#map .land.clickable{cursor:pointer;transition:fill .1s}
+#map .land.clickable:hover{fill:var(--line)}
 #map .sea{fill:none}
 #map .dot{fill:var(--accent);fill-opacity:.55;stroke:var(--accent);stroke-width:1.5;cursor:pointer;transition:fill-opacity .1s}
 #map .dot:hover,#map .dot.on{fill-opacity:.9}
+#map .vref{fill:var(--muted);opacity:.22}
 #map .dlabel{fill:var(--ink);font-size:11px;font-weight:600;paint-order:stroke;stroke:var(--card);stroke-width:3px;stroke-linejoin:round;pointer-events:none}
 #map .dsub{fill:var(--muted);font-size:9px;paint-order:stroke;stroke:var(--card);stroke-width:3px;pointer-events:none}
 #map .cname{fill:var(--muted);font-size:8.5px;letter-spacing:.02em;opacity:.6;paint-order:stroke;stroke:var(--card);stroke-width:2.5px;pointer-events:none}
@@ -309,6 +312,18 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
 .fcmt-add input{flex:1;background:var(--card);border:1px solid var(--line);color:var(--ink);
   border-radius:8px;padding:6px 10px;font-size:14px;font-family:inherit}
 .fcmt-add .btn{padding:6px 12px}
+.feedtabs{display:flex;gap:6px;margin:0 0 14px}
+.ftog{border:1px solid var(--line);background:var(--card);color:var(--muted);border-radius:20px;
+  padding:5px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
+.ftog.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.followbtn{border:1px solid var(--line);background:var(--card);color:var(--accent);border-radius:20px;
+  padding:1px 9px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit}
+.followbtn:hover{border-color:var(--accent)}
+.followbtn.on{color:var(--muted)}
+.fphoto{margin-top:10px;max-width:280px;border-radius:8px;overflow:hidden;border:1px solid var(--line);
+  background:var(--card2);min-height:60px;display:flex;align-items:center;justify-content:center}
+.fphoto.ready{cursor:zoom-in;min-height:0}
+.fphoto img{width:100%;display:block}
 .jtop{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
 .jdate{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
 .jplace{font-size:12px;color:var(--muted)}
@@ -578,7 +593,8 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
     <button class="btn primary" id="feedNewBtn">＋ Share a bottle</button>
     <span class="stamp" id="feedCount"></span>
   </div>
-  <p class="ph" style="margin:0 0 14px">A shared feed — bottles friends have bought or drunk. Share your own, or send one to a specific person.</p>
+  <p class="ph" style="margin:0 0 12px">A shared feed — bottles friends have bought or drunk. Share your own, or send one to a specific person.</p>
+  <div class="feedtabs" id="feedTabs"></div>
   <div class="spin" id="feedSpin" hidden>Fetching the feed…</div>
   <div id="feedList"></div>
 </div>
@@ -662,9 +678,14 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
       <div><label for="shRegion">Region</label><input id="shRegion" list="regionsList"></div>
       <div><label for="shRating">Rating</label>
         <select id="shRating"><option value="">—</option>
+          <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option>
           <option>6</option><option>7</option><option>8</option><option>9</option><option>10</option></select></div>
     </div>
     <label for="shNote">Note</label><textarea id="shNote" rows="2" placeholder="Say something about it…"></textarea>
+    <label for="shPhoto">Photo <span class="lopt">(optional)</span></label>
+    <input id="shPhoto" type="file" accept="image/*">
+    <img id="shPhotoPrev" class="jphoto-prev" alt="Selected photo preview" hidden>
+    <button type="button" class="btn quiet" id="shPhotoRemove" hidden>Remove photo</button>
     <div class="jerr" id="shErr" role="alert" hidden></div>
     <div class="mact">
       <button type="button" class="btn" id="shCancel">Cancel</button>

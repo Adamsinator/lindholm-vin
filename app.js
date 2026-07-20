@@ -843,7 +843,7 @@ function forgetAuth(){
   cfg.user=""; cfg.token="";
   // Drop the previous user's cached data so the next login can't see it (the
   // journal/wishlist loaders short-circuit on these).
-  WINES=[]; JENTRIES=null; WITEMS=null; KEEP_OPEN=null; FEED=null; FEED_USERS=[]; FEED_OPEN.clear();
+  WINES=[]; JENTRIES=null; WITEMS=null; KEEP_OPEN=null; FEED=null; FEED_USERS=[]; FEED_FOLLOWS=[]; FEED_VIEW="all"; FEED_OPEN.clear();
   const b=$("feedBadge"); if(b) b.hidden=true;
 }
 function enterApp(){ $("gate").hidden = true; $("app").hidden = false; markActive(); loadData(); route(); }
@@ -1146,13 +1146,15 @@ function bindDot(c, tipHtml, onClick){
 }
 
 const DRILLABLE = ["Bourgogne","Champagne","Mosel","Piemonte"];
+const baseCountry = k => String(k).replace(/~\d+$/,"");     // "Italy~1" → "Italy"
+const countryLabel = k => COUNTRY_EN[k] || k;                // English name for any country
 
-// Top level: the whole of (wine-)Europe, one dot per country. Click to zoom in.
+// Top level: the whole of Europe. Every country is clickable → its country map.
 function renderEuropeMap(svg){
   const {W,H,proj,r}=buildProjector(600,24);
   const agg={};
   LAST_CELLAR.forEach(w=>{ const k=countryOf(w); if(!k) return; const a=agg[k.key] ??= {b:0,n:0}; a.b+=w.left; a.n++; });
-  let html = Object.values(LANDS).map(poly=>`<path class="land" d="${landPath(poly,proj)}"/>`).join("");
+  let html = Object.entries(LANDS).map(([k,poly])=>`<path class="land clickable" data-country="${esc(baseCountry(k))}" d="${landPath(poly,proj)}"/>`).join("");
   // faint English names for the backdrop countries
   html += NEIGHBOR_LABELS.map(([name,g])=>{
     const [x,y]=proj([g[1],g[0]]);
@@ -1171,28 +1173,40 @@ function renderEuropeMap(svg){
   }).join("");
   svg.setAttribute("viewBox",`0 0 ${W} ${Math.round(H)}`);
   svg.innerHTML = html;
+  const openCountry = key => { MAP_VIEW="country:"+key; state.q=""; $("q").value=""; renderMap(); };
+  svg.querySelectorAll(".land.clickable").forEach(p=>{
+    const key=p.dataset.country, a=agg[key];
+    bindDot(p, `<b>${esc(countryLabel(key))}</b>${a?`<br>${a.b} bottle${a.b>1?"s":""} · ${a.n} wine${a.n>1?"s":""}`:""}<br><i>click to explore</i>`,
+      ()=>openCountry(key));
+  });
   svg.querySelectorAll(".dot").forEach(c=>{
     const key=c.dataset.country, a=agg[key];
     bindDot(c, `<b>${esc(COUNTRY_EN[key])}</b><br>${a.b} bottle${a.b>1?"s":""} · ${a.n} wine${a.n>1?"s":""}<br><i>click to explore</i>`,
-      ()=>{ MAP_VIEW="country:"+key; state.q=""; $("q").value=""; renderMap(); });
+      ()=>openCountry(key));
   });
 }
 
 // Middle level: one country, its regions as dots. Click a region to filter (or
 // drill further for Bourgogne / Champagne / Mosel / Piemonte).
 function renderCountryMap(svg, key){
-  $("mapTitle").textContent = COUNTRY_EN[key] + " — regions";
+  $("mapTitle").textContent = countryLabel(key) + " — regions";
   const agg={};
   LAST_CELLAR.forEach(w=>{ if((countryOf(w)||{}).key!==key) return;
     const a=agg[w.region] ??= {b:0,n:0}; a.b+=w.left; a.n++; });
   const names = Object.keys(agg);
   const present = names.filter(n=>REGION_GEO[n]).sort((a,b)=>agg[b].b-agg[a].b);
   const buckets = names.filter(n=>!REGION_GEO[n] && n).sort((a,b)=>agg[b].b-agg[a].b);
-  const outline = LANDS[key] ? [LANDS[key]] : Object.values(LANDS);
+  // all polygons of this country (mainland + its islands, e.g. Italy + Sicily/Sardinia)
+  let outline = Object.entries(LANDS).filter(([k])=>baseCountry(k)===key).map(([,p])=>p);
+  if(!outline.length) outline = Object.values(LANDS);
   const extra = present.map(n=>REGION_GEO[n]);
   const {W,H,proj,r}=buildProjector(600,30,outline,extra);
   const HB = buckets.length ? 30 : 0;
   let parts = outline.map(poly=>`<path class="land" d="${landPath(poly,proj)}"/>`).join("");
+  if(!names.length){ // a country with nothing in the cellar (e.g. a backdrop country)
+    parts += `<text class="dsub" text-anchor="middle" x="${(W/2).toFixed(1)}" y="${(H/2).toFixed(1)}">No wines from ${esc(countryLabel(key))} yet.</text>`;
+    svg.setAttribute("viewBox",`0 0 ${W} ${Math.round(H)}`); svg.innerHTML=parts; return;
+  }
   const placedL=[], placedR=[];
   present.forEach(n=>{
     const [x,y]=proj([REGION_GEO[n][1],REGION_GEO[n][0]]); const a=agg[n], rad=r(a.b);
@@ -1311,8 +1325,11 @@ function renderChampagneMap(svg){
   // so the northern villages stay legible when there are no Aube/Sézanne wines.
   const keys=Object.keys(agg);
   const areas = CHAMP_AREAS.concat(CHAMP_AREAS_SOUTH.filter(([,,,members])=>members.some(m=>keys.includes(m))));
-  // local projector over champagne coords
-  const pts=keys.map(k=>CHAMP_GEO[k]);
+  // Always show the northern core (Montagne / Marne / Blancs); extend south only
+  // when the cellar holds Aube/Sézanne wines. Reference villages give context.
+  const coreKeys=Object.keys(CHAMP_GEO).filter(k=>CHAMP_GEO[k][0]>=48.85);
+  const refKeys=coreKeys.concat(keys.filter(k=>CHAMP_GEO[k] && CHAMP_GEO[k][0]<48.85)); // + owned southern
+  const pts=refKeys.map(k=>CHAMP_GEO[k]);
   CITY_ANCHORS.forEach(([,la,ln])=>pts.push([la,ln]));
   areas.forEach(([,la,ln])=>pts.push([la,ln]));
   const cos=Math.cos(49*Math.PI/180), pad=40, W=640, HMAX=520;
@@ -1335,7 +1352,10 @@ function renderChampagneMap(svg){
     const cx=Math.max(78,Math.min(W-78,x)); // keep the centred label off the edges
     parts.push(`<text class="sec" text-anchor="middle" x="${cx.toFixed(1)}" y="${y.toFixed(1)}">${name}</text>`);
   });
-  // Label every village. Nudge labels apart when dots share nearly the same row so none overlap.
+  // faint reference dots for the villages you don't own, for context
+  refKeys.forEach(k=>{ if(agg[k]) return; const [x,y]=proj(CHAMP_GEO[k]);
+    parts.push(`<circle class="vref" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.6"><title>${esc(titleCase(k))}</title></circle>`); });
+  // Label every owned village. Nudge labels apart when dots share nearly the same row so none overlap.
   const entries=Object.entries(agg).map(([key,a])=>{ const [x,y]=proj(CHAMP_GEO[key]); return {key,a,x,y}; })
     .sort((p,q)=>q.a.b-p.a.b);
   const placedL=[], placedR=[]; // track label y-positions per side
@@ -1356,6 +1376,7 @@ function renderChampagneMap(svg){
 
 // Generic village scatter (Mosel, Piemonte…): dots at real coords, area labels that
 // only appear when the cellar reaches them, every dot labelled with collision-nudging.
+const titleCase = k => String(k).replace(/\b\w/g,c=>c.toUpperCase());
 function renderScatterMap(svg, cfg){
   $("mapTitle").textContent = cfg.title;
   const agg={}; let other=null;
@@ -1365,23 +1386,18 @@ function renderScatterMap(svg, cfg){
     if(cfg.geo[key]){ const a=agg[key] ??= {b:0,n:0,q:w.commune,label:w.commune}; a.b+=w.left; a.n++; }
     else { other = other||{b:0,n:0,q:w.commune,label:"Elsewhere"}; other.b+=w.left; other.n++; }
   });
-  const keys=Object.keys(agg);
-  if(!keys.length){ // nothing mappable — fall back to the region overview
-    svg.innerHTML=`<text class="dsub" x="20" y="30">No mapped villages yet in this region.</text>`;
-    svg.setAttribute("viewBox","0 0 640 60"); return;
-  }
-  const near=(la,ln,dLa,dLn)=>keys.some(k=>Math.abs(cfg.geo[k][0]-la)<dLa && Math.abs(cfg.geo[k][1]-ln)<dLn);
-  const cities=(cfg.cities||[]).filter(([,la,ln])=>near(la,ln,0.6,0.8));
-  const areas=(cfg.areas||[]).filter(([,la,ln])=>near(la,ln,0.35,0.6));
-  const pts=keys.map(k=>cfg.geo[k]).concat(cities.map(c=>[c[1],c[2]]), areas.map(a=>[a[1],a[2]]));
-  const cos=Math.cos((cfg.lat||47)*Math.PI/180), pad=44, W=640, HMAX=520;
+  // Fit to the WHOLE region (every reference village + cities + area labels), so
+  // the map is full and geographic even when you only own a couple of villages.
+  const allKeys=Object.keys(cfg.geo), owned=Object.keys(agg);
+  const cities=cfg.cities||[], areas=cfg.areas||[];
+  const pts=allKeys.map(k=>cfg.geo[k]).concat(cities.map(c=>[c[1],c[2]]), areas.map(a=>[a[1],a[2]]));
+  const cos=Math.cos((cfg.lat||47)*Math.PI/180), pad=46, W=640, HMAX=540;
   let minx=Infinity,maxx=-Infinity,miny=Infinity,maxy=-Infinity;
   pts.forEach(([la,ln])=>{ const x=ln*cos; if(x<minx)minx=x; if(x>maxx)maxx=x; if(la<miny)miny=la; if(la>maxy)maxy=la; });
   const sx=(W-2*pad)/Math.max(0.0001,(maxx-minx));
   const latSpan=Math.max(0.0001,maxy-miny);
-  // keep x geographic; compress latitude only if the region is taller than the panel allows
   const sy=Math.min(sx,(HMAX-2*pad)/latSpan);
-  const H=Math.max(240,latSpan*sy+2*pad);
+  const H=Math.max(260,latSpan*sy+2*pad);
   const proj=([la,ln])=>[pad+(ln*cos-minx)*sx, (H-pad)-(la-miny)*sy];
   let parts=[];
   areas.forEach(([name,la,ln])=>{ const [x,y]=proj([la,ln]);
@@ -1390,7 +1406,11 @@ function renderScatterMap(svg, cfg){
   cities.forEach(([name,la,ln])=>{ const [x,y]=proj([la,ln]);
     parts.push(`<text class="city" x="${(x+9).toFixed(1)}" y="${(y+3).toFixed(1)}">${esc(name)}</text>
       <path class="route" d="M ${(x-5).toFixed(1)} ${y.toFixed(1)} L ${(x+5).toFixed(1)} ${y.toFixed(1)} M ${x.toFixed(1)} ${(y-5).toFixed(1)} L ${x.toFixed(1)} ${(y+5).toFixed(1)}"/>`); });
-  const entries=keys.map(k=>{ const a=agg[k], [x,y]=proj(cfg.geo[k]); return {a,x,y}; }).sort((p,q)=>q.a.b-p.a.b);
+  // faint reference dots for every village you DON'T own, for context
+  allKeys.forEach(k=>{ if(agg[k]) return; const [x,y]=proj(cfg.geo[k]);
+    parts.push(`<circle class="vref" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.6"><title>${esc(titleCase(k))}</title></circle>`); });
+  // owned villages: accent dots + labels, collision-nudged
+  const entries=owned.map(k=>{ const a=agg[k], [x,y]=proj(cfg.geo[k]); return {a,x,y}; }).sort((p,q)=>q.a.b-p.a.b);
   const placedL=[], placedR=[];
   entries.forEach(({a,x,y})=>{
     const rad=4+Math.sqrt(a.b)*2.0;
@@ -1938,7 +1958,7 @@ $("wForm").addEventListener("submit", async e=>{
 
 /* ---------- page routing ---------- */
 /* ---------- social feed ---------- */
-let FEED=null, FEED_ME="", FEED_USERS=[];
+let FEED=null, FEED_ME="", FEED_USERS=[], FEED_FOLLOWS=[], FEED_VIEW="all"; // all | following
 const feedVerb = t => t==="bought" ? "bought" : t==="drank" ? "drank" : "shared";
 function feedLine(e){
   return [e.producer, e.wine, e.vintage].map(x=>String(x==null?"":x).trim()).filter(Boolean).join(" ");
@@ -1958,7 +1978,7 @@ function updateFeedBadge(){
 
 // Background load on app open: refreshes the unread badge without marking read.
 async function loadFeedSilently(){
-  try{ const r=await api({action:"feed"}); FEED=r.feed||[]; FEED_ME=r.me||""; FEED_USERS=r.users||[];
+  try{ const r=await api({action:"feed"}); FEED=r.feed||[]; FEED_ME=r.me||""; FEED_USERS=r.users||[]; FEED_FOLLOWS=r.follows||[];
     if(location.hash==="#feed"){ renderFeed(); markFeedSeen(); } else updateFeedBadge();
   }catch(e){ /* feed is optional; older API may not have it */ }
 }
@@ -1967,7 +1987,7 @@ async function loadFeed(force){
   $("feedSpin").hidden=false; $("feedList").innerHTML="";
   try{
     const res=await api({action:"feed"});
-    FEED=res.feed||[]; FEED_ME=res.me||cfg.user||""; FEED_USERS=res.users||[];
+    FEED=res.feed||[]; FEED_ME=res.me||cfg.user||""; FEED_USERS=res.users||[]; FEED_FOLLOWS=res.follows||[];
     $("feedSpin").hidden=true; renderFeed(); markFeedSeen();
   }catch(err){
     $("feedSpin").hidden=true;
@@ -1976,10 +1996,20 @@ async function loadFeed(force){
   }
 }
 const FEED_OPEN = new Set(); // post ids whose comments are expanded
+function iFollow(u){ return (FEED_FOLLOWS||[]).some(f=>f.toLowerCase()===String(u).toLowerCase()); }
 function renderFeed(){
-  const list=FEED||[], me=(FEED_ME||cfg.user||"").toLowerCase();
-  $("feedCount").textContent = list.length ? `${list.length} post${list.length>1?"s":""}` : "";
-  if(!list.length){ $("feedList").innerHTML=`<div class="spin">Nothing shared yet — press “＋ Share a bottle”.</div>`; updateFeedBadge(); return; }
+  const me=(FEED_ME||cfg.user||"").toLowerCase();
+  let list=FEED||[];
+  if(FEED_VIEW==="following") list=list.filter(e=>{const f=(e.from||"").toLowerCase(); return f===me||iFollow(e.from)||(e.to||"").toLowerCase()===me;});
+  $("feedCount").textContent = (FEED||[]).length ? `${(FEED||[]).length} post${(FEED||[]).length>1?"s":""}` : "";
+  // Everyone / Following toggle
+  $("feedTabs").innerHTML = `<button class="ftog${FEED_VIEW==="all"?" on":""}" data-v="all">Everyone</button>`+
+    `<button class="ftog${FEED_VIEW==="following"?" on":""}" data-v="following">Following${FEED_FOLLOWS.length?` · ${FEED_FOLLOWS.length}`:""}</button>`;
+  $("feedTabs").querySelectorAll(".ftog").forEach(b=>b.addEventListener("click",()=>{ FEED_VIEW=b.dataset.v; renderFeed(); }));
+  if(!list.length){
+    $("feedList").innerHTML=`<div class="spin">${FEED_VIEW==="following"?"Nobody you follow has shared yet — switch to Everyone and follow some people.":"Nothing shared yet — press “＋ Share a bottle”."}</div>`;
+    updateFeedBadge(); return;
+  }
   $("feedList").innerHTML = list.map(e=>{
     const mine=(e.from||"").toLowerCase()===me, tome=e.to && e.to.toLowerCase()===me && !mine, line=feedLine(e);
     const cheers=e.cheers||[], comments=e.comments||[];
@@ -1987,6 +2017,7 @@ function renderFeed(){
     return `<div class="fcard${tome?" tome":""}">
       <div class="ftop">
         <span class="fwho">${esc(e.from||"?")}</span><span class="fverb">${esc(feedVerb(e.type))}</span>
+        ${!mine?`<button class="followbtn${iFollow(e.from)?" on":""}" data-user="${esc(e.from)}">${iFollow(e.from)?"Following":"Follow"}</button>`:``}
         ${e.to?`<span class="fto">→ ${esc(e.to)}${tome?" (you)":""}</span>`:``}
         <span class="ftime">${fTime(e.time)}</span>
         ${mine?`<button class="fdel" data-row="${e.row}" title="Delete post">🗑</button>`:``}
@@ -1994,6 +2025,7 @@ function renderFeed(){
       ${line?`<div class="fwine"><b>${esc(line)}</b>${e.rating?` · <span class="myscore">${esc(e.rating)}/10</span>`:""}</div>`:``}
       ${e.region?`<div class="fmeta">${esc(e.region)}</div>`:``}
       ${e.note?`<div class="fnote">${esc(e.note)}</div>`:``}
+      ${e.photo?`<div class="fphoto" data-photo="${esc(e.photo)}"><span class="jphoto-ph">🍷</span></div>`:``}
       <div class="fact">
         <button class="cheer${iCheered?" on":""}" data-id="${esc(e.id)}" title="${esc((cheers.join(', '))||'Cheers')}">🍷 Cheers${cheers.length?` · ${cheers.length}`:""}</button>
         <button class="cmtbtn" data-id="${esc(e.id)}">💬 ${comments.length?comments.length+" ":""}Comment${comments.length===1?"":"s"}</button>
@@ -2026,6 +2058,15 @@ function renderFeed(){
     try{ const res=await api({action:"feedcomment", id, text}); FEED=res.feed||[]; FEED_OPEN.add(id); renderFeed(); }
     catch(err){ toast("Could not comment: "+err.message); inp.disabled=false; }
   }));
+  F.querySelectorAll(".followbtn").forEach(b=>b.addEventListener("click", ()=>{
+    b.disabled=true; toggleFollow(b.dataset.user, !iFollow(b.dataset.user));
+  }));
+  F.querySelectorAll(".fphoto").forEach(el=>{
+    const id=el.dataset.photo;
+    loadPhoto(id).then(src=>{ el.classList.add("ready"); el.innerHTML=`<img src="${src}" alt="Shared photo">`;
+      el.addEventListener("click", ()=>openPhotoLightbox(src)); })
+      .catch(()=>{ el.querySelector(".jphoto-ph").textContent="—"; });
+  });
   updateFeedBadge();
 }
 function openShareModal(prefill){
@@ -2037,6 +2078,7 @@ function openShareModal(prefill){
   $("shRegion").value=prefill.region||"";
   $("shRating").value=prefill.rating||"";
   $("shNote").value="";
+  $("shPhoto").value=""; $("shPhotoPrev").hidden=true; $("shPhotoPrev").removeAttribute("src"); $("shPhotoRemove").hidden=true;
   const me=(cfg.user||"").toLowerCase();
   $("shTo").innerHTML=`<option value="">Everyone</option>`+
     (FEED_USERS||[]).filter(u=>u.toLowerCase()!==me).map(u=>`<option value="${esc(u)}">${esc(u)}</option>`).join("");
@@ -2044,28 +2086,41 @@ function openShareModal(prefill){
   $("shareModal").classList.add("open"); $("shProducer").focus();
 }
 async function ensureFeedUsers(){ if(FEED_USERS&&FEED_USERS.length) return;
-  try{ const r=await api({action:"feed"}); FEED=r.feed||[]; FEED_ME=r.me||""; FEED_USERS=r.users||[]; }catch(e){} }
+  try{ const r=await api({action:"feed"}); FEED=r.feed||[]; FEED_ME=r.me||""; FEED_USERS=r.users||[]; FEED_FOLLOWS=r.follows||[]; }catch(e){} }
 async function shareWine(ev){
   if(ev) ev.preventDefault();
   const entry={ type:$("shType").value, to:$("shTo").value,
     producer:$("shProducer").value.trim(), wine:$("shWine").value.trim(),
     vintage:$("shVintage").value.trim(), region:$("shRegion").value.trim(),
     rating:$("shRating").value, note:$("shNote").value.trim() };
-  if(!entry.producer && !entry.wine && !entry.note){ $("shErr").textContent="Add a wine or a note."; $("shErr").hidden=false; return; }
-  $("shSave").disabled=true;
+  const file=$("shPhoto").files[0];
+  if(!entry.producer && !entry.wine && !entry.note && !file){ $("shErr").textContent="Add a wine, a note or a photo."; $("shErr").hidden=false; return; }
+  $("shSave").disabled=true; $("shErr").hidden=true;
   try{
+    if(file){ try{ entry.photo=await shrinkImage(file); }catch(e){ /* skip a bad image */ } }
     const res=await api({action:"feedpost", entry});
-    FEED=res.feed||[]; FEED_ME=res.me||FEED_ME;
+    FEED=res.feed||[]; FEED_ME=res.me||FEED_ME; FEED_FOLLOWS=res.follows||FEED_FOLLOWS;
     $("shareModal").classList.remove("open");
     if(location.hash==="#feed"){ renderFeed(); markFeedSeen(); }
     toast(entry.to?("Sent to "+entry.to+" 🍷"):"Shared to the feed 🍷");
   }catch(err){ $("shErr").textContent="Could not share: "+err.message; $("shErr").hidden=false; }
   $("shSave").disabled=false;
 }
+$("shPhoto").addEventListener("change", ()=>{
+  const f=$("shPhoto").files[0], prev=$("shPhotoPrev");
+  if(f){ prev.src=URL.createObjectURL(f); prev.hidden=false; $("shPhotoRemove").hidden=false; }
+  else { prev.hidden=true; prev.removeAttribute("src"); $("shPhotoRemove").hidden=true; }
+});
+$("shPhotoRemove").addEventListener("click", ()=>{ $("shPhoto").value=""; $("shPhotoPrev").hidden=true; $("shPhotoPrev").removeAttribute("src"); $("shPhotoRemove").hidden=true; });
 $("feedNewBtn").addEventListener("click", async()=>{ await ensureFeedUsers(); openShareModal(); });
 $("shCancel").addEventListener("click", ()=>$("shareModal").classList.remove("open"));
 $("shareModal").addEventListener("click", e=>{ if(e.target===$("shareModal")) $("shareModal").classList.remove("open"); });
 $("shareForm").addEventListener("submit", shareWine);
+
+async function toggleFollow(user, follow){
+  try{ const res=await api({action:follow?"follow":"unfollow", user}); FEED_FOLLOWS=res.follows||[]; renderFeed(); }
+  catch(err){ toast("Could not update follow: "+err.message); }
+}
 
 function route(){
   const h = location.hash;

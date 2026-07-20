@@ -18,7 +18,7 @@ const SHEET_NAME  = 'Ark1';             // tab name that holds the wine list
 const SIGNUP_CODE = '';                 // e.g. 'POUR-2026'; '' disables new signups
 // ─────────────────────────────────────────────────────────────────────────────
 
-const API_VERSION = 19; // returned in every response; used to verify deployments
+const API_VERSION = 20; // returned in every response; used to verify deployments
 
 // Per-request spreadsheet for the authenticated user. Set in handle(); every
 // sheet helper reads it via ss(). Falls back to the bound (owner's) spreadsheet.
@@ -137,19 +137,25 @@ function handle(p) {
         setWindow(Number(p.row), p.from, p.to);
         return json({ ok: true, wines: readAll() });
       case 'feed':
-        return json({ ok: true, feed: readFeed(200), me: CTX_USER, users: listUsers() });
+        return json({ ok: true, feed: readFeed(200), me: CTX_USER, users: listUsers(), follows: myFollows() });
       case 'feedpost':
         addFeed(p.entry || {});
-        return json({ ok: true, feed: readFeed(200), me: CTX_USER });
+        return json({ ok: true, feed: readFeed(200), me: CTX_USER, follows: myFollows() });
       case 'feeddelete':
         deleteFeed(Number(p.row));
-        return json({ ok: true, feed: readFeed(200), me: CTX_USER });
+        return json({ ok: true, feed: readFeed(200), me: CTX_USER, follows: myFollows() });
       case 'feedcheer':
         feedCheer(String(p.id || ''));
-        return json({ ok: true, feed: readFeed(200), me: CTX_USER });
+        return json({ ok: true, feed: readFeed(200), me: CTX_USER, follows: myFollows() });
       case 'feedcomment':
         addFeedComment(String(p.id || ''), p.text || '');
-        return json({ ok: true, feed: readFeed(200), me: CTX_USER });
+        return json({ ok: true, feed: readFeed(200), me: CTX_USER, follows: myFollows() });
+      case 'follow':
+        setFollow(String(p.user || ''), true);
+        return json({ ok: true, follows: myFollows() });
+      case 'unfollow':
+        setFollow(String(p.user || ''), false);
+        return json({ ok: true, follows: myFollows() });
       case 'journal':
         return json({ ok: true, entries: readJournal() });
       case 'jadd':
@@ -313,7 +319,8 @@ function makeOwner() {
 // bottles. Posting is opt-in per item; prices are never included. A post can be
 // addressed to one user (the "To" column) or left open to everyone.
 const FEED_SHEET = 'Feed';
-const FEED_COLS = ['Id', 'Time', 'From', 'Type', 'Producer', 'Wine', 'Vintage', 'Region', 'Rating', 'Note', 'To', 'Cheers'];
+const FEED_COLS = ['Id', 'Time', 'From', 'Type', 'Producer', 'Wine', 'Vintage', 'Region', 'Rating', 'Note', 'To', 'Cheers', 'Photo'];
+const FOLLOWS_SHEET = 'Follows';
 const FCMT_SHEET = 'FeedComments';
 const FCMT_COLS = ['PostId', 'Time', 'From', 'Text'];
 
@@ -353,16 +360,17 @@ function readFeed(limit) {
       row: start + i, id, time: feedTime(g(r, 'Time')), from: String(g(r, 'From') || ''), type: String(g(r, 'Type') || ''),
       producer: String(g(r, 'Producer') || ''), wine: String(g(r, 'Wine') || ''), vintage: g(r, 'Vintage') === '' ? '' : g(r, 'Vintage'),
       region: String(g(r, 'Region') || ''), rating: g(r, 'Rating') === '' ? '' : g(r, 'Rating'),
-      note: String(g(r, 'Note') || ''), to: String(g(r, 'To') || ''), cheers: cheers, comments: comments[id] || [],
+      note: String(g(r, 'Note') || ''), to: String(g(r, 'To') || ''), photo: String(g(r, 'Photo') || ''),
+      cheers: cheers, comments: comments[id] || [],
     };
-  }).filter(e => e.producer || e.wine || e.note);
+  }).filter(e => e.producer || e.wine || e.note || e.photo);
   out.reverse();
   return out;
 }
 
 function addFeed(e) {
   const from = CTX_USER || 'cellar';
-  if (!String(e.producer || '').trim() && !String(e.wine || '').trim() && !String(e.note || '').trim())
+  if (!String(e.producer || '').trim() && !String(e.wine || '').trim() && !String(e.note || '').trim() && !e.photo)
     throw new Error('Empty post');
   const sh = feedSheet(), idx = feedIdx(sh), row = new Array(sh.getLastColumn()).fill('');
   const set = (c, v) => { if (idx[c] >= 0) row[idx[c]] = v; };
@@ -370,7 +378,18 @@ function addFeed(e) {
   set('Time', new Date()); set('From', from); set('Type', String(e.type || 'note'));
   set('Producer', e.producer || ''); set('Wine', e.wine || ''); set('Vintage', e.vintage || '');
   set('Region', e.region || ''); set('Rating', e.rating || ''); set('Note', e.note || ''); set('To', e.to || '');
+  if (e.photo) set('Photo', savePhoto(e.photo, photoName({ date: '', producer: e.producer, wine: e.wine })));
   sh.appendRow(row);
+}
+
+// Feed photo ids (so getPhoto will serve them, same as journal photos).
+function feedPhotoIds() {
+  const sh = feedSheet(), idx = feedIdx(sh), last = sh.getLastRow(), ids = {};
+  if (idx.Photo < 0 || last < 2) return ids;
+  sh.getRange(2, idx.Photo + 1, last - 1, 1).getValues().forEach(r => {
+    const v = String(r[0] || '').trim(); if (v) ids[v] = true;
+  });
+  return ids;
 }
 
 // Toggle the current user's 🍷 cheer on a post (found by its stable id).
@@ -420,6 +439,33 @@ function addFeedComment(id, text) {
   id = String(id || ''); text = String(text || '').trim();
   if (!id || !text) throw new Error('Empty comment');
   fcmtSheet().appendRow([id, new Date(), CTX_USER || 'cellar', text]);
+}
+
+// ── Following (who each user follows) — a shared "Follows" tab ────────────────
+function followsSheet() {
+  const book = SpreadsheetApp.getActiveSpreadsheet();
+  let sh = book.getSheetByName(FOLLOWS_SHEET);
+  if (!sh) { sh = book.insertSheet(FOLLOWS_SHEET); sh.appendRow(['Follower', 'Following']); }
+  return sh;
+}
+// Usernames the current user follows.
+function myFollows() {
+  const sh = followsSheet(), last = sh.getLastRow(), me = String(CTX_USER || '').toLowerCase();
+  if (last < 2) return [];
+  return sh.getRange(2, 1, last - 1, 2).getValues()
+    .filter(r => String(r[0]).trim().toLowerCase() === me)
+    .map(r => String(r[1]).trim()).filter(Boolean);
+}
+function setFollow(target, on) {
+  target = String(target || '').trim();
+  const me = String(CTX_USER || '').trim();
+  if (!target || target.toLowerCase() === me.toLowerCase()) throw new Error('Bad target');
+  const sh = followsSheet(), last = sh.getLastRow();
+  const rows = last > 1 ? sh.getRange(2, 1, last - 1, 2).getValues() : [];
+  const at = rows.findIndex(r => String(r[0]).trim().toLowerCase() === me.toLowerCase()
+    && String(r[1]).trim().toLowerCase() === target.toLowerCase());
+  if (on && at < 0) sh.appendRow([me, target]);
+  else if (!on && at >= 0) sh.deleteRow(at + 2);
 }
 
 // Usernames of all accounts (for the "send to" picker). Names only, no secrets.
@@ -735,7 +781,8 @@ function journalPhotoIds() {
 
 function getPhoto(id) {
   if (!id) throw new Error('No photo id');
-  if (!journalPhotoIds()[id]) throw new Error('Unknown photo'); // only serve journal photos
+  // only serve photos that appear in this user's journal or in the shared feed
+  if (!journalPhotoIds()[id] && !feedPhotoIds()[id]) throw new Error('Unknown photo');
   const blob = DriveApp.getFileById(id).getBlob();
   return 'data:' + blob.getContentType() + ';base64,' + Utilities.base64Encode(blob.getBytes());
 }
