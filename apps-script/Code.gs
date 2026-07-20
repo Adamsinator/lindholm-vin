@@ -18,7 +18,7 @@ const SHEET_NAME  = 'Ark1';             // tab name that holds the wine list
 const SIGNUP_CODE = '';                 // e.g. 'POUR-2026'; '' disables new signups
 // ─────────────────────────────────────────────────────────────────────────────
 
-const API_VERSION = 18; // returned in every response; used to verify deployments
+const API_VERSION = 19; // returned in every response; used to verify deployments
 
 // Per-request spreadsheet for the authenticated user. Set in handle(); every
 // sheet helper reads it via ss(). Falls back to the bound (owner's) spreadsheet.
@@ -143,6 +143,12 @@ function handle(p) {
         return json({ ok: true, feed: readFeed(200), me: CTX_USER });
       case 'feeddelete':
         deleteFeed(Number(p.row));
+        return json({ ok: true, feed: readFeed(200), me: CTX_USER });
+      case 'feedcheer':
+        feedCheer(String(p.id || ''));
+        return json({ ok: true, feed: readFeed(200), me: CTX_USER });
+      case 'feedcomment':
+        addFeedComment(String(p.id || ''), p.text || '');
         return json({ ok: true, feed: readFeed(200), me: CTX_USER });
       case 'journal':
         return json({ ok: true, entries: readJournal() });
@@ -307,13 +313,22 @@ function makeOwner() {
 // bottles. Posting is opt-in per item; prices are never included. A post can be
 // addressed to one user (the "To" column) or left open to everyone.
 const FEED_SHEET = 'Feed';
-const FEED_COLS = ['Time', 'From', 'Type', 'Producer', 'Wine', 'Vintage', 'Region', 'Rating', 'Note', 'To'];
+const FEED_COLS = ['Id', 'Time', 'From', 'Type', 'Producer', 'Wine', 'Vintage', 'Region', 'Rating', 'Note', 'To', 'Cheers'];
+const FCMT_SHEET = 'FeedComments';
+const FCMT_COLS = ['PostId', 'Time', 'From', 'Text'];
 
 function feedSheet() {
   const book = SpreadsheetApp.getActiveSpreadsheet(); // shared — always the master book
   let sh = book.getSheetByName(FEED_SHEET);
-  if (!sh) { sh = book.insertSheet(FEED_SHEET); sh.appendRow(FEED_COLS); }
+  if (!sh) { sh = book.insertSheet(FEED_SHEET); sh.appendRow(FEED_COLS); return sh; }
+  // add any columns a pre-existing Feed tab is missing (e.g. Id/Cheers from an older version)
+  const head = sh.getRange(1, 1, 1, Math.max(1, sh.getLastColumn())).getValues()[0].map(String);
+  FEED_COLS.forEach(c => { if (head.indexOf(c) === -1) { sh.getRange(1, head.length + 1).setValue(c); head.push(c); } });
   return sh;
+}
+function feedIdx(sh) {
+  const head = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String);
+  const m = {}; FEED_COLS.forEach(c => m[c] = head.indexOf(c)); return m;
 }
 
 function feedTime(v) {
@@ -321,37 +336,90 @@ function feedTime(v) {
   return String(v || '');
 }
 
-// Newest first, capped to `limit`.
+// Newest first, capped to `limit`; each post carries its cheers + comments.
 function readFeed(limit) {
   const sh = feedSheet();
+  const idx = feedIdx(sh);
   const last = sh.getLastRow();
   if (last < 2) return [];
   const start = Math.max(2, last - (limit || 200) + 1);
-  const rows = sh.getRange(start, 1, last - start + 1, FEED_COLS.length).getValues();
-  const out = rows.map((r, i) => ({
-    row: start + i, time: feedTime(r[0]), from: String(r[1] || ''), type: String(r[2] || ''),
-    producer: String(r[3] || ''), wine: String(r[4] || ''), vintage: r[5] === '' ? '' : r[5],
-    region: String(r[6] || ''), rating: r[7] === '' ? '' : r[7], note: String(r[8] || ''), to: String(r[9] || ''),
-  })).filter(e => e.producer || e.wine || e.note);
+  const rows = sh.getRange(start, 1, last - start + 1, sh.getLastColumn()).getValues();
+  const comments = readFeedComments();
+  const g = (r, c) => idx[c] >= 0 ? r[idx[c]] : '';
+  const out = rows.map((r, i) => {
+    const id = String(g(r, 'Id') || '');
+    const cheers = String(g(r, 'Cheers') || '').split(',').map(s => s.trim()).filter(Boolean);
+    return {
+      row: start + i, id, time: feedTime(g(r, 'Time')), from: String(g(r, 'From') || ''), type: String(g(r, 'Type') || ''),
+      producer: String(g(r, 'Producer') || ''), wine: String(g(r, 'Wine') || ''), vintage: g(r, 'Vintage') === '' ? '' : g(r, 'Vintage'),
+      region: String(g(r, 'Region') || ''), rating: g(r, 'Rating') === '' ? '' : g(r, 'Rating'),
+      note: String(g(r, 'Note') || ''), to: String(g(r, 'To') || ''), cheers: cheers, comments: comments[id] || [],
+    };
+  }).filter(e => e.producer || e.wine || e.note);
   out.reverse();
   return out;
 }
 
 function addFeed(e) {
   const from = CTX_USER || 'cellar';
-  const type = String(e.type || 'note');
   if (!String(e.producer || '').trim() && !String(e.wine || '').trim() && !String(e.note || '').trim())
     throw new Error('Empty post');
-  feedSheet().appendRow([new Date(), from, type, e.producer || '', e.wine || '', e.vintage || '',
-    e.region || '', e.rating || '', e.note || '', e.to || '']);
+  const sh = feedSheet(), idx = feedIdx(sh), row = new Array(sh.getLastColumn()).fill('');
+  const set = (c, v) => { if (idx[c] >= 0) row[idx[c]] = v; };
+  set('Id', Utilities.getUuid().slice(0, 8));
+  set('Time', new Date()); set('From', from); set('Type', String(e.type || 'note'));
+  set('Producer', e.producer || ''); set('Wine', e.wine || ''); set('Vintage', e.vintage || '');
+  set('Region', e.region || ''); set('Rating', e.rating || ''); set('Note', e.note || ''); set('To', e.to || '');
+  sh.appendRow(row);
+}
+
+// Toggle the current user's 🍷 cheer on a post (found by its stable id).
+function feedCheer(id) {
+  id = String(id || ''); if (!id) throw new Error('Bad id');
+  const sh = feedSheet(), idx = feedIdx(sh), last = sh.getLastRow();
+  if (idx.Id < 0 || idx.Cheers < 0 || last < 2) return;
+  const ids = sh.getRange(2, idx.Id + 1, last - 1, 1).getValues();
+  for (let i = 0; i < ids.length; i++) {
+    if (String(ids[i][0]) === id) {
+      const cell = sh.getRange(i + 2, idx.Cheers + 1);
+      const list = String(cell.getValue() || '').split(',').map(s => s.trim()).filter(Boolean);
+      const me = String(CTX_USER || '').toLowerCase();
+      const pos = list.findIndex(u => u.toLowerCase() === me);
+      if (pos >= 0) list.splice(pos, 1); else list.push(CTX_USER || 'cellar');
+      cell.setValue(list.join(', '));
+      return;
+    }
+  }
 }
 
 function deleteFeed(rowNum) {
-  const sh = feedSheet();
+  const sh = feedSheet(), idx = feedIdx(sh);
   if (!rowNum || rowNum < 2 || rowNum > sh.getLastRow()) throw new Error('Bad row');
-  const from = String(sh.getRange(rowNum, 2).getValue() || '').trim().toLowerCase();
+  const from = String(sh.getRange(rowNum, idx.From + 1).getValue() || '').trim().toLowerCase();
   if (from !== String(CTX_USER || '').trim().toLowerCase()) throw new Error('not-your-post');
   sh.deleteRow(rowNum);
+}
+
+// ── Feed comments (own tab, keyed by the post's stable id) ────────────────────
+function fcmtSheet() {
+  const book = SpreadsheetApp.getActiveSpreadsheet();
+  let sh = book.getSheetByName(FCMT_SHEET);
+  if (!sh) { sh = book.insertSheet(FCMT_SHEET); sh.appendRow(FCMT_COLS); }
+  return sh;
+}
+function readFeedComments() {
+  const sh = fcmtSheet(), last = sh.getLastRow(), g = {};
+  if (last < 2) return g;
+  sh.getRange(2, 1, last - 1, FCMT_COLS.length).getValues().forEach(r => {
+    const id = String(r[0] || ''); if (!id) return;
+    (g[id] = g[id] || []).push({ time: feedTime(r[1]), from: String(r[2] || ''), text: String(r[3] || '') });
+  });
+  return g;
+}
+function addFeedComment(id, text) {
+  id = String(id || ''); text = String(text || '').trim();
+  if (!id || !text) throw new Error('Empty comment');
+  fcmtSheet().appendRow([id, new Date(), CTX_USER || 'cellar', text]);
 }
 
 // Usernames of all accounts (for the "send to" picker). Names only, no secrets.
