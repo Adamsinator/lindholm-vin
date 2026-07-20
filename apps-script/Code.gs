@@ -18,11 +18,12 @@ const SHEET_NAME  = 'Ark1';             // tab name that holds the wine list
 const SIGNUP_CODE = '';                 // e.g. 'POUR-2026'; '' disables new signups
 // ─────────────────────────────────────────────────────────────────────────────
 
-const API_VERSION = 17; // returned in every response; used to verify deployments
+const API_VERSION = 18; // returned in every response; used to verify deployments
 
 // Per-request spreadsheet for the authenticated user. Set in handle(); every
 // sheet helper reads it via ss(). Falls back to the bound (owner's) spreadsheet.
 let CTX = null;
+let CTX_USER = null; // authenticated username (for the shared social feed)
 function ss() { return CTX || SpreadsheetApp.getActiveSpreadsheet(); }
 
 // Column headers in row 1 of the sheet, mapped to API field names.
@@ -94,14 +95,17 @@ function handle(p) {
 
   // Authenticate: a multi-user token scopes to that user's own spreadsheet;
   // otherwise fall back to the legacy single access code + the bound spreadsheet.
+  CTX_USER = null;
   if (p.token || p.user) {
     const u = authToken(p);
     if (!u) return json({ ok: false, error: 'bad-token' });
     try { CTX = SpreadsheetApp.openById(u.spreadsheetId); }
     catch (err) { return json({ ok: false, error: 'no-cellar' }); }
+    CTX_USER = u.username;
   } else {
     if (String(p.code || '') !== ACCESS_CODE) return json({ ok: false, error: 'bad-code' });
     CTX = SpreadsheetApp.getActiveSpreadsheet();
+    CTX_USER = 'cellar';
   }
 
   try {
@@ -132,6 +136,14 @@ function handle(p) {
       case 'setwindow':
         setWindow(Number(p.row), p.from, p.to);
         return json({ ok: true, wines: readAll() });
+      case 'feed':
+        return json({ ok: true, feed: readFeed(200), me: CTX_USER, users: listUsers() });
+      case 'feedpost':
+        addFeed(p.entry || {});
+        return json({ ok: true, feed: readFeed(200), me: CTX_USER });
+      case 'feeddelete':
+        deleteFeed(Number(p.row));
+        return json({ ok: true, feed: readFeed(200), me: CTX_USER });
       case 'journal':
         return json({ ok: true, entries: readJournal() });
       case 'jadd':
@@ -288,6 +300,66 @@ function makeOwner() {
   usersSheet().appendRow([username, salt, hashPass(salt, password),
                           SpreadsheetApp.getActiveSpreadsheet().getId(), randToken(), today()]);
   return 'Owner account "' + username + '" created, pointing at this spreadsheet.';
+}
+
+// ── Social feed (shared across all accounts) ─────────────────────────────────
+// One "Feed" tab in the bound (owner's) spreadsheet holds everyone's shared
+// bottles. Posting is opt-in per item; prices are never included. A post can be
+// addressed to one user (the "To" column) or left open to everyone.
+const FEED_SHEET = 'Feed';
+const FEED_COLS = ['Time', 'From', 'Type', 'Producer', 'Wine', 'Vintage', 'Region', 'Rating', 'Note', 'To'];
+
+function feedSheet() {
+  const book = SpreadsheetApp.getActiveSpreadsheet(); // shared — always the master book
+  let sh = book.getSheetByName(FEED_SHEET);
+  if (!sh) { sh = book.insertSheet(FEED_SHEET); sh.appendRow(FEED_COLS); }
+  return sh;
+}
+
+function feedTime(v) {
+  if (v instanceof Date) return Utilities.formatDate(v, Session.getScriptTimeZone(), "yyyy-MM-dd'T'HH:mm");
+  return String(v || '');
+}
+
+// Newest first, capped to `limit`.
+function readFeed(limit) {
+  const sh = feedSheet();
+  const last = sh.getLastRow();
+  if (last < 2) return [];
+  const start = Math.max(2, last - (limit || 200) + 1);
+  const rows = sh.getRange(start, 1, last - start + 1, FEED_COLS.length).getValues();
+  const out = rows.map((r, i) => ({
+    row: start + i, time: feedTime(r[0]), from: String(r[1] || ''), type: String(r[2] || ''),
+    producer: String(r[3] || ''), wine: String(r[4] || ''), vintage: r[5] === '' ? '' : r[5],
+    region: String(r[6] || ''), rating: r[7] === '' ? '' : r[7], note: String(r[8] || ''), to: String(r[9] || ''),
+  })).filter(e => e.producer || e.wine || e.note);
+  out.reverse();
+  return out;
+}
+
+function addFeed(e) {
+  const from = CTX_USER || 'cellar';
+  const type = String(e.type || 'note');
+  if (!String(e.producer || '').trim() && !String(e.wine || '').trim() && !String(e.note || '').trim())
+    throw new Error('Empty post');
+  feedSheet().appendRow([new Date(), from, type, e.producer || '', e.wine || '', e.vintage || '',
+    e.region || '', e.rating || '', e.note || '', e.to || '']);
+}
+
+function deleteFeed(rowNum) {
+  const sh = feedSheet();
+  if (!rowNum || rowNum < 2 || rowNum > sh.getLastRow()) throw new Error('Bad row');
+  const from = String(sh.getRange(rowNum, 2).getValue() || '').trim().toLowerCase();
+  if (from !== String(CTX_USER || '').trim().toLowerCase()) throw new Error('not-your-post');
+  sh.deleteRow(rowNum);
+}
+
+// Usernames of all accounts (for the "send to" picker). Names only, no secrets.
+function listUsers() {
+  const sh = usersSheet();
+  const last = sh.getLastRow();
+  if (last < 2) return [];
+  return sh.getRange(2, 1, last - 1, 1).getValues().map(r => String(r[0]).trim()).filter(Boolean);
 }
 
 function sheet() {

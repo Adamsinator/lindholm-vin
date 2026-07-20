@@ -570,6 +570,7 @@ function detailHTML(w){
         ${r?`<span class="rbadge ${r.k}${r.est?" est":""}">${r.label}</span>`:""}
         ${r&&r.est?`<span class="est-note">estimated · type to set your own</span>`:""}</span>`;})()}
       <button class="jlog" data-row="${w.row}">📓 Log in journal</button>
+      <button class="fshare" data-row="${w.row}">📣 Share</button>
       ${searchLinks(w)}
       <button class="drink del" data-act="delete" data-row="${w.row}">🗑 Delete wine</button>
     </div>`;
@@ -671,6 +672,13 @@ function bindWineRows(scope){
       openJournalModal(w ? {producer:w.producer, wine:w.name, vintage:w.vintage,
         country:w.country, region:w.region, grape:w.grape} : null);
     }));
+  document.querySelectorAll(`${scope} button.fshare`).forEach(b=>
+    b.addEventListener("click",async()=>{
+      const w = WINES.find(x=>x.row===Number(b.dataset.row));
+      await ensureFeedUsers();
+      openShareModal(w ? {type: w.drunk>0?"drank":"bought", producer:w.producer, wine:w.name,
+        vintage:w.vintage, region:w.region, rating:w.rating||""} : null);
+    }));
 }
 
 /* ---------- actions ---------- */
@@ -684,7 +692,7 @@ async function loadData(){
     renderOverview(); renderTable(); renderEnjoyed();
     $("stamp").textContent = "Updated "+new Date().toLocaleString("da-DK",{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"});
     $("spin").hidden = true; $("content").hidden = false;
-    loadJournalSilently();
+    loadJournalSilently(); loadFeedSilently();
   }catch(err){
     if(AUTH_ERRORS.has(err.message)){ forgetAuth(); setGateMode("login"); showGate("Your session expired — log in again."); }
     else { $("spin").textContent = "Could not reach the cellar API ("+err.message+"). Check your connection and refresh."; }
@@ -835,7 +843,8 @@ function forgetAuth(){
   cfg.user=""; cfg.token="";
   // Drop the previous user's cached data so the next login can't see it (the
   // journal/wishlist loaders short-circuit on these).
-  WINES=[]; JENTRIES=null; WITEMS=null; KEEP_OPEN=null;
+  WINES=[]; JENTRIES=null; WITEMS=null; KEEP_OPEN=null; FEED=null; FEED_USERS=[];
+  const b=$("feedBadge"); if(b) b.hidden=true;
 }
 function enterApp(){ $("gate").hidden = true; $("app").hidden = false; markActive(); loadData(); route(); }
 
@@ -1077,6 +1086,22 @@ function buildProjector(W, pad, polys, extraPts){
   return { W, H, proj:([lng,lat])=>[pad+(lng*COS-minx)*s, pad+(maxy-lat)*s], r:(b)=>4+Math.sqrt(b)*1.7 };
 }
 
+// Smooth closed outline through projected [x,y] points (Catmull-Rom → cubic
+// béziers) so the coarse country polygons render as soft coastlines, not blocks.
+function landPath(latlngPoly, proj){
+  const p = latlngPoly.map(proj);
+  const n = p.length;
+  if(n < 3) return p.map((q,i)=>(i?"L":"M")+q.map(v=>v.toFixed(1)).join(" ")).join("")+"Z";
+  let d = "M"+p[0][0].toFixed(1)+" "+p[0][1].toFixed(1);
+  for(let i=0;i<n;i++){
+    const a=p[(i-1+n)%n], b=p[i], c=p[(i+1)%n], e=p[(i+2)%n];
+    const c1x=b[0]+(c[0]-a[0])/6, c1y=b[1]+(c[1]-a[1])/6;
+    const c2x=c[0]-(e[0]-b[0])/6, c2y=c[1]-(e[1]-b[1])/6;
+    d+="C"+c1x.toFixed(1)+" "+c1y.toFixed(1)+" "+c2x.toFixed(1)+" "+c2y.toFixed(1)+" "+c[0].toFixed(1)+" "+c[1].toFixed(1);
+  }
+  return d+"Z";
+}
+
 function updateMap(cellar){ LAST_CELLAR = cellar; renderMap(); }
 
 function renderMap(){
@@ -1112,10 +1137,7 @@ function renderEuropeMap(svg){
   const {W,H,proj,r}=buildProjector(600,24);
   const agg={};
   LAST_CELLAR.forEach(w=>{ const k=countryOf(w); if(!k) return; const a=agg[k.key] ??= {b:0,n:0}; a.b+=w.left; a.n++; });
-  let html = Object.values(LANDS).map(poly=>{
-    const d = poly.map((p,i)=>(i?"L":"M")+proj(p).map(n=>n.toFixed(1)).join(" ")).join("")+"Z";
-    return `<path class="land" d="${d}"/>`;
-  }).join("");
+  let html = Object.values(LANDS).map(poly=>`<path class="land" d="${landPath(poly,proj)}"/>`).join("");
   // faint English names for the backdrop countries
   html += NEIGHBOR_LABELS.map(([name,g])=>{
     const [x,y]=proj([g[1],g[0]]);
@@ -1155,7 +1177,7 @@ function renderCountryMap(svg, key){
   const extra = present.map(n=>REGION_GEO[n]);
   const {W,H,proj,r}=buildProjector(600,30,outline,extra);
   const HB = buckets.length ? 30 : 0;
-  let parts = outline.map(poly=>`<path class="land" d="${poly.map((p,i)=>(i?"L":"M")+proj(p).map(n=>n.toFixed(1)).join(" ")).join("")}Z"/>`).join("");
+  let parts = outline.map(poly=>`<path class="land" d="${landPath(poly,proj)}"/>`).join("");
   const placedL=[], placedR=[];
   present.forEach(n=>{
     const [x,y]=proj([REGION_GEO[n][1],REGION_GEO[n][0]]); const a=agg[n], rad=r(a.b);
@@ -1900,17 +1922,122 @@ $("wForm").addEventListener("submit", async e=>{
 });
 
 /* ---------- page routing ---------- */
+/* ---------- social feed ---------- */
+let FEED=null, FEED_ME="", FEED_USERS=[];
+const feedVerb = t => t==="bought" ? "bought" : t==="drank" ? "drank" : "shared";
+function feedLine(e){
+  return [e.producer, e.wine, e.vintage].map(x=>String(x==null?"":x).trim()).filter(Boolean).join(" ");
+}
+function fTime(iso){
+  if(!iso) return "";
+  const d=new Date(String(iso).replace(" ","T"));
+  return isNaN(d) ? esc(String(iso)) : d.toLocaleString("da-DK",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
+}
+function feedSeenKey(){ return "vinFeedSeen_"+(cfg.user||""); }
+function markFeedSeen(){ if(FEED&&FEED.length) localStorage.setItem(feedSeenKey(), FEED[0].time||""); updateFeedBadge(); }
+function updateFeedBadge(){
+  const seen=localStorage.getItem(feedSeenKey())||"", me=(cfg.user||"").toLowerCase();
+  const n=(FEED||[]).filter(e=>(e.time||"")>seen && e.to && e.to.toLowerCase()===me && (e.from||"").toLowerCase()!==me).length;
+  const b=$("feedBadge"); if(!b) return; if(n>0){ b.textContent=n; b.hidden=false; } else b.hidden=true;
+}
+
+// Background load on app open: refreshes the unread badge without marking read.
+async function loadFeedSilently(){
+  try{ const r=await api({action:"feed"}); FEED=r.feed||[]; FEED_ME=r.me||""; FEED_USERS=r.users||[];
+    if(location.hash==="#feed"){ renderFeed(); markFeedSeen(); } else updateFeedBadge();
+  }catch(e){ /* feed is optional; older API may not have it */ }
+}
+async function loadFeed(force){
+  if(FEED && !force){ renderFeed(); markFeedSeen(); return; }
+  $("feedSpin").hidden=false; $("feedList").innerHTML="";
+  try{
+    const res=await api({action:"feed"});
+    FEED=res.feed||[]; FEED_ME=res.me||cfg.user||""; FEED_USERS=res.users||[];
+    $("feedSpin").hidden=true; renderFeed(); markFeedSeen();
+  }catch(err){
+    $("feedSpin").hidden=true;
+    if(AUTH_ERRORS.has(err.message)){ forgetAuth(); setGateMode("login"); showGate("Your session expired — log in again."); }
+    else $("feedList").innerHTML=`<div class="spin">Could not load the feed (${esc(err.message)}). The Apps Script may need the latest redeploy.</div>`;
+  }
+}
+function renderFeed(){
+  const list=FEED||[], me=(FEED_ME||cfg.user||"").toLowerCase();
+  $("feedCount").textContent = list.length ? `${list.length} post${list.length>1?"s":""}` : "";
+  if(!list.length){ $("feedList").innerHTML=`<div class="spin">Nothing shared yet — press “＋ Share a bottle”.</div>`; updateFeedBadge(); return; }
+  $("feedList").innerHTML = list.map(e=>{
+    const mine=(e.from||"").toLowerCase()===me, tome=e.to && e.to.toLowerCase()===me && !mine, line=feedLine(e);
+    return `<div class="fcard${tome?" tome":""}">
+      <div class="ftop">
+        <span class="fwho">${esc(e.from||"?")}</span><span class="fverb">${esc(feedVerb(e.type))}</span>
+        ${e.to?`<span class="fto">→ ${esc(e.to)}${tome?" (you)":""}</span>`:``}
+        <span class="ftime">${fTime(e.time)}</span>
+        ${mine?`<button class="fdel" data-row="${e.row}" title="Delete post">🗑</button>`:``}
+      </div>
+      ${line?`<div class="fwine"><b>${esc(line)}</b>${e.rating?` · <span class="myscore">${esc(e.rating)}/10</span>`:""}</div>`:``}
+      ${e.region?`<div class="fmeta">${esc(e.region)}</div>`:``}
+      ${e.note?`<div class="fnote">${esc(e.note)}</div>`:``}
+    </div>`;
+  }).join("");
+  $("feedList").querySelectorAll(".fdel").forEach(b=>b.addEventListener("click", async()=>{
+    if(!confirm("Delete this post?")) return;
+    try{ const res=await api({action:"feeddelete", row:Number(b.dataset.row)}); FEED=res.feed||[]; renderFeed(); toast("Post deleted"); }
+    catch(err){ toast("Could not delete: "+err.message); }
+  }));
+  updateFeedBadge();
+}
+function openShareModal(prefill){
+  prefill=prefill||{};
+  $("shType").value=prefill.type||"drank";
+  $("shProducer").value=prefill.producer||"";
+  $("shWine").value=prefill.wine||"";
+  $("shVintage").value=prefill.vintage!=null?prefill.vintage:"";
+  $("shRegion").value=prefill.region||"";
+  $("shRating").value=prefill.rating||"";
+  $("shNote").value="";
+  const me=(cfg.user||"").toLowerCase();
+  $("shTo").innerHTML=`<option value="">Everyone</option>`+
+    (FEED_USERS||[]).filter(u=>u.toLowerCase()!==me).map(u=>`<option value="${esc(u)}">${esc(u)}</option>`).join("");
+  $("shErr").hidden=true;
+  $("shareModal").classList.add("open"); $("shProducer").focus();
+}
+async function ensureFeedUsers(){ if(FEED_USERS&&FEED_USERS.length) return;
+  try{ const r=await api({action:"feed"}); FEED=r.feed||[]; FEED_ME=r.me||""; FEED_USERS=r.users||[]; }catch(e){} }
+async function shareWine(ev){
+  if(ev) ev.preventDefault();
+  const entry={ type:$("shType").value, to:$("shTo").value,
+    producer:$("shProducer").value.trim(), wine:$("shWine").value.trim(),
+    vintage:$("shVintage").value.trim(), region:$("shRegion").value.trim(),
+    rating:$("shRating").value, note:$("shNote").value.trim() };
+  if(!entry.producer && !entry.wine && !entry.note){ $("shErr").textContent="Add a wine or a note."; $("shErr").hidden=false; return; }
+  $("shSave").disabled=true;
+  try{
+    const res=await api({action:"feedpost", entry});
+    FEED=res.feed||[]; FEED_ME=res.me||FEED_ME;
+    $("shareModal").classList.remove("open");
+    if(location.hash==="#feed"){ renderFeed(); markFeedSeen(); }
+    toast(entry.to?("Sent to "+entry.to+" 🍷"):"Shared to the feed 🍷");
+  }catch(err){ $("shErr").textContent="Could not share: "+err.message; $("shErr").hidden=false; }
+  $("shSave").disabled=false;
+}
+$("feedNewBtn").addEventListener("click", async()=>{ await ensureFeedUsers(); openShareModal(); });
+$("shCancel").addEventListener("click", ()=>$("shareModal").classList.remove("open"));
+$("shareModal").addEventListener("click", e=>{ if(e.target===$("shareModal")) $("shareModal").classList.remove("open"); });
+$("shareForm").addEventListener("submit", shareWine);
+
 function route(){
   const h = location.hash;
-  const page = h==="#journal" ? "journal" : h==="#enjoyed" ? "enjoyed" : h==="#wishlist" ? "wishlist" : "cellar";
+  const page = h==="#journal" ? "journal" : h==="#enjoyed" ? "enjoyed" : h==="#wishlist" ? "wishlist"
+             : h==="#feed" ? "feed" : "cellar";
   $("pageCellar").hidden = page!=="cellar";
   $("pageEnjoyed").hidden = page!=="enjoyed";
   $("pageWishlist").hidden = page!=="wishlist";
   $("pageJournal").hidden = page!=="journal";
+  $("pageFeed").hidden = page!=="feed";
   document.querySelectorAll(".tab").forEach(t=>
     t.classList.toggle("active", t.dataset.page===page));
   if(page==="journal" && cfg.token) loadJournal();
   if(page==="wishlist" && cfg.token) loadWishlist();
+  if(page==="feed" && cfg.token) loadFeed();
   if(page==="enjoyed") renderEnjoyed();
 }
 document.querySelectorAll(".tab").forEach(t=>
