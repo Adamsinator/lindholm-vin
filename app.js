@@ -932,7 +932,22 @@ const LANDS = {
   Portugal:[[-8.9,37.0],[-8.2,37.1],[-7.4,37.2],[-7.0,38.0],[-7.5,38.8],[-7.0,39.7],[-6.9,41.0],[-8.2,41.9],[-8.8,41.9],[-9.0,41.0],[-9.4,39.4],[-9.0,38.5],[-8.8,37.7]],
   Austria:[[9.6,47.0],[10.5,47.0],[11.0,46.8],[12.4,46.7],[13.7,46.5],[15.0,46.6],[16.0,46.8],[16.9,47.5],[16.5,48.3],[15.0,48.8],[13.7,48.6],[12.8,48.2],[11.0,47.5],[9.6,47.5]],
   Denmark:[[8.1,55.0],[8.1,56.5],[8.6,57.1],[9.6,57.6],[10.5,57.3],[10.7,56.6],[10.2,56.0],[10.6,55.5],[12.6,55.6],[12.3,55.0],[11.0,54.8],[9.4,54.8],[8.5,54.9]],
+  // Neighbours — backdrop only, so the map reads as Europe (stylized, low-detail).
+  "United Kingdom":[[-5.0,50.0],[-3.5,50.2],[-1.0,50.6],[0.6,51.1],[1.4,51.8],[1.7,52.8],[0.4,53.2],[-0.2,54.5],[-1.8,56.0],[-2.0,57.5],[-3.0,58.6],[-5.0,58.6],[-5.8,57.3],[-5.2,56.0],[-5.0,55.0],[-3.6,54.6],[-3.1,54.1],[-3.0,53.4],[-4.5,52.9],[-5.0,51.7],[-4.0,51.6],[-3.0,51.1],[-4.2,50.4],[-5.0,50.0]],
+  Ireland:[[-10.2,51.6],[-9.0,51.4],[-6.5,52.2],[-6.0,52.9],[-6.1,53.9],[-6.3,54.7],[-8.2,55.3],[-9.9,54.3],[-10.5,53.4],[-9.7,52.6],[-10.2,51.6]],
+  Netherlands:[[3.4,51.4],[4.2,51.4],[5.0,51.4],[6.1,51.9],[7.0,52.6],[7.1,53.4],[6.0,53.5],[5.0,52.9],[4.5,52.4],[4.0,52.0],[3.4,51.4]],
+  Belgium:[[2.5,51.1],[3.4,51.4],[4.8,51.4],[5.9,50.9],[6.4,50.3],[5.8,49.5],[4.8,49.7],[3.7,50.3],[2.9,50.7],[2.5,51.1]],
+  Norway:[[4.9,58.1],[6.5,58.1],[9.5,59.0],[11.0,59.9],[12.0,61.0],[12.6,62.8],[11.0,63.4],[9.0,63.0],[7.0,62.7],[5.5,61.5],[5.0,60.0],[4.9,58.1]],
+  Sweden:[[11.2,58.9],[12.9,55.4],[14.5,56.1],[16.4,56.4],[18.9,58.5],[19.1,60.2],[17.6,62.0],[15.5,63.2],[13.0,63.6],[12.3,61.5],[11.9,59.8],[11.2,58.9]],
+  Poland:[[14.1,52.9],[14.6,53.9],[18.4,54.6],[19.7,54.4],[23.2,54.3],[23.6,52.1],[24.1,50.8],[22.6,49.1],[19.5,49.4],[17.7,50.0],[15.0,50.9],[14.4,51.6],[14.1,52.9]],
+  Czechia:[[12.1,50.2],[13.6,50.8],[15.0,51.0],[16.6,50.2],[18.6,49.9],[18.0,49.0],[16.0,48.7],[14.0,48.7],[12.5,49.3],[12.1,50.2]],
 };
+// Faint English labels for the backdrop (non-wine) countries. [name, [lat,lng]].
+const NEIGHBOR_LABELS = [
+  ["United Kingdom",[53.4,-1.8]], ["Ireland",[53.3,-8.3]], ["Netherlands",[52.4,5.6]],
+  ["Belgium",[50.6,4.6]], ["Switzerland",[46.85,8.2]], ["Norway",[61.2,8.6]],
+  ["Sweden",[61.0,15.2]], ["Poland",[52.2,19.6]], ["Czechia",[49.8,15.4]],
+];
 // Focus countries for the top-level map: matcher keys (against the wine's country
 // field, which may be Danish or English) and a dot position inside the outline.
 const COUNTRIES = [
@@ -944,7 +959,7 @@ const COUNTRIES = [
   {key:"Austria",  geo:[47.60,14.60], match:["ostrig","oestrig","austria","osterreich","oesterreich"]},
   {key:"Denmark",  geo:[56.00,9.40],  match:["danmark","denmark"]},
 ];
-const COUNTRY_EN = {France:"France",Italy:"Italien",Germany:"Tyskland",Spain:"Spanien",Portugal:"Portugal",Austria:"Østrig",Denmark:"Danmark"};
+const COUNTRY_EN = {France:"France",Italy:"Italy",Germany:"Germany",Spain:"Spain",Portugal:"Portugal",Austria:"Austria",Denmark:"Denmark"};
 function countryOf(w){ const c=normName(w.country); return COUNTRIES.find(k=>k.match.some(m=>c.includes(m))) || null; }
 // Which country a drill-down region lives in (for the map's back button).
 const REGION_COUNTRY = {Bourgogne:"France",Champagne:"France",Mosel:"Germany",Piemonte:"Italy"};
@@ -1100,6 +1115,11 @@ function renderEuropeMap(svg){
   let html = Object.values(LANDS).map(poly=>{
     const d = poly.map((p,i)=>(i?"L":"M")+proj(p).map(n=>n.toFixed(1)).join(" ")).join("")+"Z";
     return `<path class="land" d="${d}"/>`;
+  }).join("");
+  // faint English names for the backdrop countries
+  html += NEIGHBOR_LABELS.map(([name,g])=>{
+    const [x,y]=proj([g[1],g[0]]);
+    return `<text class="cname" text-anchor="middle" x="${x.toFixed(1)}" y="${y.toFixed(1)}">${esc(name)}</text>`;
   }).join("");
   const present = COUNTRIES.filter(c=>agg[c.key]).sort((a,b)=>agg[b.key].b-agg[a.key].b);
   html += present.map(c=>{
