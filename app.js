@@ -570,6 +570,7 @@ function detailHTML(w){
         ${r?`<span class="rbadge ${r.k}${r.est?" est":""}">${r.label}</span>`:""}
         ${r&&r.est?`<span class="est-note">estimated · type to set your own</span>`:""}</span>`;})()}
       <button class="jlog" data-row="${w.row}">📓 Log in journal</button>
+      <button class="fshare" data-row="${w.row}">📣 Share</button>
       ${searchLinks(w)}
       <button class="drink del" data-act="delete" data-row="${w.row}">🗑 Delete wine</button>
     </div>`;
@@ -671,6 +672,13 @@ function bindWineRows(scope){
       openJournalModal(w ? {producer:w.producer, wine:w.name, vintage:w.vintage,
         country:w.country, region:w.region, grape:w.grape} : null);
     }));
+  document.querySelectorAll(`${scope} button.fshare`).forEach(b=>
+    b.addEventListener("click",async()=>{
+      const w = WINES.find(x=>x.row===Number(b.dataset.row));
+      await ensureFeedUsers();
+      openShareModal(w ? {type: w.drunk>0?"drank":"bought", producer:w.producer, wine:w.name,
+        vintage:w.vintage, region:w.region, rating:w.rating||""} : null);
+    }));
 }
 
 /* ---------- actions ---------- */
@@ -684,7 +692,7 @@ async function loadData(){
     renderOverview(); renderTable(); renderEnjoyed();
     $("stamp").textContent = "Updated "+new Date().toLocaleString("da-DK",{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"});
     $("spin").hidden = true; $("content").hidden = false;
-    loadJournalSilently();
+    loadJournalSilently(); loadFeedSilently();
   }catch(err){
     if(AUTH_ERRORS.has(err.message)){ forgetAuth(); setGateMode("login"); showGate("Your session expired — log in again."); }
     else { $("spin").textContent = "Could not reach the cellar API ("+err.message+"). Check your connection and refresh."; }
@@ -835,7 +843,8 @@ function forgetAuth(){
   cfg.user=""; cfg.token="";
   // Drop the previous user's cached data so the next login can't see it (the
   // journal/wishlist loaders short-circuit on these).
-  WINES=[]; JENTRIES=null; WITEMS=null; KEEP_OPEN=null;
+  WINES=[]; JENTRIES=null; WITEMS=null; KEEP_OPEN=null; FEED=null; FEED_USERS=[];
+  const b=$("feedBadge"); if(b) b.hidden=true;
 }
 function enterApp(){ $("gate").hidden = true; $("app").hidden = false; markActive(); loadData(); route(); }
 
@@ -932,7 +941,22 @@ const LANDS = {
   Portugal:[[-8.9,37.0],[-8.2,37.1],[-7.4,37.2],[-7.0,38.0],[-7.5,38.8],[-7.0,39.7],[-6.9,41.0],[-8.2,41.9],[-8.8,41.9],[-9.0,41.0],[-9.4,39.4],[-9.0,38.5],[-8.8,37.7]],
   Austria:[[9.6,47.0],[10.5,47.0],[11.0,46.8],[12.4,46.7],[13.7,46.5],[15.0,46.6],[16.0,46.8],[16.9,47.5],[16.5,48.3],[15.0,48.8],[13.7,48.6],[12.8,48.2],[11.0,47.5],[9.6,47.5]],
   Denmark:[[8.1,55.0],[8.1,56.5],[8.6,57.1],[9.6,57.6],[10.5,57.3],[10.7,56.6],[10.2,56.0],[10.6,55.5],[12.6,55.6],[12.3,55.0],[11.0,54.8],[9.4,54.8],[8.5,54.9]],
+  // Neighbours — backdrop only, so the map reads as Europe (stylized, low-detail).
+  "United Kingdom":[[-5.0,50.0],[-3.5,50.2],[-1.0,50.6],[0.6,51.1],[1.4,51.8],[1.7,52.8],[0.4,53.2],[-0.2,54.5],[-1.8,56.0],[-2.0,57.5],[-3.0,58.6],[-5.0,58.6],[-5.8,57.3],[-5.2,56.0],[-5.0,55.0],[-3.6,54.6],[-3.1,54.1],[-3.0,53.4],[-4.5,52.9],[-5.0,51.7],[-4.0,51.6],[-3.0,51.1],[-4.2,50.4],[-5.0,50.0]],
+  Ireland:[[-10.2,51.6],[-9.0,51.4],[-6.5,52.2],[-6.0,52.9],[-6.1,53.9],[-6.3,54.7],[-8.2,55.3],[-9.9,54.3],[-10.5,53.4],[-9.7,52.6],[-10.2,51.6]],
+  Netherlands:[[3.4,51.4],[4.2,51.4],[5.0,51.4],[6.1,51.9],[7.0,52.6],[7.1,53.4],[6.0,53.5],[5.0,52.9],[4.5,52.4],[4.0,52.0],[3.4,51.4]],
+  Belgium:[[2.5,51.1],[3.4,51.4],[4.8,51.4],[5.9,50.9],[6.4,50.3],[5.8,49.5],[4.8,49.7],[3.7,50.3],[2.9,50.7],[2.5,51.1]],
+  Norway:[[4.9,58.1],[6.5,58.1],[9.5,59.0],[11.0,59.9],[12.0,61.0],[12.6,62.8],[11.0,63.4],[9.0,63.0],[7.0,62.7],[5.5,61.5],[5.0,60.0],[4.9,58.1]],
+  Sweden:[[11.2,58.9],[12.9,55.4],[14.5,56.1],[16.4,56.4],[18.9,58.5],[19.1,60.2],[17.6,62.0],[15.5,63.2],[13.0,63.6],[12.3,61.5],[11.9,59.8],[11.2,58.9]],
+  Poland:[[14.1,52.9],[14.6,53.9],[18.4,54.6],[19.7,54.4],[23.2,54.3],[23.6,52.1],[24.1,50.8],[22.6,49.1],[19.5,49.4],[17.7,50.0],[15.0,50.9],[14.4,51.6],[14.1,52.9]],
+  Czechia:[[12.1,50.2],[13.6,50.8],[15.0,51.0],[16.6,50.2],[18.6,49.9],[18.0,49.0],[16.0,48.7],[14.0,48.7],[12.5,49.3],[12.1,50.2]],
 };
+// Faint English labels for the backdrop (non-wine) countries. [name, [lat,lng]].
+const NEIGHBOR_LABELS = [
+  ["United Kingdom",[53.4,-1.8]], ["Ireland",[53.3,-8.3]], ["Netherlands",[52.4,5.6]],
+  ["Belgium",[50.6,4.6]], ["Switzerland",[46.85,8.2]], ["Norway",[61.2,8.6]],
+  ["Sweden",[61.0,15.2]], ["Poland",[52.2,19.6]], ["Czechia",[49.8,15.4]],
+];
 // Focus countries for the top-level map: matcher keys (against the wine's country
 // field, which may be Danish or English) and a dot position inside the outline.
 const COUNTRIES = [
@@ -944,7 +968,7 @@ const COUNTRIES = [
   {key:"Austria",  geo:[47.60,14.60], match:["ostrig","oestrig","austria","osterreich","oesterreich"]},
   {key:"Denmark",  geo:[56.00,9.40],  match:["danmark","denmark"]},
 ];
-const COUNTRY_EN = {France:"France",Italy:"Italien",Germany:"Tyskland",Spain:"Spanien",Portugal:"Portugal",Austria:"Østrig",Denmark:"Danmark"};
+const COUNTRY_EN = {France:"France",Italy:"Italy",Germany:"Germany",Spain:"Spain",Portugal:"Portugal",Austria:"Austria",Denmark:"Denmark"};
 function countryOf(w){ const c=normName(w.country); return COUNTRIES.find(k=>k.match.some(m=>c.includes(m))) || null; }
 // Which country a drill-down region lives in (for the map's back button).
 const REGION_COUNTRY = {Bourgogne:"France",Champagne:"France",Mosel:"Germany",Piemonte:"Italy"};
@@ -1062,6 +1086,22 @@ function buildProjector(W, pad, polys, extraPts){
   return { W, H, proj:([lng,lat])=>[pad+(lng*COS-minx)*s, pad+(maxy-lat)*s], r:(b)=>4+Math.sqrt(b)*1.7 };
 }
 
+// Smooth closed outline through projected [x,y] points (Catmull-Rom → cubic
+// béziers) so the coarse country polygons render as soft coastlines, not blocks.
+function landPath(latlngPoly, proj){
+  const p = latlngPoly.map(proj);
+  const n = p.length;
+  if(n < 3) return p.map((q,i)=>(i?"L":"M")+q.map(v=>v.toFixed(1)).join(" ")).join("")+"Z";
+  let d = "M"+p[0][0].toFixed(1)+" "+p[0][1].toFixed(1);
+  for(let i=0;i<n;i++){
+    const a=p[(i-1+n)%n], b=p[i], c=p[(i+1)%n], e=p[(i+2)%n];
+    const c1x=b[0]+(c[0]-a[0])/6, c1y=b[1]+(c[1]-a[1])/6;
+    const c2x=c[0]-(e[0]-b[0])/6, c2y=c[1]-(e[1]-b[1])/6;
+    d+="C"+c1x.toFixed(1)+" "+c1y.toFixed(1)+" "+c2x.toFixed(1)+" "+c2y.toFixed(1)+" "+c[0].toFixed(1)+" "+c[1].toFixed(1);
+  }
+  return d+"Z";
+}
+
 function updateMap(cellar){ LAST_CELLAR = cellar; renderMap(); }
 
 function renderMap(){
@@ -1097,9 +1137,11 @@ function renderEuropeMap(svg){
   const {W,H,proj,r}=buildProjector(600,24);
   const agg={};
   LAST_CELLAR.forEach(w=>{ const k=countryOf(w); if(!k) return; const a=agg[k.key] ??= {b:0,n:0}; a.b+=w.left; a.n++; });
-  let html = Object.values(LANDS).map(poly=>{
-    const d = poly.map((p,i)=>(i?"L":"M")+proj(p).map(n=>n.toFixed(1)).join(" ")).join("")+"Z";
-    return `<path class="land" d="${d}"/>`;
+  let html = Object.values(LANDS).map(poly=>`<path class="land" d="${landPath(poly,proj)}"/>`).join("");
+  // faint English names for the backdrop countries
+  html += NEIGHBOR_LABELS.map(([name,g])=>{
+    const [x,y]=proj([g[1],g[0]]);
+    return `<text class="cname" text-anchor="middle" x="${x.toFixed(1)}" y="${y.toFixed(1)}">${esc(name)}</text>`;
   }).join("");
   const present = COUNTRIES.filter(c=>agg[c.key]).sort((a,b)=>agg[b.key].b-agg[a.key].b);
   html += present.map(c=>{
@@ -1135,7 +1177,7 @@ function renderCountryMap(svg, key){
   const extra = present.map(n=>REGION_GEO[n]);
   const {W,H,proj,r}=buildProjector(600,30,outline,extra);
   const HB = buckets.length ? 30 : 0;
-  let parts = outline.map(poly=>`<path class="land" d="${poly.map((p,i)=>(i?"L":"M")+proj(p).map(n=>n.toFixed(1)).join(" ")).join("")}Z"/>`).join("");
+  let parts = outline.map(poly=>`<path class="land" d="${landPath(poly,proj)}"/>`).join("");
   const placedL=[], placedR=[];
   present.forEach(n=>{
     const [x,y]=proj([REGION_GEO[n][1],REGION_GEO[n][0]]); const a=agg[n], rad=r(a.b);
@@ -1880,17 +1922,122 @@ $("wForm").addEventListener("submit", async e=>{
 });
 
 /* ---------- page routing ---------- */
+/* ---------- social feed ---------- */
+let FEED=null, FEED_ME="", FEED_USERS=[];
+const feedVerb = t => t==="bought" ? "bought" : t==="drank" ? "drank" : "shared";
+function feedLine(e){
+  return [e.producer, e.wine, e.vintage].map(x=>String(x==null?"":x).trim()).filter(Boolean).join(" ");
+}
+function fTime(iso){
+  if(!iso) return "";
+  const d=new Date(String(iso).replace(" ","T"));
+  return isNaN(d) ? esc(String(iso)) : d.toLocaleString("da-DK",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
+}
+function feedSeenKey(){ return "vinFeedSeen_"+(cfg.user||""); }
+function markFeedSeen(){ if(FEED&&FEED.length) localStorage.setItem(feedSeenKey(), FEED[0].time||""); updateFeedBadge(); }
+function updateFeedBadge(){
+  const seen=localStorage.getItem(feedSeenKey())||"", me=(cfg.user||"").toLowerCase();
+  const n=(FEED||[]).filter(e=>(e.time||"")>seen && e.to && e.to.toLowerCase()===me && (e.from||"").toLowerCase()!==me).length;
+  const b=$("feedBadge"); if(!b) return; if(n>0){ b.textContent=n; b.hidden=false; } else b.hidden=true;
+}
+
+// Background load on app open: refreshes the unread badge without marking read.
+async function loadFeedSilently(){
+  try{ const r=await api({action:"feed"}); FEED=r.feed||[]; FEED_ME=r.me||""; FEED_USERS=r.users||[];
+    if(location.hash==="#feed"){ renderFeed(); markFeedSeen(); } else updateFeedBadge();
+  }catch(e){ /* feed is optional; older API may not have it */ }
+}
+async function loadFeed(force){
+  if(FEED && !force){ renderFeed(); markFeedSeen(); return; }
+  $("feedSpin").hidden=false; $("feedList").innerHTML="";
+  try{
+    const res=await api({action:"feed"});
+    FEED=res.feed||[]; FEED_ME=res.me||cfg.user||""; FEED_USERS=res.users||[];
+    $("feedSpin").hidden=true; renderFeed(); markFeedSeen();
+  }catch(err){
+    $("feedSpin").hidden=true;
+    if(AUTH_ERRORS.has(err.message)){ forgetAuth(); setGateMode("login"); showGate("Your session expired — log in again."); }
+    else $("feedList").innerHTML=`<div class="spin">Could not load the feed (${esc(err.message)}). The Apps Script may need the latest redeploy.</div>`;
+  }
+}
+function renderFeed(){
+  const list=FEED||[], me=(FEED_ME||cfg.user||"").toLowerCase();
+  $("feedCount").textContent = list.length ? `${list.length} post${list.length>1?"s":""}` : "";
+  if(!list.length){ $("feedList").innerHTML=`<div class="spin">Nothing shared yet — press “＋ Share a bottle”.</div>`; updateFeedBadge(); return; }
+  $("feedList").innerHTML = list.map(e=>{
+    const mine=(e.from||"").toLowerCase()===me, tome=e.to && e.to.toLowerCase()===me && !mine, line=feedLine(e);
+    return `<div class="fcard${tome?" tome":""}">
+      <div class="ftop">
+        <span class="fwho">${esc(e.from||"?")}</span><span class="fverb">${esc(feedVerb(e.type))}</span>
+        ${e.to?`<span class="fto">→ ${esc(e.to)}${tome?" (you)":""}</span>`:``}
+        <span class="ftime">${fTime(e.time)}</span>
+        ${mine?`<button class="fdel" data-row="${e.row}" title="Delete post">🗑</button>`:``}
+      </div>
+      ${line?`<div class="fwine"><b>${esc(line)}</b>${e.rating?` · <span class="myscore">${esc(e.rating)}/10</span>`:""}</div>`:``}
+      ${e.region?`<div class="fmeta">${esc(e.region)}</div>`:``}
+      ${e.note?`<div class="fnote">${esc(e.note)}</div>`:``}
+    </div>`;
+  }).join("");
+  $("feedList").querySelectorAll(".fdel").forEach(b=>b.addEventListener("click", async()=>{
+    if(!confirm("Delete this post?")) return;
+    try{ const res=await api({action:"feeddelete", row:Number(b.dataset.row)}); FEED=res.feed||[]; renderFeed(); toast("Post deleted"); }
+    catch(err){ toast("Could not delete: "+err.message); }
+  }));
+  updateFeedBadge();
+}
+function openShareModal(prefill){
+  prefill=prefill||{};
+  $("shType").value=prefill.type||"drank";
+  $("shProducer").value=prefill.producer||"";
+  $("shWine").value=prefill.wine||"";
+  $("shVintage").value=prefill.vintage!=null?prefill.vintage:"";
+  $("shRegion").value=prefill.region||"";
+  $("shRating").value=prefill.rating||"";
+  $("shNote").value="";
+  const me=(cfg.user||"").toLowerCase();
+  $("shTo").innerHTML=`<option value="">Everyone</option>`+
+    (FEED_USERS||[]).filter(u=>u.toLowerCase()!==me).map(u=>`<option value="${esc(u)}">${esc(u)}</option>`).join("");
+  $("shErr").hidden=true;
+  $("shareModal").classList.add("open"); $("shProducer").focus();
+}
+async function ensureFeedUsers(){ if(FEED_USERS&&FEED_USERS.length) return;
+  try{ const r=await api({action:"feed"}); FEED=r.feed||[]; FEED_ME=r.me||""; FEED_USERS=r.users||[]; }catch(e){} }
+async function shareWine(ev){
+  if(ev) ev.preventDefault();
+  const entry={ type:$("shType").value, to:$("shTo").value,
+    producer:$("shProducer").value.trim(), wine:$("shWine").value.trim(),
+    vintage:$("shVintage").value.trim(), region:$("shRegion").value.trim(),
+    rating:$("shRating").value, note:$("shNote").value.trim() };
+  if(!entry.producer && !entry.wine && !entry.note){ $("shErr").textContent="Add a wine or a note."; $("shErr").hidden=false; return; }
+  $("shSave").disabled=true;
+  try{
+    const res=await api({action:"feedpost", entry});
+    FEED=res.feed||[]; FEED_ME=res.me||FEED_ME;
+    $("shareModal").classList.remove("open");
+    if(location.hash==="#feed"){ renderFeed(); markFeedSeen(); }
+    toast(entry.to?("Sent to "+entry.to+" 🍷"):"Shared to the feed 🍷");
+  }catch(err){ $("shErr").textContent="Could not share: "+err.message; $("shErr").hidden=false; }
+  $("shSave").disabled=false;
+}
+$("feedNewBtn").addEventListener("click", async()=>{ await ensureFeedUsers(); openShareModal(); });
+$("shCancel").addEventListener("click", ()=>$("shareModal").classList.remove("open"));
+$("shareModal").addEventListener("click", e=>{ if(e.target===$("shareModal")) $("shareModal").classList.remove("open"); });
+$("shareForm").addEventListener("submit", shareWine);
+
 function route(){
   const h = location.hash;
-  const page = h==="#journal" ? "journal" : h==="#enjoyed" ? "enjoyed" : h==="#wishlist" ? "wishlist" : "cellar";
+  const page = h==="#journal" ? "journal" : h==="#enjoyed" ? "enjoyed" : h==="#wishlist" ? "wishlist"
+             : h==="#feed" ? "feed" : "cellar";
   $("pageCellar").hidden = page!=="cellar";
   $("pageEnjoyed").hidden = page!=="enjoyed";
   $("pageWishlist").hidden = page!=="wishlist";
   $("pageJournal").hidden = page!=="journal";
+  $("pageFeed").hidden = page!=="feed";
   document.querySelectorAll(".tab").forEach(t=>
     t.classList.toggle("active", t.dataset.page===page));
   if(page==="journal" && cfg.token) loadJournal();
   if(page==="wishlist" && cfg.token) loadWishlist();
+  if(page==="feed" && cfg.token) loadFeed();
   if(page==="enjoyed") renderEnjoyed();
 }
 document.querySelectorAll(".tab").forEach(t=>

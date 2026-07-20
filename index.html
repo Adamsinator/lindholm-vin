@@ -242,6 +242,7 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
 #map .dot:hover,#map .dot.on{fill-opacity:.9}
 #map .dlabel{fill:var(--ink);font-size:11px;font-weight:600;paint-order:stroke;stroke:var(--card);stroke-width:3px;stroke-linejoin:round;pointer-events:none}
 #map .dsub{fill:var(--muted);font-size:9px;paint-order:stroke;stroke:var(--card);stroke-width:3px;pointer-events:none}
+#map .cname{fill:var(--muted);font-size:8.5px;letter-spacing:.02em;opacity:.6;paint-order:stroke;stroke:var(--card);stroke-width:2.5px;pointer-events:none}
 .morep{font-size:12px;color:var(--muted);padding:8px 0 0}
 .vnum{font-size:9.5px;fill:var(--muted);font-variant-numeric:tabular-nums}
 /* iOS zooms into any focused field with font-size < 16px — keep inputs at 16px on small screens */
@@ -278,6 +279,23 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
 /* journal */
 .jentry{background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);
   padding:14px 16px;margin-bottom:10px}
+/* social feed */
+.tabbadge{display:inline-block;min-width:16px;padding:0 5px;height:16px;line-height:16px;border-radius:9px;
+  background:var(--accent);color:var(--accent-ink);font-size:10px;font-weight:700;text-align:center;vertical-align:1px}
+.fcard{background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);
+  padding:13px 16px;margin-bottom:10px}
+.fcard.tome{border-color:var(--accent);background:linear-gradient(0deg,var(--card),var(--card)) padding-box}
+.ftop{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.fwho{font-weight:650}
+.fverb{color:var(--muted)}
+.fto{font-size:11px;font-weight:700;color:var(--accent);background:var(--chip);border-radius:20px;padding:1px 8px}
+.ftime{margin-left:auto;font-size:12px;color:var(--muted)}
+.fwine{margin-top:4px;font-size:15px}
+.fwine b{font-weight:650}
+.fmeta{font-size:12.5px;color:var(--muted);margin-top:1px}
+.fnote{font-size:13.5px;margin-top:6px;color:var(--ink);max-width:70ch;white-space:pre-wrap}
+.fdel{border:0;background:none;cursor:pointer;font-size:13px;opacity:.45;margin-left:6px}
+.fdel:hover{opacity:1}
 .jtop{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
 .jdate{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
 .jplace{font-size:12px;color:var(--muted)}
@@ -356,6 +374,7 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
   <button class="tab" data-page="enjoyed">Enjoyed</button>
   <button class="tab" data-page="wishlist">Wishlist</button>
   <button class="tab" data-page="journal">Journal</button>
+  <button class="tab" data-page="feed">Feed <span class="tabbadge" id="feedBadge" hidden></span></button>
 </nav>
 
 <div id="pageCellar">
@@ -540,6 +559,16 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
   <div class="spin" id="jSpin" hidden>Fetching the journal…</div>
   <div id="jList"></div>
 </div>
+
+<div id="pageFeed" hidden>
+  <div class="actions">
+    <button class="btn primary" id="feedNewBtn">＋ Share a bottle</button>
+    <span class="stamp" id="feedCount"></span>
+  </div>
+  <p class="ph" style="margin:0 0 14px">A shared feed — bottles friends have bought or drunk. Share your own, or send one to a specific person.</p>
+  <div class="spin" id="feedSpin" hidden>Fetching the feed…</div>
+  <div id="feedList"></div>
+</div>
 </div><!-- /app -->
 
 <div class="modal" id="addModal" role="dialog" aria-modal="true" aria-labelledby="addTitle">
@@ -598,6 +627,35 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
     <div class="mact">
       <button type="button" class="btn" id="wCancel">Cancel</button>
       <button type="submit" class="btn primary" id="wSave">Save</button>
+    </div>
+  </form>
+</div>
+
+<div class="modal" id="shareModal" role="dialog" aria-modal="true" aria-labelledby="shareTitle">
+  <form class="card" id="shareForm">
+    <h2 id="shareTitle">Share a bottle</h2>
+    <div class="row2">
+      <div><label for="shType">What</label>
+        <select id="shType"><option value="drank">Drank</option><option value="bought">Bought</option><option value="note">Note</option></select></div>
+      <div><label for="shTo">Send to</label>
+        <select id="shTo"><option value="">Everyone</option></select></div>
+    </div>
+    <label for="shProducer">Producer</label><input id="shProducer" list="jProducers">
+    <div class="row2">
+      <div><label for="shWine">Wine / cuvée</label><input id="shWine"></div>
+      <div><label for="shVintage">Vintage</label><input id="shVintage" placeholder="2019 or NV"></div>
+    </div>
+    <div class="row2">
+      <div><label for="shRegion">Region</label><input id="shRegion" list="regionsList"></div>
+      <div><label for="shRating">Rating</label>
+        <select id="shRating"><option value="">—</option>
+          <option>6</option><option>7</option><option>8</option><option>9</option><option>10</option></select></div>
+    </div>
+    <label for="shNote">Note</label><textarea id="shNote" rows="2" placeholder="Say something about it…"></textarea>
+    <div class="jerr" id="shErr" role="alert" hidden></div>
+    <div class="mact">
+      <button type="button" class="btn" id="shCancel">Cancel</button>
+      <button type="submit" class="btn primary" id="shSave">Share</button>
     </div>
   </form>
 </div>
