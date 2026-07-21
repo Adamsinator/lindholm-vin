@@ -263,6 +263,7 @@ function renderOverview(){
   updateMap(cellar);
   drawHistory();
   renderInsights(cellar);
+  renderPriorities(cellar);
 
   /* vintage histogram */
   const byV = {};
@@ -366,6 +367,30 @@ function renderInsights(cellar){
     items.push(["Ready to drink", fmt(ready)+" btl.", "in their window now"]); }
   el.innerHTML = items.map(([l,v,h])=>`<div class="ins"><div class="ins-l">${l}</div><div class="ins-v">${v}</div><div class="ins-h">${h}</div></div>`).join("");
   const panel = el.closest(".panel"); if(panel) panel.hidden = !items.length;
+}
+
+// Actionable "what should I drink" chips — click one to filter the table by readiness.
+function renderPriorities(cellar){
+  const el=$("priorities"); if(!el) return;
+  const cat={past:0, soon:0, now:0, young:0};
+  cellar.forEach(w=>{ const r=readiness(w); if(!r) return;
+    const k = r.k==="now" ? (r.soon?"soon":"now") : r.k; cat[k]+=w.left; });
+  const defs=[
+    ["past","past","Past peak — drink up"],
+    ["soon","soon","Closing soon"],
+    ["now","now","Drink now"],
+    ["young","young","Too young"],
+  ];
+  const chips=defs.filter(([k])=>cat[k]>0).map(([k,fval,label])=>
+    `<button class="prio ${k}" data-ready="${fval}"><span class="prio-n">${fmt(cat[k])}</span> ${label}</button>`).join("");
+  el.innerHTML = chips || `<span class="ins-h">Set drink windows on your wines to see priorities here.</span>`;
+  const panel=el.closest(".panel"); if(panel) panel.hidden = !chips;
+  el.querySelectorAll(".prio").forEach(b=>b.addEventListener("click",()=>{
+    state.status="cellar"; $("fStatus").value="cellar";
+    state.ready=b.dataset.ready; $("fReady").value=b.dataset.ready;
+    renderTable();
+    const t=$("tbl"); if(t) t.scrollIntoView({behavior:"smooth",block:"center"});
+  }));
 }
 
 /* ---------- collection over time ---------- */
@@ -637,6 +662,12 @@ function renderTable(){
     </tr>
     <tr class="detail" hidden><td colspan="6">${detailHTML(w)}</td></tr>`;
   }).join("");
+  if(!list.length){
+    const anyWines = WINES.some(w=>w.left>0);
+    const msg = !anyWines ? "Your cellar is empty — press <b>＋ Add wine</b> to start building it."
+              : "No wines match these filters.";
+    $("rows").innerHTML = `<tr><td colspan="6" class="emptyrow">${msg}</td></tr>`;
+  }
 
   bindWineRows("#rows");
 }
@@ -1451,12 +1482,19 @@ function syncMapActive(){
 }
 
 /* ---------- tonight's bottle ---------- */
+// Weight a wine for the Tonight pick: prefer bottles that are ready (and nudge the
+// ones closing soon or past their peak up, so you drink them before they fade).
+function tonightWeight(w){
+  const r = readiness(w);
+  const f = !r ? 1 : r.k==="past" ? 2.2 : (r.k==="now" && r.soon) ? 2.6 : r.k==="now" ? 1.6 : r.k==="young" ? 0.25 : 1;
+  return w.left * f;
+}
 function pickTonight(){
   const pool = WINES.filter(w=>w.left>0);
   if(!pool.length){ toast("The cellar is empty…"); return; }
-  const total = pool.reduce((s,w)=>s+w.left,0);
+  const total = pool.reduce((s,w)=>s+tonightWeight(w),0);
   let pick = pool[pool.length-1], r = Math.random()*total;
-  for(const w of pool){ r -= w.left; if(r<=0){ pick = w; break; } }
+  for(const w of pool){ r -= tonightWeight(w); if(r<=0){ pick = w; break; } }
   const m = document.createElement("div");
   m.className = "modal open";
   m.innerHTML = `<div class="card" style="max-width:560px">
