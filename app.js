@@ -27,8 +27,14 @@ function baseWindow(w){
   const span=(lo,hi)=>({from:v+lo, to:v+hi});
   // sparkling / champagne
   if(style==="Bobler" || has(reg,["champagne"])){
-    if(v==null){ const ay=/^\d{4}/.test(String(w.acquired))?Number(String(w.acquired).slice(0,4)):null;
-      return ay?{from:ay, to:ay+3}:null; }               // NV: ~3 yrs from purchase
+    if(v==null){ // NV: no vintage to age from, so estimate from the purchase year
+      const ay=/^\d{4}/.test(String(w.acquired))?Number(String(w.acquired).slice(0,4)):null;
+      if(!ay) return null;
+      // good NV keeps for years; grande-marque / grower houses a bit longer
+      const tier=(typeof PRODUCER_NOTES!=="undefined" && PRODUCER_NOTES[w.producer]) ? PRODUCER_NOTES[w.producer][0] : null;
+      const yrs = tier==="legend" ? 12 : tier==="top" ? 10 : 8;
+      return {from:ay, to:ay+yrs};
+    }
     // vintage champagne ages long, and late disgorgement (which we can't see) extends it further
     return span(4, grand?40:30);
   }
