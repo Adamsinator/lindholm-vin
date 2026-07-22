@@ -46,8 +46,8 @@ function baseWindow(w){
   // Burgundy (and neighbours) — by colour and cru level. Good Burgundy ages long:
   // grand cru reds routinely 30+ yrs, top whites 20–30 (premox notwithstanding).
   if(has(reg,["bourgogne","chablis","macon","cote de","cotes de","cote d"])){
-    if(style==="Hvid") return grand?span(4,28):premier?span(3,20):span(2,12);
-    return grand?span(8,38):premier?span(5,26):span(3,16);
+    if(style==="Hvid") return grand?span(4,30):premier?span(3,22):span(2,14);
+    return grand?span(8,40):premier?span(5,30):span(3,22);
   }
   // Piemonte / Nebbiolo — Barolo & Barbaresco are decades-long agers
   if(has(reg,["piemonte","barolo","barbaresco","langhe"]) || grape.includes("nebbiolo"))
@@ -65,7 +65,7 @@ function baseWindow(w){
 // Icon/top producers make wines that outlive the generic region+cru estimate —
 // a Lafon village Meursault or a Roumier village Chambolle ages far longer than
 // the appellation average — so push the drink-window's close out for them.
-const TIER_LONGEVITY = {legend:14, top:7};
+const TIER_LONGEVITY = {legend:14, top:7, solid:6};
 function defaultWindow(w){
   const d = baseWindow(w);
   if(!d || d.to==null) return d;
