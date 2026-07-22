@@ -1127,12 +1127,13 @@ let MAP_VIEW = "europe", LAST_CELLAR = [];
 const COS = Math.cos(46*Math.PI/180);
 // Fit a projector to the given [lng,lat] polygons (default: all of Europe), plus
 // optional extra [lat,lng] points so edge dots aren't clipped.
-function buildProjector(W, pad, polys, extraPts){
+function buildProjector(W, pad, polys, extraPts, capN){
   polys = polys || Object.values(LANDS);
   let minx=Infinity,maxx=-Infinity,miny=Infinity,maxy=-Infinity;
   const acc=(lng,lat)=>{ const x=lng*COS; if(x<minx)minx=x; if(x>maxx)maxx=x; if(lat<miny)miny=lat; if(lat>maxy)maxy=lat; };
   for(const poly of polys) for(const [lng,lat] of poly) acc(lng,lat);
   (extraPts||[]).forEach(([lat,lng])=>acc(lng,lat));
+  if(capN!=null && maxy>capN) maxy=capN; // crop the empty far north so the frame isn't wasted
   const s=(W-2*pad)/Math.max(0.0001,(maxx-minx));
   const H=(maxy-miny)*s+2*pad;
   return { W, H, proj:([lng,lat])=>[pad+(lng*COS-minx)*s, pad+(maxy-lat)*s], r:(b)=>4+Math.sqrt(b)*1.7 };
@@ -1188,7 +1189,7 @@ const countryLabel = k => COUNTRY_EN[k] || k;                // English name for
 
 // Top level: the whole of Europe. Every country is clickable → its country map.
 function renderEuropeMap(svg){
-  const {W,H,proj,r}=buildProjector(600,24);
+  const {W,H,proj,r}=buildProjector(600,24,null,null,61); // crop above ~61°N (empty far north)
   const agg={};
   LAST_CELLAR.forEach(w=>{ const k=countryOf(w); if(!k) return; const a=agg[k.key] ??= {b:0,n:0}; a.b+=w.left; a.n++; });
   let html = Object.entries(LANDS).map(([k,poly])=>`<path class="land clickable" data-country="${esc(baseCountry(k))}" d="${landPath(poly,proj)}"/>`).join("");
