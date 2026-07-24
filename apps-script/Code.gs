@@ -18,7 +18,7 @@ const SHEET_NAME  = 'Ark1';             // tab name that holds the wine list
 const SIGNUP_CODE = '';                 // e.g. 'POUR-2026'; '' disables new signups
 // ─────────────────────────────────────────────────────────────────────────────
 
-const API_VERSION = 20; // returned in every response; used to verify deployments
+const API_VERSION = 21; // returned in every response; used to verify deployments
 
 // Per-request spreadsheet for the authenticated user. Set in handle(); every
 // sheet helper reads it via ss(). Falls back to the bound (owner's) spreadsheet.
@@ -135,6 +135,9 @@ function handle(p) {
         return json({ ok: true, wines: readAll() });
       case 'setwindow':
         setWindow(Number(p.row), p.from, p.to);
+        return json({ ok: true, wines: readAll() });
+      case 'enjoyadd':
+        enjoyAdd(p.entry || {});
         return json({ ok: true, wines: readAll() });
       case 'feed':
         return json({ ok: true, feed: readFeed(200), me: CTX_USER, users: listUsers(), follows: myFollows() });
@@ -537,6 +540,30 @@ function addWine(wine) {
   }
   if (!String(row[idx.producer]).trim()) throw new Error('Producer is required');
   row[idx.acquired] = ymd(wine.acquired) || today();
+  sh.appendRow(row);
+}
+
+// Record a wine you drank but never owned (e.g. at a restaurant) as an
+// already-drunk row: qty 1, drunk 1, no acquired date — shows in Enjoyed but
+// not in the live cellar.
+function enjoyAdd(e) {
+  if (!String(e.producer || '').trim()) throw new Error('Producer is required');
+  const sh = sheet();
+  ensureCol(sh, RATING_HEADER);
+  ensureCol(sh, DRUNK_DATE_HEADER);
+  const idx = colIndexes(sh);
+  const row = new Array(sh.getLastColumn()).fill('');
+  const set = (f, v) => { if (idx[f] >= 0 && v !== undefined && v !== null && v !== '') row[idx[f]] = v; };
+  set('producer', e.producer);
+  set('name', e.wine !== undefined ? e.wine : e.name);
+  set('region', e.region); set('country', e.country); set('grape', e.grape);
+  set('type', e.type); set('vintage', e.vintage); set('price', e.price);
+  set('source', e.place !== undefined ? e.place : e.source); set('note', e.note);
+  row[idx.qty] = 1;
+  row[idx.drunk] = 1;
+  row[idx.drunkDate] = ymd(e.drunkDate || e.date) || today();
+  if (idx.rating >= 0 && e.rating !== '' && e.rating !== null && e.rating !== undefined)
+    row[idx.rating] = Math.max(1, Math.min(10, Number(e.rating) || 0));
   sh.appendRow(row);
 }
 
