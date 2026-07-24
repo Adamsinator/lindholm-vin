@@ -84,6 +84,13 @@ sortable, each row expanding to the full detail (rating, price, acquired/
 last-drunk dates, journal link). Wines still in the cellar keep showing under
 **Cellar**; a partly-drunk wine appears in both.
 
+It also covers wines you drank but never owned. Press **＋ Add a wine I've had**
+to record one from a restaurant or a friend's table — it's saved as an
+already-drunk row, so it shows in Enjoyed but never in the live cellar. And when
+you write a **journal** entry, an **Also add to Enjoyed** box (on by default for
+a wine you don't own, off when logging one from your cellar) does the same in one
+step, keeping journal and Enjoyed in sync.
+
 ## Cellar insights
 
 The overview shows a **Cellar insights** strip of at-a-glance facts about what's

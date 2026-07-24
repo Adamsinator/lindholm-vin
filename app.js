@@ -1643,6 +1643,8 @@ function openJournalModal(prefill){
   prepJournalModal();
   $("jTitle").textContent = "New journal entry";
   $("jSave").textContent = "Save entry";
+  $("jEnjoyWrap").hidden = false;
+  $("jEnjoy").checked = !prefill; // a fresh entry is usually a wine you don't own → also enjoyed
   $("jDate").value = new Date().toISOString().slice(0,10);
   if(prefill){
     $("jProducer").value = prefill.producer || "";
@@ -1660,6 +1662,7 @@ function openJournalEdit(e){
   prepJournalModal();
   $("jTitle").textContent = "Edit journal entry";
   $("jSave").textContent = "Save changes";
+  $("jEnjoyWrap").hidden = true; $("jEnjoy").checked = false; // editing never re-adds
   $("jDate").value = String(e.date||"").slice(0,10) || new Date().toISOString().slice(0,10);
   $("jProducer").value = e.producer || "";
   $("jWine").value = e.wine || "";
@@ -1718,10 +1721,21 @@ $("jForm").addEventListener("submit", async e=>{
       ? await api({action:"jedit", row:J_EDIT, entry})
       : await api({action:"jadd", entry});
     JENTRIES = res.entries || [];
+    let alsoEnjoyed = false;
+    if(!editing && $("jEnjoy").checked){
+      try{
+        const r2 = await api({action:"enjoyadd", entry:{
+          producer:entry.producer, wine:entry.wine, vintage:entry.vintage,
+          region:entry.region, country:entry.country, grape:entry.grape, note:entry.note,
+          rating:entry.rating, place:entry.place, drunkDate:entry.date,
+          type:inferType(entry.region, entry.grape, entry.wine)}});
+        WINES = normalize(r2.wines); renderOverview(); renderTable(); renderEnjoyed(); alsoEnjoyed = true;
+      }catch(e2){ /* journal saved regardless */ }
+    }
     $("jModal").classList.remove("open");
     renderJournal();
     if(location.hash!=="#journal") location.hash = "#journal";
-    toast(editing ? "Journal entry updated 📓" : "Journal entry saved 📓");
+    toast(editing ? "Journal entry updated 📓" : (alsoEnjoyed ? "Saved to Journal + Enjoyed 🍷" : "Journal entry saved 📓"));
   }catch(err){
     const m = String(err.message||"");
     const hint = /authori[sz]|permission/i.test(m)
@@ -1911,6 +1925,54 @@ document.querySelectorAll("#eTbl th[data-k]").forEach(th=>th.addEventListener("c
   else { eState.sortK=k; eState.sortDir = (k==="price"||k==="drunk"||k==="drunkDate") ? -1 : 1; }
   renderEnjoyed();
 }));
+
+// Best-guess wine type from grape/name, so journal-sourced wines get a colour.
+function inferType(region, grape, wine){
+  const g=(grape||"").toLowerCase(), w=(wine||"").toLowerCase();
+  if(/ros[eé]/.test(g)||/ros[eé]/.test(w)) return "Rose";
+  const white=["chardonnay","riesling","sauvignon","chenin","pinot gris","pinot blanc","gewurz",
+    "aligot","viognier","marsanne","roussanne","semillon","gruner","grüner","albari","verdejo","muscadet","melon","furmint"];
+  if(white.some(x=>g.includes(x))) return "Hvid";
+  return "Rød"; // Champagne/sparkling handled by region in normalize
+}
+
+/* add a wine you've had but never owned (enjoyed, not in the cellar) */
+function openEnjoyedAdd(prefill){
+  $("eaForm").reset(); $("eaErr").hidden=true; $("eaErr").textContent="";
+  $("eaDate").value=new Date().toISOString().slice(0,10);
+  $("jProducers").innerHTML=[...new Set(WINES.map(w=>w.producer).filter(Boolean))].sort().map(x=>`<option>${esc(x)}</option>`).join("");
+  if(prefill){
+    $("eaProducer").value=prefill.producer||""; $("eaWine").value=prefill.wine||"";
+    $("eaVintage").value=prefill.vintage||""; $("eaRegion").value=prefill.region||""; $("eaGrape").value=prefill.grape||"";
+    if(prefill.place) $("eaPlace").value=prefill.place;
+    if(prefill.rating) $("eaRating").value=String(prefill.rating);
+    if(prefill.date) $("eaDate").value=String(prefill.date).slice(0,10);
+    $("eaType").value=prefill.type||inferType(prefill.region,prefill.grape,prefill.wine);
+  }
+  $("eaModal").classList.add("open");
+  setTimeout(()=>$("eaProducer").focus(),40);
+}
+$("eAddBtn").addEventListener("click",()=>openEnjoyedAdd(null));
+$("eaCancel").addEventListener("click",()=>$("eaModal").classList.remove("open"));
+$("eaModal").addEventListener("click",e=>{ if(e.target===$("eaModal")) $("eaModal").classList.remove("open"); });
+$("eaForm").addEventListener("submit", async e=>{
+  e.preventDefault();
+  const btn=$("eaSave"); btn.disabled=true; btn.textContent="Adding…"; $("eaErr").hidden=true;
+  const v=id=>$(id).value.trim();
+  const entry={ producer:v("eaProducer"), wine:v("eaWine"),
+    vintage: /^\d{4}$/.test(v("eaVintage"))?Number(v("eaVintage")):v("eaVintage"),
+    type:$("eaType").value, region:v("eaRegion"), grape:v("eaGrape"), place:v("eaPlace"),
+    drunkDate:v("eaDate"), rating: v("eaRating")?Number(v("eaRating")):"", note:v("eaNote") };
+  try{
+    const res=await api({action:"enjoyadd", entry});
+    WINES=normalize(res.wines);
+    $("eaModal").classList.remove("open");
+    renderOverview(); renderTable(); renderEnjoyed();
+    if(location.hash!=="#enjoyed") location.hash="#enjoyed";
+    toast("Added to Enjoyed 🍷");
+  }catch(err){ $("eaErr").textContent="Could not add: "+err.message; $("eaErr").hidden=false; }
+  btn.disabled=false; btn.textContent="Add to Enjoyed";
+});
 
 /* ---------- wishlist ---------- */
 let WITEMS = null, W_EDIT = null;
