@@ -1,4 +1,4 @@
-/* Lindholm Vin — cellar app. Data comes from the Apps Script API; nothing is stored here. */
+/* AllWine — cellar app. Data comes from the Apps Script API; nothing is stored here. */
 "use strict";
 
 const TIER_LABEL = {legend:"Icon", top:"Top tier", solid:"Well regarded"};

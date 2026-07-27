@@ -1,7 +1,10 @@
-# Lindholm Vin — cellar site
+# AllWine — cellar site
 
 A static web app (GitHub Pages) that reads and writes the wine collection in a
 private Google Sheet through a Google Apps Script API.
+
+> Formerly **Lindholm Vin**. The app is being renamed **AllWine** and moving to
+> **https://allwine.dk** — see [Domain](#domain-allwinedk) for the cutover.
 
 - **The Google Sheet stays private** — it is never shared or published.
 - The Apps Script web app is the only way in; it requires an **access code**
@@ -139,7 +142,7 @@ its photo — replace it, or **Remove photo**), or **🗑** to delete it.
 
 Each entry can carry a **photo** — a label, the bottle, the table. Pick one when
 writing the entry; the browser shrinks it before upload, so big phone photos are
-fine. It's stored privately in a **Lindholm Vin – Journalfotos** folder in your
+fine. It's stored privately in a **Journalfotos** folder next to your own sheet in your
 Google Drive (never shared), and the sheet's **Foto** column just holds the
 file's id. The site loads photos back through the same access-code API, so only
 someone with the code can see them; tap a thumbnail to view it full-size.
@@ -199,13 +202,13 @@ Others can keep their own cellar behind a username + password:
 Keep everything inside one folder so it doesn't sprawl as people join:
 
 ```
-Lindholm Vin/                     ← your master folder (put the master sheet here)
-├─ Lindholm Vin (spreadsheet)     ← your own cellar (the bound script lives on it)
+AllWine/                          ← your master folder (put the master sheet here)
+├─ AllWine (spreadsheet)          ← your own cellar (the bound script lives on it)
 ├─ Journalfotos/                  ← your journal photos
-├─ Lindholm Vin — anna/           ← auto-created for each signup
-│  ├─ Lindholm Vin — anna (sheet)
+├─ AllWine — anna/                ← auto-created for each signup
+│  ├─ AllWine — anna (sheet)
 │  └─ Journalfotos/
-└─ Lindholm Vin — bob/
+└─ AllWine — bob/
    └─ …
 ```
 
@@ -213,3 +216,37 @@ Just move the master spreadsheet into a folder — the script finds that folder
 and creates every new user's subfolder (sheet + photos) inside it automatically.
 Moving the sheet is safe: the script binds by file **id**, not location, so the
 URL never changes.
+
+Folders and sheets created before the rename are still called *Lindholm Vin —
+…*; only new signups get *AllWine — …*. Renaming them in Drive is optional and
+safe (everything binds by id), and so is leaving them alone.
+
+## Domain (allwine.dk)
+
+The site currently serves from `https://adamsinator.github.io/lindholm-vin/`.
+Everything in the repo is already pointed at the new home — title, manifest,
+canonical and Open Graph tags all say **AllWine / allwine.dk**. Only two things
+are left, and they have to happen together:
+
+1. **DNS** at the registrar for `allwine.dk`:
+
+   | Type | Host | Value |
+   | --- | --- | --- |
+   | A | `@` | `185.199.108.153` |
+   | A | `@` | `185.199.109.153` |
+   | A | `@` | `185.199.110.153` |
+   | A | `@` | `185.199.111.153` |
+   | CNAME | `www` | `adamsinator.github.io.` |
+
+2. **The `CNAME` file.** Once DNS resolves, add a file named `CNAME` at the
+   repo root containing one line, `allwine.dk`, and push it (or set the custom
+   domain in Settings → Pages, which writes the same file). Then tick
+   **Enforce HTTPS** after GitHub finishes issuing the certificate.
+
+Do *not* add `CNAME` before DNS is in place — Pages stops serving the
+`github.io` URL as soon as a custom domain is set, so the site would be
+unreachable until the records propagate. (This is why it was rolled back the
+first time.)
+
+Nothing else needs to change on cutover: `config.js` holds an absolute Apps
+Script URL, and every other path in the app is relative.
