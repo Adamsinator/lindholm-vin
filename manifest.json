@@ -1,7 +1,9 @@
 {
-  "name": "Lindholm Vin",
-  "short_name": "Lindholm Vin",
+  "name": "AllWine",
+  "short_name": "AllWine",
+  "description": "A private cellar tracker: your wines, drink windows, ratings, tasting journal and a shared feed.",
   "start_url": ".",
+  "scope": ".",
   "display": "standalone",
   "background_color": "#7C2D3E",
   "theme_color": "#7C2D3E",

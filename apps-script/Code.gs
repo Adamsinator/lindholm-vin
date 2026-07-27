@@ -1,5 +1,5 @@
 /**
- * Lindholm Vin — cellar API (Google Apps Script)
+ * AllWine — cellar API (Google Apps Script)
  *
  * Attach this to the Google Sheet that holds the cellar:
  *   Extensions → Apps Script → paste this file → set the code below →
@@ -18,7 +18,7 @@ const SHEET_NAME  = 'Ark1';             // tab name that holds the wine list
 const SIGNUP_CODE = '';                 // e.g. 'POUR-2026'; '' disables new signups
 // ─────────────────────────────────────────────────────────────────────────────
 
-const API_VERSION = 21; // returned in every response; used to verify deployments
+const API_VERSION = 22; // returned in every response; used to verify deployments
 
 // Per-request spreadsheet for the authenticated user. Set in handle(); every
 // sheet helper reads it via ss(). Falls back to the bound (owner's) spreadsheet.
@@ -261,10 +261,12 @@ function userFolder() {
 }
 
 // Create a fresh private spreadsheet for a new account inside its own subfolder
-// of the master folder, seeded with the wine header row.
+// of the master folder, seeded with the wine header row. Folders created before
+// the AllWine rename keep their old names — everything binds by file id, so the
+// name is cosmetic and existing accounts are unaffected.
 function createUserSpreadsheet(username) {
-  const folder = masterFolder().createFolder('Lindholm Vin — ' + username);
-  const book = SpreadsheetApp.create('Lindholm Vin — ' + username);
+  const folder = masterFolder().createFolder('AllWine — ' + username);
+  const book = SpreadsheetApp.create('AllWine — ' + username);
   const sh = book.getSheets()[0];
   sh.setName(SHEET_NAME);
   sh.appendRow(Object.values(HEADERS)); // Producent, Land, Område, …
