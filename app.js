@@ -1627,8 +1627,47 @@ function renderJournal(){
   }));
 }
 
+/* A journaled wine has been enjoyed — but how it lands in Enjoyed depends on
+   whether it's one of ours. Own it → drink one of those bottles (no phantom
+   duplicate row); don't own it → append a standalone enjoyed row. Rows that
+   enjoyAdd() created are recognisable (qty 1, drunk 1, drunk date = the entry's
+   date), so re-saving an entry can't add it twice. */
+const jKey = s => String(s==null?"":s).trim().toLowerCase();
+function enjoyTarget(entry){
+  const date = String(entry.date||"").slice(0,10);
+  const same = w => jKey(w.producer)===jKey(entry.producer)
+                 && jKey(w.name)===jKey(entry.wine)
+                 && jKey(w.vintage)===jKey(entry.vintage);
+  const logged = WINES.find(w=>same(w) && w.qty===1 && w.drunk===1 && w.drunkDate===date);
+  if(logged) return {kind:"logged", wine:logged};
+  const owned = WINES.find(w=>same(w) && w.left>0);
+  if(owned) return {kind:"cellar", wine:owned};
+  return {kind:"new"};
+}
+
+/* Keep the Enjoyed checkbox honest about what saving will actually do. */
+function syncEnjoyOption(){
+  const v = id => $(id).value.trim();
+  const t = enjoyTarget({producer:v("jProducer"), wine:v("jWine"), vintage:v("jVintage"), date:v("jDate")});
+  const done = t.kind==="logged";
+  $("jEnjoyWrap").hidden = done;
+  $("jEnjoyDone").hidden = !done;
+  if(done){ $("jEnjoy").checked = false; return; }
+  if(t.kind==="cellar"){
+    const left = t.wine.left;
+    $("jEnjoyLabel").innerHTML = "Also mark a bottle as <b>drunk</b>";
+    $("jEnjoyHint").textContent = `— you own ${left} bottle${left===1?"":"s"}; this moves one to Enjoyed`;
+  }else{
+    $("jEnjoyLabel").innerHTML = "Also add to <b>Enjoyed</b>";
+    $("jEnjoyHint").textContent = "— for a wine you drank but don't own";
+  }
+}
+["jProducer","jWine","jVintage","jDate"].forEach(id=>
+  $(id).addEventListener("input", syncEnjoyOption));
+
 function prepJournalModal(){
   $("jForm").reset();
+  $("jEnjoyDone").hidden = true;
   J_PHOTO_REMOVE = false;
   $("jErr").hidden = true; $("jErr").textContent = "";
   $("jPhotoPrev").hidden = true; $("jPhotoPrev").removeAttribute("src");
@@ -1644,7 +1683,7 @@ function openJournalModal(prefill){
   $("jTitle").textContent = "New journal entry";
   $("jSave").textContent = "Save entry";
   $("jEnjoyWrap").hidden = false;
-  $("jEnjoy").checked = !prefill; // a fresh entry is usually a wine you don't own → also enjoyed
+  $("jEnjoy").checked = true; // journaling a wine means you drank it
   $("jDate").value = new Date().toISOString().slice(0,10);
   if(prefill){
     $("jProducer").value = prefill.producer || "";
@@ -1654,6 +1693,7 @@ function openJournalModal(prefill){
     $("jRegion").value = prefill.region || "";
     $("jGrape").value = prefill.grape || "";
   }
+  syncEnjoyOption();
   setTimeout(()=>$(prefill?"jPlace":"jProducer").focus(), 40);
 }
 
@@ -1662,7 +1702,8 @@ function openJournalEdit(e){
   prepJournalModal();
   $("jTitle").textContent = "Edit journal entry";
   $("jSave").textContent = "Save changes";
-  $("jEnjoyWrap").hidden = true; $("jEnjoy").checked = false; // editing never re-adds
+  $("jEnjoyWrap").hidden = false;
+  $("jEnjoy").checked = true; // offered on edit too — syncEnjoyOption() hides it once it's in Enjoyed
   $("jDate").value = String(e.date||"").slice(0,10) || new Date().toISOString().slice(0,10);
   $("jProducer").value = e.producer || "";
   $("jWine").value = e.wine || "";
@@ -1678,6 +1719,7 @@ function openJournalEdit(e){
     loadPhoto(e.photo).then(src=>{ if(J_EDIT===e.row && !J_PHOTO_REMOVE && !$("jPhoto").files[0]){
       $("jPhotoPrev").src = src; $("jPhotoPrev").hidden = false; } }).catch(()=>{});
   }
+  syncEnjoyOption();
   setTimeout(()=>$("jNote").focus(), 40);
 }
 
@@ -1721,21 +1763,37 @@ $("jForm").addEventListener("submit", async e=>{
       ? await api({action:"jedit", row:J_EDIT, entry})
       : await api({action:"jadd", entry});
     JENTRIES = res.entries || [];
-    let alsoEnjoyed = false;
-    if(!editing && $("jEnjoy").checked){
+    let alsoEnjoyed = "";
+    if($("jEnjoy").checked && !$("jEnjoyWrap").hidden){
       try{
-        const r2 = await api({action:"enjoyadd", entry:{
-          producer:entry.producer, wine:entry.wine, vintage:entry.vintage,
-          region:entry.region, country:entry.country, grape:entry.grape, note:entry.note,
-          rating:entry.rating, place:entry.place, drunkDate:entry.date,
-          type:inferType(entry.region, entry.grape, entry.wine)}});
-        WINES = normalize(r2.wines); renderOverview(); renderTable(); renderEnjoyed(); alsoEnjoyed = true;
+        const t = enjoyTarget(entry);
+        let r2 = null;
+        if(t.kind==="cellar"){
+          btn.textContent = "Marking drunk…";
+          r2 = await api({action:"drink", row:t.wine.row, qty:1});
+          // the server stamps today; keep Enjoyed in step with the tasting date
+          const d = String(entry.date||"").slice(0,10);
+          if(d && d !== new Date().toISOString().slice(0,10))
+            r2 = await api({action:"setdate", row:t.wine.row, field:"drunkDate", value:d});
+          alsoEnjoyed = "drunk";
+        }else if(t.kind==="new"){
+          r2 = await api({action:"enjoyadd", entry:{
+            producer:entry.producer, wine:entry.wine, vintage:entry.vintage,
+            region:entry.region, country:entry.country, grape:entry.grape, note:entry.note,
+            rating:entry.rating, place:entry.place, drunkDate:entry.date,
+            type:inferType(entry.region, entry.grape, entry.wine)}});
+          alsoEnjoyed = "added";
+        }
+        if(r2){ WINES = normalize(r2.wines); renderOverview(); renderTable(); renderEnjoyed(); }
       }catch(e2){ /* journal saved regardless */ }
     }
     $("jModal").classList.remove("open");
     renderJournal();
     if(location.hash!=="#journal") location.hash = "#journal";
-    toast(editing ? "Journal entry updated 📓" : (alsoEnjoyed ? "Saved to Journal + Enjoyed 🍷" : "Journal entry saved 📓"));
+    const what = editing ? "Journal entry updated" : "Journal entry saved";
+    toast(alsoEnjoyed==="drunk" ? what+" — bottle marked drunk 🍷"
+        : alsoEnjoyed==="added" ? what+" + added to Enjoyed 🍷"
+        : what+" 📓");
   }catch(err){
     const m = String(err.message||"");
     const hint = /authori[sz]|permission/i.test(m)
