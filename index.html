@@ -19,7 +19,7 @@
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-title" content="AllWine">
 <meta name="theme-color" content="#7C2D3E">
-<script src="config.js?v=2"></script>
+<script src="config.js?v=3"></script>
 <style>
 :root{
   --bg:#F7F4F1; --card:#FFFFFF; --card2:#FBF9F7; --ink:#2A2126; --muted:#756A70;
@@ -351,6 +351,7 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
 .jedit:hover,.jdel:hover{opacity:1}
 .jwine{font-weight:650;margin-top:2px;font-size:15px}
 .jwine .jglasses{font-weight:400;font-size:13px;margin-left:6px}
+.jwine .jprice{font-weight:400;font-size:13px;margin-left:6px;color:var(--muted)}
 .jmeta{font-size:12.5px;color:var(--muted);margin-top:1px}
 .jerr{margin-top:12px;font-size:13px;color:var(--accent);background:var(--chip);border:1px solid var(--accent);
   border-radius:8px;padding:8px 10px;line-height:1.4}
@@ -788,6 +789,8 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
       <option value="7">7 / 10</option><option value="8">8 / 10</option>
       <option value="9">9 / 10</option><option value="10">10 / 10</option>
     </select>
+    <label for="jPrice">Price <span class="lopt" id="jPriceOpt">(optional — what the bottle cost)</span></label>
+    <input id="jPrice" type="number" min="0" step="1" inputmode="numeric" placeholder="kr.">
     <label for="jNote">Note</label><textarea id="jNote" rows="3" placeholder="How was it?"></textarea>
     <label for="jPhoto">Photo <span class="lopt">(optional — label, bottle, the moment)</span></label>
     <input id="jPhoto" type="file" accept="image/*">
@@ -810,7 +813,7 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
 
 <!-- Pages serves these with max-age=600 and no revalidation, so a merged change can
      sit invisible behind a stale app.js for ten minutes. Bump v on every deploy. -->
-<script src="notes.js?v=2"></script>
-<script src="app.js?v=2"></script>
+<script src="notes.js?v=3"></script>
+<script src="app.js?v=3"></script>
 </body>
 </html>
