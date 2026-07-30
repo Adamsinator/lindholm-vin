@@ -370,8 +370,10 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
 .jphoto-ph.err{font-size:11px;color:var(--muted);text-align:center;padding:0 8px}
 .jphoto-prev{display:block;margin-top:8px;max-width:100%;max-height:200px;border-radius:8px;border:1px solid var(--line);object-fit:contain}
 .lopt{text-transform:none;letter-spacing:0;font-weight:400;opacity:.7}
-.jcheck{display:flex;align-items:center;gap:7px;margin-top:12px;font-size:13.5px;text-transform:none;letter-spacing:0;color:var(--ink);cursor:pointer}
+.modal label.jcheck{display:flex;align-items:center;gap:7px;margin-top:12px;font-size:13.5px;text-transform:none;letter-spacing:0;color:var(--ink);cursor:pointer}
 .jcheck input{width:auto;margin:0}
+.jcheck .lopt{font-size:12.5px;color:var(--muted)}
+.jdone{margin-top:12px;font-size:13px;color:var(--muted);background:var(--chip);border-radius:8px;padding:8px 10px}
 .jlightbox{position:fixed;inset:0;background:rgba(10,6,8,.85);z-index:130;display:flex;align-items:center;
   justify-content:center;padding:20px;cursor:zoom-out}
 .jlightbox img{max-width:100%;max-height:100%;border-radius:8px;box-shadow:0 8px 40px rgba(0,0,0,.5)}
@@ -791,8 +793,10 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
     <input id="jPhoto" type="file" accept="image/*">
     <img id="jPhotoPrev" class="jphoto-prev" alt="Selected photo preview" hidden>
     <button type="button" class="btn quiet" id="jPhotoRemoveBtn" hidden>Remove photo</button>
-    <label class="jcheck" id="jEnjoyWrap"><input type="checkbox" id="jEnjoy"> Also add to <b>Enjoyed</b>
-      <span class="lopt">— for a wine you drank but don't own</span></label>
+    <label class="jcheck" id="jEnjoyWrap"><input type="checkbox" id="jEnjoy">
+      <span id="jEnjoyLabel">Also add to <b>Enjoyed</b></span>
+      <span class="lopt" id="jEnjoyHint">— for a wine you drank but don't own</span></label>
+    <div class="jdone" id="jEnjoyDone" hidden>✓ Already in <b>Enjoyed</b></div>
     <div class="jerr" id="jErr" role="alert" hidden></div>
     <div class="mact">
       <button type="button" class="btn" id="jCancel">Cancel</button>
