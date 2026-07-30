@@ -19,7 +19,7 @@
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-title" content="AllWine">
 <meta name="theme-color" content="#7C2D3E">
-<script src="config.js"></script>
+<script src="config.js?v=2"></script>
 <style>
 :root{
   --bg:#F7F4F1; --card:#FFFFFF; --card2:#FBF9F7; --ink:#2A2126; --muted:#756A70;
@@ -808,7 +808,9 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
 <div id="tip" role="tooltip"></div>
 <div id="toast"></div>
 
-<script src="notes.js"></script>
-<script src="app.js"></script>
+<!-- Pages serves these with max-age=600 and no revalidation, so a merged change can
+     sit invisible behind a stale app.js for ten minutes. Bump v on every deploy. -->
+<script src="notes.js?v=2"></script>
+<script src="app.js?v=2"></script>
 </body>
 </html>

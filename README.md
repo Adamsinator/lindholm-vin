@@ -174,6 +174,15 @@ Add and "mark as drunk" happen in the site; anything else (editing a price,
 fixing a typo) you do directly in the Google Sheet — the site picks it up on
 the next refresh.
 
+## Changing the front-end
+
+Merging to `main` publishes via GitHub Pages within a minute or two. But Pages
+serves `app.js` / `notes.js` / `config.js` with `cache-control: max-age=600`, so
+a browser that already has the old copy keeps using it for up to ten minutes —
+the site then runs **new HTML against old JS**, which looks like the change
+never shipped. Avoid it by bumping the `?v=` on the three `<script src=…>` tags
+in `index.html` in the same commit as any JS change.
+
 ## Changing the code / deploying `Code.gs` updates
 
 Edit the constants at the top of `Code.gs`, then **redeploy**: Deploy → Manage
