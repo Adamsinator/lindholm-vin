@@ -18,7 +18,7 @@ const SHEET_NAME  = 'Ark1';             // tab name that holds the wine list
 const SIGNUP_CODE = '';                 // e.g. 'POUR-2026'; '' disables new signups
 // ─────────────────────────────────────────────────────────────────────────────
 
-const API_VERSION = 22; // returned in every response; used to verify deployments
+const API_VERSION = 23; // returned in every response; used to verify deployments
 
 // Per-request spreadsheet for the authenticated user. Set in handle(); every
 // sheet helper reads it via ss(). Falls back to the bound (owner's) spreadsheet.
@@ -129,6 +129,9 @@ function handle(p) {
         return json({ ok: true, wines: readAll() });
       case 'setvalue':
         setValue(Number(p.row), p.value);
+        return json({ ok: true, wines: readAll() });
+      case 'setprice':
+        setPrice(Number(p.row), p.value);
         return json({ ok: true, wines: readAll() });
       case 'setdate':
         setDate(Number(p.row), String(p.field || ''), p.value);
@@ -636,6 +639,17 @@ function setValue(rowNum, value) {
   sh.getRange(rowNum, i + 1).setValue(v);
 }
 
+// Set what a bottle cost. Needed because a wine can reach the sheet through a
+// journal entry, where the price is often only remembered later.
+function setPrice(rowNum, value) {
+  const sh = sheet();
+  if (!rowNum || rowNum < 2 || rowNum > sh.getLastRow()) throw new Error('Bad row');
+  const idx = colIndexes(sh);
+  const empty = value === '' || value === null || value === undefined;
+  const v = empty ? '' : Math.max(0, Number(value) || 0);
+  sh.getRange(rowNum, idx.price + 1).setValue(v);
+}
+
 // Set a wine's drink window (years). Blank clears an end.
 function setWindow(rowNum, from, to) {
   const sh = sheet();
@@ -669,7 +683,7 @@ function setDate(rowNum, field, value) {
 const JOURNAL_SHEET = 'Journal';
 const JHEADERS = { date: 'Dato', producer: 'Producent', wine: 'Vin', vintage: 'Årgang',
                    country: 'Land', region: 'Område', grape: 'Drue',
-                   place: 'Sted', rating: 'Rating', note: 'Note', photo: 'Foto' };
+                   place: 'Sted', rating: 'Rating', price: 'Pris', note: 'Note', photo: 'Foto' };
 
 function journalSheet() {
   const book = ss();

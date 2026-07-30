@@ -1593,6 +1593,8 @@ function renderJournal(){
     const ds = d && !isNaN(d) ? d.toLocaleDateString("da-DK",{day:"numeric",month:"long",year:"numeric"}) : esc(String(e.date));
     const n = Math.max(0, Math.min(10, Number(e.rating)||0));
     const glasses = n ? n+"/10 🍷" : "";
+    const price = (SHOW_PRICES && e.price!=="" && e.price!=null && Number(e.price)>0)
+      ? `<span class="jprice">${kr(Number(e.price))}</span>` : "";
     const photo = e.photo ? `<div class="jphoto" data-id="${esc(String(e.photo))}"><span class="jphoto-ph">📷</span></div>` : "";
     return `<div class="jentry">
       <div class="jtop"><span class="jdate">${ds}</span>
@@ -1600,7 +1602,7 @@ function renderJournal(){
         <button class="jedit" data-row="${e.row}" title="Edit entry">✏️</button>
         <button class="jdel" data-row="${e.row}" title="Delete entry">🗑</button></div>
       <div class="jwine">${esc(e.producer)}${e.wine?" · "+esc(e.wine):""}${e.vintage?" · "+esc(e.vintage):""}
-        ${glasses?`<span class="jglasses">${glasses}</span>`:""}</div>
+        ${glasses?`<span class="jglasses">${glasses}</span>`:""}${price}</div>
       ${(e.region||e.country||e.grape)?`<div class="jmeta">${[e.region,e.country,e.grape].filter(Boolean).map(esc).join(" · ")}</div>`:""}
       ${e.note?`<div class="jnote">${esc(e.note)}</div>`:""}
       ${photo}
@@ -1645,15 +1647,15 @@ function enjoyTarget(entry){
   return {kind:"new"};
 }
 
-/* Keep the Enjoyed checkbox honest about what saving will actually do. */
+/* Keep the Enjoyed checkbox and the price hint honest about what saving will do. */
 function syncEnjoyOption(){
   const v = id => $(id).value.trim();
   const t = enjoyTarget({producer:v("jProducer"), wine:v("jWine"), vintage:v("jVintage"), date:v("jDate")});
   const done = t.kind==="logged";
   $("jEnjoyWrap").hidden = done;
   $("jEnjoyDone").hidden = !done;
-  if(done){ $("jEnjoy").checked = false; return; }
-  if(t.kind==="cellar"){
+  if(done) $("jEnjoy").checked = false;
+  else if(t.kind==="cellar"){
     const left = t.wine.left;
     $("jEnjoyLabel").innerHTML = "Also mark a bottle as <b>drunk</b>";
     $("jEnjoyHint").textContent = `— you own ${left} bottle${left===1?"":"s"}; this moves one to Enjoyed`;
@@ -1661,6 +1663,14 @@ function syncEnjoyOption(){
     $("jEnjoyLabel").innerHTML = "Also add to <b>Enjoyed</b>";
     $("jEnjoyHint").textContent = "— for a wine you drank but don't own";
   }
+  // A bottle we bought keeps its purchase price — a journal price is what it cost
+  // that night, which may be a restaurant's. A row the journal itself created has
+  // no other source, so there the journal stays authoritative.
+  $("jPriceOpt").textContent =
+      done ? "(optional — also saved onto its Enjoyed row)"
+    : t.kind!=="cellar" ? "(optional — what the bottle cost)"
+    : Number(t.wine.price) > 0 ? "(optional — kept here; your cellar's own price is left alone)"
+    : "(optional — also fills the blank price on your cellar row)";
 }
 ["jProducer","jWine","jVintage","jDate"].forEach(id=>
   $(id).addEventListener("input", syncEnjoyOption));
@@ -1713,6 +1723,7 @@ function openJournalEdit(e){
   $("jGrape").value = e.grape || "";
   $("jPlace").value = e.place || "";
   $("jRating").value = e.rating ? String(e.rating) : "";
+  $("jPrice").value = (e.price===""||e.price==null) ? "" : e.price;
   $("jNote").value = e.note || "";
   if(e.photo){
     $("jPhotoRemoveBtn").hidden = false;
@@ -1747,7 +1758,8 @@ $("jForm").addEventListener("submit", async e=>{
     date: v("jDate"), producer: v("jProducer"), wine: v("jWine"),
     vintage: /^\d{4}$/.test(v("jVintage")) ? Number(v("jVintage")) : v("jVintage"),
     country: v("jCountry"), region: v("jRegion"), grape: v("jGrape"),
-    place: v("jPlace"), rating: v("jRating") ? Number(v("jRating")) : "", note: v("jNote"),
+    place: v("jPlace"), rating: v("jRating") ? Number(v("jRating")) : "",
+    price: v("jPrice") === "" ? "" : Math.max(0, Number(v("jPrice")) || 0), note: v("jNote"),
   };
   const file = $("jPhoto").files[0];
   if(file){
@@ -1764,9 +1776,9 @@ $("jForm").addEventListener("submit", async e=>{
       : await api({action:"jadd", entry});
     JENTRIES = res.entries || [];
     let alsoEnjoyed = "";
+    const t = enjoyTarget(entry);
     if($("jEnjoy").checked && !$("jEnjoyWrap").hidden){
       try{
-        const t = enjoyTarget(entry);
         let r2 = null;
         if(t.kind==="cellar"){
           btn.textContent = "Marking drunk…";
@@ -1775,17 +1787,27 @@ $("jForm").addEventListener("submit", async e=>{
           const d = String(entry.date||"").slice(0,10);
           if(d && d !== new Date().toISOString().slice(0,10))
             r2 = await api({action:"setdate", row:t.wine.row, field:"drunkDate", value:d});
+          // a bottle we own already has a purchase price; only fill a blank one
+          if(entry.price !== "" && !t.wine.price)
+            r2 = await api({action:"setprice", row:t.wine.row, value:entry.price});
           alsoEnjoyed = "drunk";
         }else if(t.kind==="new"){
           r2 = await api({action:"enjoyadd", entry:{
             producer:entry.producer, wine:entry.wine, vintage:entry.vintage,
             region:entry.region, country:entry.country, grape:entry.grape, note:entry.note,
-            rating:entry.rating, place:entry.place, drunkDate:entry.date,
+            rating:entry.rating, place:entry.place, drunkDate:entry.date, price:entry.price,
             type:inferType(entry.region, entry.grape, entry.wine)}});
           alsoEnjoyed = "added";
         }
         if(r2){ WINES = normalize(r2.wines); renderOverview(); renderTable(); renderEnjoyed(); }
       }catch(e2){ /* journal saved regardless */ }
+    }else if(t.kind==="logged" && entry.price !== "" && Number(entry.price) !== Number(t.wine.price||0)){
+      // entry is already in Enjoyed — carry a price added afterwards over to it
+      try{
+        const r3 = await api({action:"setprice", row:t.wine.row, value:entry.price});
+        WINES = normalize(r3.wines); renderOverview(); renderTable(); renderEnjoyed();
+        alsoEnjoyed = "priced";
+      }catch(e3){ /* journal saved regardless */ }
     }
     $("jModal").classList.remove("open");
     renderJournal();
@@ -1793,6 +1815,7 @@ $("jForm").addEventListener("submit", async e=>{
     const what = editing ? "Journal entry updated" : "Journal entry saved";
     toast(alsoEnjoyed==="drunk" ? what+" — bottle marked drunk 🍷"
         : alsoEnjoyed==="added" ? what+" + added to Enjoyed 🍷"
+        : alsoEnjoyed==="priced" ? what+" — price saved to Enjoyed 🍷"
         : what+" 📓");
   }catch(err){
     const m = String(err.message||"");
