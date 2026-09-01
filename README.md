@@ -101,6 +101,23 @@ in the cellar: oldest vintage, priciest bottle, top region and grape, your
 average score, and how many bottles are in their drink window right now. It's
 all derived from the wines you already have — nothing to fill in.
 
+## Bottle formats
+
+A wine can be held in something other than a 75 cl bottle — pick a **Format**
+when adding it, or change it later in the wine's detail. The choices run
+Piccolo, Half, Bottle, Magnum, Jeroboam, Rehoboam, Methuselah, Salmanazar,
+Balthazar, Nebuchadnezzar. It saves to a **Størrelse** column in the sheet,
+created automatically the first time you set one; blank means an ordinary
+bottle, so nothing needs migrating.
+
+Anything that isn't a plain bottle gets a small chip on its row, and once the
+cellar holds one, the *Bottles in cellar* KPI shows the total volume in litres
+alongside the count. **Counts stay counts** — a magnum is one bottle, the way a
+cellar book counts it — and prices stay per bottle.
+
+Format is a record of what's in the rack, nothing more: it does **not** touch
+drink windows. A magnum and a bottle of the same wine get the same window.
+
 ## Drink windows
 
 Every wine gets a **drink window** so the app can tell you when to open it —
@@ -170,9 +187,10 @@ wine, so the memory is captured before it leaves the cellar.
 
 ## Changing a wine's details
 
-Add and "mark as drunk" happen in the site; anything else (editing a price,
-fixing a typo) you do directly in the Google Sheet — the site picks it up on
-the next refresh.
+Add and "mark as drunk" happen in the site, along with score, current value,
+acquired/drunk dates, drink window and bottle format — all inline in the wine's
+detail. Anything else (fixing a typo in a name) you do directly in the Google
+Sheet, and the site picks it up on the next refresh.
 
 ## Changing the front-end
 
@@ -205,6 +223,10 @@ Others can keep their own cellar behind a username + password:
   still works too.
 - Remove someone: delete their row from the `Users` tab (and their folder from
   your Drive).
+- **Signed in on several devices at once** is fine: the `Token` cell keeps the
+  five most recent sessions, so logging in on a phone no longer signs out the
+  laptop. To force every device of an account to sign in again, clear that
+  row's `Token` cell. Sessions still expire on their own after 60 idle minutes.
 
 ## Drive layout
 

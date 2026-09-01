@@ -223,11 +223,13 @@ td.emptyrow{text-align:center;color:var(--muted);padding:34px 16px;font-size:14p
   border:1px solid var(--line);background:var(--card);border-radius:7px;padding:5px 10px;cursor:pointer;font-family:inherit}
 .links a:hover,.links button:hover{border-color:var(--accent)}
 .links button.drink{color:var(--ink)}
-.ratewrap,.valwrap,.datewrap{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--accent)}
-.ratewrap select,.valwrap input,.datewrap input{background:var(--card);border:1px solid var(--line);color:var(--ink);border-radius:7px;
+.ratewrap,.valwrap,.datewrap,.sizewrap{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--accent)}
+.ratewrap select,.valwrap input,.datewrap input,.sizewrap select{background:var(--card);border:1px solid var(--line);color:var(--ink);border-radius:7px;
   padding:4px 6px;font-size:12.5px;font-family:inherit}
 .valwrap input{width:84px}
 .myscore{color:var(--gold);font-weight:650}
+.fmt{display:inline-block;font-size:10px;font-weight:650;letter-spacing:.04em;text-transform:uppercase;
+  background:var(--chip);color:var(--accent);border-radius:4px;padding:1px 5px;margin-right:6px;vertical-align:1px}
 .links button.del{color:var(--muted);margin-left:auto}
 .links button.del:hover{color:var(--accent);border-color:var(--accent)}
 
@@ -270,7 +272,7 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
 /* iOS zooms into any focused field with font-size < 16px — keep inputs at 16px on small screens */
 @media(max-width:640px){
   .filters input[type=search],.filters select,.modal input,.modal select,.modal textarea,.gate input,
-  .valwrap input,.ratewrap select,.datewrap input,.winwrap .setwin{font-size:16px}
+  .valwrap input,.ratewrap select,.datewrap input,.sizewrap select,.winwrap .setwin{font-size:16px}
 }
 /* tabs */
 .tabs{display:flex;gap:4px;margin:-6px 0 18px}
@@ -659,12 +661,14 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
     </div>
     <div class="row2">
       <div><label for="aQty">Bottles</label><input id="aQty" type="number" min="1" value="1"></div>
-      <div><label for="aPrice">Price per bottle (kr.)</label><input id="aPrice" type="number" min="0" step="1"></div>
+      <div><label for="aSize">Format</label>
+        <select id="aSize"><option value="">Bottle · 75 cl</option><option>Piccolo</option><option>Half</option><option>Magnum</option><option>Jeroboam</option><option>Rehoboam</option><option>Methuselah</option><option>Salmanazar</option><option>Balthazar</option><option>Nebuchadnezzar</option></select></div>
     </div>
     <div class="row2">
-      <div><label for="aAcquired">Acquired</label><input id="aAcquired" type="date"></div>
+      <div><label for="aPrice">Price per bottle (kr.)</label><input id="aPrice" type="number" min="0" step="1"></div>
       <div><label for="aSource">Source / bought at</label><input id="aSource"></div>
     </div>
+    <label for="aAcquired">Acquired</label><input id="aAcquired" type="date">
     <label for="aNote">Note</label><input id="aNote">
     <div class="mact">
       <button type="button" class="btn" id="addCancel">Cancel</button>
@@ -686,6 +690,7 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
         <select id="eaType"><option value="Rød">Red</option><option value="Hvid">White</option><option value="Bobler">Sparkling</option><option value="Rose">Rosé</option></select></div>
       <div><label for="eaRegion">Region</label><input id="eaRegion" list="regionsList"></div>
     </div>
+
     <div class="row2">
       <div><label for="eaGrape">Grape</label><input id="eaGrape" list="grapes"></div>
       <div><label for="eaPlace">Place had</label><input id="eaPlace" placeholder="restaurant · hos …"></div>
@@ -697,8 +702,12 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
           <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option>
           <option>6</option><option>7</option><option>8</option><option>9</option><option>10</option></select></div>
     </div>
-    <label for="eaPrice">Price <span class="lopt">(optional — what the bottle cost)</span></label>
-    <input id="eaPrice" type="number" min="0" step="1" inputmode="numeric" placeholder="kr.">
+    <div class="row2">
+      <div><label for="eaSize">Format</label>
+        <select id="eaSize"><option value="">Bottle · 75 cl</option><option>Piccolo</option><option>Half</option><option>Magnum</option><option>Jeroboam</option><option>Rehoboam</option><option>Methuselah</option><option>Salmanazar</option><option>Balthazar</option><option>Nebuchadnezzar</option></select></div>
+      <div><label for="eaPrice">Price <span class="lopt">(what it cost)</span></label>
+        <input id="eaPrice" type="number" min="0" step="1" inputmode="numeric" placeholder="kr."></div>
+    </div>
     <label for="eaNote">Note</label><textarea id="eaNote" rows="2"></textarea>
     <div class="jerr" id="eaErr" role="alert" hidden></div>
     <div class="mact">

@@ -11,6 +11,40 @@ const COUNTRY_FIX = {"Franrkig":"Frankrig","Fankrig":"Frankrig"};
 const REGION_FIX = {"Cote-de-Rhone":"Rhône","Cotes du Rhone":"Rhône","Laungedoc":"Languedoc","Bearn":"Béarn"};
 const CLASS_FIX = {"1. Cru":"1. cru","1. cr":"1. cru"};
 
+/* ---------- bottle formats ---------- */
+// What the wine is actually held in. A blank size means an ordinary 75 cl
+// bottle, so nothing needs migrating. Format is recorded and displayed only —
+// it deliberately does not touch drink windows.
+const FORMATS = [
+  {key:"Piccolo",        l:0.1875, note:"18,75 cl"},
+  {key:"Half",           l:0.375,  note:"37,5 cl"},
+  {key:"Bottle",         l:0.75,   note:"75 cl"},
+  {key:"Magnum",         l:1.5,    note:"1,5 L"},
+  {key:"Jeroboam",       l:3,      note:"3 L"},
+  {key:"Rehoboam",       l:4.5,    note:"4,5 L"},
+  {key:"Methuselah",     l:6,      note:"6 L"},
+  {key:"Salmanazar",     l:9,      note:"9 L"},
+  {key:"Balthazar",      l:12,     note:"12 L"},
+  {key:"Nebuchadnezzar", l:15,     note:"15 L"},
+];
+// Spellings that might already be sitting in the sheet, incl. the Danish ones.
+const FORMAT_ALIAS = {"flaske":"Bottle","standard":"Bottle","normal":"Bottle","0,75":"Bottle","0.75":"Bottle",
+  "halv":"Half","halvflaske":"Half","demi":"Half","piccolo":"Piccolo","split":"Piccolo",
+  "dobbeltmagnum":"Jeroboam","dobbelt magnum":"Jeroboam","double magnum":"Jeroboam",
+  "mathusalem":"Methuselah","imperiale":"Methuselah","imperial":"Methuselah","nabuchodonosor":"Nebuchadnezzar"};
+const FORMAT_BY = {};
+FORMATS.forEach(f=>{ FORMAT_BY[f.key.toLowerCase()] = f; FORMAT_BY[f.note.toLowerCase()] = f; });
+const BOTTLE = FORMATS.find(f=>f.key==="Bottle");
+function formatOf(w){
+  const raw = String((w&&w.size)||"").trim().toLowerCase();
+  if(!raw) return BOTTLE;
+  return FORMAT_BY[raw] || FORMAT_BY[String(FORMAT_ALIAS[raw]||"").toLowerCase()] || BOTTLE;
+}
+const isStdBottle = w => formatOf(w) === BOTTLE;
+const fmtLitres = n => new Intl.NumberFormat("da-DK",{maximumFractionDigits:1}).format(n);
+const fmtChip = w => isStdBottle(w) ? "" :
+  `<span class="fmt" title="${esc(formatOf(w).note)}">${esc(formatOf(w).key)}</span>`;
+
 const fmt = n => new Intl.NumberFormat("da-DK",{maximumFractionDigits:0}).format(n);
 const kr = n => fmt(n)+" kr.";
 const fmtDate = s => { const d=new Date(String(s).slice(0,10)+"T12:00:00");
@@ -158,6 +192,7 @@ function normalize(rows){
       drunkDate: String(r.drunkDate||"").slice(0,10),
       drinkFrom: (r.drinkFrom===null||r.drinkFrom===""||r.drinkFrom===undefined) ? null : Number(r.drinkFrom),
       drinkTo: (r.drinkTo===null||r.drinkTo===""||r.drinkTo===undefined) ? null : Number(r.drinkTo),
+      size:String(r.size||"").trim(),
       source:String(r.source).trim(), note:String(r.note).trim(),
     };
   });
@@ -181,8 +216,11 @@ function renderOverview(){
   const drunk = WINES.reduce((s,w)=>s+w.drunk,0);
   const iconCount = cellar.filter(w=>PRODUCER_NOTES[w.producer]?.[0]==="legend").reduce((s,w)=>s+w.left,0);
 
+  const litres = cellar.reduce((s,w)=>s+formatOf(w).l*w.left,0);
+  const anyBig = cellar.some(w=>!isStdBottle(w));
   const kpis = [
-    ["Bottles in cellar", fmt(bottlesLeft), cellar.length+" different wines", ""],
+    ["Bottles in cellar", fmt(bottlesLeft),
+      cellar.length+" different wines"+(anyBig?" · "+fmtLitres(litres)+" L":""), ""],
   ];
   if(SHOW_PRICES){
     const valueLeft = cellar.reduce((s,w)=>s+(w.price||0)*w.left,0);
@@ -579,6 +617,7 @@ function detailHTML(w){
   const pn = PRODUCER_NOTES[w.producer];
   const cells = [
     ["Commune", w.commune],["Classification", w.classification],["Grape", w.grape],
+    ["Format", isStdBottle(w) ? "" : formatOf(w).key+" · "+formatOf(w).note],
     ["Bought", w.qty+" btl."],["Enjoyed", w.drunk?w.drunk+" btl.":""],["Source", w.source],
     ["Price", SHOW_PRICES && w.price ? kr(w.price) : ""],
   ].filter(c=>c[1]).map(([k,v])=>`<div><div class="k">${k}</div>${esc(v)}</div>`).join("");
@@ -597,6 +636,10 @@ function detailHTML(w){
       ${SHOW_PRICES?`<label class="valwrap">Value kr
         <input class="setval" type="number" min="0" step="1" inputmode="numeric"
           data-row="${w.row}" value="${w.value!=null?w.value:""}" placeholder="—"></label>`:""}
+      <label class="sizewrap">Format
+        <select class="setsize" data-row="${w.row}">
+          ${FORMATS.map(f=>`<option value="${f.key==="Bottle"?"":esc(f.key)}"${formatOf(w).key===f.key?" selected":""}>${esc(f.key)} · ${esc(f.note)}</option>`).join("")}
+        </select></label>
       <label class="datewrap">Acquired
         <input class="setdate" type="date" data-field="acquired" data-row="${w.row}" value="${w.acquired||""}"></label>
       ${w.drunk>0?`<label class="datewrap">Last drunk
@@ -668,7 +711,7 @@ function renderTable(){
     const rbadge = rd?`<span class="rbadge ${rd.k}${rd.est?" est":""}" title="${rd.est?"Estimated":"Your"} drink window ${rwin.from??"?"}–${rwin.to??"?"}${rd.est?" — set your own in the wine":""}">${rd.label}</span>`:"";
     const nm = [w.name, w.commune && w.commune!==w.name ? w.commune : ""].filter(Boolean).join(" · ");
     return `<tr class="main${w.left===0?" gone":""}" data-i="${i}" data-row="${w.row}" tabindex="0" aria-expanded="false">
-      <td><span class="prod">${esc(w.producer)}</span>${badge}${rbadge}<br><span class="wname">${esc(nm)}${w.classification&&w.classification!=="AOC"?" · <b>"+esc(w.classification)+"</b>":""}${w.rating?` · <span class="myscore">${w.rating}/10</span>`:""}</span></td>
+      <td><span class="prod">${esc(w.producer)}</span>${badge}${rbadge}<br><span class="wname">${fmtChip(w)}${esc(nm)}${w.classification&&w.classification!=="AOC"?" · <b>"+esc(w.classification)+"</b>":""}${w.rating?` · <span class="myscore">${w.rating}/10</span>`:""}</span></td>
       <td class="num">${esc(w.vintage||"—")}</td>
       <td>${esc(w.region)}</td>
       <td><span class="sdot" style="background:var(${STYLE_VAR[w.style]||"--muted"})"></span>${STYLE_EN[w.style]||esc(w.style)}</td>
@@ -704,6 +747,8 @@ function bindWineRows(scope){
     b.addEventListener("click",()=>rowAction(b.dataset.act, Number(b.dataset.row), b)));
   document.querySelectorAll(`${scope} select.rate`).forEach(sel=>
     sel.addEventListener("change",()=>rateWine(Number(sel.dataset.row), sel.value, sel)));
+  document.querySelectorAll(`${scope} select.setsize`).forEach(sel=>
+    sel.addEventListener("change",()=>setSizeApi(Number(sel.dataset.row), sel.value, sel)));
   document.querySelectorAll(`${scope} input.setval`).forEach(inp=>
     inp.addEventListener("change",()=>setValueApi(Number(inp.dataset.row), inp.value, inp)));
   document.querySelectorAll(`${scope} input.setdate`).forEach(inp=>
@@ -778,6 +823,17 @@ async function setValueApi(row, val, inp){
   inp.disabled = false;
 }
 
+async function setSizeApi(row, val, sel){
+  sel.disabled = true;
+  try{
+    const res = await api({action:"setsize", row, value: val});
+    WINES = normalize(res.wines);
+    renderOverview(); renderTable(); renderEnjoyed();
+    toast(val ? "Format set to "+val : "Back to a standard bottle");
+  }catch(err){ toast("Could not save format: "+err.message); }
+  sel.disabled = false;
+}
+
 async function setWindowApi(inp){
   const row = Number(inp.dataset.row);
   const wrap = inp.closest(".winwrap");
@@ -843,7 +899,7 @@ async function addWine(e){
   const wine = {
     producer:v("aProducer"), name:v("aName"), commune:v("aCommune"),
     country:v("aCountry"), region:v("aRegion"), classification:v("aClass"),
-    type:v("aType"), grape:v("aGrape"),
+    type:v("aType"), grape:v("aGrape"), size:$("aSize").value,
     vintage: /^\d{4}$/.test(v("aVintage")) ? Number(v("aVintage")) : v("aVintage"),
     qty: Number(v("aQty"))||1,
     price: v("aPrice")===""? "" : Number(v("aPrice")),
@@ -1534,6 +1590,8 @@ function pickTonight(){
     db.addEventListener("click", async ()=>{ await rowAction(db.dataset.act, Number(db.dataset.row), db); m.remove(); }));
   m.querySelectorAll("select.rate").forEach(sel=>
     sel.addEventListener("change",()=>rateWine(Number(sel.dataset.row), sel.value, sel)));
+  m.querySelectorAll("select.setsize").forEach(sel=>
+    sel.addEventListener("change",()=>setSizeApi(Number(sel.dataset.row), sel.value, sel)));
   m.querySelectorAll("input.setval").forEach(inp=>
     inp.addEventListener("change",()=>setValueApi(Number(inp.dataset.row), inp.value, inp)));
   m.querySelectorAll("input.setdate").forEach(inp=>
@@ -1896,7 +1954,7 @@ function renderEnjoyed(){
     const badge = pn?`<span class="badge ${pn[0]}">${TIER_LABEL[pn[0]]}</span>`:"";
     const nm = [w.name, w.commune && w.commune!==w.name ? w.commune : ""].filter(Boolean).join(" · ");
     return `<tr class="main" data-i="${i}" data-row="${w.row}" tabindex="0" aria-expanded="false">
-      <td><span class="prod">${esc(w.producer)}</span>${badge}<br><span class="wname">${esc(nm)}${w.classification&&w.classification!=="AOC"?" · <b>"+esc(w.classification)+"</b>":""}${w.rating?` · <span class="myscore">${w.rating}/10</span>`:""}</span></td>
+      <td><span class="prod">${esc(w.producer)}</span>${badge}<br><span class="wname">${fmtChip(w)}${esc(nm)}${w.classification&&w.classification!=="AOC"?" · <b>"+esc(w.classification)+"</b>":""}${w.rating?` · <span class="myscore">${w.rating}/10</span>`:""}</span></td>
       <td class="num">${esc(w.vintage||"—")}</td>
       <td>${esc(w.region)}</td>
       <td><span class="sdot" style="background:var(${STYLE_VAR[w.style]||"--muted"})"></span>${STYLE_EN[w.style]||esc(w.style)}</td>
@@ -2046,6 +2104,7 @@ function openEnjoyedAdd(prefill){
     if(prefill.rating) $("eaRating").value=String(prefill.rating);
     if(prefill.date) $("eaDate").value=String(prefill.date).slice(0,10);
     if(prefill.price!==""&&prefill.price!=null) $("eaPrice").value=prefill.price;
+    if(prefill.size) $("eaSize").value=prefill.size;
     $("eaType").value=prefill.type||inferType(prefill.region,prefill.grape,prefill.wine);
   }
   $("eaModal").classList.add("open");
@@ -2060,7 +2119,8 @@ $("eaForm").addEventListener("submit", async e=>{
   const v=id=>$(id).value.trim();
   const entry={ producer:v("eaProducer"), wine:v("eaWine"),
     vintage: /^\d{4}$/.test(v("eaVintage"))?Number(v("eaVintage")):v("eaVintage"),
-    type:$("eaType").value, region:v("eaRegion"), grape:v("eaGrape"), place:v("eaPlace"),
+    type:$("eaType").value, size:$("eaSize").value,
+    region:v("eaRegion"), grape:v("eaGrape"), place:v("eaPlace"),
     drunkDate:v("eaDate"), rating: v("eaRating")?Number(v("eaRating")):"",
     price: v("eaPrice")==="" ? "" : Math.max(0, Number(v("eaPrice"))||0), note:v("eaNote") };
   try{
