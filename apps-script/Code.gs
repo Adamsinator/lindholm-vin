@@ -18,7 +18,7 @@ const SHEET_NAME  = 'Ark1';             // tab name that holds the wine list
 const SIGNUP_CODE = '';                 // e.g. 'POUR-2026'; '' disables new signups
 // ─────────────────────────────────────────────────────────────────────────────
 
-const API_VERSION = 23; // returned in every response; used to verify deployments
+const API_VERSION = 24; // returned in every response; used to verify deployments
 
 // Per-request spreadsheet for the authenticated user. Set in handle(); every
 // sheet helper reads it via ss(). Falls back to the bound (owner's) spreadsheet.
@@ -55,6 +55,10 @@ const VALUE_HEADER = 'Værdi kr';
 // (set on add), and when it was last drunk (set when a bottle is marked drunk).
 const ACQUIRED_HEADER   = 'Anskaffet';
 const DRUNK_DATE_HEADER = 'Drukket dato';
+
+// Optional bottle format ("Magnum", "Balthazar", …), auto-created on first use.
+// Blank means an ordinary 75 cl bottle, so existing sheets need no migration.
+const SIZE_HEADER = 'Størrelse';
 
 // Optional drink-window columns (years), auto-created on first use.
 const DRINK_FROM_HEADER = 'Drik fra';
@@ -135,6 +139,9 @@ function handle(p) {
         return json({ ok: true, wines: readAll() });
       case 'setdate':
         setDate(Number(p.row), String(p.field || ''), p.value);
+        return json({ ok: true, wines: readAll() });
+      case 'setsize':
+        setSize(Number(p.row), p.value);
         return json({ ok: true, wines: readAll() });
       case 'setwindow':
         setWindow(Number(p.row), p.from, p.to);
@@ -234,6 +241,15 @@ function findUser(username) {
 
 function randToken() { return Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, ''); }
 
+// The Token cell holds up to MAX_TOKENS recent session tokens, newest last, so
+// a phone and a laptop can be signed in at once. A cell written by an older
+// version holds a single token and parses as a one-item list — nothing to migrate.
+// Sessions still expire on their own: the site signs out after 60 idle minutes.
+const MAX_TOKENS = 5;
+function tokenList(cell) {
+  return String(cell || '').split(',').map(t => t.trim()).filter(Boolean);
+}
+
 function hashPass(salt, pass) {
   const bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, String(salt) + '|' + String(pass));
   return Utilities.base64Encode(bytes);
@@ -298,7 +314,10 @@ function doLogin(p) {
   const ok = u && safeEqual(hashPass(salt, p.pass || ''), u.hash);
   if (!ok) return json({ ok: false, error: 'bad-login' });
   const token = randToken();
-  usersSheet().getRange(u.row, 5).setValue(token); // rotate token on each login
+  // Add this session rather than replacing the last one, dropping the oldest
+  // once we're past MAX_TOKENS.
+  const live = tokenList(u.token).concat(token).slice(-MAX_TOKENS);
+  usersSheet().getRange(u.row, 5).setValue(live.join(', '));
   return json({ ok: true, user: u.username, token: token });
 }
 
@@ -306,7 +325,7 @@ function doLogin(p) {
 function authToken(p) {
   const u = findUser(p.user);
   if (!u || !u.token || !p.token) return null;
-  return safeEqual(p.token, u.token) ? u : null;
+  return tokenList(u.token).some(t => safeEqual(p.token, t)) ? u : null;
 }
 
 // Run ONCE from the editor to give yourself an account whose cellar is THIS
@@ -502,6 +521,7 @@ function colIndexes(sh) {
   idx.value     = head.indexOf(VALUE_HEADER);  // -1 until first value creates it
   idx.acquired  = head.indexOf(ACQUIRED_HEADER);
   idx.drunkDate = head.indexOf(DRUNK_DATE_HEADER);
+  idx.size      = head.indexOf(SIZE_HEADER);
   idx.drinkFrom = head.indexOf(DRINK_FROM_HEADER);
   idx.drinkTo   = head.indexOf(DRINK_TO_HEADER);
   return idx;
@@ -526,6 +546,7 @@ function readAll() {
     w.value  = idx.value  >= 0 ? (r[idx.value] === null || r[idx.value] === undefined ? '' : r[idx.value]) : '';
     w.acquired  = idx.acquired  >= 0 ? ymd(r[idx.acquired])  : '';
     w.drunkDate = idx.drunkDate >= 0 ? ymd(r[idx.drunkDate]) : '';
+    w.size = idx.size >= 0 ? String(r[idx.size] === null || r[idx.size] === undefined ? '' : r[idx.size]).trim() : '';
     w.drinkFrom = idx.drinkFrom >= 0 ? (r[idx.drinkFrom] === null || r[idx.drinkFrom] === undefined ? '' : r[idx.drinkFrom]) : '';
     w.drinkTo   = idx.drinkTo   >= 0 ? (r[idx.drinkTo]   === null || r[idx.drinkTo]   === undefined ? '' : r[idx.drinkTo])   : '';
     wines.push(w);
@@ -536,6 +557,7 @@ function readAll() {
 function addWine(wine) {
   const sh = sheet();
   ensureCol(sh, ACQUIRED_HEADER);
+  if (String(wine.size || '').trim()) ensureCol(sh, SIZE_HEADER);
   const idx = colIndexes(sh);
   const row = new Array(sh.getLastColumn()).fill('');
   for (const field of Object.keys(HEADERS)) {
@@ -545,6 +567,7 @@ function addWine(wine) {
   }
   if (!String(row[idx.producer]).trim()) throw new Error('Producer is required');
   row[idx.acquired] = ymd(wine.acquired) || today();
+  if (idx.size >= 0 && String(wine.size || '').trim()) row[idx.size] = String(wine.size).trim();
   sh.appendRow(row);
 }
 
@@ -556,6 +579,7 @@ function enjoyAdd(e) {
   const sh = sheet();
   ensureCol(sh, RATING_HEADER);
   ensureCol(sh, DRUNK_DATE_HEADER);
+  if (String(e.size || '').trim()) ensureCol(sh, SIZE_HEADER);
   const idx = colIndexes(sh);
   const row = new Array(sh.getLastColumn()).fill('');
   const set = (f, v) => { if (idx[f] >= 0 && v !== undefined && v !== null && v !== '') row[idx[f]] = v; };
@@ -564,6 +588,7 @@ function enjoyAdd(e) {
   set('region', e.region); set('country', e.country); set('grape', e.grape);
   set('type', e.type); set('vintage', e.vintage); set('price', e.price);
   set('source', e.place !== undefined ? e.place : e.source); set('note', e.note);
+  set('size', String(e.size || '').trim());
   row[idx.qty] = 1;
   row[idx.drunk] = 1;
   row[idx.drunkDate] = ymd(e.drunkDate || e.date) || today();
@@ -648,6 +673,14 @@ function setPrice(rowNum, value) {
   const empty = value === '' || value === null || value === undefined;
   const v = empty ? '' : Math.max(0, Number(value) || 0);
   sh.getRange(rowNum, idx.price + 1).setValue(v);
+}
+
+// Set a bottle's format. Blank means an ordinary 75 cl bottle.
+function setSize(rowNum, value) {
+  const sh = sheet();
+  if (!rowNum || rowNum < 2 || rowNum > sh.getLastRow()) throw new Error('Bad row');
+  const i = ensureCol(sh, SIZE_HEADER);
+  sh.getRange(rowNum, i + 1).setValue(String(value || '').trim());
 }
 
 // Set a wine's drink window (years). Blank clears an end.
