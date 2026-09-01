@@ -16,6 +16,12 @@ const kr = n => fmt(n)+" kr.";
 const fmtDate = s => { const d=new Date(String(s).slice(0,10)+"T12:00:00");
   return isNaN(d)?String(s):d.toLocaleDateString("da-DK",{day:"numeric",month:"short",year:"numeric"}); };
 
+// A date in the browser's own timezone. toISOString() gives the UTC date, which
+// is still yesterday in Copenhagen between midnight and 01:00/02:00 — exactly
+// when a bottle tends to get logged.
+const ymdLocal = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+const todayStr = () => ymdLocal(new Date());
+
 // A rough drink window estimated from the wine's type, origin and vintage.
 // Deliberately generic (grape/region/cru level → an ageing span) — a starting
 // point you can override per wine. Returns {from,to} or null.
@@ -407,7 +413,10 @@ function buildHistory(wines, now){
   const ev = []; let withAcq=0, withoutAcq=0, drinkEvents=0;
   wines.forEach(w=>{
     const a = parse(w.acquired);
-    if(a===null){ if(w.qty>0) withoutAcq++; return; }
+    // A row the journal created for a wine we never owned (1 bottle, drunk, no
+    // acquired date) is undated on purpose — nagging about it can never be resolved.
+    const neverOwned = w.qty===1 && w.drunk===1;
+    if(a===null){ if(w.qty>0 && !neverOwned) withoutAcq++; return; }
     withAcq++;
     ev.push({t:a, d:w.qty, kind:"acq", w});
     const dd = parse(w.drunkDate);
@@ -472,7 +481,7 @@ function drawHistory(){
   svg.innerHTML=parts.join("");
   svg.querySelectorAll(".hist-ev").forEach(g=>{
     g.addEventListener("mousemove",e=>{
-      const n=Number(g.dataset.d), when=fmtDate(new Date(Number(g.dataset.t)).toISOString().slice(0,10));
+      const n=Number(g.dataset.d), when=fmtDate(ymdLocal(new Date(Number(g.dataset.t))));
       const what = n>0 ? `added ${n}` : `drunk ${-n}`;
       showTip(`<b>${when}</b> · ${esc(g.dataset.style)}<br>${what} — ${esc(g.dataset.w)}<br><span style="opacity:.75">${g.dataset.cum} in cellar after</span>`,e.clientX,e.clientY);
     });
@@ -804,10 +813,14 @@ async function rowAction(act, row, btn){
     if(!confirm(`Delete ${name} from the cellar?\nThis removes the whole row from the sheet.`)) return;
   }
   const wasLast = act==="drink" && w && w.left===1;
+  const label = btn.textContent;
   btn.disabled = true; btn.textContent = "Updating…";
   try{
     const res = await api({action:act, row, qty:1});
     WINES = normalize(res.wines);
+    // Deleting a row shifts every row below it up, so the remembered row number
+    // now points at a different wine — forget it rather than expand a stranger.
+    if(act==="delete") KEEP_OPEN = null;
     renderOverview(); renderTable(); renderEnjoyed();
     toast(act==="drink" ? "Skål! Bottle marked as drunk 🍷"
         : act==="undrink" ? "Bottle back in the cellar 🍾"
@@ -820,7 +833,7 @@ async function rowAction(act, row, btn){
             country:nw.country, region:nw.region, grape:nw.grape});
       }, 250);
     }
-  }catch(err){ toast("Could not update: "+err.message); btn.disabled=false; }
+  }catch(err){ toast("Could not update: "+err.message); btn.disabled=false; btn.textContent=label; }
 }
 
 async function addWine(e){
@@ -920,7 +933,7 @@ $("priceBtn").addEventListener("click", ()=>{
   renderOverview(); renderTable(); renderEnjoyed();
 });
 $("addBtn").addEventListener("click", ()=>{
-  if(!$("aAcquired").value) $("aAcquired").value = new Date().toISOString().slice(0,10);
+  if(!$("aAcquired").value) $("aAcquired").value = todayStr();
   $("addModal").classList.add("open"); $("aProducer").focus();
 });
 $("addCancel").addEventListener("click", ()=>$("addModal").classList.remove("open"));
@@ -1556,11 +1569,15 @@ function shrinkImage(file, maxEdge=1600, quality=0.82){
   });
 }
 
+const PHOTO_PENDING = {};   // id -> in-flight promise, so re-renders don't refetch
 async function loadPhoto(id){
   if(PHOTOS[id]) return PHOTOS[id];
-  const res = await api({action:"photo", id});
-  PHOTOS[id] = res.photo;
-  return res.photo;
+  if(PHOTO_PENDING[id]) return PHOTO_PENDING[id];
+  PHOTO_PENDING[id] = (async()=>{
+    try{ const res = await api({action:"photo", id}); PHOTOS[id] = res.photo; return res.photo; }
+    finally{ delete PHOTO_PENDING[id]; }
+  })();
+  return PHOTO_PENDING[id];
 }
 
 function openPhotoLightbox(src){
@@ -1694,7 +1711,7 @@ function openJournalModal(prefill){
   $("jSave").textContent = "Save entry";
   $("jEnjoyWrap").hidden = false;
   $("jEnjoy").checked = true; // journaling a wine means you drank it
-  $("jDate").value = new Date().toISOString().slice(0,10);
+  $("jDate").value = todayStr();
   if(prefill){
     $("jProducer").value = prefill.producer || "";
     $("jWine").value = prefill.wine || "";
@@ -1714,7 +1731,7 @@ function openJournalEdit(e){
   $("jSave").textContent = "Save changes";
   $("jEnjoyWrap").hidden = false;
   $("jEnjoy").checked = true; // offered on edit too — syncEnjoyOption() hides it once it's in Enjoyed
-  $("jDate").value = String(e.date||"").slice(0,10) || new Date().toISOString().slice(0,10);
+  $("jDate").value = String(e.date||"").slice(0,10) || todayStr();
   $("jProducer").value = e.producer || "";
   $("jWine").value = e.wine || "";
   $("jVintage").value = e.vintage!==""&&e.vintage!=null ? e.vintage : "";
@@ -1785,7 +1802,7 @@ $("jForm").addEventListener("submit", async e=>{
           r2 = await api({action:"drink", row:t.wine.row, qty:1});
           // the server stamps today; keep Enjoyed in step with the tasting date
           const d = String(entry.date||"").slice(0,10);
-          if(d && d !== new Date().toISOString().slice(0,10))
+          if(d && d !== todayStr())
             r2 = await api({action:"setdate", row:t.wine.row, field:"drunkDate", value:d});
           // a bottle we own already has a purchase price; only fill a blank one
           if(entry.price !== "" && !t.wine.price)
@@ -2020,7 +2037,7 @@ function inferType(region, grape, wine){
 /* add a wine you've had but never owned (enjoyed, not in the cellar) */
 function openEnjoyedAdd(prefill){
   $("eaForm").reset(); $("eaErr").hidden=true; $("eaErr").textContent="";
-  $("eaDate").value=new Date().toISOString().slice(0,10);
+  $("eaDate").value=todayStr();
   $("jProducers").innerHTML=[...new Set(WINES.map(w=>w.producer).filter(Boolean))].sort().map(x=>`<option>${esc(x)}</option>`).join("");
   if(prefill){
     $("eaProducer").value=prefill.producer||""; $("eaWine").value=prefill.wine||"";
@@ -2028,6 +2045,7 @@ function openEnjoyedAdd(prefill){
     if(prefill.place) $("eaPlace").value=prefill.place;
     if(prefill.rating) $("eaRating").value=String(prefill.rating);
     if(prefill.date) $("eaDate").value=String(prefill.date).slice(0,10);
+    if(prefill.price!==""&&prefill.price!=null) $("eaPrice").value=prefill.price;
     $("eaType").value=prefill.type||inferType(prefill.region,prefill.grape,prefill.wine);
   }
   $("eaModal").classList.add("open");
@@ -2043,7 +2061,8 @@ $("eaForm").addEventListener("submit", async e=>{
   const entry={ producer:v("eaProducer"), wine:v("eaWine"),
     vintage: /^\d{4}$/.test(v("eaVintage"))?Number(v("eaVintage")):v("eaVintage"),
     type:$("eaType").value, region:v("eaRegion"), grape:v("eaGrape"), place:v("eaPlace"),
-    drunkDate:v("eaDate"), rating: v("eaRating")?Number(v("eaRating")):"", note:v("eaNote") };
+    drunkDate:v("eaDate"), rating: v("eaRating")?Number(v("eaRating")):"",
+    price: v("eaPrice")==="" ? "" : Math.max(0, Number(v("eaPrice"))||0), note:v("eaNote") };
   try{
     const res=await api({action:"enjoyadd", entry});
     WINES=normalize(res.wines);

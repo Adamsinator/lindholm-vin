@@ -19,7 +19,7 @@
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-title" content="AllWine">
 <meta name="theme-color" content="#7C2D3E">
-<script src="config.js?v=3"></script>
+<script src="config.js?v=4"></script>
 <style>
 :root{
   --bg:#F7F4F1; --card:#FFFFFF; --card2:#FBF9F7; --ink:#2A2126; --muted:#756A70;
@@ -697,6 +697,8 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
           <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option>
           <option>6</option><option>7</option><option>8</option><option>9</option><option>10</option></select></div>
     </div>
+    <label for="eaPrice">Price <span class="lopt">(optional — what the bottle cost)</span></label>
+    <input id="eaPrice" type="number" min="0" step="1" inputmode="numeric" placeholder="kr.">
     <label for="eaNote">Note</label><textarea id="eaNote" rows="2"></textarea>
     <div class="jerr" id="eaErr" role="alert" hidden></div>
     <div class="mact">
@@ -813,7 +815,7 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
 
 <!-- Pages serves these with max-age=600 and no revalidation, so a merged change can
      sit invisible behind a stale app.js for ten minutes. Bump v on every deploy. -->
-<script src="notes.js?v=3"></script>
-<script src="app.js?v=3"></script>
+<script src="notes.js?v=4"></script>
+<script src="app.js?v=4"></script>
 </body>
 </html>
