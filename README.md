@@ -287,6 +287,29 @@ acquired/drunk dates, drink window and bottle format — all inline in the wine'
 detail. Anything else (fixing a typo in a name) you do directly in the Google
 Sheet, and the site picks it up on the next refresh.
 
+## Surveyed vineyard outlines (INAO)
+
+The atlas can draw the real vineyard boundaries from INAO's *Délimitation
+parcellaire des AOC viticoles* instead of its schematic grid:
+
+1. Put the INAO files in `data/inao/`. They can be GeoJSON or a shapefile
+   (`.shp` + `.dbf`); Lambert-93 coordinates are converted automatically. The
+   whole national file works, but a Côte d'Or extract is faster.
+2. Run `cd tools && npm install && cd .. && node tools/inao-import.js`.
+3. It writes `burgundy-geo.js` and prints a report:
+   - atlas vineyards without an outline (village lieux-dits and enclaves are
+     expected here)
+   - INAO names it couldn't match to a vineyard, which it never guesses
+   - vineyards whose surveyed area differs from the atlas's figure by more
+     than 20%
+
+Once `burgundy-geo.js` has outlines, the atlas opens on the surveyed map with a
+scale bar, and a **Map: surveyed / schematic** button switches between the two;
+the choice is remembered per browser. With the placeholder file (`BURG_GEO =
+null`) nothing changes. Credit: INAO data from data.gouv.fr under the Licence
+Ouverte; INAO notes the official boundaries are the plans held in the town
+halls.
+
 ## Smoke test
 
 `tools/smoke-test.js` drives the whole site in a headless browser against a fake

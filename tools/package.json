@@ -1,0 +1,9 @@
+{
+  "name": "allwine-tools",
+  "private": true,
+  "description": "Dev tools for allwine.dk: INAO vineyard import, smoke test. Not used by the site at runtime.",
+  "dependencies": {
+    "polygon-clipping": "0.15.7",
+    "shapefile": "0.6.6"
+  }
+}

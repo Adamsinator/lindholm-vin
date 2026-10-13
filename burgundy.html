@@ -116,6 +116,9 @@ input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible,[t
   #fColor{flex:1 1 60%;font-size:15px}
   .chip{padding:4px 10px;font-size:12.5px}
 }
+.scalebar{position:absolute;right:56px;bottom:12px;display:flex;flex-direction:column;align-items:flex-end;gap:2px;pointer-events:none;font-size:11px;color:var(--ink)}
+.scalebar span{display:block;height:6px;border:1.5px solid var(--ink);border-top:0;min-width:10px}
+.scalebar em{font-style:normal;font-weight:600;text-shadow:0 0 3px var(--mapbg)}
 .compass{position:absolute;left:12px;top:10px;font-size:11px;color:var(--muted);line-height:1.25;pointer-events:none}
 .compass b{display:block;font-size:13px;color:var(--ink)}
 
@@ -308,6 +311,7 @@ Drag to pan, scroll or pinch to zoom.</p>
     <button class="chip on" data-cls="V"><span class="sw" style="background:var(--vc)"></span>Village</button>
     <button class="chip" id="monoChip">Monopoles only</button>
     <button class="chip" id="cellarChip" hidden>In my cellar</button>
+    <button class="chip" id="modeChip" hidden title="Surveyed INAO outlines or the schematic map">Map: surveyed</button>
   </div>
   <button class="btn quiet" id="reset">Reset</button>
 </div>
@@ -317,7 +321,8 @@ Drag to pan, scroll or pinch to zoom.</p>
 <div class="atlas">
   <div class="mapcard" id="mapcard">
     <svg id="map" role="img" aria-label="Schematic map of the Côte de Nuits vineyards"></svg>
-    <div class="compass"><b>N ↑</b>slope rises west ←<br>schematic · not to scale</div>
+    <div class="compass" id="compass"><b>N ↑</b>slope rises west ←<br>schematic · not to scale</div>
+    <div class="scalebar" id="scalebar" hidden><span></span><em></em></div>
     <div class="zoom">
       <button id="zIn" title="Zoom in" aria-label="Zoom in">＋</button>
       <button id="zOut" title="Zoom out" aria-label="Zoom out">－</button>
@@ -386,6 +391,7 @@ Drag to pan, scroll or pinch to zoom.</p>
 <script src="burgundy-data.js?v=6"></script>
 <script src="burgundy-data-beaune.js?v=6"></script>
 <script src="burgundy-detail.js?v=6"></script>
-<script src="burgundy.js?v=6"></script>
+<script src="burgundy-geo.js?v=1"></script>
+<script src="burgundy.js?v=7"></script>
 </body>
 </html>
