@@ -820,7 +820,7 @@ function renderDomains(){
   const box = $("domains"); if(!box) return;
   const tab = st.dtab || "vosne";
   const TABS = {
-    vosne:{area:["vosne","flagey"], n:"Vosne/Flagey", ok:pf => pf.focus && !pf.cote},
+    vosne:{area:["vosne","flagey","nuits","premeaux"], n:"Vosne–Nuits", ok:pf => pf.focus && !pf.cote},
     north:{area:["marsannay","fixin","brochon","gevrey","morey","chambolle","vougeot"], n:"Gevrey–Vougeot", ok:pf => pf.cote==="north"},
     beaune:{area:V.filter(v=>v.cote==="beaune").map(v=>v.id), n:"Côte de Beaune", ok:pf => pf.cote==="beaune"},
   }, T = TABS[tab] || TABS.vosne;
