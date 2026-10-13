@@ -185,6 +185,14 @@ note) — matched by producer with the wine name or vintage. And when you drink 
 wine's **last** bottle, the app offers to log a tasting note, prefilled from the
 wine, so the memory is captured before it leaves the cellar.
 
+## Front page
+
+allwine.dk opens on a front page with two ways in: the **Burgundy atlas**,
+open to everyone with no login, and **Your cellar**, the login form. Logging
+in goes to the cellar as before, and anyone already logged in skips the front
+page and lands straight in their cellar. The atlas preview picture is
+`atlas-preview.jpg`; re-shoot it if the map's look changes a lot.
+
 ## Burgundy atlas
 
 **Burgundy atlas ↗** in the tab bar opens `burgundy.html`, a separate page with a

@@ -923,7 +923,8 @@ function showGate(msg){
   $("who").hidden = true; $("who").textContent = "";
   $("gateApiWrap").hidden = !!cfg.api;
   $("gateErr").textContent = msg||"";
-  setTimeout(()=>$("gateUser").focus(), 50);
+  // On phones the atlas sits above the login; focusing would pop the keyboard and scroll past it.
+  if(matchMedia("(min-width: 821px)").matches) setTimeout(()=>$("gateUser").focus(), 50);
 }
 function setGateMode(mode){
   GATE_MODE = mode;
