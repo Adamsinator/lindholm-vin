@@ -94,7 +94,11 @@ const overflow=async(p,where)=>{ const o=await p.evaluate(()=>document.documentE
   await p.screenshot({path:OUT+tag+'_atlas.png'});
   // every climat, village and producer panel renders
   const ids=await p.evaluate(()=>({c:Object.keys(window.__atlas.CL), p:Object.keys(window.__atlas.PROD)}));
-  for(const id of ids.c){ await p.evaluate(id=>{ const c=window.__atlas.CL[id]; c.el.dispatchEvent(new MouseEvent('click',{bubbles:true})); }, id); }
+  for(const id of ids.c){
+    const bad = await p.evaluate(id=>{ const c=window.__atlas.CL[id]; c.el.dispatchEvent(new MouseEvent('click',{bubbles:true}));
+      const t=document.getElementById('side').textContent; return /M-?\d+(\.\d+)? -?\d+(\.\d+)?L/.test(t) || (c.d && !t.includes(c.d.slice(0,25))); }, id);
+    if(bad) note(tag,'side panel for '+id+' does not show its description');
+  }
   const sideEmpty=await p.evaluate(()=>document.getElementById('side').textContent.trim().length<20); if(sideEmpty) note(tag,'side panel empty after clicks');
   for(const k of ids.p.slice(0, tag==='desk'?999:30)){ await p.evaluate(k=>{ location.hash='p='+k; }, k); }
   // edit flow

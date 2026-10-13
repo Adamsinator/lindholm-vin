@@ -25,7 +25,8 @@ const WOB = 0.06, WOBY = 0.05;
 const px = (x,y) => (x - X0 + TILT*(total - y) + WIG*Math.sin(y/7.5) + WOB*Math.sin(1.3*y + 0.7*x)) * S;
 const py = y => (y - Y0) * S;
 const gy = (x,y) => py(y + WOBY*Math.sin(0.9*x + 0.45*y)); // geometry only; labels use py
-const W = (X1 - X0 + TILT*total + 1) * S, H = (Y1 - Y0) * S;
+let W = (X1 - X0 + TILT*total + 1) * S, H = (Y1 - Y0) * S;
+const W0 = W, H0 = H; // schematic canvas; the surveyed map sets its own
 function dense(pts, step=0.25){
   const out=[];
   for(let i=0;i<pts.length;i++){
@@ -76,6 +77,7 @@ C.forEach(c => {
   c.p = c.p || []; c.p0 = c.p.map(x => [...x]); c.edited = {}; // p0 = as shipped; p = after corrections
 });
 const CL = Object.fromEntries(C.map(c => [c.id, c]));
+C.forEach(c => { c.sch = {cx:c.cx, cy:c.cy, bw:c.bw, bh:c.bh}; }); // schematic label geometry, restored on toggling back
 
 /* ---------- producers index (rebuilt whenever corrections are applied) ---------- */
 const PROD = {}; // key -> {key,name,hold:[{c,ha,kind,since}],ha,gc,n,prof}
@@ -173,8 +175,49 @@ function el(tag, attrs, parent){
   if(parent) parent.appendChild(e);
   return e;
 }
+/* ---------- two maps: the schematic grid, or surveyed INAO outlines when burgundy-geo.js has them ---------- */
+const GEO = window.BURG_GEO && window.BURG_GEO.climats ? window.BURG_GEO : null;
+st.mode = GEO ? (() => { try{ return localStorage.getItem("atlasMode") || "geo"; }catch(e){ return "geo"; } })() : "schematic";
+const GS = 0.25; // surveyed map: svg units per metre
+let CONTENT = null;
+const bbOf = pts => { const xs=pts.map(p=>p[0]), ys=pts.map(p=>p[1]); return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)]; };
+const bbUnion = bs => bs.length ? [Math.min(...bs.map(b=>b[0])), Math.min(...bs.map(b=>b[1])), Math.max(...bs.map(b=>b[2])), Math.max(...bs.map(b=>b[3]))] : null;
+const ringArea = r => Math.abs(r.reduce((s,[x,y],i) => { const [x2,y2] = r[(i+1)%r.length]; return s + x*y2 - x2*y; }, 0) / 2);
+function prepare(){
+  if(st.mode==="geo"){
+    const all = [];
+    [...Object.values(GEO.climats), ...Object.values(GEO.villages||{})].forEach(mp => mp.forEach(p => p[0].forEach(q => all.push(q))));
+    const [minE, minN, maxE, maxN] = bbOf(all), PAD = 60;
+    const T = ([e,n]) => [(e-minE)*GS+PAD, (maxN-n)*GS+PAD];
+    W = (maxE-minE)*GS + 2*PAD; H = (maxN-minN)*GS + 2*PAD;
+    const dOf = mp => mp.map(p => p.map(r => "M"+r.map(q => T(q).map(v=>v.toFixed(1)).join(" ")).join("L")+"Z").join("")).join("");
+    C.forEach(c => {
+      const mp = GEO.climats[c.id];
+      if(!mp){ c.path = ""; c.bb = null; Object.assign(c, {cx:-9999, cy:-9999, bw:0, bh:0}); return; }
+      c.path = dOf(mp); c.bb = bbOf(mp.flatMap(p => p[0]).map(T));
+      const big = mp.reduce((a,p) => ringArea(p[0]) > ringArea(a[0]) ? p : a, mp[0]), b = bbOf(big[0].map(T));
+      Object.assign(c, {cx:(b[0]+b[2])/2, cy:(b[1]+b[3])/2, bw:(b[2]-b[0])*.62, bh:(b[3]-b[1])*.62});
+    });
+    V.forEach(v => {
+      const mp = (GEO.villages||{})[v.id];
+      v.baseD = mp ? [dOf(mp)] : [];
+      v.bb = bbUnion([...(mp ? [bbOf(mp.flatMap(p => p[0]).map(T))] : []), ...C.filter(c => c.v===v.id && c.bb).map(c => c.bb)]);
+      v.tl = null;
+    });
+    CONTENT = [0, 0, W, H];
+  } else {
+    W = W0; H = H0;
+    C.forEach(c => { Object.assign(c, c.sch); c.path = toPath(c.s, c.oy); const b = bbOf(c.g); c.bb = boxOfGrid(b[0], b[1], b[2], b[3]); });
+    V.forEach(v => { v.baseD = (v.base||[]).map(b => toPath(b, v.y0));
+      const ext = v.id==="flagey" ? -3.5 : 0, ext2 = v.id==="chambolle" ? 6.5 : 0; v.bb = boxOfGrid(-0.5, v.y0+ext, 31, v.y0+v.h+ext2); });
+    CONTENT = boxOfGrid(-4.5, Y0, 37, Y1);
+  }
+}
+const prodBox = key => bbUnion(PROD[key].hold.map(h => h.c.bb).filter(Boolean));
 function build(){
   readTokens();
+  prepare();
+  const SCH = st.mode!=="geo";
   rlabEls = []; ovEls = [];
   svg.innerHTML = "";
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
@@ -195,6 +238,7 @@ function build(){
   el("stop", {offset:1, "stop-color":TOK.ink, "stop-opacity":0}, lg);
   gView = el("g", {}, svg);
 
+  if(SCH){
   // plain east of the road, forest west of the slope
   el("path", {class:"plain", d:`M${px(30,Y0)} ${py(Y0)}`+polyLine([[30,Y0],[30,Y1]]).replace(/^M/,"L")+`L${W} ${H}L${W} 0Z`}, gView);
   const forestD = "M0 0"+polyLine([[1,Y0],[1,Y1]]).replace(/^M/,"L")+`L0 ${H}Z`;
@@ -208,11 +252,12 @@ function build(){
     el("path", {class:"combe", d:polyLine([[1.2,yy],[-1.5,yy-.25],[-4.6,yy+.15]]), "stroke-width":S*.55}, gView);
     const t = el("text", {class:"flab", x:px(-4.4,yy-.55), y:py(yy-.55), "data-fs":9.5}, gView); t.textContent = n; rlabEls.push(t);
   });
+  } else el("rect", {class:"plain", x:0, y:0, width:W, height:H}, gView);
 
   // commune ground (village AOC) + outlines
   const gBase = el("g", {}, gView);
-  V.forEach(v => (v.base||[]).forEach(b => {
-    const p = el("path", {class:"base", d:toPath(b, v.y0), "data-v":v.id}, gBase);
+  V.forEach(v => v.baseD.forEach(d => {
+    const p = el("path", {class:"base", d, "data-v":v.id, "fill-rule":"evenodd"}, gBase);
     p.addEventListener("click", ev => { if(dragMoved) return; ev.stopPropagation(); selectVillage(v.id, true); });
     p.addEventListener("pointermove", ev => tip(ev, `<b>${esc(v.n)}</b><br>${esc(v.aoc)}`));
     p.addEventListener("pointerleave", hideTip);
@@ -222,7 +267,8 @@ function build(){
   const gCl = el("g", {}, gView), gRows = el("g", {class:"rows"}, gView), gHill = el("g", {"pointer-events":"none"}, gView),
         gWall = el("g", {}, gView), gRoad = el("g", {"pointer-events":"none"}, gView), gTown = el("g", {"pointer-events":"none"}, gView),
         gMono = el("g", {}, gView), gLab = el("g", {}, gView), gDot = el("g", {}, gView);
-  V.forEach(v => (v.base||[]).forEach(b => el("path", {d:toPath(b, v.y0), fill:"url(#rows)", opacity:.6}, gRows)));
+  V.forEach(v => v.baseD.forEach(d => el("path", {d, fill:"url(#rows)", opacity:.6, "fill-rule":"evenodd"}, gRows)));
+  if(SCH){
   // the escarpment: darker toward the top of the slope
   el("path", {d:toPath([[1,Y0],[9,Y0],[9,Y1],[1,Y1]]), fill:"url(#shade)"}, gHill);
   drawContours(gHill);
@@ -249,24 +295,25 @@ function build(){
     const xs=v.town.map(p=>p[0]), ys=v.town.map(p=>p[1]), cx=(Math.min(...xs)+Math.max(...xs))/2, cy=(Math.min(...ys)+Math.max(...ys))/2;
     v.tl = [px(cx,cy+v.y0), py(cy+v.y0)];
   });
+  }
 
   // climats: parents first, enclaves on top
   labEls = [];
   [...C].sort((a,b) => (a.inner?1:0)-(b.inner?1:0)).forEach(c => {
-    const d = toPath(c.s, c.oy);
-    const p = el("path", {class:"cl", d, "data-id":c.id}, gCl); c.el = p;
+    const d = c.path; // (c.d is the climat's description)
+    const p = el("path", {class:"cl", d, "data-id":c.id, "fill-rule":"evenodd"}, gCl); c.el = p;
     p.addEventListener("click", ev => { if(dragMoved) return; ev.stopPropagation(); select(c.id, false); });
     p.addEventListener("pointermove", ev => tip(ev, tipHtml(c)));
     p.addEventListener("pointerleave", hideTip);
     el("path", {d, fill:"url(#rows)", "pointer-events":"none"}, gRows);
     if(c.wall) el("path", {class:"wall", d, "data-w":2.6}, gWall);
-    if(c.mono){ c.mel = el("path", {class:"mono", d:insetPath(c), stroke:"var(--gc-ink)"}, gMono); }
+    if(c.mono){ c.mel = el("path", {class:"mono", d:SCH ? insetPath(c) : d, stroke:"var(--gc-ink)"}, gMono); }
     const t = el("text", {class:"lab "+c.c, x:c.cx.toFixed(1), y:c.cy.toFixed(1)}, gLab);
     c.lel = t; labEls.push(c);
     c.dot = el("circle", {class:"cellardot", cx:(c.cx).toFixed(1), cy:(c.cy).toFixed(1), r:0}, gDot);
   });
 
-  drawLandmarks(gTown, gLab);
+  if(SCH) drawLandmarks(gTown, gLab);
   tlabEls = [];
   V.forEach(v => {
     if(!v.tl) return;
@@ -276,6 +323,11 @@ function build(){
   // commune names, set vertically in the forest band
   vlabEls = [];
   V.forEach(v => {
+    if(!SCH){ // surveyed map: names over each commune, shown when zoomed out
+      if(!v.bb || ["flagey","premeaux","brochon"].includes(v.id) && !(GEO.villages||{})[v.id]) return;
+      const o = el("text", {class:"vlab ov", x:(v.bb[0]+v.bb[2])/2, y:(v.bb[1]+v.bb[3])/2, "text-anchor":"middle", "dominant-baseline":"central", "data-fs":12}, gLab);
+      o.textContent = v.n; ovEls.push(o); return;
+    }
     const ext = v.id==="flagey" ? -3.5 : 0;
     const yc = v.y0 + (ext + v.h)/2, x = -2.1;
     const t = el("text", {class:"vlab", x:px(x,yc), y:py(yc), "text-anchor":"middle", "dominant-baseline":"central",
@@ -470,7 +522,7 @@ svg.addEventListener("pointerup", up); svg.addEventListener("pointercancel", up)
 svg.addEventListener("dblclick", ev => { const [cx,cy]=clientToSvg(ev.clientX, ev.clientY); flyTo({x:cx-vb.w/4, y:cy-vb.h/4, w:vb.w/2, h:vb.h/2}, 260); });
 $("zIn").onclick = () => zoomAt(1/1.6, vb.x+vb.w/2, vb.y+vb.h/2);
 $("zOut").onclick = () => zoomAt(1.6, vb.x+vb.w/2, vb.y+vb.h/2);
-$("zAll").onclick = () => { st.vsel=null; syncCommunes(); flyTo(fitBox(...boxOfGrid(-4.5,Y0,37,Y1), .01)); };
+$("zAll").onclick = () => { st.vsel=null; syncCommunes(); flyTo(fitBox(...CONTENT, .01)); };
 new ResizeObserver(() => setVB(vb)).observe(svg);
 
 /* ---------- labels: constant screen size, shown only where they fit ---------- */
@@ -502,7 +554,11 @@ function layoutLabels(){
       c.dot.setAttribute("cx", (c.cx + Math.max(0,dx)).toFixed(1)); c.dot.setAttribute("cy", (c.cy - Math.max(0,dy)).toFixed(1));
     } else c.dot.setAttribute("r", 0);
   });
-  const overview = k < .42;
+  const overview = st.mode==="geo" ? k < .06 : k < .42;
+  const sb = $("scalebar");
+  if(sb){ sb.hidden = st.mode!=="geo";
+    if(st.mode==="geo"){ const mpp = 1/(GS*k), want = 110*mpp, steps = [10,20,50,100,200,500,1000,2000,5000,10000];
+      const m = steps.find(x => x >= want*.6) || 10000; sb.firstChild.style.width = (m/mpp).toFixed(0)+"px"; sb.lastChild.textContent = m>=1000 ? m/1000+" km" : m+" m"; } }
   ovEls.forEach(t => { t.setAttribute("font-size",(+t.dataset.fs/k).toFixed(2)); t.style.display = overview ? "" : "none"; });
   vlabEls.forEach(t => {
     const fs = Math.min(+t.dataset.fs, 6*S*k*.55); // never wider than the forest band
@@ -554,8 +610,8 @@ function hideTip(){ tipEl.style.opacity = 0; }
 
 /* ---------- selection ---------- */
 function focusClimat(c){
-  const xs=c.g.map(p=>p[0]), ys=c.g.map(p=>p[1]);
-  const [x0,y0,x1,y1] = boxOfGrid(Math.min(...xs),Math.min(...ys),Math.max(...xs),Math.max(...ys));
+  const box = c.bb || c.vil.bb; if(!box) return;
+  const [x0,y0,x1,y1] = box;
   // don't zoom in absurdly far on a tiny climat — show it with its neighbours
   const cx=(x0+x1)/2, cy=(y0+y1)/2, half=Math.max((x1-x0), (y1-y0), 9*S)/2*1.25;
   flyTo(fitBox(cx-half, cy-half, cx+half, cy+half, 0));
@@ -571,7 +627,7 @@ function selectVillage(id, fly){
   const v = VIL[id];
   if(fly){
     const ext = id==="flagey" ? -3.5 : 0, ext2 = id==="chambolle" ? 6.5 : 0;
-    flyTo(fitBox(...boxOfGrid(-0.5, v.y0+ext, 31, v.y0+v.h+ext2), .03));
+    if(v.bb) flyTo(fitBox(...v.bb, .03));
   }
   renderSide(); paint(); syncHash(); syncCommunes();
 }
@@ -694,8 +750,7 @@ function setProducer(key, showPanel){
   else if(st.color==="producer"){ st.color="class"; $("fColor").value="class"; }
   renderSide(); paint(); syncHash();
   if(key && showPanel){
-    const hs = PROD[key].hold.map(h=>h.c.g).flat();
-    if(hs.length){ const xs=hs.map(p=>p[0]), ys=hs.map(p=>p[1]); flyTo(fitBox(...boxOfGrid(Math.min(...xs)-1,Math.min(...ys)-1,Math.max(...xs)+1,Math.max(...ys)+1),.04)); }
+    const b = prodBox(key); if(b) flyTo(fitBox(...b, .08));
   }
 }
 
@@ -965,6 +1020,17 @@ $("classChips").querySelectorAll("[data-cls]").forEach(b => b.onclick = () => {
   paint();
 });
 $("monoChip").onclick = () => { st.mono = !st.mono; paint(); };
+if(GEO){
+  const mc = $("modeChip"); mc.hidden = false;
+  const label = () => { mc.textContent = st.mode==="geo" ? "Map: surveyed" : "Map: schematic"; mc.classList.toggle("on", st.mode==="geo");
+    $("compass").innerHTML = st.mode==="geo" ? `<b>N ↑</b>surveyed outlines · ${esc((GEO.meta&&GEO.meta.source)||"INAO")}` : `<b>N ↑</b>slope rises west ←<br>schematic · not to scale`; };
+  label();
+  mc.onclick = () => {
+    st.mode = st.mode==="geo" ? "schematic" : "geo"; try{ localStorage.setItem("atlasMode", st.mode); }catch(e){}
+    build(); label(); renderSide(); vb = {x:0,y:0,w:W,h:H}; setVB(vb);
+    if(st.sel) focusClimat(CL[st.sel]); else if(st.vsel) selectVillage(st.vsel, true); else focusDefault();
+  };
+}
 $("cellarChip").onclick = () => { st.cellarOnly = !st.cellarOnly; paint(); };
 $("reset").onclick = () => {
   Object.assign(st, {cls:new Set(["GC","1er","V"]), mono:false, cellarOnly:false, q:"", prod:null, color:"class", sel:null, vsel:null});
@@ -984,7 +1050,7 @@ nav.querySelectorAll("[data-cote]").forEach(b => b.onclick = () => fitCote(b.dat
 function fitCote(id){
   const vs = V.filter(v=>v.cote===id); if(!vs.length) return;
   st.vsel=null; st.sel=null; renderSide(); paint(); syncHash(); syncCommunes();
-  flyTo(fitBox(...boxOfGrid(-4.5, vs[0].y0-1, 37, vs[vs.length-1].y0+vs[vs.length-1].h+1), .01));
+  const b = bbUnion(vs.map(v => v.bb).filter(Boolean)); if(b) flyTo(fitBox(...b, .02));
 }
 function syncCommunes(){
   const cur = st.vsel || (st.sel && CL[st.sel].v);
@@ -1013,7 +1079,7 @@ function readHash(){
   return null;
 }
 function focusDefault(){ // Vosne and Flagey's grands crus
-  flyTo(fitBox(...boxOfGrid(1, OFF.flagey-3.5, 30, OFF.vosne+13.6), .02), 0);
+  const b = bbUnion([VIL.flagey.bb, VIL.vosne.bb].filter(Boolean)); if(b) flyTo(fitBox(...b, .02), 0);
 }
 
 /* ---------- cellar overlay (only if you're logged in to the cellar in this browser) ---------- */
@@ -1091,7 +1157,7 @@ function applyHash(){ // Back/Forward, or a hand-edited URL
   st.color = "class"; $("fColor").value = "class"; // the URL says which colour, if any
   const fly = readHash();
   renderSide(); paint(); syncCommunes();
-  if(fly) fly(); else if(st.prod){ const hs = PROD[st.prod].hold.map(h=>h.c.g).flat(); if(hs.length){ const xs=hs.map(p=>p[0]), ys=hs.map(p=>p[1]); flyTo(fitBox(...boxOfGrid(Math.min(...xs)-1,Math.min(...ys)-1,Math.max(...xs)+1,Math.max(...ys)+1),.04)); } }
+  if(fly) fly(); else if(st.prod){ const b = prodBox(st.prod); if(b) flyTo(fitBox(...b, .08)); }
 }
 addEventListener("popstate", applyHash);
 addEventListener("hashchange", applyHash);
