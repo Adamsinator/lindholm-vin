@@ -185,6 +185,33 @@ note) — matched by producer with the wine name or vintage. And when you drink 
 wine's **last** bottle, the app offers to log a tasting note, prefilled from the
 wine, so the memory is captured before it leaves the cellar.
 
+## Burgundy atlas
+
+**Burgundy atlas ↗** in the tab bar opens `burgundy.html`, a separate page with a
+clickable map of the Côte de Nuits from Marsannay to Corgoloin. It covers every
+grand cru, around a hundred premiers crus and the notable village climats.
+
+- **Click a vineyard** to see its classification, area, monopole status, a short
+  note, and its owners with their hectares and share of the climat.
+- **Filters:** grand cru / premier cru / village, monopoles only, a climat search
+  and a producer box. Picking a producer, or clicking a name in a vineyard's
+  holdings, highlights everything they own, coloured by their share.
+- **Colour by** classification, commune, producer's share, size or number of
+  owners. With **my cellar** selected, the vineyards you hold bottles from are
+  coloured by how many you have.
+- **Your cellar:** if you're logged in on the Cellar page in the same browser, the
+  atlas reads your wines (the same API call the cellar uses) and puts a gold dot
+  on each climat you own. It matches the wine name and commune to the climat, so
+  "Gevrey-Chambertin" stays a village wine and doesn't count as Chambertin.
+- Drag to pan, scroll or pinch to zoom, use the commune buttons to jump. The URL
+  hash remembers the selection (`#c=latache`, `#p=drc`), so a view can be shared.
+
+The data lives in `burgundy-data.js`. **The map is schematic:** each commune is
+drawn on its own grid, so neighbours, slope position and rough size are right,
+but it is not a survey. Vosne's smallest grands crus are drawn larger than life
+so they stay clickable. Holdings are approximate figures from published
+ownership lists; to correct one, edit the `p:` list of that climat.
+
 ## Changing a wine's details
 
 Add and "mark as drunk" happen in the site, along with score, current value,

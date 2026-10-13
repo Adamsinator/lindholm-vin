@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>AllWine — Burgundy atlas</title>
+<meta name="description" content="Côte de Nuits climat map — grands crus, premiers crus, monopoles and who owns what.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍷</text></svg>">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#7C2D3E">
+<script src="config.js?v=4"></script>
+<style>
+:root{
+  --bg:#F7F4F1; --card:#FFFFFF; --card2:#FBF9F7; --ink:#2A2126; --muted:#756A70;
+  --line:#E7DFDD; --accent:#7C2D3E; --accent-ink:#FFFFFF; --gold:#A87E2F; --chip:#F1EBE8;
+  --shadow:0 1px 2px rgba(42,33,38,.05),0 4px 16px rgba(42,33,38,.06);
+  /* map */
+  --gc:#8E2C45; --gc-ink:#FFFFFF; --pc:#D88E7C; --pc-ink:#3A1A21; --vc:#ECDDB9; --vc-ink:#5B4A2E;
+  --base:#F3EAD6; --plain:#F4F1EA; --forest:#DCE5D3; --forest-ink:#6E8366; --water:#7FA8C9;
+  --road:#B9AEA8; --town:#E2DAD6; --town-ink:#8A7D82; --sel:#1F1418; --seq0:#F2E6E1; --seq1:#7C2D3E;
+  --none:#EEE8E3; --mapbg:#F4F1EA;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#171114; --card:#221A1F; --card2:#281F24; --ink:#EFE7E8; --muted:#A5949C;
+    --line:#382C32; --accent:#C86A7C; --accent-ink:#1D1216; --gold:#C99B47; --chip:#2E2329;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 16px rgba(0,0,0,.25);
+    --gc:#B6475F; --gc-ink:#FFF4F6; --pc:#8A4E44; --pc-ink:#FBE9E4; --vc:#4D4232; --vc-ink:#E8DCC2;
+    --base:#3A3229; --plain:#241E20; --forest:#23302A; --forest-ink:#86A08A; --water:#4F7A9C;
+    --road:#5E5257; --town:#3A3035; --town-ink:#B3A3AA; --sel:#FFFFFF; --seq0:#3A2E31; --seq1:#E07A90;
+    --none:#2C2427; --mapbg:#1E181B;
+  }
+}
+*{box-sizing:border-box}
+[hidden]{display:none !important}
+html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);
+  font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+.serif{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif}
+.wrap{max-width:1280px;margin:0 auto;padding:28px 20px 80px}
+@media(max-width:600px){.wrap{padding:20px 16px 60px}}
+header.top{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px 16px;
+  border-bottom:2px solid var(--ink);padding-bottom:14px;margin-bottom:16px}
+header.top h1{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  font-size:clamp(28px,4.5vw,40px);font-weight:600;margin:0;letter-spacing:-.01em}
+header.top h1 em{font-style:italic;color:var(--accent)}
+header.top h1 a{color:inherit;text-decoration:none}
+.sub{color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.12em}
+.back{font-size:13.5px;font-weight:600;color:var(--accent);text-decoration:none}
+.back:hover{text-decoration:underline}
+.lead{margin:0 0 14px;color:var(--muted);font-size:14px;max-width:80ch}
+.lead b{color:var(--ink);font-weight:600}
+
+.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.filters input,.filters select{background:var(--card);border:1px solid var(--line);color:var(--ink);border-radius:8px;
+  padding:8px 10px;font-size:14px;font-family:inherit;min-width:0}
+.filters input[type=search]{flex:1 1 180px}
+#fProducer{flex:1 1 180px}
+.chipset{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:var(--card);color:var(--muted);border-radius:20px;
+  padding:5px 12px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px}
+.chip .sw{width:10px;height:10px;border-radius:3px;display:inline-block}
+.chip.on{color:var(--ink);border-color:var(--ink)}
+.chip:not(.on) .sw{opacity:.35}
+.chip:hover{border-color:var(--accent)}
+.btn{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;
+  padding:8px 12px;font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit}
+.btn:hover{border-color:var(--accent)}
+.btn.quiet{border-color:transparent;background:none;color:var(--muted);font-weight:500}
+input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+
+.communes{display:flex;flex-wrap:wrap;gap:6px;padding:2px 0 10px}
+@media(max-width:600px){.communes{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:thin;-webkit-overflow-scrolling:touch}}
+.communes button{flex:none;border:0;background:var(--chip);color:var(--ink);border-radius:6px;padding:5px 10px;
+  font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap}
+.communes button.on{background:var(--accent);color:var(--accent-ink)}
+
+.atlas{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:14px;align-items:start}
+@media(max-width:920px){.atlas{grid-template-columns:1fr}}
+.mapcard{position:relative;background:var(--mapbg);border:1px solid var(--line);border-radius:12px;overflow:hidden;
+  box-shadow:var(--shadow);height:min(78vh,820px);min-height:420px;touch-action:none;user-select:none;-webkit-user-select:none}
+@media(max-width:920px){.mapcard{height:68vh}}
+#map{width:100%;height:100%;display:block;cursor:grab}
+#map.dragging{cursor:grabbing}
+.zoom{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;gap:6px}
+.zoom button{width:34px;height:34px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);
+  font-size:17px;font-weight:600;cursor:pointer;box-shadow:var(--shadow);font-family:inherit;line-height:1}
+.zoom button:hover{border-color:var(--accent)}
+.legend{position:absolute;left:10px;bottom:10px;background:color-mix(in srgb,var(--card) 92%,transparent);border:1px solid var(--line);
+  border-radius:10px;padding:8px 11px;font-size:12px;max-width:min(300px,calc(100% - 64px));box-shadow:var(--shadow);pointer-events:auto}
+.legend .lt{font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin-bottom:4px}
+.legend .row{display:flex;align-items:center;gap:7px;margin:2px 0}
+.legend .sw{width:14px;height:11px;border-radius:3px;flex:none;border:1px solid rgba(0,0,0,.08)}
+.legend .ramp{height:10px;border-radius:3px;margin:4px 0 2px}
+.legend .rl{display:flex;justify-content:space-between;color:var(--muted);font-size:11px}
+@media(max-width:600px){.legend{font-size:11px;padding:6px 9px;max-width:170px}.legend .row{margin:1px 0}.compass{display:none}}
+.legend .mono-sw{background:var(--gc);outline:1.5px dashed var(--gc-ink);outline-offset:-4px}
+.compass{position:absolute;left:12px;top:10px;font-size:11px;color:var(--muted);line-height:1.25;pointer-events:none}
+.compass b{display:block;font-size:13px;color:var(--ink)}
+
+/* svg */
+.forest{fill:var(--forest)}
+.plain{fill:var(--plain)}
+.combe{fill:none;stroke:var(--forest-ink);stroke-opacity:.35;stroke-linecap:round}
+.flab{fill:var(--forest-ink);font-weight:600;letter-spacing:.14em;text-transform:uppercase}
+.base{fill:var(--base);stroke:var(--muted);stroke-opacity:.45;stroke-dasharray:3 3;cursor:pointer}
+.base:hover{fill-opacity:.85}
+.cl{stroke:var(--mapbg);stroke-width:1.1;cursor:pointer;transition:opacity .15s}
+.cl:hover{stroke:var(--sel);stroke-width:1.6}
+.cl.dim{opacity:.16}
+.cl.sel{stroke:var(--sel);stroke-width:2.6}
+.mono{fill:none;stroke-dasharray:4 3;stroke-width:1.2;pointer-events:none}
+.mono.dim{opacity:.16}
+.town{fill:var(--town);stroke:var(--town-ink);stroke-opacity:.35}
+.tlab{fill:var(--town-ink);font-style:italic;font-weight:600;pointer-events:none}
+.vlab.ov{letter-spacing:.04em;text-transform:none;opacity:.8}
+.vlab{fill:var(--ink);opacity:.62;font-weight:700;letter-spacing:.16em;text-transform:uppercase;pointer-events:none}
+.road{fill:none;stroke:var(--road);stroke-linecap:round}
+.rail{fill:none;stroke:var(--road);stroke-dasharray:6 4}
+.rgc{fill:none;stroke:var(--gold);stroke-dasharray:2 3;stroke-opacity:.8}
+.rlab{fill:var(--muted);font-weight:600;letter-spacing:.06em;pointer-events:none}
+.river{fill:none;stroke:var(--water);stroke-linecap:round;stroke-opacity:.8}
+.lab{pointer-events:none;text-anchor:middle;dominant-baseline:central;font-weight:600}
+.lab.GC{font-weight:750}
+.lab.dim{opacity:.25}
+.cellardot{fill:var(--gold);stroke:var(--card);pointer-events:none}
+
+#tip{position:fixed;pointer-events:none;background:var(--ink);color:var(--bg);padding:6px 9px;border-radius:6px;font-size:12px;
+  line-height:1.4;z-index:50;opacity:0;transition:opacity .08s;max-width:260px}
+
+/* side panel */
+.side{background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:16px 18px;
+  max-height:min(78vh,820px);overflow:auto}
+@media(max-width:920px){.side{max-height:none}}
+.side h2{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;font-size:24px;line-height:1.15;margin:0 0 6px;font-weight:600}
+.side h3{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:18px 0 6px;font-weight:600}
+.side p{margin:6px 0;font-size:14px}
+.pills{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.pill{font-size:11.5px;font-weight:700;border-radius:20px;padding:2px 9px;background:var(--chip);color:var(--ink)}
+.pill.GC{background:var(--gc);color:var(--gc-ink)}
+.pill.p1er{background:var(--pc);color:var(--pc-ink)}
+.pill.V{background:var(--vc);color:var(--vc-ink)}
+.pill.mono{background:none;border:1.5px dashed var(--accent);color:var(--accent)}
+.meta{color:var(--muted);font-size:13px}
+.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}
+.fact{background:var(--card2);border:1px solid var(--line);border-radius:8px;padding:7px 9px}
+.fact .l{font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted)}
+.fact .v{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;font-size:19px;font-weight:600;line-height:1.2;font-variant-numeric:tabular-nums}
+.sharebar{display:flex;height:14px;border-radius:4px;overflow:hidden;gap:1px;margin:6px 0 4px;background:var(--none)}
+.sharebar span{display:block;min-width:2px}
+.own{width:100%;border-collapse:collapse;font-size:13.5px}
+.own td{padding:5px 0;border-bottom:1px solid var(--line);vertical-align:middle}
+.own td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;padding-left:8px;color:var(--muted)}
+.own td.n b{color:var(--ink);font-weight:600}
+.own .pb{display:block;height:4px;border-radius:2px;background:var(--accent);margin-top:3px;opacity:.75}
+.plink{border:0;background:none;color:var(--ink);font:inherit;cursor:pointer;padding:0;text-align:left}
+.plink:hover{color:var(--accent);text-decoration:underline}
+.plink.on{color:var(--accent);font-weight:650}
+.note{font-size:12.5px;color:var(--muted);margin-top:6px}
+.qp{display:flex;flex-wrap:wrap;gap:6px}
+.qp button{border:1px solid var(--line);background:var(--card2);border-radius:20px;padding:4px 11px;font-size:12.5px;
+  cursor:pointer;font-family:inherit;color:var(--ink)}
+.qp button:hover{border-color:var(--accent)}
+.cw{font-size:13px;padding:6px 0;border-bottom:1px solid var(--line)}
+.cw .b{font-weight:650;color:var(--gold)}
+.cellar-st{font-size:12.5px;color:var(--muted);margin:0 0 10px}
+.cellar-st b{color:var(--gold)}
+.close{float:right;border:0;background:none;color:var(--muted);cursor:pointer;font-size:18px;line-height:1;padding:2px 4px}
+
+/* lower panels */
+.lower{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:14px;margin-top:18px;align-items:start}
+@media(max-width:920px){.lower{grid-template-columns:1fr}}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow);min-width:0}
+.panel h2{margin:0 0 2px;font-size:16px;font-weight:650;font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif}
+.panel .ph{font-size:12px;color:var(--muted);margin:0 0 12px}
+.tablewrap{overflow:auto;max-height:560px}
+table.list{width:100%;border-collapse:collapse;font-size:13.5px}
+table.list th{position:sticky;top:0;background:var(--card);text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.08em;
+  color:var(--muted);font-weight:600;padding:6px 8px;border-bottom:1px solid var(--line);cursor:pointer;white-space:nowrap}
+table.list td{padding:6px 8px;border-bottom:1px solid var(--line)}
+table.list tr{cursor:pointer}
+table.list tbody tr:hover td{background:var(--card2)}
+table.list tr.sel td{background:var(--chip)}
+@media(max-width:600px){table.list th:nth-child(5),table.list td:nth-child(5){display:none}}
+table.list .num{text-align:right;font-variant-numeric:tabular-nums}
+.cls{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px;vertical-align:0}
+.rbar{display:grid;grid-template-columns:minmax(0,1fr) 110px 64px;gap:10px;align-items:center;padding:3px 0;font-size:13px;
+  cursor:pointer;border:0;background:none;color:inherit;width:100%;text-align:left;font-family:inherit}
+.rbar .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rbar .tr{display:block;height:12px;background:var(--none);border-radius:3px;overflow:hidden}
+.rbar .fl{display:block;height:12px;background:var(--accent)}
+.rbar .nn{color:var(--muted);font-variant-numeric:tabular-nums;text-align:right;font-size:12px}
+.rbar:hover .nm{color:var(--accent)}
+.rbar.on .nm{color:var(--accent);font-weight:650}
+footer.fine{margin-top:22px;font-size:12px;color:var(--muted);max-width:90ch;line-height:1.55}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top">
+  <h1><a href="./">All<em>Wine</em></a></h1>
+  <div style="display:flex;gap:14px;align-items:baseline">
+    <span class="sub">Burgundy atlas · Côte de Nuits</span>
+    <a class="back" href="./">← Cellar</a>
+  </div>
+</header>
+
+<p class="lead">Every <b>grand cru</b>, <b>premier cru</b> and notable village climat from Marsannay to Corgoloin, with who owns
+what. Click a vineyard for its holders and their share, filter by classification or producer, and recolour the map by owner.
+Drag to pan, scroll or pinch to zoom.</p>
+
+<div class="filters">
+  <input type="search" id="fSearch" list="climatList" placeholder="Find a climat…" aria-label="Find a climat">
+  <datalist id="climatList"></datalist>
+  <input type="search" id="fProducer" list="producerList" placeholder="Producer…" aria-label="Filter by producer">
+  <datalist id="producerList"></datalist>
+  <select id="fColor" aria-label="Colour the map by">
+    <option value="class">Colour: classification</option>
+    <option value="commune">Colour: commune</option>
+    <option value="producer">Colour: producer's share</option>
+    <option value="size">Colour: size (ha)</option>
+    <option value="owners">Colour: owners listed</option>
+    <option value="cellar">Colour: my cellar</option>
+  </select>
+  <div class="chipset" id="classChips">
+    <button class="chip on" data-cls="GC"><span class="sw" style="background:var(--gc)"></span>Grand cru</button>
+    <button class="chip on" data-cls="1er"><span class="sw" style="background:var(--pc)"></span>Premier cru</button>
+    <button class="chip on" data-cls="V"><span class="sw" style="background:var(--vc)"></span>Village</button>
+    <button class="chip" id="monoChip">Monopoles only</button>
+    <button class="chip" id="cellarChip" hidden>In my cellar</button>
+  </div>
+  <button class="btn quiet" id="reset">Reset</button>
+</div>
+
+<nav class="communes" id="communes" aria-label="Jump to commune"></nav>
+
+<div class="atlas">
+  <div class="mapcard" id="mapcard">
+    <svg id="map" role="img" aria-label="Schematic map of the Côte de Nuits vineyards"></svg>
+    <div class="compass"><b>N ↑</b>slope rises west ←<br>schematic · not to scale</div>
+    <div class="zoom">
+      <button id="zIn" title="Zoom in" aria-label="Zoom in">＋</button>
+      <button id="zOut" title="Zoom out" aria-label="Zoom out">－</button>
+      <button id="zAll" title="Whole Côte de Nuits" aria-label="Show the whole Côte de Nuits">⤢</button>
+    </div>
+    <div class="legend" id="legend"></div>
+  </div>
+  <aside class="side" id="side" aria-live="polite"></aside>
+</div>
+
+<div class="lower">
+  <div class="panel">
+    <h2>Climats <span class="meta" id="listCount"></span></h2>
+    <p class="ph">Follows the filters · click a row to find it on the map</p>
+    <div class="tablewrap">
+      <table class="list" id="list">
+        <thead><tr>
+          <th data-k="n">Climat</th><th data-k="v">Commune</th><th data-k="c">Class</th>
+          <th data-k="ha" class="num">ha</th><th data-k="own">Ownership</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="panel">
+    <h2>Biggest holders</h2>
+    <p class="ph">Listed hectares on this map (grands & premiers crus) · click to see their holdings</p>
+    <div id="holders"></div>
+  </div>
+</div>
+
+<footer class="fine">
+  <b>About the data.</b> The map is schematic: each commune is drawn on its own grid with the slope running west (top of the hill) to
+  east (the D974), so neighbours, slope position and rough size are right but the shapes are not a cadastral survey.
+  Areas are the official climat sizes (≈). Holdings are compiled from published ownership lists and domaine sources and rounded —
+  parcels are bought, swapped and leased all the time, so treat them as indicative; owners shown without a figure are known holders
+  whose exact area isn't listed.
+</footer>
+</div>
+<div id="tip"></div>
+<script src="burgundy-data.js?v=1"></script>
+<script src="burgundy.js?v=1"></script>
+</body>
+</html>

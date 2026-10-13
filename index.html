@@ -275,11 +275,15 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
   .valwrap input,.ratewrap select,.datewrap input,.sizewrap select,.winwrap .setwin{font-size:16px}
 }
 /* tabs */
-.tabs{display:flex;gap:4px;margin:-6px 0 18px}
+.tabs{display:flex;flex-wrap:wrap;gap:4px;margin:-6px 0 18px}
 .tab{border:0;background:none;color:var(--muted);font:inherit;font-size:14px;font-weight:600;
   padding:8px 2px;margin-right:14px;cursor:pointer;border-bottom:2px solid transparent}
 .tab.active{color:var(--ink);border-bottom-color:var(--accent)}
 .tab:hover{color:var(--ink)}
+/* a real link to another page, kept off .tab so the page router ignores it */
+.tablink{color:var(--muted);font-size:14px;font-weight:600;padding:8px 2px;margin-left:auto;text-decoration:none;
+  border-bottom:2px solid transparent;white-space:nowrap}
+.tablink:hover{color:var(--ink);border-bottom-color:var(--line)}
 
 /* style pie */
 #stylePie{display:block;width:100%;max-width:230px;margin:2px auto 12px}
@@ -429,6 +433,7 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
   <button class="tab" data-page="wishlist">Wishlist</button>
   <button class="tab" data-page="journal">Journal</button>
   <button class="tab" data-page="feed">Feed <span class="tabbadge" id="feedBadge" hidden></span></button>
+  <a class="tablink" href="burgundy.html" title="Côte de Nuits climat map">Burgundy atlas ↗</a>
 </nav>
 
 <div id="pageCellar">
