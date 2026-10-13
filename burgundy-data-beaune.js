@@ -65,7 +65,7 @@ const villages = [
 const climats = [
   // ── Corton hill
   {id:"cortoncharlemagne", n:"Corton-Charlemagne", v:"corton", c:"GC", ha:52, col:"W", s:[[3,0],[10,0],[10,13],[6.5,13],[6.5,11],[3,11]],
-    p:[["latour",10.9],["bonneau",9.5],["bouchard",null],["coche",0.33],["jadot",null],["faiveley",null],["drouhin",null],["rapet",null],["roumier",null],["leroy",null]],
+    p:[["latour",10.9],["bonneau",9.5],["bouchard",null],["coche",0.33],["clair",0.34],["jadot",null],["faiveley",null],["drouhin",null],["rapet",null],["roumier",0.2],["leroy",null]],
     d:"The great white of the hill, on the steep, pale upper slopes facing south-west and south. Louis Latour and Bonneau du Martray between them own about 40% of it."},
   {id:"renardes", grp:"corton", n:"Corton Les Renardes", v:"corton", c:"GC", ha:14.35, col:"R", s:R(10,0,16,3.5),
     p:[["drc",0.5,"f",2009],["leroy",null]], d:"East face toward Ladoix — wild, gamey Corton (renard = fox)."},
