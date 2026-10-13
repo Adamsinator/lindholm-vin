@@ -1,7 +1,8 @@
 // Burgundy atlas — renders BURG (burgundy-data.js) as a pannable, zoomable SVG.
 (function(){
 "use strict";
-const {producers:P, villages:V, climats:C} = window.BURG;
+const {producers:P, profiles:PF, villages:V, climats:C} = window.BURG;
+const KIND = {f:"leased", s:"buys grapes"}; // a holding's 3rd element; absent = owned
 const $ = id => document.getElementById(id);
 const NS = "http://www.w3.org/2000/svg";
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -17,8 +18,11 @@ V.forEach((v,i) => { OFF[v.id] = total; v.y0 = total; total += v.h; v.idx = i; V
 const Y0 = -1, Y1 = total + 1;
 const TILT = 0.035, WIG = 0.45;
 // The Côte drifts east as it runs north and bends gently; one smooth warp keeps shared edges shared.
-const px = (x,y) => (x - X0 + TILT*(total - y) + WIG*Math.sin(y/7.5)) * S;
+// A faint second-order wobble makes the grid read as surveyed ground rather than boxes.
+const WOB = 0.06, WOBY = 0.05;
+const px = (x,y) => (x - X0 + TILT*(total - y) + WIG*Math.sin(y/7.5) + WOB*Math.sin(1.3*y + 0.7*x)) * S;
 const py = y => (y - Y0) * S;
+const gy = (x,y) => py(y + WOBY*Math.sin(0.9*x + 0.45*y)); // geometry only; labels use py
 const W = (X1 - X0 + TILT*total + 1) * S, H = (Y1 - Y0) * S;
 function dense(pts, step=0.25){
   const out=[];
@@ -29,7 +33,7 @@ function dense(pts, step=0.25){
   }
   return out;
 }
-const toPath = (pts, oy) => "M"+dense(pts).map(([x,y]) => px(x,y+oy).toFixed(1)+" "+py(y+oy).toFixed(1)).join("L")+"Z";
+const toPath = (pts, oy=0) => "M"+dense(pts).map(([x,y]) => px(x,y+oy).toFixed(1)+" "+gy(x,y+oy).toFixed(1)).join("L")+"Z";
 function polyLine(pts){ // open polyline, densified
   const out=[];
   for(let i=0;i<pts.length-1;i++){
@@ -37,7 +41,7 @@ function polyLine(pts){ // open polyline, densified
     for(let k=0;k<n;k++) out.push([ax+(bx-ax)*k/n, ay+(by-ay)*k/n]);
   }
   out.push(pts[pts.length-1]);
-  return "M"+out.map(([x,y])=>px(x,y).toFixed(1)+" "+py(y).toFixed(1)).join("L");
+  return "M"+out.map(([x,y])=>px(x,y).toFixed(1)+" "+gy(x,y).toFixed(1)).join("L");
 }
 function areaCentroid(pts){
   let a=0,cx=0,cy=0;
@@ -55,18 +59,19 @@ C.forEach(c => {
   const [cx,cy] = c.lab || (c.s.length===4 ? [(Math.min(...xs)+Math.max(...xs))/2,(Math.min(...ys)+Math.max(...ys))/2] : areaCentroid(c.s));
   const [bw,bh] = c.lbox || [(Math.max(...xs)-Math.min(...xs)) * (c.s.length===4?1:.7), (Math.max(...ys)-Math.min(...ys)) * (c.s.length===4?1:.6)];
   c.cx = px(cx, cy + c.oy); c.cy = py(cy + c.oy); c.bw = bw*S; c.bh = bh*S;
-  c.known = (c.p||[]).reduce((s,[,h]) => s + (h||0), 0);
+  c.known = (c.p||[]).reduce((s,[,h,k]) => s + (k==="s" ? 0 : h||0), 0); // bought grapes aren't ownership
   c.inner = !!c.in;
   c.search = norm([c.n, c.vil.n, ...(c.p||[]).map(([k])=>P[k])].join(" "));
 });
 const CL = Object.fromEntries(C.map(c => [c.id, c]));
 
 /* ---------- producers index ---------- */
-const PROD = {}; // key -> {key,name,hold:[{c,ha}],ha,gc,n}
-C.forEach(c => (c.p||[]).forEach(([k,h]) => {
+const PROD = {}; // key -> {key,name,hold:[{c,ha,kind}],ha,gc,n,prof}
+C.forEach(c => (c.p||[]).forEach(([k,h,kind]) => {
   if(c.inner && (CL[c.in].p||[]).some(([k2])=>k2===k)) return; // enclave already counted in its parent
-  const r = PROD[k] ??= {key:k, name:P[k], hold:[], ha:0, gc:0, n:0};
-  r.hold.push({c, ha:h}); r.ha += h||0; r.n++; if(c.c==="GC") r.gc++;
+  const r = PROD[k] ??= {key:k, name:P[k], hold:[], ha:0, gc:0, n:0, prof:PF[k]||null};
+  r.hold.push({c, ha:h, kind:kind||""}); r.n++;
+  if(kind!=="s"){ r.ha += h||0; if(c.c==="GC") r.gc++; }
 }));
 const prodByName = Object.fromEntries(Object.values(PROD).map(r => [norm(r.name), r.key]));
 
@@ -80,7 +85,7 @@ const st = {
 let TOK = {};
 function readTokens(){
   const cs = getComputedStyle(document.documentElement);
-  ["gc","gc-ink","pc","pc-ink","vc","vc-ink","seq0","seq1","none","mapbg","ink","muted","card","base","accent","gold"].forEach(k => TOK[k] = cs.getPropertyValue("--"+k).trim());
+  ["gc","gc-ink","pc","pc-ink","vc","vc-ink","seq0","seq1","none","mapbg","ink","muted","card","base","accent","gold","forest-ink"].forEach(k => TOK[k] = cs.getPropertyValue("--"+k).trim());
 }
 const hex2 = h => { h=h.replace("#",""); if(h.length===3) h=h.split("").map(x=>x+x).join(""); return [0,2,4].map(i=>parseInt(h.slice(i,i+2),16)); };
 const mix = (a,b,t) => { const A=hex2(a),B=hex2(b); return "#"+A.map((v,i)=>Math.round(v+(B[i]-v)*t).toString(16).padStart(2,"0")).join(""); };
@@ -105,9 +110,11 @@ function fillOf(c){
     case "owners": { const n=c.mono?1:(c.p||[]).length; return n ? mix(TOK.seq0, TOK.seq1, n/maxOwners) : TOK.none; }
     case "producer": {
       if(!st.prod) return {GC:TOK.gc,"1er":TOK.pc,V:TOK.vc}[c.c];
-      const h = holding(c, st.prod);
-      if(h===undefined) return TOK.none;
-      if(h===null) return "url(#unk)";
+      const hr = hrec(c, st.prod);
+      if(!hr) return TOK.none;
+      if(hr[2]==="s") return "url(#src)";
+      const h = hr[1];
+      if(h==null) return "url(#unk)";
       return mix(TOK.seq0, TOK.seq1, .3 + .7*Math.sqrt(Math.min(1, h/c.ha))); // even a small share should stand out from "not held"
     }
     case "cellar": {
@@ -117,7 +124,8 @@ function fillOf(c){
     default: return {GC:TOK.gc,"1er":TOK.pc,V:TOK.vc}[c.c];
   }
 }
-function holding(c, key){ const r=(c.p||[]).find(([k])=>k===key); return r ? r[1] : undefined; }
+function hrec(c, key){ return (c.p||[]).find(([k])=>k===key); }
+function holding(c, key){ const r=hrec(c,key); return r ? r[1] : undefined; }
 function textFill(c, fill){
   if(fill.startsWith("url")) return TOK.ink;
   if(st.color==="class" || (st.color==="producer" && !st.prod)) return TOK[{GC:"gc-ink","1er":"pc-ink",V:"vc-ink"}[c.c]];
@@ -152,11 +160,24 @@ function build(){
   const pat = el("pattern", {id:"unk", width:6, height:6, patternUnits:"userSpaceOnUse", patternTransform:"rotate(45)"}, defs);
   el("rect", {width:6, height:6, fill:mix(TOK.seq0, TOK.seq1, .35)}, pat);
   el("rect", {width:3, height:6, fill:mix(TOK.seq0, TOK.seq1, .6)}, pat);
+  const ps = el("pattern", {id:"src", width:7, height:7, patternUnits:"userSpaceOnUse"}, defs);
+  el("rect", {width:7, height:7, fill:mix(TOK.seq0, TOK.gold, .25)}, ps);
+  el("circle", {cx:3.5, cy:3.5, r:1.6, fill:TOK.gold}, ps);
+  // vine rows run down the slope — horizontal on this map
+  const pr = el("pattern", {id:"rows", width:6, height:3.2, patternUnits:"userSpaceOnUse"}, defs);
+  el("line", {x1:0, y1:1.6, x2:6, y2:1.6, stroke:TOK.ink, "stroke-opacity":.13, "stroke-width":.55}, pr);
+  const pt = el("pattern", {id:"trees", width:14, height:12, patternUnits:"userSpaceOnUse"}, defs);
+  [[3,3,2.3],[10,5,2.6],[6,9.5,2.1],[12.5,11,1.8]].forEach(([cx,cy,rr]) => el("circle", {cx, cy, r:rr, fill:TOK["forest-ink"], "fill-opacity":.18}, pt));
+  const lg = el("linearGradient", {id:"shade", x1:0, y1:0, x2:1, y2:0}, defs);
+  el("stop", {offset:0, "stop-color":TOK.ink, "stop-opacity":DARK()?.18:.08}, lg);
+  el("stop", {offset:1, "stop-color":TOK.ink, "stop-opacity":0}, lg);
   gView = el("g", {}, svg);
 
   // plain east of the road, forest west of the slope
   el("path", {class:"plain", d:`M${px(30,Y0)} ${py(Y0)}`+polyLine([[30,Y0],[30,Y1]]).replace(/^M/,"L")+`L${W} ${H}L${W} 0Z`}, gView);
-  el("path", {class:"forest", d:"M0 0"+polyLine([[1,Y0],[1,Y1]]).replace(/^M/,"L")+`L0 ${H}Z`}, gView);
+  const forestD = "M0 0"+polyLine([[1,Y0],[1,Y1]]).replace(/^M/,"L")+`L0 ${H}Z`;
+  el("path", {class:"forest", d:forestD}, gView);
+  el("path", {d:forestD, fill:"url(#trees)", "pointer-events":"none"}, gView);
   // combes cutting back into the hills
   [["gevrey",7.5,"Combe Lavaux"],["morey",-0.2,"Combe Grisard"],["chambolle",6.3,"Combe Ambin"],["chambolle",13.5,"Combe d'Orveau"],
    ["vosne",11.6,"Combe de Concœur"],["nuits",10.7,"Vallée du Meuzin"]].forEach(([v,y,n]) => {
@@ -174,32 +195,39 @@ function build(){
     p.addEventListener("pointerleave", hideTip);
   }));
 
-  // rivers & roads (under the vines' labels, over the ground)
+  const gTownBase = el("g", {"pointer-events":"none"}, gView);
+  const gCl = el("g", {}, gView), gRows = el("g", {class:"rows"}, gView), gHill = el("g", {"pointer-events":"none"}, gView),
+        gWall = el("g", {}, gView), gRoad = el("g", {"pointer-events":"none"}, gView), gTown = el("g", {"pointer-events":"none"}, gView),
+        gMono = el("g", {}, gView), gLab = el("g", {}, gView), gDot = el("g", {}, gView);
+  V.forEach(v => (v.base||[]).forEach(b => el("path", {d:toPath(b, v.y0), fill:"url(#rows)", opacity:.6}, gRows)));
+  // the escarpment: darker toward the top of the slope
+  el("path", {d:toPath([[1,Y0],[9,Y0],[9,Y1],[1,Y1]]), fill:"url(#shade)"}, gHill);
+  drawContours(gHill);
+  // rivers & roads (over the vines, under the labels)
   const yN = OFF.nuits + 11;
-  el("path", {class:"river", d:polyLine([[-4.5,yN-.3],[1,yN-.1],[9,yN],[19,yN+.15],[30,yN+.2],[37,yN+.6]]), "stroke-width":2.4}, gView);
+  el("path", {class:"river", d:polyLine([[-4.5,yN-.3],[1,yN-.1],[9,yN],[19,yN+.15],[30,yN+.2],[37,yN+.6]]), "data-w":2.4}, gRoad);
   const yVg = OFF.vougeot + 1.6;
-  el("path", {class:"river", d:polyLine([[24.5,yVg],[27,yVg+.2],[30,yVg+.3],[37,yVg+1]]), "stroke-width":1.8}, gView);
-  el("path", {class:"road", d:polyLine([[30.3,Y0],[30.3,Y1]]), "stroke-width":3.2}, gView);
-  el("path", {class:"rail", d:polyLine([[34.6,Y0],[34.6,Y1]]), "stroke-width":1.4}, gView);
-  const g0 = OFF.gevrey;
-  el("path", {class:"rgc", d:polyLine([[17.5,g0+10.5],[15.5,g0+12],[15.5,g0+25.5],[15.8,OFF.morey+5],[19.5,OFF.morey+7.5],[22,OFF.chambolle+1],[13,OFF.chambolle+6.5]]), "stroke-width":1.6}, gView);
+  el("path", {class:"river", d:polyLine([[24.5,yVg],[27,yVg+.2],[30,yVg+.3],[37,yVg+1]]), "data-w":1.8}, gRoad);
+  el("path", {class:"road", d:polyLine([[30.3,Y0],[30.3,Y1]]), "data-w":4}, gRoad);
+  el("path", {class:"rail", d:polyLine([[34.6,Y0],[34.6,Y1]]), "data-w":1.4}, gRoad);
+  drawRoads(gRoad);
   for(let y=6; y<total; y+=22){
     const t = el("text", {class:"rlab", x:px(30.8,y), y:py(y), "data-fs":10, transform:`rotate(90 ${px(30.8,y)} ${py(y)})`}, gView);
     t.textContent = "D974"; rlabEls.push(t);
   }
   { const y=OFF.gevrey+18; const t=el("text",{class:"rlab",x:px(35.1,y),y:py(y),"data-fs":9.5,transform:`rotate(90 ${px(35.1,y)} ${py(y)})`},gView); t.textContent="Dijon–Beaune railway"; rlabEls.push(t); }
-  { const y=OFF.gevrey+15; const t=el("text",{class:"rlab",x:px(15.9,y),y:py(y),"data-fs":8.5,transform:`rotate(90 ${px(15.9,y)} ${py(y)})`,style:"fill:var(--gold)"},gView); t.textContent="Route des Grands Crus"; rlabEls.push(t); }
+  { const y=OFF.gevrey+15; const t=el("text",{class:"rlab",x:px(15.9,y),y:py(y),"data-fs":8.5,transform:`rotate(90 ${px(15.9,y)} ${py(y)})`},gLab); t.textContent="Route des Grands Crus"; rlabEls.push(t); }
 
-  // towns
+  // towns: a soft built-up ground under the vines, streets and houses on top
   V.forEach(v => {
     if(!v.town) return;
-    el("path", {class:"town", d:toPath(v.town, v.y0)}, gView);
+    el("path", {class:"town", d:toPath(v.town, v.y0)}, gTownBase);
+    drawTown(v, gTown);
     const xs=v.town.map(p=>p[0]), ys=v.town.map(p=>p[1]), cx=(Math.min(...xs)+Math.max(...xs))/2, cy=(Math.min(...ys)+Math.max(...ys))/2;
     v.tl = [px(cx,cy+v.y0), py(cy+v.y0)];
   });
 
   // climats: parents first, enclaves on top
-  const gCl = el("g", {}, gView), gMono = el("g", {}, gView), gLab = el("g", {}, gView), gDot = el("g", {}, gView);
   labEls = [];
   [...C].sort((a,b) => (a.inner?1:0)-(b.inner?1:0)).forEach(c => {
     const d = toPath(c.s, c.oy);
@@ -207,12 +235,15 @@ function build(){
     p.addEventListener("click", ev => { if(dragMoved) return; ev.stopPropagation(); select(c.id, false); });
     p.addEventListener("pointermove", ev => tip(ev, tipHtml(c)));
     p.addEventListener("pointerleave", hideTip);
+    el("path", {d, fill:"url(#rows)", "pointer-events":"none"}, gRows);
+    if(c.wall) el("path", {class:"wall", d, "data-w":2.6}, gWall);
     if(c.mono){ c.mel = el("path", {class:"mono", d:insetPath(c), stroke:"var(--gc-ink)"}, gMono); }
     const t = el("text", {class:"lab "+c.c, x:c.cx.toFixed(1), y:c.cy.toFixed(1)}, gLab);
     c.lel = t; labEls.push(c);
     c.dot = el("circle", {class:"cellardot", cx:(c.cx).toFixed(1), cy:(c.cy).toFixed(1), r:0}, gDot);
   });
 
+  drawLandmarks(gTown, gLab);
   tlabEls = [];
   V.forEach(v => {
     if(!v.tl) return;
@@ -234,6 +265,77 @@ function build(){
   svg.addEventListener("click", () => { if(!dragMoved && (st.sel||st.vsel)){ st.sel=null; st.vsel=null; renderSide(); paint(); syncHash(); } });
   paint();
 }
+/* ---------- map furniture: contours, roads, villages, landmarks ---------- */
+const townBox = v => { const xs=v.town.map(p=>p[0]), ys=v.town.map(p=>p[1]); return [Math.min(...xs), v.y0+Math.min(...ys), Math.max(...xs), v.y0+Math.max(...ys)]; };
+const townC = v => { const [a,b,c,d]=townBox(v); return [(a+c)/2, (b+d)/2]; };
+function inPoly(x,y,pts){ let c=false; for(let i=0,j=pts.length-1;i<pts.length;j=i++){ const [xi,yi]=pts[i],[xj,yj]=pts[j]; if((yi>y)!==(yj>y) && x<(xj-xi)*(y-yi)/(yj-yi)+xi) c=!c; } return c; }
+function rng(seed){ let t = seed*2654435761 >>> 0; return () => { t ^= t<<13; t ^= t>>>17; t ^= t<<5; return ((t>>>0)%100000)/100000; }; }
+function drawContours(g){
+  // approximate heights across the slope: forest edge ~350 m, grands crus 260–300 m, the D974 ~230 m
+  [[2.5,"325 m"],[8,"300 m"],[14.5,"275 m"],[21,"250 m"],[27.5,"235 m"]].forEach(([x,lab],i) => {
+    const pts=[]; for(let y=Y0; y<=Y1; y+=1) pts.push([x + .35*Math.sin(y/3.1 + i), y]);
+    el("path", {class:"contour", d:polyLine(pts), "data-w":.9}, g);
+    for(let y=8+i*4; y<total; y+=26){
+      const xx = x + .35*Math.sin(y/3.1 + i), t = el("text", {class:"clab", x:px(xx,y), y:py(y), "data-fs":8.5, transform:`rotate(-90 ${px(xx,y)} ${py(y)})`, "text-anchor":"middle"}, g);
+      t.textContent = lab; rlabEls.push(t);
+    }
+  });
+}
+function drawRoads(g){
+  const T = id => townC(VIL[id]), o = id => OFF[id];
+  // Route des Grands Crus (D122 and lanes), village to village along the mid/lower slope
+  const rgc = [T("marsannay"), T("fixin"), T("brochon"), T("gevrey"), [17.5,o("gevrey")+10.5], [15.5,o("gevrey")+12], [15.5,o("gevrey")+25.5],
+    [15.8,o("morey")+5], T("morey"), [21.5,o("morey")+10.6], [17,o("chambolle")+4.5], T("chambolle"), [16,o("chambolle")+8], [20.5,o("chambolle")+10.2],
+    T("vougeot"), [28.6,o("vougeot")+6], [28.6,o("flagey")+.5], [23.5,o("flagey")+5], T("vosne"), [24.5,o("vosne")+16], [22.8,o("nuits")+4.5], T("nuits"),
+    [24,o("nuits")+15], [21,o("nuits")+21], T("premeaux"), T("cdnv")];
+  el("path", {class:"rcase", d:polyLine(rgc), "data-w":4.2}, g);
+  el("path", {class:"rfill", d:polyLine(rgc), "data-w":2.4}, g);
+  // each village's road down to the D974
+  V.forEach(v => { if(!v.town || v.townOff) return; const [x,y] = townC(v);
+    const d = polyLine([[x,y],[x+(30.3-x)*.5,y+.15],[30.3,y+.1]]);
+    el("path", {class:"rcase", d, "data-w":3.2}, g); el("path", {class:"rfill", d, "data-w":1.7}, g); });
+  // Vosne: the lane along the foot of Romanée-Conti and up the side of La Grande Rue, as walked by every pilgrim
+  const vo = o("vosne");
+  const lane = [[20.6,vo+8.7],[15.5,vo+8.7],[10.4,vo+8.75],[8.3,vo+8.6]], lane2 = [[15.5,vo+8.7],[15.5,vo+6.5],[16,vo+6.5],[16,vo+3.6]];
+  [lane, lane2].forEach(L => { el("path", {class:"track", d:polyLine(L), "data-w":1.6}, g); });
+}
+function drawTown(v, g){
+  const [x0,y0,x1,y1] = townBox(v), [xc,yc] = townC(v), rnd = rng(17 + v.idx*31);
+  const near = V.filter(u => Math.abs(u.y0 - v.y0) < 30).map(u=>u.id);
+  const vines = C.filter(c => near.includes(c.geo||c.v));
+  const street = [[x0-.2,yc],[x1+.2,yc+.1]], cross = [[xc,y0-.1],[xc+.2,y1+.1]];
+  [street, cross].forEach(L => { el("path", {class:"rcase", d:polyLine(L), "data-w":2.6}, g); el("path", {class:"rfill", d:polyLine(L), "data-w":1.4}, g); });
+  for(let x=x0+.15; x<x1-.25; x+=.55) for(let y=y0+.15; y<y1-.2; y+=.5){
+    const dx = Math.abs(x+.2-xc), dy = Math.abs(y+.15-yc);
+    if(dx<.32 || dy<.3) continue;                      // keep the streets clear
+    const pNear = Math.min(dx,dy) < 1.3 ? .8 : .38;
+    if(rnd() > pNear) continue;
+    const w = .26+rnd()*.2, h = .2+rnd()*.17, hx = x + rnd()*.08, hy = y + rnd()*.08;
+    if(vines.some(c => inPoly(hx+w/2, hy+h/2, c.g))) continue; // never on a vineyard (village clos inside the town)
+    el("path", {class:"house", d:toPath([[hx,hy],[hx+w,hy],[hx+w,hy+h],[hx,hy+h]])}, g);
+  }
+  // church: nave + a small cross
+  const cx = xc+.55, cy = yc-.75;
+  el("path", {class:"church", d:toPath([[cx,cy],[cx+.75,cy],[cx+.75,cy+.36],[cx,cy+.36]])}, g);
+  const [kx,ky] = [px(cx+.95,cy+.18), py(cy+.18)];
+  el("path", {class:"chcross", d:`M${kx-3} ${ky}h6M${kx} ${ky-4}v8`, "data-w":1.4}, g);
+}
+function drawLandmarks(g, gl){
+  const vo = OFF.vosne, vg = OFF.vougeot;
+  // La Croix de la Romanée-Conti
+  const [cx,cy] = [px(15.5,vo+8.7), py(vo+8.7)];
+  el("circle", {class:"lm", cx, cy, r:5.5, "data-r":5.5}, g);
+  el("path", {class:"lmx", d:`M${cx-2.4} ${cy-.6}h4.8M${cx} ${cy-3}v5.2`, "data-w":1.2}, g);
+  lmLab(gl, cx+7, cy-7, "La Croix");
+  // Château du Clos de Vougeot
+  const ch = [[15,vg+3.6],[17.8,vg+3.6],[17.8,vg+4.9],[15,vg+4.9]];
+  el("path", {class:"chateau", d:toPath(ch)}, g);
+  el("path", {class:"chateau", d:toPath([[15.6,vg+4.0],[17.2,vg+4.0],[17.2,vg+4.5],[15.6,vg+4.5]]), style:"fill:var(--mapbg)"}, g);
+  lmLab(gl, px(16.4,vg+5.2), py(vg+5.35), "Château du Clos de Vougeot", "middle");
+}
+const lmEls = [];
+function lmLab(g, x, y, text, anchor="start"){ const t = el("text", {class:"lmlab", x, y, "text-anchor":anchor, "data-fs":9.5}, g); t.textContent = text; lmEls.push(t); }
+
 function insetPath(c){ // a dashed ring just inside the monopole's outline
   const xs=c.s.map(p=>p[0]), ys=c.s.map(p=>p[1]);
   const k = Math.min(.18, (Math.max(...xs)-Math.min(...xs))/6, (Math.max(...ys)-Math.min(...ys))/6);
@@ -244,7 +346,7 @@ function insetPath(c){ // a dashed ring just inside the monopole's outline
 function tipHtml(c){
   const own = c.mono ? `Monopole · ${esc(P[c.mono])}` : ((c.p||[]).length ? `${c.p.length} owner${c.p.length>1?"s":""} listed` : "");
   let extra = "";
-  if(st.prod){ const h = holding(c, st.prod); if(h!==undefined) extra = `<br>${esc(P[st.prod])}: ${h==null?"holder":fmtHa(h)+" ha · "+Math.round(100*h/c.ha)+"%"}`; }
+  if(st.prod){ const hr = hrec(c, st.prod); if(hr) extra = `<br>${esc(P[st.prod])}: ${hr[2]==="s" ? "buys grapes here" : hr[1]==null ? "holder" : fmtHa(hr[1])+" ha · "+Math.round(100*hr[1]/c.ha)+"%"}${hr[2]==="f"?" (leased)":""}`; }
   const cb = CELLAR.by[c.id]; if(cb) extra += `<br>🍷 ${cb.left} in cellar`;
   return `<b>${esc(c.n)}</b><br>${CLASS_NAME[c.c]} · ${esc(c.vil.n)} · ${fmtHa(c.ha)} ha${own?"<br>"+own:""}${extra}`;
 }
@@ -265,7 +367,7 @@ function paint(){
   // keep the selection on top
   if(st.sel){ const e=CL[st.sel].el; e.parentNode.appendChild(e); }
   layoutLabels();
-  renderLegend(); renderList(); renderHolders(); syncChips();
+  renderLegend(); renderList(); renderHolders(); renderDomains(); syncChips();
 }
 
 /* ---------- view: pan / zoom ---------- */
@@ -383,6 +485,12 @@ function layoutLabels(){
   tlabEls.forEach(t => { const fs=+t.dataset.fs; t.setAttribute("font-size",(fs/k).toFixed(2)); t.style.display = k>0.45 ? "" : "none"; });
   rlabEls.forEach(t => { const fs=+t.dataset.fs; t.setAttribute("font-size",(fs/k).toFixed(2)); t.style.display = k>0.55 ? "" : "none"; });
   svg.querySelectorAll(".cl").forEach(p => p.setAttribute("stroke-width", ((p.classList.contains("sel")?2.6:1)/k).toFixed(2)));
+  svg.querySelectorAll("[data-w]").forEach(e => e.setAttribute("stroke-width", (+e.dataset.w/k).toFixed(2)));
+  svg.querySelectorAll("[data-r]").forEach(e => e.setAttribute("r", (+e.dataset.r/k).toFixed(2)));
+  svg.querySelectorAll(".lmx").forEach(e => { const c=e.previousSibling; const cx=+c.getAttribute("cx"), cy=+c.getAttribute("cy"), q=1/k; e.setAttribute("d",`M${cx-2.4*q} ${cy-.6*q}h${4.8*q}M${cx} ${cy-3*q}v${5.2*q}`); });
+  svg.querySelectorAll(".chcross").forEach(e => { if(!e._d) e._d = e.getAttribute("d").match(/-?[\d.]+/g).map(Number); const [x,y]=[e._d[0]+3, e._d[1]], q=1/k; e.setAttribute("d",`M${x-3*q} ${y}h${6*q}M${x} ${y-4*q}v${8*q}`); });
+  lmEls.forEach(t => { t.setAttribute("font-size",(+t.dataset.fs/k).toFixed(2)); t.style.display = k>1.1 ? "" : "none"; });
+  svg.classList.toggle("near", k>0.9); svg.classList.toggle("far", k<0.5);
   svg.querySelectorAll(".base").forEach(p => { p.setAttribute("stroke-width",(1/k).toFixed(2)); p.setAttribute("stroke-dasharray",`${(3/k).toFixed(2)} ${(3/k).toFixed(2)}`); });
   svg.querySelectorAll(".mono").forEach(p => { p.setAttribute("stroke-width",(1.3/k).toFixed(2)); p.setAttribute("stroke-dasharray",`${(4/k).toFixed(2)} ${(3/k).toFixed(2)}`); });
 }
@@ -450,14 +558,14 @@ function appellation(c){
   return `${vn} « ${c.n} »`;
 }
 function ownersHtml(c){
-  const rows = [...(c.p||[])].sort((a,b) => (b[1]??-1)-(a[1]??-1));
+  const rows = [...(c.p||[])].sort((a,b) => (a[2]==="s")-(b[2]==="s") || (b[1]??-1)-(a[1]??-1));
   if(!rows.length) return `<p class="note">No ownership details on file for this climat.</p>`;
-  const seg = rows.filter(r=>r[1]).map(([k,h],i) => `<span title="${esc(P[k])} · ${fmtHa(h)} ha" style="width:${(100*h/c.ha).toFixed(2)}%;background:${mix(TOK.seq1, TOK.seq0, (i%6)/7)}"></span>`).join("");
+  const seg = rows.filter(r=>r[1] && r[2]!=="s").map(([k,h],i) => `<span title="${esc(P[k])} · ${fmtHa(h)} ha" style="width:${(100*h/c.ha).toFixed(2)}%;background:${mix(TOK.seq1, TOK.seq0, (i%6)/7)}"></span>`).join("");
   const known = c.known, rest = Math.max(0, c.ha - known);
-  const body = rows.map(([k,h]) => {
-    const share = h ? 100*h/c.ha : null;
-    return `<tr><td><button class="plink${st.prod===k?" on":""}" data-p="${k}">${esc(P[k])}</button>${share!=null?`<span class="pb" style="width:${Math.max(2,share).toFixed(1)}%"></span>`:""}</td>
-      <td class="n">${h!=null?`<b>${fmtHa(h)}</b> ha`:"holder"}</td><td class="n">${share!=null?(share<1?share.toFixed(1):Math.round(share))+"%":""}</td></tr>`;
+  const body = rows.map(([k,h,kind]) => {
+    const share = h && kind!=="s" ? 100*h/c.ha : null;
+    return `<tr><td><button class="plink${st.prod===k?" on":""}" data-p="${k}">${esc(P[k])}</button>${kind?` <span class="ktag ${kind}">${KIND[kind]}</span>`:""}${share!=null?`<span class="pb" style="width:${Math.max(2,share).toFixed(1)}%"></span>`:""}</td>
+      <td class="n">${kind==="s"?"":h!=null?`<b>${fmtHa(h)}</b> ha`:"holder"}</td><td class="n">${share!=null?(share<1?share.toFixed(1):Math.round(share))+"%":""}</td></tr>`;
   }).join("");
   const cover = c.mono ? `<p class="note">Monopole — the whole climat belongs to ${esc(P[c.mono])}.</p>`
     : known >= c.ha*.98 ? `<p class="note">The owners listed cover essentially the whole climat (published figures are rounded).</p>`
@@ -489,18 +597,25 @@ function renderSide(){
       ${ownersHtml(c)}
       ${cellarHtml(CELLAR.by[c.id]?.wines)}`;
   } else if(st.prod){
-    const r = PROD[st.prod];
-    const hold = [...r.hold].sort((a,b) => ({GC:0,"1er":1,V:2}[a.c.c]-{GC:0,"1er":1,V:2}[b.c.c]) || (b.ha??-1)-(a.ha??-1));
-    side.innerHTML = `${close}<div class="pills"><span class="pill">Producer</span></div><h2>${esc(r.name)}</h2>
+    const r = PROD[st.prod], pf = r.prof || {};
+    const ORD = {GC:0,"1er":1,V:2};
+    const hold = [...r.hold].sort((a,b) => (a.kind==="s")-(b.kind==="s") || ORD[a.c.c]-ORD[b.c.c] || (b.ha??-1)-(a.ha??-1));
+    const host = s => { try{ return new URL(s).hostname.replace(/^www\./,""); }catch(e){ return s; } };
+    side.innerHTML = `${close}<div class="pills"><span class="pill">${esc(pf.kind || "Producer")}</span>${pf.base?`<span class="pill">${esc(pf.base)}</span>`:""}</div><h2>${esc(r.name)}</h2>
+      ${pf.size?`<div class="meta">${esc(pf.size)} in all</div>`:""}
       <div class="facts">
-        <div class="fact"><div class="l">Listed ha</div><div class="v">${fmtHa(r.ha)}</div></div>
+        <div class="fact"><div class="l">Ha on map</div><div class="v">${fmtHa(r.ha)}</div></div>
         <div class="fact"><div class="l">Climats</div><div class="v">${r.n}</div></div>
         <div class="fact"><div class="l">Grands crus</div><div class="v">${r.gc}</div></div>
       </div>
-      <p class="note">Their vineyards are highlighted on the map, coloured by the share of each climat they hold (hatched = holder, size not listed). Côte de Nuits only.</p>
-      <table class="own">${hold.map(({c,ha}) => `<tr><td><span class="cls" style="background:${{GC:TOK.gc,"1er":TOK.pc,V:TOK.vc}[c.c]}"></span><button class="plink" data-c="${c.id}">${esc(c.n)}</button>
+      ${pf.note?`<p>${esc(pf.note)}</p>`:""}
+      <p class="note">Highlighted on the map by share of each climat · hatched = holder, size not published · dotted gold = buys grapes there.</p>
+      <h3>Côte de Nuits holdings</h3>
+      <table class="own">${hold.map(({c,ha,kind}) => `<tr><td><span class="cls" style="background:${{GC:TOK.gc,"1er":TOK.pc,V:TOK.vc}[c.c]}"></span><button class="plink" data-c="${c.id}">${esc(c.n)}</button>${kind?` <span class="ktag ${kind}">${KIND[kind]}</span>`:""}
         <div class="note" style="margin:0">${esc(c.vil.n)}${c.mono?" · monopole":""}</div></td>
-        <td class="n">${ha!=null?`<b>${fmtHa(ha)}</b> ha`:"holder"}</td><td class="n">${ha!=null?Math.round(100*ha/c.ha)+"%":""}</td></tr>`).join("")}</table>
+        <td class="n">${kind==="s"?"":ha!=null?`<b>${fmtHa(ha)}</b> ha`:"holder"}</td><td class="n">${ha!=null&&kind!=="s"?Math.round(100*ha/c.ha)+"%":""}</td></tr>`).join("")}</table>
+      ${(pf.extra||[]).length?`<h3>Not on this map</h3><table class="own">${pf.extra.map(([n,h,kind])=>`<tr><td>${esc(n)}${kind?` <span class="ktag ${kind}">${KIND[kind]}</span>`:""}</td><td class="n">${h!=null?`<b>${fmtHa(h)}</b> ha`:""}</td></tr>`).join("")}</table>`:""}
+      ${(pf.src||[]).length?`<h3>Sources</h3><p class="note">${pf.src.map(u=>`<a href="${esc(u)}" target="_blank" rel="noopener">${esc(host(u))}</a>`).join(" · ")}</p>`:""}
       <p style="margin-top:12px"><button class="btn" id="clearProd">Clear producer</button></p>`;
   } else if(st.vsel){
     const v = VIL[st.vsel];
@@ -561,6 +676,7 @@ function renderLegend(){
     case "producer":
       h = st.prod ? `<div class="lt">${esc(P[st.prod])} · share of each climat</div>` + ramp(mix(TOK.seq0,TOK.seq1,.3), TOK.seq1, "small", "100%")
           + sw("url(#unk)","holder, size not listed").replace('style="background:url(#unk)"', `style="background:repeating-linear-gradient(45deg,${mix(TOK.seq0,TOK.seq1,.35)} 0 3px,${mix(TOK.seq0,TOK.seq1,.6)} 3px 6px)"`)
+          + `<div class="row"><span class="sw" style="background:radial-gradient(circle,${TOK.gold} 30%,${mix(TOK.seq0,TOK.gold,.25)} 34%);background-size:7px 7px"></span>buys grapes here</div>`
           + sw(TOK.none, "not held")
         : `<div class="lt">Producer's share</div><div>Pick a producer in the box above, or click a name in a vineyard's holdings.</div>`;
       break;
@@ -569,7 +685,8 @@ function renderLegend(){
         : `<div class="lt">My cellar</div><div>${esc(CELLAR.msg)}</div>`; break;
     default:
       h = `<div class="lt">Classification</div>` + sw(TOK.gc,"Grand cru") + sw(TOK.pc,"Premier cru") + sw(TOK.vc,"Village climat") + sw(TOK.base,"Village AOC")
-        + `<div class="row"><span class="sw mono-sw"></span>Monopole</div>`;
+        + `<div class="row"><span class="sw mono-sw"></span>Monopole</div>`
+        + `<div class="row"><span class="sw" style="background:none;border:2.5px solid var(--wall)"></span>Walled clos</div>`;
   }
   L.innerHTML = h;
 }
@@ -606,6 +723,32 @@ function renderHolders(){
   $("holders").innerHTML = top.map(r => `<button class="rbar${st.prod===r.key?" on":""}" data-p="${r.key}"><span class="nm">${esc(r.name)}</span>
     <span class="tr"><span class="fl" style="width:${(100*r.ha/max).toFixed(1)}%"></span></span><span class="nn">${fmtHa(r.ha)} ha</span></button>`).join("");
   $("holders").querySelectorAll("[data-p]").forEach(b => b.onclick = () => setProducer(st.prod===b.dataset.p ? null : b.dataset.p, true));
+}
+
+/* ---------- the Vosne domaines ---------- */
+function renderDomains(){
+  const box = $("domains"); if(!box) return;
+  const VOSNE = new Set(["vosne","flagey"]);
+  const list = Object.values(PROD).filter(r => r.prof && r.prof.focus).map(r => {
+    const vh = r.hold.filter(h => VOSNE.has(h.c.geo||h.c.v) || VOSNE.has(h.c.v));
+    const gcs = r.hold.filter(h => h.c.c==="GC" && h.kind!=="s");
+    const vha = vh.filter(h=>h.kind!=="s").reduce((s,h)=>s+(h.ha||0),0);
+    const own = vh.filter(h=>h.kind!=="s"), unknown = own.some(h=>h.ha==null);
+    return {r, vh, own, gcs, vha, unknown, src:r.hold.filter(h=>h.kind==="s")};
+  }).sort((a,b) => (b.vha + .4*b.own.length) - (a.vha + .4*a.own.length)); // parcels of unpublished size still count for something
+  box.innerHTML = list.map(({r,own,gcs,vha,unknown,src}) => {
+    const top = [...r.hold].filter(h=>h.kind!=="s").sort((a,b)=>({GC:0,"1er":1,V:2}[a.c.c]-{GC:0,"1er":1,V:2}[b.c.c])||(b.ha??-1)-(a.ha??-1)).slice(0,4);
+    const monos = r.hold.filter(h=>h.c.mono===r.key && !h.c.inner).map(h=>h.c.n);
+    return `<button class="dcard${st.prod===r.key?" on":""}" data-p="${r.key}">
+      <span class="dn">${esc(r.name)}</span>
+      <span class="dm">${esc(r.prof.kind)} · ${esc(r.prof.size||"")}</span>
+      ${own.length ? `<span class="dk"><b>${unknown?"≥ ":""}${fmtHa(vha)}</b> ha in ${own.length} Vosne/Flagey climat${own.length===1?"":"s"} · <b>${gcs.length}</b> grand cru${gcs.length===1?"":"s"}</span>` : ""}
+      ${src.length ? `<span class="dk">Buys grapes from <b>${src.length}</b> climats: ${src.map(h=>esc(h.c.n)).join(", ")}</span>` : ""}
+      ${monos.length?`<span class="dmono">Monopole: ${monos.map(esc).join(", ")}</span>`:""}
+      <span class="dl">${top.map(h=>`<i class="c${h.c.c==="1er"?"P":h.c.c}"></i>${esc(h.c.n)}${h.ha?` ${fmtHa(h.ha)}`:""}`).join("<br>")}</span>
+    </button>`;
+  }).join("");
+  box.querySelectorAll("[data-p]").forEach(b => b.onclick = () => { setProducer(st.prod===b.dataset.p ? null : b.dataset.p, true); $("mapcard").scrollIntoView({behavior:"smooth", block:"nearest"}); });
 }
 
 /* ---------- controls ---------- */

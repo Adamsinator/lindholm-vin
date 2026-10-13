@@ -21,6 +21,7 @@
   --base:#F3EAD6; --plain:#F4F1EA; --forest:#DCE5D3; --forest-ink:#6E8366; --water:#7FA8C9;
   --road:#B9AEA8; --town:#E2DAD6; --town-ink:#8A7D82; --sel:#1F1418; --seq0:#F2E6E1; --seq1:#7C2D3E;
   --none:#EEE8E3; --mapbg:#F4F1EA;
+  --wall:#A89679; --house:#C9BBB2; --house-ink:#9C8B82; --rfill:#FFFFFF; --rcase:#C9BDB6; --contour:#9B7E5C;
 }
 @media (prefers-color-scheme: dark){
   :root{
@@ -31,6 +32,7 @@
     --base:#3A3229; --plain:#241E20; --forest:#23302A; --forest-ink:#86A08A; --water:#4F7A9C;
     --road:#5E5257; --town:#3A3035; --town-ink:#B3A3AA; --sel:#FFFFFF; --seq0:#3A2E31; --seq1:#E07A90;
     --none:#2C2427; --mapbg:#1E181B;
+    --wall:#8A7A62; --house:#5C4E55; --house-ink:#7A6A71; --rfill:#4A3F44; --rcase:#2A2226; --contour:#B89A73;
   }
 }
 *{box-sizing:border-box}
@@ -126,6 +128,37 @@ input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible,[t
 .lab.GC{font-weight:750}
 .lab.dim{opacity:.25}
 .cellardot{fill:var(--gold);stroke:var(--card);pointer-events:none}
+.wall{fill:none;stroke:var(--wall);stroke-linejoin:round;pointer-events:none}
+.rows{pointer-events:none;opacity:0;transition:opacity .2s}
+#map.near .rows{opacity:1}
+.contour{fill:none;stroke:var(--contour);stroke-opacity:.38;stroke-dasharray:1 0}
+.clab{fill:var(--contour);opacity:.8;font-weight:600;pointer-events:none}
+#map.far .contour,#map.far .clab{display:none}
+.rcase{fill:none;stroke:var(--rcase);stroke-linecap:round;stroke-linejoin:round}
+.rfill{fill:none;stroke:var(--rfill);stroke-linecap:round;stroke-linejoin:round}
+.track{fill:none;stroke:var(--rfill);stroke-opacity:.9;stroke-dasharray:3 2;stroke-linecap:round}
+.house{fill:var(--house)}
+#map.far .house,#map.far .church,#map.far .chcross,#map.far .track{display:none}
+.church{fill:var(--house-ink)}
+.chcross{stroke:var(--house-ink);fill:none}
+.lm{fill:var(--card);stroke:var(--ink)}
+.lmx{stroke:var(--ink);fill:none}
+.lmlab{fill:var(--ink);font-weight:700;font-style:italic;pointer-events:none;paint-order:stroke;stroke:var(--mapbg);stroke-width:3px;stroke-opacity:.8}
+.chateau{fill:var(--house-ink);stroke:var(--wall);pointer-events:none}
+.ktag{font-size:10.5px;font-weight:700;border-radius:10px;padding:0 6px;background:var(--chip);color:var(--muted);white-space:nowrap}
+.ktag.s{color:var(--gold)}
+.dgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.dcard{display:flex;flex-direction:column;gap:3px;text-align:left;border:1px solid var(--line);background:var(--card2);border-radius:10px;
+  padding:10px 12px;cursor:pointer;font-family:inherit;color:var(--ink)}
+.dcard:hover{border-color:var(--accent)}
+.dcard.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+.dcard .dn{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;font-size:16.5px;font-weight:600;line-height:1.2}
+.dcard .dm{font-size:11.5px;color:var(--muted)}
+.dcard .dk{font-size:12.5px}
+.dcard .dmono{font-size:11.5px;color:var(--accent);font-weight:600}
+.dcard .dl{font-size:12px;color:var(--muted);line-height:1.5;margin-top:3px}
+.dcard .dl i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px}
+.dcard .dl i.cGC{background:var(--gc)} .dcard .dl i.cP{background:var(--pc)} .dcard .dl i.cV{background:var(--vc)}
 
 #tip{position:fixed;pointer-events:none;background:var(--ink);color:var(--bg);padding:6px 9px;border-radius:6px;font-size:12px;
   line-height:1.4;z-index:50;opacity:0;transition:opacity .08s;max-width:260px}
@@ -251,6 +284,12 @@ Drag to pan, scroll or pinch to zoom.</p>
   <aside class="side" id="side" aria-live="polite"></aside>
 </div>
 
+<section class="panel" style="margin-top:18px">
+  <h2>The Vosne-Romanée domaines</h2>
+  <p class="ph">Who owns the hill · hectares in Vosne & Flagey, grands crus held, monopoles · click a domaine to map everything it owns, leases or buys</p>
+  <div class="dgrid" id="domains"></div>
+</section>
+
 <div class="lower">
   <div class="panel">
     <h2>Climats <span class="meta" id="listCount"></span></h2>
@@ -275,13 +314,15 @@ Drag to pan, scroll or pinch to zoom.</p>
 <footer class="fine">
   <b>About the data.</b> The map is schematic: each commune is drawn on its own grid with the slope running west (top of the hill) to
   east (the D974), so neighbours, slope position and rough size are right but the shapes are not a cadastral survey.
-  Areas are the official climat sizes (≈). Holdings are compiled from published ownership lists and domaine sources and rounded —
+  Areas are the official climat sizes (≈). Holdings are compiled from published ownership lists, domaine sources and trade press
+  (each domaine panel lists its sources) and rounded. "Leased" marks vines farmed under a fermage or métayage; "buys grapes" marks
+  négociant sourcing, which is never counted as ownership —
   parcels are bought, swapped and leased all the time, so treat them as indicative; owners shown without a figure are known holders
   whose exact area isn't listed.
 </footer>
 </div>
 <div id="tip"></div>
-<script src="burgundy-data.js?v=1"></script>
-<script src="burgundy.js?v=1"></script>
+<script src="burgundy-data.js?v=2"></script>
+<script src="burgundy.js?v=2"></script>
 </body>
 </html>

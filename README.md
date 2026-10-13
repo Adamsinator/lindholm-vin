@@ -206,11 +206,38 @@ grand cru, around a hundred premiers crus and the notable village climats.
 - Drag to pan, scroll or pinch to zoom, use the commune buttons to jump. The URL
   hash remembers the selection (`#c=latache`, `#p=drc`), so a view can be shared.
 
+**The Vosne-Romanée domaines** panel under the map has a card for each of the
+big Vosne names: DRC, Liger-Belair, Leroy, Méo-Camuzet, Grivot, Cathiard,
+Arnoux-Lachaux, Rouget, Lamarche, Bizot, Pacalet and more. Each card shows the
+hectares it holds in Vosne and Flagey, its grands crus and monopoles. Clicking
+a card maps everything that producer holds, and opens a profile with:
+
+- its full Côte de Nuits holdings
+- what it holds that isn't on the map (village wine, Côte de Beaune)
+- links to the sources the figures came from
+
+A holding is one of three kinds:
+
+- **owned**, the default
+- **leased**, for vines farmed under a fermage or métayage, such as
+  Liger-Belair's ex-Lamarche parcels from 2022
+- **buys grapes**, for négociant sourcing, such as Pacalet, who owns no vines.
+  These are drawn dotted gold and never counted as ownership or as a share of
+  the climat.
+
+The map also has stone walls around genuine clos, vine rows when zoomed in,
+contour lines, the Route des Grands Crus, village streets and houses, and
+landmarks such as the Croix de Romanée-Conti and the Château du Clos de
+Vougeot.
+
 The data lives in `burgundy-data.js`. **The map is schematic:** each commune is
 drawn on its own grid, so neighbours, slope position and rough size are right,
 but it is not a survey. Vosne's smallest grands crus are drawn larger than life
 so they stay clickable. Holdings are approximate figures from published
-ownership lists; to correct one, edit the `p:` list of that climat.
+ownership lists, domaine sites and trade press. To correct one, edit the `p:` list of
+that climat; a third element `"f"` marks a lease, `"s"` bought grapes. Domaine
+profiles and their sources are in `PROFILES`. When you change the JS, bump the
+`?v=` on the two `<script>` tags in `burgundy.html`.
 
 ## Changing a wine's details
 
