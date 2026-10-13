@@ -86,9 +86,19 @@ const overflow=async(p,where)=>{ const o=await p.evaluate(()=>document.documentE
   for(const col of ['commune','producer','size','owners','cellar','class']){ await p.selectOption('#fColor',col); await p.waitForTimeout(80); }
   for(const ch of ['[data-cls="GC"]','[data-cls="1er"]','[data-cls="V"]','#monoChip','#monoChip','[data-cls="GC"]','[data-cls="1er"]','[data-cls="V"]']) { try{ await p.click(ch);}catch(e){note(tag,'chip '+ch+' '+e.message)} }
   await p.fill('#fSearch','suchots'); await p.press('#fSearch','Enter'); await p.waitForTimeout(500);
-  await p.fill('#fSearch',''); await p.fill('#fProducer','Domaine Leroy'); await p.waitForTimeout(500);
+  await p.fill('#fSearch','Domaine Leroy · producer'); await p.waitForTimeout(500);
+  if(!(await p.isVisible('#prodChip'))) note(tag,'producer chip not shown after producer search');
+  if(!(await p.isVisible('#side'))) note(tag,'drawer not open in producer view');
+  await p.click('#prodChip'); await p.waitForTimeout(300);
+  if(await p.isVisible('#side')) note(tag,'drawer still open after clearing producer');
+  await p.click('#zInfo'); await p.waitForTimeout(200); if(!/Marsannay/.test(await p.textContent('#side'))) note(tag,'overview not shown');
+  await p.keyboard.press('Escape'); await p.waitForTimeout(200); if(await p.isVisible('#side')) note(tag,'Escape did not close overview');
+  await p.selectOption('#fCommune','gevrey'); await p.waitForTimeout(500);
+  if(!/Gevrey/.test(await p.textContent('#side'))) note(tag,'commune select did not open Gevrey');
+  for(const x of ['list','gc','cmp','domaines']){ await p.click('.xtabs [data-x='+x+']'); await p.waitForTimeout(100);
+    if(!(await p.isVisible('.xpane[data-x='+x+']'))) note(tag,'tab '+x+' pane not visible'); if(x==='list') await overflow(p,tag+' list tab'); }
   for(const th of ['n','v','c','ha','own']) await p.evaluate(k=>document.querySelector('#list th[data-k='+k+']').click(), th);
-  await p.click('.cotebtn[data-cote=beaune]'); await p.waitForTimeout(500);
+  await p.click('#coteSeg [data-cote=beaune]'); await p.waitForTimeout(500);
   await p.click('#dtabs [data-t=beaune]'); await p.click('#dtabs [data-t=vosne]');
   await p.click('#reset'); await p.waitForTimeout(400);
   await p.screenshot({path:OUT+tag+'_atlas.png'});

@@ -446,7 +446,7 @@ function paint(){
   // keep the selection on top
   if(st.sel){ const e=CL[st.sel].el; e.parentNode.appendChild(e); }
   layoutLabels();
-  renderLegend(); renderList(); renderHolders(); renderDomains(); renderCompare(); renderGcOwners(); syncChips();
+  renderLegend(); renderList(); renderDomains(); renderCompare(); renderGcOwners(); syncChips();
 }
 
 /* ---------- view: pan / zoom ---------- */
@@ -474,12 +474,21 @@ function flyTo(target, ms=420){
   };
   anim = requestAnimationFrame(step);
 }
+const DRAWER = 410; // px the open details drawer covers on the right of the map (desktop)
+const drawerPx = () => mapcard.classList.contains("open") && matchMedia("(min-width: 921px)").matches ? DRAWER : 0;
 function fitBox(x0,y0,x1,y1, pad=.08){
-  const ar = svg.clientHeight / Math.max(1, svg.clientWidth);
+  const cw = Math.max(1, svg.clientWidth), vis = Math.max(120, cw - drawerPx()), ar = svg.clientHeight / vis;
   let w = (x1-x0)*(1+2*pad), h = (y1-y0)*(1+2*pad);
   if(h/w > ar) w = h/ar;
   h = w*ar;
-  return {x:(x0+x1)/2 - w/2, y:(y0+y1)/2 - h/2, w, h};
+  const full = w * cw / vis; // the box fills the visible part; the drawer side is extra
+  return {x:(x0+x1)/2 - w/2, y:(y0+y1)/2 - h/2, w:full, h};
+}
+// after a click on the map: if the vineyard ended up under the drawer, slide the map left
+function ensureVisible(c){
+  const dp = drawerPx(); if(!dp || !c.bb) return;
+  const k = scale(), right = (c.bb[2] - vb.x) * k, limit = svg.clientWidth - dp - 20;
+  if(right > limit) flyTo({...vb, x: vb.x + (right - limit) / k + Math.min(80, (c.bb[2]-c.bb[0])*k/2) / k}, 300);
 }
 const boxOfGrid = (x0,y0,x1,y1) => { const xs=[px(x0,y0),px(x1,y0),px(x0,y1),px(x1,y1)]; return [Math.min(...xs), py(y0), Math.max(...xs), py(y1)]; };
 function zoomAt(f, cx, cy){ // cx/cy in svg units
@@ -613,27 +622,41 @@ function focusClimat(c){
   const box = c.bb || c.vil.bb; if(!box) return;
   const [x0,y0,x1,y1] = box;
   // don't zoom in absurdly far on a tiny climat — show it with its neighbours
-  const cx=(x0+x1)/2, cy=(y0+y1)/2, half=Math.max((x1-x0), (y1-y0), 9*S)/2*1.25;
+  const cx=(x0+x1)/2, cy=(y0+y1)/2, half=Math.max((x1-x0), (y1-y0), 9*S)/2*1.6;
   flyTo(fitBox(cx-half, cy-half, cx+half, cy+half, 0));
 }
 function select(id, fly){
-  st.sel = id; st.vsel = null;
+  st.sel = id; st.vsel = null; st.overview = false; st.coteView = null;
   const c = CL[id];
-  if(fly) focusClimat(c);
   renderSide(); paint(); syncHash(); syncCommunes();
+  if(fly) focusClimat(c); else ensureVisible(c);
 }
 function selectVillage(id, fly){
-  st.vsel = id; st.sel = null;
+  st.vsel = id; st.sel = null; st.overview = false; st.coteView = null;
+  renderSide();
   const v = VIL[id];
   if(fly){
     const ext = id==="flagey" ? -3.5 : 0, ext2 = id==="chambolle" ? 6.5 : 0;
     if(v.bb) flyTo(fitBox(...v.bb, .03));
   }
-  renderSide(); paint(); syncHash(); syncCommunes();
+  paint(); syncHash(); syncCommunes();
 }
 
-/* ---------- side panel ---------- */
-const side = $("side");
+/* ---------- side panel: a drawer over the map (desktop) or a panel below it (phones) ---------- */
+const side = $("side"), mapcard = $("mapcard");
+function placeSide(){
+  const phone = matchMedia("(max-width: 920px)").matches;
+  if(phone && side.parentNode===mapcard) mapcard.after(side);
+  else if(!phone && side.parentNode!==mapcard) mapcard.appendChild(side);
+}
+matchMedia("(max-width: 920px)").addEventListener("change", () => { placeSide(); setVB(vb); });
+function setOpen(){
+  const open = !!(st.sel || st.vsel || st.prod || st.overview);
+  mapcard.classList.toggle("open", open); side.classList.toggle("open", open);
+  if(open) $("hint").classList.add("gone");
+  placeSide();
+  return open;
+}
 function appellation(c){
   const vn = c.v==="flagey" || c.geo==="flagey" ? "Vosne-Romanée" : c.vil.id==="premeaux" ? "Nuits-Saint-Georges" : c.vil.id==="cdnv" ? "Côte de Nuits-Villages" : c.vil.n;
   if(c.ap) return c.c==="1er" ? `${c.ap} 1er Cru « ${c.n} »` : `${c.ap} « ${c.n} »`;
@@ -664,6 +687,7 @@ function cellarHtml(list){
 }
 function renderSide(){
   const close = `<button class="close" id="sideClose" aria-label="Close">×</button>`;
+  if(!setOpen()){ side.innerHTML = ""; renderPeek(); return; }
   if(st.sel){
     const c = CL[st.sel];
     side.innerHTML = `${close}<div class="pills"><span class="pill ${c.c==="1er"?"p1er":c.c}">${CLASS_NAME[c.c]}</span>${c.mono?`<span class="pill mono">Monopole</span>`:""}<span class="pill">${COL_NAME[c.col]||"Red"}</span></div>
@@ -722,7 +746,7 @@ function renderSide(){
     const gc = new Set(C.filter(c=>c.c==="GC"&&!c.inner).map(c=>c.grp||c.id)).size, pc = C.filter(c=>c.c==="1er"&&!c.inner).length, mono = C.filter(c=>c.mono).length;
     const picks = ["romaneeconti","latache","richebourg","chambertin","musigny","closvougeot","closstjacques","amoureuses","crosparantoux",
       "montrachet","chevalier","cortoncharlemagne","perrieres_meursault","closdesducs","epeneaux"].filter(id=>CL[id]);
-    side.innerHTML = `<div class="pills"><span class="pill">Côte d'Or</span></div><h2>From Marsannay to Maranges</h2>
+    side.innerHTML = `${close}<div class="pills"><span class="pill">Côte d'Or</span></div><h2>From Marsannay to Maranges</h2>
       <div class="facts">
         <div class="fact"><div class="l">Grand cru AOCs</div><div class="v">${gc}</div></div>
         <div class="fact"><div class="l">1ers on map</div><div class="v">${pc}</div></div>
@@ -731,21 +755,23 @@ function renderSide(){
       <p>The Côte d'Or is one east-facing escarpment some 50 km long: the Côte de Nuits in the north, almost all red, then from Corton the
       Côte de Beaune, where Chardonnay takes over south of Volnay. The best sites sit mid-slope, around 250–300 m, on limestone and marl —
       grands crus in the middle band, premiers crus just above and below, village wine toward the D974, regional Bourgogne on the flat.</p>
-      <p class="note">Corton's red climats count as one appellation; Charlemagne, the third white grand cru name on the hill, isn't drawn separately.
-      Monopoles have a dashed inner ring, walled clos a stone outline. Gold dots mark vineyards you hold bottles from.</p>
       <h3>Start with</h3><div class="qp">${picks.map(id=>`<button data-c="${id}">${esc(CL[id].n)}</button>`).join("")}</div>`;
   }
   side.querySelectorAll("[data-c]").forEach(b => b.onclick = ev => { ev.stopPropagation(); select(b.dataset.c, true); });
   side.querySelectorAll("[data-p]").forEach(b => b.onclick = () => setProducer(b.dataset.p, true));
   side.querySelectorAll("[data-v]").forEach(b => b.onclick = () => selectVillage(b.dataset.v, true));
-  const cl = $("sideClose"); if(cl) cl.onclick = () => { st.sel=null; st.vsel=null; renderSide(); paint(); syncHash(); syncCommunes(); };
+  const cl = $("sideClose"); if(cl) cl.onclick = () => { st.sel=null; st.vsel=null; st.overview=false; if(st.prod) setProducer(null); else { renderSide(); paint(); syncHash(); syncCommunes(); } };
   const cp = $("clearProd"); if(cp) cp.onclick = () => setProducer(null);
   if(st.sel) wireEdit(CL[st.sel]);
   renderPeek();
 }
+function renderProdChip(){
+  const pc = $("prodChip"); pc.hidden = !st.prod;
+  if(st.prod) pc.textContent = P[st.prod] + "  ×";
+}
 function setProducer(key, showPanel){
-  st.prod = key;
-  $("fProducer").value = key ? P[key] : "";
+  st.prod = key; st.overview = false;
+  renderProdChip();
   if(key){ st.color = "producer"; $("fColor").value = "producer"; if(showPanel){ st.sel=null; st.vsel=null; } }
   else if(st.color==="producer"){ st.color="class"; $("fColor").value="class"; }
   renderSide(); paint(); syncHash();
@@ -796,7 +822,7 @@ function renderList(){
     else if(k==="own") r = (a.mono?1:(a.p||[]).length) - (b.mono?1:(b.p||[]).length);
     return r*d;
   });
-  $("listCount").textContent = `· ${rows.length} of ${C.length}`;
+  $("listCount").textContent = rows.length===C.length ? `(${C.length})` : `(${rows.length} of ${C.length})`;
   const tb = $("list").tBodies[0];
   tb.innerHTML = rows.map(c => `<tr data-c="${c.id}" class="${st.sel===c.id?"sel":""}"><td><span class="cls" style="background:${{GC:TOK.gc,"1er":TOK.pc,V:TOK.vc}[c.c]}"></span>${esc(c.n)}${CELLAR.by[c.id]?` <span title="in your cellar" style="color:var(--gold)">●</span>`:""}</td>
     <td>${esc(c.vil.n)}</td><td>${c.c==="V"?"Village":c.c}</td><td class="num">${fmtHa(c.ha)}</td><td>${esc(ownText(c))}</td></tr>`).join("");
@@ -806,14 +832,6 @@ $("list").tHead.querySelectorAll("th").forEach(th => th.onclick = () => {
   const k = th.dataset.k; if(st.sortK===k) st.sortDir*=-1; else { st.sortK=k; st.sortDir = k==="ha"||k==="own" ? -1 : 1; }
   renderList();
 });
-
-/* ---------- holders leaderboard ---------- */
-function renderHolders(){
-  const top = Object.values(PROD).filter(r=>r.ha>0).sort((a,b)=>b.ha-a.ha).slice(0,14), max = top[0]?.ha || 1;
-  $("holders").innerHTML = top.map(r => `<button class="rbar${st.prod===r.key?" on":""}" data-p="${r.key}"><span class="nm">${esc(r.name)}</span>
-    <span class="tr"><span class="fl" style="width:${(100*r.ha/max).toFixed(1)}%"></span></span><span class="nn">${fmtHa(r.ha)} ha</span></button>`).join("");
-  $("holders").querySelectorAll("[data-p]").forEach(b => b.onclick = () => setProducer(st.prod===b.dataset.p ? null : b.dataset.p, true));
-}
 
 /* ---------- the Vosne domaines ---------- */
 function renderDomains(){
@@ -993,14 +1011,19 @@ function wireEdit(c){
 /* ---------- controls ---------- */
 function norm(t){ return String(t||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/œ/g,"oe").replace(/[-'’.,«»()]/g," ")
   .replace(/\bst\b/g,"saint").replace(/\bste\b/g,"sainte").replace(/\s+/g," ").trim(); }
-$("climatList").innerHTML = [...C].sort((a,b)=>a.n.localeCompare(b.n,"fr")).map(c => `<option value="${esc(c.n)} — ${esc(c.vil.n)}">`).join("");
+// one search box: vineyards ("Name — Commune") and producers ("Name · producer")
+const PROD_SUFFIX = " · producer";
+$("searchList").innerHTML = [...C].sort((a,b)=>a.n.localeCompare(b.n,"fr")).map(c => `<option value="${esc(c.n)} — ${esc(c.vil.n)}">`).join("")
+  + Object.values(PROD).sort((a,b)=>a.name.localeCompare(b.name,"fr")).map(r => `<option value="${esc(r.name + PROD_SUFFIX)}">`).join("");
 $("producerList").innerHTML = Object.values(PROD).sort((a,b)=>a.name.localeCompare(b.name,"fr")).map(r => `<option value="${esc(r.name)}">`).join("");
 $("allProducers").innerHTML = Object.values(P).sort((a,b)=>a.localeCompare(b,"fr")).map(n => `<option value="${esc(n)}">`).join("");
 document.querySelectorAll("#dtabs button").forEach(b => b.onclick = () => { st.dtab = b.dataset.t; renderDomains(); });
 $("fSearch").addEventListener("input", ev => {
   const val = ev.target.value;
   const exact = C.find(c => `${c.n} — ${c.vil.n}` === val);
-  if(exact){ st.q = ""; ev.target.value = exact.n; select(exact.id, true); return; }
+  if(exact){ st.q = ""; ev.target.value = ""; select(exact.id, true); return; }
+  if(val.endsWith(PROD_SUFFIX)){ const key = prodByName[norm(val.slice(0, -PROD_SUFFIX.length))];
+    if(key){ st.q = ""; ev.target.value = ""; setProducer(key, true); return; } }
   st.q = norm(val); paint();
 });
 $("fSearch").addEventListener("keydown", ev => {
@@ -1008,11 +1031,7 @@ $("fSearch").addEventListener("keydown", ev => {
   const hit = C.filter(c => c.on).sort((a,b) => (norm(a.n).startsWith(st.q)?0:1)-(norm(b.n).startsWith(st.q)?0:1) || CORD[a.c]-CORD[b.c])[0];
   if(hit) select(hit.id, true);
 });
-$("fProducer").addEventListener("input", ev => {
-  const key = prodByName[norm(ev.target.value)];
-  if(key) setProducer(key, true);
-  else if(!ev.target.value.trim() && st.prod) setProducer(null);
-});
+$("prodChip").onclick = () => setProducer(null);
 $("fColor").onchange = ev => { st.color = ev.target.value; paint(); syncHash(); };
 $("classChips").querySelectorAll("[data-cls]").forEach(b => b.onclick = () => {
   const k = b.dataset.cls; st.cls.has(k) ? st.cls.delete(k) : st.cls.add(k);
@@ -1033,8 +1052,8 @@ if(GEO){
 }
 $("cellarChip").onclick = () => { st.cellarOnly = !st.cellarOnly; paint(); };
 $("reset").onclick = () => {
-  Object.assign(st, {cls:new Set(["GC","1er","V"]), mono:false, cellarOnly:false, q:"", prod:null, color:"class", sel:null, vsel:null});
-  $("fSearch").value=""; $("fProducer").value=""; $("fColor").value="class";
+  Object.assign(st, {cls:new Set(["GC","1er","V"]), mono:false, cellarOnly:false, q:"", prod:null, color:"class", sel:null, vsel:null, overview:false});
+  $("fSearch").value=""; $("fColor").value="class"; renderProdChip();
   renderSide(); paint(); syncHash(); syncCommunes(); focusDefault();
 };
 function syncChips(){
@@ -1042,20 +1061,30 @@ function syncChips(){
   $("monoChip").classList.toggle("on", st.mono);
   $("cellarChip").classList.toggle("on", st.cellarOnly);
 }
-const nav = $("communes");
-nav.innerHTML = COTES.map(k => `<button class="cotebtn" data-cote="${k.id}">${esc(k.n)} ⤢</button>` +
-  V.filter(v=>v.cote===k.id).map(v => `<button data-v="${v.id}">${esc(v.n)}</button>`).join("")).join("");
-nav.querySelectorAll("[data-v]").forEach(b => b.onclick = () => selectVillage(b.dataset.v, true));
-nav.querySelectorAll("[data-cote]").forEach(b => b.onclick = () => fitCote(b.dataset.cote));
+const seg = $("coteSeg"), csel = $("fCommune");
+seg.innerHTML = COTES.map(k => `<button type="button" data-cote="${k.id}">${esc(k.n)}</button>`).join("");
+seg.querySelectorAll("[data-cote]").forEach(b => b.onclick = () => fitCote(b.dataset.cote));
+csel.innerHTML = `<option value="">Commune…</option>` + COTES.map(k => `<optgroup label="${esc(k.n)}">` +
+  V.filter(v=>v.cote===k.id).map(v => `<option value="${v.id}">${esc(v.n)}</option>`).join("") + `</optgroup>`).join("");
+csel.onchange = () => { if(csel.value) selectVillage(csel.value, true); };
 function fitCote(id){
   const vs = V.filter(v=>v.cote===id); if(!vs.length) return;
-  st.vsel=null; st.sel=null; renderSide(); paint(); syncHash(); syncCommunes();
+  st.vsel=null; st.sel=null; st.coteView=id; renderSide(); paint(); syncHash(); syncCommunes();
   const b = bbUnion(vs.map(v => v.bb).filter(Boolean)); if(b) flyTo(fitBox(...b, .02));
 }
 function syncCommunes(){
-  const cur = st.vsel || (st.sel && CL[st.sel].v);
-  nav.querySelectorAll("[data-v]").forEach(b => b.classList.toggle("on", b.dataset.v===cur));
+  const cur = st.vsel || (st.sel && CL[st.sel].v) || "";
+  csel.value = cur;
+  const cote = cur ? VIL[cur].cote : (st.coteView || "");
+  seg.querySelectorAll("[data-cote]").forEach(b => b.classList.toggle("on", b.dataset.cote===cote));
 }
+
+// deep-dive tabs under the map
+document.querySelectorAll(".xtabs [data-x]").forEach(b => b.onclick = () => {
+  document.querySelectorAll(".xtabs [data-x]").forEach(x => x.classList.toggle("on", x===b));
+  document.querySelectorAll(".xpane").forEach(x => x.classList.toggle("on", x.dataset.x===b.dataset.x));
+});
+$("zInfo").onclick = ev => { ev.stopPropagation(); st.overview = !st.overview; if(st.overview){ st.sel=null; st.vsel=null; } renderSide(); paint(); syncHash(); syncCommunes(); };
 
 /* ---------- hash (shareable state) ---------- */
 let lastHash = location.hash;
@@ -1073,7 +1102,7 @@ function syncHash(){
 function readHash(){
   const q = new URLSearchParams(location.hash.slice(1));
   if(q.get("color") && [...$("fColor").options].some(o=>o.value===q.get("color"))){ st.color=q.get("color"); $("fColor").value=st.color; }
-  if(q.get("p") && P[q.get("p")] && PROD[q.get("p")]){ st.prod=q.get("p"); $("fProducer").value=P[st.prod]; st.color="producer"; $("fColor").value="producer"; }
+  if(q.get("p") && P[q.get("p")] && PROD[q.get("p")]){ st.prod=q.get("p"); renderProdChip(); st.color="producer"; $("fColor").value="producer"; }
   if(q.get("c") && CL[q.get("c")]) { st.sel=q.get("c"); return () => focusClimat(CL[st.sel]); }
   if(q.get("v") && VIL[q.get("v")]) { st.vsel=q.get("v"); return () => selectVillage(st.vsel, true); }
   return null;
@@ -1153,7 +1182,7 @@ async function loadCellar(){
 function applyHash(){ // Back/Forward, or a hand-edited URL
   if(location.hash===lastHash) return;
   lastHash = location.hash;
-  st.sel = null; st.vsel = null; st.prod = null; $("fProducer").value = "";
+  st.sel = null; st.vsel = null; st.prod = null; st.overview = false; renderProdChip();
   st.color = "class"; $("fColor").value = "class"; // the URL says which colour, if any
   const fly = readHash();
   renderSide(); paint(); syncCommunes();
@@ -1164,7 +1193,7 @@ addEventListener("hashchange", applyHash);
 // keyboard: Escape clears the selection, + / − zoom (not while typing)
 document.addEventListener("keydown", e => {
   if(e.target.closest && e.target.closest("input,select,textarea")) return;
-  if(e.key==="Escape" && (st.sel||st.vsel||st.prod)){ st.sel=null; st.vsel=null; if(st.prod) setProducer(null); else { renderSide(); paint(); syncHash(); syncCommunes(); } }
+  if(e.key==="Escape" && (st.sel||st.vsel||st.prod||st.overview)){ st.sel=null; st.vsel=null; st.overview=false; if(st.prod) setProducer(null); else { renderSide(); paint(); syncHash(); syncCommunes(); } }
   else if(e.key==="+"||e.key==="=") $("zIn").click();
   else if(e.key==="-"||e.key==="_") $("zOut").click();
 });

@@ -49,25 +49,29 @@ html,body{margin:0;padding:0}
 body{background:var(--bg);color:var(--ink);
   font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
 .serif{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif}
-.wrap{max-width:1280px;margin:0 auto;padding:28px 20px 80px}
-@media(max-width:600px){.wrap{padding:20px 16px 60px}}
-header.top{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px 16px;
-  border-bottom:2px solid var(--ink);padding-bottom:14px;margin-bottom:16px}
+.wrap{max-width:1400px;margin:0 auto;padding:18px 20px 60px}
+@media(max-width:600px){.wrap{padding:14px 12px 48px}}
+header.top{display:flex;align-items:center;justify-content:space-between;gap:8px 16px;
+  border-bottom:2px solid var(--ink);padding-bottom:10px;margin-bottom:12px}
 header.top h1{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
-  font-size:clamp(28px,4.5vw,40px);font-weight:600;margin:0;letter-spacing:-.01em}
+  font-size:clamp(24px,3.4vw,32px);font-weight:600;margin:0;letter-spacing:-.01em;display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
 header.top h1 em{font-style:italic;color:var(--accent)}
 header.top h1 a{color:inherit;text-decoration:none}
-.sub{color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.12em}
-.back{font-size:13.5px;font-weight:600;color:var(--accent);text-decoration:none}
+header.top .ttl{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:13px;font-weight:600;
+  color:var(--muted);text-transform:uppercase;letter-spacing:.14em}
+.back{font-size:13.5px;font-weight:600;color:var(--accent);text-decoration:none;white-space:nowrap}
 .back:hover{text-decoration:underline}
-.lead{margin:0 0 14px;color:var(--muted);font-size:14px;max-width:80ch}
-.lead b{color:var(--ink);font-weight:600}
 
-.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
-.filters input,.filters select{background:var(--card);border:1px solid var(--line);color:var(--ink);border-radius:8px;
-  padding:8px 10px;font-size:14px;font-family:inherit;min-width:0}
-.filters input[type=search]{flex:1 1 180px}
-#fProducer{flex:1 1 180px}
+/* toolbar: one row of controls over the map */
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+.toolbar input,.toolbar select{background:var(--card);border:1px solid var(--line);color:var(--ink);border-radius:8px;
+  padding:8px 10px;font-size:14px;font-family:inherit;min-width:0;height:36px}
+#fSearch{flex:1 1 140px;max-width:320px}
+#fCommune{width:150px} #fColor{width:184px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;height:36px;background:var(--card)}
+.seg button{border:0;background:none;color:var(--muted);font:inherit;font-size:13px;font-weight:600;padding:0 12px;cursor:pointer;white-space:nowrap}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button.on{background:var(--ink);color:var(--bg)}
 .chipset{display:flex;gap:6px;flex-wrap:wrap}
 .chip{border:1px solid var(--line);background:var(--card);color:var(--muted);border-radius:20px;
   padding:5px 12px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px}
@@ -75,29 +79,34 @@ header.top h1 a{color:inherit;text-decoration:none}
 .chip.on{color:var(--ink);border-color:var(--ink)}
 .chip:not(.on) .sw{opacity:.35}
 .chip:hover{border-color:var(--accent)}
+.chip.prod{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .btn{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;
   padding:8px 12px;font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit}
 .btn:hover{border-color:var(--accent)}
 .btn.quiet{border-color:transparent;background:none;color:var(--muted);font-weight:500}
+#reset{margin-left:auto;padding:8px 6px;white-space:nowrap}
+@media(max-width:1340px) and (min-width:601px){#reset{font-size:0} #reset::first-letter{font-size:16px}}
 input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+@media(max-width:600px){
+  .toolbar{gap:6px}
+  #fSearch{flex:1 1 100%;max-width:none;font-size:16px}   /* 16px: no zoom-on-focus in iOS */
+  .seg{flex:1 1 auto} .seg button{flex:1;padding:0 8px}
+  #fCommune,#fColor{flex:1 1 45%;width:auto;font-size:15px}
+  .chip{padding:4px 10px;font-size:12.5px}
+  #reset{margin-left:0}
+}
 
-.communes{display:flex;flex-wrap:wrap;gap:6px;padding:2px 0 10px}
-@media(max-width:600px){.communes{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:thin;-webkit-overflow-scrolling:touch}}
-.communes button{flex:none;border:0;background:var(--chip);color:var(--ink);border-radius:6px;padding:5px 10px;
-  font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap}
-.communes button.on{background:var(--accent);color:var(--accent-ink)}
-
-.atlas{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:14px;align-items:start}
-@media(max-width:920px){.atlas{grid-template-columns:1fr}}
+/* the map, with details in a drawer over its right edge */
 .mapcard{position:relative;background:var(--mapbg);border:1px solid var(--line);border-radius:12px;overflow:hidden;
-  box-shadow:var(--shadow);height:min(78vh,820px);min-height:420px;touch-action:none;user-select:none;-webkit-user-select:none}
-@media(max-width:920px){.mapcard{height:68vh}}
+  box-shadow:var(--shadow);height:calc(100vh - 170px);min-height:460px;max-height:980px;touch-action:none;user-select:none;-webkit-user-select:none}
+@media(max-width:920px){.mapcard{height:66vh;min-height:380px}}
 #map{width:100%;height:100%;display:block;cursor:grab}
 #map.dragging{cursor:grabbing}
-.zoom{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;gap:6px}
+.zoom{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;gap:6px;transition:right .2s}
 .zoom button{width:34px;height:34px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);
   font-size:17px;font-weight:600;cursor:pointer;box-shadow:var(--shadow);font-family:inherit;line-height:1}
 .zoom button:hover{border-color:var(--accent)}
+#zInfo{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;font-style:italic;font-size:18px}
 .legend{position:absolute;left:10px;bottom:10px;background:color-mix(in srgb,var(--card) 92%,transparent);border:1px solid var(--line);
   border-radius:10px;padding:8px 11px;font-size:12px;max-width:min(300px,calc(100% - 64px));box-shadow:var(--shadow);pointer-events:auto}
 .legend .lt{font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin-bottom:4px}
@@ -107,6 +116,10 @@ input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible,[t
 .legend .rl{display:flex;justify-content:space-between;color:var(--muted);font-size:11px}
 @media(max-width:600px){.legend{font-size:11px;padding:6px 9px;max-width:170px}.legend .row{margin:1px 0}.compass{display:none}}
 .legend .mono-sw{background:var(--gc);outline:1.5px dashed var(--gc-ink);outline-offset:-4px}
+.hint{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);background:var(--ink);color:var(--bg);border-radius:20px;
+  padding:6px 14px;font-size:12.5px;pointer-events:none;white-space:nowrap;opacity:.88;transition:opacity .4s}
+.hint.gone{opacity:0}
+@media(max-width:920px){.hint{display:none}}
 .peek{display:none}
 @media(max-width:920px){
   .peek:not([hidden]){display:flex;position:absolute;left:10px;right:56px;top:10px;align-items:center;gap:10px;justify-content:space-between;
@@ -117,18 +130,16 @@ input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible,[t
   .peek button{flex:none;border:0;background:var(--accent);color:var(--accent-ink);border-radius:8px;padding:7px 10px;font:inherit;font-weight:650;cursor:pointer}
   .mapcard:has(.peek:not([hidden])) .legend{display:none}
 }
-@media(max-width:600px){
-  .lead{display:none}
-  .filters{gap:6px}
-  .filters input[type=search],#fProducer{flex:1 1 40%;min-width:0;font-size:16px}  /* 16px: no zoom-on-focus in iOS */
-  #fColor{flex:1 1 60%;font-size:15px}
-  .chip{padding:4px 10px;font-size:12.5px}
-}
-.scalebar{position:absolute;right:56px;bottom:12px;display:flex;flex-direction:column;align-items:flex-end;gap:2px;pointer-events:none;font-size:11px;color:var(--ink)}
+.scalebar{position:absolute;right:56px;bottom:12px;display:flex;flex-direction:column;align-items:flex-end;gap:2px;pointer-events:none;font-size:11px;color:var(--ink);transition:right .2s}
 .scalebar span{display:block;height:6px;border:1.5px solid var(--ink);border-top:0;min-width:10px}
 .scalebar em{font-style:normal;font-weight:600;text-shadow:0 0 3px var(--mapbg)}
 .compass{position:absolute;left:12px;top:10px;font-size:11px;color:var(--muted);line-height:1.25;pointer-events:none}
 .compass b{display:block;font-size:13px;color:var(--ink)}
+@media(min-width:921px){
+  .mapcard.open .zoom{right:412px}
+  .mapcard.open .scalebar{right:458px}
+  .mapcard.open .hint{display:none}
+}
 
 /* svg */
 .forest{fill:var(--forest)}
@@ -189,8 +200,6 @@ input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible,[t
 .feedtabs{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px}
 .ftog{border:1px solid var(--line);background:var(--card);color:var(--muted);border-radius:20px;padding:5px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
 .ftog.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
-.communes .cotebtn{background:none;border:1px solid var(--ink);color:var(--ink)}
-.communes .cotebtn:not(:first-child){margin-left:10px}
 .ktag.ed{background:var(--accent);color:var(--accent-ink);cursor:help}
 .edbtn{border:0;background:none;color:var(--muted);cursor:pointer;font-size:12px;padding:0 2px}
 .edbtn:hover{color:var(--accent)}
@@ -219,9 +228,11 @@ input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible,[t
   line-height:1.4;z-index:50;opacity:0;transition:opacity .08s;max-width:260px}
 
 /* side panel */
-.side{background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:16px 18px;
-  max-height:min(78vh,820px);overflow:auto}
-@media(max-width:920px){.side{max-height:none}}
+.side{display:none;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.18);padding:16px 18px;
+  overflow:auto;user-select:text;-webkit-user-select:text;touch-action:auto}
+@media(min-width:921px){.mapcard.open .side{display:block;position:absolute;top:10px;right:10px;bottom:10px;width:390px;z-index:3}}
+/* phones: the drawer can't fit over the map, so the script moves it below the map */
+@media(max-width:920px){.side.open{display:block;margin-top:10px}}
 .side h2{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;font-size:24px;line-height:1.15;margin:0 0 6px;font-weight:600}
 .side h3{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:18px 0 6px;font-weight:600}
 .side p{margin:6px 0;font-size:14px}
@@ -257,12 +268,20 @@ input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible,[t
 .cellar-st b{color:var(--gold)}
 .close{float:right;border:0;background:none;color:var(--muted);cursor:pointer;font-size:18px;line-height:1;padding:2px 4px}
 
-/* lower panels */
-.lower{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:14px;margin-top:18px;align-items:start}
-@media(max-width:920px){.lower{grid-template-columns:1fr}}
-.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow);min-width:0}
-.panel h2{margin:0 0 2px;font-size:16px;font-weight:650;font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif}
-.panel .ph{font-size:12px;color:var(--muted);margin:0 0 12px}
+/* below the map: one tabbed section for the deep dives */
+.explore{margin-top:16px;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);min-width:0}
+.xtabs{display:flex;gap:2px;border-bottom:1px solid var(--line);padding:0 10px;overflow-x:auto;scrollbar-width:none}
+.xtabs button{border:0;background:none;color:var(--muted);font:inherit;font-size:14px;font-weight:600;padding:12px 10px;cursor:pointer;
+  border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.xtabs button.on{color:var(--ink);border-bottom-color:var(--accent)}
+.xtabs button:hover{color:var(--ink)}
+#listCount{font-weight:500;color:var(--muted)}
+.xpane{display:none;padding:14px 16px 18px}
+.xpane.on{display:block}
+.xhead{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 16px;margin-bottom:6px}
+.xhead .feedtabs{margin:0}
+.ph{font-size:12px;color:var(--muted);margin:0 0 12px}
+.xhead .ph{margin:0}
 .tablewrap{overflow:auto;max-height:560px}
 table.list{width:100%;border-collapse:collapse;font-size:13.5px}
 table.list th{position:sticky;top:0;background:var(--card);text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.08em;
@@ -274,37 +293,24 @@ table.list tr.sel td{background:var(--chip)}
 @media(max-width:600px){table.list th:nth-child(5),table.list td:nth-child(5){display:none}}
 table.list .num{text-align:right;font-variant-numeric:tabular-nums}
 .cls{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px;vertical-align:0}
-.rbar{display:grid;grid-template-columns:minmax(0,1fr) 110px 64px;gap:10px;align-items:center;padding:3px 0;font-size:13px;
-  cursor:pointer;border:0;background:none;color:inherit;width:100%;text-align:left;font-family:inherit}
-.rbar .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.rbar .tr{display:block;height:12px;background:var(--none);border-radius:3px;overflow:hidden}
-.rbar .fl{display:block;height:12px;background:var(--accent)}
-.rbar .nn{color:var(--muted);font-variant-numeric:tabular-nums;text-align:right;font-size:12px}
-.rbar:hover .nm{color:var(--accent)}
-.rbar.on .nm{color:var(--accent);font-weight:650}
-footer.fine{margin-top:22px;font-size:12px;color:var(--muted);max-width:90ch;line-height:1.55}
+footer.fine{margin-top:14px;font-size:12px;color:var(--muted);max-width:110ch;line-height:1.55}
 @media (prefers-reduced-motion: reduce){*{transition:none !important}}
 </style>
 </head>
 <body>
 <div class="wrap">
 <header class="top">
-  <h1><a href="./">All<em>Wine</em></a></h1>
-  <div style="display:flex;gap:14px;align-items:baseline">
-    <span class="sub">Burgundy atlas · Côte d'Or</span>
-    <a class="back" href="./">← AllWine</a>
-  </div>
+  <h1><a href="./">All<em>Wine</em></a><span class="ttl">Burgundy atlas</span></h1>
+  <a class="back" href="./">← AllWine</a>
 </header>
 
-<p class="lead">Every <b>grand cru</b>, <b>premier cru</b> and notable village climat of the Côte d'Or, from Marsannay to Maranges, with who owns
-what. Click a vineyard for its holders and their share, filter by classification or producer, and recolour the map by owner.
-Drag to pan, scroll or pinch to zoom.</p>
-
-<div class="filters">
-  <input type="search" id="fSearch" list="climatList" placeholder="Find a climat…" aria-label="Find a climat">
-  <datalist id="climatList"></datalist>
-  <input type="search" id="fProducer" list="producerList" placeholder="Producer…" aria-label="Filter by producer">
+<div class="toolbar" role="search">
+  <input type="search" id="fSearch" list="searchList" placeholder="Find a vineyard or producer…" aria-label="Find a vineyard or producer">
+  <datalist id="searchList"></datalist>
   <datalist id="producerList"></datalist>
+  <datalist id="allProducers"></datalist>
+  <div class="seg" id="coteSeg" role="group" aria-label="Côte"></div>
+  <select id="fCommune" aria-label="Jump to a commune"></select>
   <select id="fColor" aria-label="Colour the map by">
     <option value="class">Colour: classification</option>
     <option value="commune">Colour: commune</option>
@@ -317,57 +323,52 @@ Drag to pan, scroll or pinch to zoom.</p>
     <button class="chip on" data-cls="GC"><span class="sw" style="background:var(--gc)"></span>Grand cru</button>
     <button class="chip on" data-cls="1er"><span class="sw" style="background:var(--pc)"></span>Premier cru</button>
     <button class="chip on" data-cls="V"><span class="sw" style="background:var(--vc)"></span>Village</button>
-    <button class="chip" id="monoChip">Monopoles only</button>
-    <button class="chip" id="cellarChip" hidden>In my cellar</button>
+    <button class="chip" id="monoChip">Monopoles</button>
+    <button class="chip" id="cellarChip" hidden>My cellar</button>
     <button class="chip" id="modeChip" hidden title="Surveyed INAO outlines or the schematic map">Map: surveyed</button>
+    <button class="chip prod" id="prodChip" hidden title="Clear the producer"></button>
   </div>
-  <button class="btn quiet" id="reset">Reset</button>
+  <button class="btn quiet" id="reset" title="Reset filters and view" aria-label="Reset filters and view">↺ Reset</button>
 </div>
 
-<nav class="communes" id="communes" aria-label="Jump to commune"></nav>
-
-<div class="atlas">
-  <div class="mapcard" id="mapcard">
-    <svg id="map" role="img" aria-label="Schematic map of the Côte de Nuits vineyards"></svg>
-    <div class="compass" id="compass"><b>N ↑</b>slope rises west ←<br>schematic · not to scale</div>
-    <div class="scalebar" id="scalebar" hidden><span></span><em></em></div>
-    <div class="zoom">
-      <button id="zIn" title="Zoom in" aria-label="Zoom in">＋</button>
-      <button id="zOut" title="Zoom out" aria-label="Zoom out">－</button>
-      <button id="zAll" title="Whole Côte de Nuits" aria-label="Show the whole Côte de Nuits">⤢</button>
-    </div>
-    <div class="legend" id="legend"></div>
-    <div class="peek" id="peek" hidden></div>
+<div class="mapcard" id="mapcard">
+  <svg id="map" role="img" aria-label="Map of the Côte d'Or vineyards"></svg>
+  <div class="compass" id="compass"><b>N ↑</b>slope rises west ←<br>schematic · not to scale</div>
+  <div class="scalebar" id="scalebar" hidden><span></span><em></em></div>
+  <div class="zoom">
+    <button id="zIn" title="Zoom in (+)" aria-label="Zoom in">＋</button>
+    <button id="zOut" title="Zoom out (−)" aria-label="Zoom out">－</button>
+    <button id="zAll" title="Whole Côte d'Or" aria-label="Show the whole Côte d'Or">⤢</button>
+    <button id="zInfo" title="About the atlas" aria-label="About the atlas">i</button>
   </div>
+  <div class="legend" id="legend"></div>
+  <div class="hint" id="hint">Click a vineyard, commune or producer for details · drag to pan · scroll or pinch to zoom</div>
+  <div class="peek" id="peek" hidden></div>
   <aside class="side" id="side" aria-live="polite"></aside>
 </div>
 
-<section class="panel" style="margin-top:18px">
-  <h2>The domaines</h2>
-  <div class="feedtabs" id="dtabs"><button class="ftog on" data-t="vosne">Vosne · Nuits</button><button class="ftog" data-t="north">Gevrey · Morey · Chambolle</button><button class="ftog" data-t="beaune">Côte de Beaune</button></div>
-  <p class="ph">Who owns the hill · hectares, grands crus held, monopoles · click a domaine to map everything it owns, leases or buys</p>
-  <div class="dgrid" id="domains"></div>
-</section>
-
-<div class="lower">
-  <div class="panel">
-    <h2>Compare two producers</h2>
-    <p class="ph">Side by side, climat by climat · type a name</p>
-    <div class="cmpbar"><input id="cmpA" list="producerList" aria-label="First producer"><span>vs</span><input id="cmpB" list="producerList" aria-label="Second producer"></div>
-    <div class="tablewrap" id="cmp"></div>
+<section class="explore" id="explore">
+  <nav class="xtabs" role="tablist" aria-label="Explore">
+    <button role="tab" class="on" data-x="domaines">Domaines</button>
+    <button role="tab" data-x="gc">Who owns the grands crus</button>
+    <button role="tab" data-x="cmp">Compare producers</button>
+    <button role="tab" data-x="list">All climats <span id="listCount"></span></button>
+  </nav>
+  <div class="xpane on" data-x="domaines">
+    <div class="xhead"><div class="feedtabs" id="dtabs"><button class="ftog on" data-t="vosne">Vosne · Nuits</button><button class="ftog" data-t="north">Gevrey · Morey · Chambolle</button><button class="ftog" data-t="beaune">Côte de Beaune</button></div>
+      <p class="ph">Hectares held, grands crus and monopoles · click a domaine to map everything it owns, leases or buys</p></div>
+    <div class="dgrid" id="domains"></div>
   </div>
-  <div class="panel">
-    <h2>Who owns the grands crus</h2>
-    <p class="ph">Each bar is one grand cru; segments are owners' published shares · click a segment or a name</p>
+  <div class="xpane" data-x="gc">
+    <p class="ph">One bar per grand cru, split by the owners' published shares · click a segment or a name</p>
     <div id="gcown"></div>
   </div>
-</div>
-<datalist id="allProducers"></datalist>
-
-<div class="lower">
-  <div class="panel">
-    <h2>Climats <span class="meta" id="listCount"></span></h2>
-    <p class="ph">Follows the filters · click a row to find it on the map</p>
+  <div class="xpane" data-x="cmp">
+    <div class="cmpbar"><input id="cmpA" list="producerList" aria-label="First producer"><span>vs</span><input id="cmpB" list="producerList" aria-label="Second producer"></div>
+    <div id="cmp"></div>
+  </div>
+  <div class="xpane" data-x="list">
+    <p class="ph">Follows the filters above · click a row to find it on the map</p>
     <div class="tablewrap">
       <table class="list" id="list">
         <thead><tr>
@@ -378,21 +379,14 @@ Drag to pan, scroll or pinch to zoom.</p>
       </table>
     </div>
   </div>
-  <div class="panel">
-    <h2>Biggest holders</h2>
-    <p class="ph">Listed hectares on this map (grands & premiers crus) · click to see their holdings</p>
-    <div id="holders"></div>
-  </div>
-</div>
+</section>
 
 <footer class="fine">
-  <b>About the data.</b> The map is schematic: each commune is drawn on its own grid with the slope running west (top of the hill) to
-  east (the D974), so neighbours, slope position and rough size are right but the shapes are not a cadastral survey.
-  Areas are the official climat sizes (≈). Holdings are compiled from published ownership lists, domaine sources and trade press
-  (each domaine panel lists its sources) and rounded. "Leased" marks vines farmed under a fermage or métayage; "buys grapes" marks
-  négociant sourcing, which is never counted as ownership —
-  parcels are bought, swapped and leased all the time, so treat them as indicative; owners shown without a figure are known holders
-  whose exact area isn't listed.
+  <b>About the data.</b> Areas are the official climat sizes (≈). Holdings come from published ownership lists, domaine sources and
+  trade press (each domaine lists its own) and are rounded; parcels are bought, swapped and leased all the time, so treat them as
+  indicative. "Leased" means farmed under a fermage or métayage; "buys grapes" is négociant sourcing and never counts as ownership;
+  a holder without a figure is a known owner whose area isn't published. Corton's red climats count as one appellation, and
+  Charlemagne isn't drawn on its own. Logged-in users can correct a holding from its vineyard.
 </footer>
 </div>
 <div id="tip"></div>
@@ -400,6 +394,6 @@ Drag to pan, scroll or pinch to zoom.</p>
 <script src="burgundy-data-beaune.js?v=7"></script>
 <script src="burgundy-detail.js?v=6"></script>
 <script src="burgundy-geo.js?v=1"></script>
-<script src="burgundy.js?v=8"></script>
+<script src="burgundy.js?v=9"></script>
 </body>
 </html>
