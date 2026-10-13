@@ -214,7 +214,12 @@ function renderOverview(){
   const cellar = WINES.filter(w=>w.left>0);
   const bottlesLeft = cellar.reduce((s,w)=>s+w.left,0);
   const drunk = WINES.reduce((s,w)=>s+w.drunk,0);
-  const iconCount = cellar.filter(w=>PRODUCER_NOTES[w.producer]?.[0]==="legend").reduce((s,w)=>s+w.left,0);
+  const iconWines = cellar.filter(w=>PRODUCER_NOTES[w.producer]?.[0]==="legend");
+  const iconCount = iconWines.reduce((s,w)=>s+w.left,0);
+  // name the icon producers actually in the cellar, most bottles first
+  const iconBy = {}; iconWines.forEach(w=>{ iconBy[w.producer]=(iconBy[w.producer]||0)+w.left; });
+  const iconNames = Object.entries(iconBy).sort((a,b)=>b[1]-a[1]).map(([p])=>p);
+  const iconHint = iconNames.length ? esc(iconNames.slice(0,3).join(", "))+(iconNames.length>3?"…":"") : "none in the cellar yet";
 
   const litres = cellar.reduce((s,w)=>s+formatOf(w).l*w.left,0);
   const anyBig = cellar.some(w=>!isStdBottle(w));
@@ -244,7 +249,7 @@ function renderOverview(){
   }else{
     kpis.push(["Cellar value", "🔒 hidden", "press Show prices above", "locked"]);
   }
-  kpis.push(["Icon-producer bottles", fmt(iconCount), "Roumier, Rouget, Egon Müller…", ""]);
+  kpis.push(["Icon-producer bottles", fmt(iconCount), iconHint, ""]);
   kpis.push(["Enjoyed so far", fmt(drunk), "bottles drunk", ""]);
   $("kpis").innerHTML = kpis.map(([l,v,h,c])=>
     `<div class="kpi ${c}"><div class="lbl">${l}</div><div class="val">${v}</div><div class="hint">${h}</div></div>`).join("");
@@ -994,6 +999,12 @@ $("addBtn").addEventListener("click", ()=>{
   $("addModal").classList.add("open"); $("aProducer").focus();
 });
 $("addCancel").addEventListener("click", ()=>$("addModal").classList.remove("open"));
+// Escape closes the photo lightbox or the topmost open dialog, like their Cancel / backdrop clicks.
+document.addEventListener("keydown", e=>{
+  if(e.key!=="Escape") return;
+  const lb = document.querySelector(".jlightbox"); if(lb){ lb.remove(); return; }
+  const open = [...document.querySelectorAll(".modal.open")]; if(open.length) open[open.length-1].classList.remove("open");
+});
 $("addModal").addEventListener("click", e=>{ if(e.target===$("addModal")) $("addModal").classList.remove("open"); });
 $("addForm").addEventListener("submit", addWine);
 

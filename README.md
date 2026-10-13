@@ -287,6 +287,16 @@ acquired/drunk dates, drink window and bottle format — all inline in the wine'
 detail. Anything else (fixing a typo in a name) you do directly in the Google
 Sheet, and the site picks it up on the next refresh.
 
+## Smoke test
+
+`tools/smoke-test.js` drives the whole site in a headless browser against a fake
+Apps Script backend, so no real data is touched. It covers the front page,
+login, every cellar tab and dialog, the atlas (every colour mode, filter,
+vineyard and producer panel, a correction) and logout, on desktop, phone and
+dark mode. It reports page errors, failed requests and sideways scrolling.
+Serve the repo with `npx http-server -p 8765 -c-1 .`, then run
+`node tools/smoke-test.js` (needs Playwright).
+
 ## Changing the front-end
 
 Merging to `main` publishes via GitHub Pages within a minute or two. But Pages

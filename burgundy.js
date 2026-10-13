@@ -685,6 +685,7 @@ function renderSide(){
   const cl = $("sideClose"); if(cl) cl.onclick = () => { st.sel=null; st.vsel=null; renderSide(); paint(); syncHash(); syncCommunes(); };
   const cp = $("clearProd"); if(cp) cp.onclick = () => setProducer(null);
   if(st.sel) wireEdit(CL[st.sel]);
+  renderPeek();
 }
 function setProducer(key, showPanel){
   st.prod = key;
@@ -987,11 +988,17 @@ function syncCommunes(){
 }
 
 /* ---------- hash (shareable state) ---------- */
+let lastHash = location.hash;
 function syncHash(){
   const h = st.sel ? "c="+st.sel : st.vsel ? "v="+st.vsel : "";
   const p = st.prod ? (h?"&":"")+"p="+st.prod : "";
   const col = st.color!=="class" && st.color!=="producer" ? ((h||p)?"&":"")+"color="+st.color : "";
-  history.replaceState(null, "", location.pathname + location.search + ((h||p||col) ? "#"+h+p+col : ""));
+  const next = (h||p||col) ? "#"+h+p+col : "";
+  if(next===lastHash || ("#"+location.hash.slice(1))===next) return;
+  // a new vineyard, commune or producer is a step the Back button should undo; a colour change isn't
+  const step = next.replace(/&?color=[^&]*/,"") !== lastHash.replace(/&?color=[^&]*/,"");
+  history[step ? "pushState" : "replaceState"](null, "", location.pathname + location.search + next);
+  lastHash = next;
 }
 function readHash(){
   const q = new URLSearchParams(location.hash.slice(1));
@@ -1073,6 +1080,34 @@ async function loadCellar(){
 }
 
 /* ---------- boot ---------- */
+function applyHash(){ // Back/Forward, or a hand-edited URL
+  if(location.hash===lastHash) return;
+  lastHash = location.hash;
+  st.sel = null; st.vsel = null; st.prod = null; $("fProducer").value = "";
+  st.color = "class"; $("fColor").value = "class"; // the URL says which colour, if any
+  const fly = readHash();
+  renderSide(); paint(); syncCommunes();
+  if(fly) fly(); else if(st.prod){ const hs = PROD[st.prod].hold.map(h=>h.c.g).flat(); if(hs.length){ const xs=hs.map(p=>p[0]), ys=hs.map(p=>p[1]); flyTo(fitBox(...boxOfGrid(Math.min(...xs)-1,Math.min(...ys)-1,Math.max(...xs)+1,Math.max(...ys)+1),.04)); } }
+}
+addEventListener("popstate", applyHash);
+addEventListener("hashchange", applyHash);
+// keyboard: Escape clears the selection, + / − zoom (not while typing)
+document.addEventListener("keydown", e => {
+  if(e.target.closest && e.target.closest("input,select,textarea")) return;
+  if(e.key==="Escape" && (st.sel||st.vsel||st.prod)){ st.sel=null; st.vsel=null; if(st.prod) setProducer(null); else { renderSide(); paint(); syncHash(); syncCommunes(); } }
+  else if(e.key==="+"||e.key==="=") $("zIn").click();
+  else if(e.key==="-"||e.key==="_") $("zOut").click();
+});
+// phones: the details panel sits below the map, so a selection gets a small bar on the map pointing to it
+function renderPeek(){
+  const pk = $("peek"); if(!pk) return;
+  let html = "";
+  if(st.sel){ const c = CL[st.sel]; html = `<b>${esc(c.n)}</b><span>${CLASS_NAME[c.c]} · ${fmtHa(c.ha)} ha${c.mono?" · monopole":c.p.length?` · ${c.p.length} owners`:""}</span>`; }
+  else if(st.prod){ const r = PROD[st.prod]; html = `<b>${esc(r.name)}</b><span>${r.n} climats · ${r.gc} grands crus</span>`; }
+  else if(st.vsel){ const v = VIL[st.vsel]; html = `<b>${esc(v.n)}</b><span>${esc(v.aoc.split(" · ").slice(1).join(" · "))}</span>`; }
+  pk.hidden = !html;
+  if(html){ pk.innerHTML = `<div>${html}</div><button type="button" id="peekGo">Details ↓</button>`; $("peekGo").onclick = () => side.scrollIntoView({behavior:"smooth", block:"start"}); }
+}
 const after = readHash();
 build();
 renderSide(); syncCommunes();
