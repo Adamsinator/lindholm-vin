@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>AllWine — Burgundy atlas</title>
-<meta name="description" content="Côte de Nuits climat map — grands crus, premiers crus, monopoles and who owns what.">
+<meta name="description" content="Côte d'Or climat map — grands crus, premiers crus, monopoles and who owns what.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍷</text></svg>">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="manifest.json">
@@ -158,6 +158,33 @@ input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible,[t
 .dcard .dmono{font-size:11.5px;color:var(--accent);font-weight:600}
 .dcard .dl{font-size:12px;color:var(--muted);line-height:1.5;margin-top:3px}
 .dcard .dl i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px}
+.feedtabs{display:flex;gap:6px;margin:6px 0 10px}
+.ftog{border:1px solid var(--line);background:var(--card);color:var(--muted);border-radius:20px;padding:5px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
+.ftog.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.communes .cotebtn{background:none;border:1px solid var(--ink);color:var(--ink)}
+.communes .cotebtn:not(:first-child){margin-left:10px}
+.ktag.ed{background:var(--accent);color:var(--accent-ink);cursor:help}
+.edbtn{border:0;background:none;color:var(--muted);cursor:pointer;font-size:12px;padding:0 2px}
+.edbtn:hover{color:var(--accent)}
+.edform{background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:12px}
+.edform h3{margin-top:0}
+.edform label{display:flex;flex-direction:column;gap:3px;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:6px 0;flex:1}
+.edform input,.edform select{background:var(--card);border:1px solid var(--line);color:var(--ink);border-radius:7px;padding:7px 9px;font-size:14px;font-family:inherit;text-transform:none;letter-spacing:0}
+.edrow{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}
+.cmpbar{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+.cmpbar input{flex:1 1 140px;background:var(--card);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:8px 10px;font-size:14px;font-family:inherit;min-width:0}
+.cmpbar span{color:var(--muted);font-size:13px}
+.cmpt th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:4px 0;text-align:right}
+.cmpt tr.tot td{background:var(--card2);font-size:12.5px}
+.gclegend{display:flex;flex-wrap:wrap;gap:4px 12px;margin-bottom:10px;font-size:12px}
+.gclegend .sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.gcrow{display:grid;grid-template-columns:minmax(0,170px) minmax(0,1fr) 56px;gap:8px;align-items:center;padding:2px 0;font-size:12.5px}
+.gcn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gcbar{display:flex;height:13px;background:var(--none);border-radius:3px;overflow:hidden;gap:1px}
+.gcbar span{display:block;min-width:1px;cursor:pointer}
+.gcbar span:hover{opacity:.75}
+.gch{color:var(--muted);text-align:right;font-variant-numeric:tabular-nums;font-size:11.5px}
+@media(max-width:600px){.gcrow{grid-template-columns:minmax(0,110px) minmax(0,1fr) 48px}}
 .dcard .dl i.cGC{background:var(--gc)} .dcard .dl i.cP{background:var(--pc)} .dcard .dl i.cV{background:var(--vc)}
 
 #tip{position:fixed;pointer-events:none;background:var(--ink);color:var(--bg);padding:6px 9px;border-radius:6px;font-size:12px;
@@ -236,12 +263,12 @@ footer.fine{margin-top:22px;font-size:12px;color:var(--muted);max-width:90ch;lin
 <header class="top">
   <h1><a href="./">All<em>Wine</em></a></h1>
   <div style="display:flex;gap:14px;align-items:baseline">
-    <span class="sub">Burgundy atlas · Côte de Nuits</span>
+    <span class="sub">Burgundy atlas · Côte d'Or</span>
     <a class="back" href="./">← Cellar</a>
   </div>
 </header>
 
-<p class="lead">Every <b>grand cru</b>, <b>premier cru</b> and notable village climat from Marsannay to Corgoloin, with who owns
+<p class="lead">Every <b>grand cru</b>, <b>premier cru</b> and notable village climat of the Côte d'Or, from Marsannay to Maranges, with who owns
 what. Click a vineyard for its holders and their share, filter by classification or producer, and recolour the map by owner.
 Drag to pan, scroll or pinch to zoom.</p>
 
@@ -285,10 +312,26 @@ Drag to pan, scroll or pinch to zoom.</p>
 </div>
 
 <section class="panel" style="margin-top:18px">
-  <h2>The Vosne-Romanée domaines</h2>
-  <p class="ph">Who owns the hill · hectares in Vosne & Flagey, grands crus held, monopoles · click a domaine to map everything it owns, leases or buys</p>
+  <h2>The domaines</h2>
+  <div class="feedtabs" id="dtabs"><button class="ftog on" data-t="vosne">Vosne-Romanée</button><button class="ftog" data-t="beaune">Côte de Beaune</button></div>
+  <p class="ph">Who owns the hill · hectares, grands crus held, monopoles · click a domaine to map everything it owns, leases or buys</p>
   <div class="dgrid" id="domains"></div>
 </section>
+
+<div class="lower">
+  <div class="panel">
+    <h2>Compare two producers</h2>
+    <p class="ph">Side by side, climat by climat · type a name</p>
+    <div class="cmpbar"><input id="cmpA" list="producerList" aria-label="First producer"><span>vs</span><input id="cmpB" list="producerList" aria-label="Second producer"></div>
+    <div class="tablewrap" id="cmp"></div>
+  </div>
+  <div class="panel">
+    <h2>Who owns the grands crus</h2>
+    <p class="ph">Each bar is one grand cru; segments are owners' published shares · click a segment or a name</p>
+    <div id="gcown"></div>
+  </div>
+</div>
+<datalist id="allProducers"></datalist>
 
 <div class="lower">
   <div class="panel">
@@ -322,7 +365,9 @@ Drag to pan, scroll or pinch to zoom.</p>
 </footer>
 </div>
 <div id="tip"></div>
-<script src="burgundy-data.js?v=3"></script>
-<script src="burgundy.js?v=3"></script>
+<script src="burgundy-data.js?v=4"></script>
+<script src="burgundy-data-beaune.js?v=4"></script>
+<script src="burgundy-detail.js?v=4"></script>
+<script src="burgundy.js?v=4"></script>
 </body>
 </html>
