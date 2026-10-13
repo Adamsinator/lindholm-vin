@@ -175,7 +175,7 @@ input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible,[t
 .dcard .dmono{font-size:11.5px;color:var(--accent);font-weight:600}
 .dcard .dl{font-size:12px;color:var(--muted);line-height:1.5;margin-top:3px}
 .dcard .dl i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px}
-.feedtabs{display:flex;gap:6px;margin:6px 0 10px}
+.feedtabs{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px}
 .ftog{border:1px solid var(--line);background:var(--card);color:var(--muted);border-radius:20px;padding:5px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
 .ftog.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .communes .cotebtn{background:none;border:1px solid var(--ink);color:var(--ink)}
@@ -331,7 +331,7 @@ Drag to pan, scroll or pinch to zoom.</p>
 
 <section class="panel" style="margin-top:18px">
   <h2>The domaines</h2>
-  <div class="feedtabs" id="dtabs"><button class="ftog on" data-t="vosne">Vosne-Romanée</button><button class="ftog" data-t="beaune">Côte de Beaune</button></div>
+  <div class="feedtabs" id="dtabs"><button class="ftog on" data-t="vosne">Vosne-Romanée</button><button class="ftog" data-t="north">Gevrey · Morey · Chambolle</button><button class="ftog" data-t="beaune">Côte de Beaune</button></div>
   <p class="ph">Who owns the hill · hectares, grands crus held, monopoles · click a domaine to map everything it owns, leases or buys</p>
   <div class="dgrid" id="domains"></div>
 </section>
@@ -383,9 +383,9 @@ Drag to pan, scroll or pinch to zoom.</p>
 </footer>
 </div>
 <div id="tip"></div>
-<script src="burgundy-data.js?v=4"></script>
-<script src="burgundy-data-beaune.js?v=4"></script>
-<script src="burgundy-detail.js?v=4"></script>
-<script src="burgundy.js?v=5"></script>
+<script src="burgundy-data.js?v=6"></script>
+<script src="burgundy-data-beaune.js?v=6"></script>
+<script src="burgundy-detail.js?v=6"></script>
+<script src="burgundy.js?v=6"></script>
 </body>
 </html>

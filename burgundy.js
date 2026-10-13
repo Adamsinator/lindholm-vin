@@ -763,11 +763,15 @@ function renderHolders(){
 /* ---------- the Vosne domaines ---------- */
 function renderDomains(){
   const box = $("domains"); if(!box) return;
-  const beaune = st.dtab==="beaune";
-  const AREA = beaune ? new Set(V.filter(v=>v.cote==="beaune").map(v=>v.id)) : new Set(["vosne","flagey"]);
-  const AREA_N = beaune ? "Côte de Beaune" : "Vosne/Flagey";
-  document.querySelectorAll("#dtabs button").forEach(b => b.classList.toggle("on", b.dataset.t===(st.dtab||"vosne")));
-  const list = Object.values(PROD).filter(r => r.prof && (beaune ? r.prof.cote==="beaune" : r.prof.focus && r.prof.cote!=="beaune")).map(r => {
+  const tab = st.dtab || "vosne";
+  const TABS = {
+    vosne:{area:["vosne","flagey"], n:"Vosne/Flagey", ok:pf => pf.focus && !pf.cote},
+    north:{area:["marsannay","fixin","brochon","gevrey","morey","chambolle","vougeot"], n:"Gevrey–Vougeot", ok:pf => pf.cote==="north"},
+    beaune:{area:V.filter(v=>v.cote==="beaune").map(v=>v.id), n:"Côte de Beaune", ok:pf => pf.cote==="beaune"},
+  }, T = TABS[tab] || TABS.vosne;
+  const AREA = new Set(T.area), AREA_N = T.n;
+  document.querySelectorAll("#dtabs button").forEach(b => b.classList.toggle("on", b.dataset.t===tab));
+  const list = Object.values(PROD).filter(r => r.prof && T.ok(r.prof)).map(r => {
     const vh = r.hold.filter(h => AREA.has(h.c.geo||h.c.v) || AREA.has(h.c.v));
     const gcs = r.hold.filter(h => h.c.c==="GC" && h.kind!=="s");
     const vha = vh.filter(h=>h.kind!=="s").reduce((s,h)=>s+(h.ha||0),0);
@@ -779,7 +783,7 @@ function renderDomains(){
     const monos = r.hold.filter(h=>h.c.mono===r.key && !h.c.inner).map(h=>h.c.n);
     return `<button class="dcard${st.prod===r.key?" on":""}" data-p="${r.key}">
       <span class="dn">${esc(r.name)}</span>
-      <span class="dm">${esc(r.prof.kind)} · ${esc(r.prof.size||"")}</span>
+      <span class="dm">${[r.prof.kind, r.prof.size].filter(Boolean).map(esc).join(" · ")}</span>
       ${own.length ? `<span class="dk"><b>${unknown?"≥ ":""}${fmtHa(vha)}</b> ha in ${own.length} ${AREA_N} climat${own.length===1?"":"s"} · <b>${gcs.length}</b> grand cru${gcs.length===1?"":"s"}</span>` : ""}
       ${src.length ? `<span class="dk">Buys grapes from <b>${src.length}</b> climats: ${src.map(h=>esc(h.c.n)).join(", ")}</span>` : ""}
       ${monos.length?`<span class="dmono">Monopole: ${monos.map(esc).join(", ")}</span>`:""}
