@@ -99,6 +99,23 @@ input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible,[t
 .legend .rl{display:flex;justify-content:space-between;color:var(--muted);font-size:11px}
 @media(max-width:600px){.legend{font-size:11px;padding:6px 9px;max-width:170px}.legend .row{margin:1px 0}.compass{display:none}}
 .legend .mono-sw{background:var(--gc);outline:1.5px dashed var(--gc-ink);outline-offset:-4px}
+.peek{display:none}
+@media(max-width:920px){
+  .peek:not([hidden]){display:flex;position:absolute;left:10px;right:56px;top:10px;align-items:center;gap:10px;justify-content:space-between;
+    background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 10px;box-shadow:var(--shadow);font-size:13px}
+  .peek div{display:flex;flex-direction:column;min-width:0}
+  .peek b{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .peek span{color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .peek button{flex:none;border:0;background:var(--accent);color:var(--accent-ink);border-radius:8px;padding:7px 10px;font:inherit;font-weight:650;cursor:pointer}
+  .mapcard:has(.peek:not([hidden])) .legend{display:none}
+}
+@media(max-width:600px){
+  .lead{display:none}
+  .filters{gap:6px}
+  .filters input[type=search],#fProducer{flex:1 1 40%;min-width:0;font-size:16px}  /* 16px: no zoom-on-focus in iOS */
+  #fColor{flex:1 1 60%;font-size:15px}
+  .chip{padding:4px 10px;font-size:12.5px}
+}
 .compass{position:absolute;left:12px;top:10px;font-size:11px;color:var(--muted);line-height:1.25;pointer-events:none}
 .compass b{display:block;font-size:13px;color:var(--ink)}
 
@@ -307,6 +324,7 @@ Drag to pan, scroll or pinch to zoom.</p>
       <button id="zAll" title="Whole Côte de Nuits" aria-label="Show the whole Côte de Nuits">⤢</button>
     </div>
     <div class="legend" id="legend"></div>
+    <div class="peek" id="peek" hidden></div>
   </div>
   <aside class="side" id="side" aria-live="polite"></aside>
 </div>
@@ -368,6 +386,6 @@ Drag to pan, scroll or pinch to zoom.</p>
 <script src="burgundy-data.js?v=4"></script>
 <script src="burgundy-data-beaune.js?v=4"></script>
 <script src="burgundy-detail.js?v=4"></script>
-<script src="burgundy.js?v=4"></script>
+<script src="burgundy.js?v=5"></script>
 </body>
 </html>
