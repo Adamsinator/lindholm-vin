@@ -230,14 +230,47 @@ contour lines, the Route des Grands Crus, village streets and houses, and
 landmarks such as the Croix de Romanée-Conti and the Château du Clos de
 Vougeot.
 
-The data lives in `burgundy-data.js`. **The map is schematic:** each commune is
+It covers the whole Côte d'Or: the Côte de Nuits and, from Corton southwards,
+the Côte de Beaune down to Maranges. The commune bar has a button for each Côte.
+Below the map are a **domaines** panel (tabs for Vosne-Romanée and the Côte de
+Beaune), **Compare two producers** (climat by climat), and **Who owns the
+grands crus** (one bar per grand cru, split by owner). Grands crus and key
+premiers crus also show their altitude band, which way they face, soil, and the
+lieux-dits within them.
+
+### Correcting a holding
+
+Holdings drift: parcels get bought, swapped and leased. Anyone logged in to the
+cellar in the same browser gets a **✎ Correct the holdings** button on each
+vineyard. You can:
+
+- set a producer's hectares, kind (owned, leased, buys grapes) and first
+  vintage
+- add a producer who isn't listed yet
+- remove a producer
+
+Each correction needs a source note. Corrections are stored in an
+**AtlasEdits** tab in the master spreadsheet, shared with everyone who opens the
+atlas, and logged with the editor's username, which is never shown publicly.
+The newest correction for a vineyard and producer wins. Deleting the row in the
+sheet brings back the figure shipped in the code.
+
+To restrict who may edit, set `ATLAS_EDITORS` at the top of `Code.gs` to a
+comma-separated list of usernames; blank lets any signed-in user edit.
+
+**This needs the updated `Code.gs` redeployed** (API version 25), the same way
+as any other Apps Script change. Until then the button explains that a
+redeploy is needed.
+
+The data lives in `burgundy-data.js` (Côte de Nuits), `burgundy-data-beaune.js`
+(Côte de Beaune) and `burgundy-detail.js` (altitude, aspect, soil, lieux-dits). **The map is schematic:** each commune is
 drawn on its own grid, so neighbours, slope position and rough size are right,
 but it is not a survey. Vosne's smallest grands crus are drawn larger than life
 so they stay clickable. Holdings are approximate figures from published
 ownership lists, domaine sites and trade press. To correct one, edit the `p:` list of
 that climat; a third element `"f"` marks a lease, `"s"` bought grapes. Domaine
 profiles and their sources are in `PROFILES`. When you change the JS, bump the
-`?v=` on the two `<script>` tags in `burgundy.html`.
+`?v=` on the `<script>` tags in `burgundy.html`.
 
 ## Changing a wine's details
 

@@ -16,9 +16,12 @@ const SHEET_NAME  = 'Ark1';             // tab name that holds the wine list
 // account. Each account gets its own private spreadsheet. Set to '' to turn
 // signups off. Leave ACCESS_CODE working for your own existing setup.
 const SIGNUP_CODE = '';                 // e.g. 'POUR-2026'; '' disables new signups
+// Burgundy atlas corrections: who may edit vineyard holdings. '' = any signed-in user;
+// otherwise a comma-separated list of usernames, e.g. 'adam,anna'.
+const ATLAS_EDITORS = '';
 // ─────────────────────────────────────────────────────────────────────────────
 
-const API_VERSION = 24; // returned in every response; used to verify deployments
+const API_VERSION = 25; // returned in every response; used to verify deployments
 
 // Per-request spreadsheet for the authenticated user. Set in handle(); every
 // sheet helper reads it via ss(). Falls back to the bound (owner's) spreadsheet.
@@ -96,6 +99,8 @@ function handle(p) {
   // Account actions need no session.
   if (p.action === 'signup') { try { return doSignup(p); } catch (err) { return json({ ok: false, error: String(err) }); } }
   if (p.action === 'login')  { try { return doLogin(p);  } catch (err) { return json({ ok: false, error: String(err) }); } }
+  // The Burgundy atlas is public reference data, so its corrections can be read without a session.
+  if (p.action === 'atlas')  { try { return json({ ok: true, edits: readAtlas(false) }); } catch (err) { return json({ ok: false, error: String(err) }); } }
 
   // Authenticate: a multi-user token scopes to that user's own spreadsheet;
   // otherwise fall back to the legacy single access code + the bound spreadsheet.
@@ -196,6 +201,9 @@ function handle(p) {
       case 'wtocellar':
         wishToCellar(Number(p.row));
         return json({ ok: true, wines: readAll(), items: readWishlist() });
+      case 'atlasedit':
+        addAtlasEdit(p.edit || {});
+        return json({ ok: true, edits: readAtlas(true) });
       default:
         return json({ ok: false, error: 'bad-action' });
     }
@@ -931,6 +939,43 @@ function wishToCellar(rowNum) {
   addWine({ producer: it.producer, name: it.wine, region: it.region,
             vintage: it.vintage, price: it.price, qty: 1 });
   deleteWishlist(rowNum);
+}
+
+// ── Burgundy atlas corrections (shared, in the master book) ──────────────────
+// An append-only log: the newest row for a (climat, producer) pair wins, and
+// "remove" deletes that holding from the map. The site applies them over the
+// holdings shipped in burgundy-data.js, so nothing is lost if a row is wrong —
+// delete the row and the original figure comes back.
+const ATLAS_SHEET = 'AtlasEdits';
+const ATLAS_COLS = ['Time', 'User', 'Climat', 'Producer', 'Ha', 'Kind', 'Since', 'Action', 'Note'];
+function atlasSheet() {
+  const book = SpreadsheetApp.getActiveSpreadsheet(); // shared — always the master book
+  let sh = book.getSheetByName(ATLAS_SHEET);
+  if (!sh) { sh = book.insertSheet(ATLAS_SHEET); sh.appendRow(ATLAS_COLS); }
+  return sh;
+}
+function readAtlas(withUser) { // usernames only go to signed-in callers
+  const sh = atlasSheet(), last = sh.getLastRow();
+  if (last < 2) return [];
+  return sh.getRange(2, 1, last - 1, ATLAS_COLS.length).getValues().map(r => ({
+    time: feedTime(r[0]), user: withUser ? String(r[1] || '') : '', climat: String(r[2] || ''), producer: String(r[3] || ''),
+    ha: r[4] === '' ? null : Number(r[4]), kind: String(r[5] || ''), since: r[6] === '' ? null : Number(r[6]),
+    action: String(r[7] || 'set'), note: String(r[8] || ''),
+  })).filter(e => e.climat && e.producer);
+}
+function addAtlasEdit(e) {
+  const who = CTX_USER || 'cellar';
+  const allowed = String(ATLAS_EDITORS || '').split(',').map(normUser).filter(Boolean);
+  if (allowed.length && allowed.indexOf(normUser(who)) === -1) throw new Error('not-an-atlas-editor');
+  const climat = String(e.climat || '').trim(), producer = String(e.producer || '').trim().slice(0, 80);
+  if (!/^[a-z0-9_]{2,40}$/.test(climat) || !producer) throw new Error('bad-edit');
+  const action = e.action === 'remove' ? 'remove' : 'set';
+  const ha = e.ha === '' || e.ha == null ? '' : Number(e.ha);
+  if (ha !== '' && !(ha >= 0 && ha < 200)) throw new Error('bad-ha');
+  const kind = ['', 'f', 's'].indexOf(String(e.kind || '')) >= 0 ? String(e.kind || '') : '';
+  const since = e.since === '' || e.since == null ? '' : Math.round(Number(e.since));
+  if (since !== '' && !(since > 1000 && since < 2200)) throw new Error('bad-since');
+  atlasSheet().appendRow([new Date(), who, climat, producer, ha, kind, since, action, String(e.note || '').slice(0, 400)]);
 }
 
 function json(obj) {

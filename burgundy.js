@@ -14,7 +14,9 @@ const COL_NAME = {R:"Red", W:"White", RW:"Red & white"};
 const S = 24;                          // px per grid unit
 const X0 = -5, X1 = 37;                // forest edge … plain east of the D974
 let total = 0; const OFF = {}, VIL = {};
-V.forEach((v,i) => { OFF[v.id] = total; v.y0 = total; total += v.h; v.idx = i; VIL[v.id] = v; });
+const COTES = window.BURG.cotes || [{id:"nuits", n:"Côte de Nuits", first:V[0].id}];
+{ let cur = COTES[0].id; V.forEach((v,i) => { const k = COTES.find(x => x.first===v.id); if(k) cur = k.id; v.cote = cur;
+  OFF[v.id] = total; v.y0 = total; total += v.h; v.idx = i; VIL[v.id] = v; }); }
 const Y0 = -1, Y1 = total + 1;
 const TILT = 0.035, WIG = 0.45;
 // The Côte drifts east as it runs north and bends gently; one smooth warp keeps shared edges shared.
@@ -48,6 +50,17 @@ function areaCentroid(pts){
   for(let i=0;i<pts.length;i++){ const [x1,y1]=pts[i],[x2,y2]=pts[(i+1)%pts.length], f=x1*y2-x2*y1; a+=f; cx+=(x1+x2)*f; cy+=(y1+y2)*f; }
   a/=2; return a ? [cx/(6*a), cy/(6*a)] : pts[0];
 }
+// A climat with an enclave (Clos des Ruchottes, Clos de la Mouchère…) labels itself in the widest free band
+// beside the enclave, so the two labels never sit on top of each other.
+C.forEach(c => {
+  const enc = C.filter(x => x.in===c.id); if(!enc.length || c.lab) return;
+  const bb = pts => { const xs=pts.map(p=>p[0]), ys=pts.map(p=>p[1]); return [Math.min(...xs),Math.min(...ys),Math.max(...xs),Math.max(...ys)]; };
+  const [x0,y0,x1,y1] = bb(c.s), [ex0,ey0,ex1,ey1] = bb(enc.flatMap(e=>e.s));
+  const bands = [[x1-x0, ey0-y0, (x0+x1)/2, (y0+ey0)/2], [x1-x0, y1-ey1, (x0+x1)/2, (ey1+y1)/2],
+                 [ex0-x0, y1-y0, (x0+ex0)/2, (y0+y1)/2], [x1-ex1, y1-y0, (ex1+x1)/2, (y0+y1)/2]];
+  const best = bands.sort((a,b) => Math.min(b[0],b[1]*4)*b[1] - Math.min(a[0],a[1]*4)*a[1])[0]; // prefer wide-and-tall-enough
+  c.lab = [best[2], best[3]]; c.lbox = [best[0], best[1]];
+});
 // For each climat: global polygon, label anchor, and the screen-space box the label may use.
 C.forEach(c => {
   c.oy = OFF[c.geo || c.v];
@@ -59,21 +72,30 @@ C.forEach(c => {
   const [cx,cy] = c.lab || (c.s.length===4 ? [(Math.min(...xs)+Math.max(...xs))/2,(Math.min(...ys)+Math.max(...ys))/2] : areaCentroid(c.s));
   const [bw,bh] = c.lbox || [(Math.max(...xs)-Math.min(...xs)) * (c.s.length===4?1:.7), (Math.max(...ys)-Math.min(...ys)) * (c.s.length===4?1:.6)];
   c.cx = px(cx, cy + c.oy); c.cy = py(cy + c.oy); c.bw = bw*S; c.bh = bh*S;
-  c.known = (c.p||[]).reduce((s,[,h,k]) => s + (k==="s" ? 0 : h||0), 0); // bought grapes aren't ownership
   c.inner = !!c.in;
-  c.search = norm([c.n, c.vil.n, ...(c.p||[]).map(([k])=>P[k])].join(" "));
+  c.p = c.p || []; c.p0 = c.p.map(x => [...x]); c.edited = {}; // p0 = as shipped; p = after corrections
 });
 const CL = Object.fromEntries(C.map(c => [c.id, c]));
 
-/* ---------- producers index ---------- */
-const PROD = {}; // key -> {key,name,hold:[{c,ha,kind}],ha,gc,n,prof}
-C.forEach(c => (c.p||[]).forEach(([k,h,kind]) => { // [key, ha, kind, first vintage]
-  if(c.inner && (CL[c.in].p||[]).some(([k2])=>k2===k)) return; // enclave already counted in its parent
-  const r = PROD[k] ??= {key:k, name:P[k], hold:[], ha:0, gc:0, n:0, prof:PF[k]||null};
-  r.hold.push({c, ha:h, kind:kind||"", since:(c.p.find(x=>x[0]===k)||[])[3]||null}); r.n++;
-  if(kind!=="s"){ r.ha += h||0; if(c.c==="GC") r.gc++; }
-}));
-const prodByName = Object.fromEntries(Object.values(PROD).map(r => [norm(r.name), r.key]));
+/* ---------- producers index (rebuilt whenever corrections are applied) ---------- */
+const PROD = {}; // key -> {key,name,hold:[{c,ha,kind,since}],ha,gc,n,prof}
+const prodByName = {};
+function indexHoldings(){
+  C.forEach(c => {
+    c.known = c.p.reduce((s,[,h,k]) => s + (k==="s" ? 0 : h||0), 0); // bought grapes aren't ownership
+    c.search = norm([c.n, c.vil.n, ...c.p.map(([k])=>P[k])].join(" "));
+  });
+  for(const k in PROD) delete PROD[k];
+  for(const k in prodByName) delete prodByName[k];
+  C.forEach(c => c.p.forEach(([k,h,kind,since]) => { // [key, ha, kind, first vintage]
+    if(c.inner && CL[c.in].p.some(([k2])=>k2===k)) return; // enclave already counted in its parent
+    const r = PROD[k] ??= {key:k, name:P[k], hold:[], ha:0, gc:0, n:0, prof:PF[k]||null};
+    r.hold.push({c, ha:h, kind:kind||"", since:since||null}); r.n++;
+    if(kind!=="s"){ r.ha += h||0; if(c.c==="GC") r.gc++; }
+  }));
+  Object.values(PROD).forEach(r => prodByName[norm(r.name)] = r.key);
+}
+indexHoldings();
 
 /* ---------- state ---------- */
 const st = {
@@ -180,7 +202,8 @@ function build(){
   el("path", {d:forestD, fill:"url(#trees)", "pointer-events":"none"}, gView);
   // combes cutting back into the hills
   [["gevrey",7.5,"Combe Lavaux"],["morey",-0.2,"Combe Grisard"],["chambolle",6.3,"Combe Ambin"],["chambolle",13.5,"Combe d'Orveau"],
-   ["vosne",11.6,"Combe de Concœur"],["nuits",10.7,"Vallée du Meuzin"]].forEach(([v,y,n]) => {
+   ["vosne",11.6,"Combe de Concœur"],["nuits",10.7,"Vallée du Meuzin"],["savigny",4.1,"Vallée du Rhoin"],["monthelie",4,"Vallée d'Auxey"],
+   ["staubin",2,"Vallée de Saint-Aubin"],["corton",5,"Pernand"]].filter(([v]) => OFF[v]!=null).forEach(([v,y,n]) => {
     const yy = OFF[v]+y;
     el("path", {class:"combe", d:polyLine([[1.2,yy],[-1.5,yy-.25],[-4.6,yy+.15]]), "stroke-width":S*.55}, gView);
     const t = el("text", {class:"flab", x:px(-4.4,yy-.55), y:py(yy-.55), "data-fs":9.5}, gView); t.textContent = n; rlabEls.push(t);
@@ -290,6 +313,9 @@ function drawRoads(g){
     [24,o("nuits")+15], [21,o("nuits")+21], T("premeaux"), T("cdnv")];
   el("path", {class:"rcase", d:polyLine(rgc), "data-w":4.2}, g);
   el("path", {class:"rfill", d:polyLine(rgc), "data-w":2.4}, g);
+  // Côte de Beaune: village to village along the foot of the slope
+  const cb = ["corton","chorey","beaune","pommard","volnay","meursault","puligny","chassagne","santenay","maranges"].filter(id=>VIL[id]).map(T);
+  if(cb.length){ const L = [T("cdnv"), ...cb]; el("path", {class:"rcase", d:polyLine(L), "data-w":4.2}, g); el("path", {class:"rfill", d:polyLine(L), "data-w":2.4}, g); }
   // each village's road down to the D974
   V.forEach(v => { if(!v.town || v.townOff) return; const [x,y] = townC(v);
     const d = polyLine([[x,y],[x+(30.3-x)*.5,y+.15],[30.3,y+.1]]);
@@ -332,6 +358,7 @@ function drawLandmarks(g, gl){
   el("path", {class:"chateau", d:toPath(ch)}, g);
   el("path", {class:"chateau", d:toPath([[15.6,vg+4.0],[17.2,vg+4.0],[17.2,vg+4.5],[15.6,vg+4.5]]), style:"fill:var(--mapbg)"}, g);
   lmLab(gl, px(16.4,vg+5.2), py(vg+5.35), "Château du Clos de Vougeot", "middle");
+  if(VIL.beaune){ const [hx,hy] = townC(VIL.beaune); lmLab(gl, px(hx,hy+1.6), py(hy+1.6), "Hospices de Beaune", "middle"); }
 }
 const lmEls = [];
 function lmLab(g, x, y, text, anchor="start"){ const t = el("text", {class:"lmlab", x, y, "text-anchor":anchor, "data-fs":9.5}, g); t.textContent = text; lmEls.push(t); }
@@ -367,7 +394,7 @@ function paint(){
   // keep the selection on top
   if(st.sel){ const e=CL[st.sel].el; e.parentNode.appendChild(e); }
   layoutLabels();
-  renderLegend(); renderList(); renderHolders(); renderDomains(); syncChips();
+  renderLegend(); renderList(); renderHolders(); renderDomains(); renderCompare(); renderGcOwners(); syncChips();
 }
 
 /* ---------- view: pan / zoom ---------- */
@@ -553,6 +580,7 @@ function selectVillage(id, fly){
 const side = $("side");
 function appellation(c){
   const vn = c.v==="flagey" || c.geo==="flagey" ? "Vosne-Romanée" : c.vil.id==="premeaux" ? "Nuits-Saint-Georges" : c.vil.id==="cdnv" ? "Côte de Nuits-Villages" : c.vil.n;
+  if(c.ap) return c.c==="1er" ? `${c.ap} 1er Cru « ${c.n} »` : `${c.ap} « ${c.n} »`;
   if(c.c==="GC") return c.inner ? `${CL[c.in].n} (grand cru)` : `${c.n} Grand Cru`;
   if(c.c==="1er") return `${vn} 1er Cru « ${c.n} »`;
   return `${vn} « ${c.n} »`;
@@ -563,8 +591,8 @@ function ownersHtml(c){
   const seg = rows.filter(r=>r[1] && r[2]!=="s").map(([k,h],i) => `<span title="${esc(P[k])} · ${fmtHa(h)} ha" style="width:${(100*h/c.ha).toFixed(2)}%;background:${mix(TOK.seq1, TOK.seq0, (i%6)/7)}"></span>`).join("");
   const known = c.known, rest = Math.max(0, c.ha - known);
   const body = rows.map(([k,h,kind,since]) => {
-    const share = h && kind!=="s" ? 100*h/c.ha : null;
-    return `<tr><td><button class="plink${st.prod===k?" on":""}" data-p="${k}">${esc(P[k])}</button>${kind||since?` <span class="ktag ${kind}">${[KIND[kind],since&&"since "+since].filter(Boolean).join(" · ")}</span>`:""}${share!=null?`<span class="pb" style="width:${Math.max(2,share).toFixed(1)}%"></span>`:""}</td>
+    const share = h && kind!=="s" ? 100*h/c.ha : null, ed = c.edited[k];
+    return `<tr><td><button class="plink${st.prod===k?" on":""}" data-p="${k}">${esc(P[k])}</button>${ed?` <span class="ktag ed" title="${esc([ed.note, ed.time, ed.user].filter(Boolean).join(" · "))}">✎ corrected</span>`:""}${EDITS.can?` <button class="edbtn" data-ed="${k}" title="Correct this holding">✎</button>`:""}${kind||since?` <span class="ktag ${kind}">${[KIND[kind],since&&"since "+since].filter(Boolean).join(" · ")}</span>`:""}${share!=null?`<span class="pb" style="width:${Math.max(2,share).toFixed(1)}%"></span>`:""}</td>
       <td class="n">${kind==="s"?"":h!=null?`<b>${fmtHa(h)}</b> ha`:"holder"}</td><td class="n">${share!=null?(share<1?share.toFixed(1):Math.round(share))+"%":""}</td></tr>`;
   }).join("");
   const cover = c.mono ? `<p class="note">Monopole — the whole climat belongs to ${esc(P[c.mono])}.</p>`
@@ -591,10 +619,13 @@ function renderSide(){
         <div class="fact"><div class="l">Owners</div><div class="v">${c.mono?"1":(c.p||[]).length||"—"}</div></div>
       </div>
       <p>${esc(c.d||"")}</p>
+      ${detailHtml(c)}
       ${c.inner?`<p class="note">An enclave inside <button class="plink" data-c="${c.in}">${esc(CL[c.in].n)}</button>.</p>`:""}
       ${C.some(x=>x.in===c.id)?`<p class="note">Contains ${C.filter(x=>x.in===c.id).map(x=>`<button class="plink" data-c="${x.id}">${esc(x.n)}</button>`).join(", ")}.</p>`:""}
       <h3>Holdings ${c.mono?"":"· click a name to map their vineyards"}</h3>
       ${ownersHtml(c)}
+      ${removedHtml(c)}
+      ${editHtml(c)}
       ${cellarHtml(CELLAR.by[c.id]?.wines)}`;
   } else if(st.prod){
     const r = PROD[st.prod], pf = r.prof || {};
@@ -610,7 +641,7 @@ function renderSide(){
       </div>
       ${pf.note?`<p>${esc(pf.note)}</p>`:""}
       <p class="note">Highlighted on the map by share of each climat · hatched = holder, size not published · dotted gold = buys grapes there.</p>
-      <h3>Côte de Nuits holdings</h3>
+      <h3>Holdings on the map</h3>
       <table class="own">${hold.map(({c,ha,kind,since}) => `<tr><td><span class="cls" style="background:${{GC:TOK.gc,"1er":TOK.pc,V:TOK.vc}[c.c]}"></span><button class="plink" data-c="${c.id}">${esc(c.n)}</button>${kind||since?` <span class="ktag ${kind}">${[KIND[kind],since&&"since "+since].filter(Boolean).join(" · ")}</span>`:""}
         <div class="note" style="margin:0">${esc(c.vil.n)}${c.mono?" · monopole":""}</div></td>
         <td class="n">${kind==="s"?"":ha!=null?`<b>${fmtHa(ha)}</b> ha`:"holder"}</td><td class="n">${ha!=null&&kind!=="s"?Math.round(100*ha/c.ha)+"%":""}</td></tr>`).join("")}</table>
@@ -632,18 +663,20 @@ function renderSide(){
       ${top.length?`<h3>Largest listed holders here</h3><table class="own">${top.map(([k,h])=>`<tr><td><button class="plink" data-p="${k}">${esc(P[k])}</button></td><td class="n"><b>${fmtHa(h)}</b> ha</td></tr>`).join("")}</table>`:""}
       ${vb2?`<h3>In your cellar</h3><p class="note">${vb2.left} bottle${vb2.left>1?"s":""} of ${esc(v.n)} without a named climat, plus whatever's matched to the vineyards above.</p>`:""}`;
   } else {
-    const gc = C.filter(c=>c.c==="GC"&&!c.inner).length, pc = C.filter(c=>c.c==="1er"&&!c.inner).length, mono = C.filter(c=>c.mono).length;
-    const picks = ["romaneeconti","latache","richebourg","chambertin","musigny","closvougeot","closstjacques","amoureuses","crosparantoux","stgeorges"];
-    side.innerHTML = `<div class="pills"><span class="pill">Côte de Nuits</span></div><h2>From Marsannay to Corgoloin</h2>
+    const gc = new Set(C.filter(c=>c.c==="GC"&&!c.inner).map(c=>c.grp||c.id)).size, pc = C.filter(c=>c.c==="1er"&&!c.inner).length, mono = C.filter(c=>c.mono).length;
+    const picks = ["romaneeconti","latache","richebourg","chambertin","musigny","closvougeot","closstjacques","amoureuses","crosparantoux",
+      "montrachet","chevalier","cortoncharlemagne","perrieres_meursault","closdesducs","epeneaux"].filter(id=>CL[id]);
+    side.innerHTML = `<div class="pills"><span class="pill">Côte d'Or</span></div><h2>From Marsannay to Maranges</h2>
       <div class="facts">
-        <div class="fact"><div class="l">Grands crus</div><div class="v">${gc}</div></div>
+        <div class="fact"><div class="l">Grand cru AOCs</div><div class="v">${gc}</div></div>
         <div class="fact"><div class="l">1ers on map</div><div class="v">${pc}</div></div>
         <div class="fact"><div class="l">Monopoles</div><div class="v">${mono}</div></div>
       </div>
-      <p>The Côte de Nuits is a single east-facing escarpment some 20 km long. The best sites sit mid-slope, around 250–300 m, on Bajocian
-      and Bathonian limestone and marl: grands crus in the middle band, premiers crus just above and below, village wine down toward the D974,
-      regional Bourgogne on the flat beyond.</p>
-      <p class="note">Monopoles are drawn with a dashed inner ring. Gold dots mark vineyards you hold bottles from.</p>
+      <p>The Côte d'Or is one east-facing escarpment some 50 km long: the Côte de Nuits in the north, almost all red, then from Corton the
+      Côte de Beaune, where Chardonnay takes over south of Volnay. The best sites sit mid-slope, around 250–300 m, on limestone and marl —
+      grands crus in the middle band, premiers crus just above and below, village wine toward the D974, regional Bourgogne on the flat.</p>
+      <p class="note">Corton's red climats count as one appellation; Charlemagne, the third white grand cru name on the hill, isn't drawn separately.
+      Monopoles have a dashed inner ring, walled clos a stone outline. Gold dots mark vineyards you hold bottles from.</p>
       <h3>Start with</h3><div class="qp">${picks.map(id=>`<button data-c="${id}">${esc(CL[id].n)}</button>`).join("")}</div>`;
   }
   side.querySelectorAll("[data-c]").forEach(b => b.onclick = ev => { ev.stopPropagation(); select(b.dataset.c, true); });
@@ -651,6 +684,7 @@ function renderSide(){
   side.querySelectorAll("[data-v]").forEach(b => b.onclick = () => selectVillage(b.dataset.v, true));
   const cl = $("sideClose"); if(cl) cl.onclick = () => { st.sel=null; st.vsel=null; renderSide(); paint(); syncHash(); syncCommunes(); };
   const cp = $("clearProd"); if(cp) cp.onclick = () => setProducer(null);
+  if(st.sel) wireEdit(CL[st.sel]);
 }
 function setProducer(key, showPanel){
   st.prod = key;
@@ -728,9 +762,12 @@ function renderHolders(){
 /* ---------- the Vosne domaines ---------- */
 function renderDomains(){
   const box = $("domains"); if(!box) return;
-  const VOSNE = new Set(["vosne","flagey"]);
-  const list = Object.values(PROD).filter(r => r.prof && r.prof.focus).map(r => {
-    const vh = r.hold.filter(h => VOSNE.has(h.c.geo||h.c.v) || VOSNE.has(h.c.v));
+  const beaune = st.dtab==="beaune";
+  const AREA = beaune ? new Set(V.filter(v=>v.cote==="beaune").map(v=>v.id)) : new Set(["vosne","flagey"]);
+  const AREA_N = beaune ? "Côte de Beaune" : "Vosne/Flagey";
+  document.querySelectorAll("#dtabs button").forEach(b => b.classList.toggle("on", b.dataset.t===(st.dtab||"vosne")));
+  const list = Object.values(PROD).filter(r => r.prof && (beaune ? r.prof.cote==="beaune" : r.prof.focus && r.prof.cote!=="beaune")).map(r => {
+    const vh = r.hold.filter(h => AREA.has(h.c.geo||h.c.v) || AREA.has(h.c.v));
     const gcs = r.hold.filter(h => h.c.c==="GC" && h.kind!=="s");
     const vha = vh.filter(h=>h.kind!=="s").reduce((s,h)=>s+(h.ha||0),0);
     const own = vh.filter(h=>h.kind!=="s"), unknown = own.some(h=>h.ha==null);
@@ -742,7 +779,7 @@ function renderDomains(){
     return `<button class="dcard${st.prod===r.key?" on":""}" data-p="${r.key}">
       <span class="dn">${esc(r.name)}</span>
       <span class="dm">${esc(r.prof.kind)} · ${esc(r.prof.size||"")}</span>
-      ${own.length ? `<span class="dk"><b>${unknown?"≥ ":""}${fmtHa(vha)}</b> ha in ${own.length} Vosne/Flagey climat${own.length===1?"":"s"} · <b>${gcs.length}</b> grand cru${gcs.length===1?"":"s"}</span>` : ""}
+      ${own.length ? `<span class="dk"><b>${unknown?"≥ ":""}${fmtHa(vha)}</b> ha in ${own.length} ${AREA_N} climat${own.length===1?"":"s"} · <b>${gcs.length}</b> grand cru${gcs.length===1?"":"s"}</span>` : ""}
       ${src.length ? `<span class="dk">Buys grapes from <b>${src.length}</b> climats: ${src.map(h=>esc(h.c.n)).join(", ")}</span>` : ""}
       ${monos.length?`<span class="dmono">Monopole: ${monos.map(esc).join(", ")}</span>`:""}
       <span class="dl">${top.map(h=>`<i class="c${h.c.c==="1er"?"P":h.c.c}"></i>${esc(h.c.n)}${h.ha?` ${fmtHa(h.ha)}`:""}`).join("<br>")}</span>
@@ -751,11 +788,155 @@ function renderDomains(){
   box.querySelectorAll("[data-p]").forEach(b => b.onclick = () => { setProducer(st.prod===b.dataset.p ? null : b.dataset.p, true); $("mapcard").scrollIntoView({behavior:"smooth", block:"nearest"}); });
 }
 
+/* ---------- vineyard detail ---------- */
+function detailHtml(c){
+  const d = c.detail; if(!d) return "";
+  return `<div class="facts">
+      ${d.alt?`<div class="fact"><div class="l">Altitude</div><div class="v">${esc(d.alt)} m</div></div>`:""}
+      ${d.asp?`<div class="fact"><div class="l">Faces</div><div class="v">${esc(d.asp)}</div></div>`:""}
+    </div>
+    ${d.soil?`<p class="note"><b>Soil:</b> ${esc(d.soil)}</p>`:""}
+    ${(d.sub||[]).length?`<h3>Lieux-dits within</h3><p class="note">${d.sub.map(esc).join(" · ")}</p>`:""}`;
+}
+
+/* ---------- compare two producers ---------- */
+st.cmp = ["drc", "lb_comte"];
+function renderCompare(){
+  const box = $("cmp"); if(!box) return;
+  const [a,b] = st.cmp, A = PROD[a], Bp = PROD[b];
+  if(!A || !Bp){ box.innerHTML = `<p class="note">Pick two producers above.</p>`; return; }
+  const ORD = {GC:0,"1er":1,V:2};
+  const rows = new Map();
+  [[A,0],[Bp,1]].forEach(([r,i]) => r.hold.forEach(h => { const e = rows.get(h.c.id) || {c:h.c, v:[null,null]}; e.v[i] = h; rows.set(h.c.id, e); }));
+  const list = [...rows.values()].sort((x,y) => ORD[x.c.c]-ORD[y.c.c] || x.c.vil.idx-y.c.vil.idx || x.c.n.localeCompare(y.c.n,"fr"));
+  const cell = h => !h ? `<td class="n">—</td>` : h.kind==="s" ? `<td class="n"><span class="ktag s">buys grapes</span></td>`
+    : `<td class="n">${h.ha!=null?`<b>${fmtHa(h.ha)}</b> ha`:"holder"}${h.kind==="f"?` <span class="ktag">leased</span>`:""}</td>`;
+  const sum = (r,f) => r.hold.filter(f).length;
+  box.innerHTML = `<table class="own cmpt"><thead><tr><th></th><th class="n"><button class="plink" data-p="${a}">${esc(A.name)}</button></th><th class="n"><button class="plink" data-p="${b}">${esc(Bp.name)}</button></th></tr></thead>
+    <tbody>
+      <tr class="tot"><td>Published hectares on the map</td>${[A,Bp].map(r=>`<td class="n"><b>${r.hold.some(h=>h.kind!=="s"&&h.ha==null)?"≥ ":""}${fmtHa(r.ha)}</b></td>`).join("")}</tr>
+      <tr class="tot"><td>Grands crus · premiers crus</td><td class="n">${A.gc} · ${sum(A,h=>h.c.c==="1er"&&h.kind!=="s")}</td><td class="n">${Bp.gc} · ${sum(Bp,h=>h.c.c==="1er"&&h.kind!=="s")}</td></tr>
+      <tr class="tot"><td>Monopoles</td><td class="n">${sum(A,h=>h.c.mono===a&&!h.c.inner)}</td><td class="n">${sum(Bp,h=>h.c.mono===b&&!h.c.inner)}</td></tr>
+      ${list.map(({c,v}) => `<tr><td><span class="cls" style="background:${{GC:TOK.gc,"1er":TOK.pc,V:TOK.vc}[c.c]}"></span><button class="plink" data-c="${c.id}">${esc(c.n)}</button> <span class="note">${esc(c.vil.n)}</span></td>${cell(v[0])}${cell(v[1])}</tr>`).join("")}
+    </tbody></table>`;
+  box.querySelectorAll("[data-c]").forEach(x => x.onclick = () => { select(x.dataset.c, true); $("mapcard").scrollIntoView({behavior:"smooth", block:"nearest"}); });
+  box.querySelectorAll("[data-p]").forEach(x => x.onclick = () => setProducer(x.dataset.p, true));
+}
+["cmpA","cmpB"].forEach((id,i) => { const inp = $(id); if(!inp) return;
+  inp.value = P[st.cmp[i]] || "";
+  inp.addEventListener("input", () => { const k = prodByName[norm(inp.value)]; if(k){ st.cmp[i] = k; renderCompare(); } });
+});
+
+/* ---------- who owns the grands crus ---------- */
+const CAT = ["#7C2D3E","#3F7CB6","#A87E2F","#3E9E68","#8E5BA8","#C2683A","#2F8F8F","#B5476E","#5E6E2F","#4C5BA8"];
+function renderGcOwners(){
+  const box = $("gcown"); if(!box) return;
+  const gcs = C.filter(c => c.c==="GC" && !c.inner);
+  const tot = {}; gcs.forEach(c => c.p.forEach(([k,h,kd]) => { if(h && kd!=="s") tot[k]=(tot[k]||0)+h; }));
+  const top = Object.entries(tot).sort((a,b)=>b[1]-a[1]).slice(0,CAT.length).map(([k])=>k), col = k => CAT[top.indexOf(k)] || null;
+  const dk = DARK();
+  box.innerHTML = `<div class="gclegend">${top.map(k=>`<button class="plink" data-p="${k}"><span class="sw" style="background:${col(k)}"></span>${esc(P[k])}</button>`).join("")}<span class="note"><span class="sw" style="background:${dk?"#5A4D53":"#C9BBB2"}"></span>other listed owners · empty = not published</span></div>`
+    + gcs.map(c => {
+      const own = c.p.filter(([,h,kd]) => h && kd!=="s").sort((a,b)=>b[1]-a[1]);
+      let alt = 0;
+      const segs = own.map(([k,h]) => { const cc = col(k) || (alt++%2 ? (dk?"#4A3F44":"#D8CCC4") : (dk?"#5A4D53":"#C9BBB2"));
+        return `<span data-p="${k}" title="${esc(P[k])} · ${fmtHa(h)} ha · ${Math.round(100*h/c.ha)}%" style="width:${(100*Math.min(h,c.ha)/c.ha).toFixed(2)}%;background:${cc}"></span>`; }).join("");
+      return `<div class="gcrow"><button class="plink gcn" data-c="${c.id}">${esc(c.n)}</button><span class="gcbar">${segs}</span><span class="gch">${fmtHa(c.ha)} ha</span></div>`;
+    }).join("");
+  box.querySelectorAll("[data-c]").forEach(x => x.onclick = () => { select(x.dataset.c, true); $("mapcard").scrollIntoView({behavior:"smooth", block:"nearest"}); });
+  box.querySelectorAll("[data-p]").forEach(x => x.onclick = () => { setProducer(x.dataset.p, true); $("mapcard").scrollIntoView({behavior:"smooth", block:"nearest"}); });
+}
+
+/* ---------- corrections: shared edits stored in the cellar's Google Sheet ---------- */
+const EDITS = {list:[], can:false, status:"", open:null};
+function apiUrl(){ return localStorage.getItem("vinApi") || (window.WINE_CONFIG && window.WINE_CONFIG.API_URL) || ""; }
+function keyFor(name){
+  if(P[name]) return name;
+  const n = norm(name), hit = Object.keys(P).find(k => norm(P[k])===n);
+  if(hit) return hit;
+  const k = "x_" + n.replace(/[^a-z0-9]+/g,"_").slice(0,40); P[k] = name; return k;
+}
+function applyEdits(){
+  C.forEach(c => { c.p = c.p0.map(x => [...x]); c.edited = {}; c.removed = []; });
+  [...EDITS.list].sort((a,b) => String(a.time).localeCompare(String(b.time))).forEach(e => {
+    const c = CL[e.climat]; if(!c) return;
+    const key = keyFor(e.producer), i = c.p.findIndex(x => x[0]===key);
+    if(e.action==="remove"){ if(i>=0) c.p.splice(i,1); c.removed.push({key, e}); delete c.edited[key]; return; }
+    const row = [key, e.ha==null||isNaN(e.ha) ? null : e.ha, e.kind||"", e.since||null];
+    if(i>=0) c.p[i] = row; else c.p.push(row);
+    c.edited[key] = e; c.removed = c.removed.filter(x => x.key!==key);
+  });
+  indexHoldings();
+}
+async function loadEdits(){
+  const api = apiUrl(); if(!api) return;
+  EDITS.can = !!localStorage.getItem("vinToken");
+  try{
+    const res = await fetch(api, {method:"POST", body:JSON.stringify({action:"atlas"}), redirect:"follow"});
+    const data = await res.json();
+    // an Apps Script from before the atlas existed answers "bad-code" (no session) or "bad-action"
+    if(!data.ok){ EDITS.status = ["bad-action","bad-code"].includes(data.error) ? "redeploy" : data.error; renderSide(); return; }
+    EDITS.list = data.edits || []; EDITS.status = "ok";
+    applyEdits(); paint(); renderSide();
+  }catch(err){ EDITS.status = "offline"; }
+}
+function removedHtml(c){
+  if(!c.removed || !c.removed.length) return "";
+  return `<p class="note">Removed by correction: ${c.removed.map(({key,e}) => `<span title="${esc([e.note,e.time].filter(Boolean).join(" · "))}">${esc(P[key])}</span>`).join(", ")}.</p>`;
+}
+function editHtml(c){
+  if(!EDITS.can) return `<p class="note">Spotted a wrong figure? Log in on the Cellar page and you can correct it here.</p>`;
+  if(EDITS.status==="redeploy") return `<p class="note">Corrections need the updated Apps Script — redeploy <code>Code.gs</code> (see README).</p>`;
+  if(EDITS.open!==c.id) return `<p><button class="btn" id="edOpen">✎ Correct the holdings</button></p>`;
+  const pre = EDITS.pre || {};
+  return `<form class="edform" id="edForm">
+    <h3>Correct a holding</h3>
+    <label>Producer<input id="edP" list="allProducers" value="${esc(pre.p||"")}" required></label>
+    <div class="edrow"><label>Hectares<input id="edHa" type="number" step="0.01" min="0" max="200" value="${pre.ha??""}" placeholder="unknown"></label>
+      <label>Kind<select id="edK"><option value="">owned</option><option value="f"${pre.k==="f"?" selected":""}>leased</option><option value="s"${pre.k==="s"?" selected":""}>buys grapes</option></select></label>
+      <label>Since<input id="edS" type="number" min="1000" max="2200" value="${pre.s||""}" placeholder="vintage"></label></div>
+    <label>Source / note<input id="edN" placeholder="e.g. domaine website, 2024 tech sheet" required></label>
+    <div class="edrow"><button class="btn primary" type="submit">Save</button><button class="btn" type="button" id="edRemove">Remove this producer</button><button class="btn quiet" type="button" id="edCancel">Cancel</button></div>
+    <p class="note" id="edMsg">Corrections are shared with everyone who opens the atlas and logged with your name.</p>
+  </form>`;
+}
+async function saveEdit(c, action){
+  const name = $("edP").value.trim(), note = $("edN").value.trim();
+  if(!name){ $("edMsg").textContent = "Pick or type a producer."; return; }
+  if(!note){ $("edMsg").textContent = "Add where the figure comes from — it helps the next person."; return; }
+  const key = keyFor(name);
+  const edit = {climat:c.id, producer: key.startsWith("x_") ? name : key, action,
+    ha: $("edHa").value==="" ? "" : Number($("edHa").value), kind: $("edK").value, since: $("edS").value, note};
+  $("edMsg").textContent = "Saving…";
+  try{
+    const res = await fetch(apiUrl(), {method:"POST", redirect:"follow", body:JSON.stringify({
+      user:localStorage.getItem("vinUser")||"", token:localStorage.getItem("vinToken")||"", action:"atlasedit", edit})});
+    const data = await res.json();
+    if(!data.ok){ $("edMsg").textContent = data.error==="bad-action" ? "The Apps Script needs redeploying first (see README)." :
+      data.error==="bad-token" ? "Your session expired — log in on the Cellar page again." : data.error==="not-an-atlas-editor" ? "Your account isn't on the atlas editors list." : "Couldn't save: "+data.error; return; }
+    EDITS.list = data.edits || []; EDITS.open = null; EDITS.pre = null;
+    applyEdits(); renderSide(); paint();
+  }catch(err){ $("edMsg").textContent = "Couldn't reach the cellar API."; }
+}
+function wireEdit(c){
+  const o = $("edOpen"); if(o) o.onclick = () => { EDITS.open = c.id; EDITS.pre = null; renderSide(); };
+  side.querySelectorAll("[data-ed]").forEach(b => b.onclick = () => {
+    const row = c.p.find(x => x[0]===b.dataset.ed) || [];
+    EDITS.open = c.id; EDITS.pre = {p:P[b.dataset.ed], ha:row[1], k:row[2], s:row[3]}; renderSide();
+  });
+  const f = $("edForm"); if(!f) return;
+  f.onsubmit = ev => { ev.preventDefault(); saveEdit(c, "set"); };
+  $("edRemove").onclick = () => saveEdit(c, "remove");
+  $("edCancel").onclick = () => { EDITS.open = null; renderSide(); };
+}
+
 /* ---------- controls ---------- */
 function norm(t){ return String(t||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/œ/g,"oe").replace(/[-'’.,«»()]/g," ")
   .replace(/\bst\b/g,"saint").replace(/\bste\b/g,"sainte").replace(/\s+/g," ").trim(); }
 $("climatList").innerHTML = [...C].sort((a,b)=>a.n.localeCompare(b.n,"fr")).map(c => `<option value="${esc(c.n)} — ${esc(c.vil.n)}">`).join("");
 $("producerList").innerHTML = Object.values(PROD).sort((a,b)=>a.name.localeCompare(b.name,"fr")).map(r => `<option value="${esc(r.name)}">`).join("");
+$("allProducers").innerHTML = Object.values(P).sort((a,b)=>a.localeCompare(b,"fr")).map(n => `<option value="${esc(n)}">`).join("");
+document.querySelectorAll("#dtabs button").forEach(b => b.onclick = () => { st.dtab = b.dataset.t; renderDomains(); });
 $("fSearch").addEventListener("input", ev => {
   const val = ev.target.value;
   const exact = C.find(c => `${c.n} — ${c.vil.n}` === val);
@@ -791,11 +972,18 @@ function syncChips(){
   $("cellarChip").classList.toggle("on", st.cellarOnly);
 }
 const nav = $("communes");
-nav.innerHTML = V.map(v => `<button data-v="${v.id}">${esc(v.n)}</button>`).join("");
-nav.querySelectorAll("button").forEach(b => b.onclick = () => selectVillage(b.dataset.v, true));
+nav.innerHTML = COTES.map(k => `<button class="cotebtn" data-cote="${k.id}">${esc(k.n)} ⤢</button>` +
+  V.filter(v=>v.cote===k.id).map(v => `<button data-v="${v.id}">${esc(v.n)}</button>`).join("")).join("");
+nav.querySelectorAll("[data-v]").forEach(b => b.onclick = () => selectVillage(b.dataset.v, true));
+nav.querySelectorAll("[data-cote]").forEach(b => b.onclick = () => fitCote(b.dataset.cote));
+function fitCote(id){
+  const vs = V.filter(v=>v.cote===id); if(!vs.length) return;
+  st.vsel=null; st.sel=null; renderSide(); paint(); syncHash(); syncCommunes();
+  flyTo(fitBox(...boxOfGrid(-4.5, vs[0].y0-1, 37, vs[vs.length-1].y0+vs[vs.length-1].h+1), .01));
+}
 function syncCommunes(){
   const cur = st.vsel || (st.sel && CL[st.sel].v);
-  nav.querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.v===cur));
+  nav.querySelectorAll("[data-v]").forEach(b => b.classList.toggle("on", b.dataset.v===cur));
 }
 
 /* ---------- hash (shareable state) ---------- */
@@ -819,14 +1007,18 @@ function focusDefault(){ // Vosne and Flagey's grands crus
 
 /* ---------- cellar overlay (only if you're logged in to the cellar in this browser) ---------- */
 const CELLAR = {loaded:false, by:{}, village:{}, msg:"Log in on the Cellar page to see your own bottles here."};
-const VILLAGE_KEYS = V.map(v => [v.id, norm(v.n.split(" · ")[0])]).concat([["flagey","flagey echezeaux"],["nuits","nuits saint georges"],["premeaux","premeaux prissey"],["cdnv","cote de nuits villages"]]);
-const STRIP = ["gevrey chambertin","chambolle musigny","vosne romanee","morey saint denis","nuits saint georges","flagey echezeaux","premeaux prissey"];
+const VILLAGE_KEYS = V.map(v => [v.id, norm(v.n.split(" · ")[0])]).concat([["flagey","flagey echezeaux"],["nuits","nuits saint georges"],["premeaux","premeaux prissey"],["cdnv","cote de nuits villages"],
+  ["corton","aloxe corton"],["corton","pernand vergelesses"],["corton","ladoix"],["monthelie","auxey duresses"],["monthelie","monthelie"],["meursault","volnay santenots"]]);
+const STRIP = ["gevrey chambertin","chambolle musigny","vosne romanee","morey saint denis","nuits saint georges","flagey echezeaux","premeaux prissey",
+  "puligny montrachet","chassagne montrachet","aloxe corton","pernand vergelesses","savigny les beaune","chorey les beaune","auxey duresses","saint aubin"];
 const ARTICLE = /^(les|la|le|aux|au|en|l)\s+/;
 const STRIP_RE = STRIP.map(t => new RegExp(`(?<= )${t}(?= )`, "g"));
 const ALIASES = C.map(c => {
   const full = norm(c.n), a = [full];
   if(c.c!=="GC"){ const s = full.replace(ARTICLE,""); if(s!==full && s.length>=5) a.push(s); }
   if(c.id==="closvougeot") a.push("clos vougeot");
+  if(c.id==="montrachet") a.push("montrachet");
+  if(c.c==="GC" && /^corton /.test(full)) a.push(full.replace(/^corton (les |le |la )?/, "corton "));
   if(c.id==="beze") a.push("clos de beze","chambertin clos de beze");
   if(c.id==="closstjacques") a.push("clos saint jacques");
   if(c.id==="laromanee") a.splice(0, a.length, "la romanee");
@@ -887,5 +1079,6 @@ renderSide(); syncCommunes();
 requestAnimationFrame(() => { setVB(vb); focusDefault(); if(after) after(); });
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { readTokens(); build(); renderSide(); setVB(vb); });
 loadCellar();
+loadEdits();
 window.__atlas = {st, CL, PROD, CELLAR, matchWine, scale}; // handy from the console
 })();
