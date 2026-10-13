@@ -91,7 +91,7 @@ const villages = [
 // col: R red · W white · RW both. ha: area of the climat (≈). mono: monopole holder key.
 // p: [[producerKey, ha|null], …]. in: drawn inside another climat (enclave).
 // geo: commune whose grid the shape is drawn in, when it differs from v. lab/lbox: label anchor & room.
-// A holding's optional 3rd element: "f" farmed under a lease/métayage, "s" grapes bought (négoce). wall: a walled clos.
+// A holding's optional 3rd element: "f" farmed under a lease/métayage, "s" grapes bought (négoce); 4th: first vintage. wall: a walled clos.
 const climats = [
   // ── Marsannay
   {id:"longeroies", n:"Les Longeroies", v:"marsannay", c:"V", ha:22, col:"RW", s:R(10,1.5,15,3.5),
@@ -238,7 +238,7 @@ const climats = [
     p:[["drc",4.67],["mongeard",1.82],["rouget",1.43],["mugneret_g",1.24],["lamarche",1.07],["gros_fs",0.93],["arnoux",0.8],["anne_gros",0.76],["dujac",0.69],["eugenie",0.55],["jayer_gilles",0.54],["bizot",0.5],["drouhin",0.46],["lb_comte",null],["grivot",null],["frantin",null],["noellat_g",null],["confuron_c",null],["pacalet",null,"s"]],
     d:"A big, varied grand cru of eleven lieux-dits and ~80 owners — Les Échézeaux du Dessus and Les Rouges du Bas beside Grands-Échezeaux are the best parts."},
   {id:"grandsechezeaux", n:"Grands-Échezeaux", v:"flagey", c:"GC", ha:9.14, col:"R", s:R(15.5,0,21,3),
-    p:[["drc",3.53],["mongeard",1.44],["thenard",0.54],["eugenie",0.5],["drouhin",0.48],["gros_fs",0.37],["lb_comte",0.3,"f"],["noellat_g",0.3],["frantin",0.25]],
+    p:[["drc",3.53],["mongeard",1.44],["thenard",0.54],["eugenie",0.5],["drouhin",0.48],["gros_fs",0.37],["lb_comte",0.3,"f",2022],["noellat_g",0.3],["frantin",0.25]],
     d:"Flatter ground right against the Clos de Vougeot's upper wall; deeper and more structured than Échezeaux."},
   {id:"beauxmonts", n:"Les Beaux Monts", v:"vosne", geo:"flagey", c:"1er", ha:11.4, col:"R",
     s:[[3.5,3],[8,3],[8,6.5],[10.5,6.5],[10.5,7.5],[3.5,7.5]],
@@ -257,7 +257,7 @@ const climats = [
   {id:"richebourg", n:"Richebourg", v:"vosne", c:"GC", ha:8.03, col:"R", s:R(10.5,3.5,16,6.5),
     p:[["drc",3.51],["leroy",0.78],["gros_fs",0.69],["anne_gros",0.6],["af_gros",0.6],["lb_thib",0.55],["meo",0.35],["grivot",0.32],["mongeard",0.31],["hudelot",0.28],["frantin",0.07]],
     d:"Opulent, spicy and the most sumptuous of the Vosne grands crus. Includes the old climat Les Verroilles ou Richebourgs."},
-  {id:"croixrameau", n:"La Croix Rameau", v:"vosne", c:"1er", ha:0.6, col:"R", s:R(18.5,3.5,20.5,4.5), p:[["lb_comte",0.21,"f"]], d:"A sliver attached to Romanée-St-Vivant that missed promotion."},
+  {id:"croixrameau", n:"La Croix Rameau", v:"vosne", c:"1er", ha:0.6, col:"R", s:R(18.5,3.5,20.5,4.5), p:[["lb_comte",0.21,"f",2022]], d:"A sliver attached to Romanée-St-Vivant that missed promotion."},
   {id:"rsv", n:"Romanée-Saint-Vivant", v:"vosne", c:"GC", ha:9.44, col:"R",
     s:[[16,3.5],[18.5,3.5],[18.5,4.5],[20.5,4.5],[20.5,7.8],[15.5,7.8],[15.5,6.5],[16,6.5]],
     p:[["drc",5.29],["leroy",0.99],["latour",0.76],["confuron_jj",0.5],["hudelot",0.48],["arnoux",0.34],["follin",0.33],["arlot",0.25],["cathiard",0.17]],
@@ -281,7 +281,7 @@ const climats = [
   {id:"gaudichots", n:"Les Gaudichots", v:"vosne", c:"1er", ha:1.03, col:"R", s:R(8.5,8.3,11,9.8), p:[["frantin",null]], d:"What remained premier cru after La Tâche absorbed most of it."},
   {id:"dessusmalconsorts", n:"Au-dessus des Malconsorts", v:"vosne", c:"1er", ha:1.04, col:"R", s:R(8.5,9.8,11,11.3), p:[["frantin",null]], d:"Upslope of Malconsorts."},
   {id:"malconsorts", n:"Aux Malconsorts", v:"vosne", c:"1er", ha:5.86, col:"R", s:R(11,11.3,17,13.5),
-    p:[["dujac",1.57],["cathiard",0.74],["lb_comte",0.49,"f"],["montille",null],["hudelot",null]],
+    p:[["dujac",1.57],["cathiard",0.74],["lb_comte",0.49,"f",2022],["montille",null],["hudelot",null]],
     d:"La Tâche's southern neighbour — the closest a premier cru gets to it in style. De Montille's Cuvée Christiane and Cathiard's are benchmarks."},
   {id:"chaumes", n:"Les Chaumes", v:"vosne", c:"1er", ha:7.4, col:"R", s:R(17,10.3,21,13.5),
     p:[["meo",null],["lb_comte",null],["arnoux",null],["lamarche",null],["grivot",null],["noellat_g",null],["rion",null],["tardy",null],["pacalet",null,"s"]], d:"Below La Tâche and Malconsorts; flatter, fleshier."},
@@ -293,7 +293,7 @@ const climats = [
     p:[["lb_comte",0.6]], d:"The walled garden of the Liger-Belair château in the village centre; a village-level monopole."},
   {id:"violettes", n:"Les Violettes", v:"vosne", c:"V", ha:6, col:"R", s:R(24,4,27,8.3), p:[], d:"Village climat east of the village."},
   {id:"colombiere", n:"La Colombière", v:"vosne", c:"V", ha:6, col:"R", s:R(27,4,29.8,8.3), p:[["lb_comte",0.78]], d:"Lower slope near the road."},
-  {id:"auxreas", n:"Aux Réas", v:"vosne", c:"V", ha:7, col:"R", s:R(23.5,8.3,26.5,11.3), p:[["bizot",null],["lb_comte",null,"f"],["af_gros",null]], d:"Village land around the Clos des Réas."},
+  {id:"auxreas", n:"Aux Réas", v:"vosne", c:"V", ha:7, col:"R", s:R(23.5,8.3,26.5,11.3), p:[["bizot",null],["lb_comte",null,"f",2022],["af_gros",null]], d:"Village land around the Clos des Réas."},
   {id:"communes", n:"Aux Communes", v:"vosne", c:"V", ha:6, col:"R", s:R(26.5,8.3,29.8,11.3), p:[], d:"Lower slope."},
   {id:"chalandins", n:"Les Chalandins", v:"vosne", c:"V", ha:9, col:"R", s:R(21,11.3,25.5,15.3), p:[["af_gros",0.34],["sirugue",null]], d:"Below Les Chaumes, toward Nuits."},
   {id:"bossieres", n:"Bossières", v:"vosne", c:"V", ha:7, col:"R", s:R(25.5,11.3,29.8,15.3), p:[], d:"Flat village land by the D974."},
@@ -352,9 +352,9 @@ const PROFILES = {
     extra:[["Vosne-Romanée 1er cru & village (various)",3.43],["Corton (leased from the Prince de Mérode since 2009)",null,"f"],["Le Montrachet",0.68],["Bâtard-Montrachet",0.17]],
     src:["https://www.decanter.com/premium/domaine-de-la-romanee-conti-profile-wine-ratings-384876"]},
   lb_comte:{base:"Vosne-Romanée", size:"≈12 ha (after 2022)", kind:"Domaine", focus:true,
-    note:"Louis-Michel Liger-Belair took back the family vines from 2000 and La Romanée in full from 2002. From 2022 he farms Nathalie Pacareau's ex-Lamarche parcels (Grands-Échezeaux, Malconsorts, Croix Rameau, Aux Réas) on a long-term lease.",
+    note:"Louis-Michel Liger-Belair took back the family vines from 2000 and La Romanée in full from 2002. From 2022 he farms Nathalie Pacareau's ex-Lamarche parcels (Grands-Échezeaux, Malconsorts, Croix Rameau, Aux Réas) on a long-term lease; 2022 is the first vintage of the Grands-Échezeaux and Croix Rameau, which the domaine never had before. Its website's wine list may lag behind.",
     extra:[["Vosne-Romanée village (12 parcels)",0.72],["Nuits-Saint-Georges Aux Lavières",0.36]],
-    src:["https://www.burgundy-report.com/burgundy-report-extra/10-2004/profile-domaine-du-comte-liger-belair-vosne/","https://www.justerinis.com/discover-wine/producer-spotlight/domaine-du-comte-liger-belair","https://winehog.org/terroir-insight-domaine-du-comte-liger-belairs-new-vosne-romanee-aux-malconsorts-51208/"]},
+    src:["https://www.burgundy-report.com/burgundy-report-extra/10-2004/profile-domaine-du-comte-liger-belair-vosne/","https://www.justerinis.com/discover-wine/producer-spotlight/domaine-du-comte-liger-belair","https://winehog.org/terroir-insight-domaine-du-comte-liger-belairs-new-vosne-romanee-aux-malconsorts-51208/","https://winehog.org/visit-domaine-du-comte-liger-belair-tasting-2021s-2-2-58874/","https://worldoffinewine.com/tasting-notes/2022-comte-liger-belair","https://worldoffinewine.com/tasting-notes/2023-comte-liger-belair"]},
   leroy:{base:"Vosne-Romanée", size:"≈23 ha", kind:"Domaine", focus:true,
     note:"Lalou Bize-Leroy bought the Charles Noëllat estate in 1988; biodynamic since then. Largest owner in Les Beaux Monts.",
     extra:[["Vosne-Romanée Aux Genaivrières (village)",1.23],["Corton-Charlemagne, Corton-Renardes & other Côte de Beaune",null]],

@@ -67,10 +67,10 @@ const CL = Object.fromEntries(C.map(c => [c.id, c]));
 
 /* ---------- producers index ---------- */
 const PROD = {}; // key -> {key,name,hold:[{c,ha,kind}],ha,gc,n,prof}
-C.forEach(c => (c.p||[]).forEach(([k,h,kind]) => {
+C.forEach(c => (c.p||[]).forEach(([k,h,kind]) => { // [key, ha, kind, first vintage]
   if(c.inner && (CL[c.in].p||[]).some(([k2])=>k2===k)) return; // enclave already counted in its parent
   const r = PROD[k] ??= {key:k, name:P[k], hold:[], ha:0, gc:0, n:0, prof:PF[k]||null};
-  r.hold.push({c, ha:h, kind:kind||""}); r.n++;
+  r.hold.push({c, ha:h, kind:kind||"", since:(c.p.find(x=>x[0]===k)||[])[3]||null}); r.n++;
   if(kind!=="s"){ r.ha += h||0; if(c.c==="GC") r.gc++; }
 }));
 const prodByName = Object.fromEntries(Object.values(PROD).map(r => [norm(r.name), r.key]));
@@ -346,7 +346,7 @@ function insetPath(c){ // a dashed ring just inside the monopole's outline
 function tipHtml(c){
   const own = c.mono ? `Monopole · ${esc(P[c.mono])}` : ((c.p||[]).length ? `${c.p.length} owner${c.p.length>1?"s":""} listed` : "");
   let extra = "";
-  if(st.prod){ const hr = hrec(c, st.prod); if(hr) extra = `<br>${esc(P[st.prod])}: ${hr[2]==="s" ? "buys grapes here" : hr[1]==null ? "holder" : fmtHa(hr[1])+" ha · "+Math.round(100*hr[1]/c.ha)+"%"}${hr[2]==="f"?" (leased)":""}`; }
+  if(st.prod){ const hr = hrec(c, st.prod); if(hr) extra = `<br>${esc(P[st.prod])}: ${hr[2]==="s" ? "buys grapes here" : hr[1]==null ? "holder" : fmtHa(hr[1])+" ha · "+Math.round(100*hr[1]/c.ha)+"%"}${hr[2]==="f"?" (leased)":""}${hr[3]?" · since "+hr[3]:""}`; }
   const cb = CELLAR.by[c.id]; if(cb) extra += `<br>🍷 ${cb.left} in cellar`;
   return `<b>${esc(c.n)}</b><br>${CLASS_NAME[c.c]} · ${esc(c.vil.n)} · ${fmtHa(c.ha)} ha${own?"<br>"+own:""}${extra}`;
 }
@@ -562,9 +562,9 @@ function ownersHtml(c){
   if(!rows.length) return `<p class="note">No ownership details on file for this climat.</p>`;
   const seg = rows.filter(r=>r[1] && r[2]!=="s").map(([k,h],i) => `<span title="${esc(P[k])} · ${fmtHa(h)} ha" style="width:${(100*h/c.ha).toFixed(2)}%;background:${mix(TOK.seq1, TOK.seq0, (i%6)/7)}"></span>`).join("");
   const known = c.known, rest = Math.max(0, c.ha - known);
-  const body = rows.map(([k,h,kind]) => {
+  const body = rows.map(([k,h,kind,since]) => {
     const share = h && kind!=="s" ? 100*h/c.ha : null;
-    return `<tr><td><button class="plink${st.prod===k?" on":""}" data-p="${k}">${esc(P[k])}</button>${kind?` <span class="ktag ${kind}">${KIND[kind]}</span>`:""}${share!=null?`<span class="pb" style="width:${Math.max(2,share).toFixed(1)}%"></span>`:""}</td>
+    return `<tr><td><button class="plink${st.prod===k?" on":""}" data-p="${k}">${esc(P[k])}</button>${kind||since?` <span class="ktag ${kind}">${[KIND[kind],since&&"since "+since].filter(Boolean).join(" · ")}</span>`:""}${share!=null?`<span class="pb" style="width:${Math.max(2,share).toFixed(1)}%"></span>`:""}</td>
       <td class="n">${kind==="s"?"":h!=null?`<b>${fmtHa(h)}</b> ha`:"holder"}</td><td class="n">${share!=null?(share<1?share.toFixed(1):Math.round(share))+"%":""}</td></tr>`;
   }).join("");
   const cover = c.mono ? `<p class="note">Monopole — the whole climat belongs to ${esc(P[c.mono])}.</p>`
@@ -611,7 +611,7 @@ function renderSide(){
       ${pf.note?`<p>${esc(pf.note)}</p>`:""}
       <p class="note">Highlighted on the map by share of each climat · hatched = holder, size not published · dotted gold = buys grapes there.</p>
       <h3>Côte de Nuits holdings</h3>
-      <table class="own">${hold.map(({c,ha,kind}) => `<tr><td><span class="cls" style="background:${{GC:TOK.gc,"1er":TOK.pc,V:TOK.vc}[c.c]}"></span><button class="plink" data-c="${c.id}">${esc(c.n)}</button>${kind?` <span class="ktag ${kind}">${KIND[kind]}</span>`:""}
+      <table class="own">${hold.map(({c,ha,kind,since}) => `<tr><td><span class="cls" style="background:${{GC:TOK.gc,"1er":TOK.pc,V:TOK.vc}[c.c]}"></span><button class="plink" data-c="${c.id}">${esc(c.n)}</button>${kind||since?` <span class="ktag ${kind}">${[KIND[kind],since&&"since "+since].filter(Boolean).join(" · ")}</span>`:""}
         <div class="note" style="margin:0">${esc(c.vil.n)}${c.mono?" · monopole":""}</div></td>
         <td class="n">${kind==="s"?"":ha!=null?`<b>${fmtHa(ha)}</b> ha`:"holder"}</td><td class="n">${ha!=null&&kind!=="s"?Math.round(100*ha/c.ha)+"%":""}</td></tr>`).join("")}</table>
       ${(pf.extra||[]).length?`<h3>Not on this map</h3><table class="own">${pf.extra.map(([n,h,kind])=>`<tr><td>${esc(n)}${kind?` <span class="ktag ${kind}">${KIND[kind]}</span>`:""}</td><td class="n">${h!=null?`<b>${fmtHa(h)}</b> ha`:""}</td></tr>`).join("")}</table>`:""}
