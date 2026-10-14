@@ -2,13 +2,20 @@
 (function(){
 "use strict";
 const {producers:P, profiles:PF, villages:V, climats:C} = window.BURG;
-const KIND = {f:"leased", s:"buys grapes"}; // a holding's 3rd element; absent = owned
+const KIND = new Proxy({f:"leased", s:"buys grapes"}, {get:(o, k) => o[k] && t(o[k])}); // a holding's 3rd element; absent = owned
 const $ = id => document.getElementById(id);
 const NS = "http://www.w3.org/2000/svg";
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmtHa = h => h==null ? "—" : (h>=10 ? h.toFixed(1) : h.toFixed(2)).replace(/\.?0+$/,"") ;
-const CLASS_NAME = {GC:"Grand cru", "1er":"Premier cru", V:"Village climat"};
-const COL_NAME = {R:"Red", W:"White", RW:"Red & white"};
+// language: UI strings through t() (i18n.js); descriptions from burgundy-i18n-<lang>.js when there is one
+const t = (window.I18N && window.I18N.t) || ((s, ...a) => s.replace(/\{(\d)\}/g, (m, i) => a[i] ?? ""));
+const LX = () => ((window.BURG_I18N || {})[window.I18N ? window.I18N.lang : "en"]) || null;
+const txC = c => (LX()?.climats?.[c.id]) || c.d || "";
+const txV = (v, f) => (LX()?.villages?.[v.id]?.[f]) || v[f] || "";
+const txP = (key, pf, f) => (LX()?.profiles?.[key]?.[f]) || pf[f];
+const txD = (c, f) => (LX()?.detail?.[c.id]?.[f]) || (c.detail || {})[f];
+const CLASS_EN = {GC:"Grand cru", "1er":"Premier cru", V:"Village climat"}, COL_EN = {R:"Red", W:"White", RW:"Red & white"};
+const CLASS_NAME = new Proxy(CLASS_EN, {get:(o, k) => o[k] && t(o[k])}), COL_NAME = new Proxy(COL_EN, {get:(o, k) => o[k] && t(o[k])});
 
 /* ---------- geometry ---------- */
 const S = 24;                          // px per grid unit
@@ -51,6 +58,14 @@ function areaCentroid(pts){
   for(let i=0;i<pts.length;i++){ const [x1,y1]=pts[i],[x2,y2]=pts[(i+1)%pts.length], f=x1*y2-x2*y1; a+=f; cx+=(x1+x2)*f; cy+=(y1+y2)*f; }
   a/=2; return a ? [cx/(6*a), cy/(6*a)] : pts[0];
 }
+// INAO's other premiers crus (and Corton climats) the atlas has no notes for yet: drawn on the surveyed map only
+{ const G = window.BURG_GEO;
+  if(G && G.extra) Object.entries(G.extra).forEach(([id, x]) => {
+    if(!VIL[x.v] || C.some(c => c.id===id)) return;
+    C.push({id, n:x.n, v:x.v, c:x.c, ha:x.ha, ap:x.ap, x:true, in:x.in, grp: x.c==="GC" && x.ap==="Corton" ? "corton" : undefined,
+      s:[[0,0],[1,0],[1,1],[0,1]], p:[], d:""});
+    G.climats[id] = x.mp;
+  }); }
 // A climat with an enclave (Clos des Ruchottes, Clos de la Mouchère…) labels itself in the widest free band
 // beside the enclave, so the two labels never sit on top of each other.
 C.forEach(c => {
@@ -85,7 +100,7 @@ const prodByName = {};
 function indexHoldings(){
   C.forEach(c => {
     c.known = c.p.reduce((s,[,h,k]) => s + (k==="s" ? 0 : h||0), 0); // bought grapes aren't ownership
-    c.search = norm([c.n, c.vil.n, ...c.p.map(([k])=>P[k])].join(" "));
+    c.search = norm([c.n, c.vil.n, c.ap||"", ...c.p.map(([k])=>P[k])].join(" "));
   });
   for(const k in PROD) delete PROD[k];
   for(const k in prodByName) delete prodByName[k];
@@ -128,8 +143,13 @@ function hsl(h,s,l){ s/=100; l/=100; const k=n=>(n+h/30)%12, a=s*Math.min(l,1-l)
   return "#"+[f(0),f(8),f(4)].map(x=>Math.round(x*255).toString(16).padStart(2,"0")).join(""); }
 const maxHa = Math.max(...C.map(c=>c.ha));
 const maxOwners = Math.max(...C.map(c=>(c.p||[]).length));
+// measured terrain per climat (burgundy-dem.js): [alt low, alt high, mean alt, slope %, aspect °, consistency %, samples]
+const DEM = (window.BURG_DEM && window.BURG_DEM.c) || {};
+const ALT0 = 220, ALT1 = 400, SLOPE1 = 20;
 function fillOf(c){
   switch(st.color){
+    case "alt": { const d = DEM[c.id]; return d ? mix(TOK.seq0, TOK.seq1, Math.max(0, Math.min(1, (d[2]-ALT0)/(ALT1-ALT0)))) : TOK.none; }
+    case "slope": { const d = DEM[c.id]; return d ? mix(TOK.seq0, TOK.seq1, Math.min(1, d[3]/SLOPE1)) : TOK.none; }
     case "commune": return communeColor(c);
     case "size": return mix(TOK.seq0, TOK.seq1, Math.log(1+c.ha)/Math.log(1+maxHa));
     case "owners": { const n=c.mono?1:(c.p||[]).length; return n ? mix(TOK.seq0, TOK.seq1, n/maxOwners) : TOK.none; }
@@ -161,7 +181,7 @@ function textFill(c, fill){
 function matches(c){
   if(!st.cls.has(c.c)) return false;
   if(st.mono && !c.mono) return false;
-  if(st.wc && !(c.col||"R").includes(st.wc)) return false;
+  if(st.wc && !(c.col || (c.x ? "" : "R")).includes(st.wc)) return false; // INAO extras: colour not recorded
   if(st.prod && holding(c, st.prod)===undefined) return false;
   if(st.cellarOnly && !(CELLAR.by[c.id])) return false;
   if(st.q && !c.search.includes(st.q)) return false;
@@ -179,12 +199,56 @@ function el(tag, attrs, parent){
 }
 /* ---------- two maps: the schematic grid, or surveyed INAO outlines when burgundy-geo.js has them ---------- */
 const GEO = window.BURG_GEO && window.BURG_GEO.climats ? window.BURG_GEO : null;
+let TOPO = window.BURG_TOPO && window.BURG_TOPO.roads ? window.BURG_TOPO : null; // IGN map furniture for the surveyed map
+// it's big (~1 MB gzipped), so it loads after the first paint and the surveyed map is redrawn with it, keeping the view
+function loadTopo(){
+  if(TOPO || !GEO || loadTopo.started) return; loadTopo.started = true;
+  const sc = document.createElement("script"); sc.src = "burgundy-topo.js?v=" + TOPO_V;
+  sc.onload = () => { if(!window.BURG_TOPO) return; TOPO = window.BURG_TOPO; if(st.mode==="geo"){ const keep = {...vb}; build(); setVB(keep); } syncMode(); };
+  document.body.appendChild(sc);
+}
+const TOPO_V = 1;
 st.mode = GEO ? (() => { try{ return localStorage.getItem("atlasMode") || "geo"; }catch(e){ return "geo"; } })() : "schematic";
 const GS = 0.25; // surveyed map: svg units per metre
 let CONTENT = null, FWD = null, INV = null; // surveyed map: metres (E,N) ⇄ svg units
 const bbOf = pts => { const xs=pts.map(p=>p[0]), ys=pts.map(p=>p[1]); return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)]; };
 const bbUnion = bs => bs.length ? [Math.min(...bs.map(b=>b[0])), Math.min(...bs.map(b=>b[1])), Math.max(...bs.map(b=>b[2])), Math.max(...bs.map(b=>b[3]))] : null;
 const ringArea = r => Math.abs(r.reduce((s,[x,y],i) => { const [x2,y2] = r[(i+1)%r.length]; return s + x*y2 - x2*y; }, 0) / 2);
+// pole of inaccessibility of a ring (coarse grid, refined twice): the inside point farthest from any edge
+function edgeDist(x, y, r){
+  let inside = false, best = Infinity;
+  for(let i = 0, j = r.length-1; i < r.length; j = i++){
+    const [xi,yi] = r[i], [xj,yj] = r[j];
+    if((yi > y) !== (yj > y) && x < (xj-xi)*(y-yi)/(yj-yi) + xi) inside = !inside;
+    const dx = xj-xi, dy = yj-yi, L = dx*dx + dy*dy, t = L ? Math.max(0, Math.min(1, ((x-xi)*dx + (y-yi)*dy)/L)) : 0;
+    best = Math.min(best, Math.hypot(x - xi - t*dx, y - yi - t*dy));
+  }
+  return inside ? best : -best;
+}
+function pole(r){
+  const [x0,y0,x1,y1] = bbOf(r); let cx = (x0+x1)/2, cy = (y0+y1)/2, w = x1-x0, h = y1-y0, best = -Infinity;
+  for(let pass = 0; pass < 3; pass++){
+    const n = 16, sx = w/n, sy = h/n, ox = cx - w/2, oy = cy - h/2; let bx = cx, by = cy;
+    for(let i = 0; i <= n; i++) for(let j = 0; j <= n; j++){ const x = ox + i*sx, y = oy + j*sy, d = edgeDist(x, y, r); if(d > best){ best = d; bx = x; by = y; } }
+    cx = bx; cy = by; w = sx*3; h = sy*3;
+  }
+  return [cx, cy];
+}
+// the inside stretch of a horizontal (or vertical) line through p, across all rings of a polygon
+function chord(rings, p, vertical){
+  const a = vertical ? 1 : 0, b = 1 - a, v = p[b], xs = [];
+  rings.forEach(r => { for(let i = 0, j = r.length-1; i < r.length; j = i++){ const P = r[i], Q = r[j];
+    if((P[b] > v) !== (Q[b] > v)) xs.push(P[a] + (v - P[b]) * (Q[a] - P[a]) / (Q[b] - P[b])); } });
+  xs.sort((m, n) => m - n);
+  for(let i = 0; i + 1 < xs.length; i += 2) if(xs[i] <= p[a] && p[a] <= xs[i+1]) return [xs[i], xs[i+1]];
+  return [p[a], p[a]];
+}
+function labelBox(rings, p){
+  const [l, r] = chord(rings, p, false), cx = (l + r)/2, bw = (r - l) * .9;
+  // height: the narrowest vertical stretch across the middle half of the label
+  const hs = [-.25, 0, .25].map(f => chord(rings, [cx + f*bw, p[1]], true)), top = Math.max(...hs.map(h => h[0])), bot = Math.min(...hs.map(h => h[1]));
+  return {cx, cy: (top + bot)/2, bw, bh: Math.max(0, bot - top) * .9};
+}
 function prepare(){
   if(st.mode==="geo"){
     const all = [];
@@ -203,8 +267,11 @@ function prepare(){
       const mp = GEO.climats[c.id];
       if(!mp){ c.path = ""; c.bb = null; Object.assign(c, {cx:-9999, cy:-9999, bw:0, bh:0}); return; }
       c.path = dOf(mp); c.bb = bbOf(mp.flatMap(p => p[0]).map(T));
-      const big = mp.reduce((a,p) => ringArea(p[0]) > ringArea(a[0]) ? p : a, mp[0]), b = bbOf(big[0].map(T));
-      Object.assign(c, {cx:(b[0]+b[2])/2, cy:(b[1]+b[3])/2, bw:(b[2]-b[0])*.62, bh:(b[3]-b[1])*.62});
+      // label: centred on the point deepest inside the largest piece (its pole of inaccessibility), boxed by the
+      // polygon's own width and height through that point, so long thin or bent climats still get a name
+      const big = mp.reduce((a,p) => ringArea(p[0]) > ringArea(a[0]) ? p : a, mp[0]);
+      if(!c._pole) c._pole = pole(big[0]);
+      Object.assign(c, labelBox(big.map(r => r.map(T)), T(c._pole)));
     });
     V.forEach(v => {
       const mp = (GEO.villages||{})[v.id];
@@ -215,7 +282,9 @@ function prepare(){
     CONTENT = [0, 0, W, H];
   } else {
     W = W0; H = H0;
-    C.forEach(c => { Object.assign(c, c.sch); c.path = toPath(c.s, c.oy); const b = bbOf(c.g); c.bb = boxOfGrid(b[0], b[1], b[2], b[3]); });
+    C.forEach(c => { Object.assign(c, c.sch);
+      if(c.x){ c.path = ""; c.bb = null; Object.assign(c, {cx:-9999, cy:-9999, bw:0, bh:0}); return; } // INAO extras: surveyed map only
+      c.path = toPath(c.s, c.oy); const b = bbOf(c.g); c.bb = boxOfGrid(b[0], b[1], b[2], b[3]); });
     V.forEach(v => { v.baseD = (v.base||[]).map(b => toPath(b, v.y0));
       const ext = v.id==="flagey" ? -3.5 : 0, ext2 = v.id==="chambolle" ? 6.5 : 0; v.bb = boxOfGrid(-0.5, v.y0+ext, 31, v.y0+v.h+ext2); });
     CONTENT = boxOfGrid(-4.5, Y0, 37, Y1);
@@ -271,10 +340,13 @@ function build(){
     p.addEventListener("pointerleave", hideTip);
   }));
 
+  const gUnder = el("g", {"pointer-events":"none"}, gView); // surveyed map: woods and planted vines under the climats
   const gTownBase = el("g", {"pointer-events":"none"}, gView);
   const gCl = el("g", {}, gView), gRows = el("g", {class:"rows"}, gView), gHill = el("g", {"pointer-events":"none"}, gView),
         gWall = el("g", {}, gView), gRoad = el("g", {"pointer-events":"none"}, gView), gTown = el("g", {"pointer-events":"none"}, gView),
+        gNames = el("g", {class:"tnames", "pointer-events":"none"}, gView),
         gMono = el("g", {}, gView), gLab = el("g", {}, gView), gDot = el("g", {}, gView);
+  gTopoNames = gNames;
   V.forEach(v => v.baseD.forEach(d => el("path", {d, fill:"url(#rows)", opacity:.6, "fill-rule":"evenodd"}, gRows)));
   if(SCH){
   // the escarpment: darker toward the top of the slope
@@ -345,9 +417,55 @@ function build(){
     const o = el("text", {class:"vlab ov", x:px(36,yc), y:py(yc), "dominant-baseline":"central", "data-fs":12}, gView);
     o.textContent = v.n; ovEls.push(o);
   });
+  if(!SCH && TOPO) drawTopo(gUnder, gHill, gRoad, gTown, gNames);
   if(!svg._bgClick){ svg._bgClick = true; svg.addEventListener("click", () => { if(!dragMoved && (st.sel||st.vsel)){ st.sel=null; st.vsel=null; renderSide(); paint(); syncHash(); } }); }
   buildLocator();
   paint();
+}
+/* ---------- surveyed map furniture from IGN (burgundy-topo.js): one path per layer, sized in screen pixels ---------- */
+let gTopoNames = null;
+function topoD(flat, close){
+  let d = "";
+  let x = 0, y = 0; const dl = TOPO.meta && TOPO.meta.delta;
+  for(let i = 0; i < flat.length; i += 2){
+    if(dl && i){ x += flat[i]; y += flat[i+1]; } else { x = flat[i]; y = flat[i+1]; }
+    const q = FWD([x, y]); d += (i ? "L" : "M") + q[0].toFixed(1) + " " + q[1].toFixed(1);
+  }
+  return close ? d + "Z" : d;
+}
+function drawTopo(gUnder, gHill, gRoad, gTown, gNames){
+  const T = TOPO, join = (list, close) => list.map(f => topoD(f, close)).join("");
+  el("path", {class:"t-wood", d:join(T.woods, true), "fill-rule":"evenodd"}, gUnder);
+  el("path", {class:"t-vine", d:join(T.vines, true)}, gUnder);
+  // contours over the vineyards, faint; every 25 m a little stronger
+  el("path", {class:"t-cmin", d:T.cont.filter(c => !c[1]).map(c => topoD(c[2])).join("")}, gHill);
+  el("path", {class:"t-cmaj", d:T.cont.filter(c => c[1]).map(c => topoD(c[2])).join("")}, gHill);
+  el("path", {class:"t-comm", d:T.communes.flatMap(c => c[2]).map(r => topoD(r, true)).join("")}, gRoad);
+  el("path", {class:"t-water", d:T.water.filter(w => w[0]===1).map(w => topoD(w[1])).join("")}, gRoad);
+  el("path", {class:"t-water t-wint", d:T.water.filter(w => w[0]!==1).map(w => topoD(w[1])).join("")}, gRoad);
+  const rd = k => T.roads.filter(r => r[0]===k).map(r => topoD(r[1])).join("");
+  const R4 = rd(4), R3 = rd(3), R2 = rd(2), R1 = rd(1), rail = join(T.rail);
+  el("path", {class:"t-track", d:R4}, gRoad);
+  [[R3,"t-r3"],[R2,"t-r2"],[R1,"t-r1"]].forEach(([d,c]) => el("path", {class:"t-case "+c, d}, gRoad));
+  [[R3,"t-r3"],[R2,"t-r2"],[R1,"t-r1"]].forEach(([d,c]) => el("path", {class:"t-fill "+c, d}, gRoad));
+  el("path", {class:"t-rail", d:rail}, gRoad); el("path", {class:"t-rail2", d:rail}, gRoad);
+  el("path", {class:"t-bld", d:join(T.bld, true)}, gTown);
+  // names: villages and hamlets, streams and woods, and the lieux-dits — except where a climat of the same name is drawn
+  const climatAt = (x, y, n) => C.some(c => c.bb && x >= c.bb[0] && x <= c.bb[2] && y >= c.bb[1] && y <= c.bb[3] && bareN(c.n) === n);
+  T.names.forEach(([k, n, x0, y0]) => {
+    const [x, y] = FWD([x0, y0]);
+    if(k === "l" && climatAt(x, y, bareN(n))) return;
+    const e = el("text", {class:"tn tn-"+k, x:x.toFixed(1), y:y.toFixed(1)}, gNames); e.textContent = n;
+  });
+  (T.refs || []).forEach(([num, x0, y0]) => { const [x, y] = FWD([x0, y0]); const e = el("text", {class:"tn tn-ref", x:x.toFixed(1), y:y.toFixed(1)}, gNames); e.textContent = num; });
+}
+const bareN = n => norm(n).replace(/^(les|la|le|aux|au|en|l|a la)\s+/, "");
+// level of detail on the surveyed map: buildings, tracks, small contours and lieux-dits names only when zoomed in
+function topoLod(k){
+  if(!TOPO || st.mode!=="geo" || !gTopoNames) return;
+  const mpp = 1/(GS*k); // metres per screen pixel
+  svg.classList.toggle("lod-mid", mpp < 9); svg.classList.toggle("lod-near", mpp < 3.2); svg.classList.toggle("lod-close", mpp < 1.4);
+  gTopoNames.setAttribute("font-size", (11/k).toFixed(2));
 }
 /* ---------- map furniture: contours, roads, villages, landmarks ---------- */
 const townBox = v => { const xs=v.town.map(p=>p[0]), ys=v.town.map(p=>p[1]); return [Math.min(...xs), v.y0+Math.min(...ys), Math.max(...xs), v.y0+Math.max(...ys)]; };
@@ -432,10 +550,10 @@ function insetPath(c){ // a dashed ring just inside the monopole's outline
   return toPath([[x0,y0],[x1,y0],[x1,y1],[x0,y1]], c.oy);
 }
 function tipHtml(c){
-  const own = c.mono ? `Monopole · ${esc(P[c.mono])}` : ((c.p||[]).length ? `${c.p.length} owner${c.p.length>1?"s":""} listed` : "");
+  const own = c.mono ? t("Monopole · {0}", esc(P[c.mono])) : ((c.p||[]).length ? `${t("Owners")}: ${c.p.length}` : "");
   let extra = "";
-  if(st.prod){ const hr = hrec(c, st.prod); if(hr) extra = `<br>${esc(P[st.prod])}: ${hr[2]==="s" ? "buys grapes here" : hr[1]==null ? "holder" : fmtHa(hr[1])+" ha · "+Math.round(100*hr[1]/c.ha)+"%"}${hr[2]==="f"?" (leased)":""}${hr[3]?" · since "+hr[3]:""}`; }
-  const cb = CELLAR.by[c.id]; if(cb) extra += `<br>🍷 ${cb.left} in cellar`;
+  if(st.prod){ const hr = hrec(c, st.prod); if(hr) extra = `<br>${esc(P[st.prod])}: ${hr[2]==="s" ? t("buys grapes here") : hr[1]==null ? t("holder") : fmtHa(hr[1])+" ha · "+Math.round(100*hr[1]/c.ha)+"%"}${hr[2]==="f"?` (${t("leased")})`:""}${hr[3]?" · "+t("since {0}", hr[3]):""}`; }
+  const cb = CELLAR.by[c.id]; if(cb) extra += `<br>🍷 ${cb.left} · ${t("in your cellar")}`;
   return `<b>${esc(c.n)}</b><br>${CLASS_NAME[c.c]} · ${esc(c.vil.n)} · ${fmtHa(c.ha)} ha${own?"<br>"+own:""}${extra}`;
 }
 
@@ -514,7 +632,7 @@ const ptrs = new Map(); let dragMoved = false, pinch0 = null, down0 = null;
 svg.addEventListener("pointerdown", ev => {
   ptrs.set(ev.pointerId, [ev.clientX, ev.clientY]);
   if(ptrs.size===1){ dragMoved=false; down0=[ev.clientX, ev.clientY, vb.x, vb.y]; }
-  if(ptrs.size===2){ const [a,b]=[...ptrs.values()]; pinch0={d:Math.hypot(a[0]-b[0],a[1]-b[1]), w:vb.w, c:clientToSvg((a[0]+b[0])/2,(a[1]+b[1])/2)}; }
+  if(ptrs.size===2){ const [a,b]=[...ptrs.values()]; pinch0={d:Math.hypot(a[0]-b[0],a[1]-b[1]), w:vb.w, c:clientToSvg((a[0]+b[0])/2,(a[1]+b[1])/2), ang:Math.atan2(b[1]-a[1], b[0]-a[0]), turn:0}; }
 });
 svg.addEventListener("pointermove", ev => {
   if(!ptrs.has(ev.pointerId)) return;
@@ -523,7 +641,13 @@ svg.addEventListener("pointermove", ev => {
     const [a,b]=[...ptrs.values()], d=Math.hypot(a[0]-b[0],a[1]-b[1]);
     const w = pinch0.w * pinch0.d / Math.max(20,d), k = w/vb.w;
     const [cx,cy] = pinch0.c;
-    setVB({x:cx-(cx-vb.x)*k, y:cy-(cy-vb.y)*k, w, h:vb.h*k}); dragMoved = true; return;
+    setVB({x:cx-(cx-vb.x)*k, y:cy-(cy-vb.y)*k, w, h:vb.h*k}); dragMoved = true;
+    // two-finger twist turns the surveyed map: shown live by turning the drawing, rebuilt upright when the fingers lift
+    if(st.mode==="geo"){
+      let t = (Math.atan2(b[1]-a[1], b[0]-a[0]) - pinch0.ang) * 180/Math.PI; t = ((t + 540) % 360) - 180;
+      if(pinch0.turning || Math.abs(t) > 12){ pinch0.turning = true; pinch0.turn = t; gView.setAttribute("transform", `rotate(${t.toFixed(1)} ${cx.toFixed(1)} ${cy.toFixed(1)})`); }
+    }
+    return;
   }
   if(ptrs.size===1 && down0){
     const dx = ev.clientX-down0[0], dy = ev.clientY-down0[1];
@@ -533,7 +657,10 @@ svg.addEventListener("pointermove", ev => {
 });
 const up = ev => {
   ptrs.delete(ev.pointerId);
-  if(ptrs.size<2) pinch0 = null;
+  if(ptrs.size<2 && pinch0){
+    const p0 = pinch0; pinch0 = null;
+    if(p0.turning){ gView.removeAttribute("transform"); rotateTo(st.rot + Math.round(p0.turn/5)*5); }
+  }
   if(ptrs.size===0){ svg.classList.remove("dragging"); down0=null; setTimeout(()=>{ dragMoved=false; }, 0); }
 };
 svg.addEventListener("pointerup", up); svg.addEventListener("pointercancel", up);
@@ -551,7 +678,8 @@ function layoutLabels(){
     const fs0 = c.c==="GC" ? 12 : c.c==="1er" ? 11 : 10.5, wt = c.c==="GC" ? 750 : 600;
     const bw = c.bw*k - 6, bh = c.bh*k - 2;
     let lines = null, fs = fs0;
-    for(const f of [fs0, fs0-1.5]){ lines = fitLines(c.n, f, wt, bw, bh); if(lines){ fs = f; break; } }
+    const sn = shortName(c.n), tries = [[c.n, fs0], [c.n, fs0-1.5]].concat(sn !== c.n ? [[sn, fs0-1.5]] : []);
+    for(const [name, f] of tries){ lines = fitLines(name, f, wt, bw, bh); if(lines){ fs = f; break; } }
     const t = c.lel;
     if(!lines){ t.style.display = "none"; }
     else {
@@ -592,10 +720,13 @@ function layoutLabels(){
   svg.querySelectorAll(".chcross").forEach(e => { if(!e._d) e._d = e.getAttribute("d").match(/-?[\d.]+/g).map(Number); const [x,y]=[e._d[0]+3, e._d[1]], q=1/k; e.setAttribute("d",`M${x-3*q} ${y}h${6*q}M${x} ${y-4*q}v${8*q}`); });
   lmEls.forEach(t => { t.setAttribute("font-size",(+t.dataset.fs/k).toFixed(2)); t.style.display = k>1.1 ? "" : "none"; });
   svg.classList.toggle("near", k>0.9); svg.classList.toggle("far", k<0.5);
+  topoLod(k);
   svg.querySelectorAll(".base").forEach(p => { p.setAttribute("stroke-width",(1/k).toFixed(2)); p.setAttribute("stroke-dasharray",`${(3/k).toFixed(2)} ${(3/k).toFixed(2)}`); });
   svg.querySelectorAll(".mono").forEach(p => { p.setAttribute("stroke-width",(1.3/k).toFixed(2)); p.setAttribute("stroke-dasharray",`${(4/k).toFixed(2)} ${(3/k).toFixed(2)}`); });
 }
 
+// a shorter form for tight spots: Saint → St, the Chambertin/Montrachet suffix of the grands crus abbreviated
+const shortName = n => n.replace(/\bSainte-/g, "Ste-").replace(/\bSaint-/g, "St-").replace(/-Chambertin$/, "-Ch.").replace(/-Montrachet$/, "-Mont.").replace(/^Corton /, "C. ");
 const BREAKS = new Map();
 function breaksOf(name){ // indexes where a line may break: after a space or a hyphen
   if(!BREAKS.has(name)){ const b=[]; for(let i=1;i<name.length;i++) if(name[i-1]===" "||name[i-1]==="-") b.push(i); BREAKS.set(name,b); }
@@ -675,46 +806,46 @@ function appellation(c){
 }
 function ownersHtml(c){
   const rows = [...(c.p||[])].sort((a,b) => (a[2]==="s")-(b[2]==="s") || (b[1]??-1)-(a[1]??-1));
-  if(!rows.length) return `<p class="note">No ownership details on file for this climat.</p>`;
+  if(!rows.length) return `<p class="note">${t("No ownership details on file for this climat.")}</p>`;
   const seg = rows.filter(r=>r[1] && r[2]!=="s").map(([k,h],i) => `<span title="${esc(P[k])} · ${fmtHa(h)} ha" style="width:${(100*h/c.ha).toFixed(2)}%;background:${mix(TOK.seq1, TOK.seq0, (i%6)/7)}"></span>`).join("");
   const known = c.known, rest = Math.max(0, c.ha - known);
   const body = rows.map(([k,h,kind,since]) => {
     const share = h && kind!=="s" ? 100*h/c.ha : null, ed = c.edited[k];
-    return `<tr><td><button class="plink${st.prod===k?" on":""}" data-p="${k}">${esc(P[k])}</button>${ed?` <span class="ktag ed" title="${esc([ed.note, ed.time, ed.user].filter(Boolean).join(" · "))}">✎ corrected</span>`:""}${EDITS.can?` <button class="edbtn" data-ed="${k}" title="Correct this holding">✎</button>`:""}${kind||since?` <span class="ktag ${kind}">${[KIND[kind],since&&"since "+since].filter(Boolean).join(" · ")}</span>`:""}${share!=null?`<span class="pb" style="width:${Math.max(2,share).toFixed(1)}%"></span>`:""}</td>
-      <td class="n">${kind==="s"?"":h!=null?`<b>${fmtHa(h)}</b> ha`:"holder"}</td><td class="n">${share!=null?(share<1?share.toFixed(1):Math.round(share))+"%":""}</td></tr>`;
+    return `<tr><td><button class="plink${st.prod===k?" on":""}" data-p="${k}">${esc(P[k])}</button>${ed?` <span class="ktag ed" title="${esc([ed.note, ed.time, ed.user].filter(Boolean).join(" · "))}">${t("✎ corrected")}</span>`:""}${EDITS.can?` <button class="edbtn" data-ed="${k}" title="${t("Correct this holding")}">✎</button>`:""}${kind||since?` <span class="ktag ${kind}">${[KIND[kind],since&&t("since {0}", since)].filter(Boolean).join(" · ")}</span>`:""}${share!=null?`<span class="pb" style="width:${Math.max(2,share).toFixed(1)}%"></span>`:""}</td>
+      <td class="n">${kind==="s"?"":h!=null?`<b>${fmtHa(h)}</b> ha`:t("holder")}</td><td class="n">${share!=null?(share<1?share.toFixed(1):Math.round(share))+"%":""}</td></tr>`;
   }).join("");
-  const cover = c.mono ? `<p class="note">Monopole — the whole climat belongs to ${esc(P[c.mono])}.</p>`
-    : known >= c.ha*.98 ? `<p class="note">The owners listed cover essentially the whole climat (published figures are rounded).</p>`
-    : known ? `<p class="note">Owners with a published figure account for ${fmtHa(known)} of ${fmtHa(c.ha)} ha (${Math.round(100*known/c.ha)}%); the other ${fmtHa(rest)} ha belongs to ${rows.some(r=>r[1]==null)?"the holders listed without a figure and ":""}smaller growers.</p>`
-    : `<p class="note">Notable owners; individual holdings not listed.</p>`;
+  const cover = c.mono ? `<p class="note">${t("Monopole — the whole climat belongs to {0}.", esc(P[c.mono]))}</p>`
+    : known >= c.ha*.98 ? `<p class="note">${t("The owners listed cover essentially the whole climat (published figures are rounded).")}</p>`
+    : known ? `<p class="note">${t("Owners with a published figure account for {0} of {1} ha ({2}%); the other {3} ha belongs to {4}smaller growers.", fmtHa(known), fmtHa(c.ha), Math.round(100*known/c.ha), fmtHa(rest), rows.some(r=>r[1]==null) ? t("the holders listed without a figure and ") : "")}</p>`
+    : `<p class="note">${t("Notable owners; individual holdings not listed.")}</p>`;
   return `${known?`<div class="sharebar" aria-hidden="true">${seg}</div>`:""}${cover}<table class="own">${body}</table>`;
 }
 function cellarHtml(list){
   if(!list || !list.length) return "";
-  return `<h3>In your cellar</h3>` + list.slice(0,12).map(w => `<div class="cw"><span class="b">${w.left}×</span> ${esc(w.producer)} · ${esc(w.name||"")} ${esc(String(w.vintage||""))}</div>`).join("")
-    + (list.length>12 ? `<p class="note">+ ${list.length-12} more</p>` : "");
+  return `<h3>${t("In your cellar")}</h3>` + list.slice(0,12).map(w => `<div class="cw"><span class="b">${w.left}×</span> ${esc(w.producer)} · ${esc(w.name||"")} ${esc(String(w.vintage||""))}</div>`).join("")
+    + (list.length>12 ? `<p class="note">${t("+ {0} more", list.length-12)}</p>` : "");
 }
 function renderSide(){
-  const close = `<button class="close" id="sideClose" aria-label="Close">×</button>`;
+  const close = `<button class="close" id="sideClose" aria-label="${t("Close")}">×</button>`;
   if(!setOpen()){ side.innerHTML = ""; renderPeek(); return; }
   if(st.sel){
     const c = CL[st.sel];
-    side.innerHTML = `${close}<div class="pills"><span class="pill ${c.c==="1er"?"p1er":c.c}">${CLASS_NAME[c.c]}</span>${c.mono?`<span class="pill mono">Monopole</span>`:""}<span class="pill">${COL_NAME[c.col]||"Red"}</span></div>
+    side.innerHTML = `${close}<div class="pills"><span class="pill ${c.c==="1er"?"p1er":c.c}">${CLASS_NAME[c.c]}</span>${c.mono?`<span class="pill mono">${t("Monopole")}</span>`:""}${c.x ? "" : `<span class="pill">${COL_NAME[c.col]||"Red"}</span>`}</div>
       <h2>${esc(c.n)}</h2>
       <div class="meta">${esc(appellation(c))} · <button class="plink" data-v="${c.vil.id}">${esc(c.vil.n)}</button></div>
       <div class="facts">
-        <div class="fact"><div class="l">Area</div><div class="v">${fmtHa(c.ha)} ha</div></div>
-        ${surveyHa(c) ? `<div class="fact" title="The land INAO delimits for this appellation, planted or not, measured from its parcel plan"><div class="l">INAO area</div><div class="v">${fmtHa(surveyHa(c))} ha</div></div>`
-          : `<div class="fact"><div class="l">Acres</div><div class="v">${(c.ha*2.471).toFixed(c.ha<4?1:0)}</div></div>`}
-        <div class="fact"><div class="l">Owners</div><div class="v">${c.mono?"1":(c.p||[]).length||"—"}</div></div>
+        <div class="fact"><div class="l">${t(c.x ? "Area (INAO)" : "Area")}</div><div class="v">${fmtHa(c.ha)} ha</div></div>
+        ${c.x ? `<div class="fact"><div class="l">${t("Acres")}</div><div class="v">${(c.ha*2.471).toFixed(c.ha<4?1:0)}</div></div>` : surveyHa(c) ? `<div class="fact" title="${t("The land INAO delimits for this appellation, planted or not, measured from its parcel plan")}"><div class="l">${t("INAO area")}</div><div class="v">${fmtHa(surveyHa(c))} ha</div></div>`
+          : `<div class="fact"><div class="l">${t("Acres")}</div><div class="v">${(c.ha*2.471).toFixed(c.ha<4?1:0)}</div></div>`}
+        <div class="fact"><div class="l">${t("Owners")}</div><div class="v">${c.mono?"1":(c.p||[]).length||"—"}</div></div>
       </div>
-      ${areaNote(c)}
-      <p>${esc(c.d||"")}</p>
-      ${st.mode==="geo" && GEO && (GEO.meta.approx||[]).includes(c.id) ? `<p class="note">INAO maps Charmes and Mazoyères as one area (Mazoyères may be sold as Charmes); the line between them here is an estimate.</p>` : ""}
+      ${c.x ? "" : areaNote(c)}
+      <p>${c.x ? `${t(c.c==="GC" ? "One of {0}'s grand cru climats on INAO's plan" : "One of {0}'s premiers crus on INAO's plan", esc(c.ap || c.vil.n))}${c.in && CL[c.in] && !CL[c.in].x ? t(", lying within {0}", `<button class="plink" data-c="${c.in}">${esc(CL[c.in].n)}</button>`) : ""}. ${t("The atlas has no notes on it yet; holdings can be added below.")}` : esc(txC(c))}</p>
+      ${st.mode==="geo" && GEO && (GEO.meta.approx||[]).includes(c.id) ? `<p class="note">${t("INAO maps Charmes and Mazoyères as one area (Mazoyères may be sold as Charmes); the line between them here is an estimate.")}</p>` : ""}
       ${detailHtml(c)}
-      ${c.inner?`<p class="note">An enclave inside <button class="plink" data-c="${c.in}">${esc(CL[c.in].n)}</button>.</p>`:""}
-      ${C.some(x=>x.in===c.id)?`<p class="note">Contains ${C.filter(x=>x.in===c.id).map(x=>`<button class="plink" data-c="${x.id}">${esc(x.n)}</button>`).join(", ")}.</p>`:""}
-      <h3>Holdings ${c.mono?"":"· click a name to map their vineyards"}</h3>
+      ${c.inner && !c.x?`<p class="note">${t("An enclave inside {0}.", `<button class="plink" data-c="${c.in}">${esc(CL[c.in].n)}</button>`)}</p>`:""}
+      ${C.some(x=>x.in===c.id)?`<p class="note">${t("Contains {0}.", C.filter(x=>x.in===c.id).map(x=>`<button class="plink" data-c="${x.id}">${esc(x.n)}</button>`).join(", "))}</p>`:""}
+      <h3>${t(c.mono ? "Holdings" : "Holdings · click a name to map their vineyards")}</h3>
       ${ownersHtml(c)}
       ${removedHtml(c)}
       ${editHtml(c)}
@@ -724,50 +855,50 @@ function renderSide(){
     const ORD = {GC:0,"1er":1,V:2};
     const hold = [...r.hold].sort((a,b) => (a.kind==="s")-(b.kind==="s") || ORD[a.c.c]-ORD[b.c.c] || (b.ha??-1)-(a.ha??-1));
     const host = s => { try{ return new URL(s).hostname.replace(/^www\./,""); }catch(e){ return s; } };
-    side.innerHTML = `${close}<div class="pills"><span class="pill">${esc(pf.kind || "Producer")}</span>${pf.base?`<span class="pill">${esc(pf.base)}</span>`:""}</div><h2>${esc(r.name)}</h2>
-      ${pf.size?`<div class="meta">${esc(pf.size)} in all</div>`:""}
+    const pk = txP(r.key, pf, "kind"), psz = txP(r.key, pf, "size"), pnote = txP(r.key, pf, "note"), pextra = LX()?.profiles?.[r.key]?.extra;
+    side.innerHTML = `${close}<div class="pills"><span class="pill">${esc(pk || t("Producer"))}</span>${pf.base?`<span class="pill">${esc(pf.base)}</span>`:""}</div><h2>${esc(r.name)}</h2>
+      ${psz?`<div class="meta">${t("{0} in all", esc(psz))}</div>`:""}
       <div class="facts">
-        <div class="fact"><div class="l">Ha on map</div><div class="v">${fmtHa(r.ha)}</div></div>
-        <div class="fact"><div class="l">Climats</div><div class="v">${r.n}</div></div>
-        <div class="fact"><div class="l">Grands crus</div><div class="v">${r.gc}</div></div>
+        <div class="fact"><div class="l">${t("Ha on map")}</div><div class="v">${fmtHa(r.ha)}</div></div>
+        <div class="fact"><div class="l">${t("Climats")}</div><div class="v">${r.n}</div></div>
+        <div class="fact"><div class="l">${t("Grands crus")}</div><div class="v">${r.gc}</div></div>
       </div>
-      ${pf.note?`<p>${esc(pf.note)}</p>`:""}
-      <p class="note">Highlighted on the map by share of each climat · hatched = holder, size not published · dotted gold = buys grapes there.</p>
-      <h3>Holdings on the map</h3>
-      <table class="own">${hold.map(({c,ha,kind,since}) => `<tr><td><span class="cls" style="background:${{GC:TOK.gc,"1er":TOK.pc,V:TOK.vc}[c.c]}"></span><button class="plink" data-c="${c.id}">${esc(c.n)}</button>${kind||since?` <span class="ktag ${kind}">${[KIND[kind],since&&"since "+since].filter(Boolean).join(" · ")}</span>`:""}
+      ${pnote?`<p>${esc(pnote)}</p>`:""}
+      <p class="note">${t("Highlighted on the map by share of each climat · hatched = holder, size not published · dotted gold = buys grapes there.")}</p>
+      <h3>${t("Holdings on the map")}</h3>
+      <table class="own">${hold.map(({c,ha,kind,since}) => `<tr><td><span class="cls" style="background:${{GC:TOK.gc,"1er":TOK.pc,V:TOK.vc}[c.c]}"></span><button class="plink" data-c="${c.id}">${esc(c.n)}</button>${kind||since?` <span class="ktag ${kind}">${[KIND[kind],since&&t("since {0}", since)].filter(Boolean).join(" · ")}</span>`:""}
         <div class="note" style="margin:0">${esc(c.vil.n)}${c.mono?" · monopole":""}</div></td>
-        <td class="n">${kind==="s"?"":ha!=null?`<b>${fmtHa(ha)}</b> ha`:"holder"}</td><td class="n">${ha!=null&&kind!=="s"?Math.round(100*ha/c.ha)+"%":""}</td></tr>`).join("")}</table>
-      ${(pf.extra||[]).length?`<h3>Not on this map</h3><table class="own">${pf.extra.map(([n,h,kind])=>`<tr><td>${esc(n)}${kind?` <span class="ktag ${kind}">${KIND[kind]}</span>`:""}</td><td class="n">${h!=null?`<b>${fmtHa(h)}</b> ha`:""}</td></tr>`).join("")}</table>`:""}
-      ${(pf.src||[]).length?`<h3>Sources</h3><p class="note">${pf.src.map(u=>`<a href="${esc(u)}" target="_blank" rel="noopener">${esc(host(u))}</a>`).join(" · ")}</p>`:""}
-      <p style="margin-top:12px"><button class="btn" id="clearProd">Clear producer</button></p>`;
+        <td class="n">${kind==="s"?"":ha!=null?`<b>${fmtHa(ha)}</b> ha`:t("holder")}</td><td class="n">${ha!=null&&kind!=="s"?Math.round(100*ha/c.ha)+"%":""}</td></tr>`).join("")}</table>
+      ${(pf.extra||[]).length?`<h3>${t("Not on this map")}</h3><table class="own">${pf.extra.map(([n,h,kind],i)=>`<tr><td>${esc((pextra||[])[i] || n)}${kind?` <span class="ktag ${kind}">${KIND[kind]}</span>`:""}</td><td class="n">${h!=null?`<b>${fmtHa(h)}</b> ha`:""}</td></tr>`).join("")}</table>`:""}
+      ${(pf.src||[]).length?`<h3>${t("Sources")}</h3><p class="note">${pf.src.map(u=>`<a href="${esc(u)}" target="_blank" rel="noopener">${esc(host(u))}</a>`).join(" · ")}</p>`:""}
+      <p style="margin-top:12px"><button class="btn" id="clearProd">${t("Clear producer")}</button></p>`;
   } else if(st.vsel){
     const v = VIL[st.vsel];
     const mine = C.filter(c => c.v===v.id && !c.inner);
-    const gc = mine.filter(c=>c.c==="GC"), pc = mine.filter(c=>c.c==="1er");
+    const gc = mine.filter(c=>c.c==="GC" && !c.x), pc = mine.filter(c=>c.c==="1er" && !c.x), more = C.filter(c => c.v===v.id && c.x).sort((a,b) => a.n.localeCompare(b.n, "fr"));
     const holders = {}; mine.forEach(c => (c.p||[]).forEach(([k,h]) => { holders[k]=(holders[k]||0)+(h||0); }));
     const top = Object.entries(holders).filter(([,h])=>h>0).sort((a,b)=>b[1]-a[1]).slice(0,8);
     const list = arr => arr.map(c => `<button data-c="${c.id}">${esc(c.n)}${c.mono?" ◌":""}</button>`).join("");
     const vb2 = CELLAR.village[v.id];
-    side.innerHTML = `${close}<div class="pills"><span class="pill">Commune</span></div><h2>${esc(v.n)}</h2>
-      <div class="meta">${esc(v.aoc)}</div><p>${esc(v.note)}</p>
-      ${gc.length?`<h3>Grands crus</h3><div class="qp">${list(gc)}</div>`:""}
-      ${pc.length?`<h3>Premiers crus on the map</h3><div class="qp">${list(pc)}</div>`:""}
-      ${top.length?`<h3>Largest listed holders here</h3><table class="own">${top.map(([k,h])=>`<tr><td><button class="plink" data-p="${k}">${esc(P[k])}</button></td><td class="n"><b>${fmtHa(h)}</b> ha</td></tr>`).join("")}</table>`:""}
-      ${vb2?`<h3>In your cellar</h3><p class="note">${vb2.left} bottle${vb2.left>1?"s":""} of ${esc(v.n)} without a named climat, plus whatever's matched to the vineyards above.</p>`:""}`;
+    side.innerHTML = `${close}<div class="pills"><span class="pill">${t("Commune")}</span></div><h2>${esc(v.n)}</h2>
+      <div class="meta">${esc(txV(v, "aoc"))}</div><p>${esc(txV(v, "note"))}</p>
+      ${gc.length?`<h3>${t("Grands crus")}</h3><div class="qp">${list(gc)}</div>`:""}
+      ${pc.length?`<h3>${t("Premiers crus on the map")}</h3><div class="qp">${list(pc)}</div>`:""}
+      ${more.length?`<h3>${t("Also on INAO's plan ({0})", more.length)}</h3><div class="qp small">${list(more)}</div>`:""}
+      ${top.length?`<h3>${t("Largest listed holders here")}</h3><table class="own">${top.map(([k,h])=>`<tr><td><button class="plink" data-p="${k}">${esc(P[k])}</button></td><td class="n"><b>${fmtHa(h)}</b> ha</td></tr>`).join("")}</table>`:""}
+      ${vb2?`<h3>${t("In your cellar")}</h3><p class="note">${t("{0} bottles of {1} without a named climat, plus whatever's matched to the vineyards above.", vb2.left, esc(v.n))}</p>`:""}`;
   } else {
     const gc = new Set(C.filter(c=>c.c==="GC"&&!c.inner).map(c=>c.grp||c.id)).size, pc = C.filter(c=>c.c==="1er"&&!c.inner).length, mono = C.filter(c=>c.mono).length;
     const picks = ["romaneeconti","latache","richebourg","chambertin","musigny","closvougeot","closstjacques","amoureuses","crosparantoux",
       "montrachet","chevalier","cortoncharlemagne","perrieres_meursault","closdesducs","epeneaux"].filter(id=>CL[id]);
-    side.innerHTML = `${close}<div class="pills"><span class="pill">Côte d'Or</span></div><h2>From Marsannay to Maranges</h2>
+    side.innerHTML = `${close}<div class="pills"><span class="pill">Côte d'Or</span></div><h2>${t("From Marsannay to Maranges")}</h2>
       <div class="facts">
-        <div class="fact"><div class="l">Grand cru AOCs</div><div class="v">${gc}</div></div>
-        <div class="fact"><div class="l">1ers on map</div><div class="v">${pc}</div></div>
-        <div class="fact"><div class="l">Monopoles</div><div class="v">${mono}</div></div>
+        <div class="fact"><div class="l">${t("Grand cru AOCs")}</div><div class="v">${gc}</div></div>
+        <div class="fact"><div class="l">${t("1ers on map")}</div><div class="v">${pc}</div></div>
+        <div class="fact"><div class="l">${t("Monopoles")}</div><div class="v">${mono}</div></div>
       </div>
-      <p>The Côte d'Or is one east-facing escarpment some 50 km long: the Côte de Nuits in the north, almost all red, then from Corton the
-      Côte de Beaune, where Chardonnay takes over south of Volnay. The best sites sit mid-slope, around 250–300 m, on limestone and marl —
-      grands crus in the middle band, premiers crus just above and below, village wine toward the D974, regional Bourgogne on the flat.</p>
-      <h3>Start with</h3><div class="qp">${picks.map(id=>`<button data-c="${id}">${esc(CL[id].n)}</button>`).join("")}</div>`;
+      <p>${t("The Côte d'Or is one east-facing escarpment some 50 km long: the Côte de Nuits in the north, almost all red, then from Corton the Côte de Beaune, where Chardonnay takes over south of Volnay. The best sites sit mid-slope, around 250–300 m, on limestone and marl — grands crus in the middle band, premiers crus just above and below, village wine toward the D974, regional Bourgogne on the flat.")}</p>
+      <h3>${t("Start with")}</h3><div class="qp">${picks.map(id=>`<button data-c="${id}">${esc(CL[id].n)}</button>`).join("")}</div>`;
   }
   side.querySelectorAll("[data-c]").forEach(b => b.onclick = ev => { ev.stopPropagation(); select(b.dataset.c, true); });
   side.querySelectorAll("[data-p]").forEach(b => b.onclick = () => setProducer(b.dataset.p, true));
@@ -799,31 +930,33 @@ function renderLegend(){
   const sw = (c,t,extra="") => `<div class="row"><span class="sw ${extra}" style="background:${c}"></span>${t}</div>`;
   const ramp = (a,b,l,r) => `<div class="ramp" style="background:linear-gradient(90deg,${a},${b})"></div><div class="rl"><span>${l}</span><span>${r}</span></div>`;
   switch(st.color){
-    case "commune": h = `<div class="lt">Commune · darker = higher class</div>` + V.filter(v=>C.some(c=>c.v===v.id)).map(v => sw(communeColor({vil:v,c:"1er"}), esc(v.n))).join(""); break;
-    case "size": h = `<div class="lt">Climat size</div>` + ramp(TOK.seq0, TOK.seq1, "<1 ha", `${Math.round(maxHa)} ha`); break;
-    case "owners": h = `<div class="lt">Owners listed here</div>` + ramp(TOK.seq0, TOK.seq1, "1 (monopole)", `${maxOwners}+`) + sw(TOK.none,"no details"); break;
+    case "commune": h = `<div class="lt">${t("Commune · darker = higher class")}</div>` + V.filter(v=>C.some(c=>c.v===v.id)).map(v => sw(communeColor({vil:v,c:"1er"}), esc(v.n))).join(""); break;
+    case "alt": h = `<div class="lt">${t("Mean altitude (measured)")}</div>` + ramp(TOK.seq0, TOK.seq1, `${ALT0} m`, `${ALT1} m`) + sw(TOK.none, t("no data")); break;
+    case "slope": h = `<div class="lt">${t("Mean slope (measured)")}</div>` + ramp(TOK.seq0, TOK.seq1, "0 %", `${SLOPE1}+ %`) + sw(TOK.none, t("no data")); break;
+    case "size": h = `<div class="lt">${t("Climat size")}</div>` + ramp(TOK.seq0, TOK.seq1, "<1 ha", `${Math.round(maxHa)} ha`); break;
+    case "owners": h = `<div class="lt">${t("Owners listed here")}</div>` + ramp(TOK.seq0, TOK.seq1, t("1 (monopole)"), `${maxOwners}+`) + sw(TOK.none,t("no details")); break;
     case "producer":
-      h = st.prod ? `<div class="lt">${esc(P[st.prod])} · share of each climat</div>` + ramp(mix(TOK.seq0,TOK.seq1,.3), TOK.seq1, "small", "100%")
-          + sw("url(#unk)","holder, size not listed").replace('style="background:url(#unk)"', `style="background:repeating-linear-gradient(45deg,${mix(TOK.seq0,TOK.seq1,.35)} 0 3px,${mix(TOK.seq0,TOK.seq1,.6)} 3px 6px)"`)
-          + `<div class="row"><span class="sw" style="background:radial-gradient(circle,${TOK.gold} 30%,${mix(TOK.seq0,TOK.gold,.25)} 34%);background-size:7px 7px"></span>buys grapes here</div>`
-          + sw(TOK.none, "not held")
-        : `<div class="lt">Producer's share</div><div>Pick a producer in the box above, or click a name in a vineyard's holdings.</div>`;
+      h = st.prod ? `<div class="lt">${t("{0} · share of each climat", esc(P[st.prod]))}</div>` + ramp(mix(TOK.seq0,TOK.seq1,.3), TOK.seq1, t("small"), "100%")
+          + sw("url(#unk)",t("holder, size not listed")).replace('style="background:url(#unk)"', `style="background:repeating-linear-gradient(45deg,${mix(TOK.seq0,TOK.seq1,.35)} 0 3px,${mix(TOK.seq0,TOK.seq1,.6)} 3px 6px)"`)
+          + `<div class="row"><span class="sw" style="background:radial-gradient(circle,${TOK.gold} 30%,${mix(TOK.seq0,TOK.gold,.25)} 34%);background-size:7px 7px"></span>${t("buys grapes here")}</div>`
+          + sw(TOK.none, t("not held"))
+        : `<div class="lt">${t("Producer's share")}</div><div>${t("Pick a producer in the box above, or click a name in a vineyard's holdings.")}</div>`;
       break;
     case "cellar":
-      h = CELLAR.loaded ? `<div class="lt">Bottles in your cellar</div>` + ramp(mix(TOK.seq0,TOK.gold,.4), TOK.gold, "1", "many") + sw(TOK.none,"none")
-        : `<div class="lt">My cellar</div><div>${esc(CELLAR.msg)}</div>`; break;
+      h = CELLAR.loaded ? `<div class="lt">${t("Bottles in your cellar")}</div>` + ramp(mix(TOK.seq0,TOK.gold,.4), TOK.gold, "1", t("many")) + sw(TOK.none,t("none"))
+        : `<div class="lt">${t("My cellar")}</div><div>${esc(t(CELLAR.msg, ...(CELLAR.args||[])))}</div>`; break;
     default:
-      h = `<div class="lt">Classification</div>` + sw(TOK.gc,"Grand cru") + sw(TOK.pc,"Premier cru") + sw(TOK.vc,"Village climat") + sw(TOK.base,"Village AOC")
-        + `<div class="row"><span class="sw mono-sw"></span>Monopole</div>`
-        + `<div class="row"><span class="sw" style="background:none;border:2.5px solid var(--wall)"></span>Walled clos</div>`;
+      h = `<div class="lt">${t("Classification")}</div>` + sw(TOK.gc,t("Grand cru")) + sw(TOK.pc,t("Premier cru")) + sw(TOK.vc,t("Village climat")) + sw(TOK.base,t("Village AOC"))
+        + `<div class="row"><span class="sw mono-sw"></span>${t("Monopole")}</div>`
+        + `<div class="row"><span class="sw" style="background:none;border:2.5px solid var(--wall)"></span>${t("Walled clos")}</div>`;
   }
-  if(shown < C.length) h += `<div class="cnt">${shown} of ${C.length} vineyards match</div>`;
+  if(shown < C.length) h += `<div class="cnt">${t("{0} of {1} vineyards match", shown, C.length)}</div>`;
   L.innerHTML = h;
 }
 
 /* ---------- table ---------- */
 const CORD = {GC:0,"1er":1,V:2};
-function ownText(c){ return c.mono ? "Monopole · "+P[c.mono] : (c.p||[]).length ? `${c.p.length} listed` : "—"; }
+function ownText(c){ return c.mono ? t("Monopole · {0}", P[c.mono]) : (c.p||[]).length ? t("{0} listed", c.p.length) : "—"; }
 function renderList(){
   const rows = C.filter(c => c.on);
   const k = st.sortK, d = st.sortDir;
@@ -838,8 +971,8 @@ function renderList(){
   });
   $("listCount").textContent = rows.length===C.length ? `(${C.length})` : `(${rows.length} of ${C.length})`;
   const tb = $("list").tBodies[0];
-  tb.innerHTML = rows.map(c => `<tr data-c="${c.id}" class="${st.sel===c.id?"sel":""}"><td><span class="cls" style="background:${{GC:TOK.gc,"1er":TOK.pc,V:TOK.vc}[c.c]}"></span>${esc(c.n)}${CELLAR.by[c.id]?` <span title="in your cellar" style="color:var(--gold)">●</span>`:""}</td>
-    <td>${esc(c.vil.n)}</td><td>${c.c==="V"?"Village":c.c}</td><td class="num">${fmtHa(c.ha)}</td><td>${esc(ownText(c))}</td></tr>`).join("");
+  tb.innerHTML = rows.map(c => `<tr data-c="${c.id}" class="${st.sel===c.id?"sel":""}"><td><span class="cls" style="background:${{GC:TOK.gc,"1er":TOK.pc,V:TOK.vc}[c.c]}"></span>${esc(c.n)}${CELLAR.by[c.id]?` <span title="${t("in your cellar")}" style="color:var(--gold)">●</span>`:""}</td>
+    <td>${esc(c.vil.n)}</td><td>${c.c==="V"?t("Village"):c.c}</td><td class="num">${fmtHa(c.ha)}</td><td>${esc(ownText(c))}</td></tr>`).join("");
   tb.querySelectorAll("tr").forEach(tr => tr.onclick = () => { select(tr.dataset.c, true); $("mapcard").scrollIntoView({behavior:"smooth", block:"nearest"}); });
 }
 $("list").tHead.querySelectorAll("th").forEach(th => th.onclick = () => {
@@ -850,30 +983,38 @@ $("list").tHead.querySelectorAll("th").forEach(th => th.onclick = () => {
 /* ---------- the Vosne domaines ---------- */
 function renderDomains(){
   const box = $("domains"); if(!box) return;
-  const tab = st.dtab || "vosne";
+  const tab = st.dtab || "all";
   const TABS = {
-    vosne:{area:["vosne","flagey","nuits","premeaux"], n:"Vosne–Nuits", ok:pf => pf.focus && !pf.cote},
-    north:{area:["marsannay","fixin","brochon","gevrey","morey","chambolle","vougeot"], n:"Gevrey–Vougeot", ok:pf => pf.cote==="north"},
-    beaune:{area:V.filter(v=>v.cote==="beaune").map(v=>v.id), n:"Côte de Beaune", ok:pf => pf.cote==="beaune"},
-  }, T = TABS[tab] || TABS.vosne;
-  const AREA = new Set(T.area), AREA_N = T.n;
+    all:{area:null, n:""},
+    vosne:{area:["vosne","flagey","nuits","premeaux"], n:"Vosne–Nuits"},
+    north:{area:["marsannay","fixin","brochon","gevrey","morey","chambolle","vougeot"], n:"Gevrey–Vougeot"},
+    beaune:{area:V.filter(v=>v.cote==="beaune").map(v=>v.id), n:"Côte de Beaune"},
+  }, T = TABS[tab] || TABS.all;
+  const AREA = T.area && new Set(T.area), AREA_N = T.n, q = norm($("dSearch").value || ""), sort = $("dSort").value;
   document.querySelectorAll("#dtabs button").forEach(b => b.classList.toggle("on", b.dataset.t===tab));
-  const list = Object.values(PROD).filter(r => r.prof && T.ok(r.prof)).map(r => {
-    const vh = r.hold.filter(h => AREA.has(h.c.geo||h.c.v) || AREA.has(h.c.v));
-    const gcs = r.hold.filter(h => h.c.c==="GC" && h.kind!=="s");
-    const vha = vh.filter(h=>h.kind!=="s").reduce((s,h)=>s+(h.ha||0),0);
-    const own = vh.filter(h=>h.kind!=="s"), unknown = own.some(h=>h.ha==null);
-    return {r, vh, own, gcs, vha, unknown, src:r.hold.filter(h=>h.kind==="s")};
-  }).sort((a,b) => (b.vha + .4*b.own.length) - (a.vha + .4*a.own.length)); // parcels of unpublished size still count for something
+  // every producer with something on the map, profiled or not
+  const all = Object.values(PROD).filter(r => r.hold.length).map(r => {
+    const vh = AREA ? r.hold.filter(h => AREA.has(h.c.geo||h.c.v) || AREA.has(h.c.v)) : r.hold;
+    const own = vh.filter(h=>h.kind!=="s"), gcs = own.filter(h => h.c.c==="GC");
+    const vha = own.reduce((s,h)=>s+(h.ha||0),0), unknown = own.some(h=>h.ha==null);
+    return {r, vh, own, gcs, vha, unknown, src:vh.filter(h=>h.kind==="s")};
+  });
+  const list = all.filter(x => x.vh.length && (!q || norm(x.r.name).includes(q))).sort((a,b) =>
+    sort==="az" ? a.r.name.localeCompare(b.r.name, "fr")
+    : sort==="gc" ? b.gcs.length - a.gcs.length || b.vha - a.vha
+    : sort==="n" ? b.own.length - a.own.length || b.vha - a.vha
+    : (b.vha + .4*b.own.length) - (a.vha + .4*a.own.length)); // parcels of unpublished size still count for something
+  $("dCount").textContent = t("{0} of {1} producers", list.length, all.length);
+  if(!list.length){ box.innerHTML = `<p class="ph">${t("No producer matches.")}</p>`; return; }
   box.innerHTML = list.map(({r,own,gcs,vha,unknown,src}) => {
-    const top = [...r.hold].filter(h=>h.kind!=="s").sort((a,b)=>({GC:0,"1er":1,V:2}[a.c.c]-{GC:0,"1er":1,V:2}[b.c.c])||(b.ha??-1)-(a.ha??-1)).slice(0,4);
+    const top = [...own].sort((a,b)=>({GC:0,"1er":1,V:2}[a.c.c]-{GC:0,"1er":1,V:2}[b.c.c])||(b.ha??-1)-(a.ha??-1)).slice(0,4);
     const monos = r.hold.filter(h=>h.c.mono===r.key && !h.c.inner).map(h=>h.c.n);
     return `<button class="dcard${st.prod===r.key?" on":""}" data-p="${r.key}">
       <span class="dn">${esc(r.name)}</span>
-      <span class="dm">${[r.prof.kind, r.prof.size].filter(Boolean).map(esc).join(" · ")}</span>
-      ${own.length ? `<span class="dk"><b>${unknown?"≥ ":""}${fmtHa(vha)}</b> ha in ${own.length} ${AREA_N} climat${own.length===1?"":"s"} · <b>${gcs.length}</b> grand cru${gcs.length===1?"":"s"}</span>` : ""}
-      ${src.length ? `<span class="dk">Buys grapes from <b>${src.length}</b> climats: ${src.map(h=>esc(h.c.n)).join(", ")}</span>` : ""}
-      ${monos.length?`<span class="dmono">Monopole: ${monos.map(esc).join(", ")}</span>`:""}
+      ${r.prof ? `<span class="dm">${[txP(r.key, r.prof, "kind"), txP(r.key, r.prof, "size")].filter(Boolean).map(esc).join(" · ")}</span>` : ""}
+      ${own.length ? `<span class="dk"><b>${unknown?"≥ ":""}${fmtHa(vha)}</b> ha · ${own.length} ${t(own.length===1?"climat":"climats")} · <b>${gcs.length}</b> ${t(gcs.length===1?"grand cru":"grands crus")}</span>` : ""}
+      ${src.length ? `<span class="dk">${t("Buys grapes from {0} climats: {1}", `<b>${src.length}</b>`, src.map(h=>esc(h.c.n)).join(", "))}</span>` : ""}
+      ${monos.length?`<span class="dmono">${t("Monopole: {0}", monos.map(esc).join(", "))}</span>`:""}
       <span class="dl">${top.map(h=>`<i class="c${h.c.c==="1er"?"P":h.c.c}"></i>${esc(h.c.n)}${h.ha?` ${fmtHa(h.ha)}`:""}`).join("<br>")}</span>
     </button>`;
   }).join("");
@@ -881,14 +1022,22 @@ function renderDomains(){
 }
 
 /* ---------- vineyard detail ---------- */
+const WINDS = {en:"N NNE NE ENE E ESE SE SSE S SSW SW WSW W WNW NW NNW", da:"N NNØ NØ ØNØ Ø ØSØ SØ SSØ S SSV SV VSV V VNV NV NNV", fr:"N NNE NE ENE E ESE SE SSE S SSO SO OSO O ONO NO NNO"};
+const wind = deg => (WINDS[window.I18N ? window.I18N.lang : "en"] || WINDS.en).split(" ")[Math.round(deg/22.5) % 16];
 function detailHtml(c){
-  const d = c.detail; if(!d) return "";
-  return `<div class="facts">
-      ${d.alt?`<div class="fact"><div class="l">Altitude</div><div class="v">${esc(d.alt)} m</div></div>`:""}
-      ${d.asp?`<div class="fact"><div class="l">Faces</div><div class="v">${esc(d.asp)}</div></div>`:""}
+  const d = c.detail || {}, m = DEM[c.id];
+  if(!c.detail && !m) return "";
+  // measured altitude band, aspect and slope from IGN's terrain model win over the estimated bands
+  // facing: the circular mean of local downhill directions; when they disagree (a climat wrapping round a hill) say so
+  const alt = m ? `${m[0]}–${m[1]}` : d.alt, asp = m ? (m[3] < 1.5 ? t("flat") : m[5] < 55 ? `${t("varied")} · ${wind(m[4])}` : wind(m[4])) : d.asp;
+  const mt = m ? ` title="${t("Altitude and slope measured from IGN's elevation model")}"` : "";
+  return `<div class="facts"${mt}>
+      ${alt?`<div class="fact"><div class="l">${t("Altitude")}</div><div class="v">${esc(alt)} m</div></div>`:""}
+      ${asp?`<div class="fact"><div class="l">${t("Faces")}</div><div class="v">${esc(asp)}</div></div>`:""}
+      ${m?`<div class="fact"><div class="l">${t("Slope")}</div><div class="v">${m[3].toFixed(m[3] < 10 ? 1 : 0)} %</div></div>`:""}
     </div>
-    ${d.soil?`<p class="note"><b>Soil:</b> ${esc(d.soil)}</p>`:""}
-    ${(d.sub||[]).length?`<h3>Lieux-dits within</h3><p class="note">${d.sub.map(esc).join(" · ")}</p>`:""}`;
+    ${d.soil?`<p class="note"><b>${t("Soil:")}</b> ${esc(txD(c, "soil"))}</p>`:""}
+    ${(d.sub||[]).length?`<h3>${t("Lieux-dits within")}</h3><p class="note">${(txD(c, "sub") || d.sub).map(esc).join(" · ")}</p>`:""}`;
 }
 
 /* ---------- compare two producers ---------- */
@@ -896,19 +1045,19 @@ st.cmp = ["drc", "lb_comte"];
 function renderCompare(){
   const box = $("cmp"); if(!box) return;
   const [a,b] = st.cmp, A = PROD[a], Bp = PROD[b];
-  if(!A || !Bp){ box.innerHTML = `<p class="note">Pick two producers above.</p>`; return; }
+  if(!A || !Bp){ box.innerHTML = `<p class="note">${t("Pick two producers above.")}</p>`; return; }
   const ORD = {GC:0,"1er":1,V:2};
   const rows = new Map();
   [[A,0],[Bp,1]].forEach(([r,i]) => r.hold.forEach(h => { const e = rows.get(h.c.id) || {c:h.c, v:[null,null]}; e.v[i] = h; rows.set(h.c.id, e); }));
   const list = [...rows.values()].sort((x,y) => ORD[x.c.c]-ORD[y.c.c] || x.c.vil.idx-y.c.vil.idx || x.c.n.localeCompare(y.c.n,"fr"));
-  const cell = h => !h ? `<td class="n">—</td>` : h.kind==="s" ? `<td class="n"><span class="ktag s">buys grapes</span></td>`
-    : `<td class="n">${h.ha!=null?`<b>${fmtHa(h.ha)}</b> ha`:"holder"}${h.kind==="f"?` <span class="ktag">leased</span>`:""}</td>`;
+  const cell = h => !h ? `<td class="n">—</td>` : h.kind==="s" ? `<td class="n"><span class="ktag s">${t("buys grapes")}</span></td>`
+    : `<td class="n">${h.ha!=null?`<b>${fmtHa(h.ha)}</b> ha`:t("holder")}${h.kind==="f"?` <span class="ktag">${t("leased")}</span>`:""}</td>`;
   const sum = (r,f) => r.hold.filter(f).length;
   box.innerHTML = `<table class="own cmpt"><thead><tr><th></th><th class="n"><button class="plink" data-p="${a}">${esc(A.name)}</button></th><th class="n"><button class="plink" data-p="${b}">${esc(Bp.name)}</button></th></tr></thead>
     <tbody>
-      <tr class="tot"><td>Published hectares on the map</td>${[A,Bp].map(r=>`<td class="n"><b>${r.hold.some(h=>h.kind!=="s"&&h.ha==null)?"≥ ":""}${fmtHa(r.ha)}</b></td>`).join("")}</tr>
-      <tr class="tot"><td>Grands crus · premiers crus</td><td class="n">${A.gc} · ${sum(A,h=>h.c.c==="1er"&&h.kind!=="s")}</td><td class="n">${Bp.gc} · ${sum(Bp,h=>h.c.c==="1er"&&h.kind!=="s")}</td></tr>
-      <tr class="tot"><td>Monopoles</td><td class="n">${sum(A,h=>h.c.mono===a&&!h.c.inner)}</td><td class="n">${sum(Bp,h=>h.c.mono===b&&!h.c.inner)}</td></tr>
+      <tr class="tot"><td>${t("Published hectares on the map")}</td>${[A,Bp].map(r=>`<td class="n"><b>${r.hold.some(h=>h.kind!=="s"&&h.ha==null)?"≥ ":""}${fmtHa(r.ha)}</b></td>`).join("")}</tr>
+      <tr class="tot"><td>${t("Grands crus · premiers crus")}</td><td class="n">${A.gc} · ${sum(A,h=>h.c.c==="1er"&&h.kind!=="s")}</td><td class="n">${Bp.gc} · ${sum(Bp,h=>h.c.c==="1er"&&h.kind!=="s")}</td></tr>
+      <tr class="tot"><td>${t("Monopoles")}</td><td class="n">${sum(A,h=>h.c.mono===a&&!h.c.inner)}</td><td class="n">${sum(Bp,h=>h.c.mono===b&&!h.c.inner)}</td></tr>
       ${list.map(({c,v}) => `<tr><td><span class="cls" style="background:${{GC:TOK.gc,"1er":TOK.pc,V:TOK.vc}[c.c]}"></span><button class="plink" data-c="${c.id}">${esc(c.n)}</button> <span class="note">${esc(c.vil.n)}</span></td>${cell(v[0])}${cell(v[1])}</tr>`).join("")}
     </tbody></table>`;
   box.querySelectorAll("[data-c]").forEach(x => x.onclick = () => { select(x.dataset.c, true); $("mapcard").scrollIntoView({behavior:"smooth", block:"nearest"}); });
@@ -923,11 +1072,11 @@ function renderCompare(){
 const CAT = ["#7C2D3E","#3F7CB6","#A87E2F","#3E9E68","#8E5BA8","#C2683A","#2F8F8F","#B5476E","#5E6E2F","#4C5BA8"];
 function renderGcOwners(){
   const box = $("gcown"); if(!box) return;
-  const gcs = C.filter(c => c.c==="GC" && !c.inner);
+  const gcs = C.filter(c => c.c==="GC" && !c.inner && !c.x);
   const tot = {}; gcs.forEach(c => c.p.forEach(([k,h,kd]) => { if(h && kd!=="s") tot[k]=(tot[k]||0)+h; }));
   const top = Object.entries(tot).sort((a,b)=>b[1]-a[1]).slice(0,CAT.length).map(([k])=>k), col = k => CAT[top.indexOf(k)] || null;
   const dk = DARK();
-  box.innerHTML = `<div class="gclegend">${top.map(k=>`<button class="plink" data-p="${k}"><span class="sw" style="background:${col(k)}"></span>${esc(P[k])}</button>`).join("")}<span class="note"><span class="sw" style="background:${dk?"#5A4D53":"#C9BBB2"}"></span>other listed owners · empty = not published</span></div>`
+  box.innerHTML = `<div class="gclegend">${top.map(k=>`<button class="plink" data-p="${k}"><span class="sw" style="background:${col(k)}"></span>${esc(P[k])}</button>`).join("")}<span class="note"><span class="sw" style="background:${dk?"#5A4D53":"#C9BBB2"}"></span>${t("other listed owners · empty = not published")}</span></div>`
     + gcs.map(c => {
       const own = c.p.filter(([,h,kd]) => h && kd!=="s").sort((a,b)=>b[1]-a[1]);
       let alt = 0;
@@ -974,41 +1123,41 @@ async function loadEdits(){
 }
 function removedHtml(c){
   if(!c.removed || !c.removed.length) return "";
-  return `<p class="note">Removed by correction: ${c.removed.map(({key,e}) => `<span title="${esc([e.note,e.time].filter(Boolean).join(" · "))}">${esc(P[key])}</span>`).join(", ")}.</p>`;
+  return `<p class="note">${t("Removed by correction: {0}.", c.removed.map(({key,e}) => `<span title="${esc([e.note,e.time].filter(Boolean).join(" · "))}">${esc(P[key])}</span>`).join(", "))}</p>`;
 }
 function editHtml(c){
-  if(!EDITS.can) return `<p class="note">Spotted a wrong figure? Log in on the Cellar page and you can correct it here.</p>`;
-  if(EDITS.status==="redeploy") return `<p class="note">Corrections need the updated Apps Script — redeploy <code>Code.gs</code> (see README).</p>`;
-  if(EDITS.open!==c.id) return `<p><button class="btn" id="edOpen">✎ Correct the holdings</button></p>`;
+  if(!EDITS.can) return `<p class="note">${t("Spotted a wrong figure? Log in on the Cellar page and you can correct it here.")}</p>`;
+  if(EDITS.status==="redeploy") return `<p class="note">${t("Corrections need the updated Apps Script — redeploy Code.gs (see README).")}</p>`;
+  if(EDITS.open!==c.id) return `<p><button class="btn" id="edOpen">${t("✎ Correct the holdings")}</button></p>`;
   const pre = EDITS.pre || {};
   return `<form class="edform" id="edForm">
-    <h3>Correct a holding</h3>
-    <label>Producer<input id="edP" list="allProducers" value="${esc(pre.p||"")}" required></label>
-    <div class="edrow"><label>Hectares<input id="edHa" type="number" step="0.01" min="0" max="200" value="${pre.ha??""}" placeholder="unknown"></label>
-      <label>Kind<select id="edK"><option value="">owned</option><option value="f"${pre.k==="f"?" selected":""}>leased</option><option value="s"${pre.k==="s"?" selected":""}>buys grapes</option></select></label>
-      <label>Since<input id="edS" type="number" min="1000" max="2200" value="${pre.s||""}" placeholder="vintage"></label></div>
-    <label>Source / note<input id="edN" placeholder="e.g. domaine website, 2024 tech sheet" required></label>
-    <div class="edrow"><button class="btn primary" type="submit">Save</button><button class="btn" type="button" id="edRemove">Remove this producer</button><button class="btn quiet" type="button" id="edCancel">Cancel</button></div>
-    <p class="note" id="edMsg">Corrections are shared with everyone who opens the atlas and logged with your name.</p>
+    <h3>${t("Correct a holding")}</h3>
+    <label>${t("Producer")}<input id="edP" list="allProducers" value="${esc(pre.p||"")}" required></label>
+    <div class="edrow"><label>${t("Hectares")}<input id="edHa" type="number" step="0.01" min="0" max="200" value="${pre.ha??""}" placeholder="${t("unknown")}"></label>
+      <label>${t("Kind")}<select id="edK"><option value="">${t("owned")}</option><option value="f"${pre.k==="f"?" selected":""}>${t("leased")}</option><option value="s"${pre.k==="s"?" selected":""}>${t("buys grapes")}</option></select></label>
+      <label>${t("Since")}<input id="edS" type="number" min="1000" max="2200" value="${pre.s||""}" placeholder="${t("vintage")}"></label></div>
+    <label>${t("Source / note")}<input id="edN" placeholder="${t("e.g. domaine website, 2024 tech sheet")}" required></label>
+    <div class="edrow"><button class="btn primary" type="submit">${t("Save")}</button><button class="btn" type="button" id="edRemove">${t("Remove this producer")}</button><button class="btn quiet" type="button" id="edCancel">${t("Cancel")}</button></div>
+    <p class="note" id="edMsg">${t("Corrections are shared with everyone who opens the atlas and logged with your name.")}</p>
   </form>`;
 }
 async function saveEdit(c, action){
   const name = $("edP").value.trim(), note = $("edN").value.trim();
-  if(!name){ $("edMsg").textContent = "Pick or type a producer."; return; }
-  if(!note){ $("edMsg").textContent = "Add where the figure comes from — it helps the next person."; return; }
+  if(!name){ $("edMsg").textContent = t("Pick or type a producer."); return; }
+  if(!note){ $("edMsg").textContent = t("Add where the figure comes from — it helps the next person."); return; }
   const key = keyFor(name);
   const edit = {climat:c.id, producer: key.startsWith("x_") ? name : key, action,
     ha: $("edHa").value==="" ? "" : Number($("edHa").value), kind: $("edK").value, since: $("edS").value, note};
-  $("edMsg").textContent = "Saving…";
+  $("edMsg").textContent = t("Saving…");
   try{
     const res = await fetch(apiUrl(), {method:"POST", redirect:"follow", body:JSON.stringify({
       user:localStorage.getItem("vinUser")||"", token:localStorage.getItem("vinToken")||"", action:"atlasedit", edit})});
     const data = await res.json();
-    if(!data.ok){ $("edMsg").textContent = data.error==="bad-action" ? "The Apps Script needs redeploying first (see README)." :
-      data.error==="bad-token" ? "Your session expired — log in on the Cellar page again." : data.error==="not-an-atlas-editor" ? "Your account isn't on the atlas editors list." : "Couldn't save: "+data.error; return; }
+    if(!data.ok){ $("edMsg").textContent = data.error==="bad-action" ? t("The Apps Script needs redeploying first (see README).") :
+      data.error==="bad-token" ? t("Your session expired — log in on the Cellar page again.") : data.error==="not-an-atlas-editor" ? t("Your account isn't on the atlas editors list.") : t("Couldn't save: {0}", data.error); return; }
     EDITS.list = data.edits || []; EDITS.open = null; EDITS.pre = null;
     applyEdits(); renderSide(); paint();
-  }catch(err){ $("edMsg").textContent = "Couldn't reach the cellar API."; }
+  }catch(err){ $("edMsg").textContent = t("Couldn't reach the cellar API."); }
 }
 function wireEdit(c){
   const o = $("edOpen"); if(o) o.onclick = () => { EDITS.open = c.id; EDITS.pre = null; renderSide(); };
@@ -1026,12 +1175,17 @@ function wireEdit(c){
 function norm(t){ return String(t||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/œ/g,"oe").replace(/[-'’.,«»()]/g," ")
   .replace(/\bst\b/g,"saint").replace(/\bste\b/g,"sainte").replace(/\s+/g," ").trim(); }
 // one search box: vineyards ("Name — Commune") and producers ("Name · producer")
-const PROD_SUFFIX = " · producer";
-$("searchList").innerHTML = [...C].sort((a,b)=>a.n.localeCompare(b.n,"fr")).map(c => `<option value="${esc(c.n)} — ${esc(c.vil.n)}">`).join("")
-  + Object.values(PROD).sort((a,b)=>a.name.localeCompare(b.name,"fr")).map(r => `<option value="${esc(r.name + PROD_SUFFIX)}">`).join("");
+let PROD_SUFFIX = " · producer";
+function fillSearchList(){
+  PROD_SUFFIX = " · " + t("producer");
+  $("searchList").innerHTML = [...C].sort((a,b)=>a.n.localeCompare(b.n,"fr")).map(c => `<option value="${esc(c.n)} — ${esc(c.vil.n)}">`).join("")
+    + Object.values(PROD).sort((a,b)=>a.name.localeCompare(b.name,"fr")).map(r => `<option value="${esc(r.name + PROD_SUFFIX)}">`).join("");
+}
+fillSearchList();
 $("producerList").innerHTML = Object.values(PROD).sort((a,b)=>a.name.localeCompare(b.name,"fr")).map(r => `<option value="${esc(r.name)}">`).join("");
 $("allProducers").innerHTML = Object.values(P).sort((a,b)=>a.localeCompare(b,"fr")).map(n => `<option value="${esc(n)}">`).join("");
 document.querySelectorAll("#dtabs button").forEach(b => b.onclick = () => { st.dtab = b.dataset.t; renderDomains(); });
+$("dSearch").addEventListener("input", renderDomains); $("dSort").onchange = renderDomains;
 $("fSearch").addEventListener("input", ev => {
   const val = ev.target.value;
   const exact = C.find(c => `${c.n} — ${c.vil.n}` === val);
@@ -1058,15 +1212,15 @@ function syncMode(){
   const geo = st.mode==="geo";
   $("layers").querySelectorAll("[data-m]").forEach(b => b.classList.toggle("on", b.dataset.m===st.mode));
   $("rotL").hidden = $("rotR").hidden = !geo;
-  $("compass").title = geo ? "North up" : "Schematic map: north is roughly up, the slope rises to the west";
-  $("attr").textContent = geo ? "Boundaries © INAO, Licence Ouverte" : "Schematic · not to scale · slope rises west";
+  $("compass").title = t(geo ? "North up" : "Schematic map: north is roughly up, the slope rises to the west");
+  $("attr").textContent = t(geo ? (TOPO ? "Boundaries © INAO · map data © IGN, Licence Ouverte" : "Boundaries © INAO, Licence Ouverte") : "Schematic · not to scale · slope rises west");
   syncCompass();
 }
 if(GEO){
   $("layers").hidden = false;
   $("layers").querySelectorAll("[data-m]").forEach(b => b.onclick = () => {
     if(b.dataset.m===st.mode) return;
-    st.mode = b.dataset.m; try{ localStorage.setItem("atlasMode", st.mode); }catch(e){}
+    st.mode = b.dataset.m; try{ localStorage.setItem("atlasMode", st.mode); }catch(e){} loadTopo();
     build(); syncMode(); renderSide(); vb = {x:0,y:0,w:W,h:H}; setVB(vb);
     if(st.sel) focusClimat(CL[st.sel]); else if(st.vsel) selectVillage(st.vsel, true); else focusDefault();
   });
@@ -1086,7 +1240,7 @@ function syncChips(){
 const seg = $("coteSeg"), csel = $("fCommune");
 seg.innerHTML = COTES.map(k => `<button type="button" data-cote="${k.id}">${esc(k.n)}</button>`).join("");
 seg.querySelectorAll("[data-cote]").forEach(b => b.onclick = () => fitCote(b.dataset.cote));
-csel.innerHTML = `<option value="">Commune…</option>` + COTES.map(k => `<optgroup label="${esc(k.n)}">` +
+csel.innerHTML = `<option value="">${t("Commune…")}</option>` + COTES.map(k => `<optgroup label="${esc(k.n)}">` +
   V.filter(v=>v.cote===k.id).map(v => `<option value="${v.id}">${esc(v.n)}</option>`).join("") + `</optgroup>`).join("");
 csel.onchange = () => { if(csel.value) selectVillage(csel.value, true); };
 function fitCote(id){
@@ -1112,12 +1266,14 @@ $("zInfo").onclick = ev => { ev.stopPropagation(); st.overview = !st.overview; i
 // INAO's delimited area, measured from the outline (metres²) — shown next to the published figure
 function surveyHa(c){
   const mp = GEO && GEO.climats[c.id]; if(!mp) return 0;
-  if(c._sha == null) c._sha = mp.reduce((s,p) => s + ringArea(p[0]) - p.slice(1).reduce((t,h) => t + ringArea(h), 0), 0) / 1e4;
+  // the atlas counts an enclave in its parent's hectares (Clos de la Mouchère in Puligny's Perrières), INAO maps them apart
+  if(c._sha == null) c._sha = [c, ...C.filter(e => e.in===c.id && !e.x && GEO.climats[e.id])].reduce((s0, e) =>
+    s0 + GEO.climats[e.id].reduce((s,p) => s + ringArea(p[0]) - p.slice(1).reduce((t,h) => t + ringArea(h), 0), 0), 0) / 1e4;
   return c._sha;
 }
 function areaNote(c){
   const s = surveyHa(c); if(!s || (s/c.ha > .8 && s/c.ha < 1.25)) return "";
-  return `<p class="note">The two areas differ: INAO's plan counts all land entitled to the name, planted or not, while the published ${fmtHa(c.ha)} ha counts vineyard — sometimes with neighbouring plots sold under the same name.</p>`;
+  return `<p class="note">${t("The two areas differ: INAO's plan counts all land entitled to the name, planted or not, while the published {0} ha counts vineyard — sometimes with neighbouring plots sold under the same name.", fmtHa(c.ha))}</p>`;
 }
 function syncCompass(){
   const a = st.mode==="geo" ? st.rot : 0;
@@ -1159,6 +1315,14 @@ loc.addEventListener("click", ev => {
   const r = loc.getBoundingClientRect(), x = (ev.clientX - r.left)/r.width*W, y = (ev.clientY - r.top)/r.height*H, dp = drawerPx()/scale();
   flyTo({x: x - (vb.w - dp)/2, y: y - vb.h/2, w: vb.w, h: vb.h}, 300);
 });
+// the real commune (IGN boundaries) under a point in metres — the atlas groups some, e.g. Ladoix · Aloxe · Pernand
+function communeAt([x, y]){
+  if(!TOPO.communes) return null;
+  if(!TOPO._comm) TOPO._comm = TOPO.communes.map(([, n, rs]) => ({n, rs: rs.map(f => { const out = []; let px = 0, py = 0;
+    for(let i = 0; i < f.length; i += 2){ if(TOPO.meta.delta && i){ px += f[i]; py += f[i+1]; } else { px = f[i]; py = f[i+1]; } out.push([px, py]); } return out; })}));
+  const hit = TOPO._comm.find(c => c.rs.some(r => inPoly(x, y, r)));
+  return hit ? hit.n : null;
+}
 let orientRaf = 0;
 function orientSoon(){ if(!orientRaf) orientRaf = requestAnimationFrame(() => { orientRaf = 0; orient(); }); }
 function orient(){
@@ -1185,9 +1349,9 @@ function orient(){
   const here = $("here"), wide = visW >= W*.55 && vb.h >= H*.55;
   here.hidden = !v || wide;
   if(v && !wide){
-    const cote = COTES.find(q => q.id===v.cote);
-    here.innerHTML = `${cote ? `<span class="c">${esc(cote.n)} ›</span> ` : ""}${near ? "near " : ""}${esc(v.n)}`;
-    here.dataset.v = v.id; here.title = `You're looking at ${v.n} — click for the commune`;
+    const cote = COTES.find(q => q.id===v.cote), comm = st.mode==="geo" && TOPO && INV ? communeAt(INV(clientToSvg(cx, cy))) : null;
+    here.innerHTML = `${cote ? `<span class="c">${esc(cote.n)} ›</span> ` : ""}${comm ? esc(comm) : `${near ? t("near ") : ""}${esc(v.n)}`}`;
+    here.dataset.v = v.id; here.title = t("You're looking at {0} — click for the commune", v.n);
     here.style.left = Math.round((r.width - dpx)/2) + "px";
   }
   const id = v && !wide ? v.id : null;
@@ -1198,6 +1362,12 @@ function orient(){
   }
 }
 $("here").onclick = () => { const id = $("here").dataset.v; if(id) selectVillage(id, true); };
+
+// switching language re-renders every piece of text the script writes
+if(window.I18N) window.I18N.onChange(() => {
+  fillSearchList(); csel.options[0].textContent = t("Commune…"); syncMode(); renderProdChip();
+  renderSide(); paint(); orient();
+});
 
 /* ---------- hash (shareable state) ---------- */
 let lastHash = location.hash;
@@ -1225,7 +1395,7 @@ function focusDefault(){ // Vosne and Flagey's grands crus
 }
 
 /* ---------- cellar overlay (only if you're logged in to the cellar in this browser) ---------- */
-const CELLAR = {loaded:false, by:{}, village:{}, msg:"Log in on the Cellar page to see your own bottles here."};
+const CELLAR = {loaded:false, by:{}, village:{}, msg:"Log in on the Cellar page to see your own bottles here.", args:[]};
 const VILLAGE_KEYS = V.map(v => [v.id, norm(v.n.split(" · ")[0])]).concat([["flagey","flagey echezeaux"],["nuits","nuits saint georges"],["premeaux","premeaux prissey"],["cdnv","cote de nuits villages"],
   ["corton","aloxe corton"],["corton","pernand vergelesses"],["corton","ladoix"],["monthelie","auxey duresses"],["monthelie","monthelie"],["meursault","volnay santenots"]]);
 const STRIP = ["gevrey chambertin","chambolle musigny","vosne romanee","morey saint denis","nuits saint georges","flagey echezeaux","premeaux prissey",
@@ -1264,7 +1434,7 @@ async function loadCellar(){
   const api = localStorage.getItem("vinApi") || (window.WINE_CONFIG && window.WINE_CONFIG.API_URL) || "";
   const user = localStorage.getItem("vinUser") || "", token = localStorage.getItem("vinToken") || "";
   if(!api || !token) return;
-  CELLAR.msg = "Loading your cellar…"; renderLegend();
+  CELLAR.msg = "Loading your cellar…"; CELLAR.args = []; renderLegend();
   try{
     const res = await fetch(api, {method:"POST", body:JSON.stringify({user, token, action:"data"}), redirect:"follow"});
     const data = await res.json();
@@ -1282,7 +1452,7 @@ async function loadCellar(){
     });
     CELLAR.loaded = true;
     const nc = Object.keys(CELLAR.by).length;
-    CELLAR.msg = nc ? `${n} bottle${n>1?"s":""} across ${nc} climat${nc>1?"s":""}` : "No bottles matched to a Côte de Nuits climat yet.";
+    CELLAR.msg = nc ? (n>1 ? "{0} bottles across {1} climats" : "{0} bottle in {1} climat") : "No bottles matched to a climat yet."; CELLAR.args = [n, nc];
     $("cellarChip").hidden = !nc;
     paint(); renderSide();
   }catch(err){
@@ -1315,16 +1485,16 @@ document.addEventListener("keydown", e => {
 function renderPeek(){
   const pk = $("peek"); if(!pk) return;
   let html = "";
-  if(st.sel){ const c = CL[st.sel]; html = `<b>${esc(c.n)}</b><span>${CLASS_NAME[c.c]} · ${fmtHa(c.ha)} ha${c.mono?" · monopole":c.p.length?` · ${c.p.length} owners`:""}</span>`; }
-  else if(st.prod){ const r = PROD[st.prod]; html = `<b>${esc(r.name)}</b><span>${r.n} climats · ${r.gc} grands crus</span>`; }
-  else if(st.vsel){ const v = VIL[st.vsel]; html = `<b>${esc(v.n)}</b><span>${esc(v.aoc.split(" · ").slice(1).join(" · "))}</span>`; }
+  if(st.sel){ const c = CL[st.sel]; html = `<b>${esc(c.n)}</b><span>${CLASS_NAME[c.c]} · ${fmtHa(c.ha)} ha${c.mono?" · monopole":c.p.length?` · ${t("Owners")}: ${c.p.length}`:""}</span>`; }
+  else if(st.prod){ const r = PROD[st.prod]; html = `<b>${esc(r.name)}</b><span>${r.n} ${t("climats")} · ${r.gc} ${t("grands crus")}</span>`; }
+  else if(st.vsel){ const v = VIL[st.vsel]; html = `<b>${esc(v.n)}</b><span>${esc(txV(v, "aoc").split(" · ").slice(1).join(" · "))}</span>`; }
   pk.hidden = !html;
-  if(html){ pk.innerHTML = `<div>${html}</div><button type="button" id="peekGo">Details ↓</button>`; $("peekGo").onclick = () => side.scrollIntoView({behavior:"smooth", block:"start"}); }
+  if(html){ pk.innerHTML = `<div>${html}</div><button type="button" id="peekGo">${t("Details ↓")}</button>`; $("peekGo").onclick = () => side.scrollIntoView({behavior:"smooth", block:"start"}); }
 }
 const after = readHash();
 build(); syncMode();
 renderSide(); syncCommunes();
-requestAnimationFrame(() => { setVB(vb); focusDefault(); if(after) after(); });
+requestAnimationFrame(() => { setVB(vb); focusDefault(); if(after) after(); setTimeout(loadTopo, 50); });
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { readTokens(); build(); renderSide(); setVB(vb); });
 loadCellar();
 loadEdits();

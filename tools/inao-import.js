@@ -159,7 +159,11 @@ function matchFeature(app, denom) {
       const inVillage = hits.filter(c => c.grp === "corton" ? A === "corton" : villageOf(c).some(v => A.startsWith(v)));
       if (inVillage.length) return { climat: [...inVillage].sort((a, b) => (a.in ? 1 : 0) - (b.in ? 1 : 0))[0] };
     }
-    return { unmatched: `${app} — ${denom}` };
+    // not on the atlas yet: keep it as an extra premier cru (or Corton climat) of its commune, named as INAO spells it
+    const vil = A === "corton" ? "corton" : A === "blagny" ? "meursault" : APP_VILLAGE[A];
+    const name = String(denom).replace(/ ou .*$/, "").replace(new RegExp("^" + String(app).replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\s+", "i"), "")
+      .replace(/^(premier|1er) cru\s+/i, "").trim();
+    return { unmatched: `${app} — ${denom}`, extra: vil && name ? { v: vil, n: name, c: A === "corton" ? "GC" : "1er", ap: String(app).replace(/ ou .*$/, "") } : null };
   }
   if (!D && A === "corton") return { skip: "Corton (whole grand cru area)" };
   const gc = C.find(c => c.c === "GC" && !c.in && (norm(c.n) === A || norm(c.n).replace(/^(le|la) /, "") === A.replace(/^(le|la) /, "")));
@@ -170,22 +174,25 @@ function matchFeature(app, denom) {
 
 (async () => {
   const feats = await readAll();
-  const groups = new Map(), unmatched = new Map(), skipped = new Map();
+  const groups = new Map(), unmatched = new Map(), skipped = new Map(), exAp = {};
   for (const f of feats) {
     const pr = f.properties || {};
     const app = pick(pr, ["app", "appellation", "nom_app", "libelle_app", "lbl_aoc"]), denom = pick(pr, ["denom", "denomination", "lieu_dit", "nom_denom", "libelle_denom"]);
     const m = matchFeature(app, denom);
+    if (m.extra) { const k = "x:" + m.extra.v + "|" + m.extra.c + "|" + m.extra.n; exAp[k] = m.extra.ap; const g = groups.get(k) || []; polys(f.geometry).forEach(p => g.push(p.map(r => r.map(toM)))); groups.set(k, g); continue; }
     const key = m.climat ? "c:" + m.climat.id : m.village ? "v:" + m.village : null;
     if (!key) { const tgt = m.unmatched ? unmatched : skipped, k = m.unmatched || m.skip; tgt.set(k, (tgt.get(k) || 0) + 1); continue; }
     const g = groups.get(key) || []; polys(f.geometry).forEach(p => g.push(p.map(r => r.map(toM)))); groups.set(key, g);
   }
-  const out = { climats: {}, villages: {} };
+  const out = { climats: {}, villages: {}, extra: {} };
   let n = 0;
   for (const [key, list] of groups) {
     let u = list.length > 1 ? pc.union(...list.map(p => [p])) : [list[0]];
     u = finish(u); if (!u.length) continue;
-    const [kind, id] = key.split(":");
-    (kind === "c" ? out.climats : out.villages)[id] = u; n++;
+    const [kind, id] = key.split(/:(.*)/s);
+    if (kind === "x") { const [v, c, nm] = id.split("|"); out.extra["x_" + v + "_" + (c === "GC" ? "gc_" : "") + bare(nm).replace(/[^a-z0-9]+/g, "_")] = { n: nm, v, c, ap: exAp[key], mp: u }; }
+    else (kind === "c" ? out.climats : out.villages)[id] = u;
+    n++;
     if (n % 50 === 0 || n === groups.size) console.log(`merged ${n}/${groups.size}`);
   }
   const meta = { source: "INAO — Délimitation parcellaire des AOC viticoles (data.gouv.fr, Licence Ouverte)", built: new Date().toISOString().slice(0, 10),
@@ -209,6 +216,22 @@ function matchFeature(app, denom) {
     approx.push("charmes", "mazoyeres");
   }
   meta.approx = approx;
+  // extras: one lying mostly inside an atlas climat is a named part of it (Chassagne's Morgeot holds La Boudriotte,
+  // Les Grands Clos…): kept, nested in that climat and drawn on top; one inside another extra is a clos within it
+  const haOf2 = mp => mp.reduce((s, p) => s + area(p[0]) - p.slice(1).reduce((t, h) => t + area(h), 0), 0);
+  const variants = [];
+  Object.entries(out.extra).forEach(([id, x]) => {
+    const a0 = haOf2(x.mp); x.ha = +(a0 / 1e4).toFixed(2);
+    for (const c of C) { const mp = out.climats[c.id]; if (!mp) continue;
+      const ov = haOf2(pc.intersection(x.mp, mp)); if (ov > a0 * .5) { variants.push(`${x.n} (${x.v}) in ${c.n}`); x.in = c.id; return; } }
+  });
+  const ex = Object.entries(out.extra);
+  ex.forEach(([id, x]) => { const a0 = haOf2(x.mp);
+    if (x.in) return;
+    const host = ex.find(([id2, y]) => id2 !== id && y.v === x.v && haOf2(y.mp) > a0 && haOf2(pc.intersection(x.mp, y.mp)) > a0 * .8);
+    if (host) x.in = host[0]; });
+  console.log(`\nINAO premiers crus / Corton climats added as extras: ${Object.keys(out.extra).length}`);
+  if (variants.length) console.log(`  nested inside atlas climats (${variants.length}): ${variants.join("; ")}`);
   console.log("");
   const missing = C.filter(c => !out.climats[c.id]);
   // derived hectares, to compare with the atlas's figures

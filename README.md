@@ -324,6 +324,31 @@ null`) nothing changes. Credit: INAO data from data.gouv.fr under the Licence
 Ouverte; INAO notes the official boundaries are the plans held in the town
 halls.
 
+## Map furniture and terrain (IGN)
+
+Two more importers fill in the surveyed map from IGN's Géoplateforme (Licence Ouverte). Both need curl and cache
+their downloads in `tools/.topo-cache` / `tools/.dem-cache`, so reruns are quick:
+
+- `node tools/topo-import.js` → `burgundy-topo.js`: roads and vineyard tracks, railways, streams, woods and planted
+  vines, buildings, 5 m contour lines, place names (villages, hamlets, lieux-dits) and commune boundaries from BD TOPO,
+  for the strip the INAO outlines cover. Coordinates are delta-encoded; the atlas loads the file after its first paint
+  and shows buildings, tracks, minor contours and lieux-dits only when zoomed in.
+- `node tools/dem-import.js` → `burgundy-dem.js`: altitude band (5th–95th percentile), mean slope and the direction
+  each climat faces, sampled from the RGE ALTI® terrain model on a grid inside its outline. A climat that wraps round
+  a hill (Corton-Charlemagne) is marked "varied". These replace the estimated bands in the vineyard panel and drive
+  the **By altitude** / **By slope** colour modes.
+
+`inao-import.js` also keeps INAO's premiers crus and Corton climats that the atlas has no notes for (about 300) as
+extra climats on the surveyed map; those lying inside an atlas climat (Chassagne's Morgeot holds La Boudriotte, Les
+Grands Clos…) are nested in it.
+
+## Languages
+
+`i18n.js` holds the interface strings in English, Danish and French and draws the flag picker (front page and atlas
+header); the choice is remembered per browser. `burgundy-i18n-da.js` and `burgundy-i18n-fr.js` hold translated
+climat, commune, domaine and soil texts, keyed like the English data; anything missing falls back to English. The
+cellar app itself is still English.
+
 ## Smoke test
 
 `tools/smoke-test.js` drives the whole site in a headless browser against a fake

@@ -239,6 +239,13 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
 .gate{position:fixed;inset:0;background:var(--bg);z-index:100;overflow-y:auto;padding:28px 16px 40px}
 /* front page: the public Burgundy atlas next to the cellar login */
 .landing{max-width:1020px;margin:0 auto}
+.landing-head .sub{display:inline-flex;align-items:center;gap:12px;flex-wrap:wrap}
+.langwrap{display:inline-flex}
+.langpick{display:flex;gap:4px}
+.langpick button{width:28px;height:20px;padding:0;border:1px solid var(--line);border-radius:4px;background:none;cursor:pointer;overflow:hidden;opacity:.55}
+.langpick button svg{width:100%;height:100%;display:block}
+.langpick button:hover{opacity:.9}
+.langpick button.on{opacity:1;box-shadow:0 0 0 2px var(--accent)}
 .landing-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px 16px;flex-wrap:wrap;
   border-bottom:2px solid var(--ink);padding-bottom:12px;margin-bottom:20px}
 .gate .landing-head h1{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;font-size:clamp(30px,5vw,44px);font-weight:600;margin:0}
@@ -411,33 +418,32 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
  <div class="landing">
   <header class="landing-head">
     <h1>All<em>Wine</em></h1>
-    <span class="sub">Burgundy atlas · private cellars</span>
+    <span class="sub"><span data-i18n>Burgundy atlas · private cellars</span> <span class="langwrap" data-langpick></span></span>
   </header>
   <div class="landing-grid">
   <div>
     <a class="atlascard" href="burgundy.html">
       <img src="atlas-preview.jpg" alt="The Burgundy atlas: Vosne-Romanée's grands crus around Romanée-Conti" width="960" height="999">
       <div class="ab">
-        <h2>Burgundy atlas</h2>
-        <p>Every grand cru and premier cru of the Côte d'Or, from Marsannay to Maranges — classification, monopoles and who owns what.
-        Open to everyone, no login needed.</p>
-        <span class="open">Open the map →</span>
+        <h2 data-i18n>Burgundy atlas</h2>
+        <p data-i18n>Every grand cru and premier cru of the Côte d'Or on INAO's surveyed plan, from Marsannay to Maranges — classification, monopoles, who owns what, altitude and slope. Open to everyone, no login needed.</p>
+        <span class="open" data-i18n>Open the map →</span>
       </div>
     </a>
   </div>
   <form class="card" id="gateForm">
-    <h2>Your cellar</h2>
+    <h2 data-i18n>Your cellar</h2>
     <p id="gateLead">Your private cellar. Log in to continue.</p>
     <div id="gateApiWrap" hidden>
       <label for="gateApi">API URL (Apps Script deployment)</label>
       <input id="gateApi" type="url" placeholder="https://script.google.com/macros/s/…/exec">
     </div>
-    <label for="gateUser">Username</label>
+    <label for="gateUser" data-i18n>Username</label>
     <input id="gateUser" autocomplete="username" autocapitalize="none" spellcheck="false">
-    <label for="gatePass">Password</label>
+    <label for="gatePass" data-i18n>Password</label>
     <input id="gatePass" type="password" autocomplete="current-password">
     <div id="gateInviteWrap" hidden>
-      <label for="gateInvite">Invite code</label>
+      <label for="gateInvite" data-i18n>Invite code</label>
       <input id="gateInvite" type="text" autocomplete="off" autocapitalize="none">
     </div>
     <div class="err" id="gateErr"></div>
@@ -865,7 +871,8 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
 
 <!-- Pages serves these with max-age=600 and no revalidation, so a merged change can
      sit invisible behind a stale app.js for ten minutes. Bump v on every deploy. -->
+<script src="i18n.js?v=2"></script>
 <script src="notes.js?v=4"></script>
-<script src="app.js?v=6"></script>
+<script src="app.js?v=7"></script>
 </body>
 </html>

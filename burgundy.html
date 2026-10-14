@@ -49,7 +49,7 @@ html,body{margin:0;padding:0}
 body{background:var(--bg);color:var(--ink);
   font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
 .serif{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif}
-.wrap{max-width:1400px;margin:0 auto;padding:18px 20px 60px}
+.wrap{max-width:2200px;margin:0 auto;padding:18px clamp(12px,2.2vw,36px) 60px}
 @media(max-width:600px){.wrap{padding:14px 12px 48px}}
 header.top{display:flex;align-items:center;justify-content:space-between;gap:8px 16px;
   border-bottom:2px solid var(--ink);padding-bottom:10px;margin-bottom:12px}
@@ -59,6 +59,12 @@ header.top h1 em{font-style:italic;color:var(--accent)}
 header.top h1 a{color:inherit;text-decoration:none}
 header.top .ttl{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:13px;font-weight:600;
   color:var(--muted);text-transform:uppercase;letter-spacing:.14em}
+.hright{display:flex;align-items:center;gap:14px}
+.langpick{display:flex;gap:4px}
+.langpick button{width:30px;height:21px;padding:0;border:1px solid var(--line);border-radius:4px;background:none;cursor:pointer;overflow:hidden;opacity:.55;transition:opacity .15s}
+.langpick button svg{width:100%;height:100%;display:block}
+.langpick button:hover{opacity:.9}
+.langpick button.on{opacity:1;box-shadow:0 0 0 2px var(--accent)}
 .back{font-size:13.5px;font-weight:600;color:var(--accent);text-decoration:none;white-space:nowrap}
 .back:hover{text-decoration:underline}
 
@@ -204,6 +210,31 @@ input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible,[t
 .rfill{fill:none;stroke:var(--rfill);stroke-linecap:round;stroke-linejoin:round}
 .track{fill:none;stroke:var(--rfill);stroke-opacity:.9;stroke-dasharray:3 2;stroke-linecap:round}
 .house{fill:var(--house)}
+/* surveyed map: IGN layers. Widths in screen pixels (non-scaling), shown by zoom level (lod-mid / lod-near / lod-close) */
+.t-wood{fill:var(--forest);opacity:.75}
+.t-vine{fill:var(--forest-ink);opacity:.07}
+.t-cmin,.t-cmaj{fill:none;stroke:var(--contour);vector-effect:non-scaling-stroke}
+.t-cmin{stroke-opacity:.16;stroke-width:.6;display:none} .t-cmaj{stroke-opacity:.34;stroke-width:.8}
+#map.lod-mid .t-cmin{display:inline}
+.t-comm{fill:none;stroke:var(--ink);stroke-opacity:.28;stroke-width:1.1;stroke-dasharray:7 3 1.5 3;vector-effect:non-scaling-stroke}
+.t-water{fill:none;stroke:var(--water);stroke-width:1.6;stroke-linecap:round;vector-effect:non-scaling-stroke} .t-wint{stroke-width:.9;stroke-dasharray:3 2}
+.t-case,.t-fill,.t-track,.t-rail,.t-rail2{fill:none;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+.t-case{stroke:var(--rcase)} .t-fill{stroke:var(--rfill)}
+.t-case.t-r1{stroke-width:5.5} .t-fill.t-r1{stroke-width:3.6;stroke:var(--rmain,#E9C27A)}
+.t-case.t-r2{stroke-width:4} .t-fill.t-r2{stroke-width:2.5}
+.t-case.t-r3{stroke-width:2.8;display:none} .t-fill.t-r3{stroke-width:1.6;display:none}
+#map.lod-mid .t-r3{display:inline}
+.t-track{stroke:var(--rcase);stroke-opacity:.55;stroke-width:1;stroke-dasharray:3 2.5;display:none}
+#map.lod-near .t-track{display:inline}
+.t-rail{stroke:var(--muted);stroke-width:2.6} .t-rail2{stroke:var(--mapbg);stroke-width:1.4;stroke-dasharray:6 6}
+.t-bld{fill:var(--house);stroke:var(--town-ink);stroke-opacity:.35;stroke-width:.4;vector-effect:non-scaling-stroke;display:none}
+#map.lod-mid .t-bld{display:inline}
+.tn{text-anchor:middle;dominant-baseline:central;fill:var(--muted);paint-order:stroke;stroke:var(--mapbg);stroke-width:2.5px;stroke-opacity:.85;stroke-linejoin:round;display:none}
+.tn-v{font-weight:700;font-size:1.25em;fill:var(--ink);letter-spacing:.02em;display:inline} .tn-h{font-size:.95em;fill:var(--ink)}
+.tn-l{font-style:italic;font-size:.9em} .tn-w{font-style:italic;fill:var(--water);font-size:.85em} .tn-f{font-style:italic;fill:var(--forest-ink);font-size:.9em}
+.tn-ref{font-weight:700;font-size:.8em;fill:var(--ink)}
+#map.lod-mid .tn-h,#map.lod-mid .tn-ref{display:inline}
+#map.lod-near .tn-l,#map.lod-near .tn-w,#map.lod-near .tn-f{display:inline}
 #map.far .house,#map.far .church,#map.far .chcross,#map.far .track{display:none}
 .church{fill:var(--house-ink)}
 .chcross{stroke:var(--house-ink);fill:none}
@@ -213,6 +244,10 @@ input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible,[t
 .chateau{fill:var(--house-ink);stroke:var(--wall);pointer-events:none}
 .ktag{font-size:10.5px;font-weight:700;border-radius:10px;padding:0 6px;background:var(--chip);color:var(--muted);white-space:nowrap}
 .ktag.s{color:var(--gold)}
+.dfilt{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.dfilt input,.dfilt select{background:var(--card);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:6px 10px;font:inherit;font-size:13.5px;height:32px}
+.dfilt input{width:200px} #dCount{margin-left:auto}
+@media(max-width:600px){.dfilt input{width:100%;font-size:16px}}
 .dgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
 .dcard{display:flex;flex-direction:column;gap:3px;text-align:left;border:1px solid var(--line);background:var(--card2);border-radius:10px;
   padding:10px 12px;cursor:pointer;font-family:inherit;color:var(--ink)}
@@ -289,6 +324,7 @@ input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible,[t
 .qp button{border:1px solid var(--line);background:var(--card2);border-radius:20px;padding:4px 11px;font-size:12.5px;
   cursor:pointer;font-family:inherit;color:var(--ink)}
 .qp button:hover{border-color:var(--accent)}
+.qp.small button{font-size:11.5px;padding:3px 9px;color:var(--muted)}
 .cw{font-size:13px;padding:6px 0;border-bottom:1px solid var(--line)}
 .cw .b{font-weight:650;color:var(--gold)}
 .cellar-st{font-size:12.5px;color:var(--muted);margin:0 0 10px}
@@ -327,81 +363,88 @@ footer.fine{margin-top:14px;font-size:12px;color:var(--muted);max-width:110ch;li
 <body>
 <div class="wrap">
 <header class="top">
-  <h1><a href="./">All<em>Wine</em></a><span class="ttl">Burgundy atlas</span></h1>
-  <a class="back" href="./">← AllWine</a>
+  <h1><a href="./">All<em>Wine</em></a><span class="ttl" data-i18n>Burgundy atlas</span></h1>
+  <div class="hright"><div data-langpick></div><a class="back" href="./" data-i18n>← AllWine</a></div>
 </header>
 
 <div class="toolbar" role="search">
-  <input type="search" id="fSearch" list="searchList" placeholder="Find a vineyard or producer…" aria-label="Find a vineyard or producer">
+  <input type="search" id="fSearch" list="searchList" placeholder="Find a vineyard or producer…" aria-label="Find a vineyard or producer" data-i18n-ph data-i18n-aria>
   <datalist id="searchList"></datalist>
   <datalist id="producerList"></datalist>
   <datalist id="allProducers"></datalist>
   <div class="seg" id="coteSeg" role="group" aria-label="Côte"></div>
-  <select id="fCommune" aria-label="Jump to a commune"></select>
-  <select id="fColor" aria-label="Colour the map by">
-    <option value="class">By classification</option>
-    <option value="commune">By commune</option>
-    <option value="producer">By producer's share</option>
-    <option value="size">By size (ha)</option>
-    <option value="owners">By owners listed</option>
-    <option value="cellar">By my cellar</option>
+  <select id="fCommune" aria-label="Jump to a commune" data-i18n-aria></select>
+  <select id="fColor" aria-label="Colour the map by" data-i18n-aria>
+    <option value="class" data-i18n>By classification</option>
+    <option value="commune" data-i18n>By commune</option>
+    <option value="producer" data-i18n>By producer's share</option>
+    <option value="size" data-i18n>By size (ha)</option>
+    <option value="alt" data-i18n>By altitude</option>
+    <option value="slope" data-i18n>By slope</option>
+    <option value="owners" data-i18n>By owners listed</option>
+    <option value="cellar" data-i18n>By my cellar</option>
   </select>
-  <div class="seg" id="wineSeg" role="group" aria-label="Wine colour">
-    <button type="button" data-wc="" class="on">All</button><button type="button" data-wc="R">Red</button><button type="button" data-wc="W">White</button>
+  <div class="seg" id="wineSeg" role="group" aria-label="Wine colour" data-i18n-aria>
+    <button type="button" data-wc="" class="on" data-i18n>All</button><button type="button" data-wc="R" data-i18n>Red</button><button type="button" data-wc="W" data-i18n>White</button>
   </div>
   <div class="chipset" id="classChips">
-    <button class="chip on" data-cls="GC"><span class="sw" style="background:var(--gc)"></span>Grand cru</button>
-    <button class="chip on" data-cls="1er"><span class="sw" style="background:var(--pc)"></span>1er cru</button>
-    <button class="chip on" data-cls="V"><span class="sw" style="background:var(--vc)"></span>Village</button>
-    <button class="chip" id="monoChip">Monopoles</button>
-    <button class="chip" id="cellarChip" hidden>My cellar</button>
-    <button class="chip prod" id="prodChip" hidden title="Clear the producer"></button>
+    <button class="chip on" data-cls="GC"><span class="sw" style="background:var(--gc)"></span><span data-i18n>Grand cru</span></button>
+    <button class="chip on" data-cls="1er"><span class="sw" style="background:var(--pc)"></span><span data-i18n>1er cru</span></button>
+    <button class="chip on" data-cls="V"><span class="sw" style="background:var(--vc)"></span><span data-i18n>Village</span></button>
+    <button class="chip" id="monoChip" data-i18n>Monopoles</button>
+    <button class="chip" id="cellarChip" hidden data-i18n>My cellar</button>
+    <button class="chip prod" id="prodChip" hidden title="Clear the producer" data-i18n-title></button>
   </div>
-  <button class="btn quiet" id="reset" title="Reset filters and view" aria-label="Reset filters and view">↺</button>
+  <button class="btn quiet" id="reset" title="Reset filters and view" aria-label="Reset filters and view" data-i18n-title data-i18n-aria>↺</button>
 </div>
 
 <div class="mapcard" id="mapcard">
   <svg id="map" role="img" aria-label="Map of the Côte d'Or vineyards"></svg>
   <div class="loc" id="loc">
-    <button class="compass" id="compass" type="button" title="North up" aria-label="Compass: click to put north up">
+    <button class="compass" id="compass" type="button" title="North up" aria-label="Compass: click to put north up" data-i18n-aria>
       <svg viewBox="-20 -20 40 40" aria-hidden="true"><circle r="18.5" class="ring"/><g id="needle"><path class="nn" d="M0-9L3.6 1H-3.6Z"/><path class="ns" d="M0 11L3.6 1H-3.6Z"/><text id="nLetter" x="0" y="-13.6" text-anchor="middle" dominant-baseline="central">N</text></g></svg>
     </button>
-    <svg class="locator" id="locator" role="img" aria-label="Where this view sits on the Côte d'Or"></svg>
+    <svg class="locator" id="locator" role="img" aria-label="Where this view sits on the Côte d'Or" data-i18n-aria></svg>
   </div>
   <button class="here" id="here" type="button" hidden></button>
   <div class="attr" id="attr"></div>
-  <div class="layers seg" id="layers" hidden role="group" aria-label="Map type">
-    <button type="button" data-m="geo" title="Real vineyard boundaries (INAO)">Surveyed</button><button type="button" data-m="schematic" title="Simplified map, slope rising to the west">Schematic</button>
+  <div class="layers seg" id="layers" hidden role="group" aria-label="Map type" data-i18n-aria>
+    <button type="button" data-m="geo" title="Real vineyard boundaries (INAO)" data-i18n data-i18n-title>Surveyed</button><button type="button" data-m="schematic" title="Simplified map, slope rising to the west" data-i18n data-i18n-title>Schematic</button>
   </div>
   <div class="scalebar" id="scalebar" hidden><span></span><em></em></div>
   <div class="zoom">
-    <button id="zIn" title="Zoom in (+)" aria-label="Zoom in">＋</button>
-    <button id="zOut" title="Zoom out (−)" aria-label="Zoom out">－</button>
-    <button id="zAll" title="Whole Côte d'Or" aria-label="Show the whole Côte d'Or">⤢</button>
-    <button id="rotL" title="Turn map left ([)" aria-label="Turn the map anticlockwise" hidden>⟲</button>
-    <button id="rotR" title="Turn map right (])" aria-label="Turn the map clockwise" hidden>⟳</button>
-    <button id="zInfo" title="About the atlas" aria-label="About the atlas">i</button>
+    <button id="zIn" title="Zoom in (+)" aria-label="Zoom in (+)" data-i18n-title data-i18n-aria>＋</button>
+    <button id="zOut" title="Zoom out (−)" aria-label="Zoom out (−)" data-i18n-title data-i18n-aria>－</button>
+    <button id="zAll" title="Whole Côte d'Or" aria-label="Whole Côte d'Or" data-i18n-title data-i18n-aria>⤢</button>
+    <button id="rotL" title="Turn map left ([)" aria-label="Turn map left ([)" data-i18n-title data-i18n-aria hidden>⟲</button>
+    <button id="rotR" title="Turn map right (])" aria-label="Turn map right (])" data-i18n-title data-i18n-aria hidden>⟳</button>
+    <button id="zInfo" title="About the atlas" aria-label="About the atlas" data-i18n-title data-i18n-aria>i</button>
   </div>
   <div class="legend" id="legend"></div>
-  <div class="hint" id="hint">Click a vineyard, commune or producer for details · drag to pan · scroll or pinch to zoom</div>
+  <div class="hint" id="hint" data-i18n>Click a vineyard, commune or producer for details · drag to pan · scroll or pinch to zoom</div>
   <div class="peek" id="peek" hidden></div>
   <aside class="side" id="side" aria-live="polite"></aside>
 </div>
 
 <section class="explore" id="explore">
   <nav class="xtabs" role="tablist" aria-label="Explore">
-    <button role="tab" class="on" data-x="domaines">Domaines</button>
-    <button role="tab" data-x="gc">Who owns the grands crus</button>
-    <button role="tab" data-x="cmp">Compare producers</button>
-    <button role="tab" data-x="list">All climats <span id="listCount"></span></button>
+    <button role="tab" class="on" data-x="domaines" data-i18n>Domaines</button>
+    <button role="tab" data-x="gc" data-i18n>Who owns the grands crus</button>
+    <button role="tab" data-x="cmp" data-i18n>Compare producers</button>
+    <button role="tab" data-x="list"><span data-i18n>All climats</span> <span id="listCount"></span></button>
   </nav>
   <div class="xpane on" data-x="domaines">
-    <div class="xhead"><div class="feedtabs" id="dtabs"><button class="ftog on" data-t="vosne">Vosne · Nuits</button><button class="ftog" data-t="north">Gevrey · Morey · Chambolle</button><button class="ftog" data-t="beaune">Côte de Beaune</button></div>
-      <p class="ph">Hectares held, grands crus and monopoles · click a domaine to map everything it owns, leases or buys</p></div>
+    <div class="xhead dfilt">
+      <input type="search" id="dSearch" placeholder="Find a domaine…" aria-label="Find a domaine" data-i18n-ph data-i18n-aria>
+      <div class="feedtabs" id="dtabs"><button class="ftog on" data-t="all" data-i18n>All</button><button class="ftog" data-t="north">Gevrey · Morey · Chambolle</button><button class="ftog" data-t="vosne">Vosne · Nuits</button><button class="ftog" data-t="beaune">Côte de Beaune</button></div>
+      <select id="dSort" aria-label="Sort domaines" data-i18n-aria><option value="ha" data-i18n>Most hectares</option><option value="gc" data-i18n>Most grands crus</option><option value="n" data-i18n>Most climats</option><option value="az" data-i18n>A–Z</option></select>
+      <span class="ph" id="dCount"></span>
+    </div>
+    <p class="ph" data-i18n>Hectares held, grands crus and monopoles · click a domaine to map everything it owns, leases or buys</p>
     <div class="dgrid" id="domains"></div>
   </div>
   <div class="xpane" data-x="gc">
-    <p class="ph">One bar per grand cru, split by the owners' published shares · click a segment or a name</p>
+    <p class="ph" data-i18n>One bar per grand cru, split by the owners' published shares · click a segment or a name</p>
     <div id="gcown"></div>
   </div>
   <div class="xpane" data-x="cmp">
@@ -409,12 +452,12 @@ footer.fine{margin-top:14px;font-size:12px;color:var(--muted);max-width:110ch;li
     <div id="cmp"></div>
   </div>
   <div class="xpane" data-x="list">
-    <p class="ph">Follows the filters above · click a row to find it on the map</p>
+    <p class="ph" data-i18n>Follows the filters above · click a row to find it on the map</p>
     <div class="tablewrap">
       <table class="list" id="list">
         <thead><tr>
-          <th data-k="n">Climat</th><th data-k="v">Commune</th><th data-k="c">Class</th>
-          <th data-k="ha" class="num">ha</th><th data-k="own">Ownership</th>
+          <th data-k="n" data-i18n>Climat</th><th data-k="v" data-i18n>Commune</th><th data-k="c" data-i18n>Class</th>
+          <th data-k="ha" class="num">ha</th><th data-k="own" data-i18n>Ownership</th>
         </tr></thead>
         <tbody></tbody>
       </table>
@@ -423,18 +466,18 @@ footer.fine{margin-top:14px;font-size:12px;color:var(--muted);max-width:110ch;li
 </section>
 
 <footer class="fine">
-  <b>About the data.</b> Areas are the official climat sizes (≈). Holdings come from published ownership lists, domaine sources and
-  trade press (each domaine lists its own) and are rounded; parcels are bought, swapped and leased all the time, so treat them as
-  indicative. "Leased" means farmed under a fermage or métayage; "buys grapes" is négociant sourcing and never counts as ownership;
-  a holder without a figure is a known owner whose area isn't published. Corton's red climats count as one appellation, and
-  Charlemagne isn't drawn on its own. Logged-in users can correct a holding from its vineyard.
+  <b data-i18n>About the data.</b> <span data-i18n>Vineyard boundaries are INAO's parcel delimitation; roads, buildings, woods, contours and place names are IGN's BD TOPO (both Licence Ouverte). Areas are published climat sizes, checked against the Climats UNESCO dossier; the INAO area is shown beside them. Holdings come from published ownership lists, domaine sources and trade press, rounded — parcels change hands all the time, so treat them as indicative. "Leased" means farmed en fermage or métayage; "buys grapes" is négociant sourcing and never counts as ownership. Logged-in users can correct a holding from its vineyard.</span>
 </footer>
 </div>
 <div id="tip"></div>
-<script src="burgundy-data.js?v=7"></script>
-<script src="burgundy-data-beaune.js?v=7"></script>
+<script src="i18n.js?v=2"></script>
+<script src="burgundy-i18n-da.js?v=1"></script>
+<script src="burgundy-i18n-fr.js?v=1"></script>
+<script src="burgundy-data.js?v=8"></script>
+<script src="burgundy-data-beaune.js?v=8"></script>
 <script src="burgundy-detail.js?v=6"></script>
-<script src="burgundy-geo.js?v=2"></script>
-<script src="burgundy.js?v=11"></script>
+<script src="burgundy-geo.js?v=3"></script>
+<script src="burgundy-dem.js?v=1"></script>
+<script src="burgundy.js?v=15"></script>
 </body>
 </html>
