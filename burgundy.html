@@ -210,6 +210,21 @@ input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible,[t
 .rfill{fill:none;stroke:var(--rfill);stroke-linecap:round;stroke-linejoin:round}
 .track{fill:none;stroke:var(--rfill);stroke-opacity:.9;stroke-dasharray:3 2;stroke-linecap:round}
 .house{fill:var(--house)}
+/* vintages */
+.vchart{width:100%;height:auto;display:block;margin:4px 0 2px}
+.vchart .vbar{cursor:pointer} .vchart .vbar:hover rect:first-of-type{stroke:var(--ink);stroke-width:.8}
+.vchart .vbar.on rect:first-of-type{stroke:var(--sel);stroke-width:1.4}
+.vchart .vax{font-size:8.5px;fill:var(--muted)}
+.vkey i,.evdot{display:inline-block;width:8px;height:8px;border-radius:50%;margin:0 3px 0 6px;vertical-align:baseline}
+.vyearbox{border:1px solid var(--line);border-radius:10px;padding:8px 11px;margin:10px 0;background:var(--card2)}
+.vyearbox p{margin:5px 0 0}
+.vs{display:inline-block;border-radius:6px;padding:1px 7px;font-weight:700}
+.legend .vyear{display:flex;align-items:center;gap:8px;font-size:13px;letter-spacing:0;text-transform:none;color:var(--ink)}
+.legend .vyear button{border:1px solid var(--line);background:var(--card);border-radius:6px;cursor:pointer;font-size:11px;padding:1px 7px;color:var(--ink)}
+.legend .vyear button:disabled{opacity:.35;cursor:default}
+.vtab td.vsc{text-align:center;font-weight:700;min-width:54px}
+.vtab .vnote{color:var(--muted);font-size:12.5px;min-width:260px}
+.vtab tr[data-vy]{cursor:pointer}
 /* surveyed map: IGN layers. Widths in screen pixels (non-scaling), shown by zoom level (lod-mid / lod-near / lod-close) */
 .t-wood{fill:var(--forest);opacity:.75}
 .t-vine{fill:var(--forest-ink);opacity:.07}
@@ -379,6 +394,7 @@ footer.fine{margin-top:14px;font-size:12px;color:var(--muted);max-width:110ch;li
     <option value="commune" data-i18n>By commune</option>
     <option value="producer" data-i18n>By producer's share</option>
     <option value="size" data-i18n>By size (ha)</option>
+    <option value="vintage" data-i18n>By vintage</option>
     <option value="alt" data-i18n>By altitude</option>
     <option value="slope" data-i18n>By slope</option>
     <option value="owners" data-i18n>By owners listed</option>
@@ -431,6 +447,7 @@ footer.fine{margin-top:14px;font-size:12px;color:var(--muted);max-width:110ch;li
     <button role="tab" class="on" data-x="domaines" data-i18n>Domaines</button>
     <button role="tab" data-x="gc" data-i18n>Who owns the grands crus</button>
     <button role="tab" data-x="cmp" data-i18n>Compare producers</button>
+    <button role="tab" data-x="vint" data-i18n>Vintages</button>
     <button role="tab" data-x="list"><span data-i18n>All climats</span> <span id="listCount"></span></button>
   </nav>
   <div class="xpane on" data-x="domaines">
@@ -450,6 +467,10 @@ footer.fine{margin-top:14px;font-size:12px;color:var(--muted);max-width:110ch;li
   <div class="xpane" data-x="cmp">
     <div class="cmpbar"><input id="cmpA" list="producerList" aria-label="First producer"><span>vs</span><input id="cmpB" list="producerList" aria-label="Second producer"></div>
     <div id="cmp"></div>
+  </div>
+  <div class="xpane" data-x="vint">
+    <p class="ph" data-i18n>Year by year for the three Côte d'Or styles · click a year to colour the map by it and see which communes frost or hail hit</p>
+    <div class="tablewrap" id="vintages"></div>
   </div>
   <div class="xpane" data-x="list">
     <p class="ph" data-i18n>Follows the filters above · click a row to find it on the map</p>
@@ -477,7 +498,8 @@ footer.fine{margin-top:14px;font-size:12px;color:var(--muted);max-width:110ch;li
 <script src="burgundy-data-beaune.js?v=8"></script>
 <script src="burgundy-detail.js?v=6"></script>
 <script src="burgundy-geo.js?v=3"></script>
-<script src="burgundy-dem.js?v=1"></script>
+<script src="burgundy-dem.js?v=2"></script>
+<script src="burgundy-vintages.js?v=1"></script>
 <script src="burgundy.js?v=15"></script>
 </body>
 </html>
