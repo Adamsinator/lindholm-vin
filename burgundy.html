@@ -212,6 +212,9 @@ input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible,[t
 .house{fill:var(--house)}
 /* vintages */
 .geol path{opacity:.82}
+.legend .hsrc{display:flex;flex-wrap:wrap;gap:4px;margin:2px 0 6px}
+.legend .hsrc button{border:1px solid var(--line);background:var(--card);border-radius:12px;font-size:11px;padding:2px 8px;cursor:pointer;color:var(--muted)}
+.legend .hsrc button.on{border-color:var(--ink);color:var(--ink);font-weight:600}
 @media(max-width:600px){#printBtn,#rotL,#rotR,#zOut{display:none!important} .zoom{gap:4px} .zoom button{width:32px;height:32px}}
 @media print{
   header.top .hright,.toolbar,.terrbar,.zoom,.layers,.hint,.loc .locator,.explore,footer,.peek,.here{display:none!important}
@@ -438,6 +441,7 @@ footer.fine{margin-top:14px;font-size:12px;color:var(--muted);max-width:110ch;li
     <option value="size" data-i18n>By size (ha)</option>
     <option value="vintage" data-i18n>By vintage</option>
     <option value="geology" data-i18n>By geology</option>
+    <option value="history" data-i18n>By historic ranking</option>
     <option value="alt" data-i18n>By altitude</option>
     <option value="slope" data-i18n>By slope</option>
     <option value="owners" data-i18n>By owners listed</option>
@@ -553,16 +557,18 @@ footer.fine{margin-top:14px;font-size:12px;color:var(--muted);max-width:110ch;li
 </footer>
 </div>
 <div id="tip"></div>
-<script src="i18n.js?v=6"></script>
+<script src="i18n.js?v=7"></script>
 <script src="burgundy-i18n-da.js?v=1"></script>
 <script src="burgundy-i18n-fr.js?v=1"></script>
 <script src="burgundy-data.js?v=8"></script>
 <script src="burgundy-data-beaune.js?v=8"></script>
 <script src="burgundy-detail.js?v=6"></script>
 <script src="burgundy-geo.js?v=3"></script>
+<script src="burgundy-extras.js?v=1"></script>
 <script src="burgundy-dem.js?v=2"></script>
 <script src="burgundy-vintages.js?v=4"></script>
 <script src="burgundy-geol.js?v=1"></script>
-<script src="burgundy.js?v=21"></script>
+<script src="burgundy-history.js?v=1"></script>
+<script src="burgundy.js?v=22"></script>
 </body>
 </html>

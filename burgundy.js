@@ -59,11 +59,13 @@ function areaCentroid(pts){
   a/=2; return a ? [cx/(6*a), cy/(6*a)] : pts[0];
 }
 // INAO's other premiers crus (and Corton climats) the atlas has no notes for yet: drawn on the surveyed map only
+if(window.BURG_EXTRAS && window.BURG_EXTRAS.producers) Object.entries(window.BURG_EXTRAS.producers).forEach(([k, n]) => { if(!P[k]) P[k] = n; });
 { const G = window.BURG_GEO;
   if(G && G.extra) Object.entries(G.extra).forEach(([id, x]) => {
     if(!VIL[x.v] || C.some(c => c.id===id)) return;
+    const XO = window.BURG_EXTRAS || {}; // researched owners and notes for these (burgundy-extras.js)
     C.push({id, n:x.n, v:x.v, c:x.c, ha:x.ha, ap:x.ap, x:true, in:x.in, grp: x.c==="GC" && x.ap==="Corton" ? "corton" : undefined,
-      s:[[0,0],[1,0],[1,1],[0,1]], p:[], d:""});
+      s:[[0,0],[1,0],[1,1],[0,1]], p:((XO.holdings||{})[id] || []).map(([k, h, kind]) => [k, h, kind||""]).filter(([k]) => P[k]), d:(XO.notes||{})[id] || ""});
     G.climats[id] = x.mp;
   }); }
 // A climat with an enclave (Clos des Ruchottes, Clos de la Mouchère…) labels itself in the widest free band
@@ -262,6 +264,21 @@ function shadeUpdate(){
   setTimeout(() => shadeTiles.forEach((img, k) => { if(!want.has(k) && (!k.startsWith(z+"/") || shadeTiles.size > 260)){ img.remove(); shadeTiles.delete(k); } }), 700);
 }
 
+/* ---------- historic rankings (burgundy-history.js): Lavalle 1855, the Beaune committee 1860, Rodier 1920 ---------- */
+const HIST = window.BURG_HISTORY || null;
+const HSRC = {lavalle1855:"Lavalle 1855", comite1860:"Comité de Beaune 1860", rodier1920:"Rodier 1920"};
+st.hsrc = "lavalle1855";
+// rank → 0 (top) … 3; the sources word their classes differently
+const hRank = r => { const s = String(r || "").toLowerCase(); return /hors|tête|tete/.test(s) ? 0 : /^1|premi/.test(s) ? 1 : /^2|deux/.test(s) ? 2 : /^3|trois/.test(s) ? 3 : null; };
+const H_EN = ["Tête de cuvée (top class)", "First class", "Second class", "Third class"];
+const hFill = k => k == null ? TOK.none : mix(TOK.seq1, TOK.seq0, [0, .32, .6, .82][k]);
+function histHtml(c){
+  if(!HIST) return "";
+  const rows = Object.keys(HSRC).map(k => [k, HIST[k] && HIST[k][c.id]]).filter(([, v]) => v);
+  if(!rows.length) return "";
+  return `<h3>${t("Historic rankings")}</h3><table class="own">${rows.map(([k, v]) => `<tr><td>${esc(HSRC[k])}</td><td><span class="cls" style="background:${hFill(hRank(v.rank))}"></span>${esc(v.rank)}${v.as && norm(v.as) !== norm(c.n) ? ` <span class="note">(« ${esc(v.as)} »)</span>` : ""}</td></tr>`).join("")}</table>`;
+}
+
 /* ---------- geology (burgundy-geol.js, BRGM 1:50 000): formations, their colours, and what lies under each climat ---------- */
 const GEOL = window.BURG_GEOL || null;
 let gGeol = null;
@@ -299,6 +316,7 @@ function fillOf(c){
   switch(st.color){
     case "vintage": { const v = vRating(catOf(c), st.vy); return v ? scoreFill(v[0]) : TOK.none; }
     case "geology": { const u = GEOL && GEOL.under[c.id]; return u ? geolColor(u[0][0]) : TOK.none; }
+    case "history": { const v = HIST && HIST[st.hsrc] && HIST[st.hsrc][c.id]; return hFill(v ? hRank(v.rank) : null); }
     case "alt": { const d = DEM[c.id]; return d ? mix(TOK.seq0, TOK.seq1, Math.max(0, Math.min(1, (d[2]-ALT0)/(ALT1-ALT0)))) : TOK.none; }
     case "slope": { const d = DEM[c.id]; return d ? mix(TOK.seq0, TOK.seq1, Math.min(1, d[3]/SLOPE1)) : TOK.none; }
     case "commune": return communeColor(c);
@@ -1061,9 +1079,11 @@ function renderSide(){
         <div class="fact"><div class="l">${t("Owners")}</div><div class="v">${c.mono?"1":(c.p||[]).length||"—"}</div></div>
       </div>
       ${c.x ? "" : areaNote(c)}
-      <p>${c.x ? `${t(c.c==="GC" ? "One of {0}'s grand cru climats on INAO's plan" : "One of {0}'s premiers crus on INAO's plan", esc(c.ap || c.vil.n))}${c.in && CL[c.in] && !CL[c.in].x ? t(", lying within {0}", `<button class="plink" data-c="${c.in}">${esc(CL[c.in].n)}</button>`) : ""}. ${t("The atlas has no notes on it yet; holdings can be added below.")}` : esc(txC(c))}</p>
+      ${c.x && c.d ? `<p>${esc(txC(c))}</p>` : ""}
+      <p>${c.x ? `${t(c.c==="GC" ? "One of {0}'s grand cru climats on INAO's plan" : "One of {0}'s premiers crus on INAO's plan", esc(c.ap || c.vil.n))}${c.in && CL[c.in] && !CL[c.in].x ? t(", lying within {0}", `<button class="plink" data-c="${c.in}">${esc(CL[c.in].n)}</button>`) : ""}.${c.d || c.p.length ? "" : " " + t("The atlas has no notes on it yet; holdings can be added below.")}` : esc(txC(c))}</p>
       ${st.mode==="geo" && GEO && (GEO.meta.approx||[]).includes(c.id) ? `<p class="note">${t("INAO maps Charmes and Mazoyères as one area (Mazoyères may be sold as Charmes); the line between them here is an estimate.")}</p>` : ""}
       ${detailHtml(c)}
+      ${histHtml(c)}
       ${geolHtml(c)}
       <p><button class="btn quiet" id="cmpWith">⇄ ${t("Compare with another vineyard")}</button></p>
       ${VT ? vintageYearHtml(catOf(c), c.v) + vintageChart(catOf(c), c.v) : ""}
@@ -1168,6 +1188,10 @@ function renderLegend(){
         + (kinds.has("hail") ? `<div class="row"><span class="sw" style="background:radial-gradient(circle,${EVT.hail[0]} 35%,transparent 40%);background-size:5px 5px"></span>${t("Hail hit this commune")}</div>` : "")
         + sw(TOK.none, t("not rated"));
       break; }
+    case "history":
+      h = `<div class="lt">${t("Historic ranking")}</div><div class="hsrc">${Object.entries(HSRC).filter(([k]) => HIST && HIST[k]).map(([k, n]) => `<button type="button" data-hsrc="${k}" class="${st.hsrc===k ? "on" : ""}">${esc(n)}</button>`).join("")}</div>`
+        + H_EN.map((n, i) => sw(hFill(i), t(n))).join("") + sw(TOK.none, t("not ranked in this source"));
+      break;
     case "geology": {
       const tot = {}; C.filter(c => c.on && GEOL && GEOL.under[c.id]).forEach(c => GEOL.under[c.id].forEach(([code, p]) => tot[code] = (tot[code]||0) + p * c.ha));
       const top = Object.entries(tot).sort((a, b) => b[1] - a[1]).slice(0, 9);
@@ -1194,6 +1218,7 @@ function renderLegend(){
   }
   if(shown < C.length) h += `<div class="cnt">${t("{0} of {1} vineyards match", shown, C.length)}</div>`;
   L.innerHTML = h;
+  L.querySelectorAll("[data-hsrc]").forEach(b => b.onclick = ev => { ev.stopPropagation(); st.hsrc = b.dataset.hsrc; paint(); renderSide(); });
   L.querySelectorAll("[data-vstep]").forEach(b => b.onclick = ev => { ev.stopPropagation(); stepVintage(+b.dataset.vstep); });
 }
 
