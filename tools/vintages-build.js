@@ -44,7 +44,7 @@ Object.entries(R.vintages || {}).forEach(([y, v]) => {
   if (v.harvest_start) o.harvest = v.harvest_start;
   if (v.crop) o.crop = v.crop;
 });
-Object.entries(Wx.years).forEach(([y, w]) => { if (+y >= 1980) (years[y] ||= {}).wx = w; });
+Object.entries(Wx.years).forEach(([y, w]) => { if (+y >= 1950) (years[y] ||= {}).wx = w; }); // weather back to 1950 for the warming chart
 const events = (R.events || []).map(e => ({ d: e.date, t: e.type, a: e.areas || [], v: villagesOf(e.areas), s: e.severity || "", u: e.url || "" })).filter(e => e.d && e.v.length);
 // translations of the notes, keyed by the English text: {da:{notes:{en:da}}, fr:{…}}
 const i18n = tf ? Object.fromEntries(Object.entries(JSON.parse(fs.readFileSync(tf, "utf8"))).map(([l, v]) => [l, v.notes || v])) : {};

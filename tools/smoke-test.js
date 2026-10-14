@@ -48,9 +48,12 @@ function backend(){
 const findings=[]; const note=(where,what)=>{findings.push(where+': '+what);};
 async function watch(p,where){
   p.on('pageerror',e=>note(where,'PAGEERROR '+e.message));
-  p.on('console',m=>{ if(m.type()==='error') note(where,'console '+m.text()); });
-  p.on('requestfailed',q=>{ if(!q.url().includes('script.google')) note(where,'requestfailed '+q.url()); });
-  p.on('response',s=>{ if(s.status()>=400) note(where,'HTTP '+s.status()+' '+s.url()); });
+  // IGN has no relief tile for a few squares at the edge of its coverage (404s, dropped by the page)
+  const edgeTile = u => /data\.geopf\.fr\/wmts/.test(u||'');
+  p.on('console',m=>{ if(m.type()==='error' && !edgeTile(m.location()?.url)) note(where,'console '+m.text()); });
+  // relief tiles are cancelled on purpose when the view moves on before they arrive
+  p.on('requestfailed',q=>{ if(!q.url().includes('script.google') && !(q.url().includes('data.geopf.fr/wmts') && /ERR_ABORTED|ERR_BLOCKED_BY_ORB/.test(q.failure()?.errorText||''))) note(where,'requestfailed '+q.url()+' '+(q.failure()?.errorText||'')); });
+  p.on('response',s=>{ if(s.status()>=400 && !(s.status()<500 && edgeTile(s.url()))) note(where,'HTTP '+s.status()+' '+s.url()); });
 }
 const overflow=async(p,where)=>{ const o=await p.evaluate(()=>document.documentElement.scrollWidth-innerWidth); if(o>1) note(where,'horizontal overflow '+o+'px'); };
 (async()=>{

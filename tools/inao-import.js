@@ -163,6 +163,8 @@ function matchFeature(app, denom) {
     const vil = A === "corton" ? "corton" : A === "blagny" ? "meursault" : APP_VILLAGE[A];
     const name = String(denom).replace(/ ou .*$/, "").replace(new RegExp("^" + String(app).replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\s+", "i"), "")
       .replace(/^(premier|1er) cru\s+/i, "").trim();
+    // "Marsannay rosé", "… rouge et blanc": colour labels, not places
+    if (/^\(?(ros[ée]|rouge|blanc)(\s|\)|$)/i.test(name)) return { skip: `${app} ${name} (colour, not a climat)` };
     return { unmatched: `${app} — ${denom}`, extra: vil && name ? { v: vil, n: name, c: A === "corton" ? "GC" : "1er", ap: String(app).replace(/ ou .*$/, "") } : null };
   }
   if (!D && A === "corton") return { skip: "Corton (whole grand cru area)" };
