@@ -73,14 +73,20 @@ async function readAll() {
     if (/\.shp$/i.test(f)) {
       const shp = require("./node_modules/shapefile");
       const src = await shp.open(full, full.replace(/\.shp$/i, ".dbf"), { encoding: "utf-8" });
-      for (let r = await src.read(); !r.done; r = await src.read()) feats.push(r.value);
+      for (let r = await src.read(); !r.done; r = await src.read()) if (inArea(r.value)) feats.push(r.value);
     } else {
       const j = JSON.parse(fs.readFileSync(full, "utf8"));
-      (j.type === "FeatureCollection" ? j.features : [j]).forEach(x => feats.push(x));
+      (j.type === "FeatureCollection" ? j.features : [j]).filter(inArea).forEach(x => feats.push(x));
     }
     console.log(`read ${f}: ${feats.length} features so far`);
   }
   return feats;
+}
+// the national file covers all of France: keep the Côte d'Or (21) and Saône-et-Loire (71, for Maranges) by INSEE code
+const DEPTS = ["21", "71"];
+function inArea(f) {
+  const code = String(pick(f.properties, ["insee", "code_insee", "insee_com"]) || "");
+  return !code || DEPTS.includes(code.slice(0, 2));
 }
 const pick = (props, names) => { for (const k of Object.keys(props || {})) if (names.includes(k.toLowerCase())) return props[k]; return ""; };
 
@@ -126,16 +132,36 @@ C.forEach(c => { [norm(c.n), bare(c.n), bare(c.n.replace(/^Corton /, ""))].forEa
 const villageOf = c => [norm(VIL(c.v).n.split(" · ")[0]), ...(ALSO[c.v] || []), ...(ALSO[c.geo] || [])];
 const VIL = id => V.find(v => v.id === id);
 
+// INAO spellings that differ from the atlas's (normalised, without the leading article)
+const ALIAS = {
+  "petis monts": "les petits monts", "raignots": "aux reignots", "rouges": "les rouges du dessus",
+  "saints georges": "les saint georges", "clos arlot": "clos de l arlot",
+  "combe au moine": "combe aux moines", "bussiere": "clos de la bussiere", "cents vignes": "les cent vignes",
+  "grands epenots": "les epenots", "petits epenots": "les epenots", "rugiens bas": "les rugiens", "rugiens hauts": "les rugiens",
+  "taille pieds": "taillepieds", "champs fulliots": "les champs fulliot", "porusot": "les poruzots",
+  "cailleret": "les caillerets", "en cailleret": "les caillerets", "embazees": "les embrazees", "clos de tavannes": "clos tavannes",
+};
 function matchFeature(app, denom) {
-  const A = norm(app).replace(/ (premier|1er) cru$/, "").replace(/ grand cru$/, "");
-  const D = norm(denom);
+  const A = norm(app).replace(/ ou .*$/, "").replace(/ (premier|1er) cru$/, "").replace(/ grand cru$/, "");
+  // INAO repeats the appellation as the denomination ("La Tâche" / "La Tâche"), and spells premiers crus in full
+  // ("Vosne-Romanée premier cru Les Suchots"); Corton's climats read "Corton Les Bressandes"
+  let D = norm(denom).replace(/ ou .*$/, "");
+  if (D === A) D = "";
+  else if (D.startsWith(A + " ")) {
+    D = D.slice(A.length + 1).replace(/^(premier|1er) cru\b ?/, "");
+    if (!D) return { skip: app + " premier cru (whole area)" };
+  }
   if (D) { // a named premier cru, or a Corton climat
     // several climats share a name (Les Bressandes in Corton and in Beaune), so gather them all, then pick by commune
-    const hits = [...new Set([...(byName.get(D) || []), ...(byName.get(bare(D)) || [])])].filter(c => c.c !== "V");
-    const inVillage = hits.filter(c => c.grp === "corton" ? A === "corton" : villageOf(c).some(v => A.startsWith(v)));
-    if (inVillage.length) return { climat: [...inVillage].sort((a, b) => (a.in ? 1 : 0) - (b.in ? 1 : 0))[0] };
+    // an INAO spelling variant (ALIAS) is only tried when the name itself finds nothing in this commune
+    for (const name of [D, ALIAS[bare(D)]].filter(Boolean)) {
+      const hits = [...new Set([...(byName.get(name) || []), ...(byName.get(bare(name)) || [])])].filter(c => c.c !== "V");
+      const inVillage = hits.filter(c => c.grp === "corton" ? A === "corton" : villageOf(c).some(v => A.startsWith(v)));
+      if (inVillage.length) return { climat: [...inVillage].sort((a, b) => (a.in ? 1 : 0) - (b.in ? 1 : 0))[0] };
+    }
     return { unmatched: `${app} — ${denom}` };
   }
+  if (!D && A === "corton") return { skip: "Corton (whole grand cru area)" };
   const gc = C.find(c => c.c === "GC" && !c.in && (norm(c.n) === A || norm(c.n).replace(/^(le|la) /, "") === A.replace(/^(le|la) /, "")));
   if (gc) return { climat: gc };
   if (APP_VILLAGE[A]) return { village: APP_VILLAGE[A] };
@@ -162,13 +188,32 @@ function matchFeature(app, denom) {
     (kind === "c" ? out.climats : out.villages)[id] = u; n++;
     if (n % 50 === 0 || n === groups.size) console.log(`merged ${n}/${groups.size}`);
   }
+  const meta = { source: "INAO — Délimitation parcellaire des AOC viticoles (data.gouv.fr, Licence Ouverte)", built: new Date().toISOString().slice(0, 10),
+    tol: TOL, origin: [LON0, LAT0] };
+  // Clos de Bèze may be sold as Chambertin, so INAO's Chambertin area includes it: take it out again
+  if (out.climats.chambertin && out.climats.beze) out.climats.chambertin = finish(pc.difference(out.climats.chambertin, out.climats.beze));
+  // Mazoyères may be sold as Charmes and INAO publishes one area for both. Split it at the east–west line that gives
+  // the atlas's area ratio (Charmes lies north, towards Gevrey) — an approximation, flagged in the output.
+  const approx = [];
+  const ch = out.climats.charmes, mz = out.climats.mazoyeres;
+  if (ch && mz && JSON.stringify(ch) === JSON.stringify(mz)) {
+    const cC = C.find(c => c.id === "charmes"), cM = C.find(c => c.id === "mazoyeres"), share = cC.ha / (cC.ha + cM.ha);
+    const ys = ch.flatMap(p => p[0].map(q => q[1])), ylo = Math.min(...ys) - 1, yhi = Math.max(...ys) + 1;
+    const xs = ch.flatMap(p => p[0].map(q => q[0])), xlo = Math.min(...xs) - 1, xhi = Math.max(...xs) + 1;
+    const box = (a, b) => [[[xlo, a], [xhi, a], [xhi, b], [xlo, b], [xlo, a]]];
+    const haOf = mp => mp.reduce((s, p) => s + area(p[0]) - p.slice(1).reduce((t, h) => t + area(h), 0), 0);
+    const total = haOf(ch); let lo = ylo, hi = yhi;
+    for (let i = 0; i < 40; i++) { const mid = (lo + hi) / 2; if (haOf(pc.intersection(ch, box(mid, yhi))) > share * total) lo = mid; else hi = mid; }
+    out.climats.charmes = finish(pc.intersection(ch, box(lo, yhi)));
+    out.climats.mazoyeres = finish(pc.intersection(ch, box(ylo, lo)));
+    approx.push("charmes", "mazoyeres");
+  }
+  meta.approx = approx;
   console.log("");
   const missing = C.filter(c => !out.climats[c.id]);
   // derived hectares, to compare with the atlas's figures
   const ha = mp => mp.reduce((s, p) => s + area(p[0]) - p.slice(1).reduce((t, h) => t + area(h), 0), 0) / 1e4;
   const cmp = C.filter(c => out.climats[c.id]).map(c => [c.id, c.ha, +ha(out.climats[c.id]).toFixed(2)]).filter(([, a, b]) => Math.abs(a - b) > Math.max(.3, a * .2));
-  const meta = { source: "INAO — Délimitation parcellaire des AOC viticoles (data.gouv.fr, Licence Ouverte)", built: new Date().toISOString().slice(0, 10),
-    tol: TOL, origin: [LON0, LAT0] };
   fs.writeFileSync(OUT, "// Generated by tools/inao-import.js — do not edit by hand.\nwindow.BURG_GEO = " + JSON.stringify({ meta, ...out }) + ";\n");
   console.log(`\nwrote ${path.relative(ROOT, OUT)} (${(fs.statSync(OUT).size / 1024).toFixed(0)} KB): ${Object.keys(out.climats).length} climats, ${Object.keys(out.villages).length} commune areas`);
   console.log(`\nAtlas climats without a surveyed outline (${missing.length}) — village lieux-dits and enclaves are expected here:`);

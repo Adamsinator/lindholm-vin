@@ -303,6 +303,16 @@ parcellaire des AOC viticoles* instead of its schematic grid:
    - vineyards whose surveyed area differs from the atlas's figure by more
      than 20%
 
+   The source is the national shapefile on data.gouv.fr
+   ("Délimitation parcellaire des AOC viticoles de l'INAO"); the importer keeps
+   departments 21 and 71 (for Maranges) by INSEE code. INAO repeats the
+   appellation as the denomination for grands crus and village AOCs and spells
+   premiers crus in full ("Vosne-Romanée premier cru Les Suchots"); spelling
+   variants are mapped in `ALIAS`. Two areas are adjusted: Clos de Bèze is
+   taken out of Chambertin (it may be sold as Chambertin), and the combined
+   Charmes/Mazoyères area is split east–west by the atlas's area ratio, which
+   the drawer flags as an estimate.
+
 Once `burgundy-geo.js` has outlines, the atlas opens on the surveyed map with a
 scale bar, and a **Map: surveyed / schematic** button switches between the two;
 the choice is remembered per browser. With the placeholder file (`BURG_GEO =
