@@ -239,6 +239,7 @@ st.relief = (() => { try{ return localStorage.getItem("atlasRelief") !== "0"; }c
 const SHADE_URL = (z, x, y) => `https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ELEVATION.ELEVATIONGRIDCOVERAGE.SHADOW&STYLE=estompage_grayscale&TILEMATRIXSET=PM&TILEMATRIX=${z}&TILEROW=${y}&TILECOL=${x}&FORMAT=image/png`;
 function shadeUpdate(){
   if(!gShade) return;
+  if(!shadeUpdate.ready){ if(!shadeUpdate.timer) shadeUpdate.timer = setTimeout(() => { shadeUpdate.ready = true; shadeUpdate(); }, 1200); return; } // after the first draw
   const on = st.relief && st.mode==="geo" && GEO && INV;
   gShade.style.display = on ? "" : "none"; if(!on) return;
   const [LON0, LAT0] = GEO.meta.origin, R = 6371000, d2r = Math.PI/180, KX = d2r*R*Math.cos(LAT0*d2r), KY = d2r*R;
