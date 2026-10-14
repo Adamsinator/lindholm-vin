@@ -111,6 +111,18 @@ const overflow=async(p,where)=>{ const o=await p.evaluate(()=>document.documentE
   await p.click('#wineSeg [data-wc=W]'); await p.waitForTimeout(200);
   if(!/of \d+ vineyards match/.test(await p.textContent('#legend'))) note(tag,'legend count missing with white filter');
   await p.click('#wineSeg [data-wc=""]');
+  // vintages: colour by vintage, step the year, the table drives the map, the vineyard panel has a chart
+  if(await p.$('#fColor option[value=vintage]')){
+    await p.selectOption('#fColor','vintage'); await p.waitForTimeout(200);
+    const y0 = await p.textContent('#legend .vyear b'); if(!y0) note(tag,'vintage legend has no year');
+    else { await p.evaluate(()=>document.querySelector('#legend [data-vstep="-1"]').click()); await p.waitForTimeout(200); if((await p.textContent('#legend .vyear b'))===y0) note(tag,'vintage step did not change the year'); }
+    await p.click('.xtabs [data-x=vint]'); await p.waitForTimeout(150);
+    const rows = await p.$$('#vintages tr[data-vy]'); if(rows.length < 20) note(tag,'vintage table has only '+rows.length+' rows');
+    else { await rows[3].click(); await p.waitForTimeout(300); }
+    await p.evaluate(()=>window.__atlas.CL.latache.el.dispatchEvent(new MouseEvent('click',{bubbles:true}))); await p.waitForTimeout(200);
+    if(!(await p.$('#side .vchart'))) note(tag,'no vintage chart in the vineyard panel');
+    await p.selectOption('#fColor','class');
+  }
   // language: Danish and French re-render the legend and panel, English comes back
   for(const [lg, word] of [['da','Klassifikation'],['fr','Classement'],['en','Classification']]){
     await p.click(`.langpick [data-lang=${lg}]`); await p.waitForTimeout(250);

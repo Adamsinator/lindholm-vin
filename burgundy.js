@@ -143,11 +143,27 @@ function hsl(h,s,l){ s/=100; l/=100; const k=n=>(n+h/30)%12, a=s*Math.min(l,1-l)
   return "#"+[f(0),f(8),f(4)].map(x=>Math.round(x*255).toString(16).padStart(2,"0")).join(""); }
 const maxHa = Math.max(...C.map(c=>c.ha));
 const maxOwners = Math.max(...C.map(c=>(c.p||[]).length));
+/* ---------- vintages (burgundy-vintages.js): ratings per Côte and colour, events per commune, station weather ---------- */
+const VT = window.BURG_VINTAGES || null;
+const VCATS = ["nuits_red", "beaune_red", "beaune_white"], VCAT_EN = {nuits_red:"Côte de Nuits red", beaune_red:"Côte de Beaune red", beaune_white:"Côte de Beaune white"};
+// which rating applies to a climat: its Côte and colour (the few Côte de Nuits whites take the Côte de Beaune white rating)
+const catOf = c => (c.col||"R")==="W" ? "beaune_white" : (c.vil && c.vil.cote==="nuits") ? "nuits_red" : "beaune_red";
+// notes come in English; burgundy-vintages.js carries Danish and French keyed by the English text
+const vx = s => (s && VT && VT.i18n && (VT.i18n[window.I18N ? window.I18N.lang : "en"] || {})[s]) || s;
+const vRating = (cat, y) => VT && VT.years[y] && VT.years[y][cat]; // [score, estimate, note, drink, sources]
+const vYears = cat => VT ? Object.keys(VT.years).map(Number).filter(y => vRating(cat, y)).sort((a, b) => a - b) : [];
+const vEvents = (vid, y) => VT ? VT.events.filter(e => (!vid || e.v.includes(vid)) && (y == null || +e.d.slice(0, 4) === +y)) : [];
+const EVT = {frost:["#6FA8DC","Frost"], hail:["#8E7CC3","Hail"], heat:["#E07A3F","Heat"], drought:["#C9A227","Drought"], rot:["#6A994E","Rot"], mildew:["#6A994E","Mildew"], storm:["#8E7CC3","Storm"], rain:["#3F7CB6","Rain"]};
+const evtKind = t => EVT[String(t).toLowerCase().replace(/[^a-z].*$/, "")] ? String(t).toLowerCase().replace(/[^a-z].*$/, "") : "storm";
+const VLO = 84; // most Côte d'Or vintages since 1985 rate 85–98, so the colour ramp spans that band
+const scoreFill = s => mix(TOK.seq0, TOK.seq1, Math.max(0, Math.min(1, (s - VLO) / (100 - VLO))));
+{ const ys = VCATS.flatMap(vYears); st.vy = ys.length ? Math.max(...ys) : null; }
 // measured terrain per climat (burgundy-dem.js): [alt low, alt high, mean alt, slope %, aspect °, consistency %, samples]
 const DEM = (window.BURG_DEM && window.BURG_DEM.c) || {};
 const ALT0 = 220, ALT1 = 400, SLOPE1 = 20;
 function fillOf(c){
   switch(st.color){
+    case "vintage": { const v = vRating(catOf(c), st.vy); return v ? scoreFill(v[0]) : TOK.none; }
     case "alt": { const d = DEM[c.id]; return d ? mix(TOK.seq0, TOK.seq1, Math.max(0, Math.min(1, (d[2]-ALT0)/(ALT1-ALT0)))) : TOK.none; }
     case "slope": { const d = DEM[c.id]; return d ? mix(TOK.seq0, TOK.seq1, Math.min(1, d[3]/SLOPE1)) : TOK.none; }
     case "commune": return communeColor(c);
@@ -296,7 +312,7 @@ function build(){
   prepare();
   const SCH = st.mode!=="geo";
   rlabEls = []; ovEls = [];
-  svg.innerHTML = "";
+  svg.innerHTML = ""; ELS = null;
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
   const defs = el("defs", {}, svg);
   const pat = el("pattern", {id:"unk", width:6, height:6, patternUnits:"userSpaceOnUse", patternTransform:"rotate(45)"}, defs);
@@ -306,6 +322,11 @@ function build(){
   el("rect", {width:7, height:7, fill:mix(TOK.seq0, TOK.gold, .25)}, ps);
   el("circle", {cx:3.5, cy:3.5, r:1.6, fill:TOK.gold}, ps);
   // vine rows run down the slope — horizontal on this map
+  // vintage view: communes hit by frost (blue hatching) or hail (dots) in the chosen year
+  const pf = el("pattern", {id:"evfrost", width:8, height:8, patternUnits:"userSpaceOnUse", patternTransform:"rotate(45)"}, defs);
+  el("rect", {width:3, height:8, fill:EVT.frost[0], "fill-opacity":.75}, pf);
+  const ph = el("pattern", {id:"evhail", width:9, height:9, patternUnits:"userSpaceOnUse"}, defs);
+  [[2.5,2.5],[7,6.5]].forEach(([cx,cy]) => el("circle", {cx, cy, r:1.6, fill:EVT.hail[0], "fill-opacity":.9}, ph));
   const pr = el("pattern", {id:"rows", width:6, height:3.2, patternUnits:"userSpaceOnUse"}, defs);
   el("line", {x1:0, y1:1.6, x2:6, y2:1.6, stroke:TOK.ink, "stroke-opacity":.13, "stroke-width":.55}, pr);
   const pt = el("pattern", {id:"trees", width:14, height:12, patternUnits:"userSpaceOnUse"}, defs);
@@ -343,10 +364,11 @@ function build(){
   const gUnder = el("g", {"pointer-events":"none"}, gView); // surveyed map: woods and planted vines under the climats
   const gTownBase = el("g", {"pointer-events":"none"}, gView);
   const gCl = el("g", {}, gView), gRows = el("g", {class:"rows"}, gView), gHill = el("g", {"pointer-events":"none"}, gView),
+        gEvt = el("g", {"pointer-events":"none"}, gView),
         gWall = el("g", {}, gView), gRoad = el("g", {"pointer-events":"none"}, gView), gTown = el("g", {"pointer-events":"none"}, gView),
         gNames = el("g", {class:"tnames", "pointer-events":"none"}, gView),
         gMono = el("g", {}, gView), gLab = el("g", {}, gView), gDot = el("g", {}, gView);
-  gTopoNames = gNames;
+  gTopoNames = gNames; gEvents = gEvt;
   V.forEach(v => v.baseD.forEach(d => el("path", {d, fill:"url(#rows)", opacity:.6, "fill-rule":"evenodd"}, gRows)));
   if(SCH){
   // the escarpment: darker toward the top of the slope
@@ -423,7 +445,17 @@ function build(){
   paint();
 }
 /* ---------- surveyed map furniture from IGN (burgundy-topo.js): one path per layer, sized in screen pixels ---------- */
-let gTopoNames = null;
+let gTopoNames = null, gEvents = null;
+// vintage colour mode: hatch the communes a frost or hailstorm hit in the chosen year
+function paintEvents(){
+  if(!gEvents) return; gEvents.innerHTML = "";
+  if(st.color!=="vintage" || !VT) return;
+  const hit = {}; vEvents(null, st.vy).forEach(e => { const k = evtKind(e.t); if(k==="frost" || k==="hail") e.v.forEach(v => (hit[v] ||= new Set()).add(k)); });
+  Object.entries(hit).forEach(([vid, ks]) => ks.forEach(k => {
+    const d = [...(VIL[vid] ? VIL[vid].baseD : []), ...C.filter(c => c.v===vid && c.path).map(c => c.path)].join("");
+    if(d) el("path", {d, fill:`url(#ev${k})`, "fill-rule":"nonzero"}, gEvents);
+  }));
+}
 function topoD(flat, close){
   let d = "";
   let x = 0, y = 0; const dl = TOPO.meta && TOPO.meta.delta;
@@ -434,22 +466,30 @@ function topoD(flat, close){
   return close ? d + "Z" : d;
 }
 function drawTopo(gUnder, gHill, gRoad, gTown, gNames){
-  const T = TOPO, join = (list, close) => list.map(f => topoD(f, close)).join("");
-  el("path", {class:"t-wood", d:join(T.woods, true), "fill-rule":"evenodd"}, gUnder);
-  el("path", {class:"t-vine", d:join(T.vines, true)}, gUnder);
+  const T = TOPO;
+  // big layers go in tiles (~1.5 km), one path each, so the browser skips everything off-screen when it redraws
+  const TILE = 1500 * GS;
+  const tiled = (list, close, cls, g, attrs = {}) => {
+    const tiles = new Map();
+    list.forEach(f => { const d = topoD(f, close), m = /^M(-?[\d.]+) (-?[\d.]+)/.exec(d); if(!m) return;
+      const k = Math.floor(m[1]/TILE) + "," + Math.floor(m[2]/TILE); tiles.set(k, (tiles.get(k) || "") + d); });
+    tiles.forEach(d => el("path", {class:cls, d, ...attrs}, g));
+  };
+  tiled(T.woods, true, "t-wood", gUnder, {"fill-rule":"evenodd"});
+  tiled(T.vines, true, "t-vine", gUnder);
   // contours over the vineyards, faint; every 25 m a little stronger
-  el("path", {class:"t-cmin", d:T.cont.filter(c => !c[1]).map(c => topoD(c[2])).join("")}, gHill);
-  el("path", {class:"t-cmaj", d:T.cont.filter(c => c[1]).map(c => topoD(c[2])).join("")}, gHill);
+  tiled(T.cont.filter(c => !c[1]).map(c => c[2]), false, "t-cmin", gHill);
+  tiled(T.cont.filter(c => c[1]).map(c => c[2]), false, "t-cmaj", gHill);
   el("path", {class:"t-comm", d:T.communes.flatMap(c => c[2]).map(r => topoD(r, true)).join("")}, gRoad);
   el("path", {class:"t-water", d:T.water.filter(w => w[0]===1).map(w => topoD(w[1])).join("")}, gRoad);
   el("path", {class:"t-water t-wint", d:T.water.filter(w => w[0]!==1).map(w => topoD(w[1])).join("")}, gRoad);
-  const rd = k => T.roads.filter(r => r[0]===k).map(r => topoD(r[1])).join("");
-  const R4 = rd(4), R3 = rd(3), R2 = rd(2), R1 = rd(1), rail = join(T.rail);
-  el("path", {class:"t-track", d:R4}, gRoad);
-  [[R3,"t-r3"],[R2,"t-r2"],[R1,"t-r1"]].forEach(([d,c]) => el("path", {class:"t-case "+c, d}, gRoad));
-  [[R3,"t-r3"],[R2,"t-r2"],[R1,"t-r1"]].forEach(([d,c]) => el("path", {class:"t-fill "+c, d}, gRoad));
+  const rd = k => T.roads.filter(r => r[0]===k).map(r => r[1]);
+  tiled(rd(4), false, "t-track", gRoad);
+  [[3,"t-r3"],[2,"t-r2"],[1,"t-r1"]].forEach(([k,c]) => tiled(rd(k), false, "t-case "+c, gRoad));
+  [[3,"t-r3"],[2,"t-r2"],[1,"t-r1"]].forEach(([k,c]) => tiled(rd(k), false, "t-fill "+c, gRoad));
+  const rail = T.rail.map(f => topoD(f)).join("");
   el("path", {class:"t-rail", d:rail}, gRoad); el("path", {class:"t-rail2", d:rail}, gRoad);
-  el("path", {class:"t-bld", d:join(T.bld, true)}, gTown);
+  tiled(T.bld, true, "t-bld", gTown);
   // names: villages and hamlets, streams and woods, and the lieux-dits — except where a climat of the same name is drawn
   const climatAt = (x, y, n) => C.some(c => c.bb && x >= c.bb[0] && x <= c.bb[2] && y >= c.bb[1] && y <= c.bb[3] && bareN(c.n) === n);
   T.names.forEach(([k, n, x0, y0]) => {
@@ -573,7 +613,8 @@ function paint(){
   // keep the selection on top
   if(st.sel){ const e=CL[st.sel].el; e.parentNode.appendChild(e); }
   layoutLabels();
-  renderLegend(); renderList(); renderDomains(); renderCompare(); renderGcOwners(); syncChips();
+  paintEvents();
+  renderLegend(); renderList(); renderDomains(); renderCompare(); renderGcOwners(); renderVintages(); syncChips();
 }
 
 /* ---------- view: pan / zoom ---------- */
@@ -587,7 +628,23 @@ function clampVB(v){
   v.y = Math.max(-my, Math.min(v.y, H - v.h + my));
   return v;
 }
-function setVB(v){ vb = clampVB(v); svg.setAttribute("viewBox", `${vb.x.toFixed(1)} ${vb.y.toFixed(1)} ${vb.w.toFixed(1)} ${vb.h.toFixed(1)}`); layoutLabels(); orientSoon(); }
+// Two speeds: setVB redraws the svg at a new viewBox (labels, line widths, detail) — expensive with IGN's layers;
+// setVBLive, used while dragging, zooming or flying, only moves and scales the drawing already on screen with a CSS
+// transform (composited, no redraw) and commits the real viewBox once the gesture pauses.
+let vbC = null, commitT = 0;
+const baseRect = () => svg.parentNode.getBoundingClientRect(); // the map's frame, unaffected by the live transform
+function setVB(v){
+  clearTimeout(commitT); vb = clampVB(v); vbC = {...vb}; svg.style.transform = "";
+  svg.setAttribute("viewBox", `${vb.x.toFixed(1)} ${vb.y.toFixed(1)} ${vb.w.toFixed(1)} ${vb.h.toFixed(1)}`); layoutLabels(); orientSoon();
+}
+function setVBLive(v, delay = 140){
+  vb = clampVB(v);
+  if(!vbC){ setVB(vb); return; }
+  const r = svg.clientWidth / vbC.w, k = vbC.w / vb.w;
+  svg.style.transform = `translate(${((vbC.x - vb.x)*r*k).toFixed(1)}px,${((vbC.y - vb.y)*r*k).toFixed(1)}px) scale(${k.toFixed(5)})`;
+  // the commune pill and locator catch up when the gesture pauses (hit-testing the map every frame is costly)
+  clearTimeout(commitT); commitT = setTimeout(() => setVB(vb), delay);
+}
 const scale = () => svg.clientWidth / vb.w; // screen px per svg unit
 let anim = null;
 function flyTo(target, ms=420){
@@ -596,7 +653,8 @@ function flyTo(target, ms=420){
   if(matchMedia("(prefers-reduced-motion: reduce)").matches) ms = 0;
   const step = now => {
     const t = ms ? Math.min(1, (now-t0)/ms) : 1, e = t<.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2;
-    setVB({x:from.x+(to.x-from.x)*e, y:from.y+(to.y-from.y)*e, w:from.w+(to.w-from.w)*e, h:from.h+(to.h-from.h)*e});
+    const nv = {x:from.x+(to.x-from.x)*e, y:from.y+(to.y-from.y)*e, w:from.w+(to.w-from.w)*e, h:from.h+(to.h-from.h)*e};
+    if(t<1) setVBLive(nv, 400); else setVB(nv);
     if(t<1) anim = requestAnimationFrame(step);
   };
   anim = requestAnimationFrame(step);
@@ -613,16 +671,19 @@ function fitBox(x0,y0,x1,y1, pad=.08){
 }
 // after a click on the map: if the vineyard ended up under the drawer, slide the map left
 function ensureVisible(c){
-  const dp = drawerPx(); if(!dp || !c.bb) return;
+  if(!c.bb) return;
+  // not on screen at all (picked from a list or a link): frame it properly instead
+  if(c.bb[2] < vb.x || c.bb[0] > vb.x + vb.w || c.bb[3] < vb.y || c.bb[1] > vb.y + vb.h) return focusClimat(c);
+  const dp = drawerPx(); if(!dp) return;
   const k = scale(), right = (c.bb[2] - vb.x) * k, limit = svg.clientWidth - dp - 20;
   if(right > limit) flyTo({...vb, x: vb.x + (right - limit) / k + Math.min(80, (c.bb[2]-c.bb[0])*k/2) / k}, 300);
 }
 const boxOfGrid = (x0,y0,x1,y1) => { const xs=[px(x0,y0),px(x1,y0),px(x0,y1),px(x1,y1)]; return [Math.min(...xs), py(y0), Math.max(...xs), py(y1)]; };
 function zoomAt(f, cx, cy){ // cx/cy in svg units
   const w = vb.w*f; const k = w/vb.w;
-  setVB({x: cx-(cx-vb.x)*k, y: cy-(cy-vb.y)*k, w, h: vb.h*k});
+  setVBLive({x: cx-(cx-vb.x)*k, y: cy-(cy-vb.y)*k, w, h: vb.h*k});
 }
-function clientToSvg(ex, ey){ const r = svg.getBoundingClientRect(); return [vb.x + (ex-r.left)/r.width*vb.w, vb.y + (ey-r.top)/r.height*vb.h]; }
+function clientToSvg(ex, ey){ const r = baseRect(); return [vb.x + (ex-r.left)/r.width*vb.w, vb.y + (ey-r.top)/r.height*vb.h]; }
 svg.addEventListener("wheel", ev => {
   ev.preventDefault();
   const [cx,cy] = clientToSvg(ev.clientX, ev.clientY);
@@ -641,7 +702,7 @@ svg.addEventListener("pointermove", ev => {
     const [a,b]=[...ptrs.values()], d=Math.hypot(a[0]-b[0],a[1]-b[1]);
     const w = pinch0.w * pinch0.d / Math.max(20,d), k = w/vb.w;
     const [cx,cy] = pinch0.c;
-    setVB({x:cx-(cx-vb.x)*k, y:cy-(cy-vb.y)*k, w, h:vb.h*k}); dragMoved = true;
+    setVBLive({x:cx-(cx-vb.x)*k, y:cy-(cy-vb.y)*k, w, h:vb.h*k}); dragMoved = true;
     // two-finger twist turns the surveyed map: shown live by turning the drawing, rebuilt upright when the fingers lift
     if(st.mode==="geo"){
       let t = (Math.atan2(b[1]-a[1], b[0]-a[0]) - pinch0.ang) * 180/Math.PI; t = ((t + 540) % 360) - 180;
@@ -652,7 +713,7 @@ svg.addEventListener("pointermove", ev => {
   if(ptrs.size===1 && down0){
     const dx = ev.clientX-down0[0], dy = ev.clientY-down0[1];
     if(!dragMoved && Math.hypot(dx,dy) > 5){ dragMoved = true; svg.classList.add("dragging"); svg.setPointerCapture(ev.pointerId); hideTip(); }
-    if(dragMoved){ const r = svg.getBoundingClientRect(); setVB({...vb, x:down0[2]-dx/r.width*vb.w, y:down0[3]-dy/r.height*vb.h}); }
+    if(dragMoved){ const r = baseRect(); setVBLive({...vb, x:down0[2]-dx/r.width*vb.w, y:down0[3]-dy/r.height*vb.h}); }
   }
 });
 const up = ev => {
@@ -672,6 +733,13 @@ new ResizeObserver(() => setVB(vb)).observe(svg);
 
 /* ---------- labels: constant screen size, shown only where they fit ---------- */
 const measure = (() => { const cv=document.createElement("canvas").getContext("2d"); return (t,fs,wt) => { cv.font=`${wt} ${fs}px -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif`; return cv.measureText(t).width; }; })();
+// element lists layoutLabels walks on every redraw, collected once per build instead of queried each time
+let ELS = null;
+function els(){
+  if(!ELS) ELS = {cl:[...svg.querySelectorAll(".cl")], w:[...svg.querySelectorAll("[data-w]")], r:[...svg.querySelectorAll("[data-r]")],
+    lmx:[...svg.querySelectorAll(".lmx")], ch:[...svg.querySelectorAll(".chcross")], base:[...svg.querySelectorAll(".base")], mono:[...svg.querySelectorAll(".mono")]};
+  return ELS;
+}
 function layoutLabels(){
   const k = scale(); if(!isFinite(k) || !k) return;
   labEls.forEach(c => {
@@ -713,16 +781,17 @@ function layoutLabels(){
   });
   tlabEls.forEach(t => { const fs=+t.dataset.fs; t.setAttribute("font-size",(fs/k).toFixed(2)); t.style.display = k>0.45 ? "" : "none"; });
   rlabEls.forEach(t => { const fs=+t.dataset.fs; t.setAttribute("font-size",(fs/k).toFixed(2)); t.style.display = k>0.55 ? "" : "none"; });
-  svg.querySelectorAll(".cl").forEach(p => p.setAttribute("stroke-width", ((p.classList.contains("sel")?2.6:1)/k).toFixed(2)));
-  svg.querySelectorAll("[data-w]").forEach(e => e.setAttribute("stroke-width", (+e.dataset.w/k).toFixed(2)));
-  svg.querySelectorAll("[data-r]").forEach(e => e.setAttribute("r", (+e.dataset.r/k).toFixed(2)));
-  svg.querySelectorAll(".lmx").forEach(e => { const c=e.previousSibling; const cx=+c.getAttribute("cx"), cy=+c.getAttribute("cy"), q=1/k; e.setAttribute("d",`M${cx-2.4*q} ${cy-.6*q}h${4.8*q}M${cx} ${cy-3*q}v${5.2*q}`); });
-  svg.querySelectorAll(".chcross").forEach(e => { if(!e._d) e._d = e.getAttribute("d").match(/-?[\d.]+/g).map(Number); const [x,y]=[e._d[0]+3, e._d[1]], q=1/k; e.setAttribute("d",`M${x-3*q} ${y}h${6*q}M${x} ${y-4*q}v${8*q}`); });
+  const E = els();
+  E.cl.forEach(p => p.setAttribute("stroke-width", ((p.classList.contains("sel")?2.6:1)/k).toFixed(2)));
+  E.w.forEach(e => e.setAttribute("stroke-width", (+e.dataset.w/k).toFixed(2)));
+  E.r.forEach(e => e.setAttribute("r", (+e.dataset.r/k).toFixed(2)));
+  E.lmx.forEach(e => { const c=e.previousSibling; const cx=+c.getAttribute("cx"), cy=+c.getAttribute("cy"), q=1/k; e.setAttribute("d",`M${cx-2.4*q} ${cy-.6*q}h${4.8*q}M${cx} ${cy-3*q}v${5.2*q}`); });
+  E.ch.forEach(e => { if(!e._d) e._d = e.getAttribute("d").match(/-?[\d.]+/g).map(Number); const [x,y]=[e._d[0]+3, e._d[1]], q=1/k; e.setAttribute("d",`M${x-3*q} ${y}h${6*q}M${x} ${y-4*q}v${8*q}`); });
   lmEls.forEach(t => { t.setAttribute("font-size",(+t.dataset.fs/k).toFixed(2)); t.style.display = k>1.1 ? "" : "none"; });
   svg.classList.toggle("near", k>0.9); svg.classList.toggle("far", k<0.5);
   topoLod(k);
-  svg.querySelectorAll(".base").forEach(p => { p.setAttribute("stroke-width",(1/k).toFixed(2)); p.setAttribute("stroke-dasharray",`${(3/k).toFixed(2)} ${(3/k).toFixed(2)}`); });
-  svg.querySelectorAll(".mono").forEach(p => { p.setAttribute("stroke-width",(1.3/k).toFixed(2)); p.setAttribute("stroke-dasharray",`${(4/k).toFixed(2)} ${(3/k).toFixed(2)}`); });
+  E.base.forEach(p => { p.setAttribute("stroke-width",(1/k).toFixed(2)); p.setAttribute("stroke-dasharray",`${(3/k).toFixed(2)} ${(3/k).toFixed(2)}`); });
+  E.mono.forEach(p => { p.setAttribute("stroke-width",(1.3/k).toFixed(2)); p.setAttribute("stroke-dasharray",`${(4/k).toFixed(2)} ${(3/k).toFixed(2)}`); });
 }
 
 // a shorter form for tight spots: Saint → St, the Chambertin/Montrachet suffix of the grands crus abbreviated
@@ -843,6 +912,7 @@ function renderSide(){
       <p>${c.x ? `${t(c.c==="GC" ? "One of {0}'s grand cru climats on INAO's plan" : "One of {0}'s premiers crus on INAO's plan", esc(c.ap || c.vil.n))}${c.in && CL[c.in] && !CL[c.in].x ? t(", lying within {0}", `<button class="plink" data-c="${c.in}">${esc(CL[c.in].n)}</button>`) : ""}. ${t("The atlas has no notes on it yet; holdings can be added below.")}` : esc(txC(c))}</p>
       ${st.mode==="geo" && GEO && (GEO.meta.approx||[]).includes(c.id) ? `<p class="note">${t("INAO maps Charmes and Mazoyères as one area (Mazoyères may be sold as Charmes); the line between them here is an estimate.")}</p>` : ""}
       ${detailHtml(c)}
+      ${VT ? vintageYearHtml(catOf(c), c.v) + vintageChart(catOf(c), c.v) : ""}
       ${c.inner && !c.x?`<p class="note">${t("An enclave inside {0}.", `<button class="plink" data-c="${c.in}">${esc(CL[c.in].n)}</button>`)}</p>`:""}
       ${C.some(x=>x.in===c.id)?`<p class="note">${t("Contains {0}.", C.filter(x=>x.in===c.id).map(x=>`<button class="plink" data-c="${x.id}">${esc(x.n)}</button>`).join(", "))}</p>`:""}
       <h3>${t(c.mono ? "Holdings" : "Holdings · click a name to map their vineyards")}</h3>
@@ -885,6 +955,7 @@ function renderSide(){
       ${gc.length?`<h3>${t("Grands crus")}</h3><div class="qp">${list(gc)}</div>`:""}
       ${pc.length?`<h3>${t("Premiers crus on the map")}</h3><div class="qp">${list(pc)}</div>`:""}
       ${more.length?`<h3>${t("Also on INAO's plan ({0})", more.length)}</h3><div class="qp small">${list(more)}</div>`:""}
+      ${VT ? vintageYearHtml(v.cote==="nuits" ? "nuits_red" : "beaune_red", v.id) + vintageChart(v.cote==="nuits" ? "nuits_red" : "beaune_red", v.id) + (v.cote==="beaune" ? vintageChart("beaune_white", null) : "") : ""}
       ${top.length?`<h3>${t("Largest listed holders here")}</h3><table class="own">${top.map(([k,h])=>`<tr><td><button class="plink" data-p="${k}">${esc(P[k])}</button></td><td class="n"><b>${fmtHa(h)}</b> ha</td></tr>`).join("")}</table>`:""}
       ${vb2?`<h3>${t("In your cellar")}</h3><p class="note">${t("{0} bottles of {1} without a named climat, plus whatever's matched to the vineyards above.", vb2.left, esc(v.n))}</p>`:""}`;
   } else {
@@ -901,6 +972,8 @@ function renderSide(){
       <h3>${t("Start with")}</h3><div class="qp">${picks.map(id=>`<button data-c="${id}">${esc(CL[id].n)}</button>`).join("")}</div>`;
   }
   side.querySelectorAll("[data-c]").forEach(b => b.onclick = ev => { ev.stopPropagation(); select(b.dataset.c, true); });
+  side.querySelectorAll("[data-vy]").forEach(b => b.onclick = ev => { ev.stopPropagation(); showVintage(b.dataset.vy); });
+  side.querySelectorAll("[data-vstep]").forEach(b => b.onclick = ev => { ev.stopPropagation(); stepVintage(+b.dataset.vstep); });
   side.querySelectorAll("[data-p]").forEach(b => b.onclick = () => setProducer(b.dataset.p, true));
   side.querySelectorAll("[data-v]").forEach(b => b.onclick = () => selectVillage(b.dataset.v, true));
   const cl = $("sideClose"); if(cl) cl.onclick = () => { st.sel=null; st.vsel=null; st.overview=false; if(st.prod) setProducer(null); else { renderSide(); paint(); syncHash(); syncCommunes(); } };
@@ -931,6 +1004,15 @@ function renderLegend(){
   const ramp = (a,b,l,r) => `<div class="ramp" style="background:linear-gradient(90deg,${a},${b})"></div><div class="rl"><span>${l}</span><span>${r}</span></div>`;
   switch(st.color){
     case "commune": h = `<div class="lt">${t("Commune · darker = higher class")}</div>` + V.filter(v=>C.some(c=>c.v===v.id)).map(v => sw(communeColor({vil:v,c:"1er"}), esc(v.n))).join(""); break;
+    case "vintage": {
+      const yrs = [...new Set(VCATS.flatMap(vYears))].sort((a, b) => a - b), i = yrs.indexOf(st.vy);
+      const kinds = new Set(vEvents(null, st.vy).map(e => evtKind(e.t)));
+      h = `<div class="lt vyear"><button type="button" data-vstep="-1" ${i<=0?"disabled":""} aria-label="${t("Earlier vintage")}">◀</button><b>${st.vy}</b><button type="button" data-vstep="1" ${i>=yrs.length-1?"disabled":""} aria-label="${t("Later vintage")}">▶</button></div>`
+        + `<div class="lt">${t("Vintage rating, by Côte and colour")}</div>` + ramp(scoreFill(VLO), scoreFill(100), "≤"+VLO, "100")
+        + (kinds.has("frost") ? `<div class="row"><span class="sw" style="background:repeating-linear-gradient(45deg,${EVT.frost[0]} 0 2px,transparent 2px 5px)"></span>${t("Frost hit this commune")}</div>` : "")
+        + (kinds.has("hail") ? `<div class="row"><span class="sw" style="background:radial-gradient(circle,${EVT.hail[0]} 35%,transparent 40%);background-size:5px 5px"></span>${t("Hail hit this commune")}</div>` : "")
+        + sw(TOK.none, t("not rated"));
+      break; }
     case "alt": h = `<div class="lt">${t("Mean altitude (measured)")}</div>` + ramp(TOK.seq0, TOK.seq1, `${ALT0} m`, `${ALT1} m`) + sw(TOK.none, t("no data")); break;
     case "slope": h = `<div class="lt">${t("Mean slope (measured)")}</div>` + ramp(TOK.seq0, TOK.seq1, "0 %", `${SLOPE1}+ %`) + sw(TOK.none, t("no data")); break;
     case "size": h = `<div class="lt">${t("Climat size")}</div>` + ramp(TOK.seq0, TOK.seq1, "<1 ha", `${Math.round(maxHa)} ha`); break;
@@ -952,6 +1034,7 @@ function renderLegend(){
   }
   if(shown < C.length) h += `<div class="cnt">${t("{0} of {1} vineyards match", shown, C.length)}</div>`;
   L.innerHTML = h;
+  L.querySelectorAll("[data-vstep]").forEach(b => b.onclick = ev => { ev.stopPropagation(); stepVintage(+b.dataset.vstep); });
 }
 
 /* ---------- table ---------- */
@@ -1021,7 +1104,67 @@ function renderDomains(){
   box.querySelectorAll("[data-p]").forEach(b => b.onclick = () => { setProducer(st.prod===b.dataset.p ? null : b.dataset.p, true); $("mapcard").scrollIntoView({behavior:"smooth", block:"nearest"}); });
 }
 
+/* ---------- the vintage table (explore tab) ---------- */
+function renderVintages(){
+  const box = $("vintages"); if(!box || !VT) return;
+  const yrs = Object.keys(VT.years).map(Number).filter(y => VCATS.some(k => vRating(k, y))).sort((a, b) => b - a);
+  const cell = (k, y) => { const v = vRating(k, y); return v ? `<td class="vsc" style="background:${scoreFill(v[0])};color:${inkOn(scoreFill(v[0]))}" title="${esc(vx(v[2] || ""))}${v[1] ? " (" + t("estimate") + ")" : ""}">${v[0]}${v[1] ? "*" : ""}</td>` : `<td class="vsc">—</td>`; };
+  const an = y => { const w = VT.years[y].wx && VT.years[y].wx.dijon; if(!w || w.anom == null) return `<td>—</td>`;
+    const a = Math.max(-2, Math.min(2, w.anom)), col = a >= 0 ? mix(TOK.card, "#D9534F", a/2) : mix(TOK.card, "#3F7CB6", -a/2);
+    return `<td class="n" style="background:${col}">${w.anom > 0 ? "+" : ""}${w.anom}</td>`; };
+  box.innerHTML = `<table class="list vtab"><thead><tr><th>${t("Vintage")}</th>${VCATS.map(k => `<th class="n">${t(VCAT_EN[k])}</th>`).join("")}<th>${t("Harvest")}</th><th class="n" title="${t("Apr–Sep mean temperature at Dijon-Longvic vs 1991–2020")}">${t("Season °C")}</th><th class="n">${t("Rain mm")}</th><th>${t("Events")}</th><th>${t("Character")}</th></tr></thead><tbody>`
+    + yrs.map(y => { const Y = VT.years[y], w = (Y.wx && Y.wx.dijon) || {}, evs = vEvents(null, y);
+      const kinds = [...new Set(evs.map(e => evtKind(e.t)))];
+      const note = (vRating("nuits_red", y) || vRating("beaune_red", y) || vRating("beaune_white", y) || [])[2] || "";
+      return `<tr data-vy="${y}" class="${st.color==="vintage" && st.vy===y ? "sel" : ""}"><td><b>${y}</b></td>${VCATS.map(k => cell(k, y)).join("")}<td>${Y.harvest ? Y.harvest.slice(5).split("-").reverse().join("/") : "—"}</td>${an(y)}<td class="n">${w.rain ?? "—"}</td>
+        <td>${kinds.map(k => `<i class="evdot" style="background:${EVT[k][0]}" title="${esc(evs.filter(e => evtKind(e.t)===k).map(e => `${e.d}: ${e.a.join(", ")}${e.s ? " — " + vx(e.s) : ""}`).join("\n"))}"></i>${t(EVT[k][1])}`).join(" ")}</td><td class="vnote">${esc(vx(note))}</td></tr>`; }).join("")
+    + `</tbody></table><p class="note">${t("Ratings are AllWine's consensus of published vintage charts on a 100-point scale (* = estimate, fewer sources); hover a score for its note. Weather: Météo-France, Dijon-Longvic.")}</p>`;
+  box.querySelectorAll("tr[data-vy]").forEach(tr => tr.onclick = () => { showVintage(tr.dataset.vy); $("mapcard").scrollIntoView({behavior:"smooth", block:"nearest"}); });
+}
+
 /* ---------- vineyard detail ---------- */
+/* vintage chart: one bar per rated year for a climat's (or commune's) Côte and colour, with frost/hail/heat marks */
+function vintageChart(cat, vid){
+  const ys = vYears(cat); if(!ys.length) return "";
+  const W2 = 360, H2 = 96, top = 14, bw = W2 / ys.length;
+  let g = "";
+  ys.forEach((y, i) => {
+    const [sc, est, note] = vRating(cat, y), hh = Math.max(3, (sc - 60) / 40 * (H2 - top - 12)), x = i * bw;
+    const evs = vid ? vEvents(vid, y) : [];
+    const tip = `${y}: ${sc}${est ? " (" + t("estimate") + ")" : ""}${note ? " — " + vx(note) : ""}${evs.length ? " · " + evs.map(e => t(EVT[evtKind(e.t)][1])).join(", ") : ""}`;
+    g += `<g class="vbar${y===st.vy && st.color==="vintage" ? " on" : ""}" data-vy="${y}"><title>${esc(tip)}</title><rect x="${(x+.5).toFixed(1)}" y="${(H2-12-hh).toFixed(1)}" width="${Math.max(1, bw-1).toFixed(1)}" height="${hh.toFixed(1)}" fill="${scoreFill(sc)}"${est ? ' fill-opacity=".55"' : ""}/>`
+      + [...new Set(evs.map(e => evtKind(e.t)))].slice(0, 2).map((k, j) => `<circle cx="${(x + bw/2).toFixed(1)}" cy="${(H2-15-hh-4-j*7).toFixed(1)}" r="2.6" fill="${EVT[k][0]}"/>`).join("")
+      + `<rect x="${x.toFixed(1)}" y="0" width="${bw.toFixed(1)}" height="${H2}" fill="transparent"/></g>`;
+    if(y % 5 === 0) g += `<text x="${(x + bw/2).toFixed(1)}" y="${H2-1}" text-anchor="middle" class="vax">${y}</text>`;
+  });
+  const best = ys.map(y => [y, vRating(cat, y)[0]]).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  return `<h3>${t("Vintages")} · ${t(VCAT_EN[cat])}</h3>
+    <svg class="vchart" viewBox="0 0 ${W2} ${H2}" role="img" aria-label="${t("Vintage ratings")}">${g}</svg>
+    <p class="note">${t("Best")}: ${best.map(([y, sc]) => `<button class="plink" data-vy="${y}">${y}</button> ${sc}`).join(" · ")}
+      ${vid && vEvents(vid).length ? `<br><span class="vkey">${["frost","hail","heat"].map(k => `<i style="background:${EVT[k][0]}"></i>${t(EVT[k][1])}`).join(" ")}</span> ${t("marks years this commune was hit")}` : ""}</p>`;
+}
+function vintageYearHtml(cat, vid){
+  if(st.color!=="vintage" || !VT) return "";
+  const v = vRating(cat, st.vy), Y = VT.years[st.vy] || {}, w = (Y.wx || {});
+  const evs = vEvents(vid, st.vy);
+  return `<div class="vyearbox"><span class="vyear"><button type="button" data-vstep="-1" aria-label="${t("Earlier vintage")}">◀</button><b>${st.vy}</b><button type="button" data-vstep="1" aria-label="${t("Later vintage")}">▶</button></span>${v ? ` · <span class="vs" style="background:${scoreFill(v[0])};color:${inkOn(scoreFill(v[0]))}">${v[0]}</span>${v[1] ? ` <span class="note">(${t("estimate")})</span>` : ""}` : ""}
+    ${v && v[2] ? `<p>${esc(vx(v[2]))}${v[3] ? ` <span class="note">· ${esc(vx(v[3]))}</span>` : ""}</p>` : ""}
+    ${evs.map(e => `<p class="note"><i class="evdot" style="background:${EVT[evtKind(e.t)][0]}"></i><b>${t(EVT[evtKind(e.t)][1])}</b> ${esc(e.d)}${e.s ? " — " + esc(vx(e.s)) : ""}</p>`).join("")}
+    ${weatherLine(st.vy)}</div>`;
+}
+function weatherLine(y){
+  const Y = VT && VT.years[y]; if(!Y) return "";
+  const w = Y.wx && (Y.wx.dijon || Object.values(Y.wx)[0]); const bits = [];
+  if(Y.harvest) bits.push(t("Harvest from {0}", Y.harvest.slice(5).split("-").reverse().join("/")));
+  if(w){ if(w.anom != null) bits.push(t("Apr–Sep {0} °C vs normal", (w.anom > 0 ? "+" : "") + w.anom)); if(w.h35) bits.push(t(w.h35===1 ? "{0} day ≥ 35 °C" : "{0} days ≥ 35 °C", w.h35)); if(w.rain != null) bits.push(t("{0} mm rain Apr–Sep", w.rain)); if(w.frost) bits.push(t(w.frost===1 ? "{0} frost night after 1 April" : "{0} frost nights after 1 April", w.frost)); }
+  if(Y.crop) bits.push(esc(vx(Y.crop)));
+  return bits.length ? `<p class="note">${bits.join(" · ")}</p>` : "";
+}
+function stepVintage(d){
+  const yrs = [...new Set(VCATS.flatMap(vYears))].sort((a, b) => a - b), i = yrs.indexOf(st.vy);
+  const j = Math.max(0, Math.min(yrs.length - 1, i + d)); if(yrs[j] !== st.vy){ st.vy = yrs[j]; renderSide(); paint(); syncHash(); }
+}
+function showVintage(y){ st.vy = +y; st.color = "vintage"; $("fColor").value = "vintage"; renderSide(); paint(); syncHash(); }
 const WINDS = {en:"N NNE NE ENE E ESE SE SSE S SSW SW WSW W WNW NW NNW", da:"N NNØ NØ ØNØ Ø ØSØ SØ SSØ S SSV SV VSV V VNV NV NNV", fr:"N NNE NE ENE E ESE SE SSE S SSO SO OSO O ONO NO NNO"};
 const wind = deg => (WINDS[window.I18N ? window.I18N.lang : "en"] || WINDS.en).split(" ")[Math.round(deg/22.5) % 16];
 function detailHtml(c){
@@ -1326,7 +1469,7 @@ function communeAt([x, y]){
 let orientRaf = 0;
 function orientSoon(){ if(!orientRaf) orientRaf = requestAnimationFrame(() => { orientRaf = 0; orient(); }); }
 function orient(){
-  const r = svg.getBoundingClientRect(), k = scale(); if(!r.width || !k || !locVP) return;
+  const r = baseRect(), k = scale(); if(!r.width || !k || !locVP) return;
   const dpx = drawerPx(), dp = dpx/k, visW = vb.w - dp;
   // the visible part of the map, outlined on the locator (never smaller than a few pixels)
   const minU = 6 * W / Math.max(1, loc.clientWidth), w = Math.max(minU, visW), h = Math.max(minU, vb.h);
@@ -1374,17 +1517,18 @@ let lastHash = location.hash;
 function syncHash(){
   const h = st.sel ? "c="+st.sel : st.vsel ? "v="+st.vsel : "";
   const p = st.prod ? (h?"&":"")+"p="+st.prod : "";
-  const col = st.color!=="class" && st.color!=="producer" ? ((h||p)?"&":"")+"color="+st.color : "";
+  const col = st.color!=="class" && st.color!=="producer" ? ((h||p)?"&":"")+"color="+st.color+(st.color==="vintage" ? "&y="+st.vy : "") : "";
   const next = (h||p||col) ? "#"+h+p+col : "";
   if(next===lastHash || ("#"+location.hash.slice(1))===next) return;
   // a new vineyard, commune or producer is a step the Back button should undo; a colour change isn't
-  const step = next.replace(/&?color=[^&]*/,"") !== lastHash.replace(/&?color=[^&]*/,"");
+  const step = next.replace(/&?(color|y)=[^&]*/g,"") !== lastHash.replace(/&?(color|y)=[^&]*/g,"");
   history[step ? "pushState" : "replaceState"](null, "", location.pathname + location.search + next);
   lastHash = next;
 }
 function readHash(){
   const q = new URLSearchParams(location.hash.slice(1));
   if(q.get("color") && [...$("fColor").options].some(o=>o.value===q.get("color"))){ st.color=q.get("color"); $("fColor").value=st.color; }
+  if(q.get("y") && VT && VT.years[q.get("y")]) st.vy = +q.get("y");
   if(q.get("p") && P[q.get("p")] && PROD[q.get("p")]){ st.prod=q.get("p"); renderProdChip(); st.color="producer"; $("fColor").value="producer"; }
   if(q.get("c") && CL[q.get("c")]) { st.sel=q.get("c"); return () => focusClimat(CL[st.sel]); }
   if(q.get("v") && VIL[q.get("v")]) { st.vsel=q.get("v"); return () => selectVillage(st.vsel, true); }
