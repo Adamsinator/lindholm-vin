@@ -100,6 +100,17 @@ const overflow=async(p,where)=>{ const o=await p.evaluate(()=>document.documentE
   for(const th of ['n','v','c','ha','own']) await p.evaluate(k=>document.querySelector('#list th[data-k='+k+']').click(), th);
   await p.click('#coteSeg [data-cote=beaune]'); await p.waitForTimeout(500);
   await p.click('#dtabs [data-t=beaune]'); await p.click('#dtabs [data-t=vosne]');
+  // orientation: rotate, compass back to north, locator jump, where-am-I pill, wine colour filter
+  if(await p.isVisible('#rotR')){ await p.click('#rotR'); await p.click('#rotR'); await p.waitForTimeout(300);
+    if(await p.evaluate(()=>localStorage.getItem('atlasRot'))!=='30') note(tag,'rotation not applied');
+    await p.click('#compass'); await p.waitForTimeout(300); if(await p.evaluate(()=>localStorage.getItem('atlasRot'))!=='0') note(tag,'compass did not reset north'); }
+  await p.click('#zIn'); await p.click('#zIn'); await p.waitForTimeout(300);
+  if(!(await p.isVisible('#here'))) note(tag,'where-am-I pill hidden when zoomed in');
+  else { await p.click('#here'); await p.waitForTimeout(300); if(!(await p.isVisible('#side'))) note(tag,'pill click did not open the commune'); }
+  if(await p.isVisible('#locator')){ const bx=await p.$eval('#locator', e=>{const r=e.getBoundingClientRect(); return [r.left+r.width/2, r.top+r.height*.8];}); await p.mouse.click(bx[0],bx[1]); await p.waitForTimeout(500); }
+  await p.click('#wineSeg [data-wc=W]'); await p.waitForTimeout(200);
+  if(!/of \d+ vineyards match/.test(await p.textContent('#legend'))) note(tag,'legend count missing with white filter');
+  await p.click('#wineSeg [data-wc=""]');
   await p.click('#reset'); await p.waitForTimeout(400);
   await p.screenshot({path:OUT+tag+'_atlas.png'});
   // every climat, village and producer panel renders

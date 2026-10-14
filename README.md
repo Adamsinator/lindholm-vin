@@ -314,8 +314,12 @@ parcellaire des AOC viticoles* instead of its schematic grid:
    the drawer flags as an estimate.
 
 Once `burgundy-geo.js` has outlines, the atlas opens on the surveyed map with a
-scale bar, and a **Map: surveyed / schematic** button switches between the two;
-the choice is remembered per browser. With the placeholder file (`BURG_GEO =
+scale bar, and a **Surveyed / Schematic** switch on the map changes between the
+two; the choice is remembered per browser. The surveyed map turns in 15° steps
+(⟲ ⟳ or the `[` `]` keys; 90° gives the classic "slope up" view) and the compass
+puts north back up. A locator map shows where the view sits on the Côte, the pill
+at the top names the commune under the centre, and a climat's details show the
+published area next to INAO's delimited area. With the placeholder file (`BURG_GEO =
 null`) nothing changes. Credit: INAO data from data.gouv.fr under the Licence
 Ouverte; INAO notes the official boundaries are the plans held in the town
 halls.

@@ -67,7 +67,7 @@ header.top .ttl{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,H
 .toolbar input,.toolbar select{background:var(--card);border:1px solid var(--line);color:var(--ink);border-radius:8px;
   padding:8px 10px;font-size:14px;font-family:inherit;min-width:0;height:36px}
 #fSearch{flex:1 1 140px;max-width:320px}
-#fCommune{width:150px} #fColor{width:184px}
+#fCommune{width:150px} #fColor{width:172px}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;height:36px;background:var(--card)}
 .seg button{border:0;background:none;color:var(--muted);font:inherit;font-size:13px;font-weight:600;padding:0 12px;cursor:pointer;white-space:nowrap}
 .seg button+button{border-left:1px solid var(--line)}
@@ -84,8 +84,7 @@ header.top .ttl{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,H
   padding:8px 12px;font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit}
 .btn:hover{border-color:var(--accent)}
 .btn.quiet{border-color:transparent;background:none;color:var(--muted);font-weight:500}
-#reset{margin-left:auto;padding:8px 6px;white-space:nowrap}
-@media(max-width:1340px) and (min-width:601px){#reset{font-size:0} #reset::first-letter{font-size:16px}}
+#reset{margin-left:auto;padding:4px 8px;font-size:18px;line-height:1}
 input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 @media(max-width:600px){
   .toolbar{gap:6px}
@@ -114,7 +113,7 @@ input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible,[t
 .legend .sw{width:14px;height:11px;border-radius:3px;flex:none;border:1px solid rgba(0,0,0,.08)}
 .legend .ramp{height:10px;border-radius:3px;margin:4px 0 2px}
 .legend .rl{display:flex;justify-content:space-between;color:var(--muted);font-size:11px}
-@media(max-width:600px){.legend{font-size:11px;padding:6px 9px;max-width:170px}.legend .row{margin:1px 0}.compass{display:none}}
+@media(max-width:600px){.legend{font-size:11px;padding:6px 9px;max-width:170px}.legend .row{margin:1px 0}}
 .legend .mono-sw{background:var(--gc);outline:1.5px dashed var(--gc-ink);outline-offset:-4px}
 .hint{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);background:var(--ink);color:var(--bg);border-radius:20px;
   padding:6px 14px;font-size:12.5px;pointer-events:none;white-space:nowrap;opacity:.88;transition:opacity .4s}
@@ -130,13 +129,41 @@ input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible,[t
   .peek button{flex:none;border:0;background:var(--accent);color:var(--accent-ink);border-radius:8px;padding:7px 10px;font:inherit;font-weight:650;cursor:pointer}
   .mapcard:has(.peek:not([hidden])) .legend{display:none}
 }
-.scalebar{position:absolute;right:56px;bottom:12px;display:flex;flex-direction:column;align-items:flex-end;gap:2px;pointer-events:none;font-size:11px;color:var(--ink);transition:right .2s}
+.scalebar{position:absolute;right:56px;bottom:18px;display:flex;flex-direction:column;align-items:flex-end;gap:2px;pointer-events:none;font-size:11px;color:var(--ink);transition:right .2s}
 .scalebar span{display:block;height:6px;border:1.5px solid var(--ink);border-top:0;min-width:10px}
 .scalebar em{font-style:normal;font-weight:600;text-shadow:0 0 3px var(--mapbg)}
-.compass{position:absolute;left:12px;top:10px;font-size:11px;color:var(--muted);line-height:1.25;pointer-events:none}
-.compass b{display:block;font-size:13px;color:var(--ink)}
+/* orientation: compass + locator (top left), where-am-I pill (top centre), attribution (bottom right) */
+.loc{position:absolute;left:10px;top:10px;display:flex;flex-direction:column;align-items:flex-start;gap:6px;z-index:1}
+.compass{width:44px;height:44px;padding:0;border:1px solid var(--line);border-radius:50%;background:color-mix(in srgb,var(--card) 92%,transparent);
+  box-shadow:var(--shadow);cursor:pointer}
+.compass:hover{border-color:var(--accent)}
+.compass svg{width:100%;height:100%;display:block}
+.compass .ring{fill:none;stroke:var(--line)}
+.compass .nn{fill:var(--accent)} .compass .ns{fill:var(--muted);opacity:.45}
+.compass text{font:800 8.5px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;fill:var(--accent)}
+#needle{transition:transform .25s}
+.locator{display:block;border:1px solid var(--line);border-radius:8px;background:color-mix(in srgb,var(--card) 90%,transparent);box-shadow:var(--shadow);
+  cursor:pointer;transition:opacity .2s}
+.locator.whole{opacity:0;pointer-events:none}
+.locator .lv{fill:color-mix(in srgb,var(--base) 80%,var(--ink) 12%);stroke:var(--muted);stroke-opacity:.5;vector-effect:non-scaling-stroke;stroke-width:.6}
+.locator .lv.here{fill:color-mix(in srgb,var(--accent) 30%,var(--base))}
+.locator .lg{fill:var(--gc)}
+.base.here{stroke:var(--ink);stroke-opacity:.55}
+.legend .cnt{margin-top:5px;padding-top:4px;border-top:1px solid var(--line);font-weight:600;color:var(--accent)}
+.locator .vp{fill:color-mix(in srgb,var(--accent) 12%,transparent);stroke:var(--accent);stroke-width:1.6;vector-effect:non-scaling-stroke}
+.here{position:absolute;top:10px;left:50%;transform:translateX(-50%);max-width:calc(100% - 200px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  border:1px solid var(--line);border-radius:20px;background:color-mix(in srgb,var(--card) 94%,transparent);box-shadow:var(--shadow);
+  padding:6px 14px;font:600 13px/1.2 inherit;font-family:inherit;color:var(--ink);cursor:pointer;transition:left .2s}
+.here .c{color:var(--muted);font-weight:500}
+.here:hover{border-color:var(--accent)}
+.attr{position:absolute;right:8px;bottom:3px;font-size:10px;color:var(--muted);pointer-events:none;text-shadow:0 0 3px var(--mapbg)}
+.layers{position:absolute;right:56px;top:10px;height:32px;box-shadow:var(--shadow);transition:right .2s}
+.layers button{font-size:12px;padding:0 10px}
+@media(max-width:600px){.locator{max-width:64px;max-height:110px}.here{max-width:calc(100% - 130px);font-size:12px;padding:5px 10px}
+  .layers{top:auto;bottom:22px;right:10px;height:28px} .scalebar{bottom:58px;right:12px}.compass{width:38px;height:38px}}
 @media(min-width:921px){
   .mapcard.open .zoom{right:412px}
+  .mapcard.open .layers{right:458px}
   .mapcard.open .scalebar{right:458px}
   .mapcard.open .hint{display:none}
 }
@@ -312,33 +339,47 @@ footer.fine{margin-top:14px;font-size:12px;color:var(--muted);max-width:110ch;li
   <div class="seg" id="coteSeg" role="group" aria-label="Côte"></div>
   <select id="fCommune" aria-label="Jump to a commune"></select>
   <select id="fColor" aria-label="Colour the map by">
-    <option value="class">Colour: classification</option>
-    <option value="commune">Colour: commune</option>
-    <option value="producer">Colour: producer's share</option>
-    <option value="size">Colour: size (ha)</option>
-    <option value="owners">Colour: owners listed</option>
-    <option value="cellar">Colour: my cellar</option>
+    <option value="class">By classification</option>
+    <option value="commune">By commune</option>
+    <option value="producer">By producer's share</option>
+    <option value="size">By size (ha)</option>
+    <option value="owners">By owners listed</option>
+    <option value="cellar">By my cellar</option>
   </select>
+  <div class="seg" id="wineSeg" role="group" aria-label="Wine colour">
+    <button type="button" data-wc="" class="on">All</button><button type="button" data-wc="R">Red</button><button type="button" data-wc="W">White</button>
+  </div>
   <div class="chipset" id="classChips">
     <button class="chip on" data-cls="GC"><span class="sw" style="background:var(--gc)"></span>Grand cru</button>
-    <button class="chip on" data-cls="1er"><span class="sw" style="background:var(--pc)"></span>Premier cru</button>
+    <button class="chip on" data-cls="1er"><span class="sw" style="background:var(--pc)"></span>1er cru</button>
     <button class="chip on" data-cls="V"><span class="sw" style="background:var(--vc)"></span>Village</button>
     <button class="chip" id="monoChip">Monopoles</button>
     <button class="chip" id="cellarChip" hidden>My cellar</button>
-    <button class="chip" id="modeChip" hidden title="Surveyed INAO outlines or the schematic map">Map: surveyed</button>
     <button class="chip prod" id="prodChip" hidden title="Clear the producer"></button>
   </div>
-  <button class="btn quiet" id="reset" title="Reset filters and view" aria-label="Reset filters and view">↺ Reset</button>
+  <button class="btn quiet" id="reset" title="Reset filters and view" aria-label="Reset filters and view">↺</button>
 </div>
 
 <div class="mapcard" id="mapcard">
   <svg id="map" role="img" aria-label="Map of the Côte d'Or vineyards"></svg>
-  <div class="compass" id="compass"><b>N ↑</b>slope rises west ←<br>schematic · not to scale</div>
+  <div class="loc" id="loc">
+    <button class="compass" id="compass" type="button" title="North up" aria-label="Compass: click to put north up">
+      <svg viewBox="-20 -20 40 40" aria-hidden="true"><circle r="18.5" class="ring"/><g id="needle"><path class="nn" d="M0-9L3.6 1H-3.6Z"/><path class="ns" d="M0 11L3.6 1H-3.6Z"/><text id="nLetter" x="0" y="-13.6" text-anchor="middle" dominant-baseline="central">N</text></g></svg>
+    </button>
+    <svg class="locator" id="locator" role="img" aria-label="Where this view sits on the Côte d'Or"></svg>
+  </div>
+  <button class="here" id="here" type="button" hidden></button>
+  <div class="attr" id="attr"></div>
+  <div class="layers seg" id="layers" hidden role="group" aria-label="Map type">
+    <button type="button" data-m="geo" title="Real vineyard boundaries (INAO)">Surveyed</button><button type="button" data-m="schematic" title="Simplified map, slope rising to the west">Schematic</button>
+  </div>
   <div class="scalebar" id="scalebar" hidden><span></span><em></em></div>
   <div class="zoom">
     <button id="zIn" title="Zoom in (+)" aria-label="Zoom in">＋</button>
     <button id="zOut" title="Zoom out (−)" aria-label="Zoom out">－</button>
     <button id="zAll" title="Whole Côte d'Or" aria-label="Show the whole Côte d'Or">⤢</button>
+    <button id="rotL" title="Turn map left ([)" aria-label="Turn the map anticlockwise" hidden>⟲</button>
+    <button id="rotR" title="Turn map right (])" aria-label="Turn the map clockwise" hidden>⟳</button>
     <button id="zInfo" title="About the atlas" aria-label="About the atlas">i</button>
   </div>
   <div class="legend" id="legend"></div>
@@ -394,6 +435,6 @@ footer.fine{margin-top:14px;font-size:12px;color:var(--muted);max-width:110ch;li
 <script src="burgundy-data-beaune.js?v=7"></script>
 <script src="burgundy-detail.js?v=6"></script>
 <script src="burgundy-geo.js?v=2"></script>
-<script src="burgundy.js?v=10"></script>
+<script src="burgundy.js?v=11"></script>
 </body>
 </html>
