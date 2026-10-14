@@ -246,7 +246,7 @@ function shadeUpdate(){
   const corners = [[vb.x, vb.y], [vb.x+vb.w, vb.y], [vb.x, vb.y+vb.h], [vb.x+vb.w, vb.y+vb.h]].map(q => toLL(INV(q)));
   const lons = corners.map(q => q[0]), lats = corners.map(q => q[1]);
   const mpp = 1/(GS*scale()), lat = (Math.min(...lats)+Math.max(...lats))/2;
-  const z = Math.max(11, Math.min(16, Math.round(Math.log2(156543.03*Math.cos(lat*d2r)/mpp))));
+  const z = Math.max(11, Math.min(15, Math.round(Math.log2(156543.03*Math.cos(lat*d2r)/mpp)))); // IGN serves this layer up to level 15
   const n = 2**z, tx = lon => Math.floor((lon+180)/360*n), ty = la => Math.floor((1 - Math.log(Math.tan(la*d2r) + 1/Math.cos(la*d2r))/Math.PI)/2*n);
   const lonOf = x => x/n*360 - 180, latOf = y => Math.atan(Math.sinh(Math.PI*(1 - 2*y/n)))/d2r;
   const x0 = tx(Math.min(...lons)), x1 = tx(Math.max(...lons)), y0 = ty(Math.max(...lats)), y1 = ty(Math.min(...lats));

@@ -49,7 +49,8 @@ const findings=[]; const note=(where,what)=>{findings.push(where+': '+what);};
 async function watch(p,where){
   p.on('pageerror',e=>note(where,'PAGEERROR '+e.message));
   p.on('console',m=>{ if(m.type()==='error') note(where,'console '+m.text()); });
-  p.on('requestfailed',q=>{ if(!q.url().includes('script.google')) note(where,'requestfailed '+q.url()); });
+  // relief tiles are cancelled on purpose when the view moves on before they arrive
+  p.on('requestfailed',q=>{ if(!q.url().includes('script.google') && !(q.url().includes('data.geopf.fr/wmts') && /ERR_ABORTED/.test(q.failure()?.errorText||''))) note(where,'requestfailed '+q.url()+' '+(q.failure()?.errorText||'')); });
   p.on('response',s=>{ if(s.status()>=400) note(where,'HTTP '+s.status()+' '+s.url()); });
 }
 const overflow=async(p,where)=>{ const o=await p.evaluate(()=>document.documentElement.scrollWidth-innerWidth); if(o>1) note(where,'horizontal overflow '+o+'px'); };
