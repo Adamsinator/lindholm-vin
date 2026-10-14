@@ -790,7 +790,7 @@ async function loadData(){
     $("spin").hidden = true; $("content").hidden = false;
     loadJournalSilently(); loadFeedSilently();
   }catch(err){
-    if(AUTH_ERRORS.has(err.message)){ forgetAuth(); setGateMode("login"); showGate("Your session expired — log in again."); }
+    if(AUTH_ERRORS.has(err.message)){ forgetAuth(); setGateMode("login"); showGate(tr("Your session expired — log in again.")); }
     else { $("spin").textContent = "Could not reach the cellar API ("+err.message+"). Check your connection and refresh."; }
   }
 }
@@ -923,6 +923,8 @@ async function addWine(e){
 
 /* ---------- gate ---------- */
 let GATE_MODE = "login"; // or "signup"
+const tr = (window.I18N && window.I18N.t) || (s => s); // the front page follows the language picker (i18n.js)
+if(window.I18N) window.I18N.onChange(() => setGateMode(GATE_MODE));
 function showGate(msg){
   $("app").hidden = true; $("gate").hidden = false;
   $("who").hidden = true; $("who").textContent = "";
@@ -935,11 +937,11 @@ function setGateMode(mode){
   GATE_MODE = mode;
   const signup = mode==="signup";
   $("gateInviteWrap").hidden = !signup;
-  $("gateLead").textContent = signup
+  $("gateLead").textContent = tr(signup
     ? "Create your own cellar. You'll need an invite code."
-    : "Your private cellar. Log in to continue.";
-  $("gateSubmit").textContent = signup ? "Create account" : "Log in";
-  $("gateToggle").textContent = signup ? "Have an account? Log in" : "Need an account? Sign up";
+    : "Your private cellar. Log in to continue.");
+  $("gateSubmit").textContent = tr(signup ? "Create account" : "Log in");
+  $("gateToggle").textContent = tr(signup ? "Have an account? Log in" : "Need an account? Sign up");
   $("gatePass").setAttribute("autocomplete", signup ? "new-password" : "current-password");
   $("gateErr").textContent = "";
 }
@@ -966,28 +968,28 @@ $("gateForm").addEventListener("submit", async e=>{
   e.preventDefault();
   const apiIn = $("gateApi").value.trim();
   if(!cfg.api && apiIn){ cfg.api = apiIn; localStorage.setItem("vinApi", apiIn); }
-  if(!cfg.api){ $("gateErr").textContent = "The API URL is missing."; return; }
+  if(!cfg.api){ $("gateErr").textContent = tr("The API URL is missing."); return; }
   const user = $("gateUser").value.trim(), pass = $("gatePass").value;
-  if(!user || !pass){ $("gateErr").textContent = "Enter your username and password."; return; }
+  if(!user || !pass){ $("gateErr").textContent = tr("Enter your username and password."); return; }
   const signup = GATE_MODE==="signup";
-  $("gateSubmit").disabled = true; $("gateErr").textContent = signup ? "Creating…" : "Signing in…";
+  $("gateSubmit").disabled = true; $("gateErr").textContent = tr(signup ? "Creating…" : "Signing in…");
   try{
     const params = signup
       ? {action:"signup", user, pass, code:$("gateInvite").value.trim()}
       : {action:"login", user, pass};
     const data = await post(params);
-    if(!data.ok){ $("gateErr").textContent = AUTH_MSG[data.error] || ("Could not sign in ("+data.error+")."); return; }
+    if(!data.ok){ $("gateErr").textContent = AUTH_MSG[data.error] ? tr(AUTH_MSG[data.error]) : tr("Could not sign in ({0}).", data.error); return; }
     cfg.user = data.user; cfg.token = data.token;
     localStorage.setItem("vinUser", cfg.user); localStorage.setItem("vinToken", cfg.token);
     $("gatePass").value = ""; $("gateInvite").value = "";
     enterApp();
-  }catch(err){ $("gateErr").textContent = "Could not reach the cellar API ("+err.message+")."; }
+  }catch(err){ $("gateErr").textContent = tr("Could not reach the cellar API ({0}).", err.message); }
   finally{ $("gateSubmit").disabled = false; }
 });
 
 /* ---------- header actions ---------- */
 $("refreshBtn").addEventListener("click", loadData);
-$("lockBtn").addEventListener("click", ()=>{ forgetAuth(); setGateMode("login"); showGate("Signed out. Log in to reopen."); });
+$("lockBtn").addEventListener("click", ()=>{ forgetAuth(); setGateMode("login"); showGate(tr("Signed out. Log in to reopen.")); });
 $("priceBtn").addEventListener("click", ()=>{
   SHOW_PRICES = !SHOW_PRICES;
   localStorage.setItem("vinHidePrices", SHOW_PRICES ? "0" : "1");
@@ -1666,7 +1668,7 @@ async function loadJournal(force){
     JENTRIES = res.entries || [];
     renderJournal();
   }catch(err){
-    if(AUTH_ERRORS.has(err.message)){ forgetAuth(); setGateMode("login"); showGate("Your session expired — log in again."); }
+    if(AUTH_ERRORS.has(err.message)){ forgetAuth(); setGateMode("login"); showGate(tr("Your session expired — log in again.")); }
     else $("jList").innerHTML = `<div class="spin">Could not load the journal (${esc(err.message)}). The Apps Script may need the latest redeploy.</div>`;
   }
   $("jSpin").hidden = true;
@@ -2157,7 +2159,7 @@ async function loadWishlist(force){
     WITEMS = res.items || [];
     renderWishlist();
   }catch(err){
-    if(AUTH_ERRORS.has(err.message)){ forgetAuth(); setGateMode("login"); showGate("Your session expired — log in again."); }
+    if(AUTH_ERRORS.has(err.message)){ forgetAuth(); setGateMode("login"); showGate(tr("Your session expired — log in again.")); }
     else $("wList").innerHTML = `<div class="spin">Could not load the wishlist (${esc(err.message)}). The Apps Script may need the latest redeploy.</div>`;
   }
   $("wSpin").hidden = true;
@@ -2270,7 +2272,7 @@ async function loadFeed(force){
     $("feedSpin").hidden=true; renderFeed(); markFeedSeen();
   }catch(err){
     $("feedSpin").hidden=true;
-    if(AUTH_ERRORS.has(err.message)){ forgetAuth(); setGateMode("login"); showGate("Your session expired — log in again."); }
+    if(AUTH_ERRORS.has(err.message)){ forgetAuth(); setGateMode("login"); showGate(tr("Your session expired — log in again.")); }
     else $("feedList").innerHTML=`<div class="spin">Could not load the feed (${esc(err.message)}). The Apps Script may need the latest redeploy.</div>`;
   }
 }
@@ -2433,7 +2435,7 @@ function markActive(){
 }
 function idleLogout(){
   forgetAuth(); localStorage.removeItem("vinActive");
-  setGateMode("login"); showGate("Signed out after 60 minutes of inactivity — log in again.");
+  setGateMode("login"); showGate(tr("Signed out after 60 minutes of inactivity — log in again."));
 }
 function checkIdle(){ if(cfg.token && Date.now()-lastActive > IDLE_MS) idleLogout(); }
 ["click","keydown","pointerdown","scroll","touchstart"].forEach(ev=>

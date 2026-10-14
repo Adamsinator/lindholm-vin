@@ -1,1 +1,3 @@
 tools/node_modules/
+tools/.topo-cache/
+tools/.dem-cache/

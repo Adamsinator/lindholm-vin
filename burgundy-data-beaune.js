@@ -82,8 +82,8 @@ const climats = [
   {id:"bressandes", grp:"corton", n:"Corton Les Bressandes", v:"corton", c:"GC", ha:17.42, col:"R", s:R(12.5,7.5,19,10),
     p:[["drc",1.19,"f",2009],["tollot",null],["chandon",null],["senard",null]], d:"The largest Corton lieu-dit, on the south face above Aloxe; spicy and structured."},
   {id:"perrieres_corton", grp:"corton", n:"Corton Les Perrières", v:"corton", c:"GC", ha:9.7, col:"R", s:R(12.5,10,16,12), p:[], d:"Old quarry ground on the lower south face."},
-  {id:"greves_corton", grp:"corton", n:"Corton Les Grèves", v:"corton", c:"GC", ha:6.5, col:"R", s:R(16,10,20,12), p:[], d:"Lower south face, gravelly and warm."},
-  {id:"marechaudes", grp:"corton", n:"Corton Les Maréchaudes", v:"corton", c:"GC", ha:6, col:"R", s:R(20,7.5,23,10), p:[["chandon",null]], d:"Lowest grand cru on the Aloxe side."},
+  {id:"greves_corton", grp:"corton", n:"Corton Les Grèves", v:"corton", c:"GC", ha:2.32, col:"R", s:R(16,10,20,12), p:[], d:"Lower south face, gravelly and warm."},
+  {id:"marechaudes", grp:"corton", n:"Corton Les Maréchaudes", v:"corton", c:"GC", ha:4.46, col:"R", s:R(20,7.5,23,10), p:[["chandon",null]], d:"Lowest grand cru on the Aloxe side."},
   {id:"fournieres", ap:"Aloxe-Corton", n:"Les Fournières", v:"corton", c:"1er", ha:5.6, col:"R", s:R(20,10,24,12), p:[["tollot",null]], d:"Aloxe-Corton premier cru below Les Grèves."},
   {id:"valozieres", ap:"Aloxe-Corton", n:"Les Valozières", v:"corton", c:"1er", ha:6.2, col:"R", s:R(20,12,24,14), p:[["chandon",null]], d:"Aloxe-Corton premier cru on the Savigny side."},
   {id:"iledesvergelesses", ap:"Pernand-Vergelesses", n:"Île des Vergelesses", v:"corton", c:"1er", ha:9.4, col:"R", s:R(3,13,10,14), p:[["chandon",null],["rapet",null]], d:"Pernand-Vergelesses' best red, facing Savigny across the valley."},
@@ -92,7 +92,7 @@ const climats = [
   {id:"lavieres", n:"Les Lavières", v:"savigny", c:"1er", ha:17.7, col:"R", s:R(13,0,18,2.5), p:[["tollot",null],["chandon",null]], d:"Stony, fine-grained Savigny."},
   {id:"narbantons", n:"Les Narbantons", v:"savigny", c:"1er", ha:9.5, col:"R", s:R(18,0,22,2.5), p:[["pavelot",null]], d:"Lower slope on the Aloxe side."},
   {id:"serpentieres", n:"Aux Serpentières", v:"savigny", c:"1er", ha:12, col:"R", s:R(4,6,8,8.5), p:[["pavelot",null]], d:"Beaune-side slope above the village."},
-  {id:"marconnets_sav", n:"Les Marconnets", v:"savigny", c:"1er", ha:9.2, col:"R", s:R(8,6,12,8.5), p:[["bize",null]], d:"Neighbour of Beaune's own Marconnets."},
+  {id:"marconnets_sav", n:"Les Marconnets", v:"savigny", c:"1er", ha:2.99, col:"R", s:R(8,6,12,8.5), p:[["bize",null]], d:"Neighbour of Beaune's own Marconnets."},
   {id:"dominode", n:"La Dominode", v:"savigny", c:"1er", ha:8.8, col:"R", s:R(12,6,16,8.5), p:[["pavelot",null]], d:"Old vines, deep and dark — often Savigny's most serious red."},
   // ── Beaune
   {id:"marconnets", n:"Les Marconnets", v:"beaune", c:"1er", ha:10.4, col:"R", s:R(8,0,12,2), p:[["bouchard",null],["chanson",null]], d:"Northernmost Beaune premier cru, against Savigny."},
@@ -108,8 +108,8 @@ const climats = [
   {id:"champimonts", n:"Champs Pimont", v:"beaune", c:"1er", ha:16, col:"RW", s:R(9,8,14,10), p:[["jadot",null]], d:"Mid-slope south of the town."},
   {id:"mousse", n:"Clos de la Mousse", v:"beaune", c:"1er", ha:3.36, col:"R", mono:"bouchard", wall:true, s:R(14,8.5,16.5,10.5), p:[["bouchard",3.36]], d:"Bouchard monopole."},
   {id:"vignesfranches", n:"Les Vignes Franches", v:"beaune", c:"1er", ha:9.8, col:"RW", s:R(9,10,14,12.5), p:[["jadot",null],["drouhin",null]], d:"Holds Jadot's Clos des Ursules."},
-  {id:"ursules", n:"Clos des Ursules", v:"beaune", c:"1er", ha:2.7, col:"R", mono:"jadot", wall:true, in:"vignesfranches", s:R(9.3,10.3,11.6,12.2),
-    p:[["jadot",2.7]], d:"Walled monopole within Les Vignes Franches, Jadot's since 1826."},
+  {id:"ursules", n:"Clos des Ursules", v:"beaune", c:"1er", ha:1.26, col:"R", mono:"jadot", wall:true, in:"vignesfranches", s:R(9.3,10.3,11.6,12.2),
+    p:[["jadot",1.26]], d:"Walled monopole within Les Vignes Franches, Jadot's since 1826. The clos itself is 1.26 ha on the plan; the 2.7 ha often quoted includes neighbouring Vignes Franches."},
   {id:"avaux", n:"Les Avaux", v:"beaune", c:"1er", ha:13.5, col:"R", s:R(14,10.5,18,12.5), p:[["jadot",null]], d:"Lower slope south of the town."},
   {id:"clos_mouches", n:"Clos des Mouches", v:"beaune", c:"1er", ha:25.2, col:"RW", s:R(7,12.5,13,16), p:[["drouhin",null],["chanson",null]], d:"Drouhin's flagship, assembled from 1921, famous for both a red and a white; on the Pommard border."},
   // ── Pommard
@@ -133,9 +133,9 @@ const climats = [
   {id:"champans", n:"Les Champans", v:"volnay", c:"1er", ha:11.3, col:"R", s:R(13.5,7,18,10), p:[["angerville",null],["lafon",null],["montille",null]], d:"Rounder, deeper Volnay below Caillerets."},
   // ── Monthélie · Auxey
   {id:"champsfulliot", ap:"Monthélie", n:"Les Champs Fulliot", v:"monthelie", c:"1er", ha:8.1, col:"RW", s:R(9,0,14,2.5), p:[["roulot",0.2]], d:"Monthélie's best, continuing Volnay's slope."},
-  {id:"duresses", ap:"Auxey-Duresses", n:"Les Duresses", v:"monthelie", c:"1er", ha:10, col:"R", s:R(1.5,3,6,5), p:[["lafon",null]], d:"Shared by Auxey and Monthélie."},
+  {id:"duresses", ap:"Auxey-Duresses", n:"Les Duresses", v:"monthelie", c:"1er", ha:14.64, col:"R", s:R(1.5,3,6,5), p:[["lafon",null]], d:"Shared by Auxey and Monthélie."},
   // ── Meursault
-  {id:"santenots", ap:"Volnay-Santenots (red) · Meursault (white)", n:"Les Santenots", v:"meursault", c:"1er", ha:22, col:"RW", s:R(12,0,19,3), p:[["lafon",null],["prieur",null],["latour",null]], d:"In Meursault, but its red is sold as Volnay-Santenots — Lafon's Santenots-du-Milieu is the benchmark."},
+  {id:"santenots", ap:"Volnay-Santenots (red) · Meursault (white)", n:"Les Santenots", v:"meursault", c:"1er", ha:29.07, col:"RW", s:R(12,0,19,3), p:[["lafon",null],["prieur",null],["latour",null]], d:"In Meursault, but its red is sold as Volnay-Santenots — Lafon's Santenots-du-Milieu is the benchmark."},
   {id:"gouttedor", n:"Les Gouttes d'Or", v:"meursault", c:"1er", ha:5.3, col:"W", s:R(10,5,14,7), p:[["lafon",0.39]], d:"North of the village; rich and golden."},
   {id:"boucheres", n:"Les Bouchères", v:"meursault", c:"1er", ha:4.3, col:"W", s:R(7,6,10,8), p:[["lafon",0.5],["roulot",0.16]], d:"Upslope of the Poruzots."},
   {id:"poruzots", n:"Les Poruzots", v:"meursault", c:"1er", ha:11.4, col:"W", s:R(10,7,14,9), p:[["roulot",null]], d:"Between Goutte d'Or and Genevrières."},
@@ -172,7 +172,7 @@ const climats = [
   {id:"chenevottes", n:"Les Chenevottes", v:"chassagne", c:"1er", ha:10.6, col:"W", s:R(10,1.2,13,3.5), p:[["colin_m",null]], d:"Next to the Montrachet side."},
   {id:"ruchottes_chassagne", n:"Les Grandes Ruchottes", v:"chassagne", c:"1er", ha:2.1, col:"W", s:R(5,4,8,5.5), p:[["ramonet",null]], d:"Small, stony and mineral."},
   {id:"vergers", n:"Les Vergers", v:"chassagne", c:"1er", ha:9.4, col:"W", s:R(8,4,11,6), p:[["ramonet",null]], d:"Mid-slope, north of the village."},
-  {id:"maltroie", n:"La Maltroie", v:"chassagne", c:"1er", ha:9.1, col:"RW", s:R(11,3.5,13,6), p:[], d:"Close to the village."},
+  {id:"maltroie", n:"La Maltroie", v:"chassagne", c:"1er", ha:11.6, col:"RW", s:R(11,3.5,13,6), p:[], d:"Close to the village."},
   {id:"clossaintjean", n:"Clos Saint-Jean", v:"chassagne", c:"1er", ha:14.2, col:"RW", s:R(4,6,8,8.5), p:[["ramonet",null]], d:"Above the village; red and white."},
   {id:"embrazees", n:"Les Embrazées", v:"chassagne", c:"1er", ha:5.1, col:"RW", s:R(9,8,12,10), p:[], d:"Toward Santenay."},
   {id:"morgeot", n:"Morgeot", v:"chassagne", c:"1er", ha:54, col:"RW", s:R(12,8.5,20,12), p:[["ramonet",null],["vougeraie",1.0],["gagnard_jn",null]], d:"Chassagne's big southern premier cru, a family of lieux-dits around the old abbey farm; broad whites and serious reds."},
@@ -181,7 +181,7 @@ const climats = [
   {id:"enremilly", n:"En Remilly", v:"staubin", c:"1er", ha:30, col:"W", s:R(5,0,10,2), p:[["colin_m",null]], d:"Upslope from Chevalier-Montrachet, over the hill."},
   {id:"dentsdechien", n:"Murgers des Dents de Chien", v:"staubin", c:"1er", ha:13.5, col:"W", s:R(5,2,10,4), p:[["colin_m",null]], d:"Named for the dog-tooth stones; just above Chevalier."},
   // ── Santenay
-  {id:"gravieres", n:"Les Gravières", v:"santenay", c:"1er", ha:23.3, col:"RW", s:R(10,0.5,16,3), p:[["girardin_v",null]], d:"Santenay's classic, on the Chassagne side."},
+  {id:"gravieres", n:"Les Gravières", v:"santenay", c:"1er", ha:23.85, col:"RW", s:R(10,0.5,16,3), p:[["girardin_v",null]], d:"Santenay's classic, on the Chassagne side."},
   {id:"clostavannes", n:"Clos Tavannes", v:"santenay", c:"1er", ha:5.3, col:"R", s:R(10,3,13,5), p:[], d:"Within the Gravières sector."},
   {id:"passetemps", n:"Le Passetemps", v:"santenay", c:"1er", ha:11.4, col:"R", s:R(6,4,10,6.5), p:[], d:"South of the village."},
 ];

@@ -1,0 +1,269 @@
+// Language for allwine.dk (front page and Burgundy atlas): English source strings, Danish and French translations,
+// and a small flag picker. t("English text", a, b) returns the text in the chosen language with {0}, {1} filled in;
+// anything missing falls back to English. Elements marked data-i18n / data-i18n-ph / data-i18n-title / data-i18n-aria
+// are translated in place (their English text is remembered the first time).
+(function(){
+"use strict";
+const FLAGS = {
+  en: `<svg viewBox="0 0 60 30" aria-hidden="true"><clipPath id="fl-uk-a"><path d="M0 0v30h60V0z"/></clipPath><clipPath id="fl-uk-b"><path d="M30 15h30v15zv15H0zH0V0zV0h30z"/></clipPath><g clip-path="url(#fl-uk-a)"><path d="M0 0v30h60V0z" fill="#012169"/><path d="M0 0l60 30m0-30L0 30" stroke="#fff" stroke-width="6"/><path d="M0 0l60 30m0-30L0 30" clip-path="url(#fl-uk-b)" stroke="#C8102E" stroke-width="4"/><path d="M30 0v30M0 15h60" stroke="#fff" stroke-width="10"/><path d="M30 0v30M0 15h60" stroke="#C8102E" stroke-width="6"/></g></svg>`,
+  da: `<svg viewBox="0 0 37 28" aria-hidden="true"><path fill="#C8102E" d="M0 0h37v28H0z"/><path fill="#fff" d="M12 0h4v28h-4zM0 12h37v4H0z"/></svg>`,
+  fr: `<svg viewBox="0 0 3 2" aria-hidden="true"><path fill="#002654" d="M0 0h1v2H0z"/><path fill="#fff" d="M1 0h1v2H1z"/><path fill="#CE1126" d="M2 0h1v2H2z"/></svg>`,
+};
+const LANGS = [{id:"en", n:"English"}, {id:"da", n:"Dansk"}, {id:"fr", n:"Français"}];
+
+const DA = {
+  // front page
+  "Your cellar, and an atlas of the Côte d'Or": "Din vinkælder og et atlas over Côte d'Or",
+  "Burgundy atlas": "Bourgogne-atlas",
+  "Every grand and premier cru from Marsannay to Maranges on INAO's surveyed plan, with who owns what, soils and slopes. Free to use, no login.": "Alle grands og premiers crus fra Marsannay til Maranges på INAO's opmålte plan, med hvem der ejer hvad, jord og skråninger. Gratis, uden login.",
+  "Open the map →": "Åbn kortet →",
+  "Cellar": "Kælder", "Log in to your cellar": "Log ind i din kælder", "User": "Bruger", "Password": "Adgangskode", "Log in": "Log ind",
+  // header + toolbar
+  "← AllWine": "← AllWine", "Find a vineyard or producer…": "Find en mark eller producent…", "Find a vineyard or producer": "Find en mark eller producent",
+  "Commune…": "Kommune…", "Jump to a commune": "Gå til en kommune", "Colour the map by": "Farv kortet efter",
+  "By classification": "Efter klassifikation", "By commune": "Efter kommune", "By producer's share": "Efter producentens andel",
+  "By size (ha)": "Efter størrelse (ha)", "By owners listed": "Efter antal ejere", "By my cellar": "Efter min kælder",
+  "All": "Alle", "Red": "Rød", "White": "Hvid", "Red & white": "Rød & hvid", "Wine colour": "Vinens farve",
+  "Grand cru": "Grand cru", "1er cru": "1er cru", "Premier cru": "Premier cru", "Village": "Landsby", "Village climat": "Landsby-climat",
+  "Monopoles": "Monopoles", "Monopole": "Monopole", "My cellar": "Min kælder", "Reset filters and view": "Nulstil filtre og visning",
+  "Clear the producer": "Fjern producenten",
+  // map furniture
+  "Surveyed": "Opmålt", "Schematic": "Skematisk", "Map type": "Korttype",
+  "Real vineyard boundaries (INAO)": "Markernes rigtige grænser (INAO)", "Simplified map, slope rising to the west": "Forenklet kort, skråningen stiger mod vest",
+  "Zoom in (+)": "Zoom ind (+)", "Zoom out (−)": "Zoom ud (−)", "Whole Côte d'Or": "Hele Côte d'Or", "About the atlas": "Om atlasset",
+  "Turn map left ([)": "Drej kortet til venstre ([)", "Turn map right (])": "Drej kortet til højre (])",
+  "North up": "Nord op", "Compass: click to put north up": "Kompas: klik for nord op",
+  "Schematic map: north is roughly up, the slope rises to the west": "Skematisk kort: nord er omtrent op, skråningen stiger mod vest",
+  "Boundaries © INAO, Licence Ouverte": "Grænser © INAO, Licence Ouverte", "Boundaries © INAO · map data © IGN, Licence Ouverte": "Grænser © INAO · kortdata © IGN, Licence Ouverte",
+  "Schematic · not to scale · slope rises west": "Skematisk · ikke målfast · skråningen stiger mod vest",
+  "Where this view sits on the Côte d'Or": "Hvor udsnittet ligger på Côte d'Or",
+  "Click a vineyard, commune or producer for details · drag to pan · scroll or pinch to zoom": "Klik på en mark, kommune eller producent for detaljer · træk for at flytte · scroll eller knib for at zoome",
+  "near ": "nær ", "You're looking at {0} — click for the commune": "Du ser på {0} — klik for kommunen", "Details ↓": "Detaljer ↓",
+  "Close": "Luk",
+  // legend
+  "Classification": "Klassifikation", "Village AOC": "Landsby-AOC", "Walled clos": "Ommuret clos",
+  "{0} of {1} vineyards match": "{0} af {1} marker passer", "Commune · darker = higher class": "Kommune · mørkere = højere klasse",
+  "Climat size": "Climatets størrelse", "Owners listed here": "Antal ejere", "1 (monopole)": "1 (monopole)", "no details": "ingen detaljer",
+  "{0} · share of each climat": "{0} · andel af hvert climat", "small": "lille", "holder, size not listed": "ejer, størrelse ikke oplyst",
+  "buys grapes here": "køber druer her", "not held": "ikke ejet", "Producer's share": "Producentens andel",
+  "Pick a producer in the box above, or click a name in a vineyard's holdings.": "Vælg en producent i feltet ovenfor, eller klik på et navn under en marks ejere.",
+  "Bottles in your cellar": "Flasker i din kælder", "many": "mange", "none": "ingen",
+  "Log in on the Cellar page to see your own bottles here.": "Log ind på kældersiden for at se dine egne flasker her.",
+  "Loading your cellar…": "Henter din kælder…", "{0} bottles across {1} climats": "{0} flasker fordelt på {1} climats", "{0} bottle in {1} climat": "{0} flaske i {1} climat",
+  "No bottles matched to a climat yet.": "Ingen flasker matchet til et climat endnu.",
+  "Your session expired — log in on the Cellar page, then reload.": "Din session er udløbet — log ind på kældersiden og genindlæs.",
+  "Couldn't reach the cellar right now.": "Kunne ikke nå kælderen lige nu.",
+  // climat panel
+  "Area": "Areal", "Area (INAO)": "Areal (INAO)", "INAO area": "INAO-areal", "Acres": "Acres", "Owners": "Ejere",
+  "The land INAO delimits for this appellation, planted or not, measured from its parcel plan": "Det areal INAO afgrænser for appellationen, beplantet eller ej, målt på parcelplanen",
+  "The two areas differ: INAO's plan counts all land entitled to the name, planted or not, while the published {0} ha counts vineyard — sometimes with neighbouring plots sold under the same name.": "De to arealer er forskellige: INAO's plan tæller al jord med ret til navnet, beplantet eller ej, mens de offentliggjorte {0} ha tæller vinmark — nogle gange med naboparceller, der sælges under samme navn.",
+  "One of {0}'s premiers crus on INAO's plan": "En af {0}s premiers crus på INAO's plan", "One of {0}'s grand cru climats on INAO's plan": "Et af {0}s grand cru-climats på INAO's plan",
+  ", lying within {0}": ", beliggende i {0}", "The atlas has no notes on it yet; holdings can be added below.": "Atlasset har endnu ingen noter om det; ejere kan tilføjes nedenfor.",
+  "INAO maps Charmes and Mazoyères as one area (Mazoyères may be sold as Charmes); the line between them here is an estimate.": "INAO kortlægger Charmes og Mazoyères som ét område (Mazoyères må sælges som Charmes); grænsen mellem dem her er et skøn.",
+  "An enclave inside {0}.": "En enklave i {0}.", "Contains {0}.": "Rummer {0}.",
+  "Holdings": "Ejere", "Holdings · click a name to map their vineyards": "Ejere · klik på et navn for at se deres marker",
+  "No ownership details on file for this climat.": "Ingen oplysninger om ejere for dette climat.",
+  "✎ corrected": "✎ rettet", "Correct this holding": "Ret denne andel", "since {0}": "siden {0}", "holder": "ejer", "leased": "forpagtet", "buys grapes": "køber druer",
+  "Monopole — the whole climat belongs to {0}.": "Monopole — hele climatet tilhører {0}.",
+  "The owners listed cover essentially the whole climat (published figures are rounded).": "De nævnte ejere dækker stort set hele climatet (offentliggjorte tal er afrundede).",
+  "Owners with a published figure account for {0} of {1} ha ({2}%); the other {3} ha belongs to {4}smaller growers.": "Ejere med et offentliggjort tal står for {0} af {1} ha ({2} %); de øvrige {3} ha tilhører {4}mindre avlere.",
+  "the holders listed without a figure and ": "de nævnte ejere uden tal og ", "Notable owners; individual holdings not listed.": "Kendte ejere; de enkelte andele er ikke oplyst.",
+  "In your cellar": "I din kælder", "+ {0} more": "+ {0} mere",
+  "Altitude": "Højde", "Faces": "Vender mod", "Soil:": "Jord:", "Lieux-dits within": "Lieux-dits indenfor", "Measured": "Målt",
+  "Altitude and slope measured from IGN's elevation model": "Højde og hældning målt på IGN's højdemodel", "Slope": "Hældning",
+  // producer panel
+  "Producer": "Producent", "{0} in all": "{0} i alt", "Ha on map": "Ha på kortet", "Climats": "Climats", "Grands crus": "Grands crus",
+  "Highlighted on the map by share of each climat · hatched = holder, size not published · dotted gold = buys grapes there.": "Fremhævet på kortet efter andel af hvert climat · skraveret = ejer, størrelse ikke oplyst · guldprikker = køber druer der.",
+  "Holdings on the map": "Marker på kortet", "Not on this map": "Ikke på dette kort", "Sources": "Kilder", "Clear producer": "Fjern producent",
+  // commune panel
+  "Commune": "Kommune", "Premiers crus on the map": "Premiers crus på kortet", "Also on INAO's plan ({0})": "Også på INAO's plan ({0})",
+  "Largest listed holders here": "Største kendte ejere her",
+  "{0} bottles of {1} without a named climat, plus whatever's matched to the vineyards above.": "{0} flasker {1} uden navngivet climat, plus dem der er matchet til markerne ovenfor.",
+  // overview
+  "From Marsannay to Maranges": "Fra Marsannay til Maranges", "Grand cru AOCs": "Grand cru-AOC'er", "1ers on map": "1ers på kortet", "Start with": "Begynd med",
+  "The Côte d'Or is one east-facing escarpment some 50 km long: the Côte de Nuits in the north, almost all red, then from Corton the Côte de Beaune, where Chardonnay takes over south of Volnay. The best sites sit mid-slope, around 250–300 m, on limestone and marl — grands crus in the middle band, premiers crus just above and below, village wine toward the D974, regional Bourgogne on the flat.":
+    "Côte d'Or er én østvendt skrænt på omkring 50 km: Côte de Nuits i nord, næsten kun rødvin, og fra Corton Côte de Beaune, hvor Chardonnay tager over syd for Volnay. De bedste marker ligger midt på skråningen, omkring 250–300 m, på kalksten og mergel — grands crus i midterbåndet, premiers crus lige over og under, landsbyvin ned mod D974 og regional Bourgogne på sletten.",
+  // explore tabs
+  "Domaines": "Domæner", "Who owns the grands crus": "Hvem ejer grands crus", "Compare producers": "Sammenlign producenter", "All climats": "Alle climats",
+  "Find a domaine…": "Find et domæne…", "Find a domaine": "Find et domæne", "Sort domaines": "Sortér domæner",
+  "Most hectares": "Flest hektar", "Most grands crus": "Flest grands crus", "Most climats": "Flest climats", "A–Z": "A–Å",
+  "{0} of {1} producers": "{0} af {1} producenter", "No producer matches.": "Ingen producent passer.",
+  "climat": "climat", "climats": "climats", "grand cru": "grand cru", "grands crus": "grands crus",
+  "Buys grapes from {0} climats: {1}": "Køber druer fra {0} climats: {1}", "Monopole: {0}": "Monopole: {0}",
+  "Hectares held, grands crus and monopoles · click a domaine to map everything it owns, leases or buys": "Hektar, grands crus og monopoles · klik på et domæne for at se alt, det ejer, forpagter eller køber",
+  "One bar per grand cru, split by the owners' published shares · click a segment or a name": "Én bjælke pr. grand cru, delt efter ejernes oplyste andele · klik på et felt eller et navn",
+  "other listed owners · empty = not published": "andre kendte ejere · tomt = ikke oplyst",
+  "Pick two producers above.": "Vælg to producenter ovenfor.", "Published hectares on the map": "Oplyste hektar på kortet", "Grands crus · premiers crus": "Grands crus · premiers crus",
+  "Climat": "Climat", "Class": "Klasse", "Ha": "Ha", "Owners / monopole": "Ejere / monopole", "Monopole · {0}": "Monopole · {0}", "{0} listed": "{0} kendte",
+  "in your cellar": "i din kælder", "producer": "producent",
+  // corrections
+  "Removed by correction: {0}.": "Fjernet ved rettelse: {0}.",
+  "Spotted a wrong figure? Log in on the Cellar page and you can correct it here.": "Har du set et forkert tal? Log ind på kældersiden, så kan du rette det her.",
+  "✎ Correct the holdings": "✎ Ret ejerne", "Correct a holding": "Ret en andel", "Hectares": "Hektar", "unknown": "ukendt", "Kind": "Type", "owned": "ejet",
+  "Since": "Siden", "vintage": "årgang", "Source / note": "Kilde / note", "e.g. domaine website, 2024 tech sheet": "fx domænets hjemmeside, datablad 2024",
+  "Save": "Gem", "Remove this producer": "Fjern denne producent", "Cancel": "Annullér",
+  "Corrections are shared with everyone who opens the atlas and logged with your name.": "Rettelser deles med alle, der åbner atlasset, og logges med dit navn.",
+  "Pick or type a producer.": "Vælg eller skriv en producent.", "Add where the figure comes from — it helps the next person.": "Skriv hvor tallet kommer fra — det hjælper den næste.",
+  "Saving…": "Gemmer…", "The Apps Script needs redeploying first (see README).": "Apps Script skal først udrulles igen (se README).",
+  "Your session expired — log in on the Cellar page again.": "Din session er udløbet — log ind på kældersiden igen.",
+  "Your account isn't on the atlas editors list.": "Din konto er ikke på listen over atlas-redaktører.", "Couldn't save: {0}": "Kunne ikke gemme: {0}",
+  "Couldn't reach the cellar API.": "Kunne ikke nå kælderens API.",
+  "Corrections need the updated Apps Script — redeploy Code.gs (see README).": "Rettelser kræver det opdaterede Apps Script — udrul Code.gs igen (se README).",
+  // footer
+  "Follows the filters above · click a row to find it on the map": "Følger filtrene ovenfor · klik på en række for at finde den på kortet", "Ownership": "Ejerskab",
+  "Vineyard boundaries are INAO's parcel delimitation; roads, buildings, woods, contours and place names are IGN's BD TOPO (both Licence Ouverte). Areas are published climat sizes, checked against the Climats UNESCO dossier; the INAO area is shown beside them. Holdings come from published ownership lists, domaine sources and trade press, rounded — parcels change hands all the time, so treat them as indicative. \"Leased\" means farmed en fermage or métayage; \"buys grapes\" is négociant sourcing and never counts as ownership. Logged-in users can correct a holding from its vineyard.": "Markernes grænser er INAO's parcelafgrænsning; veje, bygninger, skov, højdekurver og stednavne er IGN's BD TOPO (begge Licence Ouverte). Arealer er de offentliggjorte climat-størrelser, tjekket mod Climats-UNESCO-dossieret; INAO's areal vises ved siden af. Ejerandele stammer fra offentliggjorte ejerlister, domænernes egne kilder og fagpresse og er afrundede — parceller skifter hænder hele tiden, så tag dem som vejledende. \"Forpagtet\" betyder drevet en fermage eller métayage; \"køber druer\" er négociant-indkøb og tæller aldrig som ejerskab. Indloggede brugere kan rette en andel fra marken.",
+  "By altitude": "Efter højde", "By slope": "Efter hældning", "Mean altitude (measured)": "Gennemsnitlig højde (målt)", "Mean slope (measured)": "Gennemsnitlig hældning (målt)",
+  "no data": "ingen data", "flat": "fladt", "varied": "varierende",
+  "Burgundy atlas · private cellars": "Bourgogne-atlas · private vinkældre",
+  "Every grand cru and premier cru of the Côte d'Or on INAO's surveyed plan, from Marsannay to Maranges — classification, monopoles, who owns what, altitude and slope. Open to everyone, no login needed.": "Alle grands og premiers crus i Côte d'Or på INAO's opmålte plan, fra Marsannay til Maranges — klassifikation, monopoles, hvem der ejer hvad, højde og hældning. Åbent for alle, uden login.",
+  "Your cellar": "Din kælder", "Username": "Brugernavn", "Invite code": "Invitationskode",
+  "Create your own cellar. You'll need an invite code.": "Opret din egen kælder. Du skal bruge en invitationskode.", "Your private cellar. Log in to continue.": "Din private kælder. Log ind for at fortsætte.",
+  "Create account": "Opret konto", "Have an account? Log in": "Har du en konto? Log ind", "Need an account? Sign up": "Ingen konto? Opret en",
+  "The API URL is missing.": "API-adressen mangler.", "Enter your username and password.": "Skriv brugernavn og adgangskode.", "Creating…": "Opretter…", "Signing in…": "Logger ind…",
+  "Wrong username or password.": "Forkert brugernavn eller adgangskode.", "That invite code isn't right.": "Invitationskoden er forkert.", "Signups are closed right now.": "Der er lukket for nye konti lige nu.",
+  "That username is taken.": "Brugernavnet er taget.", "Username: 3–24 letters, numbers, . _ or -.": "Brugernavn: 3–24 bogstaver, tal, . _ eller -.", "Use a password of at least 6 characters.": "Brug en adgangskode på mindst 6 tegn.",
+  "Your cellar couldn't be opened. Contact the owner.": "Din kælder kunne ikke åbnes. Kontakt ejeren.", "Could not sign in ({0}).": "Kunne ikke logge ind ({0}).",
+  "Could not reach the cellar API ({0}).": "Kunne ikke nå kælderens API ({0}).", "Signed out. Log in to reopen.": "Logget ud. Log ind for at åbne igen.",
+  "Your session expired — log in again.": "Din session er udløbet — log ind igen.", "Signed out after 60 minutes of inactivity — log in again.": "Logget ud efter 60 minutters inaktivitet — log ind igen.",
+  "About the data.": "Om data.", "Language": "Sprog",
+};
+
+const FR = {
+  "Your cellar, and an atlas of the Côte d'Or": "Votre cave, et un atlas de la Côte-d'Or",
+  "Burgundy atlas": "Atlas de Bourgogne",
+  "Every grand and premier cru from Marsannay to Maranges on INAO's surveyed plan, with who owns what, soils and slopes. Free to use, no login.": "Tous les grands et premiers crus de Marsannay à Maranges sur le plan parcellaire de l'INAO, avec qui possède quoi, les sols et les pentes. Gratuit, sans compte.",
+  "Open the map →": "Ouvrir la carte →",
+  "Cellar": "Cave", "Log in to your cellar": "Se connecter à sa cave", "User": "Utilisateur", "Password": "Mot de passe", "Log in": "Se connecter",
+  "← AllWine": "← AllWine", "Find a vineyard or producer…": "Chercher un climat ou un producteur…", "Find a vineyard or producer": "Chercher un climat ou un producteur",
+  "Commune…": "Commune…", "Jump to a commune": "Aller à une commune", "Colour the map by": "Colorer la carte selon",
+  "By classification": "Par classement", "By commune": "Par commune", "By producer's share": "Par part du producteur",
+  "By size (ha)": "Par surface (ha)", "By owners listed": "Par nombre de propriétaires", "By my cellar": "Selon ma cave",
+  "All": "Tous", "Red": "Rouge", "White": "Blanc", "Red & white": "Rouge & blanc", "Wine colour": "Couleur du vin",
+  "Grand cru": "Grand cru", "1er cru": "1er cru", "Premier cru": "Premier cru", "Village": "Village", "Village climat": "Climat village",
+  "Monopoles": "Monopoles", "Monopole": "Monopole", "My cellar": "Ma cave", "Reset filters and view": "Réinitialiser filtres et vue",
+  "Clear the producer": "Retirer le producteur",
+  "Surveyed": "Parcellaire", "Schematic": "Schématique", "Map type": "Type de carte",
+  "Real vineyard boundaries (INAO)": "Limites réelles des climats (INAO)", "Simplified map, slope rising to the west": "Carte simplifiée, la pente monte vers l'ouest",
+  "Zoom in (+)": "Zoomer (+)", "Zoom out (−)": "Dézoomer (−)", "Whole Côte d'Or": "Toute la Côte-d'Or", "About the atlas": "À propos de l'atlas",
+  "Turn map left ([)": "Tourner la carte à gauche ([)", "Turn map right (])": "Tourner la carte à droite (])",
+  "North up": "Nord en haut", "Compass: click to put north up": "Boussole : cliquer pour remettre le nord en haut",
+  "Schematic map: north is roughly up, the slope rises to the west": "Carte schématique : le nord est à peu près en haut, la pente monte vers l'ouest",
+  "Boundaries © INAO, Licence Ouverte": "Délimitations © INAO, Licence Ouverte", "Boundaries © INAO · map data © IGN, Licence Ouverte": "Délimitations © INAO · données © IGN, Licence Ouverte",
+  "Schematic · not to scale · slope rises west": "Schématique · hors échelle · la pente monte vers l'ouest",
+  "Where this view sits on the Côte d'Or": "Situation de la vue sur la Côte-d'Or",
+  "Click a vineyard, commune or producer for details · drag to pan · scroll or pinch to zoom": "Cliquez sur un climat, une commune ou un producteur · glissez pour déplacer · molette ou pincement pour zoomer",
+  "near ": "près de ", "You're looking at {0} — click for the commune": "Vous regardez {0} — cliquer pour la commune", "Details ↓": "Détails ↓",
+  "Close": "Fermer",
+  "Classification": "Classement", "Village AOC": "AOC village", "Walled clos": "Clos de murs",
+  "{0} of {1} vineyards match": "{0} climats sur {1} correspondent", "Commune · darker = higher class": "Commune · plus foncé = classement supérieur",
+  "Climat size": "Surface du climat", "Owners listed here": "Propriétaires connus", "1 (monopole)": "1 (monopole)", "no details": "pas de détail",
+  "{0} · share of each climat": "{0} · part de chaque climat", "small": "petite", "holder, size not listed": "propriétaire, surface non publiée",
+  "buys grapes here": "achète des raisins ici", "not held": "non détenu", "Producer's share": "Part du producteur",
+  "Pick a producer in the box above, or click a name in a vineyard's holdings.": "Choisissez un producteur ci-dessus, ou cliquez sur un nom parmi les propriétaires d'un climat.",
+  "Bottles in your cellar": "Bouteilles dans votre cave", "many": "beaucoup", "none": "aucune",
+  "Log in on the Cellar page to see your own bottles here.": "Connectez-vous sur la page Cave pour voir vos bouteilles ici.",
+  "Loading your cellar…": "Chargement de votre cave…", "{0} bottles across {1} climats": "{0} bouteilles sur {1} climats", "{0} bottle in {1} climat": "{0} bouteille dans {1} climat",
+  "No bottles matched to a climat yet.": "Aucune bouteille rattachée à un climat pour l'instant.",
+  "Your session expired — log in on the Cellar page, then reload.": "Session expirée — reconnectez-vous sur la page Cave, puis rechargez.",
+  "Couldn't reach the cellar right now.": "Impossible de joindre la cave pour l'instant.",
+  "Area": "Surface", "Area (INAO)": "Surface (INAO)", "INAO area": "Surface INAO", "Acres": "Acres", "Owners": "Propriétaires",
+  "The land INAO delimits for this appellation, planted or not, measured from its parcel plan": "La surface délimitée par l'INAO pour l'appellation, plantée ou non, mesurée sur son plan parcellaire",
+  "The two areas differ: INAO's plan counts all land entitled to the name, planted or not, while the published {0} ha counts vineyard — sometimes with neighbouring plots sold under the same name.": "Les deux surfaces diffèrent : le plan de l'INAO compte toutes les terres ayant droit au nom, plantées ou non, tandis que les {0} ha publiés comptent la vigne — parfois avec des parcelles voisines vendues sous le même nom.",
+  "One of {0}'s premiers crus on INAO's plan": "Un des premiers crus de {0} sur le plan de l'INAO", "One of {0}'s grand cru climats on INAO's plan": "Un des climats grand cru de {0} sur le plan de l'INAO",
+  ", lying within {0}": ", situé dans {0}", "The atlas has no notes on it yet; holdings can be added below.": "L'atlas n'a pas encore de notes ; les propriétaires peuvent être ajoutés ci-dessous.",
+  "INAO maps Charmes and Mazoyères as one area (Mazoyères may be sold as Charmes); the line between them here is an estimate.": "L'INAO délimite Charmes et Mazoyères d'un seul tenant (Mazoyères peut se vendre en Charmes) ; la limite tracée ici est une estimation.",
+  "An enclave inside {0}.": "Une enclave dans {0}.", "Contains {0}.": "Contient {0}.",
+  "Holdings": "Propriétaires", "Holdings · click a name to map their vineyards": "Propriétaires · cliquez sur un nom pour voir ses vignes",
+  "No ownership details on file for this climat.": "Aucune information de propriété pour ce climat.",
+  "✎ corrected": "✎ corrigé", "Correct this holding": "Corriger cette part", "since {0}": "depuis {0}", "holder": "propriétaire", "leased": "en fermage", "buys grapes": "achète des raisins",
+  "Monopole — the whole climat belongs to {0}.": "Monopole — tout le climat appartient à {0}.",
+  "The owners listed cover essentially the whole climat (published figures are rounded).": "Les propriétaires cités couvrent pour l'essentiel tout le climat (chiffres publiés arrondis).",
+  "Owners with a published figure account for {0} of {1} ha ({2}%); the other {3} ha belongs to {4}smaller growers.": "Les propriétaires aux surfaces publiées totalisent {0} des {1} ha ({2} %) ; les {3} ha restants appartiennent {4}à de plus petits exploitants.",
+  "the holders listed without a figure and ": "aux propriétaires cités sans chiffre et ", "Notable owners; individual holdings not listed.": "Propriétaires notables ; surfaces individuelles non publiées.",
+  "In your cellar": "Dans votre cave", "+ {0} more": "+ {0} autres",
+  "Altitude": "Altitude", "Faces": "Exposition", "Soil:": "Sol :", "Lieux-dits within": "Lieux-dits compris", "Measured": "Mesuré",
+  "Altitude and slope measured from IGN's elevation model": "Altitude et pente mesurées sur le modèle numérique de terrain de l'IGN", "Slope": "Pente",
+  "Producer": "Producteur", "{0} in all": "{0} au total", "Ha on map": "Ha sur la carte", "Climats": "Climats", "Grands crus": "Grands crus",
+  "Highlighted on the map by share of each climat · hatched = holder, size not published · dotted gold = buys grapes there.": "Mis en valeur sur la carte selon la part de chaque climat · hachuré = propriétaire, surface non publiée · pointillé or = achète des raisins.",
+  "Holdings on the map": "Vignes sur la carte", "Not on this map": "Hors de cette carte", "Sources": "Sources", "Clear producer": "Retirer le producteur",
+  "Commune": "Commune", "Premiers crus on the map": "Premiers crus sur la carte", "Also on INAO's plan ({0})": "Aussi sur le plan de l'INAO ({0})",
+  "Largest listed holders here": "Principaux propriétaires connus",
+  "{0} bottles of {1} without a named climat, plus whatever's matched to the vineyards above.": "{0} bouteilles de {1} sans climat nommé, en plus de celles rattachées aux climats ci-dessus.",
+  "From Marsannay to Maranges": "De Marsannay à Maranges", "Grand cru AOCs": "AOC grand cru", "1ers on map": "1ers sur la carte", "Start with": "Pour commencer",
+  "The Côte d'Or is one east-facing escarpment some 50 km long: the Côte de Nuits in the north, almost all red, then from Corton the Côte de Beaune, where Chardonnay takes over south of Volnay. The best sites sit mid-slope, around 250–300 m, on limestone and marl — grands crus in the middle band, premiers crus just above and below, village wine toward the D974, regional Bourgogne on the flat.":
+    "La Côte-d'Or est un seul coteau exposé à l'est, long d'une cinquantaine de kilomètres : la Côte de Nuits au nord, presque entièrement rouge, puis à partir de Corton la Côte de Beaune, où le chardonnay prend le relais au sud de Volnay. Les meilleurs climats sont à mi-pente, vers 250–300 m, sur calcaires et marnes — les grands crus dans la bande médiane, les premiers crus juste au-dessus et en dessous, les villages vers la D974, le bourgogne régional dans la plaine.",
+  "Domaines": "Domaines", "Who owns the grands crus": "Qui possède les grands crus", "Compare producers": "Comparer des producteurs", "All climats": "Tous les climats",
+  "Find a domaine…": "Chercher un domaine…", "Find a domaine": "Chercher un domaine", "Sort domaines": "Trier les domaines",
+  "Most hectares": "Plus d'hectares", "Most grands crus": "Plus de grands crus", "Most climats": "Plus de climats", "A–Z": "A–Z",
+  "{0} of {1} producers": "{0} producteurs sur {1}", "No producer matches.": "Aucun producteur ne correspond.",
+  "climat": "climat", "climats": "climats", "grand cru": "grand cru", "grands crus": "grands crus",
+  "Buys grapes from {0} climats: {1}": "Achète des raisins dans {0} climats : {1}", "Monopole: {0}": "Monopole : {0}",
+  "Hectares held, grands crus and monopoles · click a domaine to map everything it owns, leases or buys": "Hectares, grands crus et monopoles · cliquez sur un domaine pour voir tout ce qu'il possède, loue ou achète",
+  "One bar per grand cru, split by the owners' published shares · click a segment or a name": "Une barre par grand cru, partagée selon les surfaces publiées · cliquez sur un segment ou un nom",
+  "other listed owners · empty = not published": "autres propriétaires connus · vide = non publié",
+  "Pick two producers above.": "Choisissez deux producteurs ci-dessus.", "Published hectares on the map": "Hectares publiés sur la carte", "Grands crus · premiers crus": "Grands crus · premiers crus",
+  "Climat": "Climat", "Class": "Classement", "Ha": "Ha", "Owners / monopole": "Propriétaires / monopole", "Monopole · {0}": "Monopole · {0}", "{0} listed": "{0} connus",
+  "in your cellar": "dans votre cave", "producer": "producteur",
+  "Removed by correction: {0}.": "Retiré par correction : {0}.",
+  "Spotted a wrong figure? Log in on the Cellar page and you can correct it here.": "Un chiffre faux ? Connectez-vous sur la page Cave pour le corriger ici.",
+  "✎ Correct the holdings": "✎ Corriger les propriétaires", "Correct a holding": "Corriger une part", "Hectares": "Hectares", "unknown": "inconnu", "Kind": "Type", "owned": "en propriété",
+  "Since": "Depuis", "vintage": "millésime", "Source / note": "Source / note", "e.g. domaine website, 2024 tech sheet": "p. ex. site du domaine, fiche technique 2024",
+  "Save": "Enregistrer", "Remove this producer": "Retirer ce producteur", "Cancel": "Annuler",
+  "Corrections are shared with everyone who opens the atlas and logged with your name.": "Les corrections sont visibles par tous et enregistrées à votre nom.",
+  "Pick or type a producer.": "Choisissez ou saisissez un producteur.", "Add where the figure comes from — it helps the next person.": "Indiquez d'où vient le chiffre — cela aide le suivant.",
+  "Saving…": "Enregistrement…", "The Apps Script needs redeploying first (see README).": "L'Apps Script doit d'abord être redéployé (voir README).",
+  "Your session expired — log in on the Cellar page again.": "Session expirée — reconnectez-vous sur la page Cave.",
+  "Your account isn't on the atlas editors list.": "Votre compte ne figure pas parmi les éditeurs de l'atlas.", "Couldn't save: {0}": "Échec de l'enregistrement : {0}",
+  "Couldn't reach the cellar API.": "Impossible de joindre l'API de la cave.",
+  "Corrections need the updated Apps Script — redeploy Code.gs (see README).": "Les corrections demandent l'Apps Script à jour — redéployez Code.gs (voir README).",
+  "Follows the filters above · click a row to find it on the map": "Suit les filtres ci-dessus · cliquez sur une ligne pour la voir sur la carte", "Ownership": "Propriété",
+  "Vineyard boundaries are INAO's parcel delimitation; roads, buildings, woods, contours and place names are IGN's BD TOPO (both Licence Ouverte). Areas are published climat sizes, checked against the Climats UNESCO dossier; the INAO area is shown beside them. Holdings come from published ownership lists, domaine sources and trade press, rounded — parcels change hands all the time, so treat them as indicative. \"Leased\" means farmed en fermage or métayage; \"buys grapes\" is négociant sourcing and never counts as ownership. Logged-in users can correct a holding from its vineyard.": "Les limites des climats sont la délimitation parcellaire de l'INAO ; routes, bâtiments, bois, courbes de niveau et toponymes viennent de la BD TOPO de l'IGN (toutes deux sous Licence Ouverte). Les surfaces sont celles publiées pour chaque climat, vérifiées sur le dossier UNESCO des Climats ; la surface INAO figure à côté. Les propriétés viennent des listes publiées, des domaines et de la presse spécialisée, arrondies — les parcelles changent de mains en permanence, à prendre comme indicatives. « En fermage » signifie exploité en fermage ou en métayage ; « achète des raisins » relève du négoce et ne compte jamais comme propriété. Les utilisateurs connectés peuvent corriger une part depuis son climat.",
+  "By altitude": "Par altitude", "By slope": "Par pente", "Mean altitude (measured)": "Altitude moyenne (mesurée)", "Mean slope (measured)": "Pente moyenne (mesurée)",
+  "no data": "pas de données", "flat": "plat", "varied": "variée",
+  "Burgundy atlas · private cellars": "Atlas de Bourgogne · caves privées",
+  "Every grand cru and premier cru of the Côte d'Or on INAO's surveyed plan, from Marsannay to Maranges — classification, monopoles, who owns what, altitude and slope. Open to everyone, no login needed.": "Tous les grands et premiers crus de la Côte-d'Or sur le plan parcellaire de l'INAO, de Marsannay à Maranges — classement, monopoles, qui possède quoi, altitude et pente. Ouvert à tous, sans compte.",
+  "Your cellar": "Votre cave", "Username": "Nom d'utilisateur", "Invite code": "Code d'invitation",
+  "Create your own cellar. You'll need an invite code.": "Créez votre propre cave. Il vous faut un code d'invitation.", "Your private cellar. Log in to continue.": "Votre cave privée. Connectez-vous pour continuer.",
+  "Create account": "Créer un compte", "Have an account? Log in": "Déjà un compte ? Se connecter", "Need an account? Sign up": "Pas de compte ? S'inscrire",
+  "The API URL is missing.": "L'adresse de l'API manque.", "Enter your username and password.": "Saisissez votre nom d'utilisateur et votre mot de passe.", "Creating…": "Création…", "Signing in…": "Connexion…",
+  "Wrong username or password.": "Nom d'utilisateur ou mot de passe incorrect.", "That invite code isn't right.": "Ce code d'invitation n'est pas valable.", "Signups are closed right now.": "Les inscriptions sont fermées pour l'instant.",
+  "That username is taken.": "Ce nom d'utilisateur est déjà pris.", "Username: 3–24 letters, numbers, . _ or -.": "Nom d'utilisateur : 3 à 24 lettres, chiffres, . _ ou -.", "Use a password of at least 6 characters.": "Choisissez un mot de passe d'au moins 6 caractères.",
+  "Your cellar couldn't be opened. Contact the owner.": "Impossible d'ouvrir votre cave. Contactez le propriétaire.", "Could not sign in ({0}).": "Connexion impossible ({0}).",
+  "Could not reach the cellar API ({0}).": "Impossible de joindre l'API de la cave ({0}).", "Signed out. Log in to reopen.": "Déconnecté. Connectez-vous pour rouvrir.",
+  "Your session expired — log in again.": "Session expirée — reconnectez-vous.", "Signed out after 60 minutes of inactivity — log in again.": "Déconnecté après 60 minutes d'inactivité — reconnectez-vous.",
+  "About the data.": "À propos des données.", "Language": "Langue",
+};
+const DICT = {da: DA, fr: FR};
+
+let lang = (() => {
+  try{ const s = localStorage.getItem("lang"); if(s && (s==="en" || DICT[s])) return s; }catch(e){}
+  const n = (navigator.language || "en").slice(0,2).toLowerCase();
+  return DICT[n] ? n : "en";
+})();
+const listeners = [];
+function t(s, ...a){ const r = (DICT[lang] && DICT[lang][s]) || s; return a.length ? r.replace(/\{(\d)\}/g, (m, i) => a[i] ?? "") : r; }
+function apply(root){
+  (root || document).querySelectorAll("[data-i18n],[data-i18n-ph],[data-i18n-title],[data-i18n-aria]").forEach(e => {
+    if(e.hasAttribute("data-i18n")){ e.dataset.i18n ||= e.textContent.trim(); e.textContent = t(e.dataset.i18n); }
+    if(e.hasAttribute("data-i18n-ph")){ e.dataset.i18nPh ||= e.getAttribute("placeholder") || ""; e.setAttribute("placeholder", t(e.dataset.i18nPh)); }
+    if(e.hasAttribute("data-i18n-title")){ e.dataset.i18nTitle ||= e.getAttribute("title") || ""; e.setAttribute("title", t(e.dataset.i18nTitle)); }
+    if(e.hasAttribute("data-i18n-aria")){ e.dataset.i18nAria ||= e.getAttribute("aria-label") || ""; e.setAttribute("aria-label", t(e.dataset.i18nAria)); }
+  });
+  document.documentElement.lang = lang;
+}
+function setLang(l){
+  if(l!=="en" && !DICT[l]) return;
+  lang = l; try{ localStorage.setItem("lang", l); }catch(e){}
+  apply(); document.querySelectorAll(".langpick").forEach(syncPicker); listeners.forEach(f => f(l));
+}
+function syncPicker(el){ el.querySelectorAll("button").forEach(b => { const on = b.dataset.lang===lang; b.classList.toggle("on", on); b.setAttribute("aria-pressed", on); }); }
+// a row of three flags; the current language is lit
+function picker(el){
+  el.classList.add("langpick"); el.setAttribute("role", "group"); el.setAttribute("aria-label", "Language / Sprog / Langue");
+  el.innerHTML = LANGS.map(L => `<button type="button" data-lang="${L.id}" title="${L.n}" aria-label="${L.n}">${FLAGS[L.id]}</button>`).join("");
+  el.querySelectorAll("button").forEach(b => b.onclick = () => setLang(b.dataset.lang));
+  syncPicker(el);
+}
+window.I18N = {t, apply, setLang, picker, onChange: f => listeners.push(f), get lang(){ return lang; }, LANGS};
+document.addEventListener("DOMContentLoaded", () => { document.querySelectorAll("[data-langpick]").forEach(picker); apply(); });
+})();
