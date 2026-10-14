@@ -212,6 +212,21 @@ input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible,[t
 .house{fill:var(--house)}
 /* vintages */
 .geol path{opacity:.82}
+@media(max-width:600px){#printBtn,#rotL,#rotR,#zOut{display:none!important} .zoom{gap:4px} .zoom button{width:32px;height:32px}}
+@media print{
+  header.top .hright,.toolbar,.terrbar,.zoom,.layers,.hint,.loc .locator,.explore,footer,.peek,.here{display:none!important}
+  body{background:#fff} .wrap{max-width:none;padding:0}
+  .mapcard{height:auto;aspect-ratio:1.414;max-height:none;box-shadow:none;break-inside:avoid}
+  .mapcard.open .side{position:static;width:auto;display:block;border:0;box-shadow:none;max-height:none;overflow:visible}
+}
+.terrbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:-2px 0 10px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--card);font-size:13px}
+.terrbar .tl{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.08em}
+.terrbar input{width:64px;background:var(--card2);border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:4px 6px;font:inherit;font-size:13px}
+.terrbar .seg{height:28px} .terrbar .seg button{padding:0 8px;font-size:12px}
+#terrChip.on{border-color:var(--accent);color:var(--accent)}
+.warm{margin:2px 0 12px} .warmchart{height:auto;max-height:260px} .warmchart .hdot{fill:var(--ink);fill-opacity:.8} .warmchart .htrend{stroke:var(--ink);stroke-width:1.5;stroke-dasharray:5 3}
+.warmchart .hax{fill:var(--ink)}
+.cmpv td:first-child{color:var(--muted);width:30%} .cmpv td{vertical-align:top}
 #map.profiling{cursor:crosshair}
 .mapcard:has(.profile:not([hidden])) .legend,.mapcard:has(.profile:not([hidden])) .hint{display:none}
 .profline{stroke:var(--ink);stroke-width:2.2;stroke-dasharray:6 4;vector-effect:non-scaling-stroke}
@@ -276,6 +291,7 @@ input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible,[t
 .tn-ref{font-weight:700;font-size:.8em;fill:var(--ink)}
 #map.lod-mid .tn-h,#map.lod-mid .tn-ref{display:inline}
 #map.lod-near .tn-l,#map.lod-near .tn-w,#map.lod-near .tn-f{display:inline}
+.tn-q{font-size:.85em} #map.lod-close .tn-q{display:inline}
 #map.far .house,#map.far .church,#map.far .chcross,#map.far .track{display:none}
 .church{fill:var(--house-ink)}
 .chcross{stroke:var(--house-ink);fill:none}
@@ -436,9 +452,21 @@ footer.fine{margin-top:14px;font-size:12px;color:var(--muted);max-width:110ch;li
     <button class="chip on" data-cls="V"><span class="sw" style="background:var(--vc)"></span><span data-i18n>Village</span></button>
     <button class="chip" id="monoChip" data-i18n>Monopoles</button>
     <button class="chip" id="cellarChip" hidden data-i18n>My cellar</button>
+    <button class="chip" id="terrChip" aria-expanded="false" data-i18n>Terrain…</button>
     <button class="chip prod" id="prodChip" hidden title="Clear the producer" data-i18n-title></button>
   </div>
   <button class="btn quiet" id="reset" title="Reset filters and view" aria-label="Reset filters and view" data-i18n-title data-i18n-aria>↺</button>
+</div>
+
+<div class="terrbar" id="terrbar" hidden>
+  <span class="tl" data-i18n>Faces</span>
+  <div class="seg" id="tAsp" role="group" aria-label="Faces" data-i18n-aria></div>
+  <label><span data-i18n>Altitude</span> <input type="number" id="tAltMin" min="150" max="600" step="10" placeholder="min"> – <input type="number" id="tAltMax" min="150" max="600" step="10" placeholder="max"> m</label>
+  <label><span data-i18n>Slope</span> ≥ <input type="number" id="tSlope" min="0" max="50" step="1" placeholder="0"> %</label>
+  <label><span data-i18n>Size</span> ≤ <input type="number" id="tSize" min="0" max="100" step="0.5" placeholder="ha"> ha</label>
+  <span class="tl" data-i18n>Quick:</span>
+  <button class="chip" data-preset="steep" data-i18n>Steepest</button><button class="chip" data-preset="high" data-i18n>Highest</button><button class="chip" data-preset="south" data-i18n>South-facing</button><button class="chip" data-preset="small" data-i18n>Under 1 ha</button>
+  <button class="btn quiet" id="tClear" data-i18n>Clear</button>
 </div>
 
 <div class="mapcard" id="mapcard">
@@ -463,6 +491,8 @@ footer.fine{margin-top:14px;font-size:12px;color:var(--muted);max-width:110ch;li
     <button id="rotR" title="Turn map right (])" aria-label="Turn map right (])" data-i18n-title data-i18n-aria hidden>⟳</button>
     <button id="profBtn" title="Slope profile: click two points" aria-label="Slope profile: click two points" data-i18n-title data-i18n-aria hidden>⟋</button>
     <button id="reliefBtn" title="Relief shading (IGN)" aria-label="Relief shading (IGN)" data-i18n-title data-i18n-aria hidden>◭</button>
+    <button id="pngBtn" title="Save this view as an image" aria-label="Save this view as an image" data-i18n-title data-i18n-aria>⤓</button>
+    <button id="printBtn" title="Print or save as PDF" aria-label="Print or save as PDF" data-i18n-title data-i18n-aria>⎙</button>
     <button id="zInfo" title="About the atlas" aria-label="About the atlas" data-i18n-title data-i18n-aria>i</button>
   </div>
   <div class="legend" id="legend"></div>
@@ -495,7 +525,9 @@ footer.fine{margin-top:14px;font-size:12px;color:var(--muted);max-width:110ch;li
     <div id="gcown"></div>
   </div>
   <div class="xpane" data-x="cmp">
-    <div class="cmpbar"><input id="cmpA" list="producerList" aria-label="First producer"><span>vs</span><input id="cmpB" list="producerList" aria-label="Second producer"></div>
+    <div class="xhead"><div class="seg" id="cmpMode" role="group"><button type="button" data-cm="p" class="on" data-i18n>Producers</button><button type="button" data-cm="c" data-i18n>Vineyards</button></div></div>
+    <div class="cmpbar" id="cmpBarP"><input id="cmpA" list="producerList" aria-label="First producer"><span>vs</span><input id="cmpB" list="producerList" aria-label="Second producer"></div>
+    <div class="cmpbar" id="cmpBarC" hidden><input id="cmpCA" list="searchList" aria-label="First vineyard"><span>vs</span><input id="cmpCB" list="searchList" aria-label="Second vineyard"></div>
     <div id="cmp"></div>
   </div>
   <div class="xpane" data-x="vint">
@@ -521,7 +553,7 @@ footer.fine{margin-top:14px;font-size:12px;color:var(--muted);max-width:110ch;li
 </footer>
 </div>
 <div id="tip"></div>
-<script src="i18n.js?v=5"></script>
+<script src="i18n.js?v=6"></script>
 <script src="burgundy-i18n-da.js?v=1"></script>
 <script src="burgundy-i18n-fr.js?v=1"></script>
 <script src="burgundy-data.js?v=8"></script>
@@ -529,8 +561,8 @@ footer.fine{margin-top:14px;font-size:12px;color:var(--muted);max-width:110ch;li
 <script src="burgundy-detail.js?v=6"></script>
 <script src="burgundy-geo.js?v=3"></script>
 <script src="burgundy-dem.js?v=2"></script>
-<script src="burgundy-vintages.js?v=3"></script>
+<script src="burgundy-vintages.js?v=4"></script>
 <script src="burgundy-geol.js?v=1"></script>
-<script src="burgundy.js?v=19"></script>
+<script src="burgundy.js?v=21"></script>
 </body>
 </html>

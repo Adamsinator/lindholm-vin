@@ -177,7 +177,8 @@ const seenName = new Set();
 all("BDTOPO_V3:toponymie", "geometrie,classe_de_l_objet,nature_de_l_objet,graphie_du_toponyme").forEach(f => {
   const { classe_de_l_objet: cl, nature_de_l_objet: nat, graphie_du_toponyme: t } = f.properties;
   if (!t || !f.geometry || f.geometry.type !== "Point") return;
-  const kind = cl === "Zone d'habitation" ? (/Ville|Chef-lieu|Commune/.test(nat || "") || /Quartier/.test(nat || "") ? "v" : nat === "Lieu-dit habité" || nat === "Habitation" ? "h" : "h")
+  // IGN has no "village" class here: villages and hamlets are "Lieu-dit habité"; quarters, ruins and mills only show close in
+  const kind = cl === "Zone d'habitation" ? (/Ville|Chef-lieu|Commune/.test(nat || "") ? "v" : /Quartier|Ruines|Moulin/.test(nat || "") ? "q" : "h")
     : cl === "Lieu-dit non habité" ? (nat === "Bois" || nat === "Forêt" ? "f" : "l") : cl === "Cours d'eau" ? "w" : null;
   if (!kind) return;
   const [x, y] = toM(f.geometry.coordinates); if (!inArea([x, y])) return;

@@ -329,10 +329,20 @@ function textFill(c, fill){
 }
 
 /* ---------- filters ---------- */
+st.terr = {asp:new Set(), altMin:null, altMax:null, slope:null, size:null};
+const terrActive = () => { const T = st.terr; return T.asp.size || T.altMin != null || T.altMax != null || T.slope != null || T.size != null; };
 function matches(c){
   if(!st.cls.has(c.c)) return false;
   if(st.mono && !c.mono) return false;
   if(st.wc && !(c.col || (c.x ? "" : "R")).includes(st.wc)) return false; // INAO extras: colour not recorded
+  if(terrActive()){ // terrain search: measured aspect, altitude, slope; size
+    const d = DEM[c.id], T = st.terr; if(!d) return false;
+    if(T.asp.size && (d[3] < 1.5 || !T.asp.has(Math.round(d[4]/45) % 8))) return false;
+    if(T.altMin != null && d[1] < T.altMin) return false;
+    if(T.altMax != null && d[0] > T.altMax) return false;
+    if(T.slope != null && d[3] < T.slope) return false;
+    if(T.size != null && c.ha > T.size) return false;
+  }
   if(st.prod && holding(c, st.prod)===undefined) return false;
   if(st.cellarOnly && !(CELLAR.by[c.id])) return false;
   if(st.q && !c.search.includes(st.q)) return false;
@@ -358,7 +368,7 @@ function loadTopo(){
   sc.onload = () => { if(!window.BURG_TOPO) return; TOPO = window.BURG_TOPO; if(st.mode==="geo"){ const keep = {...vb}; build(); setVB(keep); } syncMode(); };
   document.body.appendChild(sc);
 }
-const TOPO_V = 1;
+const TOPO_V = 2;
 st.mode = GEO ? (() => { try{ return localStorage.getItem("atlasMode") || "geo"; }catch(e){ return "geo"; } })() : "schematic";
 const GS = 0.25; // surveyed map: svg units per metre
 let CONTENT = null, FWD = null, INV = null; // surveyed map: metres (E,N) ⇄ svg units
@@ -1055,6 +1065,7 @@ function renderSide(){
       ${st.mode==="geo" && GEO && (GEO.meta.approx||[]).includes(c.id) ? `<p class="note">${t("INAO maps Charmes and Mazoyères as one area (Mazoyères may be sold as Charmes); the line between them here is an estimate.")}</p>` : ""}
       ${detailHtml(c)}
       ${geolHtml(c)}
+      <p><button class="btn quiet" id="cmpWith">⇄ ${t("Compare with another vineyard")}</button></p>
       ${VT ? vintageYearHtml(catOf(c), c.v) + vintageChart(catOf(c), c.v) : ""}
       ${c.inner && !c.x?`<p class="note">${t("An enclave inside {0}.", `<button class="plink" data-c="${c.in}">${esc(CL[c.in].n)}</button>`)}</p>`:""}
       ${C.some(x=>x.in===c.id)?`<p class="note">${t("Contains {0}.", C.filter(x=>x.in===c.id).map(x=>`<button class="plink" data-c="${x.id}">${esc(x.n)}</button>`).join(", "))}</p>`:""}
@@ -1122,6 +1133,7 @@ function renderSide(){
   const cl = $("sideClose"); if(cl) cl.onclick = () => { st.sel=null; st.vsel=null; st.overview=false; if(st.prod) setProducer(null); else { renderSide(); paint(); syncHash(); syncCommunes(); } };
   const cp = $("clearProd"); if(cp) cp.onclick = () => setProducer(null);
   if(st.sel) wireEdit(CL[st.sel]);
+  const cw = $("cmpWith"); if(cw) cw.onclick = () => compareWith(st.sel);
   renderPeek();
 }
 function renderProdChip(){
@@ -1260,7 +1272,7 @@ function renderVintages(){
   const an = y => { const w = VT.years[y].wx && VT.years[y].wx.dijon; if(!w || w.anom == null) return `<td>—</td>`;
     const a = Math.max(-2, Math.min(2, w.anom)), col = a >= 0 ? mix(TOK.card, "#D9534F", a/2) : mix(TOK.card, "#3F7CB6", -a/2);
     return `<td class="n" style="background:${col}">${w.anom > 0 ? "+" : ""}${w.anom}</td>`; };
-  box.innerHTML = `<table class="list vtab"><thead><tr><th>${t("Vintage")}</th>${VCATS.map(k => `<th class="n">${t(VCAT_EN[k])}</th>`).join("")}<th>${t("Harvest")}</th><th class="n" title="${t("Apr–Sep mean temperature at Dijon-Longvic vs 1991–2020")}">${t("Season °C")}</th><th class="n">${t("Rain mm")}</th><th>${t("Events")}</th><th>${t("Character")}</th></tr></thead><tbody>`
+  box.innerHTML = warmingChart() + `<table class="list vtab"><thead><tr><th>${t("Vintage")}</th>${VCATS.map(k => `<th class="n">${t(VCAT_EN[k])}</th>`).join("")}<th>${t("Harvest")}</th><th class="n" title="${t("Apr–Sep mean temperature at Dijon-Longvic vs 1991–2020")}">${t("Season °C")}</th><th class="n">${t("Rain mm")}</th><th>${t("Events")}</th><th>${t("Character")}</th></tr></thead><tbody>`
     + yrs.map(y => { const Y = VT.years[y], w = (Y.wx && Y.wx.dijon) || {}, evs = vEvents(null, y);
       const kinds = [...new Set(evs.map(e => evtKind(e.t)))];
       const note = (vRating("nuits_red", y) || vRating("beaune_red", y) || vRating("beaune_white", y) || [])[2] || "";
@@ -1268,6 +1280,36 @@ function renderVintages(){
         <td>${kinds.map(k => `<i class="evdot" style="background:${EVT[k][0]}" title="${esc(evs.filter(e => evtKind(e.t)===k).map(e => `${e.d}: ${e.a.join(", ")}${e.s ? " — " + vx(e.s) : ""}`).join("\n"))}"></i>${t(EVT[k][1])}`).join(" ")}</td><td class="vnote">${esc(vx(note))}</td></tr>`; }).join("")
     + `</tbody></table><p class="note">${t("Ratings are AllWine's consensus of published vintage charts on a 100-point scale (* = estimate, fewer sources); hover a score for its note. Weather: Météo-France, Dijon-Longvic.")}</p>`;
   box.querySelectorAll("tr[data-vy]").forEach(tr => tr.onclick = () => { showVintage(tr.dataset.vy); $("mapcard").scrollIntoView({behavior:"smooth", block:"nearest"}); });
+}
+
+/* the warming Côte: season temperature anomaly at Dijon-Longvic since 1950 (bars) and harvest start (dots + trend) */
+function warmingChart(){
+  if(!VT) return "";
+  const ys = Object.keys(VT.years).map(Number).sort((a, b) => a - b);
+  const wx = y => VT.years[y] && VT.years[y].wx && VT.years[y].wx.dijon;
+  const yrs = []; for(let y = 1950; y <= Math.max(...ys); y++) if(wx(y) && wx(y).anom != null) yrs.push(y);
+  const hv = ys.filter(y => VT.years[y].harvest).map(y => { const d = new Date(VT.years[y].harvest + "T00:00:00Z"); return [y, Math.round((d - Date.UTC(y, 0, 1))/864e5) + 1]; });
+  if(!yrs.length) return "";
+  const Wc = 1000, Hc = 190, pl = 36, pr = 40, pt = 14, pb = 20, y0 = yrs[0], y1 = yrs[yrs.length-1];
+  const X = y => pl + (y - y0)/(y1 - y0)*(Wc - pl - pr), A = a => pt + (2.5 - a)/5*(Hc - pt - pb), D0 = 225, D1 = 285, Dd = d => pt + (d - D0)/(D1 - D0)*(Hc - pt - pb);
+  let g = `<line x1="${pl}" x2="${Wc-pr}" y1="${A(0)}" y2="${A(0)}" class="pgrid"/>`;
+  const bw = (Wc - pl - pr)/(y1 - y0 + 1) - 1;
+  yrs.forEach(y => { const a = wx(y).anom, h = A(0) - A(a);
+    g += `<rect x="${(X(y) - bw/2).toFixed(1)}" y="${(h > 0 ? A(a) : A(0)).toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.abs(h).toFixed(1)}" fill="${a >= 0 ? "#D9534F" : "#3F7CB6"}" fill-opacity=".75"><title>${y}: ${a > 0 ? "+" : ""}${a} °C</title></rect>`; });
+  // harvest dates and their least-squares trend
+  if(hv.length > 3){
+    const n = hv.length, mx = hv.reduce((s, [y]) => s + y, 0)/n, my = hv.reduce((s, [, d]) => s + d, 0)/n;
+    const sl = hv.reduce((s, [y, d]) => s + (y - mx)*(d - my), 0)/hv.reduce((s, [y]) => s + (y - mx)**2, 0);
+    const fit = y => my + sl*(y - mx), ya = hv[0][0], yb = hv[n-1][0];
+    g += `<line x1="${X(ya)}" y1="${Dd(fit(ya)).toFixed(1)}" x2="${X(yb)}" y2="${Dd(fit(yb)).toFixed(1)}" class="htrend"/>`;
+    hv.forEach(([y, d]) => { const dt = new Date(Date.UTC(y, 0, d)); g += `<circle cx="${X(y).toFixed(1)}" cy="${Dd(d).toFixed(1)}" r="3.2" class="hdot"><title>${y}: ${t("Harvest from {0}", dt.getUTCDate() + "/" + (dt.getUTCMonth()+1))}</title></circle>`; });
+    g += `<text x="${pl+6}" y="${pt+4}" class="pax hax">${t("Harvest trend since {0}: {1} days earlier per decade", ya, Math.round(-sl*10))}</text>`;
+  }
+  [-2,-1,0,1,2].forEach(a => g += `<text x="${pl-4}" y="${A(a)+3}" class="pax" text-anchor="end">${a > 0 ? "+" : ""}${a}°</text>`);
+  [[244,"1/9"],[258,"15/9"],[274,"1/10"],[232,"20/8"]].forEach(([d, l]) => g += `<text x="${Wc-pr+4}" y="${Dd(d)+3}" class="pax hax">${l}</text>`);
+  for(let y = Math.ceil(y0/10)*10; y <= y1; y += 10) g += `<text x="${X(y)}" y="${Hc-4}" class="pax" text-anchor="middle">${y}</text>`;
+  return `<div class="warm"><b>${t("A warming Côte")}</b> <span class="note">${t("Bars: April–September temperature at Dijon-Longvic against 1991–2020 · dots: start of the harvest")}</span>
+    <svg viewBox="0 0 ${Wc} ${Hc}" class="pchart warmchart">${g}</svg></div>`;
 }
 
 /* ---------- vineyard detail ---------- */
@@ -1335,6 +1377,7 @@ function detailHtml(c){
 st.cmp = ["drc", "lb_comte"];
 function renderCompare(){
   const box = $("cmp"); if(!box) return;
+  if(st.cmpMode==="c") return renderCompareC();
   const [a,b] = st.cmp, A = PROD[a], Bp = PROD[b];
   if(!A || !Bp){ box.innerHTML = `<p class="note">${t("Pick two producers above.")}</p>`; return; }
   const ORD = {GC:0,"1er":1,V:2};
@@ -1354,6 +1397,37 @@ function renderCompare(){
   box.querySelectorAll("[data-c]").forEach(x => x.onclick = () => { select(x.dataset.c, true); $("mapcard").scrollIntoView({behavior:"smooth", block:"nearest"}); });
   box.querySelectorAll("[data-p]").forEach(x => x.onclick = () => setProducer(x.dataset.p, true));
 }
+/* compare two vineyards side by side */
+st.cmpMode = "p"; st.cmpC = ["latache", "romaneeconti"];
+function renderCompareC(){
+  const box = $("cmp"); const [a, b] = st.cmpC.map(id => CL[id]);
+  if(!a || !b){ box.innerHTML = `<p class="note">${t("Pick two vineyards above.")}</p>`; return; }
+  const dem = c => DEM[c.id], g = c => GEOL && GEOL.under[c.id];
+  const avg = c => { const ys = vYears(catOf(c)).filter(y => y >= 2010); return ys.length ? Math.round(ys.reduce((s, y) => s + vRating(catOf(c), y)[0], 0)/ys.length) : null; };
+  const best = c => vYears(catOf(c)).map(y => [y, vRating(catOf(c), y)[0]]).sort((x, y) => y[1] - x[1]).slice(0, 3).map(([y, sc]) => `${y} (${sc})`).join(", ");
+  const owners = c => c.mono ? t("Monopole · {0}", esc(P[c.mono])) : (c.p||[]).length ? [...c.p].sort((x, y) => (y[1]??-1) - (x[1]??-1)).slice(0, 4).map(([k, h]) => `${esc(P[k])}${h!=null ? " " + fmtHa(h) : ""}`).join(", ") + ((c.p||[]).length > 4 ? ` +${c.p.length-4}` : "") : "—";
+  const rows = [
+    [t("Class"), c => CLASS_NAME[c.c]], [t("Commune"), c => esc(c.vil.n)], [t("Area"), c => `${fmtHa(c.ha)} ha`],
+    [t("INAO area"), c => surveyHa(c) ? `${fmtHa(surveyHa(c))} ha` : "—"],
+    [t("Altitude"), c => dem(c) ? `${dem(c)[0]}–${dem(c)[1]} m` : "—"], [t("Faces"), c => dem(c) ? (dem(c)[5] < 55 ? t("varied") + " · " : "") + wind(dem(c)[4]) : "—"],
+    [t("Slope"), c => dem(c) ? `${dem(c)[3]} %` : "—"],
+    [t("Geology"), c => g(c) ? g(c).slice(0, 2).map(([code, p]) => `<span class="cls" style="background:${geolColor(code)};border:1px solid var(--line)"></span>${esc(GEOL.legend[code][0])} ${p}%`).join("<br>") : "—"],
+    [t("Owners"), owners], [t("Vintage average since 2010"), c => avg(c) ?? "—"], [t("Best vintages"), c => best(c) || "—"],
+  ];
+  box.innerHTML = `<table class="own cmpt cmpv"><thead><tr><th></th>${[a, b].map(c => `<th><button class="plink" data-c="${c.id}">${esc(c.n)}</button></th>`).join("")}</tr></thead><tbody>
+    ${rows.map(([l, f]) => `<tr><td>${l}</td><td>${f(a)}</td><td>${f(b)}</td></tr>`).join("")}</tbody></table>`;
+  box.querySelectorAll("[data-c]").forEach(x => x.onclick = () => { select(x.dataset.c, true); $("mapcard").scrollIntoView({behavior:"smooth", block:"nearest"}); });
+}
+["cmpCA","cmpCB"].forEach((id, i) => { const inp = $(id); if(!inp) return;
+  inp.value = CL[st.cmpC[i]] ? `${CL[st.cmpC[i]].n} — ${CL[st.cmpC[i]].vil.n}` : "";
+  inp.addEventListener("input", () => { const c = C.find(c => `${c.n} — ${c.vil.n}` === inp.value); if(c){ st.cmpC[i] = c.id; renderCompare(); } });
+});
+document.querySelectorAll("#cmpMode [data-cm]").forEach(b => b.onclick = () => { st.cmpMode = b.dataset.cm;
+  document.querySelectorAll("#cmpMode [data-cm]").forEach(x => x.classList.toggle("on", x===b));
+  $("cmpBarP").hidden = st.cmpMode!=="p"; $("cmpBarC").hidden = st.cmpMode!=="c"; renderCompare(); });
+function compareWith(id){ st.cmpMode = "c"; st.cmpC = [id, st.cmpC[0]===id ? st.cmpC[1] : st.cmpC[0]];
+  document.querySelector('#cmpMode [data-cm="c"]').click(); ["cmpCA","cmpCB"].forEach((k, i) => $(k).value = `${CL[st.cmpC[i]].n} — ${CL[st.cmpC[i]].vil.n}`);
+  document.querySelector('.xtabs [data-x="cmp"]').click(); $("explore").scrollIntoView({behavior:"smooth", block:"start"}); }
 ["cmpA","cmpB"].forEach((id,i) => { const inp = $(id); if(!inp) return;
   inp.value = P[st.cmp[i]] || "";
   inp.addEventListener("input", () => { const k = prodByName[norm(inp.value)]; if(k){ st.cmp[i] = k; renderCompare(); } });
@@ -1517,7 +1591,54 @@ svg.addEventListener("click", ev => {
   if(!PROF.a || PROF.b){ PROF.a = m; PROF.b = null; PROF.data = null; profDraw(); $("profile").innerHTML = `<div class="ph">${t("Now the second point")}</div>`; }
   else { PROF.b = m; profDraw(); profFetch(); }
 }, true);
+/* export: the current view as a PNG (map drawing with its styles inlined; relief tiles left out), or print to PDF */
+async function exportPNG(){
+  const btn = $("pngBtn"); btn.disabled = true;
+  try{
+    const w = svg.clientWidth, h = svg.clientHeight, sc = 2;
+    const clone = svg.cloneNode(true); clone.removeAttribute("style"); clone.querySelectorAll(".shade").forEach(e => e.remove());
+    clone.setAttribute("xmlns", NS); clone.setAttribute("width", w); clone.setAttribute("height", h);
+    // the page's styles, with the colour tokens resolved (inside a standalone svg :root is the svg itself)
+    const cs = getComputedStyle(document.documentElement), css = [...document.querySelectorAll("style")].map(x => x.textContent).join("\n");
+    const vars = [...new Set(css.match(/--[a-z0-9-]+/g) || [])].map(v => `${v}:${cs.getPropertyValue(v)}`).join(";");
+    const st0 = document.createElementNS(NS, "style"); st0.textContent = `svg{${vars};font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}` + css;
+    clone.insertBefore(st0, clone.firstChild);
+    const bg = document.createElementNS(NS, "rect"); Object.entries({x:vb.x, y:vb.y, width:vb.w, height:vb.h, fill:cs.getPropertyValue("--mapbg")}).forEach(([k, v]) => bg.setAttribute(k, v)); clone.insertBefore(bg, st0.nextSibling);
+    const url = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(clone)], {type:"image/svg+xml"}));
+    const img = new Image(); await new Promise((ok, fail) => { img.onload = ok; img.onerror = fail; img.src = url; });
+    const band = 34, cv = document.createElement("canvas"); cv.width = w*sc; cv.height = (h + band)*sc;
+    const x = cv.getContext("2d"); x.scale(sc, sc); x.drawImage(img, 0, 0, w, h); URL.revokeObjectURL(url);
+    const title = st.sel ? `${CL[st.sel].n} · ${CL[st.sel].vil.n}` : st.vsel ? VIL[st.vsel].n : st.prod ? P[st.prod] : t("Burgundy atlas");
+    x.fillStyle = cs.getPropertyValue("--card"); x.fillRect(0, h, w, band); x.fillStyle = cs.getPropertyValue("--ink");
+    x.font = "600 14px -apple-system,Segoe UI,Roboto,sans-serif"; x.fillText(title, 12, h + 22);
+    x.font = "11px -apple-system,Segoe UI,Roboto,sans-serif"; x.fillStyle = cs.getPropertyValue("--muted"); x.textAlign = "right";
+    x.fillText("allwine.dk · " + t(TOPO ? "Boundaries © INAO · map data © IGN, Licence Ouverte" : "Boundaries © INAO, Licence Ouverte"), w - 12, h + 22);
+    const a = document.createElement("a"); a.download = `allwine-${norm(title).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "atlas"}.png`;
+    a.href = cv.toDataURL("image/png"); document.body.appendChild(a); a.click(); a.remove();
+  }catch(e){ console.warn("export failed", e); }
+  btn.disabled = false;
+}
+$("pngBtn").onclick = exportPNG;
+$("printBtn").onclick = () => window.print();
+if("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("atlas-sw.js").catch(() => {});
 $("profBtn").onclick = () => profToggle();
+// terrain search bar
+const ASP8 = {en:"N NE E SE S SW W NW", da:"N NØ Ø SØ S SV V NV", fr:"N NE E SE S SO O NO"};
+function terrSync(){
+  const T = st.terr, lg = window.I18N ? window.I18N.lang : "en", names = (ASP8[lg] || ASP8.en).split(" ");
+  $("tAsp").innerHTML = names.map((n, i) => `<button type="button" data-a="${i}" class="${T.asp.has(i) ? "on" : ""}">${n}</button>`).join("");
+  $("tAsp").querySelectorAll("[data-a]").forEach(b => b.onclick = () => { const i = +b.dataset.a; T.asp.has(i) ? T.asp.delete(i) : T.asp.add(i); terrSync(); paint(); });
+  $("tAltMin").value = T.altMin ?? ""; $("tAltMax").value = T.altMax ?? ""; $("tSlope").value = T.slope ?? ""; $("tSize").value = T.size ?? "";
+  $("terrChip").classList.toggle("on", !!terrActive() || !$("terrbar").hidden);
+}
+$("terrChip").onclick = () => { const bar = $("terrbar"); bar.hidden = !bar.hidden; $("terrChip").setAttribute("aria-expanded", !bar.hidden); terrSync(); };
+[["tAltMin","altMin"],["tAltMax","altMax"],["tSlope","slope"],["tSize","size"]].forEach(([id, k]) => $(id).addEventListener("input", ev => {
+  const v = ev.target.value; st.terr[k] = v==="" ? null : +v; terrSync(); paint(); }));
+document.querySelectorAll("#terrbar [data-preset]").forEach(b => b.onclick = () => {
+  const T = st.terr; T.asp.clear(); T.altMin = T.altMax = T.slope = T.size = null;
+  ({steep:() => T.slope = 15, high:() => T.altMin = 320, south:() => [3,4,5].forEach(i => T.asp.add(i)), small:() => T.size = 1})[b.dataset.preset]();
+  terrSync(); paint(); });
+$("tClear").onclick = () => { const T = st.terr; T.asp.clear(); T.altMin = T.altMax = T.slope = T.size = null; terrSync(); paint(); };
 $("reliefBtn").onclick = () => { st.relief = !st.relief; try{ localStorage.setItem("atlasRelief", st.relief ? "1" : "0"); }catch(e){} syncMode(); shadeUpdate(); };
 if(GEO){
   $("layers").hidden = false;
@@ -1530,6 +1651,7 @@ if(GEO){
 }
 $("cellarChip").onclick = () => { st.cellarOnly = !st.cellarOnly; paint(); };
 $("reset").onclick = () => {
+  st.terr = {asp:new Set(), altMin:null, altMax:null, slope:null, size:null}; $("terrbar").hidden = true; terrSync();
   Object.assign(st, {cls:new Set(["GC","1er","V"]), mono:false, wc:"", cellarOnly:false, q:"", prod:null, color:"class", sel:null, vsel:null, overview:false});
   $("fSearch").value=""; $("fColor").value="class"; renderProdChip();
   renderSide(); paint(); syncHash(); syncCommunes(); focusDefault();
@@ -1668,7 +1790,7 @@ $("here").onclick = () => { const id = $("here").dataset.v; if(id) selectVillage
 
 // switching language re-renders every piece of text the script writes
 if(window.I18N) window.I18N.onChange(() => {
-  fillSearchList(); csel.options[0].textContent = t("Commune…"); syncMode(); renderProdChip();
+  fillSearchList(); csel.options[0].textContent = t("Commune…"); syncMode(); renderProdChip(); terrSync();
   renderSide(); paint(); orient();
 });
 
