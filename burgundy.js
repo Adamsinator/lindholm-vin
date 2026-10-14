@@ -312,7 +312,7 @@ function build(){
   prepare();
   const SCH = st.mode!=="geo";
   rlabEls = []; ovEls = [];
-  svg.innerHTML = "";
+  svg.innerHTML = ""; ELS = null;
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
   const defs = el("defs", {}, svg);
   const pat = el("pattern", {id:"unk", width:6, height:6, patternUnits:"userSpaceOnUse", patternTransform:"rotate(45)"}, defs);
@@ -466,22 +466,30 @@ function topoD(flat, close){
   return close ? d + "Z" : d;
 }
 function drawTopo(gUnder, gHill, gRoad, gTown, gNames){
-  const T = TOPO, join = (list, close) => list.map(f => topoD(f, close)).join("");
-  el("path", {class:"t-wood", d:join(T.woods, true), "fill-rule":"evenodd"}, gUnder);
-  el("path", {class:"t-vine", d:join(T.vines, true)}, gUnder);
+  const T = TOPO;
+  // big layers go in tiles (~1.5 km), one path each, so the browser skips everything off-screen when it redraws
+  const TILE = 1500 * GS;
+  const tiled = (list, close, cls, g, attrs = {}) => {
+    const tiles = new Map();
+    list.forEach(f => { const d = topoD(f, close), m = /^M(-?[\d.]+) (-?[\d.]+)/.exec(d); if(!m) return;
+      const k = Math.floor(m[1]/TILE) + "," + Math.floor(m[2]/TILE); tiles.set(k, (tiles.get(k) || "") + d); });
+    tiles.forEach(d => el("path", {class:cls, d, ...attrs}, g));
+  };
+  tiled(T.woods, true, "t-wood", gUnder, {"fill-rule":"evenodd"});
+  tiled(T.vines, true, "t-vine", gUnder);
   // contours over the vineyards, faint; every 25 m a little stronger
-  el("path", {class:"t-cmin", d:T.cont.filter(c => !c[1]).map(c => topoD(c[2])).join("")}, gHill);
-  el("path", {class:"t-cmaj", d:T.cont.filter(c => c[1]).map(c => topoD(c[2])).join("")}, gHill);
+  tiled(T.cont.filter(c => !c[1]).map(c => c[2]), false, "t-cmin", gHill);
+  tiled(T.cont.filter(c => c[1]).map(c => c[2]), false, "t-cmaj", gHill);
   el("path", {class:"t-comm", d:T.communes.flatMap(c => c[2]).map(r => topoD(r, true)).join("")}, gRoad);
   el("path", {class:"t-water", d:T.water.filter(w => w[0]===1).map(w => topoD(w[1])).join("")}, gRoad);
   el("path", {class:"t-water t-wint", d:T.water.filter(w => w[0]!==1).map(w => topoD(w[1])).join("")}, gRoad);
-  const rd = k => T.roads.filter(r => r[0]===k).map(r => topoD(r[1])).join("");
-  const R4 = rd(4), R3 = rd(3), R2 = rd(2), R1 = rd(1), rail = join(T.rail);
-  el("path", {class:"t-track", d:R4}, gRoad);
-  [[R3,"t-r3"],[R2,"t-r2"],[R1,"t-r1"]].forEach(([d,c]) => el("path", {class:"t-case "+c, d}, gRoad));
-  [[R3,"t-r3"],[R2,"t-r2"],[R1,"t-r1"]].forEach(([d,c]) => el("path", {class:"t-fill "+c, d}, gRoad));
+  const rd = k => T.roads.filter(r => r[0]===k).map(r => r[1]);
+  tiled(rd(4), false, "t-track", gRoad);
+  [[3,"t-r3"],[2,"t-r2"],[1,"t-r1"]].forEach(([k,c]) => tiled(rd(k), false, "t-case "+c, gRoad));
+  [[3,"t-r3"],[2,"t-r2"],[1,"t-r1"]].forEach(([k,c]) => tiled(rd(k), false, "t-fill "+c, gRoad));
+  const rail = T.rail.map(f => topoD(f)).join("");
   el("path", {class:"t-rail", d:rail}, gRoad); el("path", {class:"t-rail2", d:rail}, gRoad);
-  el("path", {class:"t-bld", d:join(T.bld, true)}, gTown);
+  tiled(T.bld, true, "t-bld", gTown);
   // names: villages and hamlets, streams and woods, and the lieux-dits — except where a climat of the same name is drawn
   const climatAt = (x, y, n) => C.some(c => c.bb && x >= c.bb[0] && x <= c.bb[2] && y >= c.bb[1] && y <= c.bb[3] && bareN(c.n) === n);
   T.names.forEach(([k, n, x0, y0]) => {
@@ -620,7 +628,23 @@ function clampVB(v){
   v.y = Math.max(-my, Math.min(v.y, H - v.h + my));
   return v;
 }
-function setVB(v){ vb = clampVB(v); svg.setAttribute("viewBox", `${vb.x.toFixed(1)} ${vb.y.toFixed(1)} ${vb.w.toFixed(1)} ${vb.h.toFixed(1)}`); layoutLabels(); orientSoon(); }
+// Two speeds: setVB redraws the svg at a new viewBox (labels, line widths, detail) — expensive with IGN's layers;
+// setVBLive, used while dragging, zooming or flying, only moves and scales the drawing already on screen with a CSS
+// transform (composited, no redraw) and commits the real viewBox once the gesture pauses.
+let vbC = null, commitT = 0;
+const baseRect = () => svg.parentNode.getBoundingClientRect(); // the map's frame, unaffected by the live transform
+function setVB(v){
+  clearTimeout(commitT); vb = clampVB(v); vbC = {...vb}; svg.style.transform = "";
+  svg.setAttribute("viewBox", `${vb.x.toFixed(1)} ${vb.y.toFixed(1)} ${vb.w.toFixed(1)} ${vb.h.toFixed(1)}`); layoutLabels(); orientSoon();
+}
+function setVBLive(v, delay = 140){
+  vb = clampVB(v);
+  if(!vbC){ setVB(vb); return; }
+  const r = svg.clientWidth / vbC.w, k = vbC.w / vb.w;
+  svg.style.transform = `translate(${((vbC.x - vb.x)*r*k).toFixed(1)}px,${((vbC.y - vb.y)*r*k).toFixed(1)}px) scale(${k.toFixed(5)})`;
+  // the commune pill and locator catch up when the gesture pauses (hit-testing the map every frame is costly)
+  clearTimeout(commitT); commitT = setTimeout(() => setVB(vb), delay);
+}
 const scale = () => svg.clientWidth / vb.w; // screen px per svg unit
 let anim = null;
 function flyTo(target, ms=420){
@@ -629,7 +653,8 @@ function flyTo(target, ms=420){
   if(matchMedia("(prefers-reduced-motion: reduce)").matches) ms = 0;
   const step = now => {
     const t = ms ? Math.min(1, (now-t0)/ms) : 1, e = t<.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2;
-    setVB({x:from.x+(to.x-from.x)*e, y:from.y+(to.y-from.y)*e, w:from.w+(to.w-from.w)*e, h:from.h+(to.h-from.h)*e});
+    const nv = {x:from.x+(to.x-from.x)*e, y:from.y+(to.y-from.y)*e, w:from.w+(to.w-from.w)*e, h:from.h+(to.h-from.h)*e};
+    if(t<1) setVBLive(nv, 400); else setVB(nv);
     if(t<1) anim = requestAnimationFrame(step);
   };
   anim = requestAnimationFrame(step);
@@ -656,9 +681,9 @@ function ensureVisible(c){
 const boxOfGrid = (x0,y0,x1,y1) => { const xs=[px(x0,y0),px(x1,y0),px(x0,y1),px(x1,y1)]; return [Math.min(...xs), py(y0), Math.max(...xs), py(y1)]; };
 function zoomAt(f, cx, cy){ // cx/cy in svg units
   const w = vb.w*f; const k = w/vb.w;
-  setVB({x: cx-(cx-vb.x)*k, y: cy-(cy-vb.y)*k, w, h: vb.h*k});
+  setVBLive({x: cx-(cx-vb.x)*k, y: cy-(cy-vb.y)*k, w, h: vb.h*k});
 }
-function clientToSvg(ex, ey){ const r = svg.getBoundingClientRect(); return [vb.x + (ex-r.left)/r.width*vb.w, vb.y + (ey-r.top)/r.height*vb.h]; }
+function clientToSvg(ex, ey){ const r = baseRect(); return [vb.x + (ex-r.left)/r.width*vb.w, vb.y + (ey-r.top)/r.height*vb.h]; }
 svg.addEventListener("wheel", ev => {
   ev.preventDefault();
   const [cx,cy] = clientToSvg(ev.clientX, ev.clientY);
@@ -677,7 +702,7 @@ svg.addEventListener("pointermove", ev => {
     const [a,b]=[...ptrs.values()], d=Math.hypot(a[0]-b[0],a[1]-b[1]);
     const w = pinch0.w * pinch0.d / Math.max(20,d), k = w/vb.w;
     const [cx,cy] = pinch0.c;
-    setVB({x:cx-(cx-vb.x)*k, y:cy-(cy-vb.y)*k, w, h:vb.h*k}); dragMoved = true;
+    setVBLive({x:cx-(cx-vb.x)*k, y:cy-(cy-vb.y)*k, w, h:vb.h*k}); dragMoved = true;
     // two-finger twist turns the surveyed map: shown live by turning the drawing, rebuilt upright when the fingers lift
     if(st.mode==="geo"){
       let t = (Math.atan2(b[1]-a[1], b[0]-a[0]) - pinch0.ang) * 180/Math.PI; t = ((t + 540) % 360) - 180;
@@ -688,7 +713,7 @@ svg.addEventListener("pointermove", ev => {
   if(ptrs.size===1 && down0){
     const dx = ev.clientX-down0[0], dy = ev.clientY-down0[1];
     if(!dragMoved && Math.hypot(dx,dy) > 5){ dragMoved = true; svg.classList.add("dragging"); svg.setPointerCapture(ev.pointerId); hideTip(); }
-    if(dragMoved){ const r = svg.getBoundingClientRect(); setVB({...vb, x:down0[2]-dx/r.width*vb.w, y:down0[3]-dy/r.height*vb.h}); }
+    if(dragMoved){ const r = baseRect(); setVBLive({...vb, x:down0[2]-dx/r.width*vb.w, y:down0[3]-dy/r.height*vb.h}); }
   }
 });
 const up = ev => {
@@ -708,6 +733,13 @@ new ResizeObserver(() => setVB(vb)).observe(svg);
 
 /* ---------- labels: constant screen size, shown only where they fit ---------- */
 const measure = (() => { const cv=document.createElement("canvas").getContext("2d"); return (t,fs,wt) => { cv.font=`${wt} ${fs}px -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif`; return cv.measureText(t).width; }; })();
+// element lists layoutLabels walks on every redraw, collected once per build instead of queried each time
+let ELS = null;
+function els(){
+  if(!ELS) ELS = {cl:[...svg.querySelectorAll(".cl")], w:[...svg.querySelectorAll("[data-w]")], r:[...svg.querySelectorAll("[data-r]")],
+    lmx:[...svg.querySelectorAll(".lmx")], ch:[...svg.querySelectorAll(".chcross")], base:[...svg.querySelectorAll(".base")], mono:[...svg.querySelectorAll(".mono")]};
+  return ELS;
+}
 function layoutLabels(){
   const k = scale(); if(!isFinite(k) || !k) return;
   labEls.forEach(c => {
@@ -749,16 +781,17 @@ function layoutLabels(){
   });
   tlabEls.forEach(t => { const fs=+t.dataset.fs; t.setAttribute("font-size",(fs/k).toFixed(2)); t.style.display = k>0.45 ? "" : "none"; });
   rlabEls.forEach(t => { const fs=+t.dataset.fs; t.setAttribute("font-size",(fs/k).toFixed(2)); t.style.display = k>0.55 ? "" : "none"; });
-  svg.querySelectorAll(".cl").forEach(p => p.setAttribute("stroke-width", ((p.classList.contains("sel")?2.6:1)/k).toFixed(2)));
-  svg.querySelectorAll("[data-w]").forEach(e => e.setAttribute("stroke-width", (+e.dataset.w/k).toFixed(2)));
-  svg.querySelectorAll("[data-r]").forEach(e => e.setAttribute("r", (+e.dataset.r/k).toFixed(2)));
-  svg.querySelectorAll(".lmx").forEach(e => { const c=e.previousSibling; const cx=+c.getAttribute("cx"), cy=+c.getAttribute("cy"), q=1/k; e.setAttribute("d",`M${cx-2.4*q} ${cy-.6*q}h${4.8*q}M${cx} ${cy-3*q}v${5.2*q}`); });
-  svg.querySelectorAll(".chcross").forEach(e => { if(!e._d) e._d = e.getAttribute("d").match(/-?[\d.]+/g).map(Number); const [x,y]=[e._d[0]+3, e._d[1]], q=1/k; e.setAttribute("d",`M${x-3*q} ${y}h${6*q}M${x} ${y-4*q}v${8*q}`); });
+  const E = els();
+  E.cl.forEach(p => p.setAttribute("stroke-width", ((p.classList.contains("sel")?2.6:1)/k).toFixed(2)));
+  E.w.forEach(e => e.setAttribute("stroke-width", (+e.dataset.w/k).toFixed(2)));
+  E.r.forEach(e => e.setAttribute("r", (+e.dataset.r/k).toFixed(2)));
+  E.lmx.forEach(e => { const c=e.previousSibling; const cx=+c.getAttribute("cx"), cy=+c.getAttribute("cy"), q=1/k; e.setAttribute("d",`M${cx-2.4*q} ${cy-.6*q}h${4.8*q}M${cx} ${cy-3*q}v${5.2*q}`); });
+  E.ch.forEach(e => { if(!e._d) e._d = e.getAttribute("d").match(/-?[\d.]+/g).map(Number); const [x,y]=[e._d[0]+3, e._d[1]], q=1/k; e.setAttribute("d",`M${x-3*q} ${y}h${6*q}M${x} ${y-4*q}v${8*q}`); });
   lmEls.forEach(t => { t.setAttribute("font-size",(+t.dataset.fs/k).toFixed(2)); t.style.display = k>1.1 ? "" : "none"; });
   svg.classList.toggle("near", k>0.9); svg.classList.toggle("far", k<0.5);
   topoLod(k);
-  svg.querySelectorAll(".base").forEach(p => { p.setAttribute("stroke-width",(1/k).toFixed(2)); p.setAttribute("stroke-dasharray",`${(3/k).toFixed(2)} ${(3/k).toFixed(2)}`); });
-  svg.querySelectorAll(".mono").forEach(p => { p.setAttribute("stroke-width",(1.3/k).toFixed(2)); p.setAttribute("stroke-dasharray",`${(4/k).toFixed(2)} ${(3/k).toFixed(2)}`); });
+  E.base.forEach(p => { p.setAttribute("stroke-width",(1/k).toFixed(2)); p.setAttribute("stroke-dasharray",`${(3/k).toFixed(2)} ${(3/k).toFixed(2)}`); });
+  E.mono.forEach(p => { p.setAttribute("stroke-width",(1.3/k).toFixed(2)); p.setAttribute("stroke-dasharray",`${(4/k).toFixed(2)} ${(3/k).toFixed(2)}`); });
 }
 
 // a shorter form for tight spots: Saint → St, the Chambertin/Montrachet suffix of the grands crus abbreviated
@@ -1436,7 +1469,7 @@ function communeAt([x, y]){
 let orientRaf = 0;
 function orientSoon(){ if(!orientRaf) orientRaf = requestAnimationFrame(() => { orientRaf = 0; orient(); }); }
 function orient(){
-  const r = svg.getBoundingClientRect(), k = scale(); if(!r.width || !k || !locVP) return;
+  const r = baseRect(), k = scale(); if(!r.width || !k || !locVP) return;
   const dpx = drawerPx(), dp = dpx/k, visW = vb.w - dp;
   // the visible part of the map, outlined on the locator (never smaller than a few pixels)
   const minU = 6 * W / Math.max(1, loc.clientWidth), w = Math.max(minU, visW), h = Math.max(minU, vb.h);
