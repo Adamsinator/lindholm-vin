@@ -102,7 +102,8 @@ indexHoldings();
 /* ---------- state ---------- */
 const st = {
   cls:new Set(["GC","1er","V"]), mono:false, cellarOnly:false, q:"", prod:null, color:"class",
-  sel:null, vsel:null, sortK:"v", sortDir:1,
+  sel:null, vsel:null, sortK:"v", sortDir:1, wc:"",
+  rot: (() => { try{ return +localStorage.getItem("atlasRot") || 0; }catch(e){ return 0; } })(), // surveyed map: degrees clockwise from north-up
 };
 
 /* ---------- colours ---------- */
@@ -160,6 +161,7 @@ function textFill(c, fill){
 function matches(c){
   if(!st.cls.has(c.c)) return false;
   if(st.mono && !c.mono) return false;
+  if(st.wc && !(c.col||"R").includes(st.wc)) return false;
   if(st.prod && holding(c, st.prod)===undefined) return false;
   if(st.cellarOnly && !(CELLAR.by[c.id])) return false;
   if(st.q && !c.search.includes(st.q)) return false;
@@ -179,7 +181,7 @@ function el(tag, attrs, parent){
 const GEO = window.BURG_GEO && window.BURG_GEO.climats ? window.BURG_GEO : null;
 st.mode = GEO ? (() => { try{ return localStorage.getItem("atlasMode") || "geo"; }catch(e){ return "geo"; } })() : "schematic";
 const GS = 0.25; // surveyed map: svg units per metre
-let CONTENT = null;
+let CONTENT = null, FWD = null, INV = null; // surveyed map: metres (E,N) ⇄ svg units
 const bbOf = pts => { const xs=pts.map(p=>p[0]), ys=pts.map(p=>p[1]); return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)]; };
 const bbUnion = bs => bs.length ? [Math.min(...bs.map(b=>b[0])), Math.min(...bs.map(b=>b[1])), Math.max(...bs.map(b=>b[2])), Math.max(...bs.map(b=>b[3]))] : null;
 const ringArea = r => Math.abs(r.reduce((s,[x,y],i) => { const [x2,y2] = r[(i+1)%r.length]; return s + x*y2 - x2*y; }, 0) / 2);
@@ -187,9 +189,15 @@ function prepare(){
   if(st.mode==="geo"){
     const all = [];
     [...Object.values(GEO.climats), ...Object.values(GEO.villages||{})].forEach(mp => mp.forEach(p => p[0].forEach(q => all.push(q))));
-    const [minE, minN, maxE, maxN] = bbOf(all), PAD = 60;
-    const T = ([e,n]) => [(e-minE)*GS+PAD, (maxN-n)*GS+PAD];
-    W = (maxE-minE)*GS + 2*PAD; H = (maxN-minN)*GS + 2*PAD;
+    // turn the map about its centre (st.rot degrees clockwise), then fit: labels stay upright because the geometry turns, not the svg
+    const [minE, minN, maxE, maxN] = bbOf(all), PAD = 60, ce = (minE+maxE)/2, cn = (minN+maxN)/2;
+    const a = (st.rot||0)*Math.PI/180, ca = Math.cos(a), sa = Math.sin(a);
+    const R0 = ([e,n]) => { const x = e-ce, y = cn-n; return [x*ca - y*sa, x*sa + y*ca]; };
+    const [rx0, ry0, rx1, ry1] = bbOf(all.map(R0));
+    const T = q => { const [x,y] = R0(q); return [(x-rx0)*GS+PAD, (y-ry0)*GS+PAD]; };
+    FWD = T;
+    INV = ([sx,sy]) => { const x = (sx-PAD)/GS+rx0, y = (sy-PAD)/GS+ry0; return [ce + x*ca + y*sa, cn - (-x*sa + y*ca)]; };
+    W = (rx1-rx0)*GS + 2*PAD; H = (ry1-ry0)*GS + 2*PAD;
     const dOf = mp => mp.map(p => p.map(r => "M"+r.map(q => T(q).map(v=>v.toFixed(1)).join(" ")).join("L")+"Z").join("")).join("");
     C.forEach(c => {
       const mp = GEO.climats[c.id];
@@ -337,7 +345,8 @@ function build(){
     const o = el("text", {class:"vlab ov", x:px(36,yc), y:py(yc), "dominant-baseline":"central", "data-fs":12}, gView);
     o.textContent = v.n; ovEls.push(o);
   });
-  svg.addEventListener("click", () => { if(!dragMoved && (st.sel||st.vsel)){ st.sel=null; st.vsel=null; renderSide(); paint(); syncHash(); } });
+  if(!svg._bgClick){ svg._bgClick = true; svg.addEventListener("click", () => { if(!dragMoved && (st.sel||st.vsel)){ st.sel=null; st.vsel=null; renderSide(); paint(); syncHash(); } }); }
+  buildLocator();
   paint();
 }
 /* ---------- map furniture: contours, roads, villages, landmarks ---------- */
@@ -460,7 +469,7 @@ function clampVB(v){
   v.y = Math.max(-my, Math.min(v.y, H - v.h + my));
   return v;
 }
-function setVB(v){ vb = clampVB(v); svg.setAttribute("viewBox", `${vb.x.toFixed(1)} ${vb.y.toFixed(1)} ${vb.w.toFixed(1)} ${vb.h.toFixed(1)}`); layoutLabels(); }
+function setVB(v){ vb = clampVB(v); svg.setAttribute("viewBox", `${vb.x.toFixed(1)} ${vb.y.toFixed(1)} ${vb.w.toFixed(1)} ${vb.h.toFixed(1)}`); layoutLabels(); orientSoon(); }
 const scale = () => svg.clientWidth / vb.w; // screen px per svg unit
 let anim = null;
 function flyTo(target, ms=420){
@@ -695,9 +704,11 @@ function renderSide(){
       <div class="meta">${esc(appellation(c))} · <button class="plink" data-v="${c.vil.id}">${esc(c.vil.n)}</button></div>
       <div class="facts">
         <div class="fact"><div class="l">Area</div><div class="v">${fmtHa(c.ha)} ha</div></div>
-        <div class="fact"><div class="l">Acres</div><div class="v">${(c.ha*2.471).toFixed(c.ha<4?1:0)}</div></div>
+        ${surveyHa(c) ? `<div class="fact" title="The land INAO delimits for this appellation, planted or not, measured from its parcel plan"><div class="l">INAO area</div><div class="v">${fmtHa(surveyHa(c))} ha</div></div>`
+          : `<div class="fact"><div class="l">Acres</div><div class="v">${(c.ha*2.471).toFixed(c.ha<4?1:0)}</div></div>`}
         <div class="fact"><div class="l">Owners</div><div class="v">${c.mono?"1":(c.p||[]).length||"—"}</div></div>
       </div>
+      ${areaNote(c)}
       <p>${esc(c.d||"")}</p>
       ${st.mode==="geo" && GEO && (GEO.meta.approx||[]).includes(c.id) ? `<p class="note">INAO maps Charmes and Mazoyères as one area (Mazoyères may be sold as Charmes); the line between them here is an estimate.</p>` : ""}
       ${detailHtml(c)}
@@ -784,6 +795,7 @@ function setProducer(key, showPanel){
 /* ---------- legend ---------- */
 function renderLegend(){
   const L = $("legend"); let h = "";
+  const shown = C.filter(c => c.on).length;
   const sw = (c,t,extra="") => `<div class="row"><span class="sw ${extra}" style="background:${c}"></span>${t}</div>`;
   const ramp = (a,b,l,r) => `<div class="ramp" style="background:linear-gradient(90deg,${a},${b})"></div><div class="rl"><span>${l}</span><span>${r}</span></div>`;
   switch(st.color){
@@ -805,6 +817,7 @@ function renderLegend(){
         + `<div class="row"><span class="sw mono-sw"></span>Monopole</div>`
         + `<div class="row"><span class="sw" style="background:none;border:2.5px solid var(--wall)"></span>Walled clos</div>`;
   }
+  if(shown < C.length) h += `<div class="cnt">${shown} of ${C.length} vineyards match</div>`;
   L.innerHTML = h;
 }
 
@@ -1040,26 +1053,34 @@ $("classChips").querySelectorAll("[data-cls]").forEach(b => b.onclick = () => {
   paint();
 });
 $("monoChip").onclick = () => { st.mono = !st.mono; paint(); };
+$("wineSeg").querySelectorAll("[data-wc]").forEach(b => b.onclick = () => { st.wc = b.dataset.wc; paint(); });
+function syncMode(){
+  const geo = st.mode==="geo";
+  $("layers").querySelectorAll("[data-m]").forEach(b => b.classList.toggle("on", b.dataset.m===st.mode));
+  $("rotL").hidden = $("rotR").hidden = !geo;
+  $("compass").title = geo ? "North up" : "Schematic map: north is roughly up, the slope rises to the west";
+  $("attr").textContent = geo ? "Boundaries © INAO, Licence Ouverte" : "Schematic · not to scale · slope rises west";
+  syncCompass();
+}
 if(GEO){
-  const mc = $("modeChip"); mc.hidden = false;
-  const label = () => { mc.textContent = st.mode==="geo" ? "Map: surveyed" : "Map: schematic"; mc.classList.toggle("on", st.mode==="geo");
-    $("compass").innerHTML = st.mode==="geo" ? `<b>N ↑</b>surveyed outlines · ${esc((GEO.meta&&GEO.meta.source)||"INAO")}` : `<b>N ↑</b>slope rises west ←<br>schematic · not to scale`; };
-  label();
-  mc.onclick = () => {
-    st.mode = st.mode==="geo" ? "schematic" : "geo"; try{ localStorage.setItem("atlasMode", st.mode); }catch(e){}
-    build(); label(); renderSide(); vb = {x:0,y:0,w:W,h:H}; setVB(vb);
+  $("layers").hidden = false;
+  $("layers").querySelectorAll("[data-m]").forEach(b => b.onclick = () => {
+    if(b.dataset.m===st.mode) return;
+    st.mode = b.dataset.m; try{ localStorage.setItem("atlasMode", st.mode); }catch(e){}
+    build(); syncMode(); renderSide(); vb = {x:0,y:0,w:W,h:H}; setVB(vb);
     if(st.sel) focusClimat(CL[st.sel]); else if(st.vsel) selectVillage(st.vsel, true); else focusDefault();
-  };
+  });
 }
 $("cellarChip").onclick = () => { st.cellarOnly = !st.cellarOnly; paint(); };
 $("reset").onclick = () => {
-  Object.assign(st, {cls:new Set(["GC","1er","V"]), mono:false, cellarOnly:false, q:"", prod:null, color:"class", sel:null, vsel:null, overview:false});
+  Object.assign(st, {cls:new Set(["GC","1er","V"]), mono:false, wc:"", cellarOnly:false, q:"", prod:null, color:"class", sel:null, vsel:null, overview:false});
   $("fSearch").value=""; $("fColor").value="class"; renderProdChip();
   renderSide(); paint(); syncHash(); syncCommunes(); focusDefault();
 };
 function syncChips(){
   $("classChips").querySelectorAll("[data-cls]").forEach(b => b.classList.toggle("on", st.cls.has(b.dataset.cls)));
   $("monoChip").classList.toggle("on", st.mono);
+  $("wineSeg").querySelectorAll("[data-wc]").forEach(b => b.classList.toggle("on", b.dataset.wc===st.wc));
   $("cellarChip").classList.toggle("on", st.cellarOnly);
 }
 const seg = $("coteSeg"), csel = $("fCommune");
@@ -1086,6 +1107,97 @@ document.querySelectorAll(".xtabs [data-x]").forEach(b => b.onclick = () => {
   document.querySelectorAll(".xpane").forEach(x => x.classList.toggle("on", x.dataset.x===b.dataset.x));
 });
 $("zInfo").onclick = ev => { ev.stopPropagation(); st.overview = !st.overview; if(st.overview){ st.sel=null; st.vsel=null; } renderSide(); paint(); syncHash(); syncCommunes(); };
+
+/* ---------- orientation: compass, rotation, locator map, where-am-I ---------- */
+// INAO's delimited area, measured from the outline (metres²) — shown next to the published figure
+function surveyHa(c){
+  const mp = GEO && GEO.climats[c.id]; if(!mp) return 0;
+  if(c._sha == null) c._sha = mp.reduce((s,p) => s + ringArea(p[0]) - p.slice(1).reduce((t,h) => t + ringArea(h), 0), 0) / 1e4;
+  return c._sha;
+}
+function areaNote(c){
+  const s = surveyHa(c); if(!s || (s/c.ha > .8 && s/c.ha < 1.25)) return "";
+  return `<p class="note">The two areas differ: INAO's plan counts all land entitled to the name, planted or not, while the published ${fmtHa(c.ha)} ha counts vineyard — sometimes with neighbouring plots sold under the same name.</p>`;
+}
+function syncCompass(){
+  const a = st.mode==="geo" ? st.rot : 0;
+  $("needle").setAttribute("transform", `rotate(${a})`);
+  $("nLetter").setAttribute("transform", `rotate(${-a} 0 -13.6)`);
+  $("compass").classList.toggle("turned", !!a);
+}
+function rotateTo(deg){
+  if(st.mode!=="geo") return;
+  deg = ((Math.round(deg) % 360) + 360) % 360;
+  if(deg === st.rot) return;
+  const dp = drawerPx() / scale(), w = vb.w, h = vb.h;
+  const m = INV([vb.x + (w - dp)/2, vb.y + h/2]); // keep the centre of the visible map where it is
+  st.rot = deg; try{ localStorage.setItem("atlasRot", deg); }catch(e){}
+  build();
+  const [x, y] = FWD(m);
+  setVB({x: x - (w - dp)/2, y: y - h/2, w, h});
+  syncCompass();
+}
+const rotateBy = d => rotateTo(st.rot + d);
+$("rotL").onclick = () => rotateBy(-15);
+$("rotR").onclick = () => rotateBy(15);
+$("compass").onclick = () => rotateTo(0);
+
+const loc = $("locator"); let locVP = null, lastHere;
+function buildLocator(){
+  loc.innerHTML = ""; lastHere = undefined;
+  loc.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  const small = matchMedia("(max-width: 600px)").matches, k = Math.min((small ? 60 : 92)/W, (small ? 104 : 150)/H);
+  loc.style.width = Math.round(W*k)+"px"; loc.style.height = Math.round(H*k)+"px";
+  V.forEach(v => {
+    if(v.baseD.length) v.baseD.forEach(d => el("path", {class:"lv", d, "data-v":v.id, "fill-rule":"evenodd"}, loc));
+    else if(v.bb) el("rect", {class:"lv", "data-v":v.id, x:v.bb[0], y:v.bb[1], width:v.bb[2]-v.bb[0], height:v.bb[3]-v.bb[1]}, loc);
+  });
+  C.forEach(c => { if(c.c==="GC" && c.path) el("path", {class:"lg", d:c.path}, loc); });
+  locVP = el("rect", {class:"vp"}, loc);
+}
+loc.addEventListener("click", ev => {
+  const r = loc.getBoundingClientRect(), x = (ev.clientX - r.left)/r.width*W, y = (ev.clientY - r.top)/r.height*H, dp = drawerPx()/scale();
+  flyTo({x: x - (vb.w - dp)/2, y: y - vb.h/2, w: vb.w, h: vb.h}, 300);
+});
+let orientRaf = 0;
+function orientSoon(){ if(!orientRaf) orientRaf = requestAnimationFrame(() => { orientRaf = 0; orient(); }); }
+function orient(){
+  const r = svg.getBoundingClientRect(), k = scale(); if(!r.width || !k || !locVP) return;
+  const dpx = drawerPx(), dp = dpx/k, visW = vb.w - dp;
+  // the visible part of the map, outlined on the locator (never smaller than a few pixels)
+  const minU = 6 * W / Math.max(1, loc.clientWidth), w = Math.max(minU, visW), h = Math.max(minU, vb.h);
+  Object.entries({x: vb.x + visW/2 - w/2, y: vb.y + vb.h/2 - h/2, width: w, height: h}).forEach(([a, v]) => locVP.setAttribute(a, v.toFixed(0)));
+  const whole = visW >= W*.9 && vb.h >= H*.9;
+  loc.classList.toggle("whole", whole);
+  // which commune sits under the centre of the visible map
+  const cx = r.left + (r.width - dpx)/2, cy = r.top + r.height/2;
+  let v = null, near = false;
+  for(const e of document.elementsFromPoint(cx, cy)){
+    if(e.ownerSVGElement !== svg) continue;
+    if(e.dataset.id && CL[e.dataset.id]){ v = CL[e.dataset.id].vil; break; }
+    if(e.dataset.v && VIL[e.dataset.v]){ v = VIL[e.dataset.v]; break; }
+  }
+  if(!v){ // between communes: name the nearest one
+    const [sx, sy] = clientToSvg(cx, cy); let best = Infinity;
+    V.forEach(u => { if(!u.bb) return; const dx = Math.max(u.bb[0]-sx, 0, sx-u.bb[2]), dy = Math.max(u.bb[1]-sy, 0, sy-u.bb[3]), d = dx*dx + dy*dy; if(d < best){ best = d; v = u; } });
+    near = true;
+  }
+  const here = $("here"), wide = visW >= W*.55 && vb.h >= H*.55;
+  here.hidden = !v || wide;
+  if(v && !wide){
+    const cote = COTES.find(q => q.id===v.cote);
+    here.innerHTML = `${cote ? `<span class="c">${esc(cote.n)} ›</span> ` : ""}${near ? "near " : ""}${esc(v.n)}`;
+    here.dataset.v = v.id; here.title = `You're looking at ${v.n} — click for the commune`;
+    here.style.left = Math.round((r.width - dpx)/2) + "px";
+  }
+  const id = v && !wide ? v.id : null;
+  if(id !== lastHere){
+    lastHere = id;
+    loc.querySelectorAll(".lv").forEach(p => p.classList.toggle("here", p.dataset.v===id));
+    svg.querySelectorAll(".base").forEach(p => p.classList.toggle("here", p.dataset.v===id));
+  }
+}
+$("here").onclick = () => { const id = $("here").dataset.v; if(id) selectVillage(id, true); };
 
 /* ---------- hash (shareable state) ---------- */
 let lastHash = location.hash;
@@ -1194,6 +1306,7 @@ addEventListener("hashchange", applyHash);
 // keyboard: Escape clears the selection, + / − zoom (not while typing)
 document.addEventListener("keydown", e => {
   if(e.target.closest && e.target.closest("input,select,textarea")) return;
+  if(e.key==="[" || e.key==="]"){ if(st.mode==="geo") rotateBy(e.key==="]" ? 15 : -15); return; }
   if(e.key==="Escape" && (st.sel||st.vsel||st.prod||st.overview)){ st.sel=null; st.vsel=null; st.overview=false; if(st.prod) setProducer(null); else { renderSide(); paint(); syncHash(); syncCommunes(); } }
   else if(e.key==="+"||e.key==="=") $("zIn").click();
   else if(e.key==="-"||e.key==="_") $("zOut").click();
@@ -1209,7 +1322,7 @@ function renderPeek(){
   if(html){ pk.innerHTML = `<div>${html}</div><button type="button" id="peekGo">Details ↓</button>`; $("peekGo").onclick = () => side.scrollIntoView({behavior:"smooth", block:"start"}); }
 }
 const after = readHash();
-build();
+build(); syncMode();
 renderSide(); syncCommunes();
 requestAnimationFrame(() => { setVB(vb); focusDefault(); if(after) after(); });
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { readTokens(); build(); renderSide(); setVB(vb); });
