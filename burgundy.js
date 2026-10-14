@@ -699,6 +699,7 @@ function renderSide(){
         <div class="fact"><div class="l">Owners</div><div class="v">${c.mono?"1":(c.p||[]).length||"—"}</div></div>
       </div>
       <p>${esc(c.d||"")}</p>
+      ${st.mode==="geo" && GEO && (GEO.meta.approx||[]).includes(c.id) ? `<p class="note">INAO maps Charmes and Mazoyères as one area (Mazoyères may be sold as Charmes); the line between them here is an estimate.</p>` : ""}
       ${detailHtml(c)}
       ${c.inner?`<p class="note">An enclave inside <button class="plink" data-c="${c.in}">${esc(CL[c.in].n)}</button>.</p>`:""}
       ${C.some(x=>x.in===c.id)?`<p class="note">Contains ${C.filter(x=>x.in===c.id).map(x=>`<button class="plink" data-c="${x.id}">${esc(x.n)}</button>`).join(", ")}.</p>`:""}
