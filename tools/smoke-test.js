@@ -115,7 +115,7 @@ const overflow=async(p,where)=>{ const o=await p.evaluate(()=>document.documentE
   if(await p.$('#fColor option[value=vintage]')){
     await p.selectOption('#fColor','vintage'); await p.waitForTimeout(200);
     const y0 = await p.textContent('#legend .vyear b'); if(!y0) note(tag,'vintage legend has no year');
-    else { await p.click('#legend [data-vstep="-1"]'); await p.waitForTimeout(200); if((await p.textContent('#legend .vyear b'))===y0) note(tag,'vintage step did not change the year'); }
+    else { await p.evaluate(()=>document.querySelector('#legend [data-vstep="-1"]').click()); await p.waitForTimeout(200); if((await p.textContent('#legend .vyear b'))===y0) note(tag,'vintage step did not change the year'); }
     await p.click('.xtabs [data-x=vint]'); await p.waitForTimeout(150);
     const rows = await p.$$('#vintages tr[data-vy]'); if(rows.length < 20) note(tag,'vintage table has only '+rows.length+' rows');
     else { await rows[3].click(); await p.waitForTimeout(300); }

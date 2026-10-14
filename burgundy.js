@@ -148,12 +148,15 @@ const VT = window.BURG_VINTAGES || null;
 const VCATS = ["nuits_red", "beaune_red", "beaune_white"], VCAT_EN = {nuits_red:"Côte de Nuits red", beaune_red:"Côte de Beaune red", beaune_white:"Côte de Beaune white"};
 // which rating applies to a climat: its Côte and colour (the few Côte de Nuits whites take the Côte de Beaune white rating)
 const catOf = c => (c.col||"R")==="W" ? "beaune_white" : (c.vil && c.vil.cote==="nuits") ? "nuits_red" : "beaune_red";
+// notes come in English; burgundy-vintages.js carries Danish and French keyed by the English text
+const vx = s => (s && VT && VT.i18n && (VT.i18n[window.I18N ? window.I18N.lang : "en"] || {})[s]) || s;
 const vRating = (cat, y) => VT && VT.years[y] && VT.years[y][cat]; // [score, estimate, note, drink, sources]
 const vYears = cat => VT ? Object.keys(VT.years).map(Number).filter(y => vRating(cat, y)).sort((a, b) => a - b) : [];
 const vEvents = (vid, y) => VT ? VT.events.filter(e => (!vid || e.v.includes(vid)) && (y == null || +e.d.slice(0, 4) === +y)) : [];
 const EVT = {frost:["#6FA8DC","Frost"], hail:["#8E7CC3","Hail"], heat:["#E07A3F","Heat"], drought:["#C9A227","Drought"], rot:["#6A994E","Rot"], mildew:["#6A994E","Mildew"], storm:["#8E7CC3","Storm"], rain:["#3F7CB6","Rain"]};
 const evtKind = t => EVT[String(t).toLowerCase().replace(/[^a-z].*$/, "")] ? String(t).toLowerCase().replace(/[^a-z].*$/, "") : "storm";
-const scoreFill = s => mix(TOK.seq0, TOK.seq1, Math.max(0, Math.min(1, (s - 70) / 30)));
+const VLO = 84; // most Côte d'Or vintages since 1985 rate 85–98, so the colour ramp spans that band
+const scoreFill = s => mix(TOK.seq0, TOK.seq1, Math.max(0, Math.min(1, (s - VLO) / (100 - VLO))));
 { const ys = VCATS.flatMap(vYears); st.vy = ys.length ? Math.max(...ys) : null; }
 // measured terrain per climat (burgundy-dem.js): [alt low, alt high, mean alt, slope %, aspect °, consistency %, samples]
 const DEM = (window.BURG_DEM && window.BURG_DEM.c) || {};
@@ -643,7 +646,10 @@ function fitBox(x0,y0,x1,y1, pad=.08){
 }
 // after a click on the map: if the vineyard ended up under the drawer, slide the map left
 function ensureVisible(c){
-  const dp = drawerPx(); if(!dp || !c.bb) return;
+  if(!c.bb) return;
+  // not on screen at all (picked from a list or a link): frame it properly instead
+  if(c.bb[2] < vb.x || c.bb[0] > vb.x + vb.w || c.bb[3] < vb.y || c.bb[1] > vb.y + vb.h) return focusClimat(c);
+  const dp = drawerPx(); if(!dp) return;
   const k = scale(), right = (c.bb[2] - vb.x) * k, limit = svg.clientWidth - dp - 20;
   if(right > limit) flyTo({...vb, x: vb.x + (right - limit) / k + Math.min(80, (c.bb[2]-c.bb[0])*k/2) / k}, 300);
 }
@@ -934,6 +940,7 @@ function renderSide(){
   }
   side.querySelectorAll("[data-c]").forEach(b => b.onclick = ev => { ev.stopPropagation(); select(b.dataset.c, true); });
   side.querySelectorAll("[data-vy]").forEach(b => b.onclick = ev => { ev.stopPropagation(); showVintage(b.dataset.vy); });
+  side.querySelectorAll("[data-vstep]").forEach(b => b.onclick = ev => { ev.stopPropagation(); stepVintage(+b.dataset.vstep); });
   side.querySelectorAll("[data-p]").forEach(b => b.onclick = () => setProducer(b.dataset.p, true));
   side.querySelectorAll("[data-v]").forEach(b => b.onclick = () => selectVillage(b.dataset.v, true));
   const cl = $("sideClose"); if(cl) cl.onclick = () => { st.sel=null; st.vsel=null; st.overview=false; if(st.prod) setProducer(null); else { renderSide(); paint(); syncHash(); syncCommunes(); } };
@@ -968,7 +975,7 @@ function renderLegend(){
       const yrs = [...new Set(VCATS.flatMap(vYears))].sort((a, b) => a - b), i = yrs.indexOf(st.vy);
       const kinds = new Set(vEvents(null, st.vy).map(e => evtKind(e.t)));
       h = `<div class="lt vyear"><button type="button" data-vstep="-1" ${i<=0?"disabled":""} aria-label="${t("Earlier vintage")}">◀</button><b>${st.vy}</b><button type="button" data-vstep="1" ${i>=yrs.length-1?"disabled":""} aria-label="${t("Later vintage")}">▶</button></div>`
-        + `<div class="lt">${t("Vintage rating, by Côte and colour")}</div>` + ramp(scoreFill(70), scoreFill(100), "≤70", "100")
+        + `<div class="lt">${t("Vintage rating, by Côte and colour")}</div>` + ramp(scoreFill(VLO), scoreFill(100), "≤"+VLO, "100")
         + (kinds.has("frost") ? `<div class="row"><span class="sw" style="background:repeating-linear-gradient(45deg,${EVT.frost[0]} 0 2px,transparent 2px 5px)"></span>${t("Frost hit this commune")}</div>` : "")
         + (kinds.has("hail") ? `<div class="row"><span class="sw" style="background:radial-gradient(circle,${EVT.hail[0]} 35%,transparent 40%);background-size:5px 5px"></span>${t("Hail hit this commune")}</div>` : "")
         + sw(TOK.none, t("not rated"));
@@ -1068,7 +1075,7 @@ function renderDomains(){
 function renderVintages(){
   const box = $("vintages"); if(!box || !VT) return;
   const yrs = Object.keys(VT.years).map(Number).filter(y => VCATS.some(k => vRating(k, y))).sort((a, b) => b - a);
-  const cell = (k, y) => { const v = vRating(k, y); return v ? `<td class="vsc" style="background:${scoreFill(v[0])};color:${inkOn(scoreFill(v[0]))}" title="${esc(v[2] || "")}${v[1] ? " (" + t("estimate") + ")" : ""}">${v[0]}${v[1] ? "*" : ""}</td>` : `<td class="vsc">—</td>`; };
+  const cell = (k, y) => { const v = vRating(k, y); return v ? `<td class="vsc" style="background:${scoreFill(v[0])};color:${inkOn(scoreFill(v[0]))}" title="${esc(vx(v[2] || ""))}${v[1] ? " (" + t("estimate") + ")" : ""}">${v[0]}${v[1] ? "*" : ""}</td>` : `<td class="vsc">—</td>`; };
   const an = y => { const w = VT.years[y].wx && VT.years[y].wx.dijon; if(!w || w.anom == null) return `<td>—</td>`;
     const a = Math.max(-2, Math.min(2, w.anom)), col = a >= 0 ? mix(TOK.card, "#D9534F", a/2) : mix(TOK.card, "#3F7CB6", -a/2);
     return `<td class="n" style="background:${col}">${w.anom > 0 ? "+" : ""}${w.anom}</td>`; };
@@ -1077,7 +1084,7 @@ function renderVintages(){
       const kinds = [...new Set(evs.map(e => evtKind(e.t)))];
       const note = (vRating("nuits_red", y) || vRating("beaune_red", y) || vRating("beaune_white", y) || [])[2] || "";
       return `<tr data-vy="${y}" class="${st.color==="vintage" && st.vy===y ? "sel" : ""}"><td><b>${y}</b></td>${VCATS.map(k => cell(k, y)).join("")}<td>${Y.harvest ? Y.harvest.slice(5).split("-").reverse().join("/") : "—"}</td>${an(y)}<td class="n">${w.rain ?? "—"}</td>
-        <td>${kinds.map(k => `<i class="evdot" style="background:${EVT[k][0]}" title="${esc(evs.filter(e => evtKind(e.t)===k).map(e => `${e.d}: ${e.a.join(", ")}${e.s ? " — " + e.s : ""}`).join("\n"))}"></i>${t(EVT[k][1])}`).join(" ")}</td><td class="vnote">${esc(note)}</td></tr>`; }).join("")
+        <td>${kinds.map(k => `<i class="evdot" style="background:${EVT[k][0]}" title="${esc(evs.filter(e => evtKind(e.t)===k).map(e => `${e.d}: ${e.a.join(", ")}${e.s ? " — " + vx(e.s) : ""}`).join("\n"))}"></i>${t(EVT[k][1])}`).join(" ")}</td><td class="vnote">${esc(vx(note))}</td></tr>`; }).join("")
     + `</tbody></table><p class="note">${t("Ratings are AllWine's consensus of published vintage charts on a 100-point scale (* = estimate, fewer sources); hover a score for its note. Weather: Météo-France, Dijon-Longvic.")}</p>`;
   box.querySelectorAll("tr[data-vy]").forEach(tr => tr.onclick = () => { showVintage(tr.dataset.vy); $("mapcard").scrollIntoView({behavior:"smooth", block:"nearest"}); });
 }
@@ -1091,7 +1098,7 @@ function vintageChart(cat, vid){
   ys.forEach((y, i) => {
     const [sc, est, note] = vRating(cat, y), hh = Math.max(3, (sc - 60) / 40 * (H2 - top - 12)), x = i * bw;
     const evs = vid ? vEvents(vid, y) : [];
-    const tip = `${y}: ${sc}${est ? " (" + t("estimate") + ")" : ""}${note ? " — " + note : ""}${evs.length ? " · " + evs.map(e => t(EVT[evtKind(e.t)][1])).join(", ") : ""}`;
+    const tip = `${y}: ${sc}${est ? " (" + t("estimate") + ")" : ""}${note ? " — " + vx(note) : ""}${evs.length ? " · " + evs.map(e => t(EVT[evtKind(e.t)][1])).join(", ") : ""}`;
     g += `<g class="vbar${y===st.vy && st.color==="vintage" ? " on" : ""}" data-vy="${y}"><title>${esc(tip)}</title><rect x="${(x+.5).toFixed(1)}" y="${(H2-12-hh).toFixed(1)}" width="${Math.max(1, bw-1).toFixed(1)}" height="${hh.toFixed(1)}" fill="${scoreFill(sc)}"${est ? ' fill-opacity=".55"' : ""}/>`
       + [...new Set(evs.map(e => evtKind(e.t)))].slice(0, 2).map((k, j) => `<circle cx="${(x + bw/2).toFixed(1)}" cy="${(H2-15-hh-4-j*7).toFixed(1)}" r="2.6" fill="${EVT[k][0]}"/>`).join("")
       + `<rect x="${x.toFixed(1)}" y="0" width="${bw.toFixed(1)}" height="${H2}" fill="transparent"/></g>`;
@@ -1107,17 +1114,17 @@ function vintageYearHtml(cat, vid){
   if(st.color!=="vintage" || !VT) return "";
   const v = vRating(cat, st.vy), Y = VT.years[st.vy] || {}, w = (Y.wx || {});
   const evs = vEvents(vid, st.vy);
-  return `<div class="vyearbox"><b>${st.vy}</b>${v ? ` · <span class="vs" style="background:${scoreFill(v[0])};color:${inkOn(scoreFill(v[0]))}">${v[0]}</span>${v[1] ? ` <span class="note">(${t("estimate")})</span>` : ""}` : ""}
-    ${v && v[2] ? `<p>${esc(v[2])}${v[3] ? ` <span class="note">· ${esc(v[3])}</span>` : ""}</p>` : ""}
-    ${evs.map(e => `<p class="note"><i class="evdot" style="background:${EVT[evtKind(e.t)][0]}"></i><b>${t(EVT[evtKind(e.t)][1])}</b> ${esc(e.d)}${e.s ? " — " + esc(e.s) : ""}</p>`).join("")}
+  return `<div class="vyearbox"><span class="vyear"><button type="button" data-vstep="-1" aria-label="${t("Earlier vintage")}">◀</button><b>${st.vy}</b><button type="button" data-vstep="1" aria-label="${t("Later vintage")}">▶</button></span>${v ? ` · <span class="vs" style="background:${scoreFill(v[0])};color:${inkOn(scoreFill(v[0]))}">${v[0]}</span>${v[1] ? ` <span class="note">(${t("estimate")})</span>` : ""}` : ""}
+    ${v && v[2] ? `<p>${esc(vx(v[2]))}${v[3] ? ` <span class="note">· ${esc(vx(v[3]))}</span>` : ""}</p>` : ""}
+    ${evs.map(e => `<p class="note"><i class="evdot" style="background:${EVT[evtKind(e.t)][0]}"></i><b>${t(EVT[evtKind(e.t)][1])}</b> ${esc(e.d)}${e.s ? " — " + esc(vx(e.s)) : ""}</p>`).join("")}
     ${weatherLine(st.vy)}</div>`;
 }
 function weatherLine(y){
   const Y = VT && VT.years[y]; if(!Y) return "";
   const w = Y.wx && (Y.wx.dijon || Object.values(Y.wx)[0]); const bits = [];
   if(Y.harvest) bits.push(t("Harvest from {0}", Y.harvest.slice(5).split("-").reverse().join("/")));
-  if(w){ if(w.anom != null) bits.push(t("Apr–Sep {0} °C vs normal", (w.anom > 0 ? "+" : "") + w.anom)); if(w.h35) bits.push(t("{0} days ≥ 35 °C", w.h35)); if(w.rain != null) bits.push(t("{0} mm rain Apr–Sep", w.rain)); if(w.frost) bits.push(t("{0} frost nights after 1 April", w.frost)); }
-  if(Y.crop) bits.push(esc(Y.crop));
+  if(w){ if(w.anom != null) bits.push(t("Apr–Sep {0} °C vs normal", (w.anom > 0 ? "+" : "") + w.anom)); if(w.h35) bits.push(t(w.h35===1 ? "{0} day ≥ 35 °C" : "{0} days ≥ 35 °C", w.h35)); if(w.rain != null) bits.push(t("{0} mm rain Apr–Sep", w.rain)); if(w.frost) bits.push(t(w.frost===1 ? "{0} frost night after 1 April" : "{0} frost nights after 1 April", w.frost)); }
+  if(Y.crop) bits.push(esc(vx(Y.crop)));
   return bits.length ? `<p class="note">${bits.join(" · ")}</p>` : "";
 }
 function stepVintage(d){
