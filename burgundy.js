@@ -268,15 +268,19 @@ function shadeUpdate(){
 const HIST = window.BURG_HISTORY || null;
 const HSRC = {lavalle1855:"Lavalle 1855", comite1860:"Comité de Beaune 1860", rodier1920:"Rodier 1920"};
 st.hsrc = "lavalle1855";
-// rank → 0 (top) … 3; the sources word their classes differently
-const hRank = r => { const s = String(r || "").toLowerCase(); return /hors|tête|tete/.test(s) ? 0 : /^1|premi/.test(s) ? 1 : /^2|deux/.test(s) ? 2 : /^3|trois/.test(s) ? 3 : null; };
-const H_EN = ["Tête de cuvée (top class)", "First class", "Second class", "Third class"];
+// each source has its own ladder (the 1860 committee had no tête de cuvée: its 1ère classe is the top), rank → 0 (top) … 3
+const HLADDER = {
+  lavalle1855: [[/hors|tête|tete/, "Tête de cuvée / hors ligne"], [/^1/, "1ère cuvée"], [/^2/, "2e cuvée"], [/^3|^4/, "3e–4e cuvée"]],
+  comite1860: [[/^1/, "1ère classe"], [/^2/, "2e classe"], [/^3/, "3e classe"]],
+  rodier1920: [[/tête|tete/, "Tête de cuvée"], [/premi/, "Première cuvée"], [/deux/, "Deuxième cuvée"], [/trois/, "Troisième cuvée"]],
+};
+const hRank = (src, r) => { const s0 = String(r || "").toLowerCase(), i = (HLADDER[src] || []).findIndex(([re]) => re.test(s0)); return i < 0 ? null : i; };
 const hFill = k => k == null ? TOK.none : mix(TOK.seq1, TOK.seq0, [0, .32, .6, .82][k]);
 function histHtml(c){
   if(!HIST) return "";
   const rows = Object.keys(HSRC).map(k => [k, HIST[k] && HIST[k][c.id]]).filter(([, v]) => v);
   if(!rows.length) return "";
-  return `<h3>${t("Historic rankings")}</h3><table class="own">${rows.map(([k, v]) => `<tr><td>${esc(HSRC[k])}</td><td><span class="cls" style="background:${hFill(hRank(v.rank))}"></span>${esc(v.rank)}${v.as && norm(v.as) !== norm(c.n) ? ` <span class="note">(« ${esc(v.as)} »)</span>` : ""}</td></tr>`).join("")}</table>`;
+  return `<h3>${t("Historic rankings")}</h3><table class="own">${rows.map(([k, v]) => `<tr><td>${esc(HSRC[k])}</td><td><span class="cls" style="background:${hFill(hRank(k, v.rank))}"></span>${esc(v.rank)}${v.as && norm(v.as) !== norm(c.n) ? ` <span class="note">(« ${esc(v.as)} »)</span>` : ""}</td></tr>`).join("")}</table>`;
 }
 
 /* ---------- geology (burgundy-geol.js, BRGM 1:50 000): formations, their colours, and what lies under each climat ---------- */
@@ -316,7 +320,7 @@ function fillOf(c){
   switch(st.color){
     case "vintage": { const v = vRating(catOf(c), st.vy); return v ? scoreFill(v[0]) : TOK.none; }
     case "geology": { const u = GEOL && GEOL.under[c.id]; return u ? geolColor(u[0][0]) : TOK.none; }
-    case "history": { const v = HIST && HIST[st.hsrc] && HIST[st.hsrc][c.id]; return hFill(v ? hRank(v.rank) : null); }
+    case "history": { const v = HIST && HIST[st.hsrc] && HIST[st.hsrc][c.id]; return hFill(v ? hRank(st.hsrc, v.rank) : null); }
     case "alt": { const d = DEM[c.id]; return d ? mix(TOK.seq0, TOK.seq1, Math.max(0, Math.min(1, (d[2]-ALT0)/(ALT1-ALT0)))) : TOK.none; }
     case "slope": { const d = DEM[c.id]; return d ? mix(TOK.seq0, TOK.seq1, Math.min(1, d[3]/SLOPE1)) : TOK.none; }
     case "commune": return communeColor(c);
@@ -1190,7 +1194,8 @@ function renderLegend(){
       break; }
     case "history":
       h = `<div class="lt">${t("Historic ranking")}</div><div class="hsrc">${Object.entries(HSRC).filter(([k]) => HIST && HIST[k]).map(([k, n]) => `<button type="button" data-hsrc="${k}" class="${st.hsrc===k ? "on" : ""}">${esc(n)}</button>`).join("")}</div>`
-        + H_EN.map((n, i) => sw(hFill(i), t(n))).join("") + sw(TOK.none, t("not ranked in this source"));
+        + HLADDER[st.hsrc].map(([, n], i) => sw(hFill(i), esc(n))).join("") + sw(TOK.none, t("not ranked in this source"))
+        + (st.hsrc==="rodier1920" ? `<div class="note">${t("Rodier via monocepage.com's tables")}</div>` : st.hsrc==="comite1860" ? `<div class="note">${t("As recorded by Danguy & Aubertin, 1892")}</div>` : "");
       break;
     case "geology": {
       const tot = {}; C.filter(c => c.on && GEOL && GEOL.under[c.id]).forEach(c => GEOL.under[c.id].forEach(([code, p]) => tot[code] = (tot[code]||0) + p * c.ha));
