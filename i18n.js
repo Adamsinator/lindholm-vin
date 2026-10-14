@@ -136,6 +136,11 @@ const DA = {
   "Apr–Sep mean temperature at Dijon-Longvic vs 1991–2020": "Middeltemperatur apr–sep i Dijon-Longvic ift. 1991–2020",
   "Ratings are AllWine's consensus of published vintage charts on a 100-point scale (* = estimate, fewer sources); hover a score for its note. Weather: Météo-France, Dijon-Longvic.": "Vurderingerne er AllWines konsensus af offentliggjorte årgangskort på en 100-pointskala (* = skøn, færre kilder); hold musen over et tal for noten. Vejr: Météo-France, Dijon-Longvic.",
   "Year by year for the three Côte d'Or styles · click a year to colour the map by it and see which communes frost or hail hit": "År for år for Côte d'Ors tre stilarter · klik på et år for at farve kortet efter det og se, hvilke kommuner frost eller hagl ramte",
+  "Relief shading (IGN)": "Relief-skygge (IGN)", "Slope profile: click two points": "Højdeprofil: klik på to punkter", "Slope profile": "Højdeprofil",
+  "Click two points on the map to cut a profile across the slope": "Klik på to punkter på kortet for at lægge et snit gennem skråningen", "Measuring the slope…": "Måler skråningen…",
+  "Couldn't reach IGN's elevation service.": "Kunne ikke nå IGN's højdetjeneste.", "{0} m of relief, {1} % average gradient": "{0} m højdeforskel, {1} % gennemsnitlig hældning",
+  "outside the vineyards": "uden for markerne", "Now the second point": "Nu det andet punkt", "By geology": "Efter geologi", "Geology": "Geologi", "Geology (BRGM 1:50 000)": "Geologi (BRGM 1:50 000)",
+  "Share of the climat's area on each formation of BRGM's 1:50 000 geological map; superficial deposits (scree, colluvium) are mapped over the bedrock where they are thick.": "Andel af climatets areal på hver formation på BRGM's geologiske kort 1:50 000; løse aflejringer (skred, kolluvium) er kortlagt oven på grundfjeldet, hvor de er tykke.",
   "About the data.": "Om data.", "Language": "Sprog",
 };
 
@@ -253,6 +258,11 @@ const FR = {
   "Apr–Sep mean temperature at Dijon-Longvic vs 1991–2020": "Température moyenne avr.–sept. à Dijon-Longvic par rapport à 1991–2020",
   "Ratings are AllWine's consensus of published vintage charts on a 100-point scale (* = estimate, fewer sources); hover a score for its note. Weather: Météo-France, Dijon-Longvic.": "Notes : consensus AllWine des guides de millésimes publiés, sur 100 (* = estimation, moins de sources) ; survolez une note pour le commentaire. Météo : Météo-France, Dijon-Longvic.",
   "Year by year for the three Côte d'Or styles · click a year to colour the map by it and see which communes frost or hail hit": "Année par année pour les trois styles de la Côte-d'Or · cliquez sur une année pour colorer la carte et voir les communes touchées par le gel ou la grêle",
+  "Relief shading (IGN)": "Estompage du relief (IGN)", "Slope profile: click two points": "Profil de pente : cliquez deux points", "Slope profile": "Profil de pente",
+  "Click two points on the map to cut a profile across the slope": "Cliquez deux points sur la carte pour tracer une coupe du coteau", "Measuring the slope…": "Mesure de la pente…",
+  "Couldn't reach IGN's elevation service.": "Service d'altimétrie de l'IGN injoignable.", "{0} m of relief, {1} % average gradient": "{0} m de dénivelé, pente moyenne {1} %",
+  "outside the vineyards": "hors des vignes", "Now the second point": "Maintenant le second point", "By geology": "Par géologie", "Geology": "Géologie", "Geology (BRGM 1:50 000)": "Géologie (BRGM 1/50 000)",
+  "Share of the climat's area on each formation of BRGM's 1:50 000 geological map; superficial deposits (scree, colluvium) are mapped over the bedrock where they are thick.": "Part de la surface du climat sur chaque formation de la carte géologique BRGM au 1/50 000 ; les formations superficielles (éboulis, colluvions) recouvrent le substratum là où elles sont épaisses.",
   "About the data.": "À propos des données.", "Language": "Langue",
 };
 const DICT = {da: DA, fr: FR};

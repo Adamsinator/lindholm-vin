@@ -158,12 +158,147 @@ const evtKind = t => EVT[String(t).toLowerCase().replace(/[^a-z].*$/, "")] ? Str
 const VLO = 84; // most Côte d'Or vintages since 1985 rate 85–98, so the colour ramp spans that band
 const scoreFill = s => mix(TOK.seq0, TOK.seq1, Math.max(0, Math.min(1, (s - VLO) / (100 - VLO))));
 { const ys = VCATS.flatMap(vYears); st.vy = ys.length ? Math.max(...ys) : null; }
+/* ---------- slope profile: click two points, get IGN's elevation cut across them, coloured by the climat underfoot ---------- */
+const PROF = {on:false, a:null, b:null, data:null, g:null}; // a, b in metres (survive rotation and rebuilds)
+let climatIndex = null; // metres bboxes of every surveyed outline, for point-in-climat lookups
+function climatAtM([x, y]){
+  if(!climatIndex) climatIndex = C.filter(c => GEO.climats[c.id]).map(c => { const mp = GEO.climats[c.id], xs = mp.flatMap(p => p[0].map(q => q[0])), ys = mp.flatMap(p => p[0].map(q => q[1]));
+    return [c, mp, Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)]; });
+  const hits = climatIndex.filter(([, mp, x0, y0, x1, y1]) => x >= x0 && x <= x1 && y >= y0 && y <= y1 && mp.some(p => inPoly(x, y, p[0]) && !p.slice(1).some(h => inPoly(x, y, h)))).map(e => e[0]);
+  const best = hits.sort((a, b) => (b.inner ? 1 : 0) - (a.inner ? 1 : 0) || CORD[a.c] - CORD[b.c])[0];
+  if(best) return best;
+  // not in a named climat: village AOC land of a commune?
+  const vid = Object.keys(GEO.villages || {}).find(id => GEO.villages[id].some(p => inPoly(x, y, p[0]) && !p.slice(1).some(h => inPoly(x, y, h))));
+  return vid && VIL[vid] ? {n: VIL[vid].n, c:"V", vaoc:vid} : null;
+}
+function profDraw(){
+  if(!PROF.g) return; PROF.g.innerHTML = "";
+  if(!PROF.a || !FWD) return;
+  const A = FWD(PROF.a), B = PROF.b ? FWD(PROF.b) : null;
+  if(B) el("line", {x1:A[0], y1:A[1], x2:B[0], y2:B[1], class:"profline"}, PROF.g);
+  [A, B].filter(Boolean).forEach((q, i) => { el("circle", {cx:q[0], cy:q[1], r:5, "data-r":5, class:"profpt"}, PROF.g); });
+  PROF.dot = el("circle", {cx:-9999, cy:-9999, r:5, "data-r":5, class:"profdot"}, PROF.g);
+  if(svg.querySelectorAll) svg.querySelectorAll(".profpt,.profdot").forEach(e => e.setAttribute("r", (5/scale()).toFixed(2)));
+}
+function profToggle(on){
+  PROF.on = on ?? !PROF.on; $("profBtn").classList.toggle("on", PROF.on); svg.classList.toggle("profiling", PROF.on);
+  if(!PROF.on){ PROF.a = PROF.b = PROF.data = null; profDraw(); $("profile").hidden = true; }
+  else { $("profile").hidden = false; $("profile").innerHTML = `<div class="ph">${t("Click two points on the map to cut a profile across the slope")}</div><button class="close" id="profClose" aria-label="${t("Close")}">×</button>`; $("profClose").onclick = () => profToggle(false); }
+}
+async function profFetch(){
+  const [LON0, LAT0] = GEO.meta.origin, R = 6371000, d2r = Math.PI/180, KX = d2r*R*Math.cos(LAT0*d2r), KY = d2r*R;
+  const ll = ([x, y]) => [LON0 + x/KX, LAT0 + y/KY], [la, lb] = [ll(PROF.a), ll(PROF.b)];
+  const len = Math.hypot(PROF.b[0]-PROF.a[0], PROF.b[1]-PROF.a[1]), n = Math.max(20, Math.min(200, Math.round(len/10)));
+  $("profile").innerHTML = `<div class="ph">${t("Measuring the slope…")}</div>`;
+  try{
+    const url = `https://data.geopf.fr/altimetrie/1.0/calcul/alti/rest/elevationLine.json?lon=${la[0].toFixed(6)}|${lb[0].toFixed(6)}&lat=${la[1].toFixed(6)}|${lb[1].toFixed(6)}&resource=ign_rge_alti_wld&sampling=${n}&profile_mode=simple`;
+    const j = await (await fetch(url)).json();
+    const pts = (j.elevations || []).map((e, i, arr) => { const f = arr.length > 1 ? i/(arr.length-1) : 0, m = [PROF.a[0] + (PROF.b[0]-PROF.a[0])*f, PROF.a[1] + (PROF.b[1]-PROF.a[1])*f];
+      return {d: len*f, z: e.z, m, c: climatAtM(m)}; }).filter(p => p.z > -100);
+    PROF.data = pts; profChart();
+  }catch(e){ $("profile").innerHTML = `<div class="ph">${t("Couldn't reach IGN's elevation service.")}</div><button class="close" id="profClose">×</button>`; $("profClose").onclick = () => profToggle(false); }
+}
+function profChart(){
+  const P = PROF.data, box = $("profile"); if(!P || P.length < 2) return;
+  const Wc = 1000, Hc = 150, padL = 34, padB = 16, top = 22;
+  const zs = P.map(p => p.z), z0 = Math.floor(Math.min(...zs)/10)*10, z1 = Math.ceil(Math.max(...zs)/10)*10 + 10, L = P[P.length-1].d;
+  const X = d => padL + d/L*(Wc-padL-6), Y = z => top + (1 - (z-z0)/(z1-z0))*(Hc-top-padB);
+  const col = c => !c ? TOK.none : c.vaoc ? TOK.base : {GC:TOK.gc, "1er":TOK.pc, V:TOK.vc}[c.c];
+  let g = "";
+  for(let i = 0; i < P.length-1; i++) g += `<path d="M${X(P[i].d).toFixed(1)} ${Hc-padB}L${X(P[i].d).toFixed(1)} ${Y(P[i].z).toFixed(1)}L${X(P[i+1].d).toFixed(1)} ${Y(P[i+1].z).toFixed(1)}L${X(P[i+1].d).toFixed(1)} ${Hc-padB}Z" fill="${col(P[i].c)}"/>`;
+  g += `<path d="${P.map((p, i) => (i ? "L" : "M") + X(p.d).toFixed(1) + " " + Y(p.z).toFixed(1)).join("")}" class="pline"/>`;
+  // names over runs of the same climat that are wide enough to label
+  let run = 0;
+  for(let i = 1; i <= P.length; i++){
+    if(i===P.length || P[i].c !== P[run].c){ const c = P[run].c, w = X(P[i-1].d) - X(P[run].d);
+      if(c && !c.vaoc && w > 46){ const mid = Math.floor((run+i-1)/2); g += `<text x="${X(P[mid].d).toFixed(1)}" y="${(Y(Math.max(...P.slice(run, i).map(p => p.z))) - 5).toFixed(1)}" class="plab" text-anchor="middle">${esc(c.n)}</text>`; }
+      run = i; }
+  }
+  for(let z = z0; z <= z1; z += (z1-z0 > 120 ? 50 : 20)) g += `<text x="${padL-4}" y="${Y(z)+3}" class="pax" text-anchor="end">${z}</text><line x1="${padL}" x2="${Wc-6}" y1="${Y(z)}" y2="${Y(z)}" class="pgrid"/>`;
+  const rise = Math.max(...zs) - Math.min(...zs), avg = (100*Math.abs(P[P.length-1].z - P[0].z)/L).toFixed(1);
+  box.innerHTML = `<div class="phead"><b>${t("Slope profile")}</b> · ${(L/1000).toFixed(2)} km · ${Math.round(Math.min(...zs))}–${Math.round(Math.max(...zs))} m · ${t("{0} m of relief, {1} % average gradient", Math.round(rise), avg)}<button class="close" id="profClose" aria-label="${t("Close")}">×</button></div>
+    <svg viewBox="0 0 ${Wc} ${Hc}" preserveAspectRatio="none" class="pchart">${g}<line class="pcur" x1="-9" x2="-9" y1="${top}" y2="${Hc-padB}"/></svg><div class="ptip" id="ptip"></div>`;
+  $("profClose").onclick = () => profToggle(false);
+  const sv = box.querySelector(".pchart"), cur = sv.querySelector(".pcur");
+  sv.addEventListener("pointermove", ev => {
+    const r = sv.getBoundingClientRect(), d = ((ev.clientX - r.left)/r.width*Wc - padL)/(Wc-padL-6)*L;
+    const p = P.reduce((a, b) => Math.abs(b.d - d) < Math.abs(a.d - d) ? b : a);
+    cur.setAttribute("x1", X(p.d)); cur.setAttribute("x2", X(p.d));
+    $("ptip").textContent = `${Math.round(p.z)} m · ${p.c ? p.c.vaoc ? `${p.c.n} (${t("Village AOC")})` : p.c.n + " (" + (p.c.x ? t("Premier cru") : CLASS_NAME[p.c.c]) + ")" : t("outside the vineyards")}`;
+    if(PROF.dot){ const q = FWD(p.m); PROF.dot.setAttribute("cx", q[0]); PROF.dot.setAttribute("cy", q[1]); }
+  });
+  sv.addEventListener("click", ev => { const r = sv.getBoundingClientRect(), d = ((ev.clientX - r.left)/r.width*Wc - padL)/(Wc-padL-6)*L;
+    const p = P.reduce((a, b) => Math.abs(b.d - d) < Math.abs(a.d - d) ? b : a); if(p.c && p.c.vaoc) selectVillage(p.c.vaoc, false); else if(p.c) select(p.c.id, false); });
+}
+/* ---------- relief shading: IGN's hillshade tiles (Web Mercator), each placed by its corners so it follows the
+   surveyed map's projection and rotation; loaded for the view when it settles ---------- */
+let gShade = null; const shadeTiles = new Map();
+st.relief = (() => { try{ return localStorage.getItem("atlasRelief") !== "0"; }catch(e){ return true; } })();
+const SHADE_URL = (z, x, y) => `https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ELEVATION.ELEVATIONGRIDCOVERAGE.SHADOW&STYLE=estompage_grayscale&TILEMATRIXSET=PM&TILEMATRIX=${z}&TILEROW=${y}&TILECOL=${x}&FORMAT=image/png`;
+function shadeUpdate(){
+  if(!gShade) return;
+  const on = st.relief && st.mode==="geo" && GEO && INV;
+  gShade.style.display = on ? "" : "none"; if(!on) return;
+  const [LON0, LAT0] = GEO.meta.origin, R = 6371000, d2r = Math.PI/180, KX = d2r*R*Math.cos(LAT0*d2r), KY = d2r*R;
+  const toLL = ([x, y]) => [LON0 + x/KX, LAT0 + y/KY], toMm = ([lon, lat]) => [(lon - LON0)*KX, (lat - LAT0)*KY];
+  const corners = [[vb.x, vb.y], [vb.x+vb.w, vb.y], [vb.x, vb.y+vb.h], [vb.x+vb.w, vb.y+vb.h]].map(q => toLL(INV(q)));
+  const lons = corners.map(q => q[0]), lats = corners.map(q => q[1]);
+  const mpp = 1/(GS*scale()), lat = (Math.min(...lats)+Math.max(...lats))/2;
+  const z = Math.max(11, Math.min(16, Math.round(Math.log2(156543.03*Math.cos(lat*d2r)/mpp))));
+  const n = 2**z, tx = lon => Math.floor((lon+180)/360*n), ty = la => Math.floor((1 - Math.log(Math.tan(la*d2r) + 1/Math.cos(la*d2r))/Math.PI)/2*n);
+  const lonOf = x => x/n*360 - 180, latOf = y => Math.atan(Math.sinh(Math.PI*(1 - 2*y/n)))/d2r;
+  const x0 = tx(Math.min(...lons)), x1 = tx(Math.max(...lons)), y0 = ty(Math.max(...lats)), y1 = ty(Math.min(...lats));
+  if((x1-x0+1)*(y1-y0+1) > 160) return; // zoomed far out: skip (the strip is long; tiles would be tiny)
+  const want = new Set();
+  for(let x = x0; x <= x1; x++) for(let y = y0; y <= y1; y++){
+    const k = `${z}/${x}/${y}`; want.add(k); if(shadeTiles.has(k)) continue;
+    const P = (xx, yy) => FWD(toMm([lonOf(xx), latOf(yy)])), TL = P(x, y), TR = P(x+1, y), BL = P(x, y+1);
+    const img = el("image", {href:SHADE_URL(z, x, y), width:256, height:256, preserveAspectRatio:"none",
+      transform:`matrix(${((TR[0]-TL[0])/256).toFixed(5)} ${((TR[1]-TL[1])/256).toFixed(5)} ${((BL[0]-TL[0])/256).toFixed(5)} ${((BL[1]-TL[1])/256).toFixed(5)} ${TL[0].toFixed(1)} ${TL[1].toFixed(1)})`}, gShade);
+    img.addEventListener("error", () => img.remove());
+    shadeTiles.set(k, img);
+  }
+  // drop tiles of other zoom levels once this level has had a moment to load, and far-off tiles of this one
+  setTimeout(() => shadeTiles.forEach((img, k) => { if(!want.has(k) && (!k.startsWith(z+"/") || shadeTiles.size > 260)){ img.remove(); shadeTiles.delete(k); } }), 700);
+}
+
+/* ---------- geology (burgundy-geol.js, BRGM 1:50 000): formations, their colours, and what lies under each climat ---------- */
+const GEOL = window.BURG_GEOL || null;
+let gGeol = null;
+// short names by BRGM notation (the French descriptions are BRGM's own and shown in full in French)
+const GEOL_GLOSS = {
+  C:["Colluvium (hillwash)","Kolluvium (skredjord)"], GP:["Periglacial scree and colluvium (grèzes)","Periglacialt skred og kolluvium (grèzes)"],
+  E:["Scree and landslips","Skred og jordskred"], j5b:["Oxfordian marls and marly limestones (Pernand marls)","Oxford-mergel og mergelkalk (Pernand-mergel)"],
+  j5a:["Oxfordian limestones","Oxford-kalksten"], j5:["Oxfordian iron oolite","Oxford-jernoolit"], j5c:["Upper Oxfordian limestones","Øvre Oxford-kalksten"],
+  "j5b-c":["Oxfordian limestones (Vermenton)","Oxford-kalksten (Vermenton)"], j6a:["Upper Oxfordian limestones (Tonnerre)","Øvre Oxford-kalksten (Tonnerre)"],
+  j4a:["Dalle nacrée — Callovian limestone","Dalle nacrée — Callovien-kalksten"], j3a:["Comblanchien limestone — upper Bathonian","Comblanchien-kalksten — øvre Bathonien"],
+  j3b:["Grenu limestone — late Bathonian","Grenu-kalksten — sen Bathonien"], j3:["Bathonian bioclastic limestones (Premeaux stone)","Bathonien-kalksten (Premeaux-sten)"],
+  j3O:["Oolithe blanche — Bathonian","Oolithe blanche — Bathonien"], j2:["Bajocian marls with Ostrea acuminata","Bajocien-mergel med Ostrea acuminata"],
+  "j1-2":["Crinoidal limestone — Aalenian–Bajocian","Krinoidekalk — Aalenien–Bajocien"], Fx:["Old alluvium","Ældre alluvium"], Fy:["Alluvial terrace","Alluvialterrasse"],
+  Fz:["Recent alluvium","Nyere alluvium"], l4:["Toarcian marls","Toarcien-mergel"], X:["Made ground","Opfyld"], "g1-2":["Oligocene 'saumon' complex","Oligocænt 'saumon'-kompleks"],
+  LP:["Plateau silts","Plateausilt"], Hydro:["Water","Vand"],
+};
+const geolName = code => { const L = GEOL.legend[code]; if(!L) return code; const lg = window.I18N ? window.I18N.lang : "en", g = GEOL_GLOSS[L[0]];
+  return lg==="fr" || !g ? L[1] : g[lg==="da" ? 1 : 0]; };
+const geolColor = code => { const L = GEOL.legend[code]; if(!L) return TOK.none; return L[0]==="GP" ? "#D6CFC2" : L[2]; };
+function drawGeol(g){
+  Object.entries(GEOL.shapes).forEach(([code, rings]) => {
+    const d = rings.map(f => { let x = 0, y = 0, out = ""; for(let i = 0; i < f.length; i += 2){ if(i){ x += f[i]; y += f[i+1]; } else { x = f[0]; y = f[1]; } const q = FWD([x, y]); out += (i ? "L" : "M") + q[0].toFixed(1) + " " + q[1].toFixed(1); } return out + "Z"; }).join("");
+    el("path", {d, fill:geolColor(code), "fill-rule":"evenodd", "data-g":code}, g);
+  });
+}
+function geolHtml(c){
+  const u = GEOL && GEOL.under[c.id]; if(!u) return "";
+  return `<h3>${t("Geology")}</h3><table class="own geolt">${u.map(([code, p]) => `<tr><td><span class="cls" style="background:${geolColor(code)};border:1px solid var(--line)"></span><b>${esc(GEOL.legend[code][0])}</b> ${esc(geolName(code))}</td><td class="n">${p}%</td></tr>`).join("")}</table>
+    <p class="note">${t("Share of the climat's area on each formation of BRGM's 1:50 000 geological map; superficial deposits (scree, colluvium) are mapped over the bedrock where they are thick.")}</p>`;
+}
 // measured terrain per climat (burgundy-dem.js): [alt low, alt high, mean alt, slope %, aspect °, consistency %, samples]
 const DEM = (window.BURG_DEM && window.BURG_DEM.c) || {};
 const ALT0 = 220, ALT1 = 400, SLOPE1 = 20;
 function fillOf(c){
   switch(st.color){
     case "vintage": { const v = vRating(catOf(c), st.vy); return v ? scoreFill(v[0]) : TOK.none; }
+    case "geology": { const u = GEOL && GEOL.under[c.id]; return u ? geolColor(u[0][0]) : TOK.none; }
     case "alt": { const d = DEM[c.id]; return d ? mix(TOK.seq0, TOK.seq1, Math.max(0, Math.min(1, (d[2]-ALT0)/(ALT1-ALT0)))) : TOK.none; }
     case "slope": { const d = DEM[c.id]; return d ? mix(TOK.seq0, TOK.seq1, Math.min(1, d[3]/SLOPE1)) : TOK.none; }
     case "commune": return communeColor(c);
@@ -362,6 +497,9 @@ function build(){
   }));
 
   const gUnder = el("g", {"pointer-events":"none"}, gView); // surveyed map: woods and planted vines under the climats
+  gShade = el("g", {class:"shade", "pointer-events":"none"}, gView); shadeTiles.clear(); // IGN relief shading, under the climats
+  const gGeolL = el("g", {class:"geol", "pointer-events":"none"}, gView); // geology (BRGM), shown in the geology colour mode
+  gGeol = gGeolL; if(!SCH && GEOL) drawGeol(gGeolL);
   const gTownBase = el("g", {"pointer-events":"none"}, gView);
   const gCl = el("g", {}, gView), gRows = el("g", {class:"rows"}, gView), gHill = el("g", {"pointer-events":"none"}, gView),
         gEvt = el("g", {"pointer-events":"none"}, gView),
@@ -369,6 +507,8 @@ function build(){
         gNames = el("g", {class:"tnames", "pointer-events":"none"}, gView),
         gMono = el("g", {}, gView), gLab = el("g", {}, gView), gDot = el("g", {}, gView);
   gTopoNames = gNames; gEvents = gEvt;
+  gView.insertBefore(gShade, gHill); // relief shading multiplies over the climat colours, under contours and roads
+  PROF.g = el("g", {class:"prof", "pointer-events":"none"}, gView); climatIndex = null;
   V.forEach(v => v.baseD.forEach(d => el("path", {d, fill:"url(#rows)", opacity:.6, "fill-rule":"evenodd"}, gRows)));
   if(SCH){
   // the escarpment: darker toward the top of the slope
@@ -440,6 +580,7 @@ function build(){
     o.textContent = v.n; ovEls.push(o);
   });
   if(!SCH && TOPO) drawTopo(gUnder, gHill, gRoad, gTown, gNames);
+  if(!SCH) profDraw();
   if(!svg._bgClick){ svg._bgClick = true; svg.addEventListener("click", () => { if(!dragMoved && (st.sel||st.vsel)){ st.sel=null; st.vsel=null; renderSide(); paint(); syncHash(); } }); }
   buildLocator();
   paint();
@@ -600,8 +741,8 @@ function tipHtml(c){
 /* ---------- paint (colours, filters, selection) ---------- */
 function paint(){
   C.forEach(c => {
-    const f = fillOf(c), on = matches(c);
-    c.el.setAttribute("fill", f);
+    const f = fillOf(c), on = matches(c), see = st.color==="geology" && st.mode==="geo" && GEOL;
+    c.el.setAttribute("fill", see ? "rgba(0,0,0,0)" : f); c.el.classList.toggle("geolsee", !!see);
     c.el.classList.toggle("dim", !on);
     c.el.classList.toggle("sel", st.sel===c.id);
     if(c.mel){ c.mel.classList.toggle("dim", !on); c.mel.setAttribute("stroke", f.startsWith("url")?TOK.ink:textFill(c,f)); c.mel.setAttribute("stroke-opacity", .8); }
@@ -614,6 +755,7 @@ function paint(){
   if(st.sel){ const e=CL[st.sel].el; e.parentNode.appendChild(e); }
   layoutLabels();
   paintEvents();
+  if(gGeol) gGeol.style.display = st.color==="geology" ? "" : "none";
   renderLegend(); renderList(); renderDomains(); renderCompare(); renderGcOwners(); renderVintages(); syncChips();
 }
 
@@ -635,7 +777,7 @@ let vbC = null, commitT = 0;
 const baseRect = () => svg.parentNode.getBoundingClientRect(); // the map's frame, unaffected by the live transform
 function setVB(v){
   clearTimeout(commitT); vb = clampVB(v); vbC = {...vb}; svg.style.transform = "";
-  svg.setAttribute("viewBox", `${vb.x.toFixed(1)} ${vb.y.toFixed(1)} ${vb.w.toFixed(1)} ${vb.h.toFixed(1)}`); layoutLabels(); orientSoon();
+  svg.setAttribute("viewBox", `${vb.x.toFixed(1)} ${vb.y.toFixed(1)} ${vb.w.toFixed(1)} ${vb.h.toFixed(1)}`); layoutLabels(); orientSoon(); shadeUpdate();
 }
 function setVBLive(v, delay = 140){
   vb = clampVB(v);
@@ -912,6 +1054,7 @@ function renderSide(){
       <p>${c.x ? `${t(c.c==="GC" ? "One of {0}'s grand cru climats on INAO's plan" : "One of {0}'s premiers crus on INAO's plan", esc(c.ap || c.vil.n))}${c.in && CL[c.in] && !CL[c.in].x ? t(", lying within {0}", `<button class="plink" data-c="${c.in}">${esc(CL[c.in].n)}</button>`) : ""}. ${t("The atlas has no notes on it yet; holdings can be added below.")}` : esc(txC(c))}</p>
       ${st.mode==="geo" && GEO && (GEO.meta.approx||[]).includes(c.id) ? `<p class="note">${t("INAO maps Charmes and Mazoyères as one area (Mazoyères may be sold as Charmes); the line between them here is an estimate.")}</p>` : ""}
       ${detailHtml(c)}
+      ${geolHtml(c)}
       ${VT ? vintageYearHtml(catOf(c), c.v) + vintageChart(catOf(c), c.v) : ""}
       ${c.inner && !c.x?`<p class="note">${t("An enclave inside {0}.", `<button class="plink" data-c="${c.in}">${esc(CL[c.in].n)}</button>`)}</p>`:""}
       ${C.some(x=>x.in===c.id)?`<p class="note">${t("Contains {0}.", C.filter(x=>x.in===c.id).map(x=>`<button class="plink" data-c="${x.id}">${esc(x.n)}</button>`).join(", "))}</p>`:""}
@@ -1012,6 +1155,11 @@ function renderLegend(){
         + (kinds.has("frost") ? `<div class="row"><span class="sw" style="background:repeating-linear-gradient(45deg,${EVT.frost[0]} 0 2px,transparent 2px 5px)"></span>${t("Frost hit this commune")}</div>` : "")
         + (kinds.has("hail") ? `<div class="row"><span class="sw" style="background:radial-gradient(circle,${EVT.hail[0]} 35%,transparent 40%);background-size:5px 5px"></span>${t("Hail hit this commune")}</div>` : "")
         + sw(TOK.none, t("not rated"));
+      break; }
+    case "geology": {
+      const tot = {}; C.filter(c => c.on && GEOL && GEOL.under[c.id]).forEach(c => GEOL.under[c.id].forEach(([code, p]) => tot[code] = (tot[code]||0) + p * c.ha));
+      const top = Object.entries(tot).sort((a, b) => b[1] - a[1]).slice(0, 9);
+      h = `<div class="lt">${t("Geology (BRGM 1:50 000)")}</div>` + top.map(([code]) => `<div class="row"><span class="sw" style="background:${geolColor(code)};border:1px solid var(--line)"></span><b>${esc(GEOL.legend[code][0])}</b>&nbsp;${esc(geolName(code))}</div>`).join("");
       break; }
     case "alt": h = `<div class="lt">${t("Mean altitude (measured)")}</div>` + ramp(TOK.seq0, TOK.seq1, `${ALT0} m`, `${ALT1} m`) + sw(TOK.none, t("no data")); break;
     case "slope": h = `<div class="lt">${t("Mean slope (measured)")}</div>` + ramp(TOK.seq0, TOK.seq1, "0 %", `${SLOPE1}+ %`) + sw(TOK.none, t("no data")); break;
@@ -1355,10 +1503,22 @@ function syncMode(){
   const geo = st.mode==="geo";
   $("layers").querySelectorAll("[data-m]").forEach(b => b.classList.toggle("on", b.dataset.m===st.mode));
   $("rotL").hidden = $("rotR").hidden = !geo;
+  $("reliefBtn").hidden = !geo; $("reliefBtn").classList.toggle("on", !!st.relief);
+  $("profBtn").hidden = !geo; if(!geo && PROF.on) profToggle(false);
   $("compass").title = t(geo ? "North up" : "Schematic map: north is roughly up, the slope rises to the west");
   $("attr").textContent = t(geo ? (TOPO ? "Boundaries © INAO · map data © IGN, Licence Ouverte" : "Boundaries © INAO, Licence Ouverte") : "Schematic · not to scale · slope rises west");
   syncCompass();
 }
+// in profile mode a click on the map sets a point instead of selecting
+svg.addEventListener("click", ev => {
+  if(!PROF.on || dragMoved || !INV) return;
+  ev.stopPropagation(); ev.preventDefault();
+  const m = INV(clientToSvg(ev.clientX, ev.clientY));
+  if(!PROF.a || PROF.b){ PROF.a = m; PROF.b = null; PROF.data = null; profDraw(); $("profile").innerHTML = `<div class="ph">${t("Now the second point")}</div>`; }
+  else { PROF.b = m; profDraw(); profFetch(); }
+}, true);
+$("profBtn").onclick = () => profToggle();
+$("reliefBtn").onclick = () => { st.relief = !st.relief; try{ localStorage.setItem("atlasRelief", st.relief ? "1" : "0"); }catch(e){} syncMode(); shadeUpdate(); };
 if(GEO){
   $("layers").hidden = false;
   $("layers").querySelectorAll("[data-m]").forEach(b => b.onclick = () => {
