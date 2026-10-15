@@ -390,8 +390,46 @@ function loadTopo(){
   const sc = document.createElement("script"); sc.src = "burgundy-topo.js?v=" + TOPO_V;
   sc.onload = () => { if(!window.BURG_TOPO) return; TOPO = window.BURG_TOPO; if(st.mode==="geo"){ const keep = {...vb}; build(); setVB(keep); } syncMode(); };
   document.body.appendChild(sc);
+  loadLieux();
 }
 const TOPO_V = 2;
+// every cadastral lieu-dit on appellation land (burgundy-lieuxdits.js, ~100 KB gzipped): outlines and names when zoomed in,
+// and the list inside each climat's panel. Loaded with the topo, drawn into its own layer without a rebuild.
+let LDX = window.BURG_LIEUXDITS && window.BURG_LIEUXDITS.ld ? window.BURG_LIEUXDITS : null, gLd = null;
+const LDX_V = 1;
+function loadLieux(){
+  if(LDX || !GEO || loadLieux.started) return; loadLieux.started = true;
+  const sc = document.createElement("script"); sc.src = "burgundy-lieuxdits.js?v=" + LDX_V;
+  sc.onload = () => { if(!window.BURG_LIEUXDITS) return; LDX = window.BURG_LIEUXDITS; ldIn.clear();
+    if(st.mode==="geo") drawLieux(); if(st.sel) renderSide(); };
+  document.body.appendChild(sc);
+}
+const ldRing = f => { const o = []; let x = 0, y = 0; for(let i = 0; i < f.length; i += 2){ if(i){ x += f[i]; y += f[i+1]; } else { x = f[i]; y = f[i+1]; } o.push([x, y]); } return o; };
+function drawLieux(){
+  if(!LDX || !gLd || !FWD || !gTopoNames) return;
+  gLd.innerHTML = ""; gTopoNames.querySelectorAll(".tn-ld").forEach(e => e.remove());
+  const TILE = 1500 * GS, tiles = new Map();
+  LDX.ld.forEach(l => { const r = ldRing(l[4]); l._a ??= ringArea(r);
+    const q = r.map(FWD), d = "M" + q.map(p => p[0].toFixed(1) + " " + p[1].toFixed(1)).join("L") + "Z";
+    const k = Math.floor(q[0][0]/TILE) + "," + Math.floor(q[0][1]/TILE); tiles.set(k, (tiles.get(k) || "") + d); });
+  tiles.forEach(d => el("path", {class:"t-ld", d}, gLd));
+  // names, except where the climat drawn there carries the same name; the small ones only when zoomed right in
+  LDX.ld.forEach(([, n, x0, y0], i) => { const [x, y] = FWD([x0, y0]);
+    if(climatNamed(x, y, bareN(n))) return;
+    const e = el("text", {class:"tn tn-ld" + (LDX.ld[i]._a < 60000 ? " tn-lds" : ""), x:x.toFixed(1), y:y.toFixed(1)}, gTopoNames); e.textContent = n; });
+  svg.classList.add("has-ld");
+}
+// the cadastre's lieux-dits whose label point lies inside a climat (metres, holes respected), cached per climat
+const ldIn = new Map();
+function lieuxIn(c){
+  if(!LDX || !GEO || !GEO.climats[c.id]) return null;
+  if(ldIn.has(c.id)) return ldIn.get(c.id);
+  const mp = GEO.climats[c.id], own = bareN(c.n), seen = new Set(), out = [];
+  LDX.ld.forEach(([, n, x, y]) => { const k = bareN(n);
+    if(k === own || seen.has(k) || !mp.some(p => inPoly(x, y, p[0]) && !p.slice(1).some(h => inPoly(x, y, h)))) return;
+    seen.add(k); out.push(n); });
+  ldIn.set(c.id, out); return out;
+}
 st.mode = GEO ? (() => { try{ return localStorage.getItem("atlasMode") || "geo"; }catch(e){ return "geo"; } })() : "schematic";
 const GS = 0.25; // surveyed map: svg units per metre
 let CONTENT = null, FWD = null, INV = null; // surveyed map: metres (E,N) ⇄ svg units
@@ -535,11 +573,11 @@ function build(){
   gGeol = gGeolL; if(!SCH && GEOL) drawGeol(gGeolL);
   const gTownBase = el("g", {"pointer-events":"none"}, gView);
   const gCl = el("g", {}, gView), gRows = el("g", {class:"rows"}, gView), gHill = el("g", {"pointer-events":"none"}, gView),
-        gEvt = el("g", {"pointer-events":"none"}, gView),
+        gLdL = el("g", {class:"ld", "pointer-events":"none"}, gView), gEvt = el("g", {"pointer-events":"none"}, gView),
         gWall = el("g", {}, gView), gRoad = el("g", {"pointer-events":"none"}, gView), gTown = el("g", {"pointer-events":"none"}, gView),
         gNames = el("g", {class:"tnames", "pointer-events":"none"}, gView),
         gMono = el("g", {}, gView), gLab = el("g", {}, gView), gDot = el("g", {}, gView);
-  gTopoNames = gNames; gEvents = gEvt;
+  gTopoNames = gNames; gEvents = gEvt; gLd = gLdL; svg.classList.remove("has-ld");
   gView.insertBefore(gShade, gHill); // relief shading multiplies over the climat colours, under contours and roads
   PROF.g = el("g", {class:"prof", "pointer-events":"none"}, gView); climatIndex = null;
   V.forEach(v => v.baseD.forEach(d => el("path", {d, fill:"url(#rows)", opacity:.6, "fill-rule":"evenodd"}, gRows)));
@@ -613,6 +651,7 @@ function build(){
     o.textContent = v.n; ovEls.push(o);
   });
   if(!SCH && TOPO) drawTopo(gUnder, gHill, gRoad, gTown, gNames);
+  if(!SCH) drawLieux();
   if(!SCH) profDraw();
   if(!svg._bgClick){ svg._bgClick = true; svg.addEventListener("click", () => { if(!dragMoved && (st.sel||st.vsel)){ st.sel=null; st.vsel=null; renderSide(); paint(); syncHash(); } }); }
   buildLocator();
@@ -665,14 +704,14 @@ function drawTopo(gUnder, gHill, gRoad, gTown, gNames){
   el("path", {class:"t-rail", d:rail}, gRoad); el("path", {class:"t-rail2", d:rail}, gRoad);
   tiled(T.bld, true, "t-bld", gTown);
   // names: villages and hamlets, streams and woods, and the lieux-dits — except where a climat of the same name is drawn
-  const climatAt = (x, y, n) => C.some(c => c.bb && x >= c.bb[0] && x <= c.bb[2] && y >= c.bb[1] && y <= c.bb[3] && bareN(c.n) === n);
   T.names.forEach(([k, n, x0, y0]) => {
     const [x, y] = FWD([x0, y0]);
-    if(k === "l" && climatAt(x, y, bareN(n))) return;
+    if(k === "l" && climatNamed(x, y, bareN(n))) return;
     const e = el("text", {class:"tn tn-"+k, x:x.toFixed(1), y:y.toFixed(1)}, gNames); e.textContent = n;
   });
   (T.refs || []).forEach(([num, x0, y0]) => { const [x, y] = FWD([x0, y0]); const e = el("text", {class:"tn tn-ref", x:x.toFixed(1), y:y.toFixed(1)}, gNames); e.textContent = num; });
 }
+const climatNamed = (x, y, n) => C.some(c => c.bb && x >= c.bb[0] && x <= c.bb[2] && y >= c.bb[1] && y <= c.bb[3] && bareN(c.n) === n);
 const bareN = n => norm(n).replace(/^(les|la|le|aux|au|en|l|a la)\s+/, "");
 // level of detail on the surveyed map: buildings, tracks, small contours and lieux-dits names only when zoomed in
 function topoLod(k){
@@ -1401,9 +1440,15 @@ function detailHtml(c){
       ${m?`<div class="fact"><div class="l">${t("Slope")}</div><div class="v">${m[3].toFixed(m[3] < 10 ? 1 : 0)} %</div></div>`:""}
     </div>
     ${d.soil?`<p class="note"><b>${t("Soil:")}</b> ${esc(txD(c, "soil"))}</p>`:""}
-    ${(d.sub||[]).length?`<h3>${t("Lieux-dits within")}</h3><p class="note">${(txD(c, "sub") || d.sub).map(esc).join(" · ")}</p>`:""}`;
+    ${ldList(c, d)}`;
 }
 
+// lieux-dits inside the climat: the cadastre's when loaded (every one, by name), else the atlas's own short list
+function ldList(c, d){
+  const cad = lieuxIn(c);
+  if(cad && cad.length) return `<h3>${t("Lieux-dits within")}</h3><p class="note">${cad.map(esc).join(" · ")}</p><p class="note ldsrc">${t("From the cadastre: every lieu-dit whose centre lies within this climat.")}</p>`;
+  return (d.sub||[]).length ? `<h3>${t("Lieux-dits within")}</h3><p class="note">${(txD(c, "sub") || d.sub).map(esc).join(" · ")}</p>` : "";
+}
 /* ---------- compare two producers ---------- */
 st.cmp = ["drc", "lb_comte"];
 function renderCompare(){

@@ -337,6 +337,13 @@ their downloads in `tools/.topo-cache` / `tools/.dem-cache`, so reruns are quick
   each climat faces, sampled from the RGE ALTI® terrain model on a grid inside its outline. A climat that wraps round
   a hill (Corton-Charlemagne) is marked "varied". These replace the estimated bands in the vineyard panel and drive
   the **By altitude** / **By slope** colour modes.
+- `node tools/lieuxdits-import.js` → `burgundy-lieuxdits.js`: every cadastral lieu-dit on appellation land (Etalab
+  cadastre, cadastre.data.gouv.fr, Licence Ouverte), about 1,460 across the 52 communes, kept when it lies on an INAO
+  outline (village, premier or grand cru). Saint-Romain has no INAO outline in the atlas yet, so there IGN's
+  planted-vine areas stand in. The cadastre writes in capitals without accents: names get proper capitals and, where
+  the atlas already knows the name, its accented spelling. The atlas draws dotted outlines and names when zoomed in
+  (replacing BD TOPO's own lieu-dit names) and lists the lieux-dits inside each climat in its panel. Downloads are
+  cached in `tools/.cadastre-cache`.
 
 `inao-import.js` also keeps INAO's premiers crus and Corton climats that the atlas has no notes for (about 300) as
 extra climats on the surveyed map; those lying inside an atlas climat (Chassagne's Morgeot holds La Boudriotte, Les

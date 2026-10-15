@@ -69,7 +69,7 @@ const DA = {
   "Owners with a published figure account for {0} of {1} ha ({2}%); the other {3} ha belongs to {4}smaller growers.": "Ejere med et offentliggjort tal står for {0} af {1} ha ({2} %); de øvrige {3} ha tilhører {4}mindre avlere.",
   "the holders listed without a figure and ": "de nævnte ejere uden tal og ", "Notable owners; individual holdings not listed.": "Kendte ejere; de enkelte andele er ikke oplyst.",
   "In your cellar": "I din kælder", "+ {0} more": "+ {0} mere",
-  "Altitude": "Højde", "Faces": "Vender mod", "Soil:": "Jord:", "Lieux-dits within": "Lieux-dits indenfor", "Measured": "Målt",
+  "Altitude": "Højde", "Faces": "Vender mod", "Soil:": "Jord:", "Lieux-dits within": "Lieux-dits indenfor", "From the cadastre: every lieu-dit whose centre lies within this climat.": "Fra matriklen: alle lieux-dits, hvis midtpunkt ligger i denne climat.", "Measured": "Målt",
   "Altitude and slope measured from IGN's elevation model": "Højde og hældning målt på IGN's højdemodel", "Slope": "Hældning",
   // producer panel
   "Producer": "Producent", "{0} in all": "{0} i alt", "Ha on map": "Ha på kortet", "Climats": "Climats", "Grands crus": "Grands crus",
@@ -205,7 +205,7 @@ const FR = {
   "Owners with a published figure account for {0} of {1} ha ({2}%); the other {3} ha belongs to {4}smaller growers.": "Les propriétaires aux surfaces publiées totalisent {0} des {1} ha ({2} %) ; les {3} ha restants appartiennent {4}à de plus petits exploitants.",
   "the holders listed without a figure and ": "aux propriétaires cités sans chiffre et ", "Notable owners; individual holdings not listed.": "Propriétaires notables ; surfaces individuelles non publiées.",
   "In your cellar": "Dans votre cave", "+ {0} more": "+ {0} autres",
-  "Altitude": "Altitude", "Faces": "Exposition", "Soil:": "Sol :", "Lieux-dits within": "Lieux-dits compris", "Measured": "Mesuré",
+  "Altitude": "Altitude", "Faces": "Exposition", "Soil:": "Sol :", "Lieux-dits within": "Lieux-dits compris", "From the cadastre: every lieu-dit whose centre lies within this climat.": "D'après le cadastre : tous les lieux-dits dont le centre se trouve dans ce climat.", "Measured": "Mesuré",
   "Altitude and slope measured from IGN's elevation model": "Altitude et pente mesurées sur le modèle numérique de terrain de l'IGN", "Slope": "Pente",
   "Producer": "Producteur", "{0} in all": "{0} au total", "Ha on map": "Ha sur la carte", "Climats": "Climats", "Grands crus": "Grands crus",
   "Highlighted on the map by share of each climat · hatched = holder, size not published · dotted gold = buys grapes there.": "Mis en valeur sur la carte selon la part de chaque climat · hachuré = propriétaire, surface non publiée · pointillé or = achète des raisins.",
