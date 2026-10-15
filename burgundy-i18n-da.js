@@ -248,7 +248,7 @@ window.BURG_I18N.da = {
     beaune: { note: "Vinhovedstaden, hvis négociants — Bouchard, Drouhin, Jadot, Latour, Champy — ejer det meste af skråningen over byen.", aoc: "Beaune · 42 premiers crus, ingen grands crus" },
     pommard: { note: "Robuste, jernholdige rødvine. Rugiens (syd, mod Volnay) og Épenots (nord, mod Beaune) er de to grand cru-kandidater.", aoc: "Pommard · 28 premiers crus" },
     volnay: { note: "Côte de Beaunes mest parfumerede rødvin. Lette, stenede jorde på Bathonien-kalksten; en landsby af ommurede clos.", aoc: "Volnay · 29 premiers crus" },
-    monthelie: { note: "Monthélie på sin høj over Volnay; Auxey længere oppe ad dalen mod Saint-Romain.", aoc: "Monthélie · Auxey-Duresses · village & premiers crus" },
+    monthelie: { note: "Monthélie på sin høj over Volnay; Auxey længere oppe ad dalen, og Saint-Romain bagved under sine klipper — blandt Côtens højeste vinmarker, kun village-vin.", aoc: "Monthélie · Auxey-Duresses · Saint-Romain · village & premiers crus" },
     meursault: { note: "Den største hvidvinslandsby. De store premiers crus ligger syd for landsbyen mod Puligny: Perrières, Genevrières, Charmes.", aoc: "Meursault · premiers crus, ingen grands crus (Volnay-Santenots er rødvinen)" },
     puligny: { note: "Et højt grundvandsspejl betyder ingen dybe kældre — og verdens mest mejslede Chardonnay, med Montrachet'erne ved grænsen til Chassagne som kronen på værket.", aoc: "Puligny-Montrachet · 4 grands crus (2 delt med Chassagne) · 17 premiers crus" },
     chassagne: { note: "Mere rødvin, end berømmelsen antyder, især i Morgeot; hvidvinene spænder fra fine (Caillerets) til brede (Morgeot).", aoc: "Chassagne-Montrachet · 3 grands crus (2 delt) · 55 premiers crus" },

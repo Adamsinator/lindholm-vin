@@ -333,17 +333,20 @@ their downloads in `tools/.topo-cache` / `tools/.dem-cache`, so reruns are quick
   vines, buildings, 5 m contour lines, place names (villages, hamlets, lieux-dits) and commune boundaries from BD TOPO,
   for the strip the INAO outlines cover. Coordinates are delta-encoded; the atlas loads the file after its first paint
   and shows buildings, tracks, minor contours and lieux-dits only when zoomed in.
-- `node tools/dem-import.js` → `burgundy-dem.js`: altitude band (5th–95th percentile), mean slope and the direction
+- `node tools/dem-import.js` → `burgundy-dem.js` (sampling shared with the lieux-dits through `tools/dem-lib.js`): altitude band (5th–95th percentile), mean slope and the direction
   each climat faces, sampled from the RGE ALTI® terrain model on a grid inside its outline. A climat that wraps round
   a hill (Corton-Charlemagne) is marked "varied". These replace the estimated bands in the vineyard panel and drive
   the **By altitude** / **By slope** colour modes.
 - `node tools/lieuxdits-import.js` → `burgundy-lieuxdits.js`: every cadastral lieu-dit on appellation land (Etalab
-  cadastre, cadastre.data.gouv.fr, Licence Ouverte), about 1,460 across the 52 communes, kept when it lies on an INAO
-  outline (village, premier or grand cru). Saint-Romain has no INAO outline in the atlas yet, so there IGN's
-  planted-vine areas stand in. The cadastre writes in capitals without accents: names get proper capitals and, where
-  the atlas already knows the name, its accented spelling. The atlas draws dotted outlines and names when zoomed in
-  (replacing BD TOPO's own lieu-dit names) and lists the lieux-dits inside each climat in its panel. Downloads are
-  cached in `tools/.cadastre-cache`.
+  cadastre, cadastre.data.gouv.fr, Licence Ouverte): 1,471 across the 52 communes, kept when it lies on an INAO outline
+  (village, premier or grand cru). The cadastre writes in capitals without accents. Names get proper capitals and,
+  where the atlas already knows the whole name, its spelling. Otherwise words are accented one at a time, but only a
+  word the atlas always writes the same accented way ("Corvées", "Perrière"). Ambiguous words such as Prés/Près, or
+  Échezeaux/Echézeaux, stay as written, and the import lists every change it makes. Each lieu-dit also gets measured
+  terrain, sampled like the climats': altitude band, slope and the direction it faces. The atlas draws dotted outlines
+  and names when zoomed in, replacing BD TOPO's own lieu-dit names. A tap on one (or a search, or a climat's list)
+  opens its panel: area, terrain, and the climats it lies in. Downloads are cached in `tools/.cadastre-cache` and
+  `tools/.dem-cache`.
 
 `inao-import.js` also keeps INAO's premiers crus and Corton climats that the atlas has no notes for (about 300) as
 extra climats on the surveyed map; those lying inside an atlas climat (Chassagne's Morgeot holds La Boudriotte, Les
