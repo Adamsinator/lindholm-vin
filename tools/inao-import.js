@@ -37,7 +37,7 @@ const APP_VILLAGE = {
   "chambolle musigny": "chambolle", "vougeot": "vougeot", "vosne romanee": "vosne", "nuits saint georges": "nuits",
   "cote de nuits villages": "cdnv", "ladoix": "corton", "aloxe corton": "corton", "pernand vergelesses": "corton",
   "savigny les beaune": "savigny", "chorey les beaune": "chorey", "beaune": "beaune", "pommard": "pommard",
-  "volnay": "volnay", "monthelie": "monthelie", "auxey duresses": "monthelie", "meursault": "meursault",
+  "volnay": "volnay", "monthelie": "monthelie", "auxey duresses": "monthelie", "saint romain": "monthelie", "meursault": "meursault",
   "puligny montrachet": "puligny", "chassagne montrachet": "chassagne", "saint aubin": "staubin",
   "santenay": "santenay", "maranges": "maranges",
 };

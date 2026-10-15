@@ -86,6 +86,8 @@ const overflow=async(p,where)=>{ const o=await p.evaluate(()=>document.documentE
   try{ await p.click('.tablink'); await p.waitForTimeout(1200); if(!p.url().includes('burgundy')) note(tag,'tablink did not navigate'); }catch(e){note(tag,'tablink '+e.message)}
   await overflow(p,tag+' atlas');
   // atlas: every colour mode, chips, search, sorting, compare, cote buttons
+  // phones fold the filters behind a button: open them first
+  if(await p.isVisible('#tbToggle')) await p.click('#tbToggle');
   for(const col of ['commune','producer','size','owners','cellar','class']){ await p.selectOption('#fColor',col); await p.waitForTimeout(80); }
   for(const ch of ['[data-cls="GC"]','[data-cls="1er"]','[data-cls="V"]','#monoChip','#monoChip','[data-cls="GC"]','[data-cls="1er"]','[data-cls="V"]']) { try{ await p.click(ch);}catch(e){note(tag,'chip '+ch+' '+e.message)} }
   await p.fill('#fSearch','suchots'); await p.press('#fSearch','Enter'); await p.waitForTimeout(500);
@@ -94,6 +96,7 @@ const overflow=async(p,where)=>{ const o=await p.evaluate(()=>document.documentE
   if(!(await p.isVisible('#side'))) note(tag,'drawer not open in producer view');
   await p.click('#prodChip'); await p.waitForTimeout(300);
   if(await p.isVisible('#side')) note(tag,'drawer still open after clearing producer');
+  if(!(await p.isVisible('#zInfo'))) await p.click('#moreBtn'); // the rarer tools sit behind ⋯
   await p.click('#zInfo'); await p.waitForTimeout(200); if(!/Marsannay/.test(await p.textContent('#side'))) note(tag,'overview not shown');
   await p.keyboard.press('Escape'); await p.waitForTimeout(200); if(await p.isVisible('#side')) note(tag,'Escape did not close overview');
   await p.selectOption('#fCommune','gevrey'); await p.waitForTimeout(500);

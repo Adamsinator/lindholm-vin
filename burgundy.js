@@ -396,12 +396,12 @@ const TOPO_V = 2;
 // every cadastral lieu-dit on appellation land (burgundy-lieuxdits.js, ~100 KB gzipped): outlines and names when zoomed in,
 // and the list inside each climat's panel. Loaded with the topo, drawn into its own layer without a rebuild.
 let LDX = window.BURG_LIEUXDITS && window.BURG_LIEUXDITS.ld ? window.BURG_LIEUXDITS : null, gLd = null;
-const LDX_V = 1;
+const LDX_V = 2;
 function loadLieux(){
   if(LDX || !GEO || loadLieux.started) return; loadLieux.started = true;
   const sc = document.createElement("script"); sc.src = "burgundy-lieuxdits.js?v=" + LDX_V;
   sc.onload = () => { if(!window.BURG_LIEUXDITS) return; LDX = window.BURG_LIEUXDITS; ldIn.clear();
-    if(st.mode==="geo") drawLieux(); if(st.sel) renderSide(); };
+    if(st.mode==="geo") drawLieux(); if(st.sel) renderSide(); fillSearchList(); resolveLdPending(); };
   document.body.appendChild(sc);
 }
 const ldRing = f => { const o = []; let x = 0, y = 0; for(let i = 0; i < f.length; i += 2){ if(i){ x += f[i]; y += f[i+1]; } else { x = f[i]; y = f[i+1]; } o.push([x, y]); } return o; };
@@ -416,8 +416,68 @@ function drawLieux(){
   // names, except where the climat drawn there carries the same name; the small ones only when zoomed right in
   LDX.ld.forEach(([, n, x0, y0], i) => { const [x, y] = FWD([x0, y0]);
     if(climatNamed(x, y, bareN(n))) return;
-    const e = el("text", {class:"tn tn-ld" + (LDX.ld[i]._a < 60000 ? " tn-lds" : ""), x:x.toFixed(1), y:y.toFixed(1)}, gTopoNames); e.textContent = n; });
-  svg.classList.add("has-ld");
+    const e = el("text", {class:"tn tn-ld" + (LDX.ld[i]._a < 60000 ? " tn-lds" : ""), x:x.toFixed(1), y:y.toFixed(1)}, nameTile(gTopoNames, x, y)); e.textContent = n; });
+  svg.classList.add("has-ld"); drawLdSel();
+}
+/* one lieu-dit picked (map tap at close zoom, search, a climat's list or a link): outline, panel, hash */
+const ldGeom = l => { if(!l._r){ l._r = ldRing(l[4]); l._bb = bbOf(l._r); } return l; };
+const ldKey = i => { const l = LDX.ld[i]; return `${l[0]}:${l[2]}:${l[3]}`; };
+const climatBBm = new Map(); // climats' bounding boxes in metres, for quick rejects
+const inMP = (x, y, mp) => mp.some(p => inPoly(x, y, p[0]) && !p.slice(1).some(h => inPoly(x, y, h)));
+// the climats a lieu-dit lies in: its label point, or at least two of its corners pulled a quarter of the way in
+function ldClimats(i){
+  const l = ldGeom(LDX.ld[i]), [px0, py0] = [l[2], l[3]];
+  const probes = l._r.filter((_, k) => k % Math.max(1, Math.floor(l._r.length/12)) === 0).map(([x, y]) => [x + (px0 - x)*.25, y + (py0 - y)*.25]);
+  const out = [];
+  C.forEach(c => { const mp = GEO.climats[c.id]; if(!mp) return;
+    if(!climatBBm.has(c.id)) climatBBm.set(c.id, bbOf(mp.flatMap(p => p[0])));
+    const b = climatBBm.get(c.id); if(b[2] < l._bb[0] || b[0] > l._bb[2] || b[3] < l._bb[1] || b[1] > l._bb[3]) return;
+    const hits = probes.filter(([x, y]) => inMP(x, y, mp)).length;
+    if(inMP(px0, py0, mp) || hits >= 2) out.push(c); });
+  // a named part (an INAO extra inside a climat) wins over the climat around it; show the outer one after it
+  return out.sort((a, b) => (CORD[a.c] - CORD[b.c]) || ((b.x?1:0) - (a.x?1:0)));
+}
+function ldVillage(i){ const l = LDX.ld[i]; return V.find(v => GEO.villages[v.id] && inMP(l[2], l[3], GEO.villages[v.id])) || null; }
+function ldAt(ev){ // the lieu-dit under a click, if zoomed in far enough to see them
+  if(!LDX || !INV || !svg.classList.contains("lod-near")) return -1;
+  const [x, y] = INV(clientToSvg(ev.clientX, ev.clientY));
+  for(let i = 0; i < LDX.ld.length; i++){ const l = ldGeom(LDX.ld[i]);
+    if(x >= l._bb[0] && x <= l._bb[2] && y >= l._bb[1] && y <= l._bb[3] && inPoly(x, y, l._r)) return i; }
+  return -1;
+}
+function selectLd(i, fly){
+  if(!LDX || !LDX.ld[i]) return;
+  // lieux-dits live on the surveyed map only: switch to it first (rebuilds, so FWD is the surveyed one)
+  if(st.mode !== "geo" && GEO){ const b = $("layers").querySelector('[data-m="geo"]'); if(b) b.click(); fly = true; }
+  Object.assign(st, {ld:i, sel:null, vsel:null, overview:false, coteView:null});
+  renderSide(); paint(); drawLdSel(); syncHash(); syncCommunes();
+  if(fly && FWD){ const q = ldGeom(LDX.ld[i])._r.map(FWD), b = bbOf(q); flyTo(fitBox(...b, .6)); }
+}
+function drawLdSel(){
+  if(!gLd) return; gLd.querySelectorAll(".ld-sel").forEach(e => e.remove());
+  if(st.ld == null || !LDX || !FWD) return;
+  const q = ldGeom(LDX.ld[st.ld])._r.map(FWD);
+  el("path", {class:"ld-sel", d:"M" + q.map(p => p[0].toFixed(1) + " " + p[1].toFixed(1)).join("L") + "Z"}, gLd);
+}
+function ldHtml(i){
+  const l = ldGeom(LDX.ld[i]), m = l[5], cls = ldClimats(i), v = ldVillage(i), ha = ringArea(l._r)/1e4;
+  const asp = m ? (m[3] < 1.5 ? t("flat") : m[5] < 55 ? `${t("varied")} · ${wind(m[4])}` : wind(m[4])) : "";
+  const pill = c => `<span class="cls" style="background:${{GC:TOK.gc,"1er":TOK.pc,V:TOK.vc}[c.c]}"></span>`;
+  return `<div class="pills"><span class="pill">${t("Lieu-dit")}</span></div>
+    <h2>${esc(l[1])}</h2>
+    <div class="meta">${v && v.n.split(" · ").includes(LDX.meta.communes[l[0]]) ? `<button class="plink" data-v="${v.id}">${esc(LDX.meta.communes[l[0]])}</button>`
+      : esc(LDX.meta.communes[l[0]] || "") + (v ? ` · <button class="plink" data-v="${v.id}">${esc(v.n)}</button>` : "")}</div>
+    <div class="facts">
+      <div class="fact"><div class="l">${t("Area")}</div><div class="v">${fmtHa(ha)} ha</div></div>
+      ${m ? `<div class="fact" title="${t("Altitude and slope measured from IGN's elevation model")}"><div class="l">${t("Altitude")}</div><div class="v">${m[0]}–${m[1]} m</div></div>
+      <div class="fact"><div class="l">${t("Faces")}</div><div class="v">${esc(asp)}</div></div>
+      <div class="fact"><div class="l">${t("Slope")}</div><div class="v">${m[3].toFixed(m[3] < 10 ? 1 : 0)} %</div></div>` : ""}
+    </div>
+    <h3>${t("Appellation")}</h3>
+    ${cls.length ? `<table class="own">${cls.map(c => `<tr><td>${pill(c)}<button class="plink" data-c="${c.id}">${esc(c.n)}</button></td><td class="n">${CLASS_NAME[c.c]}</td></tr>`).join("")}</table>`
+      : v ? `<p>${t("Village appellation ({0}); no premier or grand cru here.", esc(v.n))}</p>` : `<p>${t("Regional appellations only.")}</p>`}
+    <p class="note">${t("A lieu-dit is a named place on the land register (cadastre); a climat is a named vineyard of an appellation. They often match, but one climat can hold several lieux-dits, and a lieu-dit can straddle two climats.")}</p>
+    <p class="note ldsrc">${t("Outline: cadastre (Etalab). Terrain: IGN RGE ALTI®, sampled inside the outline.")}</p>`;
 }
 // the cadastre's lieux-dits whose label point lies inside a climat (metres, holes respected), cached per climat
 const ldIn = new Map();
@@ -425,9 +485,9 @@ function lieuxIn(c){
   if(!LDX || !GEO || !GEO.climats[c.id]) return null;
   if(ldIn.has(c.id)) return ldIn.get(c.id);
   const mp = GEO.climats[c.id], own = bareN(c.n), seen = new Set(), out = [];
-  LDX.ld.forEach(([, n, x, y]) => { const k = bareN(n);
-    if(k === own || seen.has(k) || !mp.some(p => inPoly(x, y, p[0]) && !p.slice(1).some(h => inPoly(x, y, h)))) return;
-    seen.add(k); out.push(n); });
+  LDX.ld.forEach(([, n, x, y], i) => { const k = bareN(n);
+    if(sameName(k, own) || seen.has(k) || !mp.some(p => inPoly(x, y, p[0]) && !p.slice(1).some(h => inPoly(x, y, h)))) return;
+    seen.add(k); out.push(i); });
   ldIn.set(c.id, out); return out;
 }
 st.mode = GEO ? (() => { try{ return localStorage.getItem("atlasMode") || "geo"; }catch(e){ return "geo"; } })() : "schematic";
@@ -562,7 +622,7 @@ function build(){
   const gBase = el("g", {}, gView);
   V.forEach(v => v.baseD.forEach(d => {
     const p = el("path", {class:"base", d, "data-v":v.id, "fill-rule":"evenodd"}, gBase);
-    p.addEventListener("click", ev => { if(dragMoved) return; ev.stopPropagation(); selectVillage(v.id, true); });
+    p.addEventListener("click", ev => { if(dragMoved) return; ev.stopPropagation(); const i = ldAt(ev); if(i >= 0) selectLd(i, false); else selectVillage(v.id, true); });
     p.addEventListener("pointermove", ev => tip(ev, `<b>${esc(v.n)}</b><br>${esc(v.aoc)}`));
     p.addEventListener("pointerleave", hideTip);
   }));
@@ -580,7 +640,7 @@ function build(){
   gTopoNames = gNames; gEvents = gEvt; gLd = gLdL; svg.classList.remove("has-ld");
   gView.insertBefore(gShade, gHill); // relief shading multiplies over the climat colours, under contours and roads
   PROF.g = el("g", {class:"prof", "pointer-events":"none"}, gView); climatIndex = null;
-  V.forEach(v => v.baseD.forEach(d => el("path", {d, fill:"url(#rows)", opacity:.6, "fill-rule":"evenodd"}, gRows)));
+  V.forEach(v => v.baseD.forEach(d => el("path", {d, fill:"url(#rows)", "fill-opacity":.6, "fill-rule":"evenodd"}, gRows)));
   if(SCH){
   // the escarpment: darker toward the top of the slope
   el("path", {d:toPath([[1,Y0],[9,Y0],[9,Y1],[1,Y1]]), fill:"url(#shade)"}, gHill);
@@ -653,7 +713,9 @@ function build(){
   if(!SCH && TOPO) drawTopo(gUnder, gHill, gRoad, gTown, gNames);
   if(!SCH) drawLieux();
   if(!SCH) profDraw();
-  if(!svg._bgClick){ svg._bgClick = true; svg.addEventListener("click", () => { if(!dragMoved && (st.sel||st.vsel)){ st.sel=null; st.vsel=null; renderSide(); paint(); syncHash(); } }); }
+  if(!svg._bgClick){ svg._bgClick = true; svg.addEventListener("click", ev => { if(dragMoved) return;
+    const i = ldAt(ev); if(i >= 0) return selectLd(i, false);
+    if(st.sel||st.vsel||st.ld!=null){ st.sel=null; st.vsel=null; st.ld=null; drawLdSel(); renderSide(); paint(); syncHash(); } }); }
   buildLocator();
   paint();
 }
@@ -707,11 +769,29 @@ function drawTopo(gUnder, gHill, gRoad, gTown, gNames){
   T.names.forEach(([k, n, x0, y0]) => {
     const [x, y] = FWD([x0, y0]);
     if(k === "l" && climatNamed(x, y, bareN(n))) return;
-    const e = el("text", {class:"tn tn-"+k, x:x.toFixed(1), y:y.toFixed(1)}, gNames); e.textContent = n;
+    const e = el("text", {class:"tn tn-"+k, x:x.toFixed(1), y:y.toFixed(1)}, k === "v" ? gNames : nameTile(gNames, x, y)); e.textContent = n;
   });
-  (T.refs || []).forEach(([num, x0, y0]) => { const [x, y] = FWD([x0, y0]); const e = el("text", {class:"tn tn-ref", x:x.toFixed(1), y:y.toFixed(1)}, gNames); e.textContent = num; });
+  (T.refs || []).forEach(([num, x0, y0]) => { const [x, y] = FWD([x0, y0]); const e = el("text", {class:"tn tn-ref", x:x.toFixed(1), y:y.toFixed(1)}, nameTile(gNames, x, y)); e.textContent = num; });
 }
-const climatNamed = (x, y, n) => C.some(c => c.bb && x >= c.bb[0] && x <= c.bb[2] && y >= c.bb[1] && y <= c.bb[3] && bareN(c.n) === n);
+// names go in ~1 km tiles, and tiles away from the view are switched off at each redraw, so zoomed in the browser lays
+// out the few dozen names around the view instead of all ~1,800
+const NTILE = 1000 * GS;
+function nameTile(g, x, y){
+  const i = Math.floor(x/NTILE), j = Math.floor(y/NTILE), key = i + "," + j;
+  g._tiles ||= new Map();
+  let t = g._tiles.get(key); if(!t){ t = el("g", {}, g); t._i = i; t._j = j; g._tiles.set(key, t); }
+  return t;
+}
+function cullNames(){
+  if(!gTopoNames || !gTopoNames._tiles) return;
+  const mx = Math.max(vb.w*.25, NTILE*.5), my = Math.max(vb.h*.25, NTILE*.5);
+  gTopoNames._tiles.forEach(t => { const x0 = t._i*NTILE, y0 = t._j*NTILE;
+    const on = x0 + NTILE > vb.x - mx && x0 < vb.x + vb.w + mx && y0 + NTILE > vb.y - my && y0 < vb.y + vb.h + my;
+    if(t._on !== on){ t._on = on; t.style.display = on ? "" : "none"; } });
+}
+// same name, give or take a plural s (the cadastre's "Les Richebourgs" inside Richebourg)
+const sameName = (a, b) => a === b || a.replace(/s\b/g, "") === b.replace(/s\b/g, "");
+const climatNamed = (x, y, n) => C.some(c => c.bb && x >= c.bb[0] && x <= c.bb[2] && y >= c.bb[1] && y <= c.bb[3] && sameName(bareN(c.n), n));
 const bareN = n => norm(n).replace(/^(les|la|le|aux|au|en|l|a la)\s+/, "");
 // level of detail on the surveyed map: buildings, tracks, small contours and lieux-dits names only when zoomed in
 function topoLod(k){
@@ -844,18 +924,21 @@ function clampVB(v){
 }
 // Two speeds: setVB redraws the svg at a new viewBox (labels, line widths, detail) — expensive with IGN's layers;
 // setVBLive, used while dragging, zooming or flying, only moves and scales the drawing already on screen with a CSS
-// transform (composited, no redraw) and commits the real viewBox once the gesture pauses.
+// transform and commits the real viewBox once the gesture pauses. The transform goes on a plain div around the svg, not
+// on the svg itself: transforming an <svg> makes the browser lay it out and repaint it every frame, a div is just moved
+// by the compositor (on a throttled phone, ~25 ms of main-thread work per frame down to ~2).
 let vbC = null, commitT = 0;
-const baseRect = () => svg.parentNode.getBoundingClientRect(); // the map's frame, unaffected by the live transform
+const mapview = $("mapview");
+const baseRect = () => $("mapcard").getBoundingClientRect(); // the map's frame, unaffected by the live transform
 function setVB(v){
-  clearTimeout(commitT); vb = clampVB(v); vbC = {...vb}; svg.style.transform = "";
+  clearTimeout(commitT); vb = clampVB(v); vbC = {...vb}; mapview.style.transform = "";
   svg.setAttribute("viewBox", `${vb.x.toFixed(1)} ${vb.y.toFixed(1)} ${vb.w.toFixed(1)} ${vb.h.toFixed(1)}`); layoutLabels(); orientSoon(); shadeUpdate();
 }
 function setVBLive(v, delay = 140){
   vb = clampVB(v);
   if(!vbC){ setVB(vb); return; }
   const r = svg.clientWidth / vbC.w, k = vbC.w / vb.w;
-  svg.style.transform = `translate(${((vbC.x - vb.x)*r*k).toFixed(1)}px,${((vbC.y - vb.y)*r*k).toFixed(1)}px) scale(${k.toFixed(5)})`;
+  mapview.style.transform = `translate(${((vbC.x - vb.x)*r*k).toFixed(1)}px,${((vbC.y - vb.y)*r*k).toFixed(1)}px) scale(${k.toFixed(5)})`;
   // the commune pill and locator catch up when the gesture pauses (hit-testing the map every frame is costly)
   clearTimeout(commitT); commitT = setTimeout(() => setVB(vb), delay);
 }
@@ -956,7 +1039,10 @@ function els(){
 }
 function layoutLabels(){
   const k = scale(); if(!isFinite(k) || !k) return;
+  // only labels in (or just around) the view are fitted: the rest are hidden until a later redraw brings them in
+  const mx = vb.w*.3, my = vb.h*.3, vx0 = vb.x-mx, vx1 = vb.x+vb.w+mx, vy0 = vb.y-my, vy1 = vb.y+vb.h+my;
   labEls.forEach(c => {
+    if(c.cx+c.bw/2 < vx0 || c.cx-c.bw/2 > vx1 || c.cy+c.bh/2 < vy0 || c.cy-c.bh/2 > vy1){ if(c.lel.style.display !== "none") c.lel.style.display = "none"; return; }
     const fs0 = c.c==="GC" ? 12 : c.c==="1er" ? 11 : 10.5, wt = c.c==="GC" ? 750 : 600;
     const bw = c.bw*k - 6, bh = c.bh*k - 2;
     let lines = null, fs = fs0;
@@ -996,16 +1082,15 @@ function layoutLabels(){
   tlabEls.forEach(t => { const fs=+t.dataset.fs; t.setAttribute("font-size",(fs/k).toFixed(2)); t.style.display = k>0.45 ? "" : "none"; });
   rlabEls.forEach(t => { const fs=+t.dataset.fs; t.setAttribute("font-size",(fs/k).toFixed(2)); t.style.display = k>0.55 ? "" : "none"; });
   const E = els();
-  E.cl.forEach(p => p.setAttribute("stroke-width", ((p.classList.contains("sel")?2.6:1)/k).toFixed(2)));
   E.w.forEach(e => e.setAttribute("stroke-width", (+e.dataset.w/k).toFixed(2)));
   E.r.forEach(e => e.setAttribute("r", (+e.dataset.r/k).toFixed(2)));
   E.lmx.forEach(e => { const c=e.previousSibling; const cx=+c.getAttribute("cx"), cy=+c.getAttribute("cy"), q=1/k; e.setAttribute("d",`M${cx-2.4*q} ${cy-.6*q}h${4.8*q}M${cx} ${cy-3*q}v${5.2*q}`); });
   E.ch.forEach(e => { if(!e._d) e._d = e.getAttribute("d").match(/-?[\d.]+/g).map(Number); const [x,y]=[e._d[0]+3, e._d[1]], q=1/k; e.setAttribute("d",`M${x-3*q} ${y}h${6*q}M${x} ${y-4*q}v${8*q}`); });
   lmEls.forEach(t => { t.setAttribute("font-size",(+t.dataset.fs/k).toFixed(2)); t.style.display = k>1.1 ? "" : "none"; });
   svg.classList.toggle("near", k>0.9); svg.classList.toggle("far", k<0.5);
-  topoLod(k);
-  E.base.forEach(p => { p.setAttribute("stroke-width",(1/k).toFixed(2)); p.setAttribute("stroke-dasharray",`${(3/k).toFixed(2)} ${(3/k).toFixed(2)}`); });
-  E.mono.forEach(p => { p.setAttribute("stroke-width",(1.3/k).toFixed(2)); p.setAttribute("stroke-dasharray",`${(4/k).toFixed(2)} ${(3/k).toFixed(2)}`); });
+  topoLod(k); cullNames();
+  // (climat outlines, monopole dashes and commune dashes take their widths from the stylesheet, which wins over attributes)
+  E.base.forEach(p => p.setAttribute("stroke-width",(1/k).toFixed(2)));
 }
 
 // a shorter form for tight spots: Saint → St, the Chambertin/Montrachet suffix of the grands crus abbreviated
@@ -1049,13 +1134,13 @@ function focusClimat(c){
   flyTo(fitBox(cx-half, cy-half, cx+half, cy+half, 0));
 }
 function select(id, fly){
-  st.sel = id; st.vsel = null; st.overview = false; st.coteView = null;
+  st.sel = id; st.vsel = null; st.overview = false; st.coteView = null; if(st.ld != null){ st.ld = null; drawLdSel(); }
   const c = CL[id];
   renderSide(); paint(); syncHash(); syncCommunes();
   if(fly) focusClimat(c); else ensureVisible(c);
 }
 function selectVillage(id, fly){
-  st.vsel = id; st.sel = null; st.overview = false; st.coteView = null;
+  st.vsel = id; st.sel = null; st.overview = false; st.coteView = null; if(st.ld != null){ st.ld = null; drawLdSel(); }
   renderSide();
   const v = VIL[id];
   if(fly){
@@ -1074,7 +1159,7 @@ function placeSide(){
 }
 matchMedia("(max-width: 920px)").addEventListener("change", () => { placeSide(); setVB(vb); });
 function setOpen(){
-  const open = !!(st.sel || st.vsel || st.prod || st.overview);
+  const open = !!(st.sel || st.vsel || st.prod || st.overview || (st.ld != null && LDX));
   mapcard.classList.toggle("open", open); side.classList.toggle("open", open);
   if(open) $("hint").classList.add("gone");
   placeSide();
@@ -1111,7 +1196,9 @@ function cellarHtml(list){
 function renderSide(){
   const close = `<button class="close" id="sideClose" aria-label="${t("Close")}">×</button>`;
   if(!setOpen()){ side.innerHTML = ""; renderPeek(); return; }
-  if(st.sel){
+  if(st.ld != null && LDX){
+    side.innerHTML = close + ldHtml(st.ld);
+  } else if(st.sel){
     const c = CL[st.sel];
     side.innerHTML = `${close}<div class="pills"><span class="pill ${c.c==="1er"?"p1er":c.c}">${CLASS_NAME[c.c]}</span>${c.mono?`<span class="pill mono">${t("Monopole")}</span>`:""}${c.x ? "" : `<span class="pill">${COL_NAME[c.col]||"Red"}</span>`}</div>
       <h2>${esc(c.n)}</h2>
@@ -1190,11 +1277,12 @@ function renderSide(){
       <h3>${t("Start with")}</h3><div class="qp">${picks.map(id=>`<button data-c="${id}">${esc(CL[id].n)}</button>`).join("")}</div>`;
   }
   side.querySelectorAll("[data-c]").forEach(b => b.onclick = ev => { ev.stopPropagation(); select(b.dataset.c, true); });
+  side.querySelectorAll("[data-ld]").forEach(b => b.onclick = ev => { ev.stopPropagation(); selectLd(+b.dataset.ld, true); });
   side.querySelectorAll("[data-vy]").forEach(b => b.onclick = ev => { ev.stopPropagation(); showVintage(b.dataset.vy); });
   side.querySelectorAll("[data-vstep]").forEach(b => b.onclick = ev => { ev.stopPropagation(); stepVintage(+b.dataset.vstep); });
   side.querySelectorAll("[data-p]").forEach(b => b.onclick = () => setProducer(b.dataset.p, true));
   side.querySelectorAll("[data-v]").forEach(b => b.onclick = () => selectVillage(b.dataset.v, true));
-  const cl = $("sideClose"); if(cl) cl.onclick = () => { st.sel=null; st.vsel=null; st.overview=false; if(st.prod) setProducer(null); else { renderSide(); paint(); syncHash(); syncCommunes(); } };
+  const cl = $("sideClose"); if(cl) cl.onclick = () => { st.sel=null; st.vsel=null; st.overview=false; if(st.ld != null){ st.ld = null; drawLdSel(); } if(st.prod) setProducer(null); else { renderSide(); paint(); syncHash(); syncCommunes(); } };
   const cp = $("clearProd"); if(cp) cp.onclick = () => setProducer(null);
   if(st.sel) wireEdit(CL[st.sel]);
   const cw = $("cmpWith"); if(cw) cw.onclick = () => compareWith(st.sel);
@@ -1446,7 +1534,7 @@ function detailHtml(c){
 // lieux-dits inside the climat: the cadastre's when loaded (every one, by name), else the atlas's own short list
 function ldList(c, d){
   const cad = lieuxIn(c);
-  if(cad && cad.length) return `<h3>${t("Lieux-dits within")}</h3><p class="note">${cad.map(esc).join(" · ")}</p><p class="note ldsrc">${t("From the cadastre: every lieu-dit whose centre lies within this climat.")}</p>`;
+  if(cad && cad.length) return `<h3>${t("Lieux-dits within")}</h3><div class="qp small">${cad.map(i => `<button data-ld="${i}">${esc(LDX.ld[i][1])}</button>`).join("")}</div><p class="note ldsrc">${t("From the cadastre: every lieu-dit whose centre lies within this climat.")}</p>`;
   return (d.sub||[]).length ? `<h3>${t("Lieux-dits within")}</h3><p class="note">${(txD(c, "sub") || d.sub).map(esc).join(" · ")}</p>` : "";
 }
 /* ---------- compare two producers ---------- */
@@ -1620,8 +1708,11 @@ let PROD_SUFFIX = " · producer";
 function fillSearchList(){
   PROD_SUFFIX = " · " + t("producer");
   $("searchList").innerHTML = [...C].sort((a,b)=>a.n.localeCompare(b.n,"fr")).map(c => `<option value="${esc(c.n)} — ${esc(c.vil.n)}">`).join("")
-    + Object.values(PROD).sort((a,b)=>a.name.localeCompare(b.name,"fr")).map(r => `<option value="${esc(r.name + PROD_SUFFIX)}">`).join("");
+    + Object.values(PROD).sort((a,b)=>a.name.localeCompare(b.name,"fr")).map(r => `<option value="${esc(r.name + PROD_SUFFIX)}">`).join("")
+    + (LDX ? LDX.ld.map((l, i) => [ldLabel(i), i]).sort((a,b) => a[0].localeCompare(b[0],"fr")).map(([s]) => `<option value="${esc(s)}">`).join("") : "");
 }
+// "Les Crais — Gevrey-Chambertin · lieu-dit": the search box's entry for a lieu-dit
+const ldLabel = i => `${LDX.ld[i][1]} — ${LDX.meta.communes[LDX.ld[i][0]] || ""} · ${t("lieu-dit")}`;
 fillSearchList();
 $("producerList").innerHTML = Object.values(PROD).sort((a,b)=>a.name.localeCompare(b.name,"fr")).map(r => `<option value="${esc(r.name)}">`).join("");
 $("allProducers").innerHTML = Object.values(P).sort((a,b)=>a.localeCompare(b,"fr")).map(n => `<option value="${esc(n)}">`).join("");
@@ -1631,6 +1722,8 @@ $("fSearch").addEventListener("input", ev => {
   const val = ev.target.value;
   const exact = C.find(c => `${c.n} — ${c.vil.n}` === val);
   if(exact){ st.q = ""; ev.target.value = ""; select(exact.id, true); return; }
+  if(LDX && val.endsWith(" · " + t("lieu-dit"))){ const i = LDX.ld.findIndex((l, k) => ldLabel(k) === val);
+    if(i >= 0){ st.q = ""; ev.target.value = ""; selectLd(i, true); return; } }
   if(val.endsWith(PROD_SUFFIX)){ const key = prodByName[norm(val.slice(0, -PROD_SUFFIX.length))];
     if(key){ st.q = ""; ev.target.value = ""; setProducer(key, true); return; } }
   st.q = norm(val); paint();
@@ -1638,7 +1731,10 @@ $("fSearch").addEventListener("input", ev => {
 $("fSearch").addEventListener("keydown", ev => {
   if(ev.key!=="Enter") return;
   const hit = C.filter(c => c.on).sort((a,b) => (norm(a.n).startsWith(st.q)?0:1)-(norm(b.n).startsWith(st.q)?0:1) || CORD[a.c]-CORD[b.c])[0];
-  if(hit) select(hit.id, true);
+  if(hit) return select(hit.id, true);
+  // no vineyard matches: a lieu-dit of that name, if there is one
+  if(LDX && st.q){ const i = LDX.ld.findIndex(l => norm(l[1]) === st.q); const j = i >= 0 ? i : LDX.ld.findIndex(l => norm(l[1]).includes(st.q));
+    if(j >= 0){ ev.target.value = ""; st.q = ""; paint(); selectLd(j, true); } }
 });
 $("prodChip").onclick = () => setProducer(null);
 $("fColor").onchange = ev => { st.color = ev.target.value; paint(); syncHash(); };
@@ -1726,6 +1822,20 @@ if(GEO){
   });
 }
 $("cellarChip").onclick = () => { st.cellarOnly = !st.cellarOnly; paint(); };
+// the map fills the window below the toolbar (the explore tabs follow on scroll)
+function fitMap(){
+  const top = mapcard.getBoundingClientRect().top + scrollY, vh = window.innerHeight;
+  mapcard.style.height = Math.max(360, Math.round(vh - top - (vh < 700 ? 8 : 14))) + "px";
+}
+$("tbToggle").onclick = () => { const open = !$("tbMore").classList.contains("open");
+  $("tbMore").classList.toggle("open", open); $("tbToggle").setAttribute("aria-expanded", open); fitMap(); };
+$("moreBtn").onclick = () => { const m = $("moreMenu"); m.hidden = !m.hidden; $("moreBtn").setAttribute("aria-expanded", !m.hidden);
+  m.style.top = $("moreBtn").offsetTop + "px"; }; // level with ⋯, opening to its left
+// phones: the legend folds to its title, tap to open
+if(matchMedia("(max-width: 600px)").matches) $("legend").classList.add("min");
+$("legend").addEventListener("click", ev => { if(ev.target.closest(".lt") && matchMedia("(max-width: 600px)").matches) $("legend").classList.toggle("min"); });
+addEventListener("resize", fitMap);
+fitMap(); requestAnimationFrame(fitMap);
 $("reset").onclick = () => {
   st.terr = {asp:new Set(), altMin:null, altMax:null, slope:null, size:null}; $("terrbar").hidden = true; terrSync();
   Object.assign(st, {cls:new Set(["GC","1er","V"]), mono:false, wc:"", cellarOnly:false, q:"", prod:null, color:"class", sel:null, vsel:null, overview:false});
@@ -1733,6 +1843,9 @@ $("reset").onclick = () => {
   renderSide(); paint(); syncHash(); syncCommunes(); focusDefault();
 };
 function syncChips(){
+  // phones: how many filters are set, on the folded Filters button
+  const n = (st.cls.size < 3 ? 1 : 0) + (st.mono ? 1 : 0) + (st.wc ? 1 : 0) + (st.cellarOnly ? 1 : 0) + (terrActive() ? 1 : 0) + (st.color !== "class" ? 1 : 0);
+  $("tbCount").textContent = n || "";
   $("classChips").querySelectorAll("[data-cls]").forEach(b => b.classList.toggle("on", st.cls.has(b.dataset.cls)));
   $("monoChip").classList.toggle("on", st.mono);
   $("wineSeg").querySelectorAll("[data-wc]").forEach(b => b.classList.toggle("on", b.dataset.wc===st.wc));
@@ -1873,7 +1986,7 @@ if(window.I18N) window.I18N.onChange(() => {
 /* ---------- hash (shareable state) ---------- */
 let lastHash = location.hash;
 function syncHash(){
-  const h = st.sel ? "c="+st.sel : st.vsel ? "v="+st.vsel : "";
+  const h = st.ld != null && LDX ? "l="+ldKey(st.ld) : st.sel ? "c="+st.sel : st.vsel ? "v="+st.vsel : "";
   const p = st.prod ? (h?"&":"")+"p="+st.prod : "";
   const col = st.color!=="class" && st.color!=="producer" ? ((h||p)?"&":"")+"color="+st.color+(st.color==="vintage" ? "&y="+st.vy : "") : "";
   const next = (h||p||col) ? "#"+h+p+col : "";
@@ -1890,7 +2003,15 @@ function readHash(){
   if(q.get("p") && P[q.get("p")] && PROD[q.get("p")]){ st.prod=q.get("p"); renderProdChip(); st.color="producer"; $("fColor").value="producer"; }
   if(q.get("c") && CL[q.get("c")]) { st.sel=q.get("c"); return () => focusClimat(CL[st.sel]); }
   if(q.get("v") && VIL[q.get("v")]) { st.vsel=q.get("v"); return () => selectVillage(st.vsel, true); }
+  if(q.get("l")) { ldPending = q.get("l"); return () => resolveLdPending(); }
   return null;
+}
+// a lieu-dit link (#l=insee:x:y) waits for burgundy-lieuxdits.js to arrive
+let ldPending = null;
+function resolveLdPending(){
+  if(!ldPending) return; if(!LDX){ focusDefault(); return; }
+  const i = LDX.ld.findIndex((l, k) => ldKey(k) === ldPending); ldPending = null;
+  if(i >= 0) selectLd(i, true); else focusDefault();
 }
 function focusDefault(){ // Vosne and Flagey's grands crus
   const b = bbUnion([VIL.flagey.bb, VIL.vosne.bb].filter(Boolean)); if(b) flyTo(fitBox(...b, .02), 0);
@@ -1967,7 +2088,7 @@ async function loadCellar(){
 function applyHash(){ // Back/Forward, or a hand-edited URL
   if(location.hash===lastHash) return;
   lastHash = location.hash;
-  st.sel = null; st.vsel = null; st.prod = null; st.overview = false; renderProdChip();
+  st.sel = null; st.vsel = null; st.prod = null; st.overview = false; st.ld = null; drawLdSel(); renderProdChip();
   st.color = "class"; $("fColor").value = "class"; // the URL says which colour, if any
   const fly = readHash();
   renderSide(); paint(); syncCommunes();
@@ -1979,7 +2100,7 @@ addEventListener("hashchange", applyHash);
 document.addEventListener("keydown", e => {
   if(e.target.closest && e.target.closest("input,select,textarea")) return;
   if(e.key==="[" || e.key==="]"){ if(st.mode==="geo") rotateBy(e.key==="]" ? 15 : -15); return; }
-  if(e.key==="Escape" && (st.sel||st.vsel||st.prod||st.overview)){ st.sel=null; st.vsel=null; st.overview=false; if(st.prod) setProducer(null); else { renderSide(); paint(); syncHash(); syncCommunes(); } }
+  if(e.key==="Escape" && (st.sel||st.vsel||st.prod||st.overview||st.ld!=null)){ st.sel=null; st.vsel=null; st.overview=false; if(st.ld!=null){ st.ld=null; drawLdSel(); } if(st.prod) setProducer(null); else { renderSide(); paint(); syncHash(); syncCommunes(); } }
   else if(e.key==="+"||e.key==="=") $("zIn").click();
   else if(e.key==="-"||e.key==="_") $("zOut").click();
 });
@@ -1987,7 +2108,8 @@ document.addEventListener("keydown", e => {
 function renderPeek(){
   const pk = $("peek"); if(!pk) return;
   let html = "";
-  if(st.sel){ const c = CL[st.sel]; html = `<b>${esc(c.n)}</b><span>${CLASS_NAME[c.c]} · ${fmtHa(c.ha)} ha${c.mono?" · monopole":c.p.length?` · ${t("Owners")}: ${c.p.length}`:""}</span>`; }
+  if(st.ld != null && LDX){ const l = LDX.ld[st.ld], cs = ldClimats(st.ld); html = `<b>${esc(l[1])}</b><span>${t("Lieu-dit")} · ${esc(LDX.meta.communes[l[0]] || "")}${cs.length ? " · " + esc(cs[0].n) : ""}</span>`; }
+  else if(st.sel){ const c = CL[st.sel]; html = `<b>${esc(c.n)}</b><span>${CLASS_NAME[c.c]} · ${fmtHa(c.ha)} ha${c.mono?" · monopole":c.p.length?` · ${t("Owners")}: ${c.p.length}`:""}</span>`; }
   else if(st.prod){ const r = PROD[st.prod]; html = `<b>${esc(r.name)}</b><span>${r.n} ${t("climats")} · ${r.gc} ${t("grands crus")}</span>`; }
   else if(st.vsel){ const v = VIL[st.vsel]; html = `<b>${esc(v.n)}</b><span>${esc(txV(v, "aoc").split(" · ").slice(1).join(" · "))}</span>`; }
   pk.hidden = !html;
