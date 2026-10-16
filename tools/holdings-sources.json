@@ -1,0 +1,7 @@
+{
+  "lb_comte": {
+    "pages": ["https://www.liger-belair.fr/en/our-climats/"],
+    "note": "Checked 2026-10. The page tells each climat's story and names its neighbours; GE and Croix Rameau (leased from 2022) aren't on it yet.",
+    "ignore": ["boudots", "latache", "reas", "murgers", "lavieres", "violettes", "chalandins", "barreaux", "beauxmonts", "crosparantoux", "combebrulee", "romaneeconti", "x_chassagne_vigne_blanche", "closstdenis", "rsv", "grandsechezeaux", "croixrameau"]
+  }
+}
