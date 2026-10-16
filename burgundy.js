@@ -642,6 +642,7 @@ function build(){
   gTopoNames = gNames; gEvents = gEvt; gLd = gLdL; svg.classList.remove("has-ld");
   gView.insertBefore(gShade, gHill); // relief shading multiplies over the climat colours, under contours and roads
   PROF.g = el("g", {class:"prof", "pointer-events":"none"}, gView); climatIndex = null;
+  gMe = el("g", {"pointer-events":"none"}, gView);
   V.forEach(v => v.baseD.forEach(d => el("path", {d, fill:"url(#rows)", "fill-opacity":.6, "fill-rule":"evenodd"}, gRows)));
   if(SCH){
   // the escarpment: darker toward the top of the slope
@@ -714,7 +715,7 @@ function build(){
   });
   if(!SCH && TOPO) drawTopo(gUnder, gHill, gRoad, gTown, gNames);
   if(!SCH) drawLieux();
-  if(!SCH) profDraw();
+  if(!SCH){ profDraw(); drawMe(); }
   if(!svg._bgClick){ svg._bgClick = true; svg.addEventListener("click", ev => { if(dragMoved) return;
     const i = ldAt(ev); if(i >= 0) return selectLd(i, false);
     if(st.sel||st.vsel||st.ld!=null){ st.sel=null; st.vsel=null; st.ld=null; drawLdSel(); renderSide(); paint(); syncHash(); } }); }
@@ -1090,7 +1091,7 @@ function layoutLabels(){
   E.ch.forEach(e => { if(!e._d) e._d = e.getAttribute("d").match(/-?[\d.]+/g).map(Number); const [x,y]=[e._d[0]+3, e._d[1]], q=1/k; e.setAttribute("d",`M${x-3*q} ${y}h${6*q}M${x} ${y-4*q}v${8*q}`); });
   lmEls.forEach(t => { t.setAttribute("font-size",(+t.dataset.fs/k).toFixed(2)); t.style.display = k>1.1 ? "" : "none"; });
   svg.classList.toggle("near", k>0.9); svg.classList.toggle("far", k<0.5);
-  topoLod(k); cullNames();
+  topoLod(k); cullNames(); if(st.me) drawMe();
   // (climat outlines, monopole dashes and commune dashes take their widths from the stylesheet, which wins over attributes)
   E.base.forEach(p => p.setAttribute("stroke-width",(1/k).toFixed(2)));
 }
@@ -1248,7 +1249,7 @@ function renderSide(){
         <td class="n">${kind==="s"?"":ha!=null?`<b>${fmtHa(ha)}</b> ha`:t("holder")}</td><td class="n">${ha!=null&&kind!=="s"?Math.round(100*ha/c.ha)+"%":""}</td></tr>`).join("")}</table>
       ${(pf.extra||[]).length?`<h3>${t("Not on this map")}</h3><table class="own">${pf.extra.map(([n,h,kind],i)=>`<tr><td>${esc((pextra||[])[i] || n)}${kind?` <span class="ktag ${kind}">${KIND[kind]}</span>`:""}</td><td class="n">${h!=null?`<b>${fmtHa(h)}</b> ha`:""}</td></tr>`).join("")}</table>`:""}
       ${(pf.src||[]).length?`<h3>${t("Sources")}</h3><p class="note">${pf.src.map(u=>`<a href="${esc(u)}" target="_blank" rel="noopener">${esc(host(u))}</a>`).join(" · ")}</p>`:""}
-      <p style="margin-top:12px"><button class="btn" id="clearProd">${t("Clear producer")}</button></p>`;
+      <p style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"><a class="btn" href="domaine.html?p=${encodeURIComponent(r.key)}">${t("Domaine page")} ↗</a><button class="btn" id="clearProd">${t("Clear producer")}</button></p>`;
   } else if(st.vsel){
     const v = VIL[st.vsel];
     const mine = C.filter(c => c.v===v.id && !c.inner);
@@ -1762,9 +1763,39 @@ const hilite = (name, q) => { const qs = norm(q).split(" ").filter(Boolean);
     return `<mark>${esc(w.slice(0, hit.length))}</mark>${esc(w.slice(hit.length))}`; }).join(""); };
 let sHits = [], sActive = -1;
 const sBox = $("fSearch"), sRes = $("sResults");
+// with the box empty: "Near me" and the last few things picked (kept in this browser only)
+const RECENT_KEY = "atlasRecent", RECENT_MAX = 6;
+const recentGet = () => { try{ return JSON.parse(localStorage.getItem(RECENT_KEY) || "[]"); }catch(e){ return []; } };
+function recentAdd(e){
+  if(e.k === "me") return;
+  // lieux-dits are stored by their stable key, not their index in the file
+  const r = {k:e.k, id:e.k==="l" ? ldKey(e.id) : e.id, name:e.name, sub:e.sub};
+  const list = [r, ...recentGet().filter(x => !(x.k===r.k && x.id===r.id))].slice(0, RECENT_MAX);
+  try{ localStorage.setItem(RECENT_KEY, JSON.stringify(list)); }catch(err){}
+}
+function recentHits(){
+  return recentGet().map(r => {
+    if(r.k==="v" && VIL[r.id]) return {...r, recent:true};
+    if(r.k==="c" && CL[r.id]) return {...r, recent:true};
+    if(r.k==="p" && PROD[r.id]) return {...r, recent:true};
+    if(r.k==="l" && LDX){ const i = LDX.ld.findIndex((l, k) => ldKey(k) === r.id); if(i >= 0) return {...r, id:i, recent:true}; }
+    return null;
+  }).filter(Boolean);
+}
+const canLocate = () => !!(GEO && navigator.geolocation);
 function renderResults(){
   const q = sBox.value.trim();
-  if(!q){ sRes.hidden = true; sBox.setAttribute("aria-expanded", "false"); return; }
+  if(!q){
+    const rec = recentHits();
+    sHits = [...(canLocate() ? [{k:"me", name:t("Near me"), sub:t("Your location")}] : []), ...rec];
+    if(!sHits.length){ closeResults(); return; }
+    sActive = -1;
+    sRes.innerHTML = sHits.map((e, i) => (e.k==="me" ? "" : i===0 || sHits[i-1].k==="me" ? `<div class="sg" role="presentation">${t("Recent")}<button type="button" class="sclr" id="recentClear">${t("Clear")}</button></div>` : "")
+      + `<div class="si${e.k==="me"?" me":""}" role="option" id="sr${i}" data-i="${i}" aria-selected="false">${e.k==="me" ? `<span class="pin" aria-hidden="true">◉</span>` : ""}<b>${esc(e.name)}</b><span class="ss">${esc(e.sub)}</span></div>`).join("");
+    sRes.hidden = false; sBox.setAttribute("aria-expanded", "true"); sBox.setAttribute("aria-activedescendant", "");
+    const rc = $("recentClear"); if(rc) rc.onclick = ev => { ev.stopPropagation(); try{ localStorage.removeItem(RECENT_KEY); }catch(e){} renderResults(); };
+    return;
+  }
   sHits = searchHits(q); sActive = sHits.length ? 0 : -1;
   const KN = KIND_NAME(); let last = "";
   sRes.innerHTML = sHits.length ? sHits.map((e, i) => {
@@ -1783,7 +1814,8 @@ function moveActive(d){
 }
 function closeResults(){ sRes.hidden = true; sBox.setAttribute("aria-expanded", "false"); }
 function pickResult(e){
-  sBox.value = ""; st.q = ""; closeResults(); sBox.blur();
+  sBox.value = ""; st.q = ""; closeResults(); sBox.blur(); recentAdd(e);
+  if(e.k==="me") return locateMe();
   if(e.k==="v") selectVillage(e.id, true);
   else if(e.k==="c") select(e.id, true);
   else if(e.k==="p") setProducer(e.id, true);
@@ -1791,9 +1823,9 @@ function pickResult(e){
   paint();
 }
 sBox.addEventListener("input", () => { st.q = norm(sBox.value); renderResults(); paint(); });
-sBox.addEventListener("focus", () => { if(sBox.value.trim()) renderResults(); });
+sBox.addEventListener("focus", renderResults);
 sBox.addEventListener("keydown", ev => {
-  if(ev.key==="ArrowDown"){ ev.preventDefault(); if(sRes.hidden) renderResults(); else moveActive(1); }
+  if(ev.key==="ArrowDown"){ ev.preventDefault(); if(sRes.hidden) renderResults(); moveActive(1); }
   else if(ev.key==="ArrowUp"){ ev.preventDefault(); moveActive(-1); }
   else if(ev.key==="Enter"){ ev.preventDefault(); if(sRes.hidden) renderResults(); if(sHits[sActive]) pickResult(sHits[sActive]); }
   else if(ev.key==="Escape"){ if(!sRes.hidden) closeResults(); else { sBox.value = ""; st.q = ""; paint(); } }
@@ -1801,6 +1833,43 @@ sBox.addEventListener("keydown", ev => {
 sRes.addEventListener("mousedown", ev => ev.preventDefault()); // keep focus in the box while clicking a result
 sRes.addEventListener("click", ev => { const el = ev.target.closest(".si"); if(el) pickResult(sHits[+el.dataset.i]); });
 document.addEventListener("pointerdown", ev => { if(!ev.target.closest(".sbox")) closeResults(); });
+/* ---------- near me: the phone's position on the surveyed map, and the vineyard you're standing in ---------- */
+st.me = null; // {m:[E,N] metres, acc: metres}
+function locateMe(){
+  if(!canLocate()) return;
+  if(st.mode !== "geo"){ const b = $("layers").querySelector('[data-m="geo"]'); if(b) b.click(); }
+  toast(t("Finding you…"));
+  navigator.geolocation.getCurrentPosition(pos => {
+    const [LON0, LAT0] = GEO.meta.origin, R = 6371000, d2r = Math.PI/180, KX = d2r*R*Math.cos(LAT0*d2r), KY = d2r*R;
+    const m = [(pos.coords.longitude - LON0)*KX, (pos.coords.latitude - LAT0)*KY], acc = Math.min(2000, pos.coords.accuracy || 50);
+    // far from the Côte: say how far, and don't move the map to an empty corner
+    const outlines = Object.values(GEO.villages).flatMap(mp => mp.flatMap(p => p[0]));
+    let near = Infinity; for(const [x, y] of outlines){ const d = Math.hypot(x - m[0], y - m[1]); if(d < near) near = d; }
+    if(near > 3000){ st.me = null; drawMe(); return toast(t("You're about {0} km from the nearest vineyard on this map.", Math.round(near/1000).toLocaleString())); }
+    st.me = {m, acc}; drawMe();
+    // the climat you're standing in; an enclave (a clos inside a climat) before the climat around it
+    const c = C.filter(c => GEO.climats[c.id] && inMP(m[0], m[1], GEO.climats[c.id])).sort((a,b) => (b.inner?1:0)-(a.inner?1:0))[0];
+    const q = FWD(m), r = Math.max(acc, 250) * GS * 2.2;
+    if(c){ st.sel = c.id; st.vsel = null; st.ld = null; drawLdSel(); renderSide(); paint(); syncHash(); syncCommunes(); toast(t("You're in {0}.", c.n)); }
+    else { const i = LDX ? LDX.ld.findIndex(l => { ldGeom(l); return m[0] >= l._bb[0] && m[0] <= l._bb[2] && m[1] >= l._bb[1] && m[1] <= l._bb[3] && inPoly(m[0], m[1], l._r); }) : -1;
+      if(i >= 0){ st.ld = i; st.sel = null; st.vsel = null; renderSide(); paint(); drawLdSel(); syncHash(); toast(t("You're in {0}.", LDX.ld[i][1])); }
+      else toast(t("You're here — not inside a named vineyard.")); }
+    flyTo(fitBox(q[0] - r, q[1] - r, q[0] + r, q[1] + r, 0));
+  }, err => toast(err.code === 1 ? t("Location is turned off for this site.") : t("Couldn't find your location.")), {enableHighAccuracy:true, timeout:12000, maximumAge:30000});
+}
+let gMe = null;
+function drawMe(){
+  if(!gMe) return; gMe.innerHTML = "";
+  if(!st.me || !FWD || st.mode !== "geo") return;
+  const [x, y] = FWD(st.me.m), k = scale() || 1;
+  el("circle", {cx:x.toFixed(1), cy:y.toFixed(1), r:(st.me.acc*GS).toFixed(1), class:"me-acc"}, gMe);
+  el("circle", {cx:x.toFixed(1), cy:y.toFixed(1), r:(7/k).toFixed(2), class:"me-dot"}, gMe); // 7 px whatever the zoom
+}
+// a short message over the map, gone after a few seconds
+function toast(msg){
+  let el2 = $("toast"); if(!el2){ el2 = document.createElement("div"); el2.id = "toast"; el2.className = "toast"; el2.setAttribute("role", "status"); mapcard.appendChild(el2); }
+  el2.textContent = msg; el2.classList.add("on"); clearTimeout(toast.t); toast.t = setTimeout(() => el2.classList.remove("on"), 4200);
+}
 // the Domaines list follows the search; its chip clears it
 $("dQuery").onclick = () => { sBox.value = ""; st.q = ""; closeResults(); paint(); };
 $("prodChip").onclick = () => setProducer(null);

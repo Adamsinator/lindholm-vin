@@ -246,6 +246,22 @@ grands crus** (one bar per grand cru, split by owner). Grands crus and key
 premiers crus also show their altitude band, which way they face, soil, and the
 lieux-dits within them.
 
+**Search.** One box finds communes, vineyards, domaines and lieux-dits. Each word you type must start a word
+of the name ("gr rue" → La Grande Rue). The same rule filters the map and the Domaines list. With the box
+empty, it offers **Near me** and your recent picks. Recent picks are kept in this browser only. Near me uses
+the phone's location to put a blue dot on the surveyed map and open the vineyard you're standing in. If you're
+more than 3 km from the nearest vineyard, it only says how far away that is.
+
+**Domaine pages.** `domaine.html?p=<key>` is a shareable page for one domaine:
+- its holdings, numbered, with hectares, share of each climat, leased or bought, and since when;
+- hectares by class;
+- its communes;
+- small surveyed maps, one for each stretch of the Côte it holds in, numbered like the table;
+- sources.
+
+It assembles holdings exactly as the atlas does, including INAO's extra premiers crus and the shared
+corrections. `domaine.html` alone lists every domaine, and the atlas's producer panel links to each page.
+
 ### Correcting a holding
 
 Holdings drift: parcels get bought, swapped and leased. Anyone logged in to the

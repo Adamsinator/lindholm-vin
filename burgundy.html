@@ -87,6 +87,14 @@ header.top .ttl{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,H
 .sres .si.on,.sres .si:hover{background:var(--chip)}
 .sres .sn{padding:12px 14px;color:var(--muted);font-size:13px}
 .qchip{max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sres .sg{display:flex;align-items:center} .sres .sclr{margin-left:auto;border:0;background:none;color:var(--muted);font:inherit;font-size:11px;text-transform:none;letter-spacing:0;cursor:pointer;padding:2px 4px}
+.sres .si.me b{color:var(--accent)} .sres .pin{color:var(--accent);flex:none}
+/* near me: a blue dot and its accuracy ring */
+.me-acc{fill:#2F7DE1;fill-opacity:.12;stroke:#2F7DE1;stroke-opacity:.5;stroke-width:1;vector-effect:non-scaling-stroke}
+.me-dot{fill:#2F7DE1;stroke:#fff;stroke-width:2.5;vector-effect:non-scaling-stroke}
+.toast{position:absolute;left:50%;bottom:58px;transform:translateX(-50%) translateY(6px);background:var(--ink);color:var(--bg);border-radius:20px;padding:7px 14px;
+  font-size:13px;max-width:calc(100% - 40px);text-align:center;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;z-index:8}
+.toast.on{opacity:.94;transform:translateX(-50%)}
 #fCommune{width:140px} #fColor{width:164px}
 @media(max-width:1500px) and (min-width:601px){.chip{padding:4px 10px} .seg button{padding:0 10px} .toolbar{gap:6px}}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;height:36px;background:var(--card)}
@@ -104,6 +112,7 @@ header.top .ttl{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,H
 .btn{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;
   padding:8px 12px;font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit}
 .btn:hover{border-color:var(--accent)}
+a.btn{text-decoration:none;display:inline-flex;align-items:center}
 .btn.quiet{border-color:transparent;background:none;color:var(--muted);font-weight:500}
 #reset{padding:4px 8px;font-size:18px;line-height:1}
 input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
@@ -114,7 +123,7 @@ input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible,[t
 .tbtoggle[aria-expanded="true"]{border-color:var(--ink)}
 @media(max-width:600px){
   .toolbar{gap:6px;margin-bottom:8px}
-  .sbox{flex:1 1 auto;max-width:none} #fSearch{font-size:16px;height:40px}   /* 16px: no zoom-on-focus in iOS */
+  .sbox{flex:1 1 0;min-width:0;max-width:none} #fSearch{font-size:16px;height:40px}   /* 16px: no zoom-on-focus in iOS */
   .sres{width:calc(100vw - 24px);max-height:58svh} .sres .si{min-height:42px}
   .tbtoggle{display:inline-flex;height:40px}
   .tbmore{display:none;width:100%;flex-wrap:wrap;gap:6px;padding:8px 0 2px}
@@ -472,7 +481,7 @@ footer.fine{margin-top:14px;font-size:12px;color:var(--muted);max-width:110ch;li
 <div class="wrap">
 <header class="top">
   <h1><a href="./">All<em>Wine</em></a><span class="ttl" data-i18n>Burgundy atlas</span></h1>
-  <div class="hright"><div data-langpick></div><a class="back" href="./" data-i18n>← AllWine</a></div>
+  <div class="hright"><div data-langpick></div><a class="back" href="domaine.html" data-i18n>Domaines</a><a class="back" href="./" data-i18n>← AllWine</a></div>
 </header>
 
 <main id="main">
@@ -578,7 +587,7 @@ footer.fine{margin-top:14px;font-size:12px;color:var(--muted);max-width:110ch;li
       <button type="button" class="chip on qchip" id="dQuery" hidden title="Clear the search" data-i18n-title></button>
       <div class="feedtabs" id="dtabs"><button class="ftog on" data-t="all" data-i18n>All</button><button class="ftog" data-t="north">Gevrey · Morey · Chambolle</button><button class="ftog" data-t="vosne">Vosne · Nuits</button><button class="ftog" data-t="beaune">Côte de Beaune</button></div>
       <select id="dSort" aria-label="Sort domaines" data-i18n-aria><option value="ha" data-i18n>Most hectares</option><option value="gc" data-i18n>Most grands crus</option><option value="n" data-i18n>Most climats</option><option value="az" data-i18n>A–Z</option></select>
-      <span class="ph" id="dCount"></span>
+      <span class="ph" id="dCount"></span><a class="back" href="domaine.html" data-i18n>All domaines ↗</a>
     </div>
     <p class="ph" data-i18n>Hectares held, grands crus and monopoles · click a domaine to map everything it owns, leases or buys</p>
     <div class="dgrid" id="domains"></div>
@@ -617,7 +626,7 @@ footer.fine{margin-top:14px;font-size:12px;color:var(--muted);max-width:110ch;li
 </footer>
 </div>
 <div id="tip" aria-hidden="true"></div>
-<script src="i18n.js?v=11"></script>
+<script src="i18n.js?v=12"></script>
 <script src="burgundy-i18n-da.js?v=2"></script>
 <script src="burgundy-i18n-fr.js?v=2"></script>
 <script src="burgundy-data.js?v=8"></script>
@@ -629,6 +638,6 @@ footer.fine{margin-top:14px;font-size:12px;color:var(--muted);max-width:110ch;li
 <script src="burgundy-vintages.js?v=4"></script>
 <script src="burgundy-geol.js?v=1"></script>
 <script src="burgundy-history.js?v=2"></script>
-<script src="burgundy.js?v=28"></script>
+<script src="burgundy.js?v=29"></script>
 </body>
 </html>
