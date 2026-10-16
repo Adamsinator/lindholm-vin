@@ -2155,40 +2155,8 @@ function focusDefault(){ // Vosne and Flagey's grands crus
 
 /* ---------- cellar overlay (only if you're logged in to the cellar in this browser) ---------- */
 const CELLAR = {loaded:false, by:{}, village:{}, msg:"Log in on the Cellar page to see your own bottles here.", args:[]};
-const VILLAGE_KEYS = V.map(v => [v.id, norm(v.n.split(" · ")[0])]).concat([["flagey","flagey echezeaux"],["nuits","nuits saint georges"],["premeaux","premeaux prissey"],["cdnv","cote de nuits villages"],
-  ["corton","aloxe corton"],["corton","pernand vergelesses"],["corton","ladoix"],["monthelie","auxey duresses"],["monthelie","monthelie"],["meursault","volnay santenots"]]);
-const STRIP = ["gevrey chambertin","chambolle musigny","vosne romanee","morey saint denis","nuits saint georges","flagey echezeaux","premeaux prissey",
-  "puligny montrachet","chassagne montrachet","aloxe corton","pernand vergelesses","savigny les beaune","chorey les beaune","auxey duresses","saint aubin"];
-const ARTICLE = /^(les|la|le|aux|au|en|l)\s+/;
-const STRIP_RE = STRIP.map(t => new RegExp(`(?<= )${t}(?= )`, "g"));
-const ALIASES = C.map(c => {
-  const full = norm(c.n), a = [full];
-  if(c.c!=="GC"){ const s = full.replace(ARTICLE,""); if(s!==full && s.length>=5) a.push(s); }
-  if(c.id==="closvougeot") a.push("clos vougeot");
-  if(c.id==="montrachet") a.push("montrachet");
-  if(c.c==="GC" && /^corton /.test(full)) a.push(full.replace(/^corton (les |le |la )?/, "corton "));
-  if(c.id==="beze") a.push("clos de beze","chambertin clos de beze");
-  if(c.id==="closstjacques") a.push("clos saint jacques");
-  if(c.id==="laromanee") a.splice(0, a.length, "la romanee");
-  return {c, a};
-});
-function matchWine(w){
-  const commune = norm(w.commune), name = norm(w.name), all = " "+name+" "+commune+" ";
-  let stripped = all; STRIP_RE.forEach(re => stripped = stripped.replace(re, "")); // lookarounds: back-to-back repeats are all removed
-  const vil = VILLAGE_KEYS.filter(([,k]) => all.includes(" "+k+" ")).map(([id])=>id);
-  let best = null;
-  for(const {c,a} of ALIASES){
-    for(const al of a){
-      if(!stripped.includes(" "+al+" ")) continue; // commune names removed, so "Gevrey-Chambertin" ≠ Chambertin, "Nuits-St-Georges" ≠ Les St-Georges
-      if(c.c!=="GC"){ // a premier cru / village climat needs its commune on the label (Les Cras exists three times)
-        const ok = vil.includes(c.v) || (c.v==="flagey" && vil.includes("vosne")) || (c.v==="premeaux" && vil.includes("nuits")) || (c.geo==="flagey" && vil.includes("vosne"));
-        if(!ok) continue;
-      }
-      if(!best || al.length > best.len || (al.length===best.len && c.inner)) best = {c, len:al.length};
-    }
-  }
-  return {c: best && best.c, vil: vil[0]};
-}
+// which climat a bottle comes from: the same matcher the cellar app uses to suggest classifications (burgundy-match.js)
+const matchWine = window.BURG_MATCH.make(C, V).match;
 async function loadCellar(){
   const api = localStorage.getItem("vinApi") || (window.WINE_CONFIG && window.WINE_CONFIG.API_URL) || "";
   const user = localStorage.getItem("vinUser") || "", token = localStorage.getItem("vinToken") || "";

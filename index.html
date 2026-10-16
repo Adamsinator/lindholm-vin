@@ -418,6 +418,17 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
 .jcheck input{width:auto;margin:0}
 .jcheck .lopt{font-size:12.5px;color:var(--muted)}
 .jdone{margin-top:12px;font-size:13px;color:var(--muted);background:var(--chip);border-radius:8px;padding:8px 10px}
+.clshint{color:var(--accent);opacity:.9}
+.jfill{margin:8px 0 0;font-size:12.5px;color:var(--muted);text-transform:none;letter-spacing:0}
+b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor:help}
+/* Enjoyed: fill-in bar and segmented filters */
+.fillbar{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:10px;padding:10px 14px;margin:0 0 12px;font-size:13.5px}
+.fillbar .fb-t{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px} .fillbar .fb-t .btn{margin-left:auto;padding:6px 12px}
+.fillbar details{margin-top:6px} .fillbar summary{cursor:pointer;color:var(--muted);font-size:12.5px} .fillbar ul{margin:6px 0 0;padding-left:18px;columns:2;column-gap:28px;font-size:12.5px}
+@media(max-width:640px){.fillbar ul{columns:1}}
+.segf{display:inline-flex;flex-wrap:wrap;gap:4px}
+.segf button{border:1px solid var(--line);background:var(--card);color:var(--muted);border-radius:16px;padding:5px 11px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;min-height:30px}
+.segf button.on{background:var(--ink);border-color:var(--ink);color:var(--bg)} .segf .n{font-weight:500;opacity:.7}
 .jlightbox{position:fixed;inset:0;background:rgba(10,6,8,.85);z-index:130;display:flex;align-items:center;
   justify-content:center;padding:20px;cursor:zoom-out}
 .jlightbox img{max-width:100%;max-height:100%;border-radius:8px;box-shadow:0 8px 40px rgba(0,0,0,.5)}
@@ -646,8 +657,11 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
     <p class="ph" id="eTimeCap" style="margin-top:8px"></p>
   </div>
 
+  <div class="fillbar" id="eFill" hidden></div>
   <div class="filters">
     <input type="search" id="eq" placeholder="Search wines you've enjoyed…" aria-label="Search enjoyed wines">
+    <div class="segf" id="eCls" role="group" aria-label="Classification"></div>
+    <div class="segf" id="eWhere" role="group" aria-label="Where"></div>
     <span class="count" id="eCount"></span>
   </div>
   <div class="tablewrap">
@@ -709,7 +723,7 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
     <div class="row2">
       <div><label for="aCountry">Country</label><input id="aCountry" value="Frankrig" list="countries">
         <datalist id="countries"></datalist></div>
-      <div><label for="aRegion">Region</label><input id="aRegion" list="regionsList"><datalist id="regionsList"></datalist></div>
+      <div><label for="aRegion">Region</label><input id="aRegion" list="regionsList"><datalist id="regionsList"></datalist><datalist id="communesList"></datalist></div>
     </div>
     <div class="row2">
       <div><label for="aClass">Classification</label>
@@ -744,14 +758,21 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
     <h2 id="eaTitle">Add a wine I've had</h2>
     <label for="eaProducer">Producer *</label><input id="eaProducer" list="jProducers" required>
     <div class="row2">
-      <div><label for="eaWine">Wine / cuvée</label><input id="eaWine"></div>
+      <div><label for="eaWine">Wine / cuvée</label><input id="eaWine" list="jWines" autocomplete="off"></div>
       <div><label for="eaVintage">Vintage</label><input id="eaVintage" placeholder="2019 or NV"></div>
     </div>
     <div class="row2">
       <div><label for="eaType">Type</label>
         <select id="eaType"><option value="Rød">Red</option><option value="Hvid">White</option><option value="Bobler">Sparkling</option><option value="Rose">Rosé</option></select></div>
-      <div><label for="eaRegion">Region</label><input id="eaRegion" list="regionsList"></div>
+      <div><label for="eaCountry">Country</label><input id="eaCountry" list="countries"></div>
     </div>
+    <div class="row2">
+      <div><label for="eaRegion">Region</label><input id="eaRegion" list="regionsList"></div>
+      <div><label for="eaCommune">Commune</label><input id="eaCommune" list="communesList"></div>
+    </div>
+    <label for="eaClass">Classification <span class="lopt clshint" id="eaClassHint"></span></label>
+    <select id="eaClass"><option value="">—</option><option>AOC</option><option>1. cru</option><option>Grand cru</option><option>Special club</option></select>
+    <p class="lopt jfill" id="eaFillNote" hidden></p>
 
     <div class="row2">
       <div><label for="eaGrape">Grape</label><input id="eaGrape" list="grapes"></div>
@@ -775,6 +796,38 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
     <div class="mact">
       <button type="button" class="btn" id="eaCancel">Cancel</button>
       <button type="submit" class="btn primary" id="eaSave">Add to Enjoyed</button>
+    </div>
+  </form>
+</div>
+
+<div class="modal" id="iModal" role="dialog" aria-modal="true" aria-labelledby="iTitle">
+  <form class="card" id="iForm">
+    <h2 id="iTitle">Edit wine details</h2>
+    <label for="iProducer">Producer *</label><input id="iProducer" list="jProducers" required>
+    <div class="row2">
+      <div><label for="iName">Wine / cuvée</label><input id="iName"></div>
+      <div><label for="iVintage">Vintage</label><input id="iVintage" placeholder="2019 or NV"></div>
+    </div>
+    <div class="row2">
+      <div><label for="iCommune">Commune</label><input id="iCommune" list="communesList"></div>
+      <div><label for="iClass">Classification <span class="lopt clshint" id="iClassHint"></span></label>
+        <select id="iClass"><option value="">—</option><option>AOC</option><option>1. cru</option><option>Grand cru</option><option>Special club</option></select></div>
+    </div>
+    <div class="row2">
+      <div><label for="iCountry">Country</label><input id="iCountry" list="countries"></div>
+      <div><label for="iRegion">Region</label><input id="iRegion" list="regionsList"></div>
+    </div>
+    <div class="row2">
+      <div><label for="iGrape">Grape</label><input id="iGrape" list="grapes"></div>
+      <div><label for="iType">Type</label>
+        <select id="iType"><option value="Rød">Red</option><option value="Hvid">White</option><option value="Mousserende">Sparkling</option><option value="Rose">Rosé</option></select></div>
+    </div>
+    <label class="jcheck" id="iJWrap" hidden><input type="checkbox" id="iJournal" checked>
+      <span id="iJLabel"></span></label>
+    <div class="jerr" id="iErr" role="alert" hidden></div>
+    <div class="mact">
+      <button type="button" class="btn" id="iCancel">Cancel</button>
+      <button type="submit" class="btn primary" id="iSave">Save details</button>
     </div>
   </form>
 </div>
@@ -845,12 +898,17 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
     <label for="jProducer">Producer</label><input id="jProducer" list="jProducers" required>
     <datalist id="jProducers"></datalist>
     <div class="row2">
-      <div><label for="jWine">Wine / cuvée</label><input id="jWine"></div>
+      <div><label for="jWine">Wine / cuvée</label><input id="jWine" list="jWines" autocomplete="off"><datalist id="jWines"></datalist></div>
       <div><label for="jVintage">Vintage</label><input id="jVintage" placeholder="2019 or NV"></div>
     </div>
     <div class="row2">
       <div><label for="jCountry">Country</label><input id="jCountry" list="countries"></div>
       <div><label for="jRegion">Region</label><input id="jRegion" list="regionsList"></div>
+    </div>
+    <div class="row2">
+      <div><label for="jCommune">Commune</label><input id="jCommune" list="communesList"></div>
+      <div><label for="jClass">Classification <span class="lopt clshint" id="jClassHint"></span></label>
+        <select id="jClass"><option value="">—</option><option>AOC</option><option>1. cru</option><option>Grand cru</option><option>Special club</option></select></div>
     </div>
     <label for="jGrape">Grape / blend</label><input id="jGrape" list="grapes">
     <label for="jRating">Rating</label>
@@ -872,7 +930,8 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
     <label class="jcheck" id="jEnjoyWrap"><input type="checkbox" id="jEnjoy">
       <span id="jEnjoyLabel">Also add to <b>Enjoyed</b></span>
       <span class="lopt" id="jEnjoyHint">— for a wine you drank but don't own</span></label>
-    <div class="jdone" id="jEnjoyDone" hidden>✓ Already in <b>Enjoyed</b></div>
+    <div class="jdone" id="jEnjoyDone" hidden>✓ Already in <b>Enjoyed</b> <span class="lopt" id="jEnjoyDoneHint"></span></div>
+    <p class="lopt jfill" id="jFillNote" hidden></p>
     <div class="jerr" id="jErr" role="alert" hidden></div>
     <div class="mact">
       <button type="button" class="btn" id="jCancel">Cancel</button>
@@ -888,6 +947,10 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
      sit invisible behind a stale app.js for ten minutes. Bump v on every deploy. -->
 <script src="i18n.js?v=12"></script>
 <script src="notes.js?v=4"></script>
-<script src="app.js?v=7"></script>
+<script src="burgundy-data.js?v=8"></script>
+<script src="burgundy-data-beaune.js?v=9"></script>
+<script src="burgundy-names.js?v=1"></script>
+<script src="burgundy-match.js?v=1"></script>
+<script src="app.js?v=8"></script>
 </body>
 </html>

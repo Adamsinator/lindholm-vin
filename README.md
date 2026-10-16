@@ -94,6 +94,49 @@ you write a **journal** entry, an **Also add to Enjoyed** box (on by default for
 a wine you don't own, off when logging one from your cellar) does the same in one
 step, keeping journal and Enjoyed in sync.
 
+**Classification.** Every way of logging a wine has a **Classification** field (AOC, 1. cru, Grand cru, Special
+club) and a **Commune**: the journal, *Add a wine I've had*, and a wine's details. For Burgundy, the app
+suggests a classification from the name and commune, using the atlas's climats and INAO's premiers crus
+(`burgundy-match.js`, shared with the atlas):
+- "Clos St-Jacques" in Gevrey → 1. cru, and "Chambertin" → Grand cru.
+- "Gevrey-Chambertin" stays village (AOC).
+- A premier cru needs its commune, because there are three Les Cras.
+- Outside Burgundy, only an explicit "Grand cru" / "1er cru" on the label counts.
+
+The suggestion is pre-selected until you pick one yourself. In the lists, an unsaved suggestion shows as
+"≈ Grand cru" with a dashed underline. A wine that already has a classification is never changed.
+
+**Fill in the ones already logged.** The Enjoyed page lists every wine (cellar, Enjoyed and journal) that has
+no classification but a confident suggestion. **Fill them in** writes them all in one go, blank ones only.
+
+**Autofill.** Typing a producer and a wine you've logged before fills in the empty fields from last time:
+country, region, commune, grape, classification and type. The form says what it filled. The wine field
+suggests the names you've used for that producer.
+
+**Filters.** The Enjoyed list filters by classification (Grand cru / 1. cru / Village / Other) and by where the
+bottle came from (from my cellar / elsewhere). The totals add your average score and the bottles drunk
+elsewhere.
+
+### How the cellar, Enjoyed and the journal stay in step
+
+- **A bottle is counted once.** If you mark a bottle drunk and then write its journal entry, or the reverse,
+  the entry sees a bottle of that wine was drunk that day and doesn't drink another or add a duplicate row.
+  This also covers the last-bottle prompt.
+- **Your score carries over.** A score given in the journal becomes the cellar wine's score if it had none.
+- **Editing an entry.**
+  - "Also add to Enjoyed" is no longer pre-ticked, so fixing an old note never drinks another bottle.
+  - If the entry created its Enjoyed row (a wine drunk elsewhere), the row follows the edit: name, vintage,
+    date, score, price, place, note and classification.
+  - For a cellar bottle, only the drunk date moves.
+- **Deleting an entry** asks whether its Enjoyed row goes too. A wine drunk elsewhere is removed; a cellar
+  bottle is put back.
+- **A wine drunk elsewhere** gets a *Drukket ude* marker column. Older rows are recognised by their shape:
+  one bottle, drunk, no acquired date. These wines offer **Remove from Enjoyed** instead of *Undo drink*,
+  which would have invented a bottle in the cellar.
+
+`tools/cellar-flow-test.js` walks all of this in a browser. It runs against the real `Code.gs`, executed in Node
+by `tools/gas-harness.js` on an in-memory sheet.
+
 ## Cellar insights
 
 The overview shows a **Cellar insights** strip of at-a-glance facts about what's
@@ -298,10 +341,21 @@ profiles and their sources are in `PROFILES`. When you change the JS, bump the
 
 ## Changing a wine's details
 
-Add and "mark as drunk" happen in the site, along with score, current value,
-acquired/drunk dates, drink window and bottle format — all inline in the wine's
-detail. Anything else (fixing a typo in a name) you do directly in the Google
-Sheet, and the site picks it up on the next refresh.
+Add and "mark as drunk" happen in the site, along with score, current value, acquired/drunk dates, drink window
+and bottle format, all inline in the wine's detail.
+
+**✏️ Edit details** in the same panel renames a wine or fixes its producer, vintage, commune, classification,
+region, country, grape or type. If journal entries were written under the old name, a tick-box renames them too.
+Only the fields you changed are written.
+
+These features need **API version 26**: paste the new `apps-script/Code.gs` into the script and redeploy.
+They are:
+- editing details;
+- filling in classifications;
+- keeping Enjoyed in step when a journal entry is edited;
+- the classification and commune columns in the journal.
+
+Until you redeploy, the site says so instead of failing silently.
 
 ## Surveyed vineyard outlines (INAO)
 
