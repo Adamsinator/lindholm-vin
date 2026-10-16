@@ -91,7 +91,7 @@ const overflow=async(p,where)=>{ const o=await p.evaluate(()=>document.documentE
   for(const col of ['commune','producer','size','owners','cellar','class']){ await p.selectOption('#fColor',col); await p.waitForTimeout(80); }
   for(const ch of ['[data-cls="GC"]','[data-cls="1er"]','[data-cls="V"]','#monoChip','#monoChip','[data-cls="GC"]','[data-cls="1er"]','[data-cls="V"]']) { try{ await p.click(ch);}catch(e){note(tag,'chip '+ch+' '+e.message)} }
   await p.fill('#fSearch','suchots'); await p.press('#fSearch','Enter'); await p.waitForTimeout(500);
-  await p.fill('#fSearch','Domaine Leroy · producer'); await p.waitForTimeout(500);
+  await p.fill('#fSearch','leroy'); await p.waitForTimeout(300); await p.press('#fSearch','Enter'); await p.waitForTimeout(500);
   if(!(await p.isVisible('#prodChip'))) note(tag,'producer chip not shown after producer search');
   if(!(await p.isVisible('#side'))) note(tag,'drawer not open in producer view');
   await p.click('#prodChip'); await p.waitForTimeout(300);
