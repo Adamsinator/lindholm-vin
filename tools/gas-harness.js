@@ -54,6 +54,10 @@ module.exports = function harness(tabs, opts = {}) {
       },
       getUuid: () => require("crypto").randomUUID(),
       newBlob: (b, m, n) => ({ b, m, n }), base64Decode: s => Buffer.from(s, "base64"),
+      // Apps Script gives digests as Java bytes: -128…127
+      DigestAlgorithm: { SHA_256: "sha256" }, Charset: { UTF_8: "utf8" },
+      base64Encode: b => Buffer.from((Array.isArray(b) ? b : [...b]).map(x => x & 255)).toString("base64"),
+      computeDigest: (alg, str) => [...require("crypto").createHash(alg).update(String(str), "utf8").digest()].map(b => b > 127 ? b - 256 : b),
     },
     DriveApp: { getFileById: () => ({ setTrashed() {}, getParents: () => ({ hasNext: () => false }), getBlob: () => ({ getBytes: () => [], getContentType: () => "image/jpeg" }), moveTo() {} }),
       getRootFolder: () => ({ getFoldersByName: () => ({ hasNext: () => false }), createFolder: () => ({ createFile: () => ({ getId: () => "ph1" }) }) }) },
@@ -71,5 +75,6 @@ module.exports = function harness(tabs, opts = {}) {
     call: p => JSON.parse(ctx.__handle(JSON.parse(JSON.stringify(p))).s),
     rows: n => book.sheets[n] ? book.sheets[n]._cells.map(r => [...r]) : null,
     sheet: n => book.sheets[n],
+    run: code => vm.runInContext(code, ctx), // e.g. run("makeOwner()") — as if from the script editor
   };
 };

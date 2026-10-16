@@ -16,4 +16,10 @@ var SETTINGS = {
   // Who may correct vineyard holdings in the Burgundy atlas: '' = anyone signed in,
   // or a comma-separated list of usernames, e.g. 'adam,anna'.
   ATLAS_EDITORS: '',
+
+  // One-time setup of your own account (the one whose cellar is this spreadsheet): fill both in, run makeOwner
+  // from the editor once, then blank the password again. Accounts live in the sheet's "Users" tab, so once yours
+  // exists none of this is needed — updating Code.gs never touches it.
+  OWNER_USER: '',
+  OWNER_PASSWORD: '',
 };

@@ -479,15 +479,18 @@ Then press **Log out** in the site and sign in again.
 
 Others can keep their own cellar behind a username + password:
 
-- Set `SIGNUP_CODE` in `Code.gs` to an invite phrase (blank `''` turns signups
+- Set `SIGNUP_CODE` in `Settings.gs` to an invite phrase (blank `''` turns signups
   off), redeploy, and share the site URL + that phrase.
 - A friend taps **Sign up**, picks a username/password + the invite code, and
   gets their own empty cellar. Everything (wines, enjoyed, journal, wishlist,
   ratings) is scoped to their own spreadsheet — they never see anyone else's.
-- **Your own account:** set the username/password in `makeOwner()`, save, then
-  Run it once from the editor. It points your account at *this* (the master)
-  spreadsheet so your existing wines carry over. The old `ACCESS_CODE` path
-  still works too.
+- **Your own account** (once, at setup): put `OWNER_USER` and `OWNER_PASSWORD` in `Settings.gs`, then run
+  `makeOwner` once from the editor and blank the password again. It points your account at *this* (the master)
+  spreadsheet, so your existing wines carry over.
+- **Accounts live in the `Users` tab of the sheet,** not in the script. Updating `Code.gs` never touches an
+  existing account, yours included. There is no separate admin role: the owner is simply the account whose
+  cellar is the master spreadsheet. To restrict atlas corrections to yourself, set `ATLAS_EDITORS` to your
+  username.
 - Remove someone: delete their row from the `Users` tab (and their folder from
   your Drive).
 - **Signed in on several devices at once** is fine: the `Token` cell keeps the
