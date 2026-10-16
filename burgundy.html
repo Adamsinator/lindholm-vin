@@ -140,7 +140,7 @@ input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible,[t
 }
 
 /* the map, with details in a drawer over its right edge */
-.mapcard{position:relative;background:var(--mapbg);border:1px solid var(--line);border-radius:12px;overflow:hidden;
+.mapcard{-webkit-touch-callout:none;position:relative;background:var(--mapbg);border:1px solid var(--line);border-radius:12px;overflow:hidden;
   box-shadow:var(--shadow);height:calc(100vh - 130px);min-height:380px;touch-action:none;user-select:none;-webkit-user-select:none}
 @media(max-width:920px){.mapcard{height:calc(100svh - 120px);min-height:360px}}
 .mapview{position:absolute;inset:0;transform-origin:0 0;will-change:transform}
@@ -322,7 +322,10 @@ input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible,[t
 .t-cmin,.t-cmaj{fill:none;stroke:var(--contour);vector-effect:non-scaling-stroke}
 .t-cmin{stroke-opacity:.16;stroke-width:.6;display:none} .t-cmaj{stroke-opacity:.34;stroke-width:.8}
 #map.lod-near .t-cmin{display:inline}
-.t-comm{fill:none;stroke:var(--ink);stroke-opacity:.28;stroke-width:1.1;stroke-dasharray:7 3 1.5 3;vector-effect:non-scaling-stroke}
+/* commune borders: a pale casing under a dark dash-dot, so they read over vineyards of any colour */
+.t-comm-c{fill:none;stroke:var(--mapbg);stroke-opacity:.85;stroke-width:4.2;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+.t-comm{fill:none;stroke:var(--ink);stroke-opacity:.62;stroke-width:1.5;stroke-dasharray:8 3 1.5 3;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+#map.lod-near .t-comm{stroke-width:1.9;stroke-opacity:.7}
 .t-water{fill:none;stroke:var(--water);stroke-width:1.6;stroke-linecap:round;vector-effect:non-scaling-stroke} .t-wint{stroke-width:.9;stroke-dasharray:3 2}
 .t-case,.t-fill,.t-track,.t-rail,.t-rail2{fill:none;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
 .t-case{stroke:var(--rcase)} .t-fill{stroke:var(--rfill)}
@@ -408,8 +411,20 @@ input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible,[t
 .side{display:none;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.18);padding:16px 18px;
   overflow:auto;user-select:text;-webkit-user-select:text;touch-action:auto}
 @media(min-width:921px){.mapcard.open .side{display:block;position:absolute;top:10px;right:10px;bottom:10px;width:390px;z-index:3}}
-/* phones: the drawer can't fit over the map, so the script moves it below the map */
-@media(max-width:920px){.side.open{display:block;margin-top:10px}}
+/* phones: the details are a bottom sheet over the map, half height, full height from its grip */
+.grip{display:none}
+@media(max-width:920px){
+  .mapcard.open .side{display:block;position:absolute;left:0;right:0;bottom:0;max-height:46%;overflow-y:auto;z-index:6;
+    border-radius:16px 16px 0 0;border-bottom:0;padding:0 16px 16px;touch-action:pan-y;overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;transition:max-height .25s ease;box-shadow:0 -6px 24px rgba(0,0,0,.18)}
+  .mapcard.open .side.full{max-height:calc(100% - 56px)}
+  .grip{display:block;position:sticky;top:0;width:calc(100% + 32px);margin:0 -16px 6px;height:26px;border:0;padding:0;cursor:grab;touch-action:none;
+    background:linear-gradient(var(--card) 70%, transparent);z-index:2}
+  .grip::before{content:"";display:block;width:40px;height:5px;border-radius:3px;background:var(--line);margin:10px auto 0}
+  .side .close{position:relative;z-index:3}
+  .mapcard.open .legend,.mapcard.open .layers,.mapcard.open .scalebar,.mapcard.open .attr{display:none}
+  .peek{display:none!important}
+}
 .side h2{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;font-size:24px;line-height:1.15;margin:0 0 6px;font-weight:600}
 .side h3{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:18px 0 6px;font-weight:600}
 .side p{margin:6px 0;font-size:14px}
@@ -470,7 +485,7 @@ table.list td{padding:6px 8px;border-bottom:1px solid var(--line)}
 table.list tr{cursor:pointer}
 table.list tbody tr:hover td{background:var(--card2)}
 table.list tr.sel td{background:var(--chip)}
-@media(max-width:600px){table.list th:nth-child(5),table.list td:nth-child(5){display:none}}
+@media(max-width:600px){#list th:nth-child(5),#list td:nth-child(5){display:none}}
 table.list .num{text-align:right;font-variant-numeric:tabular-nums}
 .cls{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px;vertical-align:0}
 footer.fine{margin-top:14px;font-size:12px;color:var(--muted);max-width:110ch;line-height:1.55}
@@ -626,7 +641,7 @@ footer.fine{margin-top:14px;font-size:12px;color:var(--muted);max-width:110ch;li
 </footer>
 </div>
 <div id="tip" aria-hidden="true"></div>
-<script src="i18n.js?v=12"></script>
+<script src="i18n.js?v=13"></script>
 <script src="burgundy-i18n-da.js?v=2"></script>
 <script src="burgundy-i18n-fr.js?v=2"></script>
 <script src="burgundy-data.js?v=8"></script>
@@ -639,6 +654,6 @@ footer.fine{margin-top:14px;font-size:12px;color:var(--muted);max-width:110ch;li
 <script src="burgundy-geol.js?v=1"></script>
 <script src="burgundy-history.js?v=2"></script>
 <script src="burgundy-match.js?v=1"></script>
-<script src="burgundy.js?v=30"></script>
+<script src="burgundy.js?v=31"></script>
 </body>
 </html>

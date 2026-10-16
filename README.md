@@ -289,6 +289,17 @@ grands crus** (one bar per grand cru, split by owner). Grands crus and key
 premiers crus also show their altitude band, which way they face, soil, and the
 lieux-dits within them.
 
+**On a phone** the map handles like a phone map:
+- a flick keeps gliding and slows down;
+- a pinch keeps the spot under your fingers under them as you zoom;
+- lifting one finger carries on as a pan;
+- double-tap zooms in where you tapped, and a two-finger tap zooms out;
+- a deliberate two-finger twist turns the surveyed map.
+
+Tapping a vineyard opens its details in a **bottom sheet** over the map, holders first. Drag the grip up for full
+height, or down to shrink and close. Commune borders are drawn as a dark dash-dot line on a pale casing, so they
+read over vineyards of any colour.
+
 **Search.** One box finds communes, vineyards, domaines and lieux-dits. Each word you type must start a word
 of the name ("gr rue" → La Grande Rue). The same rule filters the map and the Domaines list. With the box
 empty, it offers **Near me** and your recent picks. Recent picks are kept in this browser only. Near me uses

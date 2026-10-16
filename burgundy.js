@@ -758,7 +758,8 @@ function drawTopo(gUnder, gHill, gRoad, gTown, gNames){
   // contours over the vineyards, faint; every 25 m a little stronger
   tiled(T.cont.filter(c => !c[1]).map(c => c[2]), false, "t-cmin", gHill);
   tiled(T.cont.filter(c => c[1]).map(c => c[2]), false, "t-cmaj", gHill);
-  el("path", {class:"t-comm", d:T.communes.flatMap(c => c[2]).map(r => topoD(r, true)).join("")}, gRoad);
+  const commD = T.communes.flatMap(c => c[2]).map(r => topoD(r, true)).join("");
+  el("path", {class:"t-comm-c", d:commD}, gRoad); el("path", {class:"t-comm", d:commD}, gRoad);
   el("path", {class:"t-water", d:T.water.filter(w => w[0]===1).map(w => topoD(w[1])).join("")}, gRoad);
   el("path", {class:"t-water t-wint", d:T.water.filter(w => w[0]!==1).map(w => topoD(w[1])).join("")}, gRoad);
   const rd = k => T.roads.filter(r => r[0]===k).map(r => r[1]);
@@ -961,22 +962,31 @@ function flyTo(target, ms=420){
 }
 const DRAWER = 410; // px the open details drawer covers on the right of the map (desktop)
 const drawerPx = () => mapcard.classList.contains("open") && matchMedia("(min-width: 921px)").matches ? DRAWER : 0;
+// phones: how much of the map the bottom sheet covers
+const PHONE = () => matchMedia("(max-width: 920px)").matches;
+const sheetPx = () => PHONE() && mapcard.classList.contains("open") ? Math.min(side.offsetHeight, svg.clientHeight - 120) : 0;
+// the view that fits a box in the part of the map you can see: left of the desktop drawer, above the phone sheet
 function fitBox(x0,y0,x1,y1, pad=.08){
-  const cw = Math.max(1, svg.clientWidth), vis = Math.max(120, cw - drawerPx()), ar = svg.clientHeight / vis;
+  const cw = Math.max(1, svg.clientWidth), ch = Math.max(1, svg.clientHeight);
+  const vw = Math.max(120, cw - drawerPx()), vh = Math.max(120, ch - sheetPx());
   let w = (x1-x0)*(1+2*pad), h = (y1-y0)*(1+2*pad);
-  if(h/w > ar) w = h/ar;
-  h = w*ar;
-  const full = w * cw / vis; // the box fills the visible part; the drawer side is extra
-  return {x:(x0+x1)/2 - w/2, y:(y0+y1)/2 - h/2, w:full, h};
+  if(h/w > vh/vw) w = h*vw/vh;
+  h = w*vh/vw;
+  const k = w / vw; // svg units per screen px
+  return {x:(x0+x1)/2 - w/2, y:(y0+y1)/2 - h/2, w:cw*k, h:ch*k};
 }
 // after a click on the map: if the vineyard ended up under the drawer, slide the map left
 function ensureVisible(c){
   if(!c.bb) return;
   // not on screen at all (picked from a list or a link): frame it properly instead
   if(c.bb[2] < vb.x || c.bb[0] > vb.x + vb.w || c.bb[3] < vb.y || c.bb[1] > vb.y + vb.h) return focusClimat(c);
-  const dp = drawerPx(); if(!dp) return;
-  const k = scale(), right = (c.bb[2] - vb.x) * k, limit = svg.clientWidth - dp - 20;
-  if(right > limit) flyTo({...vb, x: vb.x + (right - limit) / k + Math.min(80, (c.bb[2]-c.bb[0])*k/2) / k}, 300);
+  const dp = drawerPx(), bp = sheetPx(), k = scale();
+  if(dp){ const right = (c.bb[2] - vb.x) * k, limit = svg.clientWidth - dp - 20;
+    if(right > limit) flyTo({...vb, x: vb.x + (right - limit) / k + Math.min(80, (c.bb[2]-c.bb[0])*k/2) / k}, 300); }
+  if(bp){ // phone: slide it up out from under the sheet
+    const cy = ((c.bb[1] + c.bb[3])/2 - vb.y) * k, limit = svg.clientHeight - bp - 40;
+    if(cy > limit || cy < 50) flyTo({...vb, y: vb.y + (cy - (svg.clientHeight - bp)/2) / k}, 300);
+  }
 }
 const boxOfGrid = (x0,y0,x1,y1) => { const xs=[px(x0,y0),px(x1,y0),px(x0,y1),px(x1,y1)]; return [Math.min(...xs), py(y0), Math.max(...xs), py(y1)]; };
 function zoomAt(f, cx, cy){ // cx/cy in svg units
@@ -989,43 +999,101 @@ svg.addEventListener("wheel", ev => {
   const [cx,cy] = clientToSvg(ev.clientX, ev.clientY);
   zoomAt(Math.exp((ev.deltaMode===1 ? ev.deltaY*16 : ev.deltaY) * .0016), cx, cy);
 }, {passive:false});
-const ptrs = new Map(); let dragMoved = false, pinch0 = null, down0 = null;
+/* ---------- touch and mouse: drag with momentum, pinch that follows the fingers, double-tap zoom ----------
+   Like a phone map: a flick keeps gliding and slows down; a pinch keeps the point under your fingers under them
+   (zoom and pan together); lifting one finger hands over to a pan without a jump; double-tap zooms in there,
+   a two-finger tap zooms out. Everything moves the drawing with a CSS transform; the map redraws once it settles. */
+const ptrs = new Map(); let dragMoved = false, pinch0 = null, down0 = null, glide = 0, trail = [], lastTap = null, noDbl = 0, tap2 = null;
+const ratio = () => vb.h / vb.w;
+function stopGlide(){ cancelAnimationFrame(glide); glide = 0; }
+function startPan(x, y){ down0 = [x, y, vb.x, vb.y]; trail = [[performance.now(), x, y]]; }
+function startPinch(){
+  const [a, b] = [...ptrs.values()], r = baseRect(), mx = (a[0]+b[0])/2, my = (a[1]+b[1])/2;
+  pinch0 = {d:Math.max(20, Math.hypot(a[0]-b[0], a[1]-b[1])), w:vb.w, c:clientToSvg(mx, my), ang:Math.atan2(b[1]-a[1], b[0]-a[0]),
+    turn:0, t:performance.now(), m:[mx, my], moved:false, r};
+}
 svg.addEventListener("pointerdown", ev => {
+  stopGlide(); cancelAnimationFrame(anim);
   ptrs.set(ev.pointerId, [ev.clientX, ev.clientY]);
-  if(ptrs.size===1){ dragMoved=false; down0=[ev.clientX, ev.clientY, vb.x, vb.y]; }
-  if(ptrs.size===2){ const [a,b]=[...ptrs.values()]; pinch0={d:Math.hypot(a[0]-b[0],a[1]-b[1]), w:vb.w, c:clientToSvg((a[0]+b[0])/2,(a[1]+b[1])/2), ang:Math.atan2(b[1]-a[1], b[0]-a[0]), turn:0}; }
+  if(ptrs.size===1){ dragMoved = false; startPan(ev.clientX, ev.clientY); }
+  if(ptrs.size===2){ startPinch(); down0 = null; }
 });
 svg.addEventListener("pointermove", ev => {
   if(!ptrs.has(ev.pointerId)) return;
   ptrs.set(ev.pointerId, [ev.clientX, ev.clientY]);
   if(ptrs.size===2 && pinch0){
-    const [a,b]=[...ptrs.values()], d=Math.hypot(a[0]-b[0],a[1]-b[1]);
-    const w = pinch0.w * pinch0.d / Math.max(20,d), k = w/vb.w;
-    const [cx,cy] = pinch0.c;
-    setVBLive({x:cx-(cx-vb.x)*k, y:cy-(cy-vb.y)*k, w, h:vb.h*k}); dragMoved = true;
-    // two-finger twist turns the surveyed map: shown live by turning the drawing, rebuilt upright when the fingers lift
+    const [a, b] = [...ptrs.values()], d = Math.max(20, Math.hypot(a[0]-b[0], a[1]-b[1])), r = pinch0.r;
+    const mx = (a[0]+b[0])/2, my = (a[1]+b[1])/2, w = pinch0.w * pinch0.d / d, [cx, cy] = pinch0.c;
+    if(Math.abs(d/pinch0.d - 1) > .06 || Math.hypot(mx - pinch0.m[0], my - pinch0.m[1]) > 8) pinch0.moved = true;
+    // the map point that was under the fingers' midpoint stays under it, wherever the midpoint goes
+    setVBLive({x: cx - (mx - r.left)/r.width*w, y: cy - (my - r.top)/r.height*w*ratio(), w, h: w*ratio()}); dragMoved = true;
+    // a deliberate two-finger twist turns the surveyed map (shown live, rebuilt upright when the fingers lift);
+    // a pinch that wobbles a little while zooming doesn't, since the rebuild is expensive
     if(st.mode==="geo"){
-      let t = (Math.atan2(b[1]-a[1], b[0]-a[0]) - pinch0.ang) * 180/Math.PI; t = ((t + 540) % 360) - 180;
-      if(pinch0.turning || Math.abs(t) > 12){ pinch0.turning = true; pinch0.turn = t; gView.setAttribute("transform", `rotate(${t.toFixed(1)} ${cx.toFixed(1)} ${cy.toFixed(1)})`); }
+      let tw = (Math.atan2(b[1]-a[1], b[0]-a[0]) - pinch0.ang) * 180/Math.PI; tw = ((tw + 540) % 360) - 180;
+      const zoomed = Math.abs(Math.log(d/pinch0.d));
+      if(pinch0.turning || (Math.abs(tw) > 22 && zoomed < .35)){ pinch0.turning = true; pinch0.turn = tw;
+        const q = clientToSvg(mx, my); gView.setAttribute("transform", `rotate(${tw.toFixed(1)} ${q[0].toFixed(1)} ${q[1].toFixed(1)})`); }
     }
     return;
   }
   if(ptrs.size===1 && down0){
     const dx = ev.clientX-down0[0], dy = ev.clientY-down0[1];
-    if(!dragMoved && Math.hypot(dx,dy) > 5){ dragMoved = true; svg.classList.add("dragging"); svg.setPointerCapture(ev.pointerId); hideTip(); }
-    if(dragMoved){ const r = baseRect(); setVBLive({...vb, x:down0[2]-dx/r.width*vb.w, y:down0[3]-dy/r.height*vb.h}); }
+    if(!dragMoved && Math.hypot(dx,dy) > 5){ dragMoved = true; svg.classList.add("dragging"); try{ svg.setPointerCapture(ev.pointerId); }catch(e){} hideTip(); }
+    if(dragMoved){
+      const r = baseRect(); setVBLive({...vb, x:down0[2]-dx/r.width*vb.w, y:down0[3]-dy/r.height*vb.h});
+      const now = performance.now(); trail.push([now, ev.clientX, ev.clientY]); while(trail.length > 2 && now - trail[0][0] > 90) trail.shift();
+    }
   }
 });
+// after a flick: keep gliding at the release speed, slowing like a phone map (velocity decays with a ~325 ms time constant)
+function glideFrom(vx, vy){ // px per ms, in screen space
+  const r = baseRect(); let last = performance.now();
+  const step = now => {
+    const dt = Math.min(40, now - last); last = now;
+    const f = Math.exp(-dt/325); vx *= f; vy *= f;
+    setVBLive({...vb, x: vb.x - vx*dt/r.width*vb.w, y: vb.y - vy*dt/r.height*vb.h});
+    if(Math.hypot(vx, vy) > .02) glide = requestAnimationFrame(step); else { glide = 0; setVB(vb); }
+  };
+  glide = requestAnimationFrame(step);
+}
 const up = ev => {
-  ptrs.delete(ev.pointerId);
-  if(ptrs.size<2 && pinch0){
+  const had = ptrs.size; ptrs.delete(ev.pointerId);
+  if(pinch0 && ptrs.size<2){
     const p0 = pinch0; pinch0 = null;
     if(p0.turning){ gView.removeAttribute("transform"); rotateTo(st.rot + Math.round(p0.turn/5)*5); }
+    // maybe the first half of a two-finger tap: it counts once the other finger lifts too, straight after
+    else if(had===2 && !p0.moved && performance.now() - p0.t < 280 && ev.pointerType==="touch") tap2 = {t:performance.now(), c:p0.c};
+    // one finger still down: carry on as a pan from here, no jump
+    if(ptrs.size===1){ const [x, y] = [...ptrs.values()][0]; startPan(x, y); }
+    trail = [];
   }
-  if(ptrs.size===0){ svg.classList.remove("dragging"); down0=null; setTimeout(()=>{ dragMoved=false; }, 0); }
+  if(ptrs.size===0){
+    svg.classList.remove("dragging");
+    // two-finger tap (both fingers down and up together, nothing moved): zoom out around it
+    if(tap2){ const t2 = tap2; tap2 = null; if(performance.now() - t2.t < 150 && !dragMoved){ zoomAt(1.8, ...t2.c); noDbl = performance.now(); lastTap = null; down0 = null; setTimeout(()=>{ dragMoved=false; }, 0); return; } }
+    if(dragMoved && down0 && trail.length >= 2){
+      const [t0, x0, y0] = trail[0], [t1, x1, y1] = trail[trail.length-1], dt = Math.max(8, t1 - t0);
+      const fresh = performance.now() - t1 < 60; // the finger was still moving when it lifted
+      const vx = (x1 - x0)/dt, vy = (y1 - y0)/dt;
+      if(fresh && Math.hypot(vx, vy) > .25) glideFrom(vx, vy);
+    }
+    // double-tap (touch): zoom in where you tapped
+    if(!dragMoved && ev.pointerType==="touch"){
+      const now = performance.now();
+      if(lastTap && now - lastTap[0] < 320 && Math.hypot(ev.clientX - lastTap[1], ev.clientY - lastTap[2]) < 32){
+        const [cx, cy] = clientToSvg(ev.clientX, ev.clientY); lastTap = null; noDbl = now;
+        flyTo({x:cx-(cx-vb.x)/2, y:cy-(cy-vb.y)/2, w:vb.w/2, h:vb.h/2}, 260);
+      } else lastTap = [now, ev.clientX, ev.clientY];
+    }
+    down0 = null; setTimeout(()=>{ dragMoved=false; }, 0);
+  }
 };
 svg.addEventListener("pointerup", up); svg.addEventListener("pointercancel", up);
-svg.addEventListener("dblclick", ev => { const [cx,cy]=clientToSvg(ev.clientX, ev.clientY); flyTo({x:cx-vb.w/4, y:cy-vb.h/4, w:vb.w/2, h:vb.h/2}, 260); });
+// mouse double-click (touch double-taps are handled above; some browsers send a dblclick after them too)
+svg.addEventListener("dblclick", ev => { if(performance.now() - noDbl < 600) return; const [cx,cy]=clientToSvg(ev.clientX, ev.clientY); flyTo({x:cx-(cx-vb.x)/2, y:cy-(cy-vb.y)/2, w:vb.w/2, h:vb.h/2}, 260); });
+// Safari's own page pinch would fight the map's
+["gesturestart", "gesturechange"].forEach(t => $("mapcard").addEventListener(t, e => e.preventDefault()));
 $("zIn").onclick = () => zoomAt(1/1.6, vb.x+vb.w/2, vb.y+vb.h/2);
 $("zOut").onclick = () => zoomAt(1.6, vb.x+vb.w/2, vb.y+vb.h/2);
 $("zAll").onclick = () => { st.vsel=null; syncCommunes(); flyTo(fitBox(...CONTENT, .01)); };
@@ -1155,11 +1223,8 @@ function selectVillage(id, fly){
 
 /* ---------- side panel: a drawer over the map (desktop) or a panel below it (phones) ---------- */
 const side = $("side"), mapcard = $("mapcard");
-function placeSide(){
-  const phone = matchMedia("(max-width: 920px)").matches;
-  if(phone && side.parentNode===mapcard) mapcard.after(side);
-  else if(!phone && side.parentNode!==mapcard) mapcard.appendChild(side);
-}
+// the details panel: a drawer on the right on desktop, a bottom sheet over the map on phones (both inside the map)
+function placeSide(){ if(side.parentNode!==mapcard) mapcard.appendChild(side); }
 matchMedia("(max-width: 920px)").addEventListener("change", () => { placeSide(); setVB(vb); });
 function setOpen(){
   const open = !!(st.sel || st.vsel || st.prod || st.overview || (st.ld != null && LDX));
@@ -1198,7 +1263,7 @@ function cellarHtml(list){
 }
 function renderSide(){
   const close = `<button class="close" id="sideClose" aria-label="${t("Close")}">×</button>`;
-  if(!setOpen()){ side.innerHTML = ""; renderPeek(); return; }
+  if(!setOpen()){ side.innerHTML = ""; side.classList.remove("full"); renderPeek(); return; }
   if(st.ld != null && LDX){
     side.innerHTML = close + ldHtml(st.ld);
   } else if(st.sel){
@@ -1216,18 +1281,18 @@ function renderSide(){
       ${c.x && c.d ? `<p>${esc(txC(c))}</p>` : ""}
       <p>${c.x ? `${t(c.c==="GC" ? "One of {0}'s grand cru climats on INAO's plan" : "One of {0}'s premiers crus on INAO's plan", esc(c.ap || c.vil.n))}${c.in && CL[c.in] && !CL[c.in].x ? t(", lying within {0}", `<button class="plink" data-c="${c.in}">${esc(CL[c.in].n)}</button>`) : ""}.${c.d || c.p.length ? "" : " " + t("The atlas has no notes on it yet; holdings can be added below.")}` : esc(txC(c))}</p>
       ${st.mode==="geo" && GEO && (GEO.meta.approx||[]).includes(c.id) ? `<p class="note">${t("INAO maps Charmes and Mazoyères as one area (Mazoyères may be sold as Charmes); the line between them here is an estimate.")}</p>` : ""}
-      ${detailHtml(c)}
-      ${histHtml(c)}
-      ${geolHtml(c)}
-      <p><button class="btn quiet" id="cmpWith">⇄ ${t("Compare with another vineyard")}</button></p>
-      ${VT ? vintageYearHtml(catOf(c), c.v) + vintageChart(catOf(c), c.v) : ""}
       ${c.inner && !c.x?`<p class="note">${t("An enclave inside {0}.", `<button class="plink" data-c="${c.in}">${esc(CL[c.in].n)}</button>`)}</p>`:""}
       ${C.some(x=>x.in===c.id)?`<p class="note">${t("Contains {0}.", C.filter(x=>x.in===c.id).map(x=>`<button class="plink" data-c="${x.id}">${esc(x.n)}</button>`).join(", "))}</p>`:""}
       <h3>${t(c.mono ? "Holdings" : "Holdings · click a name to map their vineyards")}</h3>
       ${ownersHtml(c)}
       ${removedHtml(c)}
-      ${editHtml(c)}
-      ${cellarHtml(CELLAR.by[c.id]?.wines)}`;
+      ${cellarHtml(CELLAR.by[c.id]?.wines)}
+      ${detailHtml(c)}
+      ${VT ? vintageYearHtml(catOf(c), c.v) + vintageChart(catOf(c), c.v) + ((c.col||"")==="RW" && catOf(c)!=="beaune_white" ? vintageChart("beaune_white", c.v) : "") : ""}
+      ${histHtml(c)}
+      ${geolHtml(c)}
+      <p><button class="btn quiet" id="cmpWith">⇄ ${t("Compare with another vineyard")}</button></p>
+      ${editHtml(c)}`;
   } else if(st.prod){
     const r = PROD[st.prod], pf = r.prof || {};
     const ORD = {GC:0,"1er":1,V:2};
@@ -1289,7 +1354,28 @@ function renderSide(){
   const cp = $("clearProd"); if(cp) cp.onclick = () => setProducer(null);
   if(st.sel) wireEdit(CL[st.sel]);
   const cw = $("cmpWith"); if(cw) cw.onclick = () => compareWith(st.sel);
+  side.insertAdjacentHTML("afterbegin", `<button type="button" class="grip" id="grip" aria-label="${t(side.classList.contains("full") ? "Show less" : "Show more")}"></button>`);
+  wireGrip();
+  // a new selection starts at the top of the sheet; a re-render of the same one keeps your place
+  const key = [st.sel, st.vsel, st.prod, st.ld, st.overview].join("|");
+  if(side._key !== key){ side.scrollTop = 0; side._key = key; }
   renderPeek();
+}
+// phone sheet: tap the grip to go full height and back; drag it up to expand, down to shrink or close
+function wireGrip(){
+  const g = $("grip"); if(!g) return;
+  g.onclick = () => { side.classList.toggle("full"); g.setAttribute("aria-label", t(side.classList.contains("full") ? "Show less" : "Show more")); };
+  let y0 = null;
+  g.onpointerdown = e => { y0 = e.clientY; g.setPointerCapture(e.pointerId); };
+  g.onpointerup = e => { if(y0 == null) return; const dy = e.clientY - y0; y0 = null;
+    if(dy < -40) side.classList.add("full");
+    else if(dy > 40){ if(side.classList.contains("full")) side.classList.remove("full"); else closeSide(); }
+  };
+}
+function closeSide(){
+  st.sel = null; st.vsel = null; st.overview = false;
+  if(st.ld != null){ st.ld = null; drawLdSel(); }
+  if(st.prod) setProducer(null); else { renderSide(); paint(); syncHash(); syncCommunes(); }
 }
 function renderProdChip(){
   const pc = $("prodChip"); pc.hidden = !st.prod;
