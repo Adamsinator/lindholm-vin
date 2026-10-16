@@ -54,7 +54,7 @@ const DA = {
   "Your session expired — log in on the Cellar page, then reload.": "Din session er udløbet — log ind på kældersiden og genindlæs.",
   "Couldn't reach the cellar right now.": "Kunne ikke nå kælderen lige nu.",
   // climat panel
-  "Area": "Areal", "Area (INAO)": "Areal (INAO)", "INAO area": "INAO-areal", "Acres": "Acres", "Owners": "Ejere",
+  "Area": "Areal", "Area (INAO)": "Areal (INAO)", "INAO area": "INAO-areal", "Cadastre area": "Matrikelareal", "cadastre": "matrikel", "The cadastre's outline of this lieu-dit on village-appellation land (INAO doesn't delimit village climats)": "Matriklens afgrænsning af dette lieu-dit på landsbyappellationens jord (INAO afgrænser ikke landsbyklimater)", "Acres": "Acres", "Owners": "Ejere",
   "The land INAO delimits for this appellation, planted or not, measured from its parcel plan": "Det areal INAO afgrænser for appellationen, beplantet eller ej, målt på parcelplanen",
   "The two areas differ: INAO's plan counts all land entitled to the name, planted or not, while the published {0} ha counts vineyard — sometimes with neighbouring plots sold under the same name.": "De to arealer er forskellige: INAO's plan tæller al jord med ret til navnet, beplantet eller ej, mens de offentliggjorte {0} ha tæller vinmark — nogle gange med naboparceller, der sælges under samme navn.",
   "One of {0}'s premiers crus on INAO's plan": "En af {0}s premiers crus på INAO's plan", "One of {0}'s grand cru climats on INAO's plan": "Et af {0}s grand cru-climats på INAO's plan",
@@ -190,7 +190,7 @@ const FR = {
   "No bottles matched to a climat yet.": "Aucune bouteille rattachée à un climat pour l'instant.",
   "Your session expired — log in on the Cellar page, then reload.": "Session expirée — reconnectez-vous sur la page Cave, puis rechargez.",
   "Couldn't reach the cellar right now.": "Impossible de joindre la cave pour l'instant.",
-  "Area": "Surface", "Area (INAO)": "Surface (INAO)", "INAO area": "Surface INAO", "Acres": "Acres", "Owners": "Propriétaires",
+  "Area": "Surface", "Area (INAO)": "Surface (INAO)", "INAO area": "Surface INAO", "Cadastre area": "Surface cadastrale", "cadastre": "cadastre", "The cadastre's outline of this lieu-dit on village-appellation land (INAO doesn't delimit village climats)": "Le contour cadastral de ce lieu-dit sur les terres de l'appellation village (l'INAO ne délimite pas les climats village)", "Acres": "Acres", "Owners": "Propriétaires",
   "The land INAO delimits for this appellation, planted or not, measured from its parcel plan": "La surface délimitée par l'INAO pour l'appellation, plantée ou non, mesurée sur son plan parcellaire",
   "The two areas differ: INAO's plan counts all land entitled to the name, planted or not, while the published {0} ha counts vineyard — sometimes with neighbouring plots sold under the same name.": "Les deux surfaces diffèrent : le plan de l'INAO compte toutes les terres ayant droit au nom, plantées ou non, tandis que les {0} ha publiés comptent la vigne — parfois avec des parcelles voisines vendues sous le même nom.",
   "One of {0}'s premiers crus on INAO's plan": "Un des premiers crus de {0} sur le plan de l'INAO", "One of {0}'s grand cru climats on INAO's plan": "Un des climats grand cru de {0} sur le plan de l'INAO",

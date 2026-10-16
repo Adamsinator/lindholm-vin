@@ -2,7 +2,7 @@
 // INAO vineyard boundaries → burgundy-geo.js for the atlas's "surveyed" map.
 //
 //   cd tools && npm install          (once)
-//   node tools/inao-import.js [data/inao]
+//   node tools/inao-import.js [data/inao]   (then tools/cadastre-climats.js, which adds the village climats)
 //
 // Reads every .geojson / .json / .shp (+ .dbf) file in the folder — the INAO "Délimitation parcellaire
 // des AOC viticoles" export, whole or cut down to the Côte d'Or communes. GeoJSON is WGS84 lon/lat;

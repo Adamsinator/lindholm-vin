@@ -1273,7 +1273,7 @@ function renderSide(){
       <div class="meta">${esc(appellation(c))} · <button class="plink" data-v="${c.vil.id}">${esc(c.vil.n)}</button></div>
       <div class="facts">
         <div class="fact"><div class="l">${t(c.x ? "Area (INAO)" : "Area")}</div><div class="v">${fmtHa(c.ha)} ha</div></div>
-        ${c.x ? `<div class="fact"><div class="l">${t("Acres")}</div><div class="v">${(c.ha*2.471).toFixed(c.ha<4?1:0)}</div></div>` : surveyHa(c) ? `<div class="fact" title="${t("The land INAO delimits for this appellation, planted or not, measured from its parcel plan")}"><div class="l">${t("INAO area")}</div><div class="v">${fmtHa(surveyHa(c))} ha</div></div>`
+        ${c.x ? `<div class="fact"><div class="l">${t("Acres")}</div><div class="v">${(c.ha*2.471).toFixed(c.ha<4?1:0)}</div></div>` : surveyHa(c) ? `<div class="fact" title="${cadHa(c) ? t("The cadastre's outline of this lieu-dit on village-appellation land (INAO doesn't delimit village climats)") : t("The land INAO delimits for this appellation, planted or not, measured from its parcel plan")}"><div class="l">${cadHa(c) ? t("Cadastre area") : t("INAO area")}</div><div class="v">${fmtHa(surveyHa(c))} ha</div></div>`
           : `<div class="fact"><div class="l">${t("Acres")}</div><div class="v">${(c.ha*2.471).toFixed(c.ha<4?1:0)}</div></div>`}
         <div class="fact"><div class="l">${t("Owners")}</div><div class="v">${c.mono?"1":(c.p||[]).length||"—"}</div></div>
       </div>
@@ -1662,7 +1662,7 @@ function renderCompareC(){
   const owners = c => c.mono ? t("Monopole · {0}", esc(P[c.mono])) : (c.p||[]).length ? [...c.p].sort((x, y) => (y[1]??-1) - (x[1]??-1)).slice(0, 4).map(([k, h]) => `${esc(P[k])}${h!=null ? " " + fmtHa(h) : ""}`).join(", ") + ((c.p||[]).length > 4 ? ` +${c.p.length-4}` : "") : "—";
   const rows = [
     [t("Class"), c => CLASS_NAME[c.c]], [t("Commune"), c => esc(c.vil.n)], [t("Area"), c => `${fmtHa(c.ha)} ha`],
-    [t("INAO area"), c => surveyHa(c) ? `${fmtHa(surveyHa(c))} ha` : "—"],
+    [t("INAO area"), c => surveyHa(c) ? `${fmtHa(surveyHa(c))} ha${cadHa(c) ? " ("+t("cadastre")+")" : ""}` : "—"],
     [t("Altitude"), c => dem(c) ? `${dem(c)[0]}–${dem(c)[1]} m` : "—"], [t("Faces"), c => dem(c) ? (dem(c)[5] < 55 ? t("varied") + " · " : "") + wind(dem(c)[4]) : "—"],
     [t("Slope"), c => dem(c) ? `${dem(c)[3]} %` : "—"],
     [t("Geology"), c => g(c) ? g(c).slice(0, 2).map(([code, p]) => `<span class="cls" style="background:${geolColor(code)};border:1px solid var(--line)"></span>${esc(GEOL.legend[code][0])} ${p}%`).join("<br>") : "—"],
@@ -2100,6 +2100,8 @@ $("zInfo").onclick = ev => { ev.stopPropagation(); st.overview = !st.overview; i
 
 /* ---------- orientation: compass, rotation, locator map, where-am-I ---------- */
 // INAO's delimited area, measured from the outline (metres²) — shown next to the published figure
+// village climats outlined from the cadastre (tools/cadastre-climats.js), not by INAO
+const cadHa = c => !!(GEO && GEO.meta.cadastral && GEO.meta.cadastral[c.id]);
 function surveyHa(c){
   const mp = GEO && GEO.climats[c.id]; if(!mp) return 0;
   // the atlas counts an enclave in its parent's hectares (Clos de la Mouchère in Puligny's Perrières), INAO maps them apart
