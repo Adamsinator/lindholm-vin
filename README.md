@@ -368,7 +368,7 @@ and bottle format, all inline in the wine's detail.
 region, country, grape or type. If journal entries were written under the old name, a tick-box renames them too.
 Only the fields you changed are written.
 
-These features need **API version 26** or later: paste the new `apps-script/Code.gs` into the script and redeploy.
+These features need **API version 26** or later (27 = settings in Settings.gs): paste the new `apps-script/Code.gs` into the script and redeploy.
 They are:
 - editing details;
 - filling in classifications;
