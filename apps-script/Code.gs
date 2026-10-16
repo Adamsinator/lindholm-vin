@@ -2,24 +2,34 @@
  * AllWine — cellar API (Google Apps Script)
  *
  * Attach this to the Google Sheet that holds the cellar:
- *   Extensions → Apps Script → paste this file → set the code below →
+ *   Extensions → Apps Script → paste this file as Code.gs, and add a second file Settings.gs (see below) →
  *   Deploy → New deployment → Web app → Execute as: Me → Who has access: Anyone
  *
  * The sheet itself stays private. This script is the only way in, and it
- * refuses everything without the access code.
+ * refuses everything without a valid login (or the legacy access code).
+ *
+ * ── YOUR SETTINGS ARE IN Settings.gs, NOT HERE ────────────────────────────────
+ * Your access code, sheet name, invite code and atlas editors live in a second file in this project, Settings.gs
+ * (template: apps-script/Settings.gs in the repo). Apps Script shares one global scope across a project's files,
+ * so this file reads them from there — and updating means replacing this file only; your settings stay put.
+ *
+ *   ACCESS_CODE    legacy single-user code for the bound sheet. '' (or the placeholder 'CHANGE-ME') turns it off;
+ *                  accounts (username + password) don't need it.
+ *   SHEET_NAME     the tab that holds the wine list (default 'Ark1')
+ *   SIGNUP_CODE    invite code friends type to create their own account; '' turns signups off
+ *   ATLAS_EDITORS  who may correct vineyard holdings in the Burgundy atlas: '' = anyone signed in,
+ *                  or a comma-separated list of usernames, e.g. 'adam,anna'
+ * ─────────────────────────────────────────────────────────────────────────────
  */
-
-// ── EDIT THIS ─────────────────────────────────────────────────────────────────
-const ACCESS_CODE = 'CHANGE-ME';        // legacy single-user code (still works — see below)
-const SHEET_NAME  = 'Ark1';             // tab name that holds the wine list
-// Multi-user: share this invite code with friends so they can create their own
-// account. Each account gets its own private spreadsheet. Set to '' to turn
-// signups off. Leave ACCESS_CODE working for your own existing setup.
-const SIGNUP_CODE = '';                 // e.g. 'POUR-2026'; '' disables new signups
-// Burgundy atlas corrections: who may edit vineyard holdings. '' = any signed-in user;
-// otherwise a comma-separated list of usernames, e.g. 'adam,anna'.
-const ATLAS_EDITORS = '';
-// ─────────────────────────────────────────────────────────────────────────────
+const DEFAULT_SETTINGS = { ACCESS_CODE: '', SHEET_NAME: 'Ark1', SIGNUP_CODE: '', ATLAS_EDITORS: '' };
+// Read at call time (not load time), so it doesn't matter in which order Apps Script loads the two files.
+function setting(key) {
+  const s = (typeof SETTINGS === 'object' && SETTINGS) || {};
+  const v = s[key] !== undefined && s[key] !== null ? s[key] : DEFAULT_SETTINGS[key];
+  return String(v === undefined || v === null ? '' : v).trim();
+}
+// The legacy code only works once you've set a real one: the placeholder from the template is public.
+function accessCode() { const c = setting('ACCESS_CODE'); return c === 'CHANGE-ME' ? '' : c; }
 
 const API_VERSION = 26; // returned in every response; used to verify deployments
 
@@ -119,7 +129,8 @@ function handle(p) {
     catch (err) { return json({ ok: false, error: 'no-cellar' }); }
     CTX_USER = u.username;
   } else {
-    if (String(p.code || '') !== ACCESS_CODE) return json({ ok: false, error: 'bad-code' });
+    const code = accessCode();
+    if (!code || String(p.code || '') !== code) return json({ ok: false, error: 'bad-code' });
     CTX = SpreadsheetApp.getActiveSpreadsheet();
     CTX_USER = 'cellar';
   }
@@ -232,7 +243,7 @@ function handle(p) {
 // ── Accounts (registry + per-user spreadsheet) ───────────────────────────────
 // A "Users" tab in the bound (owner's) spreadsheet is the registry. Each row is
 // one account: a salted password hash and the id of that user's own private
-// spreadsheet. Passwords are never stored in the clear. Signups need SIGNUP_CODE.
+// spreadsheet. Passwords are never stored in the clear. Signups need the SIGNUP_CODE setting.
 
 const USERS_SHEET = 'Users';
 const USER_COLS = ['Username', 'Salt', 'Hash', 'SpreadsheetId', 'Token', 'Created'];
@@ -312,15 +323,16 @@ function createUserSpreadsheet(username) {
   const folder = masterFolder().createFolder('AllWine — ' + username);
   const book = SpreadsheetApp.create('AllWine — ' + username);
   const sh = book.getSheets()[0];
-  sh.setName(SHEET_NAME);
+  sh.setName(setting('SHEET_NAME'));
   sh.appendRow(Object.values(HEADERS)); // Producent, Land, Område, …
   DriveApp.getFileById(book.getId()).moveTo(folder); // tuck the sheet into its folder
   return book.getId();
 }
 
 function doSignup(p) {
-  if (!SIGNUP_CODE) return json({ ok: false, error: 'signup-disabled' });
-  if (String(p.code || '') !== SIGNUP_CODE) return json({ ok: false, error: 'bad-invite' });
+  const invite = setting('SIGNUP_CODE');
+  if (!invite) return json({ ok: false, error: 'signup-disabled' });
+  if (String(p.code || '') !== invite) return json({ ok: false, error: 'bad-invite' });
   const username = String(p.user || '').trim();
   if (!/^[a-zA-Z0-9_.-]{3,24}$/.test(username)) return json({ ok: false, error: 'bad-username' });
   if (String(p.pass || '').length < 6) return json({ ok: false, error: 'weak-pass' });
@@ -529,8 +541,9 @@ function listUsers() {
 }
 
 function sheet() {
-  const sh = ss().getSheetByName(SHEET_NAME);
-  if (!sh) throw new Error('Sheet tab "' + SHEET_NAME + '" not found');
+  const name = setting('SHEET_NAME');
+  const sh = ss().getSheetByName(name);
+  if (!sh) throw new Error('Sheet tab "' + name + '" not found');
   return sh;
 }
 
@@ -1068,7 +1081,7 @@ function readAtlas(withUser) { // usernames only go to signed-in callers
 }
 function addAtlasEdit(e) {
   const who = CTX_USER || 'cellar';
-  const allowed = String(ATLAS_EDITORS || '').split(',').map(normUser).filter(Boolean);
+  const allowed = setting('ATLAS_EDITORS').split(',').map(normUser).filter(Boolean);
   if (allowed.length && allowed.indexOf(normUser(who)) === -1) throw new Error('not-an-atlas-editor');
   const climat = String(e.climat || '').trim(), producer = String(e.producer || '').trim().slice(0, 80);
   if (!/^[a-z0-9_]{2,40}$/.test(climat) || !producer) throw new Error('bad-edit');

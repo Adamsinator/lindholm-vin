@@ -18,16 +18,25 @@ private Google Sheet through a Google Apps Script API.
 1. Open the Google Sheet with the wine list.
 2. Extensions → Apps Script.
 3. Delete any starter code and paste in `apps-script/Code.gs`.
-4. At the top of the file, set `ACCESS_CODE` to a code of your choosing, and
-   check that `SHEET_NAME` matches the tab name (default `Ark1`).
+4. Add a second file with **＋ → Script**, name it `Settings`, and paste in `apps-script/Settings.gs`. Your settings
+   live there, so updating the API later means replacing `Code.gs` only:
+   - `SHEET_NAME`: the tab that holds the wine list (default `Ark1`).
+   - `SIGNUP_CODE`: an invite code for friends to create their own accounts. `''` turns signups off.
+   - `ATLAS_EDITORS`: who may correct holdings in the Burgundy atlas. `''` means anyone signed in;
+     otherwise list usernames, e.g. `'adam,anna'`.
+   - `ACCESS_CODE`: the old single-user code. Leave it `''` (off) if you log in with a username and password.
+     The template's placeholder `CHANGE-ME` never works, since it is public.
 5. Deploy → New deployment → type **Web app**:
    - Execute as: **Me**
    - Who has access: **Anyone**
 6. Authorize when prompted, then copy the web app URL
    (`https://script.google.com/macros/s/…/exec`).
 
-> "Anyone" only means the URL doesn't require a Google login — the script
-> itself rejects every request without the access code.
+> "Anyone" only means the URL doesn't require a Google login. The script itself rejects every request without a
+> valid login (or the access code, if you set one).
+
+**Updating the API:** paste the new `Code.gs` over the old one. Leave `Settings.gs` as it is. Then go to
+Deploy → Manage deployments → ✏️ → Version: **New version** → Deploy. This keeps the same URL.
 
 ### 2. The site
 
@@ -359,7 +368,7 @@ and bottle format, all inline in the wine's detail.
 region, country, grape or type. If journal entries were written under the old name, a tick-box renames them too.
 Only the fields you changed are written.
 
-These features need **API version 26**: paste the new `apps-script/Code.gs` into the script and redeploy.
+These features need **API version 26** or later: paste the new `apps-script/Code.gs` into the script and redeploy.
 They are:
 - editing details;
 - filling in classifications;

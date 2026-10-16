@@ -21,8 +21,8 @@ const gas = H({
 const TODAY = "2026-10-16";
 const SHOTS = process.env.SHOTS || ""; // a folder: screenshots of the forms and the Enjoyed page
 const results = []; const check = (name, ok, extra = "") => { results.push([ok, name]); console.log((ok ? "PASS " : "FAIL ") + name + (ok ? "" : "  " + extra)); };
-const wines = () => gas.call({ code: "CHANGE-ME", action: "data" }).wines;
-const journal = () => gas.call({ code: "CHANGE-ME", action: "journal" }).entries;
+const wines = () => gas.call({ code: "test-code", action: "data" }).wines;
+const journal = () => gas.call({ code: "test-code", action: "journal" }).entries;
 const W = (prod, name) => wines().find(w => w.producer === prod && (name == null || w.name === name));
 
 (async () => {
@@ -32,7 +32,7 @@ const W = (prod, name) => wines().find(w => w.producer === prod && (name == null
     const p = JSON.parse(route.request().postData() || "{}");
     let r;
     if (p.action === "login") r = { ok: true, user: p.user, token: "tok", v: 26 };
-    else { delete p.user; delete p.token; p.code = "CHANGE-ME"; r = gas.call(p); }
+    else { delete p.user; delete p.token; p.code = "test-code"; r = gas.call(p); }
     await route.fulfill({ contentType: "application/json", body: JSON.stringify(r) });
   });
   const p = await ctx.newPage(); const errs = [];
