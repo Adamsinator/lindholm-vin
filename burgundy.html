@@ -72,7 +72,21 @@ header.top .ttl{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,H
 .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
 .toolbar input,.toolbar select{background:var(--card);border:1px solid var(--line);color:var(--ink);border-radius:8px;
   padding:8px 10px;font-size:14px;font-family:inherit;min-width:0;height:36px}
-#fSearch{flex:1 1 120px;max-width:320px}
+/* one search for everything: communes, vineyards, lieux-dits, domaines; results drop down under the box */
+.toolbar{position:relative;z-index:6}
+.sbox{position:relative;flex:1 1 120px;max-width:320px;display:flex}
+.sbox input{flex:1;width:100%}
+.sres{position:absolute;top:calc(100% + 4px);left:0;width:max(100%,400px);max-width:calc(100vw - 24px);max-height:min(62vh,480px);overflow-y:auto;
+  background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.16);padding:4px 0;z-index:40}
+.sres .sg{font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);padding:8px 14px 3px}
+.sres .si{display:flex;align-items:baseline;gap:10px;padding:7px 14px;cursor:pointer;min-height:34px}
+.sres .si b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sres .si b mark{background:none;color:var(--accent);font-weight:750}
+.sres .si .ss{color:var(--muted);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:auto;flex:none;max-width:55%}
+.sres .si .cls{flex:none;width:9px;height:9px;border-radius:2px;align-self:center}
+.sres .si.on,.sres .si:hover{background:var(--chip)}
+.sres .sn{padding:12px 14px;color:var(--muted);font-size:13px}
+.qchip{max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #fCommune{width:140px} #fColor{width:164px}
 @media(max-width:1500px) and (min-width:601px){.chip{padding:4px 10px} .seg button{padding:0 10px} .toolbar{gap:6px}}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;height:36px;background:var(--card)}
@@ -100,7 +114,8 @@ input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible,[t
 .tbtoggle[aria-expanded="true"]{border-color:var(--ink)}
 @media(max-width:600px){
   .toolbar{gap:6px;margin-bottom:8px}
-  #fSearch{flex:1 1 auto;max-width:none;font-size:16px;height:40px}   /* 16px: no zoom-on-focus in iOS */
+  .sbox{flex:1 1 auto;max-width:none} #fSearch{font-size:16px;height:40px}   /* 16px: no zoom-on-focus in iOS */
+  .sres{width:calc(100vw - 24px);max-height:58svh} .sres .si{min-height:42px}
   .tbtoggle{display:inline-flex;height:40px}
   .tbmore{display:none;width:100%;flex-wrap:wrap;gap:6px;padding:8px 0 2px}
   .tbmore.open{display:flex}
@@ -337,7 +352,7 @@ input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible,[t
 .ktag.s{color:color-mix(in srgb,var(--gold) 68%,var(--ink))}
 .dfilt{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .dfilt input,.dfilt select{background:var(--card);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:6px 10px;font:inherit;font-size:13.5px;height:32px}
-.dfilt input{width:200px} #dCount{margin-left:auto}
+#dCount{margin-left:auto}
 @media(max-width:600px){.dfilt input{width:100%;font-size:16px}}
 .dgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
 .dcard{display:flex;flex-direction:column;gap:3px;text-align:left;border:1px solid var(--line);background:var(--card2);border-radius:10px;
@@ -462,7 +477,11 @@ footer.fine{margin-top:14px;font-size:12px;color:var(--muted);max-width:110ch;li
 
 <main id="main">
 <div class="toolbar" role="search">
-  <input type="search" id="fSearch" list="searchList" placeholder="Search…" aria-label="Find a vineyard, lieu-dit or producer" data-i18n-ph data-i18n-aria>
+  <div class="sbox">
+    <input type="search" id="fSearch" placeholder="Search…" aria-label="Search communes, vineyards, lieux-dits and domaines" data-i18n-ph data-i18n-aria
+      role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sResults" autocomplete="off" spellcheck="false">
+    <div class="sres" id="sResults" role="listbox" aria-label="Search results" data-i18n-aria hidden></div>
+  </div>
   <datalist id="searchList"></datalist>
   <datalist id="producerList"></datalist>
   <datalist id="allProducers"></datalist>
@@ -556,7 +575,7 @@ footer.fine{margin-top:14px;font-size:12px;color:var(--muted);max-width:110ch;li
   </nav>
   <div class="xpane on" data-x="domaines">
     <div class="xhead dfilt">
-      <input type="search" id="dSearch" placeholder="Find a domaine…" aria-label="Find a domaine" data-i18n-ph data-i18n-aria>
+      <button type="button" class="chip on qchip" id="dQuery" hidden title="Clear the search" data-i18n-title></button>
       <div class="feedtabs" id="dtabs"><button class="ftog on" data-t="all" data-i18n>All</button><button class="ftog" data-t="north">Gevrey · Morey · Chambolle</button><button class="ftog" data-t="vosne">Vosne · Nuits</button><button class="ftog" data-t="beaune">Côte de Beaune</button></div>
       <select id="dSort" aria-label="Sort domaines" data-i18n-aria><option value="ha" data-i18n>Most hectares</option><option value="gc" data-i18n>Most grands crus</option><option value="n" data-i18n>Most climats</option><option value="az" data-i18n>A–Z</option></select>
       <span class="ph" id="dCount"></span>
@@ -598,7 +617,7 @@ footer.fine{margin-top:14px;font-size:12px;color:var(--muted);max-width:110ch;li
 </footer>
 </div>
 <div id="tip" aria-hidden="true"></div>
-<script src="i18n.js?v=10"></script>
+<script src="i18n.js?v=11"></script>
 <script src="burgundy-i18n-da.js?v=2"></script>
 <script src="burgundy-i18n-fr.js?v=2"></script>
 <script src="burgundy-data.js?v=8"></script>
@@ -610,6 +629,6 @@ footer.fine{margin-top:14px;font-size:12px;color:var(--muted);max-width:110ch;li
 <script src="burgundy-vintages.js?v=4"></script>
 <script src="burgundy-geol.js?v=1"></script>
 <script src="burgundy-history.js?v=2"></script>
-<script src="burgundy.js?v=27"></script>
+<script src="burgundy.js?v=28"></script>
 </body>
 </html>

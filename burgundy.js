@@ -99,10 +99,12 @@ C.forEach(c => { c.sch = {cx:c.cx, cy:c.cy, bw:c.bw, bh:c.bh}; }); // schematic 
 /* ---------- producers index (rebuilt whenever corrections are applied) ---------- */
 const PROD = {}; // key -> {key,name,hold:[{c,ha,kind,since}],ha,gc,n,prof}
 const prodByName = {};
+// the search rule everywhere (results, map, Domaines list): every word typed starts some word of the text
+const qMatch = (q, words) => q.split(" ").every(w => !w || words.some(x => x.startsWith(w)));
 function indexHoldings(){
   C.forEach(c => {
     c.known = c.p.reduce((s,[,h,k]) => s + (k==="s" ? 0 : h||0), 0); // bought grapes aren't ownership
-    c.search = norm([c.n, c.vil.n, c.ap||"", ...c.p.map(([k])=>P[k])].join(" "));
+    c.search = norm([c.n, c.vil.n, c.ap||"", ...c.p.map(([k])=>P[k])].join(" ")); c.searchW = c.search.split(" ");
   });
   for(const k in PROD) delete PROD[k];
   for(const k in prodByName) delete prodByName[k];
@@ -368,7 +370,7 @@ function matches(c){
   }
   if(st.prod && holding(c, st.prod)===undefined) return false;
   if(st.cellarOnly && !(CELLAR.by[c.id])) return false;
-  if(st.q && !c.search.includes(st.q)) return false;
+  if(st.q && !qMatch(st.q, c.searchW)) return false;
   return true;
 }
 
@@ -401,7 +403,7 @@ function loadLieux(){
   if(LDX || !GEO || loadLieux.started) return; loadLieux.started = true;
   const sc = document.createElement("script"); sc.src = "burgundy-lieuxdits.js?v=" + LDX_V;
   sc.onload = () => { if(!window.BURG_LIEUXDITS) return; LDX = window.BURG_LIEUXDITS; ldIn.clear();
-    if(st.mode==="geo") drawLieux(); if(st.sel) renderSide(); fillSearchList(); resolveLdPending(); };
+    if(st.mode==="geo") drawLieux(); if(st.sel) renderSide(); SX = null; if(!sRes.hidden) renderResults(); resolveLdPending(); };
   document.body.appendChild(sc);
 }
 const ldRing = f => { const o = []; let x = 0, y = 0; for(let i = 0; i < f.length; i += 2){ if(i){ x += f[i]; y += f[i+1]; } else { x = f[i]; y = f[i+1]; } o.push([x, y]); } return o; };
@@ -1391,7 +1393,8 @@ function renderDomains(){
     north:{area:["marsannay","fixin","brochon","gevrey","morey","chambolle","vougeot"], n:"Gevrey–Vougeot"},
     beaune:{area:V.filter(v=>v.cote==="beaune").map(v=>v.id), n:"Côte de Beaune"},
   }, T = TABS[tab] || TABS.all;
-  const AREA = T.area && new Set(T.area), AREA_N = T.n, q = norm($("dSearch").value || ""), sort = $("dSort").value;
+  const AREA = T.area && new Set(T.area), AREA_N = T.n, q = st.q || "", sort = $("dSort").value;
+  const dq = $("dQuery"); dq.hidden = !q; if(q) dq.textContent = `“${sBox.value.trim()}” ✕`;
   document.querySelectorAll("#dtabs button").forEach(b => b.classList.toggle("on", b.dataset.t===tab));
   // every producer with something on the map, profiled or not
   const all = Object.values(PROD).filter(r => r.hold.length).map(r => {
@@ -1400,7 +1403,7 @@ function renderDomains(){
     const vha = own.reduce((s,h)=>s+(h.ha||0),0), unknown = own.some(h=>h.ha==null);
     return {r, vh, own, gcs, vha, unknown, src:vh.filter(h=>h.kind==="s")};
   });
-  const list = all.filter(x => x.vh.length && (!q || norm(x.r.name).includes(q))).sort((a,b) =>
+  const list = all.filter(x => x.vh.length && (!q || qMatch(q, norm(x.r.name).split(" ")))).sort((a,b) =>
     sort==="az" ? a.r.name.localeCompare(b.r.name, "fr")
     : sort==="gc" ? b.gcs.length - a.gcs.length || b.vha - a.vha
     : sort==="n" ? b.own.length - a.own.length || b.vha - a.vha
@@ -1703,39 +1706,103 @@ function wireEdit(c){
 /* ---------- controls ---------- */
 function norm(t){ return String(t||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/œ/g,"oe").replace(/[-'’.,«»()]/g," ")
   .replace(/\bst\b/g,"saint").replace(/\bste\b/g,"sainte").replace(/\s+/g," ").trim(); }
-// one search box: vineyards ("Name — Commune") and producers ("Name · producer")
-let PROD_SUFFIX = " · producer";
+let SX = null; // the search index (built on first use)
+// the vineyard picker used by "compare two vineyards" (a plain datalist of climats)
 function fillSearchList(){
-  PROD_SUFFIX = " · " + t("producer");
-  $("searchList").innerHTML = [...C].sort((a,b)=>a.n.localeCompare(b.n,"fr")).map(c => `<option value="${esc(c.n)} — ${esc(c.vil.n)}">`).join("")
-    + Object.values(PROD).sort((a,b)=>a.name.localeCompare(b.name,"fr")).map(r => `<option value="${esc(r.name + PROD_SUFFIX)}">`).join("")
-    + (LDX ? LDX.ld.map((l, i) => [ldLabel(i), i]).sort((a,b) => a[0].localeCompare(b[0],"fr")).map(([s]) => `<option value="${esc(s)}">`).join("") : "");
+  $("searchList").innerHTML = [...C].sort((a,b)=>a.n.localeCompare(b.n,"fr")).map(c => `<option value="${esc(c.n)} — ${esc(c.vil.n)}">`).join("");
+  SX = null; // the search index is rebuilt on next use (new language, lieux-dits arrived)
 }
-// "Les Crais — Gevrey-Chambertin · lieu-dit": the search box's entry for a lieu-dit
-const ldLabel = i => `${LDX.ld[i][1]} — ${LDX.meta.communes[LDX.ld[i][0]] || ""} · ${t("lieu-dit")}`;
 fillSearchList();
 $("producerList").innerHTML = Object.values(PROD).sort((a,b)=>a.name.localeCompare(b.name,"fr")).map(r => `<option value="${esc(r.name)}">`).join("");
 $("allProducers").innerHTML = Object.values(P).sort((a,b)=>a.localeCompare(b,"fr")).map(n => `<option value="${esc(n)}">`).join("");
 document.querySelectorAll("#dtabs button").forEach(b => b.onclick = () => { st.dtab = b.dataset.t; renderDomains(); });
-$("dSearch").addEventListener("input", renderDomains); $("dSort").onchange = renderDomains;
-$("fSearch").addEventListener("input", ev => {
-  const val = ev.target.value;
-  const exact = C.find(c => `${c.n} — ${c.vil.n}` === val);
-  if(exact){ st.q = ""; ev.target.value = ""; select(exact.id, true); return; }
-  if(LDX && val.endsWith(" · " + t("lieu-dit"))){ const i = LDX.ld.findIndex((l, k) => ldLabel(k) === val);
-    if(i >= 0){ st.q = ""; ev.target.value = ""; selectLd(i, true); return; } }
-  if(val.endsWith(PROD_SUFFIX)){ const key = prodByName[norm(val.slice(0, -PROD_SUFFIX.length))];
-    if(key){ st.q = ""; ev.target.value = ""; setProducer(key, true); return; } }
-  st.q = norm(val); paint();
+$("dSort").onchange = renderDomains;
+
+/* ---------- one search for everything: communes, vineyards, domaines and lieux-dits ----------
+   Typing also filters the map (vineyards matching the text, or held by a producer matching it) and the Domaines list;
+   picking a result goes there. Every word typed must start a word of the name ("gr rue" finds La Grande Rue). */
+const KIND_ORDER = ["v", "c", "p", "l"], KIND_MAX = {v:4, c:7, p:5, l:6};
+function searchIndex(){
+  if(SX) return SX;
+  SX = [];
+  V.forEach(v => SX.push({k:"v", id:v.id, name:v.n, sub:t("Commune"), w:norm(v.n)}));
+  C.forEach(c => SX.push({k:"c", id:c.id, name:c.n, sub:`${CLASS_NAME[c.c]} · ${c.vil.n.split(" · ")[0]}`, cls:c.c, w:norm(c.n + " " + (c.ap||""))}));
+  Object.values(PROD).filter(r => r.hold.length).forEach(r => SX.push({k:"p", id:r.key, name:r.name,
+    sub:`${t("Domaine")} · ${r.n} ${t("climats")}`, w:norm(r.name), big:r.ha||0}));
+  // a lieu-dit in two pieces is listed once
+  if(LDX){ const seen = new Set(); LDX.ld.forEach((l, i) => { const k = l[0] + "|" + l[1]; if(seen.has(k)) return; seen.add(k);
+    SX.push({k:"l", id:i, name:l[1], sub:`${t("Lieu-dit")} · ${LDX.meta.communes[l[0]] || ""}`, w:norm(l[1])}); }); }
+  SX.forEach(e => e.words = e.w.split(" "));
+  return SX;
+}
+const ARTS = new Set(["les","la","le","l","aux","au","en","a","de","du","des","d","sur","sous","et","ou","domaine","dom","maison"]);
+function searchHits(q){
+  const qs = norm(q).split(" ").filter(Boolean); if(!qs.length) return [];
+  const out = [];
+  searchIndex().forEach(e => {
+    // every query word must start one of the entry's words; the score prefers whole-name and first-word matches
+    let score = 0;
+    for(const w of qs){ const i = e.words.findIndex(x => x.startsWith(w)); if(i < 0) return; score += (e.words[i] === w ? 0 : 1) + (ARTS.has(e.words[i]) ? 2 : 0); }
+    const first = e.words.findIndex(x => !ARTS.has(x));
+    if(e.w === qs.join(" ") || e.words.slice(first).join(" ") === qs.join(" ")) score -= 3;
+    else if(e.words[first] && e.words[first].startsWith(qs[0])) score -= 1;
+    // a commune is what a village's name usually means; on a tie a vineyard beats a lieu-dit of the same name
+    out.push({e, score: score + (e.k==="v" ? -2 : e.k==="c" ? CORD[e.cls]*.3 : e.k==="l" ? .7 : 0) - (e.big ? Math.min(1, e.big/20) : 0)});
+  });
+  out.sort((a,b) => a.score - b.score || a.e.name.length - b.e.name.length || a.e.name.localeCompare(b.e.name, "fr"));
+  // grouped, a few of each kind; the group with the best match first ("chambertin": the grand cru before Gevrey-Chambertin)
+  const best = k => { const h = out.find(h => h.e.k===k); return h ? h.score : Infinity; };
+  return [...KIND_ORDER].sort((a,b) => best(a) - best(b) || KIND_ORDER.indexOf(a) - KIND_ORDER.indexOf(b))
+    .flatMap(k => out.filter(h => h.e.k===k).slice(0, KIND_MAX[k]).map(h => h.e));
+}
+const KIND_NAME = () => ({v:t("Communes"), c:t("Vineyards"), p:t("Domaines"), l:t("Lieux-dits")});
+const hilite = (name, q) => { const qs = norm(q).split(" ").filter(Boolean);
+  return name.split(/(\s+|-)/).map(w => { const n = norm(w), hit = qs.find(x => n.startsWith(x)); if(!hit || !n) return esc(w);
+    // the matched prefix, counted in the original word's letters (accents don't change the length after NFD-stripping)
+    return `<mark>${esc(w.slice(0, hit.length))}</mark>${esc(w.slice(hit.length))}`; }).join(""); };
+let sHits = [], sActive = -1;
+const sBox = $("fSearch"), sRes = $("sResults");
+function renderResults(){
+  const q = sBox.value.trim();
+  if(!q){ sRes.hidden = true; sBox.setAttribute("aria-expanded", "false"); return; }
+  sHits = searchHits(q); sActive = sHits.length ? 0 : -1;
+  const KN = KIND_NAME(); let last = "";
+  sRes.innerHTML = sHits.length ? sHits.map((e, i) => {
+    const head = e.k !== last ? `<div class="sg" role="presentation">${KN[e.k]}</div>` : ""; last = e.k;
+    const sw = e.k==="c" ? `<span class="cls" style="background:${{GC:TOK.gc,"1er":TOK.pc,V:TOK.vc}[e.cls]}"></span>` : "";
+    return `${head}<div class="si${i===sActive?" on":""}" role="option" id="sr${i}" data-i="${i}" aria-selected="${i===sActive}">${sw}<b>${hilite(e.name, q)}</b><span class="ss">${esc(e.sub)}</span></div>`;
+  }).join("") : `<div class="sn">${t("Nothing matches “{0}”.", esc(q))}${!LDX && GEO ? " " + t("(Lieux-dits are still loading.)") : ""}</div>`;
+  sRes.hidden = false; sBox.setAttribute("aria-expanded", "true");
+  sBox.setAttribute("aria-activedescendant", sActive >= 0 ? "sr" + sActive : "");
+}
+function moveActive(d){
+  if(!sHits.length) return;
+  sActive = (sActive + d + sHits.length) % sHits.length;
+  sRes.querySelectorAll(".si").forEach(el => { const on = +el.dataset.i === sActive; el.classList.toggle("on", on); el.setAttribute("aria-selected", on); if(on) el.scrollIntoView({block:"nearest"}); });
+  sBox.setAttribute("aria-activedescendant", "sr" + sActive);
+}
+function closeResults(){ sRes.hidden = true; sBox.setAttribute("aria-expanded", "false"); }
+function pickResult(e){
+  sBox.value = ""; st.q = ""; closeResults(); sBox.blur();
+  if(e.k==="v") selectVillage(e.id, true);
+  else if(e.k==="c") select(e.id, true);
+  else if(e.k==="p") setProducer(e.id, true);
+  else if(e.k==="l") selectLd(e.id, true);
+  paint();
+}
+sBox.addEventListener("input", () => { st.q = norm(sBox.value); renderResults(); paint(); });
+sBox.addEventListener("focus", () => { if(sBox.value.trim()) renderResults(); });
+sBox.addEventListener("keydown", ev => {
+  if(ev.key==="ArrowDown"){ ev.preventDefault(); if(sRes.hidden) renderResults(); else moveActive(1); }
+  else if(ev.key==="ArrowUp"){ ev.preventDefault(); moveActive(-1); }
+  else if(ev.key==="Enter"){ ev.preventDefault(); if(sRes.hidden) renderResults(); if(sHits[sActive]) pickResult(sHits[sActive]); }
+  else if(ev.key==="Escape"){ if(!sRes.hidden) closeResults(); else { sBox.value = ""; st.q = ""; paint(); } }
 });
-$("fSearch").addEventListener("keydown", ev => {
-  if(ev.key!=="Enter") return;
-  const hit = C.filter(c => c.on).sort((a,b) => (norm(a.n).startsWith(st.q)?0:1)-(norm(b.n).startsWith(st.q)?0:1) || CORD[a.c]-CORD[b.c])[0];
-  if(hit) return select(hit.id, true);
-  // no vineyard matches: a lieu-dit of that name, if there is one
-  if(LDX && st.q){ const i = LDX.ld.findIndex(l => norm(l[1]) === st.q); const j = i >= 0 ? i : LDX.ld.findIndex(l => norm(l[1]).includes(st.q));
-    if(j >= 0){ ev.target.value = ""; st.q = ""; paint(); selectLd(j, true); } }
-});
+sRes.addEventListener("mousedown", ev => ev.preventDefault()); // keep focus in the box while clicking a result
+sRes.addEventListener("click", ev => { const el = ev.target.closest(".si"); if(el) pickResult(sHits[+el.dataset.i]); });
+document.addEventListener("pointerdown", ev => { if(!ev.target.closest(".sbox")) closeResults(); });
+// the Domaines list follows the search; its chip clears it
+$("dQuery").onclick = () => { sBox.value = ""; st.q = ""; closeResults(); paint(); };
 $("prodChip").onclick = () => setProducer(null);
 $("fColor").onchange = ev => { st.color = ev.target.value; paint(); syncHash(); };
 $("classChips").querySelectorAll("[data-cls]").forEach(b => b.onclick = () => {
