@@ -402,6 +402,20 @@ parcellaire des AOC viticoles* instead of its schematic grid:
    taken out of Chambertin (it may be sold as Chambertin), and the combined
    Charmes/Mazoyères area is split east–west by the atlas's area ratio, which
    the drawer flags as an estimate.
+4. Then run `node tools/cadastre-climats.js`, which adds outlines for the atlas's
+   village climats. INAO doesn't delimit them, so they come from the Etalab
+   cadastre:
+   - Most are a cadastral lieu-dit (La Colombière, Aux Réas, La Justice…),
+     clipped to village-appellation land, minus anything drawn as a premier or
+     grand cru. Part of La Combe Brûlée, for example, is the 1er cru Aux Brûlées.
+   - A clos is its named parcels. Clos du Château is Vosne AL 105 + 106,
+     83 a 04 ca, the domaine's exact figure.
+
+   The panel calls the result "Cadastre area". The script patches
+   `burgundy-geo.js`, so rerun it after every `inao-import.js`, and then rerun
+   `dem-import.js` and `geol-import.js`. It prints the climats still without an
+   outline: enclaves inside a cru, plus Clos Goillotte, whose parcels aren't
+   identified yet.
 
 Once `burgundy-geo.js` has outlines, the atlas opens on the surveyed map with a
 scale bar, and a **Surveyed / Schematic** switch on the map changes between the
