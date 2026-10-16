@@ -19,9 +19,10 @@
  *   SIGNUP_CODE    invite code friends type to create their own account; '' turns signups off
  *   ATLAS_EDITORS  who may correct vineyard holdings in the Burgundy atlas: '' = anyone signed in,
  *                  or a comma-separated list of usernames, e.g. 'adam,anna'
+ *   OWNER_USER / OWNER_PASSWORD   only for the one-time makeOwner() setup of your own account (see below)
  * ─────────────────────────────────────────────────────────────────────────────
  */
-const DEFAULT_SETTINGS = { ACCESS_CODE: '', SHEET_NAME: 'Ark1', SIGNUP_CODE: '', ATLAS_EDITORS: '' };
+const DEFAULT_SETTINGS = { ACCESS_CODE: '', SHEET_NAME: 'Ark1', SIGNUP_CODE: '', ATLAS_EDITORS: '', OWNER_USER: '', OWNER_PASSWORD: '' };
 // Read at call time (not load time), so it doesn't matter in which order Apps Script loads the two files.
 function setting(key) {
   const s = (typeof SETTINGS === 'object' && SETTINGS) || {};
@@ -365,17 +366,19 @@ function authToken(p) {
   return tokenList(u.token).some(t => safeEqual(p.token, t)) ? u : null;
 }
 
-// Run ONCE from the editor to give yourself an account whose cellar is THIS
-// (the bound) spreadsheet, so your existing wines carry over. Edit the two
-// values, pick makeOwner in the dropdown, Run.
+// Run ONCE from the editor to give yourself an account whose cellar is THIS (the bound) spreadsheet, so your
+// existing wines carry over: put OWNER_USER and OWNER_PASSWORD in Settings.gs, pick makeOwner in the function
+// dropdown, Run — then blank OWNER_PASSWORD again. Accounts are kept in the "Users" tab, so an existing account
+// (yours included) is never touched by this or by updating the script.
 function makeOwner() {
-  const username = 'adam';        // ← your login name
-  const password = 'change-this'; // ← your password (change immediately after)
-  if (findUser(username)) return 'That username already exists — nothing changed.';
+  const username = setting('OWNER_USER'), password = setting('OWNER_PASSWORD');
+  if (!username || !password) return 'Set OWNER_USER and OWNER_PASSWORD in Settings.gs first.';
+  if (password.length < 8 || password === 'change-this') return 'Pick a real password (8+ characters) for OWNER_PASSWORD.';
+  if (findUser(username)) return 'Account "' + username + '" already exists — nothing changed. Blank OWNER_PASSWORD in Settings.gs.';
   const salt = randToken();
   usersSheet().appendRow([username, salt, hashPass(salt, password),
                           SpreadsheetApp.getActiveSpreadsheet().getId(), randToken(), today()]);
-  return 'Owner account "' + username + '" created, pointing at this spreadsheet.';
+  return 'Owner account "' + username + '" created, pointing at this spreadsheet. Now blank OWNER_PASSWORD in Settings.gs.';
 }
 
 // ── Social feed (shared across all accounts) ─────────────────────────────────
