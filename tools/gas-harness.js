@@ -2,7 +2,7 @@
 // logic (not a hand-written mock). Only the bits of the Apps Script runtime the cellar API uses are faked.
 //
 //   const gas = require("./gas-harness")({ Ark1: [[headers…], [row…], …], Journal: […] });
-//   gas.call({ code: "CHANGE-ME", action: "data" })  → parsed JSON response
+//   gas.call({ code: "test-code", action: "data" })  → parsed JSON response
 //   gas.rows("Ark1")                                   → the sheet's current cells
 "use strict";
 const fs = require("fs"), path = require("path"), vm = require("vm");
@@ -61,8 +61,12 @@ module.exports = function harness(tabs, opts = {}) {
     console,
   };
   vm.createContext(ctx);
-  const src = fs.readFileSync(path.join(__dirname, "..", "apps-script", "Code.gs"), "utf8");
-  vm.runInContext(src + "\n;globalThis.__handle = handle;", ctx);
+  // the project's two files, as Apps Script loads them (one shared global scope); Code.gs first, to show the
+  // order doesn't matter. The test sets its own access code.
+  const read = f => fs.readFileSync(path.join(__dirname, "..", "apps-script", f), "utf8");
+  vm.runInContext(read("Code.gs") + "\n;globalThis.__handle = handle;", ctx);
+  vm.runInContext(read("Settings.gs"), ctx);
+  vm.runInContext(`SETTINGS.ACCESS_CODE = ${JSON.stringify("code" in opts ? opts.code : "test-code")};`, ctx);
   return {
     call: p => JSON.parse(ctx.__handle(JSON.parse(JSON.stringify(p))).s),
     rows: n => book.sheets[n] ? book.sheets[n]._cells.map(r => [...r]) : null,
