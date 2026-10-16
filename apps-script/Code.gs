@@ -21,7 +21,7 @@ const SIGNUP_CODE = '';                 // e.g. 'POUR-2026'; '' disables new sig
 const ATLAS_EDITORS = '';
 // ─────────────────────────────────────────────────────────────────────────────
 
-const API_VERSION = 25; // returned in every response; used to verify deployments
+const API_VERSION = 26; // returned in every response; used to verify deployments
 
 // Per-request spreadsheet for the authenticated user. Set in handle(); every
 // sheet helper reads it via ss(). Falls back to the bound (owner's) spreadsheet.
@@ -66,6 +66,13 @@ const SIZE_HEADER = 'Størrelse';
 // Optional drink-window columns (years), auto-created on first use.
 const DRINK_FROM_HEADER = 'Drik fra';
 const DRINK_TO_HEADER    = 'Drik til';
+
+// Marks a row for a wine drunk elsewhere (a restaurant, a friend's table) that was never in the cellar.
+// Set by enjoyAdd; older rows without it are recognised by shape (1 bottle, drunk, no acquired date).
+const ELSEWHERE_HEADER = 'Drukket ude';
+
+// The wine fields the site may edit in place (rename, fix a commune, set a classification…).
+const INFO_FIELDS = ['producer', 'name', 'commune', 'classification', 'region', 'country', 'grape', 'type', 'vintage', 'source', 'note'];
 
 function today() { return Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd'); }
 function ymd(v) {
@@ -151,6 +158,16 @@ function handle(p) {
       case 'setwindow':
         setWindow(Number(p.row), p.from, p.to);
         return json({ ok: true, wines: readAll() });
+      case 'setinfo':
+        setInfo(Number(p.row), p.fields || {});
+        if (p.old && p.journal) renameJournal(p.old, p.fields || {});
+        return json({ ok: true, wines: readAll(), entries: readJournal() });
+      case 'enjoysync':
+        enjoySync(Number(p.row), p.entry || {});
+        return json({ ok: true, wines: readAll() });
+      case 'classfill':
+        classFill(p.wines || [], p.journal || []);
+        return json({ ok: true, wines: readAll(), entries: readJournal() });
       case 'enjoyadd':
         enjoyAdd(p.entry || {});
         return json({ ok: true, wines: readAll() });
@@ -532,6 +549,7 @@ function colIndexes(sh) {
   idx.size      = head.indexOf(SIZE_HEADER);
   idx.drinkFrom = head.indexOf(DRINK_FROM_HEADER);
   idx.drinkTo   = head.indexOf(DRINK_TO_HEADER);
+  idx.elsewhere = head.indexOf(ELSEWHERE_HEADER);
   return idx;
 }
 
@@ -557,6 +575,7 @@ function readAll() {
     w.size = idx.size >= 0 ? String(r[idx.size] === null || r[idx.size] === undefined ? '' : r[idx.size]).trim() : '';
     w.drinkFrom = idx.drinkFrom >= 0 ? (r[idx.drinkFrom] === null || r[idx.drinkFrom] === undefined ? '' : r[idx.drinkFrom]) : '';
     w.drinkTo   = idx.drinkTo   >= 0 ? (r[idx.drinkTo]   === null || r[idx.drinkTo]   === undefined ? '' : r[idx.drinkTo])   : '';
+    w.elsewhere = idx.elsewhere >= 0 && String(r[idx.elsewhere]).trim() !== '' && String(r[idx.elsewhere]).trim() !== '0';
     wines.push(w);
   });
   return wines;
@@ -587,6 +606,7 @@ function enjoyAdd(e) {
   const sh = sheet();
   ensureCol(sh, RATING_HEADER);
   ensureCol(sh, DRUNK_DATE_HEADER);
+  ensureCol(sh, ELSEWHERE_HEADER);
   if (String(e.size || '').trim()) ensureCol(sh, SIZE_HEADER);
   const idx = colIndexes(sh);
   const row = new Array(sh.getLastColumn()).fill('');
@@ -597,12 +617,95 @@ function enjoyAdd(e) {
   set('type', e.type); set('vintage', e.vintage); set('price', e.price);
   set('source', e.place !== undefined ? e.place : e.source); set('note', e.note);
   set('size', String(e.size || '').trim());
+  set('commune', e.commune); set('classification', e.classification);
+  row[idx.elsewhere] = 1;
   row[idx.qty] = 1;
   row[idx.drunk] = 1;
   row[idx.drunkDate] = ymd(e.drunkDate || e.date) || today();
   if (idx.rating >= 0 && e.rating !== '' && e.rating !== null && e.rating !== undefined)
     row[idx.rating] = Math.max(1, Math.min(10, Number(e.rating) || 0));
   sh.appendRow(row);
+}
+
+// Edit a wine's descriptive fields in place (only the INFO_FIELDS given; producer can't be blanked).
+function setInfo(rowNum, fields) {
+  const sh = sheet();
+  if (!rowNum || rowNum < 2 || rowNum > sh.getLastRow()) throw new Error('Bad row');
+  const idx = colIndexes(sh);
+  if ('producer' in fields && !String(fields.producer || '').trim()) throw new Error('Producer is required');
+  INFO_FIELDS.forEach(f => {
+    if (!(f in fields)) return;
+    let v = fields[f] === null || fields[f] === undefined ? '' : fields[f];
+    if (typeof v === 'string') v = v.trim();
+    if (f === 'vintage' && /^\d{4}$/.test(String(v))) v = Number(v);
+    sh.getRange(rowNum, idx[f] + 1).setValue(v);
+  });
+}
+
+// Journal entries that were logged under a wine's old name follow it to the new one.
+// Matched on producer + wine + vintage, ignoring case and spacing; only the identity fields change.
+function renameJournal(old, fields) {
+  const sh = journalSheet(), last = sh.getLastRow();
+  if (last < 2) return 0;
+  const k = v => String(v === null || v === undefined ? '' : v).trim().toLowerCase().replace(/\s+/g, ' ');
+  const map = { producer: 'producer', name: 'wine', vintage: 'vintage', country: 'country', region: 'region', grape: 'grape', commune: 'commune', classification: 'classification' };
+  // create the journal columns the new values need
+  const want = {}; Object.entries(map).forEach(([wf, jf]) => { if (wf in fields) want[jf] = fields[wf]; });
+  ensureJournalCols(sh, want);
+  const head = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String);
+  const col = jf => head.indexOf(JHEADERS[jf]);
+  const rows = sh.getRange(2, 1, last - 1, sh.getLastColumn()).getValues();
+  let n = 0;
+  rows.forEach((r, i) => {
+    const same = k(r[col('producer')]) === k(old.producer) && k(r[col('wine')]) === k(old.wine)
+      && (col('vintage') < 0 ? !k(old.vintage) : k(r[col('vintage')]) === k(old.vintage));
+    if (!same) return;
+    Object.entries(want).forEach(([jf, v]) => { const c = col(jf); if (c >= 0) sh.getRange(i + 2, c + 1).setValue(v === null || v === undefined ? '' : v); });
+    n++;
+  });
+  return n;
+}
+
+// Keep a journal-created Enjoyed row (one bottle, drunk, never owned) in step with its entry after an edit.
+// Refuses any other row, so a cellar wine is never overwritten from the journal.
+function enjoySync(rowNum, e) {
+  const sh = sheet();
+  if (!rowNum || rowNum < 2 || rowNum > sh.getLastRow()) throw new Error('Bad row');
+  ensureCol(sh, DRUNK_DATE_HEADER);
+  const idx = colIndexes(sh);
+  const cell = f => sh.getRange(rowNum, idx[f] + 1);
+  const qty = Number(cell('qty').getValue()) || 1, drunkRaw = String(cell('drunk').getValue()).trim().toLowerCase();
+  const drunk = drunkRaw === 'x' ? qty : Number(drunkRaw) || 0;
+  const acquired = idx.acquired >= 0 ? String(sh.getRange(rowNum, idx.acquired + 1).getValue()).trim() : '';
+  const marked = idx.elsewhere >= 0 && String(sh.getRange(rowNum, idx.elsewhere + 1).getValue()).trim() !== '';
+  if (!(qty === 1 && drunk === 1 && (marked || !acquired))) throw new Error('Not a journal-created row');
+  const put = (f, v) => { if (v !== undefined) cell(f).setValue(v === null ? '' : v); };
+  put('producer', e.producer); put('name', e.wine); put('vintage', e.vintage);
+  put('region', e.region); put('country', e.country); put('grape', e.grape);
+  if (e.commune !== undefined) put('commune', e.commune);
+  if (e.classification !== undefined) put('classification', e.classification);
+  put('source', e.place); put('note', e.note);
+  if (e.date) sh.getRange(rowNum, idx.drunkDate + 1).setValue(ymd(e.date));
+  if (e.rating !== undefined) { const i = ensureCol(sh, RATING_HEADER); sh.getRange(rowNum, i + 1).setValue(e.rating === '' ? '' : Math.max(1, Math.min(10, Number(e.rating) || 0))); }
+  if (e.price !== undefined) sh.getRange(rowNum, idx.price + 1).setValue(e.price === '' ? '' : Math.max(0, Number(e.price) || 0));
+}
+
+// Fill in blank classifications in one go (the site suggests them from the wine's name and commune).
+// Never overwrites one already set.
+function classFill(wines, entries) {
+  const sh = sheet(), idx = colIndexes(sh), lastW = sh.getLastRow();
+  (wines || []).forEach(({ row, value }) => {
+    if (!row || row < 2 || row > lastW || !String(value || '').trim()) return;
+    const c = sh.getRange(row, idx.classification + 1);
+    if (!String(c.getValue()).trim()) c.setValue(String(value).trim());
+  });
+  if (!(entries || []).length) return;
+  const js = journalSheet(), i = ensureCol(js, JHEADERS.classification), lastJ = js.getLastRow();
+  entries.forEach(({ row, value }) => {
+    if (!row || row < 2 || row > lastJ || !String(value || '').trim()) return;
+    const c = js.getRange(row, i + 1);
+    if (!String(c.getValue()).trim()) c.setValue(String(value).trim());
+  });
 }
 
 function markDrunk(rowNum, n) {
@@ -723,7 +826,7 @@ function setDate(rowNum, field, value) {
 // ── Journal (tasting log) — lives in its own tab, auto-created on first use ──
 const JOURNAL_SHEET = 'Journal';
 const JHEADERS = { date: 'Dato', producer: 'Producent', wine: 'Vin', vintage: 'Årgang',
-                   country: 'Land', region: 'Område', grape: 'Drue',
+                   country: 'Land', region: 'Område', commune: 'Kommune', classification: 'Klassifikation', grape: 'Drue',
                    place: 'Sted', rating: 'Rating', price: 'Pris', note: 'Note', photo: 'Foto' };
 
 function journalSheet() {
