@@ -32,7 +32,7 @@ function setting(key) {
 // The legacy code only works once you've set a real one: the placeholder from the template is public.
 function accessCode() { const c = setting('ACCESS_CODE'); return c === 'CHANGE-ME' ? '' : c; }
 
-const API_VERSION = 26; // returned in every response; used to verify deployments
+const API_VERSION = 27; // returned in every response; used to verify deployments
 
 // Per-request spreadsheet for the authenticated user. Set in handle(); every
 // sheet helper reads it via ss(). Falls back to the bound (owner's) spreadsheet.
