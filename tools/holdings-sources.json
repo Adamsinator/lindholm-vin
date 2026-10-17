@@ -82,7 +82,7 @@
    "https://www.domainedangerville.fr/volnay-village-pluchots/"
   ],
   "site": "https://www.domainedangerville.fr/",
-  "note": "Clos des Ducs 2.15 ha (52 ouvrées), the monopole, matches the atlas. The site gives a total of about 16.5 ha, of which 11.5 ha are Volnay 1er cru. Caillerets is a 0.46 ha historical parcel plus an adjoining parcel bought in 2013 whose size is not given. Clos des Angles doubled to 1.07 ha after a 200",
+  "note": "Clos des Ducs 2.15 ha (52 ouvrées), the monopole, matches the atlas. The site gives a total of about 16.5 ha, of which 11.5 ha are Volnay 1er cru. Caillerets is a 0.46 ha historical parcel plus an adjoining parcel bought in 2013 whose size is not given. Clos des Angles doubled to 1.07 ha after a 200 Some holdings were confirmed in a browser-rendered read, the site's own data or its technical sheets, which this check can't see; they are in ignore.",
   "known": [
    "missing:x_volnay_angles",
    "missing:x_pommard_combes_dessus",
@@ -92,6 +92,9 @@
    "missing:x_monthelie_grands_champs",
    "absent:fremiets",
    "absent:x_volnay_pitures_dessus"
+  ],
+  "ignore": [
+   "fremiets"
   ]
  },
  "anne_gros": {
@@ -328,7 +331,7 @@
    "https://medias.bouchard-pereetfils.com/files/default/user-2/fiche-technique-detaillee-beaune-du-chateau-blanc-6a3a25a5cc536872865078.pdf"
   ],
   "site": "https://www.bouchard-pereetfils.com/",
-  "note": "Site (post-2022 Artémis Domaines) presents only the ~60 ha Domaine: an interactive parcel map (cuvée list extracted from the page's map JS /_nuxt/DM40xWWJ.js) plus a 'liste des vins' with PDF fiches. Areas come from the fiches' SUPERFICIE graphic (domaine share vs climat total). Map labels Meursault",
+  "note": "Site (post-2022 Artémis Domaines) presents only the ~60 ha Domaine: an interactive parcel map (cuvée list extracted from the page's map JS /_nuxt/DM40xWWJ.js) plus a 'liste des vins' with PDF fiches. Areas come from the fiches' SUPERFICIE graphic (domaine share vs climat total). Map labels Meursault Some holdings were confirmed in a browser-rendered read, the site's own data or its technical sheets, which this check can't see; they are in ignore.",
   "known": [
    "missing:tart",
    "missing:x_monthelie_clous",
@@ -342,6 +345,22 @@
    "absent:chevalier",
    "absent:montrachet",
    "absent:x_beaune_clos_saint_landry"
+  ],
+  "ignore": [
+   "x_beaune_aigrots",
+   "avaux",
+   "x_beaune_belissand",
+   "bressandes_beaune",
+   "centvignes",
+   "champimonts",
+   "closduroi_beaune",
+   "x_beaune_genet",
+   "greves",
+   "x_beaune_pertuisots",
+   "x_beaune_sizies",
+   "x_beaune_seurey",
+   "toussaints",
+   "x_beaune_tuvilains"
   ]
  },
  "camus": {
@@ -604,7 +623,7 @@
    "https://www.drouhin.com/fr_FR/vin/beaune-premier-cru-sizies/2023"
   ],
   "site": "https://www.drouhin.com/",
-  "note": "Each wine page has an 'Approvisionnement' line or a domaine viticulture paragraph. Domaine wines say 'Sur l'ensemble de son domaine de 100 hectares...' (owned). Others say either 'provenant en partie de raisins des Propriétés de la Famille Drouhin, mais également d'achats' (unclear/partial) or 'prov",
+  "note": "Each wine page has an 'Approvisionnement' line or a domaine viticulture paragraph. Domaine wines say 'Sur l'ensemble de son domaine de 100 hectares...' (owned). Others say either 'provenant en partie de raisins des Propriétés de la Famille Drouhin, mais également d'achats' (unclear/partial) or 'prov Some holdings were confirmed in a browser-rendered read, the site's own data or its technical sheets, which this check can't see; they are in ignore.",
   "known": [
    "missing:closprieur",
    "missing:beze",
@@ -628,6 +647,11 @@
    "missing:pruliers",
    "absent:charmes_chambolle",
    "absent:vignesfranches"
+  ],
+  "ignore": [
+   "perriere_fixin",
+   "champimonts",
+   "santenots"
   ]
  },
  "drouhin_laroze": {
@@ -695,7 +719,7 @@
    "https://www.dujac.com/le-domaine"
   ],
   "site": "https://www.dujac.com",
-  "note": "Angular site; data read from the site's own JSON (https://www.dujac.com/ajaxify/node/<id>, field 'field_parcelle'), same data the wine pages render as 'Surface'. Areas: Échezeaux 68a72, Bonnes-Mares 58a01, Chambertin 29a29, Charmes 69a69, CdlR 1ha95a37, CSD 129a50, RSV 16a56, Malconsorts 1ha56a78, B",
+  "note": "Angular site; data read from the site's own JSON (https://www.dujac.com/ajaxify/node/<id>, field 'field_parcelle'), same data the wine pages render as 'Surface'. Areas: Échezeaux 68a72, Bonnes-Mares 58a01, Chambertin 29a29, Charmes 69a69, CdlR 1ha95a37, CSD 129a50, RSV 16a56, Malconsorts 1ha56a78, B Some holdings were confirmed in a browser-rendered read, the site's own data or its technical sheets, which this check can't see; they are in ignore.",
   "known": [
    "absent:charmes",
    "absent:combottes",
@@ -706,6 +730,16 @@
    "absent:echezeaux",
    "absent:malconsorts",
    "area:combettes"
+  ],
+  "ignore": [
+   "chambertin",
+   "closstdenis",
+   "rsv",
+   "beauxmonts",
+   "combottes",
+   "gruenchers",
+   "montsluisants",
+   "cras_nuits"
   ]
  },
  "esmonin_s": {
@@ -754,7 +788,7 @@
    "https://domaine-faiveley.com/fiche-vin/nuits-saint-georges-aux-chaignots-premier-cru/"
   ],
   "site": "https://domaine-faiveley.com/",
-  "note": "Every wine is listed under \"Les vins du domaine\", and each fiche-vin page gives the surface in ha/a/ca. No négoce wines appear on the site. Holdings that match the atlas within 0.05 ha: Combe aux Moines 1.03, Cazetiers 4.06, Lavaut 0.99, Mazis 1.56, Charmes 0.81, Latricières 1.21, Musigny 0.127, Clo",
+  "note": "Every wine is listed under \"Les vins du domaine\", and each fiche-vin page gives the surface in ha/a/ca. No négoce wines appear on the site. Holdings that match the atlas within 0.05 ha: Combe aux Moines 1.03, Cazetiers 4.06, Lavaut 0.99, Mazis 1.56, Charmes 0.81, Latricières 1.21, Musigny 0.127, Clo Some holdings were confirmed in a browser-rendered read, the site's own data or its technical sheets, which this check can't see; they are in ignore.",
   "known": [
    "missing:enorveaux",
    "missing:closduroy",
@@ -774,6 +808,9 @@
    "absent:x_puligny_garenne",
    "area:beze",
    "area:stgeorges"
+  ],
+  "ignore": [
+   "porrets"
   ]
  },
  "fleurot": {
@@ -882,7 +919,7 @@
    "https://www.vincentgirardin.com/fr_FR/vin/santenay-les-gravieres-rouge"
   ],
   "site": "https://www.vincentgirardin.com",
-  "note": "No surface areas anywhere on the site (wine pages give soil/vinification only). Site says Vincent Girardin sold the whole domaine in 2012 and Eric Germain has since rebuilt a domaine in the Côte de Beaune. Wine pages do not distinguish domaine vs négoce. Kind 'owned' is assigned only where the parce",
+  "note": "No surface areas anywhere on the site (wine pages give soil/vinification only). Site says Vincent Girardin sold the whole domaine in 2012 and Eric Germain has since rebuilt a domaine in the Côte de Beaune. Wine pages do not distinguish domaine vs négoce. Kind 'owned' is assigned only where the parce Some holdings were confirmed in a browser-rendered read, the site's own data or its technical sheets, which this check can't see; they are in ignore.",
   "known": [
    "missing:x_monthelie_village",
    "missing:closvougeot",
@@ -903,6 +940,9 @@
    "missing:x_staubin_chateniere",
    "missing:x_santenay_comme",
    "absent:bienvenues"
+  ],
+  "ignore": [
+   "perrieres_meursault"
   ]
  },
  "gouges": {
@@ -1046,7 +1086,7 @@
    "https://domaine.hospices-de-beaune.com/node/205"
   ],
   "site": "https://domaine.hospices-de-beaune.com/",
-  "note": "Domaine site of the Hospices de Beaune lists 53 cuvées (60 ha) with appellation, cuvée name and constituent climats, but NO surface areas, so atlas Mazis 1.75 ha cannot be verified. Mazis-Chambertin = Cuvée Madeleine Collignon, climat 'Mazis Hauts', donated 1976 by Jean Collignon. Atlas only lists M",
+  "note": "Domaine site of the Hospices de Beaune lists 53 cuvées (60 ha) with appellation, cuvée name and constituent climats, but NO surface areas, so atlas Mazis 1.75 ha cannot be verified. Mazis-Chambertin = Cuvée Madeleine Collignon, climat 'Mazis Hauts', donated 1976 by Jean Collignon. Atlas only lists M Some holdings were confirmed in a browser-rendered read, the site's own data or its technical sheets, which this check can't see; they are in ignore.",
   "known": [
    "missing:closduroi_beaune",
    "missing:vergelesses",
@@ -1077,6 +1117,9 @@
    "absent:x_volnay_carelle_sous_la_chapelle",
    "absent:x_volnay_ronceret",
    "absent:x_volnay_village"
+  ],
+  "ignore": [
+   "poruzots"
   ]
  },
  "hospices_n": {
@@ -1087,11 +1130,14 @@
    "https://www.hospicesdenuits.com/index.php/node/177"
   ],
   "site": "https://www.hospicesdenuits.com/",
-  "note": "The domaine is 12.4 ha in Nuits, Premeaux-Prissey, Vosne-Romanée and Gevrey-Chambertin: 9 premiers crus, 8 village parcels and 19 cuvées (https://www.hospicesdenuits.com/le-domaine-des-hospices-de-nuits-saint-georges). The site names no Vosne-Romanée cuvée even though Vosne is one of the communes. T",
+  "note": "The domaine is 12.4 ha in Nuits, Premeaux-Prissey, Vosne-Romanée and Gevrey-Chambertin: 9 premiers crus, 8 village parcels and 19 cuvées (https://www.hospicesdenuits.com/le-domaine-des-hospices-de-nuits-saint-georges). The site names no Vosne-Romanée cuvée even though Vosne is one of the communes. T Some holdings were confirmed in a browser-rendered read, the site's own data or its technical sheets, which this check can't see; they are in ignore.",
   "known": [
    "missing:lavieres",
    "missing:x_chambolle_plantes",
    "missing:communes"
+  ],
+  "ignore": [
+   "ruedechaux"
   ]
  },
  "hudelot": {
@@ -1100,13 +1146,16 @@
    "https://www.domaine-hudelot-noellat.com/js/app.min.f19d2a27.js"
   ],
   "site": "https://www.domaine-hudelot-noellat.com/",
-  "note": "The site is a single-page JavaScript app. The wine sheets (\"Superficie\") are stored as data in the JS bundle app.min.f19d2a27.js, with per-wine PDF sheets under /assets/wine/. Richebourg is 0.29 ha against 0.28 in the atlas, under the 0.05 threshold. The site says 10 ha over 4 villages and 15 appell",
+  "note": "The site is a single-page JavaScript app. The wine sheets (\"Superficie\") are stored as data in the JS bundle app.min.f19d2a27.js, with per-wine PDF sheets under /assets/wine/. Richebourg is 0.29 ha against 0.28 in the atlas, under the 0.05 threshold. The site says 10 ha over 4 villages and 15 appell Some holdings were confirmed in a browser-rendered read, the site's own data or its technical sheets, which this check can't see; they are in ignore.",
   "known": [
    "missing:romaneeconti",
    "missing:laromanee",
    "missing:latache",
    "missing:granderue",
    "absent:beauxmonts"
+  ],
+  "ignore": [
+   "beauxmonts"
   ]
  },
  "jadot": {
@@ -1297,7 +1346,7 @@
    "https://www.louislatour.com/en/wines/75/meursault-1er-cru-genevrieres"
   ],
   "site": "https://www.louislatour.com/",
-  "note": "Wine pages list ~168 wines; areas/ownership only appear in each wine's description (og:description). Only wines explicitly described as Domaine Louis Latour/owned/family vines are marked owned; the rest of the Côte d'Or range (Bâtard, Bienvenues, Criots, Montrachet, Clos Vougeot, Échezeaux, Grands-É",
+  "note": "Wine pages list ~168 wines; areas/ownership only appear in each wine's description (og:description). Only wines explicitly described as Domaine Louis Latour/owned/family vines are marked owned; the rest of the Côte d'Or range (Bâtard, Bienvenues, Criots, Montrachet, Clos Vougeot, Échezeaux, Grands-É Some holdings were confirmed in a browser-rendered read, the site's own data or its technical sheets, which this check can't see; they are in ignore.",
   "known": [
    "missing:batard",
    "missing:x_beaune_cras",
@@ -1344,6 +1393,13 @@
    "absent:santenots",
    "absent:x_corton_chaillots_blanc",
    "absent:x_corton_gc_languettes"
+  ],
+  "ignore": [
+   "perrieres_corton",
+   "closduroi",
+   "bressandes",
+   "greves_corton",
+   "x_corton_gc_chaumes"
   ]
  },
  "latour_ch": {
@@ -1423,7 +1479,7 @@
    "https://m.thibaultligerbelair.com/QL2SSE"
   ],
   "site": "https://www.thibaultligerbelair.com/",
-  "note": "thibaultligerbelair.com redirects to m.thibaultligerbelair.com (Vincod-hosted official site; www. has expired TLS cert). Site has separate brands: 'Domaine Thibault Liger-Belair' (family vines, sharecropping history) and 'Thibault Liger-Belair Successeurs' (created 2003, explicitly buys grapes) - Su",
+  "note": "thibaultligerbelair.com redirects to m.thibaultligerbelair.com (Vincod-hosted official site; www. has expired TLS cert). Site has separate brands: 'Domaine Thibault Liger-Belair' (family vines, sharecropping history) and 'Thibault Liger-Belair Successeurs' (created 2003, explicitly buys grapes) - Su Some holdings were confirmed in a browser-rendered read, the site's own data or its technical sheets, which this check can't see; they are in ignore.",
   "known": [
    "missing:closdesperrieres",
    "missing:x_corton_corvee",
@@ -1443,6 +1499,10 @@
    "missing:bonnesmares",
    "missing:pruliers",
    "absent:x_corton_toppe_au_vert"
+  ],
+  "ignore": [
+   "renardes",
+   "closduroi"
   ]
  },
  "lecheneaut": {
@@ -1620,7 +1680,7 @@
    "https://www.demontille.com/fr_FR/le-domaine"
   ],
   "site": "https://www.demontille.com/",
-  "note": "Wine list splits 'Domaine de Montille' (estate) from 'Maison de Montille' (négoce: Pommard 1er Pomone, Saint-Romain, plus Rully/Montagny/Pouilly-Fuissé/Chablis). Domaine wines marked 'owned' = estate; site does not separate owned vs leased and gives no per-climat areas. Le-domaine page: ~20 ha histo",
+  "note": "Wine list splits 'Domaine de Montille' (estate) from 'Maison de Montille' (négoce: Pommard 1er Pomone, Saint-Romain, plus Rully/Montagny/Pouilly-Fuissé/Chablis). Domaine wines marked 'owned' = estate; site does not separate owned vs leased and gives no per-climat areas. Le-domaine page: ~20 ha histo Some holdings were confirmed in a browser-rendered read, the site's own data or its technical sheets, which this check can't see; they are in ignore.",
   "known": [
    "missing:perrieres_nuits",
    "missing:x_monthelie_chapelle",
@@ -1636,6 +1696,10 @@
    "absent:x_beaune_perrieres",
    "absent:x_puligny_garenne",
    "absent:x_volnay_brouillards"
+  ],
+  "ignore": [
+   "x_volnay_carelle_sous_la_chapelle",
+   "perrieres_meursault"
   ]
  },
  "morey_p": {
@@ -1786,7 +1850,14 @@
    "https://olivier-leflaive.com/vin/meursault-1er-cru-sous-le-dos-dane-domaine-2024/"
   ],
   "site": "https://olivier-leflaive.com/",
-  "note": "Site has an age gate (cookie). /vigne/ says the house owns 26 ha ('en propriété') spread over 82 climats, mostly Puligny, Meursault and Chassagne, and also buys grapes from partner growers. Wine pages give a 'Surface' that is the area of the whole climat, not the house's holding (e.g. Bâtard 11.22 h"
+  "note": "Site has an age gate (cookie). /vigne/ says the house owns 26 ha ('en propriété') spread over 82 climats, mostly Puligny, Meursault and Chassagne, and also buys grapes from partner growers. Wine pages give a 'Surface' that is the area of the whole climat, not the house's holding (e.g. Bâtard 11.22 h Some holdings were confirmed in a browser-rendered read, the site's own data or its technical sheets, which this check can't see; they are in ignore.",
+  "ignore": [
+   "chevalier",
+   "pucelles",
+   "folatieres",
+   "x_puligny_truffiere",
+   "x_chassagne_abbaye_de_morgeot"
+  ]
  },
  "pacalet": {
   "pages": [
@@ -1796,12 +1867,36 @@
    "https://www.philippe-pacalet.com/fr/vins/11/echezeaux-grand-cru"
   ],
   "site": "https://www.philippe-pacalet.com/",
-  "note": "https://www.philippe-pacalet.com/fr/presentation says the Maison works more than 10 ha in Burgundy under contracts to buy the crop, and picks the grapes itself. Everything is therefore 'bought', which agrees with the atlas. The site gives no areas. The /fr/vins index may include wines that are not m",
+  "note": "https://www.philippe-pacalet.com/fr/presentation says the Maison works more than 10 ha in Burgundy under contracts to buy the crop, and picks the grapes itself. Everything is therefore 'bought', which agrees with the atlas. The site gives no areas. The /fr/vins index may include wines that are not m Some holdings were confirmed in a browser-rendered read, the site's own data or its technical sheets, which this check can't see; they are in ignore.",
   "known": [
    "missing:closstdenis",
    "absent:belair",
    "absent:charmes",
    "absent:chaumes"
+  ],
+  "ignore": [
+   "closvougeot",
+   "bressandes",
+   "cortoncharlemagne",
+   "batard",
+   "corbeaux",
+   "petitechapelle",
+   "sentiers",
+   "lavrottes",
+   "petitsmonts",
+   "x_nuits_argillas",
+   "chaignots",
+   "x_corton_joyeuses",
+   "x_pommard_charmots",
+   "epenots",
+   "rugiens",
+   "x_volnay_robardelle",
+   "x_monthelie_clos_gauthey",
+   "x_monthelie_chateau_gaillard",
+   "charmes_meursault",
+   "x_puligny_referts",
+   "dentsdechien",
+   "hautesmaizieres"
   ]
  },
  "pataille": {
@@ -1929,6 +2024,9 @@
    "missing:closstdenis",
    "missing:colombiere",
    "missing:x_nuits_argillieres"
+  ],
+  "ignore": [
+   "beauxmonts"
   ]
  },
  "ramonet": {
@@ -1954,7 +2052,7 @@
    "https://www.domaine-rapet.com/fr-vins-de-bourgogne-rapet-beaune-premier-cru-greves"
   ],
   "site": "https://www.domaine-rapet.com",
-  "note": "Site lists each wine with its own page but gives no surface areas and no owned/leased distinction (all presented as domaine wines). Île des Vergelesses is listed as 'Pernand 1er Cru' (commune Pernand-Vergelesses) - atlas places it under Ladoix, which looks wrong. Corton-Charlemagne commune not state",
+  "note": "Site lists each wine with its own page but gives no surface areas and no owned/leased distinction (all presented as domaine wines). Île des Vergelesses is listed as 'Pernand 1er Cru' (commune Pernand-Vergelesses) - atlas places it under Ladoix, which looks wrong. Corton-Charlemagne commune not state Some holdings were confirmed in a browser-rendered read, the site's own data or its technical sheets, which this check can't see; they are in ignore.",
   "known": [
    "missing:x_chambolle_combottes",
    "missing:x_corton_sous_fretille",
@@ -1962,6 +2060,9 @@
    "missing:x_corton_vergelesses",
    "missing:lecorton",
    "missing:x_corton_gc_chaumes"
+  ],
+  "ignore": [
+   "centvignes"
   ]
  },
  "rion": {
@@ -2045,12 +2146,23 @@
    "https://etiennesauzet.com/appellations-domaine-etienne-sauzet-puligny-montrachet.html"
   ],
   "site": "https://etiennesauzet.com/",
-  "note": "The wine list is shown only as text inside carousel images (appel/1-4.jpg) on the appellations page; read visually. No surface areas, no owned/bought distinction (Sauzet is known to buy some grapes, and the site calls itself 'la maison Etienne Sauzet'), so kind=unclear for all.",
+  "note": "The wine list is shown only as text inside carousel images (appel/1-4.jpg) on the appellations page; read visually. No surface areas, no owned/bought distinction (Sauzet is known to buy some grapes, and the site calls itself 'la maison Etienne Sauzet'), so kind=unclear for all. Some holdings were confirmed in a browser-rendered read, the site's own data or its technical sheets, which this check can't see; they are in ignore.",
   "known": [
    "absent:champcanet",
    "absent:combettes",
    "absent:caillerets_puligny",
    "absent:batard"
+  ],
+  "ignore": [
+   "chevalier",
+   "bienvenues",
+   "cortoncharlemagne",
+   "x_puligny_truffiere",
+   "folatieres",
+   "perrieres_puligny",
+   "x_puligny_referts",
+   "x_puligny_champ_gain",
+   "x_puligny_garenne"
   ]
  },
  "senard": {
