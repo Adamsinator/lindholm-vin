@@ -18,7 +18,7 @@ window.BURG_I18N.da = {
     closstjacques: "Den premier cru, der burde være grand cru: fem ejere, der hver har en strimmel fra toppen af skråningen til bunden, så hver aftapning får hele terroiret med.",
     lavaut: "Kølig combe-beliggenhed; klar frugt, silkeblød tekstur.",
     chapitre_gevrey: "Lille ommuret clos i udkanten af landsbyen.",
-    varoilles: "Ommuret monopole dybt inde i Combe Lavaux.",
+    varoilles: "Ommuret monopole dybt inde i Combe Lavaux; Domaine des Varoilles solgte den omkring 2020, og nu laver Prieuré-Roch vinen.",
     lajustice: "Neden for D974 — opkaldt efter galgen, der engang stod her; kødfuld village-Gevrey.",
     fonteny: "Lige oven for Ruchottes.",
     ruchottes: "Den højeste og mest stenede af Chambertin'erne — knap nok muld over klippen; fast, mineralsk, duftende.",

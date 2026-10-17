@@ -456,6 +456,34 @@ their downloads in `tools/.topo-cache` / `tools/.dem-cache`, so reruns are quick
 extra climats on the surveyed map; those lying inside an atlas climat (Chassagne's Morgeot holds La Boudriotte, Les
 Grands Clos…) are nested in it.
 
+## Holdings check (the domaines' own websites)
+
+`tools/holdings-sources.json` lists each domaine's official pages that name its wines or vineyards. 72 of the 121
+domaines have one. For the rest it records why: no site, a dead or taken-over domain, or a site built in the browser.
+`node tools/holdings-check.js` fetches the pages and finds the climats they name. It matches the way
+`burgundy-match.js` does: commune names come out first, and a premier cru needs its commune nearby. It then reports
+three kinds of difference against the atlas:
+
+- climats on the site that the atlas doesn't give the domaine;
+- climats the atlas gives it that the site never names;
+- surfaces that differ.
+
+Surfaces are read only where a page labels them ("Surface: 0,76 ha"). Such a page is read section by section, and a
+figure the size of the whole climat is skipped. Nothing in the atlas is changed: sites lag, list négoce wines and
+name neighbours in their stories.
+
+- `ignore` (per domaine): differences someone has checked and found fine.
+- `known`: everything the last `--baseline` run found. Those aren't repeated, so `--quiet` lists only what's new.
+- `--selftest`: checks the matcher on the hard cases (Puligny-Montrachet isn't Montrachet; there are three Les Cras).
+
+`.github/workflows/holdings-check.yml` runs the check on the 3rd of each month. It keeps the quiet report in one
+issue labelled `holdings-check`, and comments only when the report changes.
+
+The first full pass, in October 2026, read every domaine's site. A change went into the atlas only when that site
+gave it and the checker found the climat on the same page; about 450 holdings and surfaces were added or corrected.
+Pages the checker can't read (built in the browser, behind an age gate, or lists in images) are listed in
+`tools/holdings-to-verify.md` for a person to confirm.
+
 ## Languages
 
 `i18n.js` holds the interface strings in English, Danish and French and draws the flag picker (front page and atlas

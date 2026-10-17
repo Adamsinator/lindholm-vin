@@ -2,3 +2,4 @@ tools/node_modules/
 tools/.topo-cache/
 tools/.dem-cache/
 tools/.cadastre-cache/
+tools/.holdings-cache/

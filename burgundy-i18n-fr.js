@@ -18,7 +18,7 @@ window.BURG_I18N.fr = {
     closstjacques: "Le premier cru qui devrait être grand : cinq propriétaires, chacun détenant une bande du haut au bas du coteau, si bien que chaque cuvée exprime le terroir entier.",
     lavaut: "Site frais de combe ; fruit éclatant, texture soyeuse.",
     chapitre_gevrey: "Petit clos ceint de murs en lisière du village.",
-    varoilles: "Monopole clos de murs, au fond de la Combe Lavaux.",
+    varoilles: "Monopole clos de murs, au fond de la Combe Lavaux ; le Domaine des Varoilles l'a vendu vers 2020 et c'est désormais Prieuré-Roch qui le vinifie.",
     lajustice: "Sous la D974 — doit son nom au gibet qui s'y dressait jadis ; un Gevrey village charnu.",
     fonteny: "Juste au-dessus des Ruchottes.",
     ruchottes: "Le plus haut et le plus caillouteux des Chambertin — à peine de terre sur la roche ; ferme, minéral, parfumé.",

@@ -1,0 +1,46 @@
+# Monthly: compare the atlas's holdings with the domaines' own websites (tools/holdings-check.js) and keep the
+# result in one open issue labelled "holdings-check". The issue is only edited when the report changes, so a
+# new comment-free edit means something on a site moved. Nothing in the repo is changed by this job.
+name: Holdings check
+on:
+  schedule:
+    - cron: "17 6 3 * *"   # 06:17 UTC on the 3rd of every month
+  workflow_dispatch:
+permissions:
+  contents: read
+  issues: write
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Self-test the name matcher
+        run: node tools/holdings-check.js --selftest
+      - name: Check the domaines' sites
+        run: node tools/holdings-check.js --quiet --out report.md --json report.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: holdings-report
+          path: report.*
+      - name: Update the holdings-check issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh label create holdings-check --color C5DEF5 --description "Monthly atlas holdings check" 2>/dev/null || true
+          # the dated first lines differ every month; compare the rest
+          body=$(head -c 60000 report.md)
+          [ "$(wc -c < report.md)" -gt 60000 ] && body="$body"$'\n\n… cut short: the full report is in this run'"'"'s artifact.'
+          num=$(gh issue list --label holdings-check --state open --json number --jq '.[0].number')
+          if [ -z "$num" ]; then
+            gh issue create --title "Holdings check: atlas vs the domaines' websites" --label holdings-check --body "$body"
+          else
+            old=$(gh issue view "$num" --json body --jq .body | tail -n +4)
+            if [ "$old" != "$(printf '%s' "$body" | tail -n +4)" ]; then
+              gh issue edit "$num" --body "$body"
+              gh issue comment "$num" --body "The report changed on $(date -u +%F): see the issue text. Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+            fi
+          fi
