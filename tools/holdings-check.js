@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Checks the atlas's holdings against each domaine's own website → a report of what differs
 //
-//   node tools/holdings-check.js [ids…] [--out report.md] [--json report.json] [--cache]
+//   node tools/holdings-check.js [ids…] [--out report.md] [--json report.json] [--cache] [--sources other.json]
 //
 // Reads tools/holdings-sources.json (domaine id → its official pages that list its wines or vineyards), fetches
 // each page with curl, finds the climats it names and compares them with burgundy-data*.js:
@@ -16,14 +16,14 @@
 const fs = require("fs"), path = require("path"), { execFileSync } = require("child_process");
 const ROOT = path.resolve(__dirname, "..");
 const args = process.argv.slice(2), opt = k => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : null; };
-const only = args.filter((a, i) => !a.startsWith("--") && !["--out", "--json"].includes(args[i - 1]));
+const only = args.filter((a, i) => !a.startsWith("--") && !["--out", "--json", "--sources"].includes(args[i - 1]));
 const CACHE = args.includes("--cache") ? path.join(__dirname, ".holdings-cache") : null;
 if (CACHE) fs.mkdirSync(CACHE, { recursive: true });
 
 global.window = {};
-["burgundy-data.js", "burgundy-data-beaune.js", "burgundy-names.js"].forEach(f => require(path.join(ROOT, f)));
+["burgundy-data.js", "burgundy-data-beaune.js", "burgundy-names.js", "burgundy-extras.js"].forEach(f => require(path.join(ROOT, f)));
 const B = window.BURG, X = (window.BURG_NAMES && window.BURG_NAMES.climats) || [];
-const SOURCES = args.includes("--selftest") ? {} : JSON.parse(fs.readFileSync(path.join(__dirname, "holdings-sources.json"), "utf8"));
+const SOURCES = args.includes("--selftest") || require.main !== module ? {} : JSON.parse(fs.readFileSync(opt("--sources") || path.join(__dirname, "holdings-sources.json"), "utf8"));
 
 const norm = t => String(t || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/œ/g, "oe").replace(/æ/g, "ae")
   .replace(/[^a-z0-9]+/g, " ").replace(/\bst\b/g, "saint").replace(/\bste\b/g, "sainte").replace(/\s+/g, " ").trim();
@@ -55,6 +55,7 @@ CLIMATS.forEach(c => {
   if (c.id === "montrachet") a.add("montrachet");
   if (c.id === "beze") { a.add("clos de beze"); a.add("chambertin clos de beze"); }
   if (c.id === "closstjacques") a.add("clos saint jacques");
+  if (c.id === "lavaut") a.add("lavaux saint jacques");
   if (c.id === "laromanee") { a.clear(); a.add("la romanee"); }
   if (c.c === "GC" && /^corton /.test(full)) a.add(full.replace(/^corton (les |le |la )?/, "corton "));
   a.forEach(al => ALIASES.push({ al, c }));
@@ -143,6 +144,9 @@ function main() {
   // ── compare ──────────────────────────────────────────────────────────────────────────────────────
   const holdings = {};
   B.climats.forEach(c => (c.p || []).forEach(([pid, ha, kind, since]) => (holdings[pid] = holdings[pid] || []).push({ c, ha, kind, since })));
+  // and the researched owners of INAO's other premiers crus (burgundy-extras.js)
+  const XH = (window.BURG_EXTRAS && window.BURG_EXTRAS.holdings) || {};
+  Object.entries(XH).forEach(([id, rows]) => { const c = CLIMATS.find(c => c.id === id); if (c) rows.forEach(([pid, ha, kind]) => (holdings[pid] = holdings[pid] || []).push({ c, ha, kind })); });
   const fmt = h => h == null ? "?" : (+h).toFixed(h < 1 ? 2 : 2).replace(/\.?0+$/, "");
   const report = [], json = {};
   const todo = Object.entries(SOURCES).filter(([id]) => !only.length || only.includes(id));
@@ -232,4 +236,5 @@ function selftest() {
   console.log(`${aOk ? "ok  " : "FAIL"} areas → ${a}`);
   process.exit(bad ? 1 : 0);
 }
-if (args.includes("--selftest")) selftest(); else main();
+if (require.main !== module) module.exports = { mentions, areas, CLIMATS, VIL };
+else if (args.includes("--selftest")) selftest(); else main();
