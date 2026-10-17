@@ -4,7 +4,7 @@
 //   node tools/cadastre-climats.js        (after tools/inao-import.js, which rewrites burgundy-geo.js; uses curl)
 //
 // A village climat is a cadastral lieu-dit (La Colombière, Aux Réas…) or, for a clos, a set of named parcels
-// (Clos du Château = Vosne AL 105 + 106, 83 a 04 ca, exactly as the domaine gives it). Its outline is that lieu-dit
+// (Clos du Château = Vosne AL 105 + 106, 83 a 04 ca, exactly as the domaine gives it; Clos Goillotte = AL 317). Its outline is that lieu-dit
 // or those parcels, clipped to village-appellation land, minus anything already drawn as a premier or grand cru
 // (part of La Combe Brûlée is the 1er cru Aux Brûlées). Only the climats listed below are touched, and only when
 // INAO has no outline for them; anything else that still lacks one is printed. Downloads: Etalab cadastre
@@ -27,6 +27,7 @@ const SRC = {
   raviolles: ["21714", "AUX RAVIOLLES"],
   jachees: ["21714", "AUX JACHEES"],
   chateau: { parcels: ["21714", ["AL105", "AL106"]] },
+  goillotte: { parcels: ["21714", ["AL317"]] },      // the walled square on rue de la Goillotte, 55 a 63 ca ("un carré de 0,55 ha", Prieuré-Roch)
   violettes: ["21267", "LES VIOLETTES"],               // Flagey, sold as Vosne-Romanée
   colombiere: ["21714", "LA COLOMBIERE"],
   auxreas: ["21714", "AUX REAS"],

@@ -409,13 +409,14 @@ parcellaire des AOC viticoles* instead of its schematic grid:
      clipped to village-appellation land, minus anything drawn as a premier or
      grand cru. Part of La Combe Brûlée, for example, is the 1er cru Aux Brûlées.
    - A clos is its named parcels. Clos du Château is Vosne AL 105 + 106,
-     83 a 04 ca, the domaine's exact figure.
+     83 a 04 ca, the domaine's exact figure. Clos Goillotte is AL 317, the
+     walled square on rue de la Goillotte (55 a 63 ca; Prieuré-Roch gives 0.55 ha).
 
    The panel calls the result "Cadastre area". The script patches
    `burgundy-geo.js`, so rerun it after every `inao-import.js`, and then rerun
    `dem-import.js` and `geol-import.js`. It prints the climats still without an
-   outline: enclaves inside a cru, plus Clos Goillotte, whose parcels aren't
-   identified yet.
+   outline: the enclaves inside a cru (Clos des Ruchottes, Clos des Cortons,
+   Enfant Jésus, Clos de la Chapelle).
 
 Once `burgundy-geo.js` has outlines, the atlas opens on the surveyed map with a
 scale bar, and a **Surveyed / Schematic** switch on the map changes between the
@@ -482,8 +483,8 @@ issue labelled `holdings-check`, and comments only when the report changes.
 The first full pass, in October 2026, read every domaine's site. A change went into the atlas only when that site
 gave it and the checker found the climat on the same page; about 450 holdings and surfaces were added or corrected.
 Pages the checker can't read (built in the browser or behind an age gate) were then read in headless Chromium, and
-the 50 findings confirmed that way went in too. The 18 still unconfirmed (lists in images, pages that render empty)
-are in `tools/holdings-to-verify.md` for a person to check.
+the 50 findings confirmed that way went in too. Sauzet's list (text in images) was read by eye, and Bouchard's from
+its site's own data and technical sheets. The 7 still unconfirmed are in `tools/holdings-to-verify.md`.
 
 ## Languages
 

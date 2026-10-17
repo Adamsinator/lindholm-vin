@@ -278,6 +278,12 @@
     null,
     "",
     "https://sothebys-com.brightspotcdn.com/41/7d/af70aac94075b1cfae2f1037fb41/pf2612-52cuvees-presentationfr.pdf"
+   ],
+   [
+    "bouchard",
+    null,
+    "",
+    "https://medias.bouchard-pereetfils.com/files/default/user-2/fiche-technique-detaillee-beaune-du-chateau-rouge-6a3a25becb2de543952222.pdf"
    ]
   ],
   "x_beaune_mignotte": [
@@ -350,6 +356,12 @@
     1,
     "",
     "https://www.albertmorot.fr/vin-beaune/beaune-1er-cru-aigrots-rouge/"
+   ],
+   [
+    "bouchard",
+    null,
+    "",
+    "https://medias.bouchard-pereetfils.com/files/default/user-2/fiche-technique-detaillee-beaune-du-chateau-rouge-6a3a25becb2de543952222.pdf"
    ]
   ],
   "x_beaune_boucherottes": [
@@ -472,6 +484,12 @@
     null,
     "",
     "https://sothebys-com.brightspotcdn.com/41/7d/af70aac94075b1cfae2f1037fb41/pf2612-52cuvees-presentationfr.pdf"
+   ],
+   [
+    "bouchard",
+    null,
+    "",
+    "https://medias.bouchard-pereetfils.com/files/default/user-2/fiche-technique-detaillee-beaune-du-chateau-rouge-6a3a25becb2de543952222.pdf"
    ]
   ],
   "x_beaune_sizies": [
@@ -552,6 +570,12 @@
     null,
     "",
     "https://www.louisjadot.com/vins/beaune-pertuisots"
+   ],
+   [
+    "bouchard",
+    null,
+    "",
+    "https://medias.bouchard-pereetfils.com/files/default/user-2/fiche-technique-detaillee-beaune-du-chateau-rouge-6a3a25becb2de543952222.pdf"
    ]
   ],
   "x_beaune_sur_les_greves": [
@@ -1701,7 +1725,7 @@
   "x_maranges_clos_de_la_fussiere": [
    [
     "monnot",
-    1.01,
+    null,
     "",
     "https://insideburgundy.com/overview/xavier-monnot/"
    ]
@@ -1793,7 +1817,7 @@
    ],
    [
     "des_clos",
-    1.21,
+    null,
     "",
     "https://insideburgundy.com/overview/clos-domaine-des/"
    ],
@@ -2233,7 +2257,7 @@
   "x_nuits_la_perriere_noblot": [
    [
     "machard_gramont",
-    1.7,
+    null,
     "",
     "https://www.drinkfinder.co.uk/products/nuits-saint-georges-en-la-perri-re-noblot-domaine-machard-de-gramont-75cl"
    ],
@@ -2958,6 +2982,12 @@
     null,
     "s",
     "https://www.drouhin.com/fr_FR/vin/puligny-montrachet-premier-cru-champ-gain/2023"
+   ],
+   [
+    "sauzet",
+    null,
+    "",
+    "https://etiennesauzet.com/appellations-domaine-etienne-sauzet-puligny-montrachet.html"
    ]
   ],
   "x_puligny_clos_de_la_garenne": [
@@ -3104,6 +3134,12 @@
     null,
     "s",
     "https://olivier-leflaive.com/vin/puligny-montrachet-1er-cru-truffieres-2022/"
+   ],
+   [
+    "sauzet",
+    null,
+    "",
+    "https://etiennesauzet.com/appellations-domaine-etienne-sauzet-puligny-montrachet.html"
    ]
   ],
   "x_puligny_chalumaux": [
@@ -3194,6 +3230,12 @@
     null,
     "s",
     "https://www.philippe-pacalet.com/fr/vins/68/puligny-montrachet-1er-cru-les-referts"
+   ],
+   [
+    "sauzet",
+    null,
+    "",
+    "https://etiennesauzet.com/appellations-domaine-etienne-sauzet-puligny-montrachet.html"
    ]
   ],
   "x_puligny_sous_le_puits": [
@@ -4594,6 +4636,9 @@
   "x_volnay_clos_de_l_audignac": "Clos d'Audignac is a monopole of Domaine de la Pousse d'Or, named after the Audignac family who owned the estate in the late 1800s.",
   "x_volnay_clos_du_chateau_des_ducs": "Clos du Château des Ducs is a monopole of Domaine Michel Lafarge.",
   "x_volnay_clos_du_verseuil": "Clos du Verseuil is a monopole of Domaine Y. Clerget, owned by the family since 1936.",
-  "x_volnay_fremiets_clos_de_la_rougeotte": "Frémiets Clos de la Rougeotte is a Bouchard Père et Fils monopole of about 0.44 ha."
+  "x_volnay_fremiets_clos_de_la_rougeotte": "Frémiets Clos de la Rougeotte is a Bouchard Père et Fils monopole of about 0.44 ha.",
+  "x_meursault_caillerets": "Domaine des Clos is listed with 1.21 ha, more than the whole climat (1.02 ha); its area is left out until a source agrees.",
+  "x_nuits_la_perriere_noblot": "Machard de Gramont was listed with 1.7 ha from a merchant page, more than the whole climat (0.64 ha); area left out.",
+  "x_maranges_clos_de_la_fussiere": "Xavier Monnot is listed with 1.01 ha, more than the clos measures (0.89 ha); area left out."
  }
 }
