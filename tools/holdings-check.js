@@ -57,6 +57,8 @@ CLIMATS.forEach(c => {
   if (c.id === "beze") { a.add("clos de beze"); a.add("chambertin clos de beze"); }
   if (c.id === "closstjacques") a.add("clos saint jacques");
   if (c.id === "lavaut") a.add("lavaux saint jacques");
+  // spellings the domaines' own sites use
+  ({ centvignes: ["les cents vignes", "cents vignes"], fremiets: ["fremiet"], ruedechaux: ["les rues de chaux", "rues de chaux"], champimonts: ["champimonts"] }[c.id] || []).forEach(x => a.add(x));
   if (c.id === "laromanee") { a.clear(); a.add("la romanee"); }
   if (c.c === "GC" && /^corton /.test(full)) a.add(full.replace(/^corton (les |le |la )?/, "corton "));
   a.forEach(al => ALIASES.push({ al, c }));

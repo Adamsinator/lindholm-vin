@@ -744,6 +744,12 @@
     null,
     "",
     "https://www.domaine-fleurot-larose.com/nos-vins.html"
+   ],
+   [
+    "olivier_leflaive",
+    null,
+    "",
+    "https://olivier-leflaive.com/vin/chassagne-montrachet-1er-cru-abbaye-de-morgeot-recolte-du-domaine-2024/"
    ]
   ],
   "x_chassagne_blanchot_dessus": [
@@ -1314,6 +1320,12 @@
     0.56,
     "",
     "https://www.chandondebriailles.com/fr_FR/vin/corton-blanc"
+   ],
+   [
+    "latour",
+    null,
+    "",
+    "https://www.louislatour.com/en/wines/51/chateau-corton-grancey-grand-cru"
    ]
   ],
   "x_corton_gc_combes": [
@@ -1670,6 +1682,12 @@
     null,
     "s",
     "https://www.beckywasserman.com/domaines/chantereves/ladoix-1er-cru-les-joyeuses/"
+   ],
+   [
+    "pacalet",
+    null,
+    "s",
+    "https://www.philippe-pacalet.com/fr/vins/50/ladoix-1er-cru-les-joyeuses"
    ]
   ],
   "x_maranges_clos_de_la_boutiere": [
@@ -1902,6 +1920,12 @@
     0.24,
     "",
     "https://www.hachette-vins.com/guide-vins/les-vins/domaine-paul-garaudet-chateau-gaillard-2010-2014/20144905/"
+   ],
+   [
+    "pacalet",
+    null,
+    "s",
+    "https://www.philippe-pacalet.com/fr/vins/56/monthelie-1er-cru-chateau-gaillard"
    ]
   ],
   "x_monthelie_clos_gauthey": [
@@ -1922,6 +1946,12 @@
     null,
     "",
     "https://www.hachette-vins.com/guide-vins/les-vins/domaine-jean-parent-clos-gauthey-2000-2004/20045405"
+   ],
+   [
+    "pacalet",
+    null,
+    "s",
+    "https://www.philippe-pacalet.com/fr/vins/16/monthelie-1er-cru-clos-gauthey"
    ]
   ],
   "x_monthelie_meix_bataille": [
@@ -2160,6 +2190,12 @@
     null,
     "s",
     "https://www.meo-camuzet.com/fr/les-vins/12/nuits-saint-georges-aux-argillas"
+   ],
+   [
+    "pacalet",
+    null,
+    "s",
+    "https://www.philippe-pacalet.com/fr/vins/46/nuits-st. Georges 1er cru Aux Argillas"
    ]
   ],
   "x_nuits_perdrix": [
@@ -2742,6 +2778,12 @@
     null,
     "",
     "https://www.prieur.com/fr/vin/29/pommard-charmots"
+   ],
+   [
+    "pacalet",
+    null,
+    "s",
+    "https://www.philippe-pacalet.com/fr/vins/59/pommard-1er-cru-les-charmots"
    ]
   ],
   "x_pommard_combes_dessus": [
@@ -3056,6 +3098,12 @@
     null,
     "",
     "https://sommelier-academy.de/topic/court-of-master-sommeliers-appellations-puligny-montrachet-aop/"
+   ],
+   [
+    "olivier_leflaive",
+    null,
+    "s",
+    "https://olivier-leflaive.com/vin/puligny-montrachet-1er-cru-truffieres-2022/"
    ]
   ],
   "x_puligny_chalumaux": [
@@ -3140,6 +3188,12 @@
     0.24,
     "",
     "https://jacques-carillon.com/nos-vins/puligny-montrachet-1er-cru-les-referts/"
+   ],
+   [
+    "pacalet",
+    null,
+    "s",
+    "https://www.philippe-pacalet.com/fr/vins/68/puligny-montrachet-1er-cru-les-referts"
    ]
   ],
   "x_puligny_sous_le_puits": [
@@ -4286,6 +4340,12 @@
     null,
     "",
     "https://www.louisjadot.com/vins/volnay-robardelle"
+   ],
+   [
+    "pacalet",
+    null,
+    "s",
+    "https://www.philippe-pacalet.com/fr/vins/64/volnay-1er-cru-robardelle"
    ]
   ],
   "x_monthelie_barbieres": [
