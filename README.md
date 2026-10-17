@@ -481,8 +481,9 @@ issue labelled `holdings-check`, and comments only when the report changes.
 
 The first full pass, in October 2026, read every domaine's site. A change went into the atlas only when that site
 gave it and the checker found the climat on the same page; about 450 holdings and surfaces were added or corrected.
-Pages the checker can't read (built in the browser, behind an age gate, or lists in images) are listed in
-`tools/holdings-to-verify.md` for a person to confirm.
+Pages the checker can't read (built in the browser or behind an age gate) were then read in headless Chromium, and
+the 50 findings confirmed that way went in too. The 18 still unconfirmed (lists in images, pages that render empty)
+are in `tools/holdings-to-verify.md` for a person to check.
 
 ## Languages
 
