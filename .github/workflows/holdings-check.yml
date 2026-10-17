@@ -21,7 +21,7 @@ jobs:
       - name: Self-test the name matcher
         run: node tools/holdings-check.js --selftest
       - name: Check the domaines' sites
-        run: node tools/holdings-check.js --out report.md --json report.json
+        run: node tools/holdings-check.js --quiet --out report.md --json report.json
       - uses: actions/upload-artifact@v4
         with:
           name: holdings-report

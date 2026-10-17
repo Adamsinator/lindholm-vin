@@ -2,6 +2,7 @@
 // Checks the atlas's holdings against each domaine's own website → a report of what differs
 //
 //   node tools/holdings-check.js [ids…] [--out report.md] [--json report.json] [--cache] [--sources other.json]
+//                                [--quiet: leave out domaines with nothing new] [--baseline: record today's differences as known]
 //
 // Reads tools/holdings-sources.json (domaine id → its official pages that list its wines or vineyards), fetches
 // each page with curl, finds the climats it names and compares them with burgundy-data*.js:
@@ -153,12 +154,12 @@ function main() {
   for (const [pid, src] of todo) {
     const name = B.producers[pid] || pid, r = { id: pid, name, pages: src.pages || [], status: src.status || "ok", errors: [], onSite: [], missing: [], absent: [], areas: [] };
     json[pid] = r;
-    if (!r.pages.length) { report.push(`### ${name}\n${src.status || "no pages"}${src.note ? " — " + src.note : ""}\n`); continue; }
+    if (!r.pages.length) { if (!args.includes("--quiet")) report.push(`### ${name}\n${src.status || "no pages"}${src.note ? " — " + src.note : ""}\n`); continue; }
     // ignore: climat ids a person has checked and found fine (a neighbour named in a story, a lease the site doesn't
     // list yet), so the next run reports only what's new
     const ign = new Set(src.ignore || []);
     const held = holdings[pid] || [], heldIds = new Set(held.map(h => h.c.id));
-    const found = new Map();
+    const found = new Map(); let thin = 0;
     for (const url of r.pages) {
       let text;
       try { text = textOf(fetchPage(url)); } catch (e) { r.errors.push(`${url}: ${String(e.message).split("\n")[0].slice(0, 120)}`); continue; }
@@ -177,7 +178,7 @@ function main() {
           if (best) { if (!sectionArea.has(best[0])) sectionArea.set(best[0], []); sectionArea.get(best[0]).push(a.ha); }
         });
       }
-      if (text.length < 400) r.errors.push(`${url}: only ${text.length} characters of text (built by JavaScript?)`);
+      if (text.length < 400) thin++;
       for (const m of mentions(text)) {
         const f = found.get(m.c.id) || { c: m.c, sure: false, said: new Set(), areas: new Set(), urls: new Set() };
         f.sure = f.sure || m.sure; f.said.add(m.said); f.urls.add(url); found.set(m.c.id, f);
@@ -185,27 +186,47 @@ function main() {
         (labelled ? sectionArea.get(m.c.id) || [] : m.areas.map(a => a.ha)).forEach(a => f.areas.add(a));
       }
     }
+    if (thin) r.errors.push(`${thin} of ${r.pages.length} pages have almost no text: the site builds them in the browser, so this check can't read them`);
     // a climat nested in another (Clos des Réas in Aux Réas) shouldn't also count as its host
     r.onSite = [...found.values()].map(f => ({ id: f.c.id, n: f.c.n, cls: f.c.c, v: VIL[f.c.v] || f.c.v, sure: f.sure, areas: [...f.areas], urls: [...f.urls] }));
     r.missing = r.onSite.filter(f => !heldIds.has(f.id) && !ign.has(f.id));
-    r.absent = r.errors.length === r.pages.length ? [] : held.filter(h => !found.has(h.c.id) && !ign.has(h.c.id)).map(h => ({ id: h.c.id, n: h.c.n, ha: h.ha, kind: h.kind }));
+    r.absent = thin === r.pages.length || r.errors.length && !found.size ? [] : held.filter(h => !found.has(h.c.id) && !ign.has(h.c.id)).map(h => ({ id: h.c.id, n: h.c.n, ha: h.ha, kind: h.kind }));
     for (const h of held) {
       const f = found.get(h.c.id); if (!f || h.ha == null || !f.areas.size || ign.has(h.c.id + ":ha")) continue;
-      const a = [...f.areas]; if (a.some(x => Math.abs(x - h.ha) <= Math.max(0.015, h.ha * 0.03))) continue;
+      // a figure near the climat's whole size is the climat's, not the domaine's (Mongeard gives both); two cuvées of one
+      // climat (Aigrots red 0.75 + white 0.25) may add up to the atlas's figure
+      const total = h.c.ha || Infinity, a = [...f.areas].filter(x => x < total * 0.85 || h.ha >= total * 0.85);
+      const near = x => Math.abs(x - h.ha) <= Math.max(0.015, h.ha * 0.03);
+      if (!a.length || a.some(near) || near(a.reduce((s, x) => s + x, 0))) continue;
       r.areas.push({ id: h.c.id, n: h.c.n, atlas: h.ha, site: a });
     }
+    // known: the differences recorded by the last --baseline run, left for a person to work through; only what's new
+    // since then is listed, so the monthly issue shows sites that changed
+    const known = new Set(src.known || []), keyOf = (k, id) => `${k}:${id}`;
+    r.keys = [...r.missing.map(m => keyOf("missing", m.id)), ...r.absent.map(a => keyOf("absent", a.id)), ...r.areas.map(a => keyOf("area", a.id))];
+    const nKnown = r.keys.filter(k => known.has(k)).length;
+    r.missing = r.missing.filter(m => !known.has(keyOf("missing", m.id)));
+    r.absent = r.absent.filter(a => !known.has(keyOf("absent", a.id)));
+    r.areas = r.areas.filter(a => !known.has(keyOf("area", a.id)));
     const lines = [`### ${name} (\`${pid}\`)`, r.pages.map(u => `<${u}>`).join(" · ")];
     r.errors.forEach(e => lines.push(`- ⚠️ ${e}`));
     if (r.missing.length) { lines.push(`- **On the site, not in the atlas:**`);
       r.missing.forEach(m => lines.push(`  - ${m.n} (${m.cls === "GC" ? "grand cru" : m.cls === "1er" ? "1er cru" : "village"}, ${m.v})${m.sure ? "" : " — no commune named nearby, check"}${m.areas.length ? ` · areas nearby: ${m.areas.map(fmt).join(", ")} ha` : ""}`)); }
     if (r.absent.length) lines.push(`- **In the atlas, not named on the site:** ${r.absent.map(a => `${a.n}${a.ha != null ? " " + fmt(a.ha) + " ha" : ""}${a.kind === "f" ? " (leased)" : a.kind === "s" ? " (bought grapes)" : ""}`).join("; ")}`);
     if (r.areas.length) { lines.push(`- **Area differs:**`); r.areas.forEach(a => lines.push(`  - ${a.n}: atlas ${fmt(a.atlas)} ha · site mentions ${a.site.map(fmt).join(", ")} ha`)); }
-    if (!r.missing.length && !r.absent.length && !r.areas.length && !r.errors.length) lines.push(`- ✓ matches the atlas (${r.onSite.length} climats named)`);
+    if (!r.missing.length && !r.absent.length && !r.areas.length && !r.errors.length) lines.push(`- ✓ nothing new (${r.onSite.length} climats named${nKnown ? `, ${nKnown} known differences` : ""})`);
+    else if (nKnown) lines.push(`- (${nKnown} known differences not repeated)`);
+    if (args.includes("--quiet") && !r.missing.length && !r.absent.length && !r.areas.length && !r.errors.length) continue;
     report.push(lines.join("\n") + "\n");
   }
   const head = `# Holdings check\n\n${new Date().toISOString().slice(0, 10)} · ${todo.length} domaines with sources in tools/holdings-sources.json · generated by tools/holdings-check.js\n\n` +
     `Each line is something to look at, not a fact: sites lag, list négoce wines from bought grapes, and name neighbours in their stories.\n\n`;
-    const md = head + report.join("\n");
+    if (args.includes("--baseline")) { // record today's differences as known, in the sources file
+    const file = opt("--sources") || path.join(__dirname, "holdings-sources.json"), all = JSON.parse(fs.readFileSync(file, "utf8"));
+    Object.entries(json).forEach(([pid, r]) => { if (r.keys && all[pid]) { if (r.keys.length) all[pid].known = r.keys; else delete all[pid].known; } });
+    fs.writeFileSync(file, JSON.stringify(all, null, 1) + "\n");
+  }
+  const md = head + report.join("\n");
   if (opt("--out")) fs.writeFileSync(opt("--out"), md); else process.stdout.write(md);
   if (opt("--json")) fs.writeFileSync(opt("--json"), JSON.stringify(json, null, 1));
 

@@ -1,7 +1,2203 @@
 {
-  "lb_comte": {
-    "pages": ["https://www.liger-belair.fr/en/our-climats/"],
-    "note": "Checked 2026-10. The page tells each climat's story and names its neighbours; GE and Croix Rameau (leased from 2022) aren't on it yet.",
-    "ignore": ["boudots", "latache", "reas", "murgers", "lavieres", "violettes", "chalandins", "barreaux", "beauxmonts", "crosparantoux", "combebrulee", "romaneeconti", "x_chassagne_vigne_blanche", "closstdenis", "rsv", "grandsechezeaux", "croixrameau"]
-  }
+ "af_gros": {
+  "pages": [],
+  "status": "no wine list",
+  "site": "https://www.af-gros.com/",
+  "note": "Official site is a single page (presentation, contact; Pommard address). No list of wines or vineyards; contains injected spam links."
+ },
+ "albert_morot": {
+  "pages": [
+   "https://www.albertmorot.fr/vin-beaune/",
+   "https://www.albertmorot.fr/les-terroirs/",
+   "https://www.albertmorot.fr/vin-beaune/beaune-1er-cru-cent-vignes/",
+   "https://www.albertmorot.fr/vin-beaune/beaune-1er-cru-bressandes/",
+   "https://www.albertmorot.fr/vin-beaune/beaune-1er-cru-greves/",
+   "https://www.albertmorot.fr/vin-beaune/beaune-1er-cru-marconnets/",
+   "https://www.albertmorot.fr/vin-beaune/beaune-1er-cru-teurons/",
+   "https://www.albertmorot.fr/vin-beaune/beaune-1er-cru-aigrots-rouge/",
+   "https://www.albertmorot.fr/vin-beaune/beaune-1er-cru-aigrots-blanc/",
+   "https://www.albertmorot.fr/vin-beaune/beaune-dessus-marconnets/",
+   "https://www.albertmorot.fr/vin-beaune/savigny-beaune-1er-cru-clos-de-bataillere-rouge-monopole/",
+   "https://www.albertmorot.fr/vin-beaune/savigny-beaune-1er-cru-clos-de-bataillere-blanc-monopole/",
+   "https://www.albertmorot.fr/vin-beaune/pommard-village-rue-port/",
+   "https://www.albertmorot.fr/vin-beaune/meursault-les-narvaux/",
+   "https://www.albertmorot.fr/vin-beaune/meursault-les-vireuils/"
+  ],
+  "site": "https://www.albertmorot.fr",
+  "note": "Wine pages give 'Superficie'. Home page: domaine owns ('propriétaire de') 8 ha of red and white 1ers crus; new owners (Poitrinal family) and Pierre-Jean Villa since 2023. Clos de la Bataillère inconsistency on site: total 1.87 ha; 'Superficie' fields say red 1.20 / white 0.67, but text says 1.30 ha ",
+  "known": [
+   "missing:x_pommard_village",
+   "missing:vergelesses",
+   "missing:chambertin",
+   "area:x_savigny_bataillere"
+  ]
+ },
+ "amiot_p": {
+  "pages": [],
+  "status": "substitute site",
+  "site": "https://domaineamiotetfils.fr",
+  "note": "Successor site (Amiot et Fils, the other branch after the split): not used for holdings."
+ },
+ "amiot_s": {
+  "pages": [
+   "https://www.amiot-servelle.com/fr/nos-vins",
+   "https://www.amiot-servelle.com/fr/vin/1/chambolle-musigny-premier-cru-les-amoureuses",
+   "https://www.amiot-servelle.com/fr/vin/7/chambolle-musigny-premier-cru-les-charmes",
+   "https://www.amiot-servelle.com/fr/vin/10/chambolle-musigny-premier-cru-les-plantes",
+   "https://www.amiot-servelle.com/fr/vin/15/chambolle-musigny-premier-cru-les-fuees",
+   "https://www.amiot-servelle.com/fr/vin/8/chambolle-musigny-premier-cru-derriere-la-grange",
+   "https://www.amiot-servelle.com/fr/vin/9/chambolle-musigny-premier-cru-les-feusselottes",
+   "https://www.amiot-servelle.com/fr/vin/12/charmes-chambertin-grand-cru",
+   "https://www.amiot-servelle.com/fr/vin/14/clos-saint-denis-grand-cru",
+   "https://www.amiot-servelle.com/fr/vin/13/morey-saint-denis",
+   "https://www.amiot-servelle.com/fr/vin/6/chambolle-musigny"
+  ],
+  "site": "https://www.amiot-servelle.com/",
+  "note": "Areas are given as 'environ' (approx). Amoureuses ~0.45 matches atlas. Les Charmes ~1.30 ha (atlas no ha). Tenure not stated.",
+  "known": [
+   "missing:x_chambolle_plantes",
+   "missing:musigny",
+   "missing:bonnesmares",
+   "missing:mazoyeres",
+   "missing:x_morey_village",
+   "missing:x_nuits_argillieres",
+   "missing:cras_chambolle",
+   "area:charmes_chambolle"
+  ]
+ },
+ "angerville": {
+  "pages": [
+   "https://www.domainedangerville.fr/nos-vins-new/",
+   "https://www.domainedangerville.fr/volnay-1er-cru-clos-des-ducs-2/",
+   "https://www.domainedangerville.fr/volnay-1er-cru-champans/",
+   "https://www.domainedangerville.fr/volnay-1er-cru-fremiet/",
+   "https://www.domainedangerville.fr/volnay-1er-cru-taillepieds/",
+   "https://www.domainedangerville.fr/volnay-1er-cru-caillerets/",
+   "https://www.domainedangerville.fr/volnay-1er-cru-clos-des-angles/",
+   "https://www.domainedangerville.fr/volnay-1er-cru-mitans/",
+   "https://www.domainedangerville.fr/volnay-1er-cru-pitures/",
+   "https://www.domainedangerville.fr/meursault-1er-cru-santenots/",
+   "https://www.domainedangerville.fr/pommard-1er-cru-combes-dessus/",
+   "https://www.domainedangerville.fr/volnay-village-grandchamps/",
+   "https://www.domainedangerville.fr/volnay-village-pluchots/"
+  ],
+  "site": "https://www.domainedangerville.fr/",
+  "note": "Clos des Ducs 2.15 ha (52 ouvrées), the monopole, matches the atlas. The site gives a total of about 16.5 ha, of which 11.5 ha are Volnay 1er cru. Caillerets is a 0.46 ha historical parcel plus an adjoining parcel bought in 2013 whose size is not given. Clos des Angles doubled to 1.07 ha after a 200",
+  "known": [
+   "missing:x_volnay_angles",
+   "missing:x_pommard_combes_dessus",
+   "missing:x_pommard_village",
+   "missing:x_volnay_village",
+   "missing:x_volnay_chevret",
+   "missing:x_monthelie_grands_champs",
+   "absent:fremiets",
+   "absent:x_volnay_pitures_dessus"
+  ]
+ },
+ "anne_gros": {
+  "pages": [
+   "https://www.anne-gros.com/les-vins/les-vins-2/",
+   "https://www.anne-gros.com/les-vins/les-terroirs-du-domaine/",
+   "https://www.anne-gros.com/products-category/chambolle-musigny/",
+   "https://www.anne-gros.com/products-category/vosne-romanee/",
+   "https://www.anne-gros.com/products-category/echezeaux/",
+   "https://www.anne-gros.com/products-category/clos-vougeot-grand-cru/",
+   "https://www.anne-gros.com/products-category/richebourg-grand-cru/"
+  ],
+  "site": "https://www.anne-gros.com/",
+  "note": "All three atlas grands crus match exactly. Village wines are single lieux-dits: Vosne-Romanée Les Barreaux 0.39 ha (bought 1988) and Chambolle-Musigny La Combe d'Orveau 1.1 ha. The Échezeaux plot came to the domaine in 2007 when a 25-year lease ended, so it is now owned. Tenure for the others is inh",
+  "known": [
+   "missing:colombiere",
+   "missing:communes",
+   "missing:combedorveau",
+   "missing:grandsechezeaux",
+   "area:echezeaux"
+  ]
+ },
+ "arlaud": {
+  "pages": [
+   "https://www.arlaud.com/fr_FR/domaine-arlaud",
+   "https://www.arlaud.com/fr_FR/domaine-arlaud/bonnes-mares-grand-cru",
+   "https://www.arlaud.com/fr_FR/domaine-arlaud/charmes-chambertin-grand-cru",
+   "https://www.arlaud.com/fr_FR/domaine-arlaud/clos-de-la-roche-grand-cru",
+   "https://www.arlaud.com/fr_FR/domaine-arlaud/clos-saint-denis-grand-cru",
+   "https://www.arlaud.com/fr_FR/domaine-arlaud/chambolle-musigny-1er-cru-les-chatelots",
+   "https://www.arlaud.com/fr_FR/domaine-arlaud/chambolle-musigny-1er-cru-les-noirots",
+   "https://www.arlaud.com/fr_FR/domaine-arlaud/chambolle-musigny-1er-cru-les-sentiers",
+   "https://www.arlaud.com/fr_FR/domaine-arlaud/gevrey-chambertin-1er-cru-aux-combottes",
+   "https://www.arlaud.com/fr_FR/domaine-arlaud/morey-saint-denis-1er-cru-aux-cheseaux",
+   "https://www.arlaud.com/fr_FR/domaine-arlaud/morey-saint-denis-1er-cru-les-blanchards",
+   "https://www.arlaud.com/fr_FR/domaine-arlaud/morey-saint-denis-1er-cru-les-millandes",
+   "https://www.arlaud.com/fr_FR/domaine-arlaud/morey-saint-denis-1er-cru-les-ruchots",
+   "https://www.arlaud.com/fr_FR/domaine-arlaud/chambolle-musigny",
+   "https://www.arlaud.com/fr_FR/domaine-arlaud/gevrey-chambertin",
+   "https://www.arlaud.com/fr_FR/domaine-arlaud/morey-saint-denis"
+  ],
+  "site": "https://www.arlaud.com/",
+  "note": "One page per wine with 'Taille'. Charmes 1.14 vs atlas 1.15 (match). Atlas entries without ha can take: Combottes 0.45, Clos de la Roche 0.43, Millandes 0.41, Clos Saint-Denis 0.17, Ruchots 0.70, Sentiers 0.23. Site says 17 ha incl. 4 GC. No owned/leased distinction.",
+  "known": [
+   "missing:x_morey_cheseaux",
+   "missing:x_morey_village",
+   "missing:tart",
+   "missing:latricieres",
+   "missing:echezeaux",
+   "missing:lajustice"
+  ]
+ },
+ "arlot": {
+  "pages": [
+   "https://www.arlot.com/fr/nos-vins",
+   "https://www.arlot.com/fr/vin/1/clos-des-forets-saint-georges-monopole",
+   "https://www.arlot.com/fr/vin/7/clos-de-l-arlot-monopole",
+   "https://www.arlot.com/fr/vin/3/clos-de-l-arlot-blanc-monopole",
+   "https://www.arlot.com/fr/vin/5/cuvee-le-petit-arlot",
+   "https://www.arlot.com/fr/vin/6/cuvee-les-petits-plets",
+   "https://www.arlot.com/fr/vin/13/mont-des-oiseaux",
+   "https://www.arlot.com/fr/vin/8/les-suchots",
+   "https://www.arlot.com/fr/vin/9/romanee-saint-vivant",
+   "https://www.arlot.com/fr/vin/4/la-gerbotte-blanc",
+   "https://www.arlot.com/fr/vin/2/clos-du-chapeau-monopole",
+   "https://www.arlot.com/fr/vin/10/au-leurey-blanc"
+  ],
+  "site": "https://www.arlot.com/",
+  "note": "The Clos des Forêts Saint-Georges page gives 7.2 ha in one piece, which matches the atlas. The site gives no area for Romanée-Saint-Vivant or Les Suchots. The domaine is owned by AXA Millésimes, so the monopoles are estate-owned; tenure is not stated for the other plots.",
+  "known": [
+   "missing:stgeorges",
+   "missing:romaneeconti",
+   "missing:richebourg",
+   "missing:latache",
+   "missing:echezeaux",
+   "missing:grandsechezeaux",
+   "area:closarlot"
+  ]
+ },
+ "armand": {
+  "pages": [
+   "https://www.domaine-comte-armand.com/nos-appellations/",
+   "https://www.domaine-comte-armand.com/le-clos-des-epeneaux/",
+   "https://www.domaine-comte-armand.com/appellations/pommard-premier-cru-clos-des-epeneaux/",
+   "https://www.domaine-comte-armand.com/appellations/volnay-premier-cru-les-fremiets/",
+   "https://www.domaine-comte-armand.com/appellations/volnay-village/",
+   "https://www.domaine-comte-armand.com/appellations/auxey-duresses-premier-cru/",
+   "https://www.domaine-comte-armand.com/appellations/auxey-duresses-village/"
+  ],
+  "site": "https://www.domaine-comte-armand.com/",
+  "note": "Official site domaine-comte-armand.com (domaine-des-epeneaux.com resets the connection). Clos des Épeneaux: 5.23 ha on https://www.domaine-comte-armand.com/le-clos-des-epeneaux/, '5Ha24a55ca' on the appellation page; atlas 5.23 matches. Atlas appears to double-count it as both 'Les Épenots 5.23' and",
+  "known": [
+   "missing:x_volnay_village",
+   "missing:x_monthelie_grands_champs",
+   "missing:x_monthelie_village",
+   "missing:x_nuits_terres_blanches",
+   "missing:duresses",
+   "absent:epenots",
+   "absent:rugiens",
+   "absent:x_monthelie_bas_des_duresses"
+  ]
+ },
+ "arnoux": {
+  "pages": [
+   "https://www.arnoux-lachaux.com/vins",
+   "https://www.arnoux-lachaux.com/parcellaire"
+  ],
+  "site": "https://www.arnoux-lachaux.com",
+  "note": "Single-page JS site (aneox). Wine list confirms all atlas climats; per-wine sheets only give 'SUPERFICIE DE L'APPELLATION' (the appellation's total, e.g. NSG village 114 ha), not the domaine's holding, so no ha can be checked. Estate total stated as 14 ha. Village wines also from Chambolle, NSG (Les",
+  "known": [
+   "absent:latricieres",
+   "absent:closvougeot",
+   "absent:echezeaux",
+   "absent:suchots",
+   "absent:hautesmaizieres",
+   "absent:rsv",
+   "absent:reignots",
+   "absent:chaumes",
+   "absent:proces",
+   "absent:x_nuits_argillas",
+   "absent:x_nuits_clos_des_corvees_pagets"
+  ]
+ },
+ "audoin": {
+  "pages": [],
+  "status": "no site",
+  "note": "No working official website for Domaine Charles Audoin (7 rue de la Boulotte, Marsannay). A directory cites domaine-charles-audoin.com but it does not resolve; audoin.fr is an unrelated email-hosting page. Facebook/Instagram only."
+ },
+ "auvenay": {
+  "pages": [],
+  "status": "no site",
+  "note": "No official website found. A web search returned only merchants and wikis, and Lalou Bize-Leroy's d'Auvenay is not known to have a site. https://www.domaine-dauvenay.com/ is a parking redirect stub and https://www.dauvenay.com/ fails TLS. None of the atlas entries can be checked."
+ },
+ "bart": {
+  "pages": [],
+  "status": "no site",
+  "note": "No official website found for Domaine Bart (web search returned only importers/merchants/reviews; guessed domains did not resolve). Not substituted with merchant pages."
+ },
+ "barthod": {
+  "pages": [],
+  "status": "no site",
+  "note": "No official website found for Domaine Ghislaine Barthod; only an Instagram account (@domaineghislainebarthod) and importer pages. Guessed domains (ghislaine-barthod.com/.fr, domaine-barthod.com/.fr, domaineghislainebarthod.com) do not exist."
+ },
+ "bertagna": {
+  "pages": [
+   "https://www.domainebertagna.com/pinot-noir",
+   "https://www.domainebertagna.com/chardonnay",
+   "https://www.domainebertagna.com/chambertin-grand-cru",
+   "https://www.domainebertagna.com/clos-st-denis-gc",
+   "https://www.domainebertagna.com/clos-de-vougeot-gc",
+   "https://www.domainebertagna.com/corton-gc",
+   "https://www.domainebertagna.com/corton-charlemagne-gc",
+   "https://www.domainebertagna.com/vosne-romanee-pc",
+   "https://www.domainebertagna.com/nuits-st-georges-pc",
+   "https://www.domainebertagna.com/chambolle-musigny-pc",
+   "https://www.domainebertagna.com/copie-de-chambolle-musigny-pm",
+   "https://www.domainebertagna.com/chambolle-musigny-village",
+   "https://www.domainebertagna.com/vougeot-clos-de-la-perriere-pc",
+   "https://www.domainebertagna.com/vougeot-les-cras-pc",
+   "https://www.domainebertagna.com/vougeot-petits-vougeot-pc",
+   "https://www.domainebertagna.com/vougeot-village"
+  ],
+  "site": "https://www.domainebertagna.com/",
+  "note": "Wix site with one page per wine giving 'Superficie'. Site states 17 ha total. Chambertin 0.20 and Clos Saint-Denis 0.53 match; Clos de la Perrière 2 ha 15 a 80 ca (2.158) vs atlas 2.2 (diff 0.042, under threshold); Petits Vougeots 1 ha 19 a 89 ca. Site does not separate owned/leased ('owned' = estat",
+  "known": [
+   "missing:closdelaroche",
+   "missing:echezeaux",
+   "missing:richebourg",
+   "missing:x_chambolle_plantes",
+   "missing:musigny"
+  ]
+ },
+ "bize": {
+  "pages": [
+   "https://www.domainebize.fr/",
+   "https://www.domainebize.fr/fr/latricieres-chambertin-grand-cru.html",
+   "https://www.domainebize.fr/fr/corton-charlemagne-grand-cru.html",
+   "https://www.domainebize.fr/fr/aloxe-corton-le-suchot.html",
+   "https://www.domainebize.fr/fr/savigny-les-beaune-1er-cru-aux-vergelesses-rouge.html",
+   "https://www.domainebize.fr/fr/savigny-les-beaune-1er-cru-aux-vergelesses-blanc.html",
+   "https://www.domainebize.fr/fr/savigny-les-beaune-1er-cru-les-marconnets.html",
+   "https://www.domainebize.fr/fr/savigny-les-beaune-1er-cru-les-fournaux.html",
+   "https://www.domainebize.fr/fr/savigny-les-beaune-1er-cru-les-talmettes.html",
+   "https://www.domainebize.fr/fr/savigny-les-beaune-1er-cru-les-serpentieres.html",
+   "https://www.domainebize.fr/fr/savigny-les-beaune-1er-cru-aux-guettes.html",
+   "https://www.domainebize.fr/fr/savigny-les-beaune-aux-grands-liards.html",
+   "https://www.domainebize.fr/fr/savigny-les-beaune-rouge.html",
+   "https://www.domainebize.fr/fr/savigny-les-beaune-blanc.html"
+  ],
+  "site": "https://www.domainebize.fr/",
+  "note": "Official site domainebize.fr, one page per wine with 'Surface'. Atlas entries without ha can take: Aux Vergelesses 1.9 rouge + 0.3 blanc, Marconnets 0.6. No owned/leased distinction.",
+  "known": [
+   "missing:x_beaune_perrieres",
+   "missing:chambertin",
+   "missing:x_nuits_terres_blanches",
+   "absent:marconnets_sav",
+   "area:vergelesses"
+  ]
+ },
+ "bizot": {
+  "pages": [],
+  "status": "no site",
+  "note": "No official website found (merchant listings only). domaine-bizot.com/.fr, domaine-jean-yves-bizot.com do not resolve."
+ },
+ "blain_gagnard": {
+  "pages": [],
+  "status": "no site",
+  "note": "No official website found (importer Winebow and Burgundy Report only; address 17 route de Santenay, Chassagne). domaine-blain-gagnard.com/.fr, blain-gagnard.com/.fr do not resolve. Burgundy Report mentions Le Montrachet among its grands crus (not in atlas) — unverified from an official source."
+ },
+ "bonneau": {
+  "pages": [
+   "https://bonneaudumartray.com/fr/vins",
+   "https://bonneaudumartray.com/fr/corton",
+   "https://bonneaudumartray.com/fr/corton-charlemagne",
+   "https://bonneaudumartray.com/fr/un-site/7/au-coeur-de-charlemagne",
+   "https://bonneaudumartray.com/fr/le-domaine/2/de-1835-a-aujourd-039-hui"
+  ],
+  "site": "https://bonneaudumartray.com/",
+  "note": "Site gives no surface areas, so atlas 9.5 ha for Corton-Charlemagne cannot be checked here. Site says the vineyard is a single block on the upper slopes of the Charlemagne climat, in lieux-dits En Charlemagne (Pernand-Vergelesses) and Le Charlemagne (Aloxe-Corton), and that the red Corton is made 's",
+  "known": [
+   "missing:x_corton_village_de_pernand",
+   "missing:x_corton_gc_combes",
+   "absent:lecorton"
+  ]
+ },
+ "bouchard": {
+  "pages": [
+   "https://www.bouchard-pereetfils.com/fr/les-vins",
+   "https://www.bouchard-pereetfils.com/fr/liste-des-vins",
+   "https://medias.bouchard-pereetfils.com/files/default/user-1/fiche-technique-detaillee-beaune-les-greves-18743a50-01c8-4a92-8d7d-372c3f025fda-compressed-69e0f01f878b0290246861.pdf",
+   "https://medias.bouchard-pereetfils.com/files/default/user-1/fiche-technique-detaillee-beaune-les-marconnets-bf62b594-32fc-4306-9b2c-c5d00d0e53d2-compressed-69e0f04a7c060294140720.pdf",
+   "https://medias.bouchard-pereetfils.com/files/default/user-2/fiche-technique-detaillee-clos-vougeot-6a3a23baad61a065191082.pdf",
+   "https://medias.bouchard-pereetfils.com/files/default/user-2/fiche-technique-detaillee-beaune-du-chateau-rouge-6a3a25becb2de543952222.pdf",
+   "https://medias.bouchard-pereetfils.com/files/default/user-2/fiche-technique-detaillee-beaune-du-chateau-blanc-6a3a25a5cc536872865078.pdf"
+  ],
+  "site": "https://www.bouchard-pereetfils.com/",
+  "note": "Site (post-2022 Artémis Domaines) presents only the ~60 ha Domaine: an interactive parcel map (cuvée list extracted from the page's map JS /_nuxt/DM40xWWJ.js) plus a 'liste des vins' with PDF fiches. Areas come from the fiches' SUPERFICIE graphic (domaine share vs climat total). Map labels Meursault",
+  "known": [
+   "missing:tart",
+   "missing:x_monthelie_clous",
+   "absent:cailles",
+   "absent:cortoncharlemagne",
+   "absent:lecorton",
+   "absent:enfantjesus",
+   "absent:teurons",
+   "absent:mousse",
+   "absent:perrieres_meursault",
+   "absent:chevalier",
+   "absent:montrachet",
+   "absent:x_beaune_clos_saint_landry"
+  ]
+ },
+ "camus": {
+  "pages": [],
+  "status": "no site",
+  "note": "No official website found for Camus Père et Fils (search returned only importers/merchants/guides; guessed domains do not resolve)."
+ },
+ "carillon": {
+  "pages": [
+   "https://jacques-carillon.com/nos-vins/",
+   "https://jacques-carillon.com/nos-vins/bienvenues-batard-montrachet/",
+   "https://jacques-carillon.com/nos-vins/puligny-montrachet-1er-cru-les-perrieres/",
+   "https://jacques-carillon.com/nos-vins/puligny-montrachet-1er-cru-les-champs-canet/",
+   "https://jacques-carillon.com/nos-vins/puligny-montrachet-1er-cru-les-referts/",
+   "https://jacques-carillon.com/nos-vins/saint-aubin-1er-cru-les-pitangerets/",
+   "https://jacques-carillon.com/nos-vins/puligny-montrachet-2/",
+   "https://jacques-carillon.com/nos-vins/chassagne-montrachet-2/"
+  ],
+  "site": "https://jacques-carillon.com/",
+  "note": "The atlas's 'Domaine Carillon' is ambiguous. The old Domaine Louis Carillon et Fils was split in 2010 between Jacques Carillon (https://jacques-carillon.com/) and François Carillon (https://www.francoiscarillon.com/). The Bienvenues-Bâtard-Montrachet listed in the atlas is on the Jacques Carillon si",
+  "known": [
+   "missing:x_staubin_village",
+   "missing:x_chassagne_chassagne"
+  ]
+ },
+ "cathiard": {
+  "pages": [],
+  "status": "no site",
+  "note": "No official site found. domaine-sylvain-cathiard.com, sylvaincathiard.com, domaine-cathiard.com/.fr and domainecathiard.com do not exist (NXDOMAIN), and cathiard.com is a parked Hostinger domain. Web search returned only merchant and guide pages."
+ },
+ "chandon": {
+  "pages": [
+   "https://www.chandondebriailles.com/fr_FR/vins",
+   "https://www.chandondebriailles.com/fr_FR/vin/aloxe-corton-les-valozieres",
+   "https://www.chandondebriailles.com/fr_FR/vin/corton-blanc",
+   "https://www.chandondebriailles.com/fr_FR/vin/corton-charlemagne",
+   "https://www.chandondebriailles.com/fr_FR/vin/corton-clos-du-roi",
+   "https://www.chandondebriailles.com/fr_FR/vin/corton-les-bressandes",
+   "https://www.chandondebriailles.com/fr_FR/vin/corton-les-marechaudes",
+   "https://www.chandondebriailles.com/fr_FR/vin/pernand-vergelesses-ile-des-vergelesses-blanc",
+   "https://www.chandondebriailles.com/fr_FR/vin/pernand-vergelesses-ile-des-vergelesses-rouge",
+   "https://www.chandondebriailles.com/fr_FR/vin/pernand-vergelesses-les-vergelesses",
+   "https://www.chandondebriailles.com/fr_FR/vin/savigny-les-beaune-aux-fourneaux",
+   "https://www.chandondebriailles.com/fr_FR/vin/savigny-les-beaune-les-lavieres",
+   "https://www.chandondebriailles.com/fr_FR/vin/savigny-les-beaune-les-saucours"
+  ],
+  "site": "https://www.chandondebriailles.com/",
+  "note": "Each per-wine page gives parcel areas to 4 decimal places. Île des Vergelesses is 2.10 ha red plus 1.12 ha white, 3.22 ha in all. The site does not say whether plots are owned or leased.",
+  "known": [
+   "missing:x_corton_paulands",
+   "missing:renardes",
+   "missing:closduroi_beaune",
+   "missing:bressandes_beaune",
+   "missing:x_corton_marechaudes",
+   "missing:vergelesses",
+   "missing:x_savigny_fourneaux",
+   "area:x_corton_vergelesses"
+  ]
+ },
+ "chanson": {
+  "pages": [
+   "https://www.domaine-chanson.com/le-grand-livre-de-la-cave/",
+   "https://www.domaine-chanson.com/le-vignoble/",
+   "https://www.domaine-chanson.com/vin/beaune-1er-cru-clos-des-feves-monopole/",
+   "https://www.domaine-chanson.com/vin/beaune-1er-cru-clos-des-marconnets/",
+   "https://www.domaine-chanson.com/vin/beaune-1er-cru-clos-du-roi/",
+   "https://www.domaine-chanson.com/vin/beaune-1er-cru-clos-des-mouches/",
+   "https://www.domaine-chanson.com/vin/beaune-1er-cru-le-clos-des-mouches/",
+   "https://www.domaine-chanson.com/vin/beaune-1er-cru-les-bressandes/",
+   "https://www.domaine-chanson.com/vin/beaune-1er-cru-les-bressandes-2/",
+   "https://www.domaine-chanson.com/vin/beaune-1er-cru-les-champs-pimont/",
+   "https://www.domaine-chanson.com/vin/beaune-1er-cru-les-greves/",
+   "https://www.domaine-chanson.com/vin/beaune-1er-cru-les-teurons/",
+   "https://www.domaine-chanson.com/vin/corton-vergennes-grand-cru/",
+   "https://www.domaine-chanson.com/vin/pernand-vergelesses-1er-cru-vergelesses/",
+   "https://www.domaine-chanson.com/vin/pernand-vergelesses-1er-cru-en-caradeux/",
+   "https://www.domaine-chanson.com/vin/pernand-vergelesses/",
+   "https://www.domaine-chanson.com/vin/savigny-les-beaune-1er-cru-la-dominode/",
+   "https://www.domaine-chanson.com/vin/savigny-les-beaune-1er-cru-les-hauts-marconnets/",
+   "https://www.domaine-chanson.com/vin/chassagne-montrachet-1er-cru-les-chennevottes/",
+   "https://www.domaine-chanson.com/vin/chassagne-montrachet/"
+  ],
+  "site": "https://www.domaine-chanson.com/",
+  "note": "Site: 43 ha in Côte de Beaune plus 45 ha in Côte Chalonnaise (bought 2023). Each Côte de Beaune domaine wine page gives 'Parcelle : x HA'. Pages for the Côte de Nuits grands crus and several villages give no parcel, which suggests négoce, but the site does not say so: kind=unclear. Marked owned only",
+  "known": [
+   "missing:vergelesses",
+   "missing:x_volnay_village",
+   "missing:x_corton_village_de_pernand",
+   "missing:cortoncharlemagne",
+   "missing:montrachet",
+   "missing:x_chassagne_chassagne",
+   "absent:x_corton_gc_vergennes",
+   "area:clos_mouches"
+  ]
+ },
+ "chevillon": {
+  "pages": [],
+  "status": "no site",
+  "note": "No official website found for Robert Chevillon (web search returned only importers/merchants/reviews; guessed domains did not resolve). Not substituted with merchant pages."
+ },
+ "clair": {
+  "pages": [
+   "https://www.brunoclair.com/",
+   "https://www.brunoclair.com/vins/marsannay-les-longeroies-rouge/",
+   "https://www.brunoclair.com/vins/marsannay-les-longeroies-blanc/",
+   "https://www.brunoclair.com/vins/marsannay-source-des-roches/",
+   "https://www.brunoclair.com/vins/marsannay-le-charme-aux-pretres/",
+   "https://www.brunoclair.com/vins/marsannay-les-grasses-tetes/",
+   "https://www.brunoclair.com/vins/marsannay-les-vaudenelles/",
+   "https://www.brunoclair.com/vins/fixin-champs-perdrix/",
+   "https://www.brunoclair.com/vins/gevrey-chambertin/",
+   "https://www.brunoclair.com/vins/gevrey-chambertin-les-cazetiers-1er-cru/",
+   "https://www.brunoclair.com/vins/gevrey-chambertin-clos-du-fonteny-1er-cru/",
+   "https://www.brunoclair.com/vins/gevrey-chambertin-clos-saint-jacques-1er-cru/",
+   "https://www.brunoclair.com/vins/gevrey-chambertin-petite-chapelle-1er-cru/",
+   "https://www.brunoclair.com/vins/chambertin-clos-de-bezegrand-cru/",
+   "https://www.brunoclair.com/vins/morey-saint-denis-en-la-rue-de-vergy-blanc/",
+   "https://www.brunoclair.com/vins/morey-saint-denis-en-la-rue-de-vergy/",
+   "https://www.brunoclair.com/vins/bonnes-mares-grand-cru/",
+   "https://www.brunoclair.com/vins/chambolle-musigny-les-charmes-1er-cru/",
+   "https://www.brunoclair.com/vins/chambolle-musigny-les-veroilles/",
+   "https://www.brunoclair.com/vins/vosne-romanee-aux-raignots-1er-cru/",
+   "https://www.brunoclair.com/vins/vosne-romanee-les-champs-perdrix/",
+   "https://www.brunoclair.com/vins/aloxe-corton/",
+   "https://www.brunoclair.com/vins/corton-charlemagne-grand-cru/",
+   "https://www.brunoclair.com/vins/pernand-vergelesses/",
+   "https://www.brunoclair.com/vins/savigny-les-beaune-la-dominode-1er-cru/",
+   "https://www.brunoclair.com/vins/savigny-les-beaune-les-jarrons-1er-cru/"
+  ],
+  "site": "https://www.brunoclair.com/",
+  "note": "Official site is brunoclair.com (bruno-clair.com has a mismatched TLS cert). Each wine page gives 'Superficie' (a/ca converted to ha). Site does not state owned vs leased per parcel, so kind=unclear. Atlas areas for Clos Saint-Jacques (1), Clos de Bèze (0.98), Bonnes-Mares (1.64), Corton-Charlemagne",
+  "known": [
+   "missing:champsperdrix",
+   "absent:closduroy",
+   "absent:champsalomon"
+  ]
+ },
+ "clavelier": {
+  "pages": [
+   "https://bruno-clavelier.com/fr/cuvees.php",
+   "https://bruno-clavelier.com/fr/cuvees.php?id=1",
+   "https://bruno-clavelier.com/fr/cuvees.php?id=2",
+   "https://bruno-clavelier.com/fr/cuvees.php?id=3",
+   "https://bruno-clavelier.com/fr/cuvees.php?id=4",
+   "https://bruno-clavelier.com/fr/cuvees.php?id=5",
+   "https://bruno-clavelier.com/fr/cuvees.php?id=6",
+   "https://bruno-clavelier.com/fr/cuvees.php?id=7",
+   "https://bruno-clavelier.com/fr/cuvees.php?id=8",
+   "https://bruno-clavelier.com/fr/cuvees.php?id=9",
+   "https://bruno-clavelier.com/fr/cuvees.php?id=10",
+   "https://bruno-clavelier.com/fr/cuvees.php?id=11"
+  ],
+  "site": "https://bruno-clavelier.com/",
+  "note": "Site is old (Flash-era) and may be dated. Atlas 'extra' text 'Corton, Nuits & Chambolle' corresponds to the Corton Rognet, NSG Aux Cras, Chambolle Noirots/Combe d'Orveau listed above. Tenure not stated except that Corton Rognet was 'reprise en 1999' and Aux Cras 'reprise en 1994' (taken over - could",
+  "known": [
+   "missing:lecorton",
+   "missing:mazis",
+   "missing:beauxbruns",
+   "missing:bonnesmares",
+   "missing:musigny",
+   "missing:suchots"
+  ]
+ },
+ "coche": {
+  "pages": [],
+  "status": "no site",
+  "note": "Coche-Dury has no website: www.coche-dury.com is a parked registrar (Solidnames) holding page; domaine-coche-dury.com does not exist. Atlas values unverified."
+ },
+ "colin_m": {
+  "pages": [],
+  "status": "no wine list",
+  "site": "https://www.marc-colin.com/",
+  "note": "The site is a single page with no list of wines or climats. It gives only totals: 11.50 ha, mainly in Saint-Aubin plus Puligny, Chassagne and Santenay; 24 appellations, including 10 Saint-Aubin premiers crus (one of them red) and Montrachet; 10.50 ha of Chardonnay. Domaine Marc Colin et Fils is now "
+ },
+ "confuron_c": {
+  "pages": [],
+  "status": "no site",
+  "note": "No official website found for Domaine Confuron-Cotetidot (10 rue de la Fontaine, Vosne). Guessed domains (confuron-cotetidot.com/.fr, domaine-confuron-cotetidot.com/.fr) do not exist; www.jjconfuron.com belongs to a different producer (J-J Confuron). Search returns only merchants/importers."
+ },
+ "confuron_jj": {
+  "pages": [],
+  "status": "unreachable",
+  "site": "https://jjconfuron.fr/",
+  "note": "jjconfuron.fr resolves (OVH shared hosting) but resets every HTTPS connection, so it could not be read; not confirmed as official. jjconfuron.com is a parked lander. NB: domaine-confuron.com is Domaine Confuron-Gindre (Vosne-Romanée), a different estate - not used."
+ },
+ "courcel": {
+  "pages": [
+   "https://www.domainedecourcel-pommard.fr/les-vins/"
+  ],
+  "site": "https://www.domainedecourcel-pommard.fr",
+  "note": "Official site is domainedecourcel-pommard.fr (not domaine-de-courcel.com, which does not resolve). Single 'Les Vins' page gives areas: Grand Clos des Epenots 'monopole du Domaine', 4.89 ha (atlas 'Les Épenots' = Grand Clos des Epenots, no ha in atlas); Rugiens 1.07; Frémiers 0.79; Croix Noires 0.58 ",
+  "known": [
+   "missing:x_pommard_fremiers",
+   "missing:x_pommard_village"
+  ]
+ },
+ "damoy": {
+  "pages": [
+   "https://domaine-pierre-damoy.com/les-vins-2/",
+   "https://domaine-pierre-damoy.com/le-domaine/",
+   "https://domaine-pierre-damoy.com/?product=chambertin-clos-de-beze",
+   "https://domaine-pierre-damoy.com/?product=chambertin-grand-cru",
+   "https://domaine-pierre-damoy.com/?product=chapelle-chambertin",
+   "https://domaine-pierre-damoy.com/?product=gevrey-chambertin-clos-tamisot",
+   "https://domaine-pierre-damoy.com/?product=gevrey-chambertin",
+   "https://domaine-pierre-damoy.com/?product=chambolle-musigny",
+   "https://domaine-pierre-damoy.com/?product=fixin"
+  ],
+  "site": "https://domaine-pierre-damoy.com/",
+  "note": "All three grand cru areas match the atlas exactly (5.36 / 2.22 / 0.48). Le domaine page states ~10% of Gevrey grands crus 'en propriété' (owned). Chapelle-Chambertin is four parcels incl. La Grande Chapelle and En la Chapelle.",
+  "known": [
+   "missing:charmes",
+   "missing:griotte"
+  ]
+ },
+ "drc": {
+  "pages": [
+   "https://www.romanee-conti.fr/fr/9-grand-crus",
+   "https://www.romanee-conti.fr/fr/9-grand-crus/2/echezeaux",
+   "https://www.romanee-conti.fr/fr/9-grand-crus/4/grands-echezeaux",
+   "https://www.romanee-conti.fr/fr/9-grand-crus/6/richebourg",
+   "https://www.romanee-conti.fr/fr/9-grand-crus/8/romanee-st-vivant",
+   "https://www.romanee-conti.fr/fr/9-grand-crus/7/romanee-conti",
+   "https://www.romanee-conti.fr/fr/9-grand-crus/5/la-tache",
+   "https://www.romanee-conti.fr/fr/9-grand-crus/1/corton",
+   "https://www.romanee-conti.fr/fr/9-grand-crus/9/corton-charlemagne",
+   "https://www.romanee-conti.fr/fr/9-grand-crus/3/montrachet"
+  ],
+  "site": "https://www.romanee-conti.fr",
+  "note": "Site lists '9 Grands Crus' with surface per wine. Corton page gives only a combined 2.2746 ha leased (fermage since 11 Nov 2008 from Domaine Prince Florent de Mérode) in Clos du Roi, Bressandes and Renardes; no per-climat split (atlas split 0.5+0.57+1.19 = 2.26 ha, consistent). Corton-Charlemagne re",
+  "known": [
+   "missing:closduroi_beaune",
+   "absent:renardes",
+   "absent:closduroi",
+   "absent:bressandes",
+   "absent:batard"
+  ]
+ },
+ "drouhin": {
+  "pages": [
+   "https://www.drouhin.com/fr_FR/carte-des-vins/nuits",
+   "https://www.drouhin.com/fr_FR/carte-des-vins/beaune",
+   "https://www.drouhin.com/fr_FR/presentation/au-coeur-du-domaine",
+   "https://www.drouhin.com/fr_FR/vin/musigny-grand-cru/2023",
+   "https://www.drouhin.com/fr_FR/vin/bonnes-mares-grand-cru/2023",
+   "https://www.drouhin.com/fr_FR/vin/griotte-chambertin-grand-cru/2023",
+   "https://www.drouhin.com/fr_FR/vin/echezeaux-grand-cru/2022",
+   "https://www.drouhin.com/fr_FR/vin/grands-echezeaux-grand-cru/2023",
+   "https://www.drouhin.com/fr_FR/vin/corton-bressandes-grand-cru/2017",
+   "https://www.drouhin.com/fr_FR/vin/corton-charlemagne-grand-cru-domaine/2023",
+   "https://www.drouhin.com/fr_FR/vin/chambolle-musigny-premier-cru-amoureuses/2023",
+   "https://www.drouhin.com/fr_FR/vin/chambolle-musigny-premier-cru-baudes/2023",
+   "https://www.drouhin.com/fr_FR/vin/vosne-romanee-premier-cru-petits-monts/2024",
+   "https://www.drouhin.com/fr_FR/vin/vougeot-premier-cru-les-petits-vougeots/2023",
+   "https://www.drouhin.com/fr_FR/vin/nuits-saint-georges-premier-cru-proces/2023",
+   "https://www.drouhin.com/fr_FR/vin/beaune-clos-des-mouches-premier-cru-blanc/2024",
+   "https://www.drouhin.com/fr_FR/vin/beaune-clos-des-mouches-premier-cru-rouge/2024",
+   "https://www.drouhin.com/fr_FR/vin/beaune-premier-cru-epenotes/2015",
+   "https://www.drouhin.com/fr_FR/vin/beaune-premier-cru-greves/2023",
+   "https://www.drouhin.com/fr_FR/vin/beaune-premier-cru-sizies/2023"
+  ],
+  "site": "https://www.drouhin.com/",
+  "note": "Each wine page has an 'Approvisionnement' line or a domaine viticulture paragraph. Domaine wines say 'Sur l'ensemble de son domaine de 100 hectares...' (owned). Others say either 'provenant en partie de raisins des Propriétés de la Famille Drouhin, mais également d'achats' (unclear/partial) or 'prov",
+  "known": [
+   "missing:closprieur",
+   "missing:beze",
+   "missing:batard",
+   "missing:montrachet",
+   "missing:x_meursault_blagny",
+   "missing:x_meursault_piece_sous_le_bois",
+   "missing:x_pommard_poutures",
+   "missing:noirots",
+   "missing:groseilles",
+   "missing:chatelots",
+   "missing:x_chambolle_plantes",
+   "missing:borniques",
+   "missing:x_savigny_fourneaux",
+   "missing:x_beaune_blanches_fleurs",
+   "missing:x_beaune_coucherias",
+   "missing:lecorton",
+   "missing:x_corton_gc_chaumes",
+   "missing:bressandes_beaune",
+   "missing:romaneeconti",
+   "missing:pruliers",
+   "absent:charmes_chambolle",
+   "absent:vignesfranches"
+  ]
+ },
+ "drouhin_laroze": {
+  "pages": [
+   "https://www.drouhin-laroze.com/fr/nos-vins/domaine-drouhin-laroze",
+   "https://www.drouhin-laroze.com/fr/le-domaine/le-domaine",
+   "https://www.drouhin-laroze.com/fr/nos-vins/1/musigny",
+   "https://www.drouhin-laroze.com/fr/nos-vins/10/chambolle-musigny",
+   "https://www.drouhin-laroze.com/fr/nos-vins/11/chapelle-chambertin",
+   "https://www.drouhin-laroze.com/fr/nos-vins/12/morey-saint-denis",
+   "https://www.drouhin-laroze.com/fr/nos-vins/13/gevrey-chambertin-dix-climats",
+   "https://www.drouhin-laroze.com/fr/nos-vins/2/chambertin-clos-de-beze",
+   "https://www.drouhin-laroze.com/fr/nos-vins/24/gevrey-chambertin-clos-de-combes",
+   "https://www.drouhin-laroze.com/fr/nos-vins/3/clos-de-vougeot",
+   "https://www.drouhin-laroze.com/fr/nos-vins/4/bonnes-mares",
+   "https://www.drouhin-laroze.com/fr/nos-vins/5/latricieres-chambertin",
+   "https://www.drouhin-laroze.com/fr/nos-vins/6/gevrey-chambertin-premier-cru-au-closeau",
+   "https://www.drouhin-laroze.com/fr/nos-vins/7/gevrey-chambertin-premier-cru-craipillot",
+   "https://www.drouhin-laroze.com/fr/nos-vins/8/gevrey-chambertin-premier-cru-lavaut-st-jacques",
+   "https://www.drouhin-laroze.com/fr/nos-vins/9/gevrey-chambertin-premier-cru-clos-prieur"
+  ],
+  "site": "https://www.drouhin-laroze.com/",
+  "note": "All four atlas grands crus match within 0.05 ha: Clos de Bèze 1.50 vs 1.47, Chapelle 0.52 vs 0.51, Latricières 0.67, Bonnes-Mares 1.5 vs 1.49. Domaine total 11.5 ha (https://www.drouhin-laroze.com/fr/le-domaine/le-domaine). The site keeps the domaine range separate from the négoce brand 'Maison Laro",
+  "known": [
+   "missing:closprieur",
+   "missing:x_gevrey_closeau",
+   "missing:x_gevrey_craipillot",
+   "missing:x_morey_village",
+   "missing:chambertin",
+   "missing:veroilles",
+   "missing:mazis",
+   "absent:x_gevrey_clos_prieur",
+   "area:chapelle"
+  ]
+ },
+ "dugat_c": {
+  "pages": [],
+  "status": "no site",
+  "note": "No official website found. A web search returned only directories and merchants; Falstaff gives 1 place de la Cure, Gevrey, about 6.5 ha, with no website. Guessed domains (domaine-dugat.com, claude-dugat.com, domaine-claude-dugat.com) do not resolve. None of the atlas entries can be checked."
+ },
+ "dugat_py": {
+  "pages": [],
+  "status": "no site",
+  "note": "Directories (Prince of Pinot) list www.dugat-py.com, but the domain does not resolve (DNS ENOTFOUND via WebFetch and curl); dugat-py.fr / domaine-dugat-py.com/.fr also fail. No other official site found."
+ },
+ "dujac": {
+  "pages": [
+   "https://www.dujac.com/nos-vins",
+   "https://www.dujac.com/nos-vins/echezeaux-grand-cru",
+   "https://www.dujac.com/nos-vins/bonnes-mares-grand-cru",
+   "https://www.dujac.com/nos-vins/chambertin-grand-cru",
+   "https://www.dujac.com/nos-vins/charmes-chambertin-grand-cru",
+   "https://www.dujac.com/nos-vins/clos-de-la-roche-grand-cru",
+   "https://www.dujac.com/nos-vins/clos-saint-denis-grand-cru",
+   "https://www.dujac.com/nos-vins/romanee-saint-vivant-grand-cru",
+   "https://www.dujac.com/nos-vins/vosne-romanee-premier-cru-aux-malconsorts",
+   "https://www.dujac.com/nos-vins/vosne-romanee-premier-cru-les-beaux-monts",
+   "https://www.dujac.com/nos-vins/gevrey-chambertin-premier-cru-aux-combottes",
+   "https://www.dujac.com/nos-vins/chambolle-musigny-premier-cru-les-gruenchers",
+   "https://www.dujac.com/nos-vins/morey-saint-denis-premier-cru",
+   "https://www.dujac.com/nos-vins/morey-saint-denis-premier-cru-les-monts-luisants-blanc",
+   "https://www.dujac.com/nos-vins/puligny-montrachet-premier-cru-les-folatieres",
+   "https://www.dujac.com/nos-vins/puligny-montrachet-premier-cru-les-combettes",
+   "https://www.dujac.com/nos-vins/nuits-saint-georges-premier-cru-les-cras",
+   "https://www.dujac.com/le-domaine"
+  ],
+  "site": "https://www.dujac.com",
+  "note": "Angular site; data read from the site's own JSON (https://www.dujac.com/ajaxify/node/<id>, field 'field_parcelle'), same data the wine pages render as 'Surface'. Areas: Échezeaux 68a72, Bonnes-Mares 58a01, Chambertin 29a29, Charmes 69a69, CdlR 1ha95a37, CSD 129a50, RSV 16a56, Malconsorts 1ha56a78, B",
+  "known": [
+   "absent:charmes",
+   "absent:combottes",
+   "absent:closdelaroche",
+   "absent:montsluisants",
+   "absent:closstdenis",
+   "absent:bonnesmares",
+   "absent:echezeaux",
+   "absent:malconsorts",
+   "area:combettes"
+  ]
+ },
+ "esmonin_s": {
+  "pages": [],
+  "status": "no site",
+  "note": "No official website found (only Falstaff/forum listings; a hotel/restaurant fact sheet at hameaualbert.fr gives Clos Saint-Jacques '1 ha 60' — consistent with atlas 1.6, but not an official domaine page). domaine-sylvie-esmonin.com/.fr and sylvie-esmonin.com do not resolve."
+ },
+ "eugenie": {
+  "pages": [
+   "https://domaine-eugenie.com/les-vins"
+  ],
+  "site": "https://domaine-eugenie.com/",
+  "note": "The atlas list looks like the older Engel-era holdings. The current site lists 5 grands crus, including Bonnes-Mares and Chambertin, and 3 premiers crus that the atlas lacks. Aux Brûlées is 1.14 on the site against 1.16 in the atlas, within tolerance. The site does not say whether plots are owned or",
+  "known": [
+   "missing:latricieres",
+   "missing:stgeorges",
+   "missing:vaucrains",
+   "missing:richebourg",
+   "missing:latache",
+   "missing:romaneeconti",
+   "missing:tart"
+  ]
+ },
+ "faiveley": {
+  "pages": [
+   "https://domaine-faiveley.com/nos-vins-lexcellence-des-terroirs/",
+   "https://domaine-faiveley.com/fiche-vin/chambertin-clos-de-beze-grand-cru/",
+   "https://domaine-faiveley.com/fiche-vin/chambertin-clos-de-beze-les-ouvrees-rodin-grand-cru/",
+   "https://domaine-faiveley.com/fiche-vin/mazis-chambertin-grand-cru/",
+   "https://domaine-faiveley.com/fiche-vin/charmes-chambertin-grand-cru/",
+   "https://domaine-faiveley.com/fiche-vin/latricieres-chambertin-grand-cru/",
+   "https://domaine-faiveley.com/fiche-vin/musigny-grand-cru/",
+   "https://domaine-faiveley.com/fiche-vin/clos-de-vougeot-grand-cru/",
+   "https://domaine-faiveley.com/fiche-vin/echezeaux-en-orveaux-grand-cru/",
+   "https://domaine-faiveley.com/fiche-vin/corton-charlemagne-grand-cru/",
+   "https://domaine-faiveley.com/fiche-vin/corton-clos-des-cortons-faiveley-grand-cru-monopole/",
+   "https://domaine-faiveley.com/fiche-vin/batard-montrachet-grand-cru/",
+   "https://domaine-faiveley.com/fiche-vin/bienvenues-batard-montrachet-grand-cru/",
+   "https://domaine-faiveley.com/fiche-vin/gevrey-chambertin-clos-des-issarts-premier-cru-monopole/",
+   "https://domaine-faiveley.com/fiche-vin/gevrey-chambertin-la-combe-aux-moines-premier-cru/",
+   "https://domaine-faiveley.com/fiche-vin/gevrey-chambertin-lavaux-saint-jacques-premier-cru/",
+   "https://domaine-faiveley.com/fiche-vin/gevrey-chambertin-les-cazetiers-premier-cru/",
+   "https://domaine-faiveley.com/fiche-vin/chambolle-musigny-la-combe-dorveau/",
+   "https://domaine-faiveley.com/fiche-vin/chambolle-musigny-les-fuees-premier-cru/",
+   "https://domaine-faiveley.com/fiche-vin/nuits-saint-georges-1er-cru-les-porets-saint-georges/",
+   "https://domaine-faiveley.com/fiche-vin/nuits-saint-georges-aux-chaignots-premier-cru/"
+  ],
+  "site": "https://domaine-faiveley.com/",
+  "note": "Every wine is listed under \"Les vins du domaine\", and each fiche-vin page gives the surface in ha/a/ca. No négoce wines appear on the site. Holdings that match the atlas within 0.05 ha: Combe aux Moines 1.03, Cazetiers 4.06, Lavaut 0.99, Mazis 1.56, Charmes 0.81, Latricières 1.21, Musigny 0.127, Clo",
+  "known": [
+   "missing:enorveaux",
+   "missing:closduroy",
+   "missing:x_volnay_village",
+   "missing:mazoyeres",
+   "missing:chambertin",
+   "missing:closdelaroche",
+   "missing:lecorton",
+   "missing:x_corton_rognet_et_corton",
+   "missing:closstjacques",
+   "missing:amoureuses",
+   "missing:bonnesmares",
+   "absent:hervelets",
+   "absent:petitechapelle",
+   "absent:porrets",
+   "absent:x_gevrey_craipillot",
+   "absent:x_puligny_garenne",
+   "area:beze",
+   "area:stgeorges"
+  ]
+ },
+ "fleurot": {
+  "pages": [
+   "https://www.domaine-fleurot-larose.com/nos-vins.html"
+  ],
+  "site": "https://www.domaine-fleurot-larose.com/",
+  "note": "Site lists wines by name only, no areas or tenure. www.fleurot-larose.com is an 'en construction' placeholder; the working site is www.domaine-fleurot-larose.com (Château du Passetemps, Santenay).",
+  "known": [
+   "missing:x_chassagne_chassagne"
+  ]
+ },
+ "follin": {
+  "pages": [],
+  "status": "unreachable",
+  "site": "https://www.domaine-follin-arbelet.com/",
+  "note": "domaine-follin-arbelet.com resolves, but its TLS certificate does not match the host name. TLS verification was not bypassed, so the content was not read."
+ },
+ "fougeray": {
+  "pages": [],
+  "status": "no site",
+  "note": "The domaine's former site https://www.fougeraydebeauclair.fr (still cited by wine guides) now hosts an unrelated generic wine/spam blog (lapsed domain) - not usable. No other official site found."
+ },
+ "fourrier": {
+  "pages": [],
+  "status": "no site",
+  "note": "No official website found. https://www.domainefourrier.com/ is a parked Hostinger domain, https://domaine-fourrier.com/ redirects to a parking 'lander' page, and the .fr variants do not resolve. A web search returned only merchants and critics. None of the atlas entries can be checked."
+ },
+ "frantin": {
+  "pages": [
+   "https://www.albert-bichot.com/fr/domaine-du-clos-frantin_20.html",
+   "https://www.albert-bichot.com/fr/chambertin-grand-cru_11",
+   "https://www.albert-bichot.com/fr/clos-de-vougeot-grand-cru_12",
+   "https://www.albert-bichot.com/fr/echezeaux-grand-cru_13",
+   "https://www.albert-bichot.com/fr/grands-echezeaux-grand-cru_126",
+   "https://www.albert-bichot.com/fr/richebourg-grand-cru_14",
+   "https://www.albert-bichot.com/fr/vosne-romanee-1er-cru-les-malconsorts_15",
+   "https://www.albert-bichot.com/fr/vosne-romanee-1er-cru-les-rouges_181",
+   "https://www.albert-bichot.com/fr/gevrey-chambertin-les-murots_16",
+   "https://www.albert-bichot.com/fr/vosne-romanee_18",
+   "https://www.albert-bichot.com/fr/nuits-saint-georges_17"
+  ],
+  "site": "https://www.albert-bichot.com/",
+  "note": "Official site is the Albert Bichot house site; Clos Frantin domaine page says 13.2 ha incl. 3.9 ha 1er/grand cru, and 'Nous avons la chance de posséder 1,75 hectare' of Malconsorts (wine page says 'Taille de la parcelle : 1,76 ha'). Per-wine pages give 'Taille de la parcelle'. Gaudichots and Au-dess",
+  "known": [
+   "missing:x_nuits_chateau_gris",
+   "missing:x_corton_clos_des_marechaudes",
+   "missing:fournieres",
+   "missing:batard",
+   "missing:clos_mouches",
+   "missing:x_beaune_aigrots",
+   "missing:bressandes_beaune",
+   "missing:bonnesmares",
+   "missing:amoureuses",
+   "missing:x_chambolle_chabiots",
+   "missing:sentiers",
+   "missing:charmes",
+   "missing:morgeot",
+   "missing:x_chassagne_vide_bourse",
+   "missing:closdelaroche",
+   "missing:cortoncharlemagne",
+   "missing:criots",
+   "missing:perriere_fixin",
+   "missing:lajustice",
+   "missing:lavaut",
+   "missing:petitechapelle",
+   "missing:griotte",
+   "missing:latricieres",
+   "missing:x_maranges_clos_roussots",
+   "missing:charmes_meursault",
+   "missing:montrachet",
+   "missing:chainescarteaux",
+   "missing:x_nuits_crots",
+   "missing:rugiens",
+   "missing:x_puligny_champ_gain",
+   "missing:x_puligny_garenne",
+   "missing:rsv",
+   "missing:x_santenay_clos_rousseau",
+   "missing:x_savigny_peuillets",
+   "missing:x_volnay_brouillards",
+   "missing:santenots",
+   "missing:beze",
+   "missing:combedorveau",
+   "missing:romaneeconti",
+   "missing:latache",
+   "absent:gaudichots",
+   "absent:dessusmalconsorts"
+  ]
+ },
+ "gagnard_jn": {
+  "pages": [],
+  "status": "unreachable",
+  "site": "https://domaine-gagnard.com/",
+  "note": "Third-party listings (Falstaff, Burgundy Report) give domaine-gagnard.com as the website; from this environment every connection was reset (several retries), so it could not be checked."
+ },
+ "gelin": {
+  "pages": [],
+  "status": "no site",
+  "note": "No official website found for Pierre Gelin (search returned only importers/merchants/guides; guessed domains do not resolve)."
+ },
+ "girardin_v": {
+  "pages": [
+   "https://www.vincentgirardin.com/fr_FR/les-vignes-les-vins",
+   "https://maps.vinogeo.fr/DOMAINES/VincentGirardin/tour.html",
+   "https://www.vincentgirardin.com/fr_FR/vin/bienvenue-batard-montrachet-blanc",
+   "https://www.vincentgirardin.com/fr_FR/vin/santenay-les-gravieres-rouge"
+  ],
+  "site": "https://www.vincentgirardin.com",
+  "note": "No surface areas anywhere on the site (wine pages give soil/vinification only). Site says Vincent Girardin sold the whole domaine in 2012 and Eric Germain has since rebuilt a domaine in the Côte de Beaune. Wine pages do not distinguish domaine vs négoce. Kind 'owned' is assigned only where the parce",
+  "known": [
+   "missing:x_monthelie_village",
+   "missing:closvougeot",
+   "missing:perrieres_corton",
+   "missing:x_maranges_fussiere",
+   "missing:duresses",
+   "missing:x_monthelie_sur_la_velle",
+   "missing:x_santenay_beauregard",
+   "missing:santenots",
+   "missing:batard",
+   "missing:x_chassagne_blanchot_dessus",
+   "missing:romanee_chassagne",
+   "missing:caillerets_puligny",
+   "missing:x_monthelie_clous",
+   "missing:montrachet",
+   "missing:x_puligny_referts",
+   "missing:pucelles",
+   "missing:x_staubin_chateniere",
+   "missing:x_santenay_comme",
+   "absent:bienvenues"
+  ]
+ },
+ "gouges": {
+  "pages": [
+   "https://www.gouges.com/nos-vins/",
+   "https://www.gouges.com/le-domaine/",
+   "https://www.gouges.com/portfolio-item/clos-des-porrets-saint-georges/",
+   "https://www.gouges.com/portfolio-item/les-saint-georges/",
+   "https://www.gouges.com/portfolio-item/les-vaucrains/",
+   "https://www.gouges.com/portfolio-item/les-pruliers/",
+   "https://www.gouges.com/portfolio-item/les-chaignots/",
+   "https://www.gouges.com/portfolio-item/la-perriere/",
+   "https://www.gouges.com/portfolio-item/les-chenes-carteaux/",
+   "https://www.gouges.com/portfolio-item/clos-fontaine-jacquinot/",
+   "https://www.gouges.com/portfolio-item/nuits-saint-georges-village/"
+  ],
+  "site": "https://www.gouges.com/",
+  "note": "Older guessed domains do not resolve; the official site is gouges.com. The site says the estate is more than 14 ha, family-built, with 7 premiers crus. The white Perrières is labelled 'La Perrière' and is made from Pinot Blanc ('Pinot Gouges'). The village wine is a blend of 5 lieux-dits, 2 ha in al",
+  "known": [
+   "missing:x_gevrey_perriere",
+   "missing:x_nuits_crots",
+   "absent:porrets"
+  ]
+ },
+ "grivault": {
+  "pages": [
+   "https://albert-grivault.fr/nos-vins/",
+   "https://albert-grivault.fr/wp-content/uploads/2022/01/Meursault-1C-Clos-Perrieres-FR.pdf",
+   "https://albert-grivault.fr/wp-content/uploads/2022/01/Meursault-1C-Perrieres-FR.pdf",
+   "https://albert-grivault.fr/wp-content/uploads/2022/01/Pommard-1C-Clos-blanc-FR.pdf",
+   "https://albert-grivault.fr/wp-content/uploads/2022/01/Meursault-Clos-Murger-FR.pdf"
+  ],
+  "site": "https://albert-grivault.fr",
+  "note": "Technical-sheet PDFs on the wines page give SURFACE. Clos des Perrières 94 a 52 ca, 'Monopole du domaine', bought in 1879 per history page (atlas 0.95 OK). Note: Clos des Perrières lies within Les Perrières; site treats the two as separate wines with separate surfaces. Tenure not stated beyond Clos ",
+  "known": [
+   "missing:montrachet"
+  ]
+ },
+ "grivot": {
+  "pages": [
+   "https://www.domainegrivot.fr/en/our-appellations/",
+   "https://www.domainegrivot.fr/en/clos-de-vougeot-grand-cru-en/",
+   "https://www.domainegrivot.fr/en/echezeaux-grand-cru-en/",
+   "https://www.domainegrivot.fr/en/richebourg-grand-cru-en/",
+   "https://www.domainegrivot.fr/en/vosne-romanee-les-beaux-monts-en/",
+   "https://www.domainegrivot.fr/en/vosne-romanee-aux-brulees-en/",
+   "https://www.domainegrivot.fr/en/vosnes-romanee-les-suchots-en/",
+   "https://www.domainegrivot.fr/en/vosnes-romanee-les-chaumes-en/",
+   "https://www.domainegrivot.fr/en/vosnes-romanee-aux-reignots-en/",
+   "https://www.domainegrivot.fr/en/vosne-romanee-les-rouges-en/",
+   "https://www.domainegrivot.fr/en/vosne-romanee-bossieres-en/",
+   "https://www.domainegrivot.fr/en/vosne-romanee-en/",
+   "https://www.domainegrivot.fr/en/nuits-st-georges-aux-boudots-en/",
+   "https://www.domainegrivot.fr/en/nuits-st-georges-les-pruliers-en/",
+   "https://www.domainegrivot.fr/en/nuits-st-georges-roncieres-en/",
+   "https://www.domainegrivot.fr/en/nuits-st-georges-les-charmois-en/",
+   "https://www.domainegrivot.fr/en/nuits-st-georges-aux-lavieres-en/",
+   "https://www.domainegrivot.fr/en/chambolle-musigny-la-combe-dorveau-en/"
+  ],
+  "site": "https://www.domainegrivot.fr/",
+  "note": "French home page says 'site en cours de construction' but the /en/ section is complete with one page per wine giving surface. Site says 15 ha total, 20 wines (3 regional, 5 village, 9 1er, 3 GC). Site does not distinguish owned vs leased; 'owned' here = estate vineyard. Clos de Vougeot 1.87 vs atlas",
+  "known": [
+   "missing:combedorveau",
+   "missing:rsv",
+   "missing:malconsorts",
+   "missing:musigny",
+   "missing:x_chassagne_vigne_blanche",
+   "missing:laromanee",
+   "missing:romaneeconti",
+   "missing:reas",
+   "missing:enorveaux"
+  ]
+ },
+ "groffier": {
+  "pages": [
+   "https://domaine-groffier.com/#vins",
+   "https://domaine-groffier.com/#prestige"
+  ],
+  "site": "https://domaine-groffier.com/",
+  "note": "Single-page site (domaine-groffier.com; Netlify-hosted, gmail contact, legal notice names Nicolas Groffier, SIREN 330 763 426, 3 Route des Grands Crus). Says 8 ha, 3 grands crus. No surface areas per climat. CAUTION: the site's 'Cuvées Prestige' (Chambertin, Bonnes-Mares Terres Blanches/Terres Rouge",
+  "known": [
+   "missing:x_nuits_terres_blanches",
+   "missing:chambertin",
+   "absent:estournelles",
+   "absent:feusselottes",
+   "absent:combedorveau"
+  ]
+ },
+ "gros_fs": {
+  "pages": [
+   "https://www.gros-frere-et-soeur.com/fr_FR/vins",
+   "https://www.gros-frere-et-soeur.com/en_US/wines"
+  ],
+  "site": "https://www.gros-frere-et-soeur.com/",
+  "note": "Site gives no surface areas per wine (only planting density, altitude, exposure) — also checked 2022 PDF fiches. States 23 ha total. Acquisition history given: Richebourg acquired 1882 (Louis Gustave Gros), Clos Vougeot bought 1920 by Jules Gros, Échezeaux bought early 20th c. by Jules Gros. Also Ha",
+  "known": [
+   "missing:auxreas",
+   "missing:latache",
+   "missing:crosparantoux",
+   "absent:grandsechezeaux"
+  ]
+ },
+ "h_boillot": {
+  "pages": [
+   "https://www.henri-boillot.com/wines",
+   "https://www.henri-boillot.com/js/app.min.413181c2.js"
+  ],
+  "site": "https://www.henri-boillot.com/",
+  "note": "Wine data is embedded in the site's JS (app.min.413181c2.js) with list:'domaine' vs list:'maison' (négoce) and an 'area' field giving appellation total and domaine share. Rugiens is listed under 'maison' yet its text says 'vigne du domaine: 40a' — kind 'unclear'. Bâtard: '11Ha86a63ca, la surface de ",
+  "known": [
+   "missing:x_volnay_village",
+   "missing:bienvenues",
+   "missing:bonnesmares",
+   "missing:latricieres",
+   "missing:chambertin",
+   "missing:beze",
+   "missing:chevalier",
+   "missing:closvougeot",
+   "missing:cortoncharlemagne",
+   "missing:criots",
+   "missing:charmes_meursault",
+   "missing:perrieres_meursault",
+   "missing:poruzots",
+   "missing:montrachet",
+   "missing:folatieres",
+   "missing:x_staubin_village",
+   "missing:x_meursault_caillerets",
+   "missing:closblanc"
+  ]
+ },
+ "harmand": {
+  "pages": [],
+  "status": "unreachable",
+  "site": "https://www.harmandgeoffroy.com/",
+  "note": "harmand-geoffroy.com redirects to www.harmandgeoffroy.com (hosted by terre-net), which resets HTTPS connections. The site is probably HTTP-only, and the sandbox cannot fetch plain HTTP."
+ },
+ "hospices_b": {
+  "pages": [
+   "https://domaine.hospices-de-beaune.com/nos-cuvees?tid=All",
+   "https://domaine.hospices-de-beaune.com/le-domaine-des-hospices-de-beaune",
+   "https://domaine.hospices-de-beaune.com/node/205"
+  ],
+  "site": "https://domaine.hospices-de-beaune.com/",
+  "note": "Domaine site of the Hospices de Beaune lists 53 cuvées (60 ha) with appellation, cuvée name and constituent climats, but NO surface areas, so atlas Mazis 1.75 ha cannot be verified. Mazis-Chambertin = Cuvée Madeleine Collignon, climat 'Mazis Hauts', donated 1976 by Jean Collignon. Atlas only lists M",
+  "known": [
+   "missing:closduroi_beaune",
+   "missing:vergelesses",
+   "missing:santenots",
+   "missing:beze",
+   "absent:x_beaune_genet",
+   "absent:x_beaune_mignotte",
+   "absent:x_beaune_bas_des_teurons",
+   "absent:x_beaune_aigrots",
+   "absent:x_beaune_boucherottes",
+   "absent:x_beaune_seurey",
+   "absent:x_corton_gc_chaumes",
+   "absent:x_corton_gc_fietres",
+   "absent:x_corton_gc_vergennes",
+   "absent:x_meursault_cras",
+   "absent:x_meursault_plures",
+   "absent:x_meursault_santenots_du_milieu",
+   "absent:x_corton_vergelesses",
+   "absent:x_pommard_chaniere",
+   "absent:x_pommard_refene",
+   "absent:x_pommard_arvelets",
+   "absent:x_pommard_bertins",
+   "absent:x_pommard_charmots",
+   "absent:x_pommard_combes_dessus",
+   "absent:x_savigny_gravains",
+   "absent:x_savigny_peuillets",
+   "absent:x_savigny_talmettes",
+   "absent:x_volnay_carelle_sous_la_chapelle",
+   "absent:x_volnay_ronceret",
+   "absent:x_volnay_village"
+  ]
+ },
+ "hospices_n": {
+  "pages": [
+   "https://www.hospicesdenuits.com/nos-cuvees",
+   "https://www.hospicesdenuits.com/le-domaine-des-hospices-de-nuits-saint-georges",
+   "https://www.hospicesdenuits.com/index.php/node/173",
+   "https://www.hospicesdenuits.com/index.php/node/177"
+  ],
+  "site": "https://www.hospicesdenuits.com/",
+  "note": "The domaine is 12.4 ha in Nuits, Premeaux-Prissey, Vosne-Romanée and Gevrey-Chambertin: 9 premiers crus, 8 village parcels and 19 cuvées (https://www.hospicesdenuits.com/le-domaine-des-hospices-de-nuits-saint-georges). The site names no Vosne-Romanée cuvée even though Vosne is one of the communes. T",
+  "known": [
+   "missing:lavieres",
+   "missing:x_chambolle_plantes",
+   "missing:communes"
+  ]
+ },
+ "hudelot": {
+  "pages": [
+   "https://www.domaine-hudelot-noellat.com/",
+   "https://www.domaine-hudelot-noellat.com/js/app.min.f19d2a27.js"
+  ],
+  "site": "https://www.domaine-hudelot-noellat.com/",
+  "note": "The site is a single-page JavaScript app. The wine sheets (\"Superficie\") are stored as data in the JS bundle app.min.f19d2a27.js, with per-wine PDF sheets under /assets/wine/. Richebourg is 0.29 ha against 0.28 in the atlas, under the 0.05 threshold. The site says 10 ha over 4 villages and 15 appell",
+  "known": [
+   "missing:romaneeconti",
+   "missing:laromanee",
+   "missing:latache",
+   "missing:granderue",
+   "absent:beauxmonts"
+  ]
+ },
+ "jadot": {
+  "pages": [
+   "https://www.louisjadot.com/vins",
+   "https://www.louisjadot.com/bo/wp-json/louisjadot-api/vins?lang=fr",
+   "https://www.louisjadot.com/vins/clos-vougeot",
+   "https://www.louisjadot.com/vins/bonnes-mares",
+   "https://www.louisjadot.com/vins/corton-pougets",
+   "https://www.louisjadot.com/vins/corton-charlemagne",
+   "https://www.louisjadot.com/vins/chevalier-montrachet-les-demoiselles",
+   "https://www.louisjadot.com/vins/beaune-vignes-franches",
+   "https://www.louisjadot.com/vins/beaune-toussaints",
+   "https://www.louisjadot.com/vins/volnay-en-lormeau",
+   "https://www.louisjadot.com/vins/volnay-carelle-sous-la-chapelle",
+   "https://www.louisjadot.com/vins/chassagne-montrachet-abbaye-de-morgeot",
+   "https://www.louisjadot.com/vins/beaune-clos-des-ursules",
+   "https://www.louisjadot.com/vins/gevrey-chambertin-clos-saint-jacques-3",
+   "https://www.louisjadot.com/vins/musigny",
+   "https://www.louisjadot.com/vins/chapelle-chambertin",
+   "https://www.louisjadot.com/vins/chambertin-clos-de-beze",
+   "https://www.louisjadot.com/vins/clos-saint-denis-gagey"
+  ],
+  "site": "https://www.louisjadot.com",
+  "note": "JS site; the wine catalogue was read from the site's own WordPress API (https://www.louisjadot.com/bo/wp-json/louisjadot-api/vins?lang=fr and /vins/<id>), which feeds the pages at https://www.louisjadot.com/vins/<slug>. Each wine carries a 'vignoble' tag: Domaine Louis Jadot, Héritiers Louis Jadot, ",
+  "known": [
+   "missing:x_santenay_clos_rousseau",
+   "missing:stgeorges",
+   "missing:x_monthelie_village",
+   "missing:x_meursault_cras",
+   "missing:x_meursault_blagny",
+   "missing:x_maranges_clos_roussots",
+   "missing:griotte",
+   "missing:perrieres_corton",
+   "missing:charmes_chambolle",
+   "missing:valozieres",
+   "missing:suchots",
+   "missing:chaumes",
+   "missing:closdeschenes",
+   "missing:x_volnay_village",
+   "missing:x_savigny_guettes",
+   "missing:gravieres",
+   "missing:passetemps",
+   "missing:x_santenay_beaurepaire",
+   "missing:enremilly",
+   "missing:x_staubin_village",
+   "missing:caillerets_puligny",
+   "missing:x_puligny_champ_gain",
+   "missing:x_puligny_chalumaux",
+   "missing:pucelles",
+   "missing:x_pommard_village",
+   "missing:epenots",
+   "missing:x_pommard_clos_de_la_commaraine",
+   "missing:x_chambolle_combottes",
+   "missing:iledesvergelesses",
+   "missing:x_corton_vergelesses",
+   "missing:thorey",
+   "missing:vaucrains",
+   "missing:ormes",
+   "missing:x_morey_village",
+   "missing:montrachet",
+   "missing:x_monthelie_vignes_rondes",
+   "missing:mazis",
+   "missing:x_maranges_fussiere",
+   "missing:x_corton_clou_d_orge",
+   "missing:grandsechezeaux",
+   "missing:x_gevrey_poissenot",
+   "missing:petitechapelle",
+   "missing:closduroi",
+   "missing:closdelaroche",
+   "missing:x_puligny_demoiselles",
+   "missing:x_chassagne_baudines",
+   "missing:clossaintjean",
+   "missing:x_chassagne_chassagne",
+   "missing:romanee_chassagne",
+   "missing:ruchottes_chassagne",
+   "missing:x_chassagne_grande_montagne",
+   "missing:chenevottes",
+   "missing:charmes",
+   "missing:sentiers",
+   "missing:feusselottes",
+   "missing:chambertin",
+   "missing:bienvenues",
+   "missing:closblanc",
+   "missing:x_beaune_chouacheux",
+   "missing:x_beaune_boucherottes",
+   "missing:batard",
+   "absent:champimonts",
+   "absent:x_chassagne_chapelle"
+  ]
+ },
+ "jayer_gilles": {
+  "pages": [
+   "https://www.hoffmann-jayer.com/fr/vins",
+   "https://www.hoffmann-jayer.com/fr/domaine",
+   "https://www.hoffmann-jayer.com/fr/vin/8/echezeaux-grand-cru",
+   "https://www.hoffmann-jayer.com/fr/vin/7/nuits-saint-georges-1er-cru",
+   "https://www.hoffmann-jayer.com/fr/vin/10/nuits-saint-georges",
+   "https://www.hoffmann-jayer.com/fr/vin/6/cote-de-nuits-villages",
+   "https://www.hoffmann-jayer.com/fr/vin/11/cote-de-nuits-villages-clos-de-magny"
+  ],
+  "site": "https://www.hoffmann-jayer.com/",
+  "note": "Domaine Jayer-Gilles was sold to André Hoffmann in 2017 and is now Domaine Hoffmann-Jayer (11 ha), per https://www.hoffmann-jayer.com/fr/domaine. The atlas should say so. Échezeaux is 0.53 ha against 0.54 in the atlas, within tolerance. The site gives Les Damodes as 0.11 ha. The site gives no tenure",
+  "known": [
+   "missing:grandsechezeaux"
+  ]
+ },
+ "joliet": {
+  "pages": [
+   "https://domainejoliet.fr/le-clos-de-la-perriere",
+   "https://domainejoliet.fr/nos-vins",
+   "https://domainejoliet.fr/fixin-premier-cru-rouge/",
+   "https://domainejoliet.fr/fixin-premier-cru-blanc/",
+   "https://domainejoliet.fr/fixin-premier-cru-cuvee-camille/",
+   "https://domainejoliet.fr/charmes-chambertin-grand-cru/",
+   "https://domainejoliet.fr/fixin-village-filiae-rouge/",
+   "https://domainejoliet.fr/monthelie-village-blanc/",
+   "https://domainejoliet.fr/santenay-village-rouge/"
+  ],
+  "site": "https://domainejoliet.fr/",
+  "note": "Clos de la Perrière: 5 ha walled monopole, 4.5 ha red + 0.5 ha white, family since 1853 - matches atlas 5 ha. Site menu 'Les Vins du Domaine' lists only Clos de la Perrière rouge/blanc (plus Cuvée Camille, 0.5 ha old vines within the Clos); Maison Joliet is the négoce label created by Bénigne and Ca",
+  "known": [
+   "missing:x_gevrey_perriere",
+   "missing:x_monthelie_village"
+  ]
+ },
+ "lafarge": {
+  "pages": [],
+  "status": "no site",
+  "note": "No official website found (merchants/critics only). domainelafarge.fr/.com, domaine-lafarge.fr/.com, domaine-michel-lafarge.com do not resolve (WebFetch: ENOTFOUND for www.domainelafarge.fr)."
+ },
+ "lafon": {
+  "pages": [],
+  "status": "unreachable",
+  "note": "The historical official domain https://www.comtes-lafon.fr/ does not resolve (DNS failure or connection reset); variants tried also fail. https://www.comtes-lafon.com/ looks like the domaine's site, but its own footer says it is 'an independent fan page ... not affiliated with or endorsed by the off"
+ },
+ "laguiche": {
+  "pages": [],
+  "status": "no site",
+  "note": "No site of its own: Drouhin farms the Marquis de Laguiche's Montrachet and makes the wine, so it's checked under Drouhin."
+ },
+ "lamarche": {
+  "pages": [],
+  "status": "no site",
+  "note": "The former official domain https://www.domaine-lamarche.com now serves an unrelated French SEO/content blog (lapsed domain) - not usable. Domaine is now labelled Nicole Lamarche (from 2018); no site found under nicole-lamarche.com / domaine-nicole-lamarche.com / domainenicolelamarche.com, domaine-la"
+ },
+ "lambrays": {
+  "pages": [
+   "https://www.lambrays.com/le-clos-des-lambrays/",
+   "https://www.lambrays.com/le-domaine-des-lambrays/"
+  ],
+  "site": "https://www.lambrays.com/",
+  "note": "The site says the domaine owns ('possède') 202 ouvrées, or 8.66 ha, inside the Clos des Lambrays. The 8.66 is the domaine's share; the whole grand cru is a little larger, which may be where the atlas's 8.8 comes from. The Puligny parcels are described as owned since 1993.",
+  "known": [
+   "missing:sentiers",
+   "missing:bonnesmares",
+   "missing:closstdenis",
+   "missing:closdelaroche",
+   "missing:tart",
+   "missing:x_morey_village",
+   "absent:x_morey_clos_baulet",
+   "absent:x_morey_sorbes"
+  ]
+ },
+ "latour": {
+  "pages": [
+   "https://www.louislatour.com/en/wines",
+   "https://www.louislatour.com/en/maison-louis-latour/domaine-louis-latour",
+   "https://www.louislatour.com/en/wines/40/chambertin-grand-cru-cuvee-heritiers-latour",
+   "https://www.louislatour.com/en/wines/107/romanee-saint-vivant-grand-cru-les-quatre-journaux",
+   "https://www.louislatour.com/en/wines/56/corton-charlemagne-grand-cru",
+   "https://www.louislatour.com/en/wines/53/chevalier-montrachet-grand-cru-les-demoiselles",
+   "https://www.louislatour.com/en/wines/51/chateau-corton-grancey-grand-cru",
+   "https://www.louislatour.com/en/wines/1/corton-grand-cru-clos-de-la-vigne-au-saint",
+   "https://www.louislatour.com/en/wines/204/corton-grand-cru-perrieres",
+   "https://www.louislatour.com/en/wines/194/corton-grand-cru-clos-du-roi",
+   "https://www.louislatour.com/en/wines/2/corton-grand-cru-domaine-latour",
+   "https://www.louislatour.com/en/wines/12/aloxe-corton-1er-cru-les-chaillots",
+   "https://www.louislatour.com/en/wines/207/aloxe-corton-1er-cru-domaine-latour",
+   "https://www.louislatour.com/en/wines/11/aloxe-corton-domaine-latour",
+   "https://www.louislatour.com/en/wines/171/beaune-1er-cru-perrieres",
+   "https://www.louislatour.com/en/wines/20/beaune-1er-cru-domaine-latour",
+   "https://www.louislatour.com/en/wines/22/beaune-1er-cru-vignes-franches",
+   "https://www.louislatour.com/en/wines/203/pernand-vergelesses-1er-cru-en-caradeux",
+   "https://www.louislatour.com/en/wines/92/pernand-vergelesses-1er-cru-ile-des-vergelesses",
+   "https://www.louislatour.com/en/wines/163/volnay-1er-cru-les-mitans",
+   "https://www.louislatour.com/en/wines/72/meursault-1er-cru-chateau-de-blagny",
+   "https://www.louislatour.com/en/wines/75/meursault-1er-cru-genevrieres"
+  ],
+  "site": "https://www.louislatour.com/",
+  "note": "Wine pages list ~168 wines; areas/ownership only appear in each wine's description (og:description). Only wines explicitly described as Domaine Louis Latour/owned/family vines are marked owned; the rest of the Côte d'Or range (Bâtard, Bienvenues, Criots, Montrachet, Clos Vougeot, Échezeaux, Grands-É",
+  "known": [
+   "missing:batard",
+   "missing:x_beaune_cras",
+   "missing:greves",
+   "missing:bienvenues",
+   "missing:x_meursault_blagny",
+   "missing:x_meursault_sous_le_dos_d_ane",
+   "missing:bonnesmares",
+   "missing:charmes_chambolle",
+   "missing:chatelots",
+   "missing:charmes",
+   "missing:clossaintjean",
+   "missing:maltroie",
+   "missing:chenevottes",
+   "missing:morgeot",
+   "missing:x_puligny_demoiselles",
+   "missing:closdelaroche",
+   "missing:closvougeot",
+   "missing:perrieres_nuits",
+   "missing:criots",
+   "missing:echezeaux",
+   "missing:grandsechezeaux",
+   "missing:latricieres",
+   "missing:mazis",
+   "missing:charmes_meursault",
+   "missing:poruzots",
+   "missing:x_monthelie_clos_des_toisieres",
+   "missing:montrachet",
+   "missing:x_nuits_crots",
+   "missing:damodes",
+   "missing:epenots",
+   "missing:x_puligny_garenne",
+   "missing:x_puligny_referts",
+   "missing:x_puligny_sous_le_puits",
+   "missing:x_santenay_comme",
+   "missing:x_savigny_guettes",
+   "missing:x_volnay_chevret",
+   "missing:beauxmonts",
+   "missing:chaumes",
+   "missing:petitsmonts",
+   "missing:suchots",
+   "missing:x_monthelie_village",
+   "missing:x_volnay_village",
+   "absent:santenots",
+   "absent:x_corton_chaillots_blanc",
+   "absent:x_corton_gc_languettes"
+  ]
+ },
+ "latour_ch": {
+  "pages": [],
+  "status": "no site",
+  "note": "No working official website found. The historical domain chateaudelatour.com does not resolve (DNS failure / TLS certificate mismatch on www.chateaudelatour.com); chateaudelatour.fr and chateau-de-la-tour.com refuse connection. Web search only returns merchants/press (which quote 5.48 ha, ~5.5 ha, o"
+ },
+ "laurent_ponsot": {
+  "pages": [
+   "https://laurentponsot.com/les-vins-en-partage/",
+   "https://laurentponsot.com/la-decouverte/"
+  ],
+  "site": "https://laurentponsot.com/",
+  "note": "Wine list is names only - no areas and no domaine/négoce or lease distinction (atlas says Chambertin, Griotte, Clos Saint-Denis, Clos de Vougeot are leased; site neither confirms nor contradicts). 'La découverte' page says they source from 'nos vignes et celles de nos partenaires' and buy grapes, mu",
+  "known": [
+   "missing:x_meursault_blagny",
+   "missing:genevrieres",
+   "missing:cortoncharlemagne",
+   "missing:batard",
+   "missing:montrachet",
+   "missing:sentiers",
+   "missing:beauxmonts",
+   "missing:x_gevrey_ergot",
+   "missing:echezeaux",
+   "missing:charmes",
+   "missing:latricieres",
+   "missing:mazis",
+   "missing:beze",
+   "missing:bonnesmares"
+  ]
+ },
+ "lb_comte": {
+  "pages": [
+   "https://www.liger-belair.fr/en/our-climats/"
+  ],
+  "note": "Checked 2026-10. The page tells each climat's story and names its neighbours; GE and Croix Rameau (leased from 2022) aren't on it yet.",
+  "ignore": [
+   "boudots",
+   "latache",
+   "reas",
+   "murgers",
+   "lavieres",
+   "violettes",
+   "chalandins",
+   "barreaux",
+   "beauxmonts",
+   "crosparantoux",
+   "combebrulee",
+   "romaneeconti",
+   "x_chassagne_vigne_blanche",
+   "closstdenis",
+   "rsv",
+   "grandsechezeaux",
+   "croixrameau"
+  ]
+ },
+ "lb_thib": {
+  "pages": [
+   "https://m.thibaultligerbelair.com/419DBNF41S",
+   "https://m.thibaultligerbelair.com/420DBOHF4R",
+   "https://m.thibaultligerbelair.com/2AM7EE",
+   "https://m.thibaultligerbelair.com/JSR2QE",
+   "https://m.thibaultligerbelair.com/AQ2SLE",
+   "https://m.thibaultligerbelair.com/T6IU4E",
+   "https://m.thibaultligerbelair.com/2SQI0E",
+   "https://m.thibaultligerbelair.com/SQ2PLE",
+   "https://m.thibaultligerbelair.com/AQ0E2E",
+   "https://m.thibaultligerbelair.com/2QFNSE",
+   "https://m.thibaultligerbelair.com/2QHSKE",
+   "https://m.thibaultligerbelair.com/0SQI2E",
+   "https://m.thibaultligerbelair.com/PAE2AE",
+   "https://m.thibaultligerbelair.com/2SQHDE",
+   "https://m.thibaultligerbelair.com/FSM2QE",
+   "https://m.thibaultligerbelair.com/IMH36E",
+   "https://m.thibaultligerbelair.com/02SQNE",
+   "https://m.thibaultligerbelair.com/12DRGE",
+   "https://m.thibaultligerbelair.com/QL2SSE"
+  ],
+  "site": "https://www.thibaultligerbelair.com/",
+  "note": "thibaultligerbelair.com redirects to m.thibaultligerbelair.com (Vincod-hosted official site; www. has expired TLS cert). Site has separate brands: 'Domaine Thibault Liger-Belair' (family vines, sharecropping history) and 'Thibault Liger-Belair Successeurs' (created 2003, explicitly buys grapes) - Su",
+  "known": [
+   "missing:closdesperrieres",
+   "missing:x_corton_corvee",
+   "missing:beauxbruns",
+   "missing:x_staubin_creot",
+   "missing:charmes_chambolle",
+   "missing:cortoncharlemagne",
+   "missing:closduroi_beaune",
+   "missing:x_morey_charmes",
+   "missing:echezeaux",
+   "missing:baudes",
+   "missing:romaneeconti",
+   "missing:bousselots",
+   "missing:beze",
+   "missing:latricieres",
+   "missing:fuees",
+   "missing:bonnesmares",
+   "missing:pruliers",
+   "absent:x_corton_toppe_au_vert"
+  ]
+ },
+ "lecheneaut": {
+  "pages": [],
+  "status": "unreachable",
+  "site": "https://domaine-lecheneaut.fr/",
+  "note": "A third-party listing (Falstaff) gives domaine-lecheneaut.fr as the website; from this environment the host fails DNS resolution / the proxy tunnel is reset, so it could not be checked."
+ },
+ "leflaive": {
+  "pages": [
+   "https://www.leflaive.fr/fr_FR/l-empreinte-des-grands-crus",
+   "https://www.leflaive.fr/fr_FR/la-famille-des-vins-leflaive"
+  ],
+  "site": "https://www.leflaive.fr/",
+  "note": "Areas from 'L'empreinte des Grands Crus' page: Pucelles 2.8 ha, Clavoillon 'près de 4,8 ha', Folatières 1.2 ha, Combettes 0.73 ha; grand crus 4.8 ha total. Site says 4 grands crus + 5 premiers crus (incl. Meursault Sous le Dos d'Âne and Chassagne La Maltroie) + village + Bourgogne. Mâconnais 'Domain",
+  "known": [
+   "missing:x_monthelie_village",
+   "missing:lecorton",
+   "missing:x_pommard_village",
+   "absent:clavaillon"
+  ]
+ },
+ "leroy": {
+  "pages": [],
+  "status": "unreachable",
+  "site": "https://www.domaineleroy.com/",
+  "note": "www.domaineleroy.com (the address given in directories such as Falstaff) does not resolve (DNS ENOTFOUND) from this environment, both via WebFetch and curl. A site at https://www.domaine-leroy.fr/ exists, but it is a JS-only single-page app built with Lovable (no legal notice/contact found in its bu"
+ },
+ "lignier_g": {
+  "pages": [],
+  "status": "no site",
+  "note": "No official site found. domaine-georges-lignier.com/.fr, georges-lignier.com/.fr and georgeslignier.com do not exist; search found only importers (Skurnik, Alliance, BBR)."
+ },
+ "lignier_h": {
+  "pages": [
+   "https://hubert-lignier.com/fr/vins",
+   "https://hubert-lignier.com/fr/vins/clos-de-la-roche-grand-cru",
+   "https://hubert-lignier.com/fr/vins/clos-de-la-roche-grand-cru-cuvee-mcmlv",
+   "https://hubert-lignier.com/fr/vins/mazoyeres-chambertin-grand-cru",
+   "https://hubert-lignier.com/fr/vins/charmes-chambertin-grand-cru",
+   "https://hubert-lignier.com/fr/vins/clos-de-vougeot-grand-cru",
+   "https://hubert-lignier.com/fr/vins/morey-saint-denis-1er-cru-vieilles-vignes",
+   "https://hubert-lignier.com/fr/vins/morey-saint-denis-1er-cru-les-chaffots",
+   "https://hubert-lignier.com/fr/vins/morey-saint-denis-1er-cru-la-riotte",
+   "https://hubert-lignier.com/fr/vins/morey-saint-denis-1er-crules-sorbes",
+   "https://hubert-lignier.com/fr/vins/morey-saint-denis-1er-cru-chenevery",
+   "https://hubert-lignier.com/fr/vins/morey-saint-denis-1er-cru-les-blanchards",
+   "https://hubert-lignier.com/fr/vins/morey-saint-denis-1er-cru-br-roche-nacree",
+   "https://hubert-lignier.com/fr/vins/nuit-saint-georges-1er-cru-les-didiers-hospices-de-nuits",
+   "https://hubert-lignier.com/fr/vins/gevrey-chambertin-1er-cru-aux-combottes",
+   "https://hubert-lignier.com/fr/vins/gevrey-chambertin1er-cru-petite-chapelle",
+   "https://hubert-lignier.com/fr/vins/chambolle-musigny-1er-cru-les-baudes-3",
+   "https://hubert-lignier.com/fr/vins/chambolle-musigny-1er-cru-les-chabiots",
+   "https://hubert-lignier.com/fr/vins/monthelie-1er-cru-sur-la-velle",
+   "https://hubert-lignier.com/fr/vins/monthelie-1er-cru",
+   "https://hubert-lignier.com/fr/vins/morey-saint-denis-trilogie"
+  ],
+  "site": "https://hubert-lignier.com/fr",
+  "note": "Per-wine pages give 'Surface' and flag purchases ('Achat de raisins', 'Achat en vin'). Clos de la Roche 0.90 ha (site) vs atlas 0.92 - within tolerance. The MCMLV cuvée is a 25-are parcel, apparently within the 0.90 ha CdlR holding (site not explicit). Ownership for non-bought wines not stated (mark",
+  "known": [
+   "missing:x_morey_village",
+   "missing:stgeorges",
+   "missing:montsluisants",
+   "missing:chambertin",
+   "missing:faconnieres",
+   "missing:closstdenis",
+   "missing:charrieres",
+   "missing:millandes",
+   "missing:latricieres",
+   "missing:chapelle",
+   "missing:bonnesmares",
+   "missing:amoureuses",
+   "missing:musigny",
+   "missing:x_monthelie_village",
+   "absent:estournelles",
+   "absent:genavrieres",
+   "absent:x_morey_clos_baulet"
+  ]
+ },
+ "maume": {
+  "pages": [],
+  "status": "no wine list",
+  "site": "https://www.marchand-tawse.com",
+  "note": "Domaine Maume was bought by Moray Tawse and renamed Domaine Tawse (from about the 2015/2016 vintage). No Domaine Maume or Domaine Tawse site found (maume.fr is a parked domain; domainetawse.com / domaine-tawse.com do not exist; tawsewinery.ca is the Niagara winery). The only official Burgundy site i"
+ },
+ "meo": {
+  "pages": [
+   "https://www.meo-camuzet.com/fr/les-vins",
+   "https://www.meo-camuzet.com/en/the-wines",
+   "https://www.meo-camuzet.com/fr/les-vins/2/clos-de-vougeot",
+   "https://www.meo-camuzet.com/fr/les-vins/1/richebourg",
+   "https://www.meo-camuzet.com/fr/les-vins/6/echezeaux",
+   "https://www.meo-camuzet.com/fr/les-vins/3/corton-clos-rognet",
+   "https://www.meo-camuzet.com/fr/les-vins/5/corton-la-vigne-au-saint",
+   "https://www.meo-camuzet.com/fr/les-vins/4/corton-les-perrieres",
+   "https://www.meo-camuzet.com/fr/les-vins/8/vosne-romanee-au-cros-parantoux",
+   "https://www.meo-camuzet.com/fr/les-vins/7/vosne-romanee-aux-brulees",
+   "https://www.meo-camuzet.com/fr/les-vins/9/vosne-romanee-les-chaumes",
+   "https://www.meo-camuzet.com/fr/les-vins/10/nuits-saint-georges-aux-boudots",
+   "https://www.meo-camuzet.com/fr/les-vins/11/nuits-saint-georges-aux-murgers",
+   "https://www.meo-camuzet.com/fr/les-vins/18/vosne-romanee",
+   "https://www.meo-camuzet.com/fr/les-vins/17/clos-saint-philibert",
+   "https://www.meo-camuzet.com/fr/les-vins/14/chambolle-musigny-les-cras",
+   "https://www.meo-camuzet.com/fr/les-vins/15/chambolle-musigny-les-feusselottes",
+   "https://www.meo-camuzet.com/fr/les-vins/16/fixin-clos-du-chapitre",
+   "https://www.meo-camuzet.com/fr/les-vins/12/nuits-saint-georges-aux-argillas",
+   "https://www.meo-camuzet.com/fr/les-vins/13/nuits-saint-georges-les-perrieres",
+   "https://www.meo-camuzet.com/fr/les-vins/29/volnay-les-mitans"
+  ],
+  "site": "https://www.meo-camuzet.com",
+  "note": "Wine list labels each wine '(Domaine)' or '(Négoce)'. French pages give areas, English ones only acres. Areas are approximate on site: Clos de Vougeot 'presque 3 ha' (atlas 3.03), Richebourg 'un peu plus de 34 ares' (atlas 0.35), Cros Parantoux '30 ares environ', Chaumes 'deux parcelles pour un tota",
+  "known": [
+   "missing:lecorton",
+   "missing:latache",
+   "missing:malconsorts",
+   "missing:barreaux",
+   "missing:perriere_fixin",
+   "absent:cras_nuits",
+   "absent:rognet"
+  ]
+ },
+ "michel_gros": {
+  "pages": [],
+  "status": "unreachable",
+  "site": "https://www.domaine-michel-gros.fr/",
+  "note": "domaine-michel-gros.com is registered but has no A record (no website). domaine-michel-gros.fr resolves to OVH shared hosting, but HTTPS fails: the bare domain has a mismatched TLS certificate and www. resets the connection. The sandbox proxy only allows HTTPS, so the site could not be read. Third-p"
+ },
+ "michelot": {
+  "pages": [],
+  "status": "no site",
+  "note": "No official site found for Domaine Alain Michelot (Nuits-Saint-Georges). domaine-alain-michelot.com/.fr and alain-michelot.com do not exist. domaine-michelot.com is Domaine Michelot of Meursault, a different estate - not used. Search found only vincod.com tech sheets, Burgundy Tourism and Inside Bur"
+ },
+ "mongeard": {
+  "pages": [
+   "https://mongeard.com/fr/collection/grands-crus/",
+   "https://mongeard.com/fr/collection/premiers-crus-fr/",
+   "https://mongeard.com/fr/collection/villages/",
+   "https://mongeard.com/fr/vin/clos-de-vougeot-grand-cru/",
+   "https://mongeard.com/fr/vin/echezeaux-grand-cru/",
+   "https://mongeard.com/fr/vin/grands-echezeaux-grand-cru/",
+   "https://mongeard.com/fr/vin/richebourg-grand-cru/",
+   "https://mongeard.com/fr/vin/vosne-romanee-premier-cru-les-suchots/",
+   "https://mongeard.com/fr/vin/vosne-romanee-premier-cru-les-petits-monts/",
+   "https://mongeard.com/fr/vin/vosne-romanee-premier-cru-en-orveaux-2/",
+   "https://mongeard.com/fr/vin/nuits-saint-georges-premier-cru-aux-boudots/",
+   "https://mongeard.com/fr/vin/vougeot-premier-cru-les-cras/",
+   "https://mongeard.com/fr/vin/vougeot-premier-cru-les-petits-vougeots/",
+   "https://mongeard.com/fr/vin/beaune-premier-cru-les-avaux/",
+   "https://mongeard.com/fr/vin/pernand-vergelesses-premier-cru-les-vergelesses/",
+   "https://mongeard.com/fr/vin/puligny-montrachet-premier-cru-champ-gain/",
+   "https://mongeard.com/fr/vin/savigny-les-beaune-premier-cru-les-narbantons/"
+  ],
+  "site": "https://mongeard.com/fr/",
+  "note": "Each wine page gives 'Superficie en production au domaine'. Site does not state owned vs leased. 'La Grande Complication' is a selection cuvée from the Échezeaux parcels (no separate area). Clos de Vougeot parcels in Chioures and Petit Maupertuis; Richebourg parcel acquired 1984 in 'Les Richebourgs'",
+  "known": [
+   "missing:vergelesses",
+   "missing:romaneeconti",
+   "missing:rsv",
+   "missing:musigny",
+   "missing:malconsorts",
+   "missing:damodes",
+   "missing:x_chassagne_vigne_blanche",
+   "missing:x_savigny_basses_vergelesses",
+   "missing:x_chassagne_chassagne",
+   "area:petitsvougeots",
+   "area:cras_vougeot",
+   "area:echezeaux",
+   "area:x_corton_vergelesses",
+   "area:x_puligny_champ_gain"
+  ]
+ },
+ "montille": {
+  "pages": [
+   "https://www.demontille.com/fr_FR/les-vins",
+   "https://www.demontille.com/fr_FR/le-domaine"
+  ],
+  "site": "https://www.demontille.com/",
+  "note": "Wine list splits 'Domaine de Montille' (estate) from 'Maison de Montille' (négoce: Pommard 1er Pomone, Saint-Romain, plus Rully/Montagny/Pouilly-Fuissé/Chablis). Domaine wines marked 'owned' = estate; site does not separate owned vs leased and gives no per-climat areas. Le-domaine page: ~20 ha histo",
+  "known": [
+   "missing:perrieres_nuits",
+   "missing:x_monthelie_chapelle",
+   "missing:chateau",
+   "missing:x_chambolle_plantes",
+   "missing:musigny",
+   "missing:bonnesmares",
+   "missing:amoureuses",
+   "missing:x_volnay_village",
+   "absent:epenots",
+   "absent:closdeschenes",
+   "absent:caillerets_volnay",
+   "absent:x_beaune_perrieres",
+   "absent:x_puligny_garenne",
+   "absent:x_volnay_brouillards"
+  ]
+ },
+ "morey_p": {
+  "pages": [
+   "https://www.morey-meursault.fr/nos-vins/",
+   "https://www.morey-meursault.fr/vin/batard-montrachet/",
+   "https://www.morey-meursault.fr/vin/meursault-perrieres/",
+   "https://www.morey-meursault.fr/vin/meursault-clos-meix-tavaux/",
+   "https://www.morey-meursault.fr/vin/meursault-les-durots/",
+   "https://www.morey-meursault.fr/vin/meursault-les-tessons/",
+   "https://www.morey-meursault.fr/vin/meursault-terres-blanches/",
+   "https://www.morey-meursault.fr/vin/meursault/",
+   "https://www.morey-meursault.fr/vin/monthelie-1er-cru/",
+   "https://www.morey-meursault.fr/vin/monthelie/",
+   "https://www.morey-meursault.fr/vin/pommard-grands-epenots/",
+   "https://www.morey-meursault.fr/vin/puligny-montrachet-champ-gain/",
+   "https://www.morey-meursault.fr/vin/volnay-santenots/"
+  ],
+  "site": "https://www.morey-meursault.fr/",
+  "note": "Wine list is tagged per item as 'domaine-pierre-morey' or 'maison-morey-blanc' (CSS classes on https://www.morey-meursault.fr/nos-vins/); each domaine wine page has 'Surface (ha)'. Bâtard-Montrachet 0.49 ha: page quotes press text 'The Morey's farm this exceptional 0.5 ha parcel under a metayage ...",
+  "known": [
+   "missing:x_corton_clos_du_chapitre",
+   "missing:x_corton_vercots",
+   "missing:beze",
+   "missing:charmes",
+   "missing:bressandes",
+   "missing:renardes",
+   "missing:cortoncharlemagne",
+   "missing:mazis",
+   "missing:boucheres",
+   "missing:charmes_meursault",
+   "missing:genevrieres",
+   "missing:gouttedor",
+   "missing:x_monthelie_village",
+   "missing:x_nuits_terres_blanches",
+   "missing:poruzots",
+   "missing:montrachet",
+   "missing:enremilly",
+   "missing:x_staubin_combes",
+   "missing:pucelles",
+   "missing:taillepieds",
+   "missing:perrieres_puligny",
+   "missing:x_meursault_sous_le_dos_d_ane",
+   "missing:x_morey_village",
+   "missing:santenots",
+   "missing:x_corton_gc_chaumes",
+   "missing:x_meursault_blagny",
+   "missing:x_monthelie_clous",
+   "missing:x_meursault_santenots_du_milieu",
+   "area:x_meursault_plures"
+  ]
+ },
+ "mortet": {
+  "pages": [
+   "https://www.domaine-denis-mortet.com/cuvee/",
+   "https://www.domaine-denis-mortet.com/wp-content/uploads/2020/11/mortet-ft-chambertin-gc.pdf",
+   "https://www.domaine-denis-mortet.com/wp-content/uploads/2019/06/mortet-ft-mazis-chambertin-GC.pdf",
+   "https://www.domaine-denis-mortet.com/wp-content/uploads/2019/06/mortet-ft-bonnes-mares-GC.pdf",
+   "https://www.domaine-denis-mortet.com/wp-content/uploads/2019/06/mortet-ft-clos-de-vougeot-GC.pdf",
+   "https://www.domaine-denis-mortet.com/wp-content/uploads/2019/06/mortet-ft-echezeaux-GC.pdf",
+   "https://www.domaine-denis-mortet.com/wp-content/uploads/2019/06/mortet-ft-gevrey-1-cru-lavaux-saint-jacques.pdf",
+   "https://www.domaine-denis-mortet.com/wp-content/uploads/2019/06/mortet-ft-gevrey-1-cru-champeaux.pdf",
+   "https://www.domaine-denis-mortet.com/wp-content/uploads/2019/06/mortet-ft-gevrey-1-cru-champonnets.pdf",
+   "https://www.domaine-denis-mortet.com/wp-content/uploads/2019/06/mortet-ft-gevrey-1-cru.pdf",
+   "https://www.domaine-denis-mortet.com/wp-content/uploads/2019/06/mortet-ft-chambolle-musigny-beaux-bruns.pdf",
+   "https://www.domaine-denis-mortet.com/wp-content/uploads/2019/06/mortet-ft-marsannay-longeroies.pdf",
+   "https://www.domaine-denis-mortet.com/wp-content/uploads/2019/06/mortet-ft-gevrey-5-terroirs.pdf"
+  ],
+  "site": "https://www.domaine-denis-mortet.com",
+  "note": "Areas from the domaine's downloadable technical sheets (PDF 'fiches techniques', field 'SUPERFICIE') linked from each wine page https://www.domaine-denis-mortet.com/vins/<slug>/. Chambertin 15 ares matches atlas 0.15. Tenure not stated. Also Gevrey 'Mes Cinq Terroirs' village blend (En Motrot, etc.)",
+  "known": [
+   "absent:corbeaux",
+   "absent:x_gevrey_champonnet"
+  ]
+ },
+ "mugneret_g": {
+  "pages": [
+   "https://www.mugneret-gibourg.com/fr/vins",
+   "https://www.mugneret-gibourg.com/fr/vin/5/ruchottes-chambertin-grand-cru",
+   "https://www.mugneret-gibourg.com/fr/vin/7/chambolle-musigny-1er-cru-les-feusselottes",
+   "https://www.mugneret-gibourg.com/fr/vin/8/clos-vougeot-grand-cru",
+   "https://www.mugneret-gibourg.com/fr/vin/9/echezeaux-grand-cru",
+   "https://www.mugneret-gibourg.com/fr/vin/12/nuits-saint-georges-1er-cru-les-vignes-rondes",
+   "https://www.mugneret-gibourg.com/fr/vin/11/nuits-saint-georges-1er-cru-les-chaignots",
+   "https://www.mugneret-gibourg.com/fr/vin/1/vosne-romanee",
+   "https://www.mugneret-gibourg.com/fr/vin/10/nuits-saint-georges"
+  ],
+  "site": "https://www.mugneret-gibourg.com/",
+  "note": "Site gives no surface areas. Each wine page states when the parcel was bought/inherited (e.g. Ruchottes bought 1977, Clos Vougeot 1953, Feusselottes 1985, Chaignots 1971, Vignes Rondes 1981, Échezeaux Quartiers de Nuits 1930 + Rouges du Bas 1934), so all marked owned (the vines are worked by tâchero",
+  "known": [
+   "missing:x_monthelie_vignes_rondes",
+   "missing:chambertin",
+   "missing:chalandins",
+   "missing:colombiere",
+   "absent:vignerondes"
+  ]
+ },
+ "mugnier": {
+  "pages": [
+   "https://mugnier.fr/",
+   "https://mugnier.fr/vin/chambolle-musigny-2/",
+   "https://mugnier.fr/vin/chambolle-musigny-les-fuees-2/",
+   "https://mugnier.fr/vin/chambolle-musigny-les-amoureuses-2/",
+   "https://mugnier.fr/vin/musigny-grand-cru-2/",
+   "https://mugnier.fr/vin/bonnes-mares-grand-cru-2/",
+   "https://mugnier.fr/vin/nuits-saint-georges-1er-cru-clos-de-la-marechale-2/",
+   "https://mugnier.fr/vin/nuits-saint-georges-1er-cru-white-clos-de-la-marechale-2/",
+   "https://mugnier.fr/vin/nuits-saint-georges-clos-des-fourches-2/"
+  ],
+  "site": "https://mugnier.fr",
+  "note": "Areas: Musigny 1 ha 14 a (all in Grand-Musigny; 15% replanted 1997 declassified to village); Bonnes-Mares 'bande étroite de 36 ares' (home page cuvée blurb; Bonnes-Mares page itself unreachable - connection reset); Amoureuses 52 a 85 ca; Fuées 71 a; Chambolle village = Les Plantes 56 a 13 ca (1er de",
+  "known": [
+   "missing:chambertin",
+   "missing:beze",
+   "missing:latache",
+   "missing:romaneeconti",
+   "missing:combedorveau",
+   "missing:x_morey_village",
+   "missing:montrachet",
+   "missing:x_chassagne_chassagne",
+   "absent:feusselottes"
+  ]
+ },
+ "niellon": {
+  "pages": [],
+  "status": "no site",
+  "note": "No official website found for Michel Niellon (search returned only importers/merchants/guides; guessed domains do not resolve). Not substituted with merchant pages."
+ },
+ "noellat_g": {
+  "pages": [],
+  "status": "no site",
+  "note": "No official website found (searches return only importers/merchants: Skurnik, Falstaff, Burgundy Report; address 1 rue des Chaumes, Vosne-Romanée). Probed domaine-georges-noellat.com/.fr, georges-noellat.com, domaine-noellat.com — none resolve."
+ },
+ "olivier_leflaive": {
+  "pages": [
+   "https://olivier-leflaive.com/nos-vins/",
+   "https://olivier-leflaive.com/vigne/",
+   "https://olivier-leflaive.com/vin/chevalier-montrachet-grand-cru-2023/",
+   "https://olivier-leflaive.com/vin/batard-montrachet-grand-cru-domaine-2023/",
+   "https://olivier-leflaive.com/vin/puligny-montrachet-1er-cru-les-pucelles-domaine-2023/",
+   "https://olivier-leflaive.com/vin/puligny-montrachet-1er-cru-les-folatieres-domaine-2024/",
+   "https://olivier-leflaive.com/vin/puligny-montrachet-1er-cru-truffieres-2022/",
+   "https://olivier-leflaive.com/vin/chassagne-montrachet-1er-cru-abbaye-de-morgeot-recolte-du-domaine-2024/",
+   "https://olivier-leflaive.com/vin/chassagne-montrachet-1er-cru-clos-saint-marc-recolte-du-domaine-2024/",
+   "https://olivier-leflaive.com/vin/chassagne-montrachet-houilleres-2023/",
+   "https://olivier-leflaive.com/vin/chassagne-montrachet-pierres-2023/",
+   "https://olivier-leflaive.com/vin/meursault-1er-cru-le-porusot-domaine-2024/",
+   "https://olivier-leflaive.com/vin/meursault-1er-cru-sous-le-dos-dane-domaine-2024/"
+  ],
+  "site": "https://olivier-leflaive.com/",
+  "note": "Site has an age gate (cookie). /vigne/ says the house owns 26 ha ('en propriété') spread over 82 climats, mostly Puligny, Meursault and Chassagne, and also buys grapes from partner growers. Wine pages give a 'Surface' that is the area of the whole climat, not the house's holding (e.g. Bâtard 11.22 h"
+ },
+ "pacalet": {
+  "pages": [
+   "https://www.philippe-pacalet.com/fr/vins",
+   "https://www.philippe-pacalet.com/fr/presentation",
+   "https://www.philippe-pacalet.com/fr/vins/24/ruchottes-chambertin-grand-cru",
+   "https://www.philippe-pacalet.com/fr/vins/11/echezeaux-grand-cru"
+  ],
+  "site": "https://www.philippe-pacalet.com/",
+  "note": "https://www.philippe-pacalet.com/fr/presentation says the Maison works more than 10 ha in Burgundy under contracts to buy the crop, and picks the grapes itself. Everything is therefore 'bought', which agrees with the atlas. The site gives no areas. The /fr/vins index may include wines that are not m",
+  "known": [
+   "missing:closstdenis",
+   "absent:belair",
+   "absent:charmes",
+   "absent:chaumes"
+  ]
+ },
+ "pataille": {
+  "pages": [],
+  "status": "no site",
+  "note": "No official site found. sylvainpataille.fr/.com, domaine-sylvain-pataille.fr/.com, domaine-pataille.fr and domainepataille.com do not exist; search found only merchant and guide pages."
+ },
+ "pavelot": {
+  "pages": [],
+  "status": "no wine list",
+  "site": "https://www.domainepavelot.com/",
+  "note": "The official site (Domaine Jean-Marc et Hugues Pavelot, 21 rue Chanson Maldant, Savigny-lès-Beaune) is a placeholder: 'Notre nouveau site arrive bientôt', with only a contact form. It lists no wines or vineyards, so none of the atlas entries can be checked."
+ },
+ "perrot": {
+  "pages": [
+   "https://www.perrot-minot.com/des_vins/",
+   "https://www.perrot-minot.com/vins/mazoyeres-chambertin/",
+   "https://www.perrot-minot.com/vins/charmes-chambertin/",
+   "https://www.perrot-minot.com/vins/chambertin-clos-de-beze/",
+   "https://www.perrot-minot.com/vins/chambertin/",
+   "https://www.perrot-minot.com/vins/chapelle-chambertin/",
+   "https://www.perrot-minot.com/vins/griotte-chambertin/",
+   "https://www.perrot-minot.com/vins/nuits-saint-georges-1er-cru-la-richemone/",
+   "https://www.perrot-minot.com/vins/chambolle-musigny/",
+   "https://www.perrot-minot.com/vins/chambolle-musigny-1er-cru/",
+   "https://www.perrot-minot.com/vins/morey-saint-denis-1er-cru-la-riott/",
+   "https://www.perrot-minot.com/vins/chambolle-musigny-1er-cru-les-charmes/",
+   "https://www.perrot-minot.com/vins/chambolle-musigny-1er-cru-les-fuees/",
+   "https://www.perrot-minot.com/vins/gevrey-chambertin-justice-des-seuvrees/",
+   "https://www.perrot-minot.com/vins/vosne-romanee-champ-perdrix/",
+   "https://www.perrot-minot.com/vins/chambolle-musigny-orveaux-des-bussieres/",
+   "https://www.perrot-minot.com/vins/vosne-romanee-ormes-des-chalandins/",
+   "https://www.perrot-minot.com/vins/morey-saint-denis-la-rue-de-vergy/"
+  ],
+  "site": "https://www.perrot-minot.com",
+  "note": "Wine pages give 'Superficie' per wine; bought-grape wines are labelled 'Raisins achetés (et vendangés)' with 'Superficie : Raisins achetés'. Chambolle 1er cru blend and 'Jubilée' (Chambolle 1er) combine Fuées + Charmes; Morey village 'Jubilé' is bought grapes. Domaine wines' tenure (owned vs leased)",
+  "known": [
+   "missing:x_morey_village",
+   "missing:champsperdrix",
+   "missing:musigny",
+   "missing:bonnesmares",
+   "missing:lajustice",
+   "missing:granderue",
+   "missing:chalandins",
+   "missing:tart",
+   "absent:closdelaroche"
+  ]
+ },
+ "ponsot": {
+  "pages": [
+   "https://domaine-ponsot.com/nos-vins/",
+   "https://domaine-ponsot.com/produit/clos-de-roche/",
+   "https://domaine-ponsot.com/produit/chapelle-chambertin/",
+   "https://domaine-ponsot.com/produit/morey-saint-denis-monts-luisants/",
+   "https://domaine-ponsot.com/produit/morey-saint-denis-alouettes/",
+   "https://domaine-ponsot.com/produit/morey-saint-denis/",
+   "https://domaine-ponsot.com/produit/gevrey-chambertin/",
+   "https://domaine-ponsot.com/produit/corton/",
+   "https://domaine-ponsot.com/produit/corton-bressandes/",
+   "https://domaine-ponsot.com/produit/corton-charlemagne/",
+   "https://domaine-ponsot.com/produit/saint-romain/"
+  ],
+  "site": "https://domaine-ponsot.com/",
+  "note": "WooCommerce product pages each with 'Surface'. Monts Luisants 1er split into a 1 ha Aligoté monopole (Clos des Monts Luisants) and 1 ha Pinot Noir (Cuvée des Alouettes); atlas lists only 'Monts Luisants' without ha. Site does not distinguish owned vs leased. Morey village surface stated as '0.35 Ha ",
+  "known": [
+   "missing:x_morey_village",
+   "missing:cortoncharlemagne",
+   "missing:closduroy",
+   "missing:x_corton_gc_languettes",
+   "missing:x_monthelie_village",
+   "absent:x_corton_gc_paulands",
+   "area:montsluisants"
+  ]
+ },
+ "pousse_dor": {
+  "pages": [
+   "https://lapoussedor.fr/"
+  ],
+  "site": "https://lapoussedor.fr/",
+  "note": "Homepage lists 7 grands crus and 11 premiers crus (incl. 3 Volnay monopoles), ~17 ha total; no per-climat areas, so atlas figures (Bousse d'Or 2.13, Caillerets 2.39, 60 Ouvrées 2.39) can't be verified - note the atlas gives the identical 2.39 ha for both Caillerets and Clos des 60 Ouvrées (the Clos ",
+  "known": [
+   "missing:closduroi_beaune",
+   "absent:x_santenay_gravieres_clos_de_tavannes",
+   "absent:x_volnay_clos_de_l_audignac"
+  ]
+ },
+ "prieur": {
+  "pages": [
+   "https://www.prieur.com/fr/carte",
+   "https://www.prieur.com/fr/vins-rouges",
+   "https://www.prieur.com/fr/vins-blancs",
+   "https://www.prieur.com/fr/domaine/la-vigne"
+  ],
+  "site": "https://www.prieur.com/",
+  "note": "Wine pages give terroir/vinification but no surface areas, so atlas ha (Chambertin 0.84, Musigny 0.77, Clos de Vougeot 1.28, Montrachet 0.59) cannot be checked. History page gives only historic figures (e.g. 4.5 ha Clos Vougeot, 0.45 ha Montrachet in the 1880s-90s) and states the domaine today has 2",
+  "known": [
+   "missing:x_pommard_village",
+   "missing:x_volnay_village",
+   "missing:x_chassagne_dent_de_chien",
+   "missing:beze"
+  ]
+ },
+ "prieure_roch": {
+  "pages": [
+   "https://domaine-prieure-roch.com/les-climats/",
+   "https://domaine-prieure-roch.com/nos-vins/",
+   "https://domaine-prieure-roch.com/climat/clos-de-beze/",
+   "https://domaine-prieure-roch.com/climat/clos-de-vougeot/",
+   "https://domaine-prieure-roch.com/climat/les-suchots/",
+   "https://domaine-prieure-roch.com/climat/clos-goillotte/",
+   "https://domaine-prieure-roch.com/climat/les-clous/",
+   "https://domaine-prieure-roch.com/climat/les-hautes-maizieres/",
+   "https://domaine-prieure-roch.com/climat/clos-des-corvees/",
+   "https://domaine-prieure-roch.com/climat/clos-des-argillieres/",
+   "https://domaine-prieure-roch.com/climat/clos-de-varoilles/",
+   "https://domaine-prieure-roch.com/climat/le-cloud/",
+   "https://domaine-prieure-roch.com/climat/au-dessus-des-gollardes/"
+  ],
+  "site": "https://domaine-prieure-roch.com/",
+  "note": "One page per climat with areas. Clos de Bèze 1.0136 vs atlas 1.01 and Goillotte 0.55 match. Varoilles/Gollardes/Le Cloud are described as 'reprise(s)' (taken over) — the site does not say owned vs fermage; Varoilles marked unclear. Le Cloud total = 2.18 + 0.958 ha (2019). Gollardes 1.15 PN + 0.4 CH.",
+  "known": [
+   "missing:x_monthelie_clous",
+   "missing:brulees",
+   "missing:echezeaux",
+   "missing:closstdenis",
+   "missing:colombiere",
+   "missing:x_nuits_argillieres"
+  ]
+ },
+ "ramonet": {
+  "pages": [],
+  "status": "no site",
+  "note": "No official site. domaine-ramonet.fr does not exist. domaine-ramonet.com is a Lovable-built page titled 'Domaine Jean-Claude Ramonet | ... Fine Meursault Wines', describing Meursault and Corton-Charlemagne. That is factually wrong for the Chassagne estate, so it is not official and was not used."
+ },
+ "rapet": {
+  "pages": [
+   "https://www.domaine-rapet.com",
+   "https://www.domaine-rapet.com/fr-vins-de-bourgogne-rapet-corton-charlemagne-grand-cru",
+   "https://www.domaine-rapet.com/fr-vins-de-bourgogne-rapet-corton-grand-cru",
+   "https://www.domaine-rapet.com/fr-vins-de-bourgogne-rapet-corton-pougets-grand-cru",
+   "https://www.domaine-rapet.com/fr-vins-de-bourgogne-rapet-pernand-premier-cru-ile-de-vergelesses",
+   "https://www.domaine-rapet.com/fr-vins-de-bourgogne-rapet-pernand-premier-cru-les-vergelesses",
+   "https://www.domaine-rapet.com/fr-vins-de-bourgogne-rapet-pernand-premier-cru-clos-du-village",
+   "https://www.domaine-rapet.com/fr-vins-de-bourgogne-rapet-pernand-premier-cru-en-caradeux",
+   "https://www.domaine-rapet.com/fr-vins-de-bourgogne-rapet-pernand-premier-cru-sous-fretille",
+   "https://www.domaine-rapet.com/fr-vins-de-bourgogne-rapet-savigny-premier-cru-aux-fourneaux",
+   "https://www.domaine-rapet.com/fr-vins-de-bourgogne-rapet-beaune-premier-cru-bressandes",
+   "https://www.domaine-rapet.com/fr-vins-de-bourgogne-rapet-beaune-premier-cru-cents-vignes",
+   "https://www.domaine-rapet.com/fr-vins-de-bourgogne-rapet-beaune-premier-cru-clos-du-roi",
+   "https://www.domaine-rapet.com/fr-vins-de-bourgogne-rapet-beaune-premier-cru-greves"
+  ],
+  "site": "https://www.domaine-rapet.com",
+  "note": "Site lists each wine with its own page but gives no surface areas and no owned/leased distinction (all presented as domaine wines). Île des Vergelesses is listed as 'Pernand 1er Cru' (commune Pernand-Vergelesses) - atlas places it under Ladoix, which looks wrong. Corton-Charlemagne commune not state",
+  "known": [
+   "missing:x_chambolle_combottes",
+   "missing:x_corton_sous_fretille",
+   "missing:vergelesses",
+   "missing:x_corton_vergelesses",
+   "missing:lecorton",
+   "missing:x_corton_gc_chaumes"
+  ]
+ },
+ "rion": {
+  "pages": [],
+  "status": "no site",
+  "note": "No working official website found. The old domain https://www.domaine-daniel-rion.com/ now serves unrelated spam pages about seminar hotels, so it has lapsed or been taken over. Guessed alternatives (domaine-daniel-rion.fr, domaine-rion.com, danielrion.com) do not resolve, and a web search returned "
+ },
+ "rossignol": {
+  "pages": [
+   "https://rossignol-trapet.com/nos-vins/"
+  ],
+  "site": "https://rossignol-trapet.com/",
+  "note": "The site says it is 'under construction'. The /nos-vins/ page lists wine names only, with no areas, sub-pages or tenure, so none of the atlas areas can be checked. The atlas's 'Beaune & Savigny premiers crus' is only partly right: the site has Beaune 1er cru Les Teurons, while the Savigny wine (Les ",
+  "known": [
+   "absent:lajustice"
+  ]
+ },
+ "roty": {
+  "pages": [],
+  "status": "no site",
+  "note": "No official website found; sources note the domaine refuses most communication. Only Falstaff/Corney & Barrow/Burgundy Report listings. domaine-roty.com/.fr, domaine-joseph-roty.com/.fr, joseph-roty.com do not resolve."
+ },
+ "rouget": {
+  "pages": [],
+  "status": "no site",
+  "note": "No official website found. Directories (Falstaff, Enprimeur Club, La Passion du Vin) give only address 18 route de Gilly, Flagey-Échezeaux, and a wanadoo e-mail. https://www.domaine-rouget.com resolves to a JS-only Lovable-built page ('Domaine Emmanuel Rouget | Exceptional Burgundy Wines') with no v"
+ },
+ "roulot": {
+  "pages": [],
+  "status": "no site",
+  "note": "No official website found (directory entries only; Falstaff address 1 rue Charles Giraud, Meursault). domaineroulot.fr/.com, domaine-roulot.fr/.com, roulot.com/.fr do not resolve."
+ },
+ "roumier": {
+  "pages": [
+   "https://www.roumier.com/fr_FR/les-vins",
+   "https://www.roumier.com/fr_FR/vin/bonnes-mares",
+   "https://www.roumier.com/fr_FR/vin/musigny",
+   "https://www.roumier.com/fr_FR/vin/ruchottes-chambertin",
+   "https://www.roumier.com/fr_FR/vin/charmes-chambertin-grand-cru",
+   "https://www.roumier.com/fr_FR/vin/corton-charlemagne",
+   "https://www.roumier.com/fr_FR/vin/chambolle-musigny-1er-cru-les-amoureuses",
+   "https://www.roumier.com/fr_FR/vin/chambolle-musigny-1er-cru-les-cras",
+   "https://www.roumier.com/fr_FR/vin/chambolle-musigny-les-combottes",
+   "https://www.roumier.com/fr_FR/vin/morey-saint-denis-clos-de-la-bussiere",
+   "https://www.roumier.com/fr_FR/vin/chambolle-musigny"
+  ],
+  "site": "https://www.roumier.com/",
+  "note": "Ruchottes-Chambertin is farmed en métayage. The vines belong to Michel Bonnefond, and a third of the crop is sold under the Christophe Roumier label; the atlas's 'leased' is correct. The Corton-Charlemagne was bought by Jean-Marie Roumier and is on Pernand-Vergelesses (west-facing), whereas the atla",
+  "known": [
+   "missing:x_morey_village",
+   "missing:tart",
+   "missing:x_nuits_terres_blanches",
+   "missing:closvougeot",
+   "missing:echezeaux",
+   "missing:mazis",
+   "missing:beze",
+   "missing:latricieres",
+   "missing:x_morey_charmes",
+   "missing:groseilles"
+  ]
+ },
+ "rousseau": {
+  "pages": [
+   "https://www.domaine-rousseau.com/",
+   "https://www.domaine-rousseau.com/js/app.min.61352e92.js"
+  ],
+  "site": "https://www.domaine-rousseau.com/",
+  "note": "The site is a JS single-page app; the wine data (surface: 'domaine ha / climat ha') is in the bundle app.min.61352e92.js. Contrary to the brief's assumption, the site does give per-climat areas. The domaine is 15.33 ha: 3 ha village, 3.77 ha 1er cru, 8.51 ha grand cru. Chambertin 2.55, Clos de Bèze ",
+  "known": [
+   "missing:x_morey_village",
+   "missing:sentiers",
+   "missing:chateau",
+   "missing:closprieur",
+   "absent:mazis",
+   "absent:combottes",
+   "area:charmes"
+  ]
+ },
+ "sauzet": {
+  "pages": [
+   "https://etiennesauzet.com/appellations-domaine-etienne-sauzet-puligny-montrachet.html"
+  ],
+  "site": "https://etiennesauzet.com/",
+  "note": "The wine list is shown only as text inside carousel images (appel/1-4.jpg) on the appellations page; read visually. No surface areas, no owned/bought distinction (Sauzet is known to buy some grapes, and the site calls itself 'la maison Etienne Sauzet'), so kind=unclear for all.",
+  "known": [
+   "absent:champcanet",
+   "absent:combettes",
+   "absent:caillerets_puligny",
+   "absent:batard"
+  ]
+ },
+ "senard": {
+  "pages": [],
+  "status": "unreachable",
+  "site": "https://www.domainecomtesenard.com/",
+  "note": "domainecomtesenard.com resolves (OVH shared hosting, 213.186.33.5) but resets HTTPS connections, likely HTTP-only. It could not be read. The Wayback Machine was rate-limited (429)."
+ },
+ "sirugue": {
+  "pages": [],
+  "status": "no site",
+  "note": "No official website found for Domaine Robert Sirugue (Vosne-Romanée). Guessed domains (domaine-robert-sirugue.com/.fr, robert-sirugue.com) do not exist; https://www.domaine-sirugue.com is a different estate (Domaine Sirugue Père et Fils, Couchey) - not used. Search returns only merchants/Burgundy Re"
+ },
+ "tardy": {
+  "pages": [
+   "https://domainejeantardy.canalblog.com/"
+  ],
+  "site": "https://domainejeantardy.canalblog.com/",
+  "note": "Only web presence is the domaine's own canalblog blog (posts by 'domainejeantardy', 'Présentation du Domaine' dated 4 avril 2014) - not a full website. Its 'List of appellations' gives areas. KEY: Les Chaumes (1.55 ha), Aux Boudots (1.05 ha) and Clos Vougeot Grand Maupertuis (0.26 ha) were métayage ",
+  "known": [
+   "missing:boudots",
+   "missing:chaumes",
+   "missing:closvougeot",
+   "missing:suchots",
+   "missing:perrieres_nuits"
+  ]
+ },
+ "tart": {
+  "pages": [
+   "https://www.clos-de-tart.com/fr/les-vins",
+   "https://www.clos-de-tart.com/fr/une-situation-unique",
+   "https://www.clos-de-tart.com/fr/les-vins/1/clos-de-tart",
+   "https://www.clos-de-tart.com/fr/les-vins/2/la-forge-de-tart",
+   "https://www.clos-de-tart.com/fr/les-vins/3/morey-saint-denis"
+  ],
+  "site": "https://www.clos-de-tart.com/",
+  "note": "'Un Clos de 7,53 hectares' matches atlas. Other cuvées come from the same Clos: La Forge de Tart (labelled Morey-Saint-Denis Premier Cru, young vines of the Clos) and Morey-Saint-Denis village (since 2018, young complanted vines across the property) - second wines, not separate climats.",
+  "known": [
+   "missing:x_morey_village"
+  ]
+ },
+ "taupenot": {
+  "pages": [],
+  "status": "unreachable",
+  "site": "https://taupenot-merme.com/",
+  "note": "taupenot-merme.com resolves but its server rejects the TLS handshake ('unrecognized name'). taupenot-merme.fr is an OVH 'Site en construction' placeholder. No wine list could be read."
+ },
+ "thenard": {
+  "pages": [
+   "https://www.domainethenard.fr/nos-terroirs-vins",
+   "https://www.domainethenard.fr/grands-echezeaux",
+   "https://www.domainethenard.fr/le-montrachet",
+   "https://www.domainethenard.fr/corton-le-clos-du-roi",
+   "https://www.domainethenard.fr/pernand-vergelesses-1er-cru-ile-des-vergelesses",
+   "https://www.domainethenard.fr/chassagne-montrachet-1er-cru-clos-saint-jean"
+  ],
+  "site": "https://www.domainethenard.fr/",
+  "note": "Domaine Thénard (Givry), ~23 ha. Each wine page gives 'Surface'. Montrachet: 'en 1873 notre famille fera l'acquisition de deux parcelles' (site doesn't say which commune; other sources place them on the Chassagne side, atlas lists Puligny). Clos Saint-Jean bought 1923. Grands-Échezeaux 0.55 vs atlas",
+  "known": [
+   "missing:closduroi",
+   "missing:closduroi_beaune",
+   "missing:closvougeot",
+   "missing:echezeaux",
+   "missing:lecorton",
+   "missing:x_corton_village_de_pernand",
+   "missing:x_corton_vergelesses",
+   "missing:x_chassagne_chassagne"
+  ]
+ },
+ "tollot": {
+  "pages": [],
+  "status": "no site",
+  "note": "No official website found for Tollot-Beaut (search returned only importers/merchants/guides; guessed domains do not resolve). Not substituted with merchant pages."
+ },
+ "trapet": {
+  "pages": [
+   "https://www.domaine-trapet.fr/fr/vins-bourgogne",
+   "https://www.domaine-trapet.fr/fr/vins-bourgogne/terroirs-et-vins/1/le-chambertin",
+   "https://www.domaine-trapet.fr/fr/vins-bourgogne/terroirs-et-vins/2/latricieres",
+   "https://www.domaine-trapet.fr/fr/vins-bourgogne/terroirs-et-vins/3/la-chapelle",
+   "https://www.domaine-trapet.fr/fr/vins-bourgogne/terroirs-et-vins/4/petite-chapelle",
+   "https://www.domaine-trapet.fr/fr/vins-bourgogne/terroirs-et-vins/7/ostrea",
+   "https://www.domaine-trapet.fr/fr/vins-bourgogne/terroirs-et-vins/8/gevrey-chambertin",
+   "https://www.domaine-trapet.fr/fr/vins-bourgogne/terroirs-et-vins/27/gevrey-chambertin-1859",
+   "https://www.domaine-trapet.fr/fr/vins-bourgogne/terroirs-et-vins/9/le-marsannay"
+  ],
+  "site": "https://www.domaine-trapet.fr/",
+  "note": "Per-wine pages give 'ares/parcelles'. Chambertin 1.9, Latricières 0.75, Chapelle 0.6 all match the atlas. Clos Prieur 0.40 (atlas no ha). Latricières held 'depuis 1904'; Petite Chapelle acquired 1877. Also Alsace wines (skipped).",
+  "known": [
+   "missing:petitechapelle",
+   "missing:beze",
+   "missing:lajustice"
+  ]
+ },
+ "varoilles": {
+  "pages": [],
+  "status": "no site",
+  "note": "The former site www.domaine-varoilles.com (cited by Burgundy Report 2016) no longer resolves. Merchants report the domaine merged with Domaine Paul Misset into Domaine du Couvent (Philippe Chéron) from the 2019 vintage, and that the Clos des Varoilles was sold in 2020 (sources conflict: to Prieuré R"
+ },
+ "vogue": {
+  "pages": [],
+  "status": "no site",
+  "note": "No official website found (results are importers/merchants only). Probed comte-georges-de-vogue.com/.fr, comtegeorgesdevogue.com, domaine-comte-georges-de-vogue.com, domaine-de-vogue.com/.fr, domainedevogue.com — none resolve."
+ },
+ "vougeraie": {
+  "pages": [
+   "https://www.domainedelavougeraie.com/fr/les-vins.r-693/grands-crus.r-703/?search=1",
+   "https://www.domainedelavougeraie.com/fr/les-vins.r-693/premiers-crus.r-702/?search=1",
+   "https://www.domainedelavougeraie.com/fr/les-vins.r-693/villages.r-701/?search=1",
+   "https://www.domainedelavougeraie.com/fr/les-vins.r-693/villages.r-701/?search=1&p=2",
+   "https://www.domainedelavougeraie.com/fr/les-vins.r-693/monopoles.r-704/?search=1",
+   "https://www.domainedelavougeraie.com/fr/les-vins.r-693/grands-crus.r-703/batard-montrachet-grand-cru.v-17142.html",
+   "https://www.domainedelavougeraie.com/fr/les-vins.r-693/grands-crus.r-703/bienvenues-batard-montrachet-grand-cru.v-18033.html",
+   "https://www.domainedelavougeraie.com/fr/les-vins.r-693/grands-crus.r-703/chevalier-montrachet-grand-cru.v-18034.html",
+   "https://www.domainedelavougeraie.com/fr/les-vins.r-693/grands-crus.r-703/bonnes-mares-grand-cru.v-17113.html",
+   "https://www.domainedelavougeraie.com/fr/les-vins.r-693/grands-crus.r-703/musigny-grand-cru.v-17132.html",
+   "https://www.domainedelavougeraie.com/fr/les-vins.r-693/grands-crus.r-703/charlemagne-grand-cru.v-17157.html",
+   "https://www.domainedelavougeraie.com/fr/les-vins.r-693/grands-crus.r-703/charmes-chambertin-grand-cru.v-17101.html",
+   "https://www.domainedelavougeraie.com/fr/les-vins.r-693/grands-crus.r-703/clos-de-vougeot-grand-cru.v-17125.html",
+   "https://www.domainedelavougeraie.com/fr/les-vins.r-693/grands-crus.r-703/corton-grand-cru.v-17126.html",
+   "https://www.domainedelavougeraie.com/fr/les-vins.r-693/monopoles.r-704/vougeot-premier-cru.v-17084.html",
+   "https://www.domainedelavougeraie.com/fr/les-vins.r-693/premiers-crus.r-702/vougeot-premier-cru.v-17086.html",
+   "https://www.domainedelavougeraie.com/fr/les-vins.r-693/monopoles.r-704/nuits-saint-georges-premier-cru.v-17155.html",
+   "https://www.domainedelavougeraie.com/fr/les-vins.r-693/premiers-crus.r-702/nuits-saint-georges-premier-cru.v-17133.html",
+   "https://www.domainedelavougeraie.com/fr/les-vins.r-693/premiers-crus.r-702/nuits-saint-georges-premier-cru.v-17134.html",
+   "https://www.domainedelavougeraie.com/fr/les-vins.r-693/premiers-crus.r-702/gevrey-chambertin-premier-cru.v-17105.html"
+  ],
+  "site": "https://www.domainedelavougeraie.com/",
+  "note": "All wines branded Domaine de la Vougeraie; per-parcel tenure not stated, kind=unclear. Musigny 0.2104 and Bonnes-Mares 0.7002 match atlas. Côte de Beaune 'Les Pierres Blanches' = two cuvées (2.213 + 0.7516 ha). Charlemagne listed as 'Charlemagne Grand Cru', two parcels 0.2183 + 0.2772.",
+  "known": [
+   "missing:maltroie",
+   "missing:x_beaune_montee_rouge",
+   "missing:champsperdrix",
+   "missing:montrachet",
+   "missing:chambertin",
+   "missing:beze",
+   "missing:mazoyeres",
+   "missing:closduroi",
+   "missing:x_chassagne_vigne_blanche",
+   "missing:amoureuses",
+   "missing:stgeorges",
+   "missing:marechale",
+   "absent:petitsvougeots",
+   "absent:x_chassagne_chapelle",
+   "area:closduroi_beaune",
+   "area:chevalier",
+   "area:batard"
+  ]
+ }
 }

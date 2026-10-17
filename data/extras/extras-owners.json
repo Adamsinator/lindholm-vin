@@ -210,6 +210,12 @@
     null,
     "",
     "https://sommelier-academy.de/topic/court-of-master-sommeliers-appellations-beaune-aop/"
+   ],
+   [
+    "jadot",
+    null,
+    "",
+    "https://www.louisjadot.com/vins/beaune-aux-cras"
    ]
   ],
   "x_beaune_belissand": [
@@ -326,6 +332,24 @@
     1.23,
     "",
     "https://insideburgundy.com/overview/domaine-sebastien-magnien/"
+   ],
+   [
+    "jadot",
+    null,
+    "",
+    "https://www.louisjadot.com/vins/beaune-aigrots"
+   ],
+   [
+    "girardin_v",
+    null,
+    "",
+    "https://www.vincentgirardin.com/fr_FR/vin/beaune-clos-des-aigrots-rouge"
+   ],
+   [
+    "albert_morot",
+    1,
+    "",
+    "https://www.albertmorot.fr/vin-beaune/beaune-1er-cru-aigrots-rouge/"
    ]
   ],
   "x_beaune_boucherottes": [
@@ -374,6 +398,12 @@
     null,
     "",
     "https://sommelier-academy.de/topic/court-of-master-sommeliers-appellations-beaune-aop/"
+   ],
+   [
+    "drouhin",
+    null,
+    "",
+    "https://www.drouhin.com/fr_FR/vin/beaune-premier-cru-epenotes/2015"
    ]
   ],
   "x_beaune_montrevenots": [
@@ -420,6 +450,12 @@
     null,
     "",
     "https://sommelier-academy.de/topic/court-of-master-sommeliers-appellations-beaune-aop/"
+   ],
+   [
+    "latour",
+    1.32,
+    "",
+    "https://www.louislatour.com/en/wines/171/beaune-1er-cru-perrieres"
    ]
   ],
   "x_beaune_reverses": [
@@ -456,6 +492,12 @@
     null,
     "",
     "https://sommelier-academy.de/topic/court-of-master-sommeliers-appellations-beaune-aop/"
+   ],
+   [
+    "drouhin",
+    null,
+    "",
+    "https://www.drouhin.com/fr_FR/vin/beaune-premier-cru-sizies/2023"
    ]
   ],
   "x_beaune_tuvilains": [
@@ -504,6 +546,12 @@
     0.51,
     "",
     "https://www.beckywasserman.com/domaines/jean-yves-devevey/beaune-1er-cru-rouge-pertuisots/"
+   ],
+   [
+    "jadot",
+    null,
+    "",
+    "https://www.louisjadot.com/vins/beaune-pertuisots"
    ]
   ],
   "x_beaune_sur_les_greves": [
@@ -626,6 +674,12 @@
     null,
     "",
     "https://sommelier-academy.de/?p=3722"
+   ],
+   [
+    "lignier_h",
+    null,
+    "",
+    "https://hubert-lignier.com/fr/vins/chambolle-musigny-1er-cru-les-chabiots"
    ]
   ],
   "x_chambolle_plantes": [
@@ -646,6 +700,12 @@
     null,
     "",
     "https://sommelier-academy.de/topic/court-of-master-sommeliers-appellations-chambolle-musigny-aop/"
+   ],
+   [
+    "mugnier",
+    null,
+    "",
+    "https://mugnier.fr/vin/chambolle-musigny-2/"
    ]
   ],
   "x_chassagne_abbaye_de_morgeot": [
@@ -672,6 +732,18 @@
     0.24,
     "",
     "https://insideburgundy.com/overview/domaine-tawse/"
+   ],
+   [
+    "jadot",
+    null,
+    "",
+    "https://www.louisjadot.com/vins/chassagne-montrachet-abbaye-de-morgeot"
+   ],
+   [
+    "fleurot",
+    null,
+    "",
+    "https://www.domaine-fleurot-larose.com/nos-vins.html"
    ]
   ],
   "x_chassagne_blanchot_dessus": [
@@ -713,7 +785,7 @@
   "x_chassagne_clos_pitois": [
    [
     "belland_r",
-    3.0,
+    3,
     "",
     "https://vertdevin.com/en/vins/domaine-roger-belland-morgeot-clos-pitois-1er-cru-monopole-2023-aoc-chassagne-montrachet-premier-cru-2/"
    ]
@@ -1217,9 +1289,9 @@
    ],
    [
     "meo",
-    null,
+    0.19,
     "",
-    "https://winehog.org/terroir-insight-latour-vigne-saint-2-43680/"
+    "https://www.meo-camuzet.com/fr/les-vins/5/corton-la-vigne-au-saint"
    ]
   ],
   "x_corton_gc_carrieres": [
@@ -1236,6 +1308,12 @@
     null,
     "",
     "https://sothebys-com.brightspotcdn.com/41/7d/af70aac94075b1cfae2f1037fb41/pf2612-52cuvees-presentationfr.pdf"
+   ],
+   [
+    "chandon",
+    0.56,
+    "",
+    "https://www.chandondebriailles.com/fr_FR/vin/corton-blanc"
    ]
   ],
   "x_corton_gc_combes": [
@@ -1275,15 +1353,21 @@
    ],
    [
     "bertagna",
-    null,
+    0.25,
     "",
-    "https://www.bbr.com/products-925650-2002-corton-les-grandes-lolieres-domaine-bertagna"
+    "https://www.domainebertagna.com/corton-gc"
    ],
    [
     "magnien_h",
     null,
     "",
     "https://vinonueva.com/products/domaine-henri-magnien-corton-grand-cru-les-grandes-lolieres-2021"
+   ],
+   [
+    "leflaive",
+    null,
+    "s",
+    "https://www.leflaive.fr/fr_FR/la-famille-des-vins-leflaive"
    ]
   ],
   "x_corton_gc_languettes": [
@@ -1436,6 +1520,12 @@
     null,
     "",
     "https://sommelier-academy.de/topic/court-of-master-sommeliers-appellations-gevrey-chambertin-aop/"
+   ],
+   [
+    "drouhin",
+    null,
+    "s",
+    "https://www.drouhin.com/fr_FR/vin/gevrey-chambertin-premier-cru-craipillot/2018"
    ]
   ],
   "x_gevrey_issarts": [
@@ -1460,12 +1550,18 @@
     0.1,
     "",
     "https://www.beckywasserman.com/domaines/benjamin-leroux/gevrey-chambertin-1er-cru-la-perriere/"
+   ],
+   [
+    "pousse_dor",
+    null,
+    "",
+    "https://lapoussedor.fr/"
    ]
   ],
   "x_gevrey_romanee": [
    [
     "varoilles",
-    1.0,
+    1,
     "",
     "https://corneyandbarrow.com.hk/gevrey-chambertin-la-romanee-1er-cru-monopole-domaine-des-varoilles-2016-10069192016bt06eh-1.html"
    ]
@@ -1662,6 +1758,12 @@
     0.98,
     "",
     "https://insideburgundy.com/overview/thierry-pascale-matrot/"
+   ],
+   [
+    "girardin_v",
+    null,
+    "",
+    "https://www.vincentgirardin.com/fr_FR/vin/meursault-blagny-blanc"
    ]
   ],
   "x_meursault_caillerets": [
@@ -1740,6 +1842,12 @@
     null,
     "",
     "https://sothebys-com.brightspotcdn.com/41/7d/af70aac94075b1cfae2f1037fb41/pf2612-52cuvees-presentationfr.pdf"
+   ],
+   [
+    "morey_p",
+    0.35,
+    "",
+    "https://www.morey-meursault.fr/vin/volnay-santenots/"
    ]
   ],
   "x_meursault_ravelles": [
@@ -1878,6 +1986,12 @@
     null,
     "",
     "https://sommelier-academy.de/topic/court-of-master-sommeliers-appellations-monthelie-aop/"
+   ],
+   [
+    "lignier_h",
+    0.35,
+    "",
+    "https://hubert-lignier.com/fr/vins/monthelie-1er-cru-sur-la-velle"
    ]
   ],
   "x_morey_charmes": [
@@ -1900,6 +2014,12 @@
     null,
     "",
     "https://sommelier-academy.de/topic/court-of-master-sommeliers-appellations-morey-saint-denis-aop/"
+   ],
+   [
+    "drouhin",
+    null,
+    "s",
+    "https://www.drouhin.com/fr_FR/vin/morey-saint-denis-premier-cru-cheseaux/2008"
    ]
   ],
   "x_morey_clos_baulet": [
@@ -1940,6 +2060,18 @@
     null,
     "",
     "https://sommelier-academy.de/topic/court-of-master-sommeliers-appellations-morey-saint-denis-aop/"
+   ],
+   [
+    "arlaud",
+    0.27,
+    "",
+    "https://www.arlaud.com/fr_FR/domaine-arlaud/morey-saint-denis-1er-cru-les-blanchards"
+   ],
+   [
+    "lignier_h",
+    null,
+    "",
+    "https://hubert-lignier.com/fr/vins/morey-saint-denis-1er-cru-les-blanchards"
    ]
   ],
   "x_morey_chaffots": [
@@ -1956,6 +2088,12 @@
     null,
     "",
     "https://www.beckywasserman.com/domaines/lignier-michelot/morey-saint-denis-1er-cru-les-chenevery/"
+   ],
+   [
+    "lignier_h",
+    null,
+    "s",
+    "https://hubert-lignier.com/fr/vins/morey-saint-denis-1er-cru-chenevery"
    ]
   ],
   "x_morey_gruenchers": [
@@ -1990,6 +2128,12 @@
     null,
     "",
     "https://sommelier-academy.de/topic/court-of-master-sommeliers-appellations-morey-saint-denis-aop/"
+   ],
+   [
+    "lignier_h",
+    null,
+    "s",
+    "https://hubert-lignier.com/fr/vins/morey-saint-denis-1er-crules-sorbes"
    ]
   ],
   "x_nuits_argillas": [
@@ -2010,6 +2154,12 @@
     null,
     "",
     "https://www.beckywasserman.com/domaines/domaine-marshall/nuits-saint-georges-1er-cru-aux-argillas/"
+   ],
+   [
+    "meo",
+    null,
+    "s",
+    "https://www.meo-camuzet.com/fr/les-vins/12/nuits-saint-georges-aux-argillas"
    ]
   ],
   "x_nuits_perdrix": [
@@ -2084,6 +2234,12 @@
     1.23,
     "",
     "https://insideburgundy.com/overview/domaine-michele-patrice-rion/"
+   ],
+   [
+    "hospices_n",
+    null,
+    "",
+    "https://www.hospicesdenuits.com/nos-cuvees"
    ]
   ],
   "x_nuits_vallerots": [
@@ -2134,6 +2290,24 @@
     null,
     "",
     "https://sommelier-academy.de/topic/court-of-master-sommeliers-appellations-pernand-vergelesses-aop/"
+   ],
+   [
+    "rapet",
+    null,
+    "",
+    "https://www.domaine-rapet.com/fr-vins-de-bourgogne-rapet-pernand-premier-cru-en-caradeux"
+   ],
+   [
+    "latour",
+    null,
+    "",
+    "https://www.louislatour.com/en/wines/203/pernand-vergelesses-1er-cru-en-caradeux"
+   ],
+   [
+    "chanson",
+    1.9,
+    "",
+    "https://www.domaine-chanson.com/vin/pernand-vergelesses-1er-cru-en-caradeux/"
    ]
   ],
   "x_corton_fichots": [
@@ -2242,6 +2416,24 @@
     null,
     "",
     "https://sommelier-academy.de/topic/court-of-master-sommeliers-appellations-pernand-vergelesses-aop/"
+   ],
+   [
+    "chandon",
+    1.23,
+    "",
+    "https://www.chandondebriailles.com/fr_FR/vin/pernand-vergelesses-les-vergelesses"
+   ],
+   [
+    "mongeard",
+    0.75,
+    "",
+    "https://mongeard.com/fr/vin/pernand-vergelesses-premier-cru-les-vergelesses/"
+   ],
+   [
+    "chanson",
+    5.3,
+    "",
+    "https://www.domaine-chanson.com/vin/pernand-vergelesses-1er-cru-vergelesses/"
    ]
   ],
   "x_corton_village_de_pernand": [
@@ -2264,6 +2456,12 @@
     0.33,
     "",
     "https://insideburgundy.com/overview/domaine-genot-boulanger/"
+   ],
+   [
+    "h_boillot",
+    0.3,
+    "",
+    "https://www.henri-boillot.com/wines"
    ]
   ],
   "x_pommard_clos_de_la_commaraine": [
@@ -2336,6 +2534,12 @@
     0.8,
     "",
     "https://insideburgundy.com/overview/chateau-de-meursault/"
+   ],
+   [
+    "jadot",
+    null,
+    "",
+    "https://www.louisjadot.com/vins/pommard-la-platiere"
    ]
   ],
   "x_pommard_refene": [
@@ -2414,6 +2618,12 @@
     null,
     "",
     "https://sommelier-academy.de/topic/court-of-master-sommeliers-appellations-pommard-aop/"
+   ],
+   [
+    "leflaive",
+    null,
+    "s",
+    "https://www.leflaive.fr/fr_FR/la-famille-des-vins-leflaive"
    ]
   ],
   "x_pommard_bertins": [
@@ -2468,6 +2678,12 @@
     0.15,
     "",
     "https://www.beckywasserman.com/domaines/nicolas-rossignol/pommard-1er-cru-chanlins/"
+   ],
+   [
+    "drouhin",
+    null,
+    "",
+    "https://www.drouhin.com/fr_FR/vin/pommard-premier-cru-chanlins-bas/2023"
    ]
   ],
   "x_pommard_chaponnieres": [
@@ -2520,6 +2736,12 @@
     null,
     "",
     "https://sommelier-academy.de/topic/court-of-master-sommeliers-appellations-pommard-aop/"
+   ],
+   [
+    "prieur",
+    null,
+    "",
+    "https://www.prieur.com/fr/vin/29/pommard-charmots"
    ]
   ],
   "x_pommard_combes_dessus": [
@@ -2545,9 +2767,9 @@
   "x_pommard_croix_noires": [
    [
     "courcel",
-    0.65,
+    0.58,
     "",
-    "https://leaandsandeman.co.uk/wine/2021-POMMARD-1er-Cru-Croix-Noires-Domaine-de-Courcel-55367-00.html"
+    "https://www.domainedecourcel-pommard.fr/les-vins/"
    ],
    [
     "louis_boillot",
@@ -2670,6 +2892,30 @@
     null,
     "",
     "https://sommelier-academy.de/topic/court-of-master-sommeliers-appellations-puligny-montrachet-aop/"
+   ],
+   [
+    "morey_p",
+    0.17,
+    "",
+    "https://www.morey-meursault.fr/vin/puligny-montrachet-champ-gain/"
+   ],
+   [
+    "faiveley",
+    1.05,
+    "",
+    "https://domaine-faiveley.com/fiche-vin/puligny-montrachet-champ-gain-premier-cru/"
+   ],
+   [
+    "mongeard",
+    0.13,
+    "",
+    "https://mongeard.com/fr/vin/puligny-montrachet-premier-cru-champ-gain/"
+   ],
+   [
+    "drouhin",
+    null,
+    "s",
+    "https://www.drouhin.com/fr_FR/vin/puligny-montrachet-premier-cru-champ-gain/2023"
    ]
   ],
   "x_puligny_clos_de_la_garenne": [
@@ -2690,6 +2936,12 @@
     null,
     "",
     "https://sommelier-academy.de/topic/court-of-master-sommeliers-appellations-puligny-montrachet-aop/"
+   ],
+   [
+    "drouhin",
+    null,
+    "s",
+    "https://www.drouhin.com/fr_FR/vin/puligny-montrachet-premier-cru-clos-de-la-garenne/2023"
    ]
   ],
   "x_puligny_hameau_de_blagny": [
@@ -2760,6 +3012,12 @@
     null,
     "",
     "https://sommelier-academy.de/topic/court-of-master-sommeliers-appellations-puligny-montrachet-aop/"
+   ],
+   [
+    "jadot",
+    null,
+    "",
+    "https://www.louisjadot.com/vins/puligny-montrachet-la-garenne-2"
    ]
   ],
   "x_puligny_truffiere": [
@@ -2818,6 +3076,12 @@
     null,
     "",
     "https://www.leaandsandeman.co.uk/wine/2022-PULIGNY-MONTRACHET-1er-Cru-Les-Chalumaux-Domaine-de-la-Choupette-61487-00.html"
+   ],
+   [
+    "drouhin",
+    null,
+    "s",
+    "https://www.drouhin.com/fr_FR/vin/puligny-montrachet-premier-cru-chalumaux/2023"
    ]
   ],
   "x_puligny_demoiselles": [
@@ -2864,6 +3128,18 @@
     0.4,
     "",
     "https://insideburgundy.com/overview/les-heritiers-st-genys/"
+   ],
+   [
+    "jadot",
+    null,
+    "",
+    "https://www.louisjadot.com/vins/puligny-montrachet-les-referts"
+   ],
+   [
+    "carillon",
+    0.24,
+    "",
+    "https://jacques-carillon.com/nos-vins/puligny-montrachet-1er-cru-les-referts/"
    ]
   ],
   "x_puligny_sous_le_puits": [
@@ -3208,6 +3484,12 @@
     null,
     "",
     "https://sommelier-academy.de/topic/court-of-master-sommeliers-appellations-santenay-aop/"
+   ],
+   [
+    "chanson",
+    null,
+    "",
+    "https://www.domaine-chanson.com/vin/santenay-1er-cru-beauregard/"
    ]
   ],
   "x_santenay_beaurepaire": [
@@ -3234,6 +3516,18 @@
     null,
     "",
     "https://sommelier-academy.de/topic/court-of-master-sommeliers-appellations-santenay-aop/"
+   ],
+   [
+    "girardin_v",
+    null,
+    "",
+    "https://www.vincentgirardin.com/fr_FR/vin/santenay-beaurepaire-blanc"
+   ],
+   [
+    "drouhin",
+    null,
+    "s",
+    "https://www.drouhin.com/fr_FR/vin/santenay-premier-cru-beaurepaire/2023"
    ]
   ],
   "x_santenay_clos_des_mouches": [
@@ -3250,6 +3544,12 @@
     1.47,
     "",
     "https://buzzwines.com/products/lucien-muzard-santenay-1er-cru-clos-faubard-2023"
+   ],
+   [
+    "jadot",
+    null,
+    "",
+    "https://www.louisjadot.com/vins/santenay"
    ]
   ],
   "x_santenay_clos_rousseau": [
@@ -3322,6 +3622,12 @@
     null,
     "",
     "https://sommelier-academy.de/topic/court-of-master-sommeliers-appellations-santenay-aop/"
+   ],
+   [
+    "jadot",
+    null,
+    "",
+    "https://www.louisjadot.com/vins/santenay-la-comme"
    ]
   ],
   "x_santenay_maladiere": [
@@ -3354,6 +3660,12 @@
     null,
     "",
     "https://sommelier-academy.de/topic/court-of-master-sommeliers-appellations-santenay-aop/"
+   ],
+   [
+    "jadot",
+    null,
+    "",
+    "https://www.louisjadot.com/vins/santenay-maladiere-4"
    ]
   ],
   "x_santenay_gravieres_clos_de_tavannes": [
@@ -3382,6 +3694,12 @@
     null,
     "s",
     "https://www.beckywasserman.com/domaines/camille-giroud/savigny-les-beaune-1er-cru-aux-clous/"
+   ],
+   [
+    "drouhin",
+    null,
+    "s",
+    "https://www.drouhin.com/fr_FR/vin/savigny-les-beaune-premier-cru-aux-clous/2017"
    ]
   ],
   "x_savigny_fourneaux": [
@@ -3402,6 +3720,12 @@
     null,
     "",
     "https://sommelier-academy.de/topic/court-of-master-sommeliers-appellations-savigny-les-beaune-aop/"
+   ],
+   [
+    "rapet",
+    null,
+    "",
+    "https://www.domaine-rapet.com/fr-vins-de-bourgogne-rapet-savigny-premier-cru-aux-fourneaux"
    ]
   ],
   "x_savigny_gravains": [
@@ -3448,6 +3772,12 @@
     null,
     "",
     "https://sommelier-academy.de/topic/court-of-master-sommeliers-appellations-savigny-les-beaune-aop/"
+   ],
+   [
+    "drouhin",
+    null,
+    "s",
+    "https://www.drouhin.com/fr_FR/vin/savigny-les-beaune-premier-cru-aux-guettes/2017"
    ]
   ],
   "x_savigny_bataillere": [
@@ -3486,6 +3816,12 @@
     0.75,
     "s",
     "https://www.beckywasserman.com/domaines/benjamin-leroux/savigny-les-beaune-rouge-1er-cru-les-hauts-jarrons/"
+   ],
+   [
+    "jadot",
+    null,
+    "",
+    "https://www.louisjadot.com/vins/savigny-les-beaune-les-hauts-jarrons-2"
    ]
   ],
   "x_savigny_hauts_marconnets": [
@@ -3568,6 +3904,12 @@
     null,
     "",
     "https://sothebys-com.brightspotcdn.com/41/7d/af70aac94075b1cfae2f1037fb41/pf2612-52cuvees-presentationfr.pdf"
+   ],
+   [
+    "drouhin",
+    null,
+    "s",
+    "https://www.drouhin.com/fr_FR/vin/savigny-les-beaune-premier-cru-talmettes/2007"
    ]
   ],
   "x_savigny_redrescul": [
@@ -3626,6 +3968,12 @@
     null,
     "",
     "https://sommelier-academy.de/topic/court-of-master-sommeliers-appellations-volnay-aop/"
+   ],
+   [
+    "jadot",
+    0.06,
+    "",
+    "https://www.louisjadot.com/vins/volnay-carelle-sous-la-chapelle"
    ]
   ],
   "x_volnay_clos_de_la_barre": [
@@ -3702,6 +4050,12 @@
     null,
     "",
     "https://sommelier-academy.de/topic/court-of-master-sommeliers-appellations-volnay-aop/"
+   ],
+   [
+    "bouchard",
+    0.25,
+    "",
+    "https://medias.bouchard-pereetfils.com/files/default/user-1/fiche-technique-detaillee-volnay-en-chevret-f18256f2-346d-4781-93f5-ffc8dbf27890-compressed-69e0f04aa169d742315297.pdf"
    ]
   ],
   "x_volnay_fremiets_clos_de_la_rougeotte": [
@@ -3836,6 +4190,30 @@
     null,
     "",
     "https://insideburgundy.com/overview/domaine-de-montille/"
+   ],
+   [
+    "meo",
+    null,
+    "s",
+    "https://www.meo-camuzet.com/fr/les-vins/29/volnay-les-mitans"
+   ],
+   [
+    "jadot",
+    null,
+    "",
+    "https://www.louisjadot.com/vins/volnay-mitans"
+   ],
+   [
+    "latour",
+    null,
+    "",
+    "https://www.louislatour.com/en/wines/163/volnay-1er-cru-les-mitans"
+   ],
+   [
+    "angerville",
+    null,
+    "",
+    "https://www.domainedangerville.fr/volnay-1er-cru-mitans/"
    ]
   ],
   "x_volnay_village": [
@@ -3902,6 +4280,20 @@
     null,
     "",
     "https://sommselect.com/collections/burgundy-france-wine-collection/products/somm2305-hvrd19robd-750"
+   ],
+   [
+    "jadot",
+    null,
+    "",
+    "https://www.louisjadot.com/vins/volnay-robardelle"
+   ]
+  ],
+  "x_monthelie_barbieres": [
+   [
+    "lignier_h",
+    null,
+    "",
+    "https://hubert-lignier.com/fr/vins/monthelie-1er-cru"
    ]
   ]
  },
