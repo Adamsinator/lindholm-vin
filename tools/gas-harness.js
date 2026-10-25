@@ -13,6 +13,7 @@ module.exports = function harness(tabs, opts = {}) {
   const rt = FAKE.runtime(tabs, {
     today: opts.today || "2026-10-16",
     sheetsText: true, // text and formulas as Sheets stores them
+    fetch: opts.fetch, properties: opts.properties,
     // Apps Script gives digests as Java bytes: -128…127
     digest: (alg, str) => [...crypto.createHash(alg).update(String(str), "utf8").digest()].map(b => b > 127 ? b - 256 : b),
   });
