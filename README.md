@@ -470,6 +470,24 @@ Each wine can have a **location**: free text such as "Kælder, reol 3, hylde 2" 
 - **Import and export:** import maps `Placering` / `Location` / `Bin` / `Lagerort` / `Hylde`… to it, joining
   CellarTracker's Location and Bin. Export writes the column, so it round-trips.
 
+## Sommelier (offline questions)
+
+The 🍷 button at the bottom right of the cellar opens a small chat that answers wine questions **without a server
+or tokens**: everything runs in the browser from data already on the site, and nothing you type is sent anywhere.
+It understands typos and English, Danish, German and French, and answers in the interface language.
+- **Grapes and appellations:** "What grape is Sancerre?", "Was ist Riesling?" (`wine-kb.js`, plus grape profiles
+  in `sommelier-data.js`).
+- **Vintages:** Burgundy from the atlas's vintage chart ("is 2005 good for red Côte de Nuits?"); Bordeaux,
+  Sauternes, Champagne, Rhône, Barolo, Tuscany, Rioja, German Riesling, Napa and Port from rough 1–5 star
+  consensus charts in `sommelier-data.js`. Those charts are a guide, not gospel.
+- **The atlas:** climats (owners, monopoles, a link to the map), communes and producers.
+- **Practicalities:** serving temperatures, decanting, storing and opened bottles, terms like "tertiary" or
+  "élevage", and food pairing ("what goes with duck?"), suggesting matching bottles from your cellar.
+- **Your cellar:** "where is my Rousseau", "what should I drink now", "how many Barolo do I have", "oldest wine".
+- **Files:** `sommelier.js` (the engine) and `sommelier-data.js` (its knowledge) load only when the panel is first
+  opened. Tests: `node tools/sommelier-test.js` (70 checks on the engine) and `node tools/sommelier-ui-test.js`
+  (16 checks in the browser, including that asking sends nothing to the server).
+
 ## Surveyed vineyard outlines (INAO)
 
 The atlas can draw the real vineyard boundaries from INAO's *Délimitation

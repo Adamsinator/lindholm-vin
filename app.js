@@ -1361,6 +1361,59 @@ $("impFixes").addEventListener("change", e=>{
 });
 $("impGo").addEventListener("click", impRun);
 
+/* ---------- the sommelier (sommelier.js): answers from the site's own data, loaded the first time it opens ---------- */
+const SOMM = {ready:null};
+function loadJS(src){ return new Promise((ok, no) => { const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = () => no(new Error("load " + src)); document.head.appendChild(s); }); }
+// only what isn't there yet (the atlas texts follow the language picker)
+function sommLoad(){
+  const lang = (window.I18N && I18N.lang) || "en";
+  if(SOMM.ready && SOMM.lang === lang) return SOMM.ready;
+  const need = [];
+  if(!window.WINE_KB) need.push("wine-kb.js?v=1");
+  if(!window.SOMM_DATA) need.push("sommelier-data.js?v=1");
+  if(!window.SOMMELIER) need.push("sommelier.js?v=1");
+  if(!window.BURG_VINTAGES) need.push("burgundy-vintages.js?v=5");
+  if(["da","fr","de"].includes(lang) && !(window.BURG_I18N && BURG_I18N[lang])) need.push(`burgundy-i18n-${lang}.js?v=${lang==="de"?1:5}`);
+  SOMM.lang = lang;
+  return SOMM.ready = need.reduce((pr, src) => pr.then(() => loadJS(src)), Promise.resolve()).catch(e => { SOMM.ready = null; throw e; });
+}
+function sommCtx(){
+  const lang = (window.I18N && I18N.lang) || "en";
+  return {lang, wines:WINES, burg:window.BURG, vint:window.BURG_VINTAGES, burgI18n:(window.BURG_I18N||{})[lang] || null,
+    readiness, window:drinkWindow, notes:window.PRODUCER_NOTES};
+}
+function sommSay(html, who){
+  const d = document.createElement("div"); d.className = who === "q" ? "sm-q" : "sm-a";
+  if(who === "q") d.textContent = html; else d.innerHTML = html; // the answer is built escaped by sommelier.js
+  $("sommLog").appendChild(d); $("sommLog").scrollTop = $("sommLog").scrollHeight;
+}
+function sommChips(list){
+  $("sommChips").innerHTML = (list || []).map(c => `<button type="button">${esc(c)}</button>`).join("");
+}
+async function sommAsk(q){
+  q = String(q || "").trim(); if(!q) return;
+  sommSay(q, "q"); $("sommQ").value = "";
+  try{ await sommLoad(); const r = SOMMELIER.answer(q, sommCtx()); sommSay(r.html); sommChips(r.chips); }
+  catch(err){ sommSay(esc(tr("The sommelier couldn't load ({0}). Check your connection and try again.", err.message))); }
+}
+async function sommOpen(){
+  $("sommPanel").hidden = false; $("sommBtn").hidden = true;
+  if(!$("sommLog").children.length){
+    try{ await sommLoad(); const r = SOMMELIER.answer("", sommCtx()); sommSay(r.html); sommChips(r.chips); }
+    catch(err){ sommSay(esc(tr("The sommelier couldn't load ({0}). Check your connection and try again.", err.message))); }
+  }
+  setTimeout(() => $("sommQ").focus(), 30);
+}
+function sommClose(){ $("sommPanel").hidden = true; $("sommBtn").hidden = $("app").hidden; $("sommBtn").focus(); }
+$("sommBtn").addEventListener("click", sommOpen);
+$("sommClose").addEventListener("click", sommClose);
+$("sommForm").addEventListener("submit", e => { e.preventDefault(); sommAsk($("sommQ").value); });
+$("sommChips").addEventListener("click", e => { const b = e.target.closest("button"); if(b) sommAsk(b.textContent); });
+$("sommPanel").addEventListener("keydown", e => { if(e.key === "Escape"){ e.stopPropagation(); sommClose(); } });
+// the button shows with the cellar, not on the login screen
+new MutationObserver(() => { const on = !$("app").hidden; $("sommBtn").hidden = !on || !$("sommPanel").hidden; if(!on) $("sommPanel").hidden = true; })
+  .observe($("app"), {attributes:true, attributeFilter:["hidden"]});
+
 /* ---------- tidy up the cellar (tidy.js): one spelling per thing, one row per wine ---------- */
 const TIDY_STATE = {off:new Set(), groupsOff:new Set(), fixes:[], edits:[], groups:[]};
 function tidyPlan(){

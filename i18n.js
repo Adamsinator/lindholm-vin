@@ -13,6 +13,14 @@ const FLAGS = {
 const LANGS = [{id:"en", n:"English"}, {id:"da", n:"Dansk"}, {id:"de", n:"Deutsch"}, {id:"fr", n:"Français"}];
 
 const DA = {
+  // sommelier
+  "Ask the sommelier": "Spørg sommelieren",
+  "Sommelier": "Sommelier",
+  "Answers from the site's own knowledge — no AI service, nothing leaves the page.": "Svar ud fra sidens egen viden — ingen AI-tjeneste, intet forlader siden.",
+  "Ask about a wine, a vintage, a pairing or your cellar…": "Spørg om en vin, en årgang, mad og vin eller din kælder …",
+  "Your question": "Dit spørgsmål",
+  "Ask": "Spørg",
+  "The sommelier couldn't load ({0}). Check your connection and try again.": "Sommelieren kunne ikke indlæses ({0}). Tjek forbindelsen og prøv igen.",
   "{0} row without a producer is left out.": "{0} række uden producent udelades.",
   "{0} row with 0 bottles is left out.": "{0} række med 0 flasker udelades.",
   "{0} total row is left out.": "{0} sumrække udelades.",
@@ -312,6 +320,14 @@ const DA = {
 };
 
 const FR = {
+  // sommelier
+  "Ask the sommelier": "Demandez au sommelier",
+  "Sommelier": "Sommelier",
+  "Answers from the site's own knowledge — no AI service, nothing leaves the page.": "Des réponses tirées des connaissances du site — aucun service d'IA, rien ne quitte la page.",
+  "Ask about a wine, a vintage, a pairing or your cellar…": "Posez une question sur un vin, un millésime, un accord ou votre cave…",
+  "Your question": "Votre question",
+  "Ask": "Demander",
+  "The sommelier couldn't load ({0}). Check your connection and try again.": "Le sommelier n'a pas pu se charger ({0}). Vérifiez votre connexion et réessayez.",
   "{0} row without a producer is left out.": "{0} ligne sans producteur est ignorée.",
   "{0} row with 0 bottles is left out.": "{0} ligne à 0 bouteille est ignorée.",
   "{0} total row is left out.": "{0} ligne de total est ignorée.",
@@ -599,6 +615,14 @@ const FR = {
   "About the data.": "À propos des données.", "Language": "Langue",
 };
 const DE = {
+  // sommelier
+  "Ask the sommelier": "Fragen Sie den Sommelier",
+  "Sommelier": "Sommelier",
+  "Answers from the site's own knowledge — no AI service, nothing leaves the page.": "Antworten aus dem eigenen Wissen der Seite – kein KI-Dienst, nichts verlässt die Seite.",
+  "Ask about a wine, a vintage, a pairing or your cellar…": "Fragen Sie nach einem Wein, Jahrgang, Speisen oder Ihrem Keller …",
+  "Your question": "Ihre Frage",
+  "Ask": "Fragen",
+  "The sommelier couldn't load ({0}). Check your connection and try again.": "Der Sommelier konnte nicht geladen werden ({0}). Prüfen Sie die Verbindung und versuchen Sie es erneut.",
   "{0} row without a producer is left out.": "{0} Zeile ohne Erzeuger wird ausgelassen.",
   "{0} row with 0 bottles is left out.": "{0} Zeile mit 0 Flaschen wird ausgelassen.",
   "{0} total row is left out.": "{0} Summenzeile wird ausgelassen.",
