@@ -37,7 +37,7 @@ function setting(key) {
 // The legacy code only works once you've set a real one: the placeholder from the template is public.
 function accessCode() { const c = setting('ACCESS_CODE'); return c === 'CHANGE-ME' ? '' : c; }
 
-const API_VERSION = 32; // returned in every response; used to verify deployments
+const API_VERSION = 33; // returned in every response; used to verify deployments
 
 // Per-request spreadsheet for the authenticated user. Set in handle(); every
 // sheet helper reads it via ss(). Falls back to the bound (owner's) spreadsheet.
@@ -585,9 +585,15 @@ function writeVault(book, key, baseVer, data) {
     let cur = 0; const mine = [];
     rows.forEach((r, i) => { if (String(r[0]) === key) { mine.push(i + 2); cur = Number(r[1]) || 0; } });
     if (cur !== baseVer) throw new Error('stale');
-    for (let i = mine.length - 1; i >= 0; i--) sh.deleteRow(mine[i]);
-    const ver = cur + 1, now = new Date();
-    for (let i = 0, part = 0; i < data.length; i += VAULT_PART, part++) sh.appendRow([key, ver, now, part, data.slice(i, i + VAULT_PART)]);
+    // the old parts go bottom up, next-door rows together; the new ones in one write (a big cellar is ~70 parts)
+    for (let i = mine.length - 1; i >= 0;) { let j = i; while (j > 0 && mine[j - 1] === mine[j] - 1) j--; sh.deleteRows(mine[j], i - j + 1); i = j - 1; }
+    const ver = cur + 1, now = new Date(), parts = [];
+    for (let i = 0, part = 0; i < data.length; i += VAULT_PART, part++) parts.push([key, ver, now, part, data.slice(i, i + VAULT_PART)]);
+    if (parts.length) {
+      const at = sh.getLastRow() + 1, need = at + parts.length - 1 - sh.getMaxRows();
+      if (need > 0) sh.insertRowsAfter(sh.getMaxRows(), need);
+      sh.getRange(at, 1, parts.length, 5).setValues(parts);
+    }
     return ver;
   } finally { if (lock) lock.releaseLock(); }
 }
@@ -940,15 +946,18 @@ function addMany(wines, bumps) {
   Object.keys(IMPORT_COLS).forEach(f => { if (wines.some(w => !blank(w[f]))) ensureCol(sh, IMPORT_COLS[f]); });
   const idx = colIndexes(sh), width = sh.getLastColumn(), last = sh.getLastRow();
   const count = v => Math.max(0, Math.round(Number(v) || 0));
+  bumps.forEach(b => { const r = Number(b.row); if (!r || r < 2 || r > last) throw new Error('Bad row'); });
+  // the bottle columns are read once, then only written (one read per bump would flush every write)
+  const qtys = bumps.length ? sh.getRange(2, idx.qty + 1, last - 1, 1).getValues() : [];
+  const drunks = bumps.length ? sh.getRange(2, idx.drunk + 1, last - 1, 1).getValues() : [];
   bumps.forEach(b => {
     const r = Number(b.row);
-    if (!r || r < 2 || r > last) throw new Error('Bad row');
     const qc = sh.getRange(r, idx.qty + 1), dc = sh.getRange(r, idx.drunk + 1);
-    const q0 = Number(qc.getValue()) || 1, d0raw = dc.getValue();
+    const q0 = Number(qtys[r - 2][0]) || 1, d0raw = drunks[r - 2][0];
     const d0 = String(d0raw).trim().toLowerCase() === 'x' ? q0 : Math.min(q0, Number(d0raw) || 0);
     const q = count(b.qty), d = Math.min(count(b.drunk), q);
-    qc.setValue(q0 + q);
-    if (d || String(d0raw).trim().toLowerCase() === 'x') dc.setValue(d0 + d);
+    qc.setValue(q0 + q); qtys[r - 2][0] = q0 + q; // the same row twice adds up
+    if (d || String(d0raw).trim().toLowerCase() === 'x') { dc.setValue(d0 + d); drunks[r - 2][0] = d0 + d; }
   });
   if (!wines.length) return;
   const num = v => { const n = Number(v); return isFinite(n) ? n : ''; };
@@ -983,8 +992,10 @@ function setInfoMany(edits) {
   if (!Array.isArray(edits) || edits.length > IMPORT_MAX) throw new Error('Bad edits');
   const sh = sheet(), last = sh.getLastRow();
   if (edits.some(e => e && e.fields && 'location' in e.fields)) ensureCol(sh, LOCATION_HEADER);
-  edits.forEach(e => { const r = Number(e && e.row); if (!r || r < 2 || r > last) throw new Error('Bad row'); });
-  edits.forEach(e => setInfo(Number(e.row), e.fields || {}));
+  edits.forEach(e => { const r = Number(e && e.row); if (!r || r < 2 || r > last) throw new Error('Bad row');
+    if (e.fields && 'producer' in e.fields && !String(e.fields.producer || '').trim()) throw new Error('Producer is required'); });
+  const idx = colIndexes(sh); // read once: thousands of edits fit in one call
+  edits.forEach(e => writeInfo(sh, idx, Number(e.row), e.fields || {}));
 }
 
 // Rows that hold the same wine, joined into the first ({keep, drop: [rows]}): bottles and drunk bottles add up, price and
@@ -1001,10 +1012,11 @@ function mergeRows(groups) {
   });
   const val = (row, i) => i >= 0 ? row[i] : '';
   const blank = v => v === '' || v === null || v === undefined;
+  const all = sh.getRange(2, 1, last - 1, width).getValues(); // one read, then only writes
   const drops = [];
   groups.forEach(g => {
     const rows = [Number(g.keep)].concat(g.drop.map(Number));
-    const data = rows.map(r => sh.getRange(r, 1, 1, width).getValues()[0]);
+    const data = rows.map(r => all[r - 2]);
     const qty = data.map(d => Number(val(d, idx.qty)) || 1);
     const drunk = data.map((d, i) => String(val(d, idx.drunk)).trim().toLowerCase() === 'x' ? qty[i] : Math.min(qty[i], Number(val(d, idx.drunk)) || 0));
     const sumQ = qty.reduce((a, b) => a + b, 0), sumD = drunk.reduce((a, b) => a + b, 0);
@@ -1026,7 +1038,12 @@ function mergeRows(groups) {
     });
     g.drop.forEach(r => drops.push(Number(r)));
   });
-  drops.sort((a, b) => b - a).forEach(r => sh.deleteRow(r));
+  // bottom up, so the rows above keep their numbers; next-door rows go in one deleteRows
+  drops.sort((a, b) => b - a);
+  for (let i = 0; i < drops.length;) {
+    let j = i; while (j + 1 < drops.length && drops[j + 1] === drops[j] - 1) j++;
+    sh.deleteRows(drops[j], j - i + 1); i = j + 1;
+  }
 }
 
 // Edit a wine's descriptive fields in place (only the INFO_FIELDS given; producer can't be blanked).
@@ -1034,7 +1051,10 @@ function setInfo(rowNum, fields) {
   const sh = sheet();
   if (!rowNum || rowNum < 2 || rowNum > sh.getLastRow()) throw new Error('Bad row');
   if ('location' in fields) ensureCol(sh, LOCATION_HEADER);
-  const idx = colIndexes(sh);
+  writeInfo(sh, colIndexes(sh), rowNum, fields);
+}
+// only writes, so many of them in a row are sent to the sheet together (a read in between would flush each one)
+function writeInfo(sh, idx, rowNum, fields) {
   if ('producer' in fields && !String(fields.producer || '').trim()) throw new Error('Producer is required');
   INFO_FIELDS.forEach(f => {
     if (!(f in fields)) return;

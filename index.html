@@ -47,7 +47,7 @@ body{
   font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   -webkit-font-smoothing:antialiased;
 }
-.wrap{max-width:1100px;margin:0 auto;padding:32px 20px 80px}
+.wrap{max-width:1640px;margin:0 auto;padding:32px clamp(16px,2.6vw,44px) 80px}
 header.top{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px 16px;
   border-bottom:2px solid var(--ink);padding-bottom:14px;margin-bottom:20px}
 header.top h1{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
@@ -460,6 +460,10 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
 .jcheck .lopt{font-size:12.5px;color:var(--muted)}
 .jdone{margin-top:12px;font-size:13px;color:var(--muted);background:var(--chip);border-radius:8px;padding:8px 10px}
 .clshint{color:var(--accent);opacity:.9}
+.morerow td{text-align:center;color:var(--muted);font-size:13px;padding:14px 8px!important}
+.morerow .btn{margin-left:8px}
+.sg{border-style:dashed!important;border-color:var(--accent)!important}
+.sgnote::before{content:"✨ "}
 .jfill{margin:8px 0 0;font-size:12.5px;color:var(--muted);text-transform:none;letter-spacing:0}
 b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor:help}
 /* Enjoyed: fill-in bar and segmented filters */
@@ -824,10 +828,10 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
 <div class="modal" id="addModal" role="dialog" aria-modal="true" aria-labelledby="addTitle">
   <form class="card" id="addForm">
     <h2 id="addTitle">Add wine</h2>
-    <label for="aProducer">Producer *</label><input id="aProducer" required>
+    <label for="aProducer">Producer *</label><input id="aProducer" required list="jProducers" autocomplete="off">
     <div class="row2">
-      <div><label for="aName">Vineyard / cuvée</label><input id="aName"></div>
-      <div><label for="aCommune">Commune</label><input id="aCommune"></div>
+      <div><label for="aName">Vineyard / cuvée</label><input id="aName" list="jWines" autocomplete="off"></div>
+      <div><label for="aCommune">Commune</label><input id="aCommune" list="communesList" autocomplete="off"></div>
     </div>
     <div class="row2">
       <div><label for="aCountry">Country</label><input id="aCountry" value="Frankrig" list="countries">
@@ -835,10 +839,10 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
       <div><label for="aRegion">Region</label><input id="aRegion" list="regionsList"><datalist id="regionsList"></datalist><datalist id="communesList"></datalist></div>
     </div>
     <div class="row2">
-      <div><label for="aClass">Classification</label>
+      <div><label for="aClass">Classification <span class="lopt clshint" id="aClassHint"></span></label>
         <select id="aClass"><option>AOC</option><option>1. cru</option><option>Grand cru</option><option>Special club</option><option value=""></option></select></div>
       <div><label for="aType">Type</label>
-        <select id="aType"><option value="Rød">Red</option><option value="Hvid">White</option><option value="Rose">Rosé</option></select></div>
+        <select id="aType"><option value="Rød">Red</option><option value="Hvid">White</option><option value="Rose">Rosé</option><option value="Bobler">Sparkling</option></select></div>
     </div>
     <div class="row2">
       <div><label for="aGrape">Grape</label><input id="aGrape" list="grapes"><datalist id="grapes"></datalist></div>
@@ -858,6 +862,8 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
       <div><label for="aLocation" data-i18n>Location</label><input id="aLocation" list="locList" data-i18n-ph placeholder="e.g. Cellar, shelf 2"><datalist id="locList"></datalist></div>
     </div>
     <label for="aNote">Note</label><input id="aNote">
+    <p class="lopt jfill" id="aFillNote" hidden></p>
+    <p class="lopt jfill sgnote" id="aSuggest" hidden></p>
     <div class="mact">
       <button type="button" class="btn" id="addCancel">Cancel</button>
       <button type="submit" class="btn primary" id="addSave">Add to cellar</button>
@@ -1151,20 +1157,20 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
 
 <!-- Pages serves these with max-age=600 and no revalidation, so a merged change can
      sit invisible behind a stale app.js for ten minutes. Bump v on every deploy. -->
-<script src="i18n.js?v=21"></script>
+<script src="i18n.js?v=22"></script>
 <script src="notes.js?v=4"></script>
 <script src="burgundy-data.js?v=13"></script>
 <script src="burgundy-data-beaune.js?v=12"></script>
 <script src="burgundy-names.js?v=1"></script>
-<script src="burgundy-match.js?v=1"></script>
+<script src="burgundy-match.js?v=2"></script>
 <script src="gas-fake.js?v=4"></script>
 <script src="vault-crypto.js?v=1"></script>
 <script src="vault-engine.js?v=1"></script>
-<script src="vault.js?v=6"></script>
-<script src="wine-kb.js?v=1"></script>
-<script src="tidy.js?v=1"></script>
-<script src="import.js?v=4"></script>
+<script src="vault.js?v=7"></script>
+<script src="wine-kb.js?v=2"></script>
+<script src="tidy.js?v=2"></script>
+<script src="import.js?v=5"></script>
 <script src="export.js?v=2"></script>
-<script src="app.js?v=16"></script>
+<script src="app.js?v=17"></script>
 </body>
 </html>

@@ -3,3 +3,4 @@ tools/.topo-cache/
 tools/.dem-cache/
 tools/.cadastre-cache/
 tools/.holdings-cache/
+tools/fixtures/big.xlsx

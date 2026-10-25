@@ -103,6 +103,37 @@ t("greeting", "da", "hej", /Jeg er kælderens sommelier/);
 t("empty question", "fr", "", /Je suis le sommelier/);
 t("unknown", "en", "qwertyuiop", /don't know that one yet.*Try asking/);
 
+// how long wines keep
+t("ageing", "en", "how long can I keep Barolo?", /Barolo.*8–30 years after the vintage/);
+t("ageing, with a year", "en", "how long can i keep a 2010 bonnes mares", /Bonnes-Mares.*10–30 years.*A 2010 would be at its best about 2020–2040/);
+t("ageing, a village", "en", "how long does Meursault keep", /Meursault.*3–10 years/);
+t("ageing, the note", "da", "hvor længe kan jeg gemme chablis", /Chablis.*3–10 år.*grands crus 8–20/);
+t("ageing, drink young", "en", "how long can I keep prosecco", /Prosecco.*best young, within 2 years/);
+t("ageing, Burgundy's levels", "en", "how long can I keep burgundy", /regional wines 2–6 years, village 4–12.*grand cru 10–30/);
+t("ageing, a grape", "fr", "combien de temps garder un pinot noir", /Pinot Noir.*3 à 12 ans/);
+t("ageing, German", "de", "wie lange kann ich barolo lagern", /Barolo.*8–30 Jahre/);
+t("ageing, your own", "en", "how long can I keep my rousseau", /drink windows.*Clos St-Jacques 2016.*drink 2024–2041/);
+t("an opened bottle is not ageing", "de", "wie lange hält ein geöffneter wein", /Nach dem Öffnen/);
+t("storing is not ageing", "de", "Wie soll ich Wein lagern?", /10–14 °C/);
+// the best years
+t("best vintages, Burgundy", "en", "best vintages for red cote de nuits", /best vintages for red Côte de Nuits.*2015 98.*2005 98/);
+t("best vintages, a chart", "da", "bedste årgange for champagne", /Champagne \(årgang\).*2012.*2008.*2002/);
+t("a good vintage, no year", "en", "what is a good champagne vintage", /best vintages for Champagne/);
+// comparisons, places, terms, facts
+t("difference between two terms", "en", "what is the difference between premier cru and grand cru", /Premier cru.*second tier.*Grand cru.*top classification/);
+t("X vs Y", "da", "barolo vs barbaresco", /Barolo er en appellation.*Barbaresco er en appellation/);
+t("where is a place not in the cellar", "en", "where is chablis", /Chablis is an appellation in Burgundy/);
+t("soil", "en", "what soil is in chablis", /Kimmeridgian limestone and marl/);
+t("style and soil on the card", "fr", "parle-moi de pauillac", /graves sur calcaire.*Lafite, Latour, Mouton/);
+t("how long it keeps on the card", "en", "tell me about pauillac", /Keeps: typically 10–30 years/);
+t("glasses", "en", "what glass for burgundy", /wide bowl for Pinot Noir/);
+t("glasses per bottle, not the cellar", "da", "hvor mange glas i en flaske", /fem glas á 15 cl/);
+t("calories", "en", "how many calories in wine", /90–100 kcal/);
+t("bottle sizes", "de", "was ist eine magnum", /Magnum 1,5 l/);
+t("a producer's nickname", "en", "what is DRC", /Domaine de la Romanée-Conti/);
+t("brett", "en", "what does brett mean in wine", /wild yeast/);
+t("a typo of German 'lange' is not Langhe", "de", "wie lange kann ich chablis lagern", /Chablis/);
+
 // safety: what is typed is never HTML
 const h = ask("en", '<img src=x onerror=alert(1)> where is my <b>rousseau</b>');
 check("typed HTML is never echoed as HTML", !/<img|<b>rousseau/i.test(h), h);
