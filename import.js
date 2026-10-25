@@ -13,7 +13,7 @@
 
 const MAX_FILE = 20 * 1024 * 1024;   // bytes
 const MAX_PART = 200 * 1024 * 1024;  // uncompressed size of one part of a workbook (a zip bomb guard)
-const MAX_ROWS = 5000;
+const MAX_ROWS = 25000;
 
 // ── zip (just enough for .xlsx) ─────────────────────────────────────────────────
 async function inflateRaw(bytes) {

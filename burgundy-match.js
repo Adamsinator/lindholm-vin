@@ -4,7 +4,8 @@
 // Chambertin, and a premier cru needs its commune on the label (there are three Les Cras).
 //
 //   const M = BURG_MATCH.make(climats, villages)   // climats: [{id, n, c:"GC"|"1er"|"V", v, geo, inner}], villages: [{id, n}]
-//   M.match({name, commune})  → {c: climat or null, vil: village id or undefined}
+//   M.match({name, commune}, loose)  → {c: climat or null, vil: village id or undefined}; loose: a premier cru whose name
+//                                       is unique in the atlas needs no commune (the Add form's suggestions)
 //   BURG_MATCH.classify(wine) → {cls:"Grand cru"|"1. cru"|"AOC", why, climat} or null   (uses window.BURG + BURG_NAMES)
 (function(){
 "use strict";
@@ -29,7 +30,9 @@ function make(C, V){
     if(c.id==="laromanee") a.splice(0, a.length, "la romanee");
     return {c, a};
   });
-  function match(w){
+  // how many vineyards answer to each name: a name only one has is unambiguous without its commune
+  const OWNERS = new Map(); ALIASES.forEach(({c,a}) => a.forEach(al => { const s = OWNERS.get(al) || new Set(); s.add(c.n); OWNERS.set(al, s); }));
+  function match(w, loose){
     const commune = norm(w.commune), name = norm(w.name), all = " "+name+" "+commune+" ";
     let stripped = all; STRIP_RE.forEach(re => stripped = stripped.replace(re, "")); // lookarounds: back-to-back repeats are all removed
     const vil = VILLAGE_KEYS.filter(([,k]) => all.includes(" "+k+" ")).map(([id])=>id);
@@ -39,7 +42,7 @@ function make(C, V){
         if(!stripped.includes(" "+al+" ")) continue;
         if(c.c!=="GC"){ // a premier cru / village climat needs its commune on the label (Les Cras exists three times)
           const ok = vil.includes(c.v) || (c.v==="flagey" && vil.includes("vosne")) || (c.v==="premeaux" && vil.includes("nuits")) || (c.geo==="flagey" && vil.includes("vosne"));
-          if(!ok) continue;
+          if(!ok && !(loose && OWNERS.get(al).size===1)) continue;
         }
         if(!best || al.length > best.len || (al.length===best.len && c.inner)) best = {c, len:al.length};
       }
@@ -66,7 +69,7 @@ function defaultMatcher(){
   const B = window.BURG, X = (window.BURG_NAMES && window.BURG_NAMES.climats) || [];
   const ids = new Set(B.climats.map(c => c.id));
   // the atlas's climats, plus INAO's other premiers crus (burgundy-names.js), which the atlas draws but has no notes for
-  const C = B.climats.map(c => ({id:c.id, n:c.n, c:c.c, v:c.v, geo:c.geo, inner:!!c.in}))
+  const C = B.climats.map(c => ({id:c.id, n:c.n, c:c.c, v:c.v, geo:c.geo, col:c.col, inner:!!c.in}))
     .concat(X.filter(x => !ids.has(x[0])).map(([id, n, c, v, inn]) => ({id, n, c, v, inner:!!inn})));
   DEFAULT = make(C, B.villages);
   return DEFAULT;
@@ -85,5 +88,15 @@ function classify(w){
   if(m.vil && (commune || name)) return {cls:CLS.V, why:"village"};
   return null;
 }
-window.BURG_MATCH = {make, norm, classify, classKey, CLS};
+// Where a Burgundy name is: the climat's commune and colour ("Les Pucelles" + Puligny → Puligny-Montrachet, "W"), for the
+// Add form's suggestions. A premier cru needs its commune, unless no other vineyard has its name ("Clos St-Jacques").
+//   place({name, commune}) → {climat, cls, commune, col} or null
+function place(w){
+  const M = defaultMatcher(); if(!M) return null;
+  const m = M.match({name:String(w.name||""), commune:String(w.commune||"")}, true);
+  if(!m.c) return null;
+  const vil = (window.BURG.villages.find(v => v.id===m.c.v) || {}).n;
+  return {climat:m.c.n, cls:CLS[m.c.c] || CLS.V, commune: vil ? vil.split(" · ")[0] : "", col:m.c.col || ""};
+}
+window.BURG_MATCH = {make, norm, classify, classKey, CLS, place};
 })();

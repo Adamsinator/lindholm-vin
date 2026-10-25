@@ -191,6 +191,7 @@ Savagnin|w|Naturé,Traminer
 Jacquère|w|Jacquere
 Altesse|w|Roussette
 Chasselas|w|Fendant,Gutedel
+Petite Arvine|w|Arvine
 Grüner Veltliner|w|Gruner Veltliner,Veltliner
 Furmint|w|Šipon
 Hárslevelű|w|Harslevelu
@@ -351,6 +352,7 @@ Blaye|Bordeaux|r:Merlot,Cabernet Sauvignon
 Entre-Deux-Mers|Bordeaux|w:Sauvignon Blanc,Sémillon,Muscadelle
 Sauternes|Bordeaux|d:Sémillon,Sauvignon Blanc,Muscadelle
 Barsac|Bordeaux|d:Sémillon,Sauvignon Blanc,Muscadelle
+Bordeaux|Bordeaux|r:Merlot,Cabernet Sauvignon,Cabernet Franc;w:Sauvignon Blanc,Sémillon;p:Merlot,Cabernet Franc
 Bordeaux Supérieur|Bordeaux|r:Merlot,Cabernet Sauvignon,Cabernet Franc
 Crémant de Bordeaux|Bordeaux|s:Sémillon,Cabernet Franc,Merlot
 Champagne|Champagne|s:Chardonnay,Pinot Noir,Pinot Meunier
@@ -551,6 +553,12 @@ Swartland|Swartland|w:Chenin Blanc;r:Syrah
 Maipo|Maipo|r:Cabernet Sauvignon
 Colchagua|Colchagua|r:Carmenère,Cabernet Sauvignon
 Bekaa Valley|Bekaa|r:Cabernet Sauvignon,Cinsault,Carignan
+Valais|Valais|w:Chasselas,Petite Arvine;r:Pinot Noir,Gamay
+Vaud|Vaud|w:Chasselas
+Württemberg|Württemberg|r:Trollinger,Blaufränkisch;w:Riesling
+Wiener Gemischter Satz|Wien|w:Grüner Veltliner,Riesling,Weißburgunder
+Yarra Valley|Yarra Valley|r:Pinot Noir;w:Chardonnay
+Hawke's Bay|Hawke's Bay|r:Syrah,Merlot;w:Chardonnay
 `;
 
 const norm = s => String(s == null ? "" : s).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase()
@@ -567,7 +575,60 @@ const apps = lines(APPS).map(([n, region, spec]) => {
   return { n, region, wines };
 });
 
-const api = { countries, regions, grapes, apps, COLOURS, norm };
+// What a half-filled Add form most likely means: the appellation found in the name / commune / region (the longest one
+// that's written there, so "Bourgogne Aligoté" beats "Bourgogne"), then the grape for the colour, the region and the
+// country. `place` is the Burgundy climat behind a name, when the atlas knows it ({commune, col:"R"|"W"|"RW"}).
+//   suggest({name, commune, region, country, type, grape, typeSet, place}) →
+//     {app, region, country, type ("Rød"|"Hvid"|"Rose"|"Bobler"), grape} with only the fields it has evidence for
+const TYPE_COL = { "Rød": "r", "Hvid": "w", "Rose": "p", "Rosé": "p", "Bobler": "s" };
+const COL_TYPE = { r: "Rød", w: "Hvid", p: "Rose", s: "Bobler", d: "Hvid", f: "Rød" };
+let APP_KEYS = null, REG_KEYS = null, GRAPE_KEYS = null;
+function keys() {
+  if (APP_KEYS) return;
+  APP_KEYS = apps.map(a => [" " + norm(a.n) + " ", a]).sort((x, y) => y[0].length - x[0].length);
+  REG_KEYS = new Map(); regions.forEach(r => [r.n, ...Object.values(r.names), ...r.alias].forEach(k => REG_KEYS.set(norm(k), r)));
+  GRAPE_KEYS = new Map(); grapes.forEach(g => [g.n, ...g.syn].forEach(k => GRAPE_KEYS.set(norm(k), g)));
+}
+function findApp(...texts) {
+  keys();
+  const all = " " + texts.map(norm).filter(Boolean).join(" ") + " ";
+  for (const [k, a] of APP_KEYS) if (all.includes(k)) return a;
+  return null;
+}
+function suggest(f) {
+  keys();
+  const out = {}, grapeTxt = norm(f.grape);
+  const place = f.place || null;
+  let app = findApp(f.name, place && place.commune, f.commune, f.region);
+  if (!app && f.region) { const r = REG_KEYS.get(norm(f.region)); if (r) app = findApp(r.n); }
+  if (app) out.app = app.n;
+  // the grape you typed says the colour ("Riesling" → white); several grapes: the first one known
+  let gcol = "";
+  if (grapeTxt) for (const part of String(f.grape).split(/[,/&+]| og | and | und | et /)) { const g = GRAPE_KEYS.get(norm(part)); if (g) { gcol = g.col; break; } }
+  // the colour: yours if you chose one, else the grape's, the climat's or the appellation's only one
+  let col = f.typeSet ? TYPE_COL[f.type] || "" : "";
+  if (!col && gcol) col = gcol;
+  if (!col && place && (place.col === "R" || place.col === "W")) col = place.col === "R" ? "r" : "w";
+  if (!col && app) { const cs = [...new Set(app.wines.flatMap(w => w.cols))]; if (cs.length === 1 || app.wines.length === 1) col = cs[0]; }
+  if (!col && app && /\b(blanc|bianco|weiss|white|hvid)\b/.test(norm(f.name))) col = "w";
+  if (!col && app && /\b(rouge|rosso|rot|red|rod)\b/.test(norm(f.name))) col = "r";
+  if (!col && app) col = app.wines[0].cols[0]; // the main wine (listed first: Meursault is white, Bourgogne red)
+  if (col && !f.typeSet && !gcol) out.type = COL_TYPE[col];
+  else if (gcol && !f.typeSet) out.type = COL_TYPE[gcol];
+  // the grape for that colour (rosé/sparkling fall back to the red/white group), at most three names
+  if (app) {
+    const grp = app.wines.find(w => w.cols.includes(col)) || (col === "p" && app.wines.find(w => w.cols.includes("r")))
+      || (col === "s" && app.wines.find(w => w.cols.includes("w"))) || (!col && app.wines[0]);
+    if (grp && grp.grapes.length) out.grape = grp.grapes.slice(0, 3).join(", ");
+  }
+  // region and country
+  const reg = (app && REG_KEYS.get(norm(app.region))) || REG_KEYS.get(norm(f.region));
+  if (reg) { out.region = reg.n; out.country = reg.country; }
+  else if (app) { const c = countries.find(c => c.n === app.region); if (c) out.country = c.n; }
+  return out;
+}
+
+const api = { countries, regions, grapes, apps, COLOURS, norm, suggest, findApp };
 if (typeof module !== "undefined" && module.exports) module.exports = api;
 else root.WINE_KB = api;
 })(typeof window !== "undefined" ? window : globalThis);

@@ -210,9 +210,12 @@ function normalize(rows){
 // "Chambertin" → Grand cru, "Gevrey-Chambertin" → village (AOC). Elsewhere only an explicit "Grand cru"/"1er cru"
 // on the label counts. Nothing is written to the sheet until you save a form or press "Fill them in".
 const clsKey = c => window.BURG_MATCH ? BURG_MATCH.classKey(c) : String(c||"").trim().toLowerCase();
+const CLASS_MEMO = new Map(); // the same name, commune and region always give the same guess
 function suggestClass(w){
   if(!window.BURG_MATCH) return null;
-  return BURG_MATCH.classify({name: w.name!=null ? w.name : w.wine, commune:w.commune, region:w.region});
+  const q = {name: w.name!=null ? w.name : w.wine, commune:w.commune, region:w.region}, k = q.name+"|"+q.commune+"|"+q.region;
+  if(!CLASS_MEMO.has(k)){ if(CLASS_MEMO.size > 50000) CLASS_MEMO.clear(); CLASS_MEMO.set(k, BURG_MATCH.classify(q)); }
+  return CLASS_MEMO.get(k);
 }
 function classShown(w){
   const c = String(w.classification||"").trim();
@@ -751,7 +754,8 @@ function renderTable(){
   document.querySelectorAll("#producers .rbar").forEach(el=>el.classList.toggle("active", el.dataset.prod===state.q.trim() && !!state.q.trim()));
   syncMapActive();
 
-  $("rows").innerHTML = list.map((w,i)=>{
+  const shown = pageOf(list, "cellar");
+  $("rows").innerHTML = shown.map((w,i)=>{
     const pn = PRODUCER_NOTES[w.producer];
     const badge = pn?`<span class="badge ${pn[0]}">${TIER_LABEL[pn[0]]}</span>`:"";
     const rd = w.left>0 ? readiness(w) : null;
@@ -766,8 +770,8 @@ function renderTable(){
       <td class="num">${state.status==="drunk"?w.drunk:w.left}</td>
       <td class="num">${SHOW_PRICES ? (w.price?kr(w.price):"—") : "···"}</td>
     </tr>
-    <tr class="detail" hidden><td colspan="6">${detailHTML(w)}</td></tr>`;
-  }).join("");
+    <tr class="detail" hidden><td colspan="6"></td></tr>`;
+  }).join("") + moreRow(list.length, shown.length, 6, "cellar");
   if(!list.length){
     const anyWines = WINES.some(w=>w.left>0);
     const msg = !anyWines ? "Your cellar is empty — press <b>＋ Add wine</b> to start building it."
@@ -781,7 +785,7 @@ function renderTable(){
 // Wire up expand + per-row controls for a wine table (cellar or enjoyed).
 function bindWineRows(scope){
   document.querySelectorAll(`${scope} tr.main`).forEach(tr=>{
-    const open = ()=>{ const d=tr.nextElementSibling; const show=d.hidden; d.hidden=!show;
+    const open = ()=>{ const d=tr.nextElementSibling; const show=d.hidden; if(show) fillDetail(d, tr); d.hidden=!show;
       tr.setAttribute("aria-expanded",String(show)); KEEP_OPEN = show ? Number(tr.dataset.row) : null; };
     tr.addEventListener("click",e=>{ if(e.target.closest("a,button,select,input,label")) return; open(); });
     tr.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); open(); } });
@@ -789,33 +793,63 @@ function bindWineRows(scope){
   // keep the actively-edited row expanded through re-renders
   if(KEEP_OPEN!=null){
     const tr=document.querySelector(`${scope} tr.main[data-row="${KEEP_OPEN}"]`);
-    if(tr && tr.nextElementSibling){ tr.nextElementSibling.hidden=false; tr.setAttribute("aria-expanded","true"); }
+    if(tr && tr.nextElementSibling){ fillDetail(tr.nextElementSibling, tr); tr.nextElementSibling.hidden=false; tr.setAttribute("aria-expanded","true"); }
   }
-  document.querySelectorAll(`${scope} button.drink`).forEach(b=>
+  document.querySelectorAll(`${scope} tr.morerow button`).forEach(b=>b.addEventListener("click",()=>{
+    PAGE_SIZE[b.dataset.tbl].n = b.dataset.all ? Infinity : PAGE_SIZE[b.dataset.tbl].n + PAGE_STEP;
+    b.dataset.tbl==="cellar" ? renderTable() : renderEnjoyed();
+  }));
+}
+// A wine's details are built when its row is first opened: a big cellar would otherwise build thousands of them on
+// every render (and every keystroke in the search).
+function fillDetail(d, tr){
+  const td = d.firstElementChild; if(!td || td.childElementCount) return;
+  const w = WINES.find(x=>x.row===Number(tr.dataset.row)); if(!w) return;
+  td.innerHTML = detailHTML(w); bindDetail(td);
+}
+// The tables show a page at a time, and "Show more" adds the next; changing the search, a filter or the sort starts again
+// from the top.
+const PAGE_STEP = 200, PAGE_SIZE = {cellar:{n:PAGE_STEP, key:""}, enjoyed:{n:PAGE_STEP, key:""}};
+function pageOf(list, tbl){
+  const ps = PAGE_SIZE[tbl], key = JSON.stringify(tbl==="cellar" ? state : eState);
+  if(key!==ps.key){ ps.key = key; ps.n = PAGE_STEP; }
+  // the open wine stays in view even when it's further down
+  const n = ps.n, i = KEEP_OPEN!=null ? list.findIndex(w=>w.row===KEEP_OPEN) : -1;
+  return i >= n ? list.slice(0, n).concat(list[i]) : list.slice(0, n);
+}
+function moreRow(total, shown, cols, tbl){
+  if(shown >= total) return "";
+  const step = Math.min(PAGE_STEP, total - shown);
+  return `<tr class="morerow"><td colspan="${cols}">${esc(tr("Showing {0} of {1} wines", fmt(shown), fmt(total)))}
+    <button type="button" class="btn" data-tbl="${tbl}">${esc(tr("Show {0} more", fmt(step)))}</button>
+    <button type="button" class="btn quiet" data-tbl="${tbl}" data-all="1">${esc(tr("Show all"))}</button></td></tr>`;
+}
+function bindDetail(root){
+  root.querySelectorAll("button.drink").forEach(b=>
     b.addEventListener("click",()=>rowAction(b.dataset.act, Number(b.dataset.row), b)));
-  document.querySelectorAll(`${scope} select.rate`).forEach(sel=>
+  root.querySelectorAll("select.rate").forEach(sel=>
     sel.addEventListener("change",()=>rateWine(Number(sel.dataset.row), sel.value, sel)));
-  document.querySelectorAll(`${scope} select.setsize`).forEach(sel=>
+  root.querySelectorAll("select.setsize").forEach(sel=>
     sel.addEventListener("change",()=>setSizeApi(Number(sel.dataset.row), sel.value, sel)));
-  document.querySelectorAll(`${scope} input.setval`).forEach(inp=>
+  root.querySelectorAll("input.setval").forEach(inp=>
     inp.addEventListener("change",()=>setValueApi(Number(inp.dataset.row), inp.value, inp)));
-  document.querySelectorAll(`${scope} input.setdate`).forEach(inp=>
+  root.querySelectorAll("input.setdate").forEach(inp=>
     inp.addEventListener("change",()=>setDateApi(Number(inp.dataset.row), inp.dataset.field, inp.value, inp)));
-  document.querySelectorAll(`${scope} input.setwin`).forEach(inp=>
+  root.querySelectorAll("input.setwin").forEach(inp=>
     inp.addEventListener("change",()=>setWindowApi(inp)));
-  document.querySelectorAll(`${scope} input.setloc`).forEach(inp=>
+  root.querySelectorAll("input.setloc").forEach(inp=>
     inp.addEventListener("change",()=>setLocationApi(Number(inp.dataset.row), inp.value, inp)));
-  document.querySelectorAll(`${scope} .wj-more`).forEach(b=>
+  root.querySelectorAll(".wj-more").forEach(b=>
     b.addEventListener("click",()=>{ location.hash="journal"; }));
-  document.querySelectorAll(`${scope} button.jlog`).forEach(b=>
+  root.querySelectorAll("button.jlog").forEach(b=>
     b.addEventListener("click",()=>{
       const w = WINES.find(x=>x.row===Number(b.dataset.row));
       openJournalModal(w ? {producer:w.producer, wine:w.name, vintage:w.vintage,
         country:w.country, region:w.region, grape:w.grape, commune:w.commune, classification:w.classification} : null);
     }));
-  document.querySelectorAll(`${scope} button.winfo`).forEach(b=>
+  root.querySelectorAll("button.winfo").forEach(b=>
     b.addEventListener("click",()=>{ const w = WINES.find(x=>x.row===Number(b.dataset.row)); if(w) openInfo(w); }));
-  document.querySelectorAll(`${scope} button.fshare`).forEach(b=>
+  root.querySelectorAll("button.fshare").forEach(b=>
     b.addEventListener("click",async()=>{
       const w = WINES.find(x=>x.row===Number(b.dataset.row));
       await ensureFeedUsers();
@@ -972,7 +1006,7 @@ async function addWine(e){
     WINES = normalize(res.wines);
     renderOverview(); renderTable(); renderEnjoyed();
     $("addModal").classList.remove("open");
-    $("addForm").reset(); $("aQty").value = 1; $("aCountry").value = "Frankrig";
+    addReset();
     toast(wine.producer+" added to the cellar");
   }catch(err){ toast("Could not add: "+err.message); }
   btn.disabled = false; btn.textContent = "Add to cellar";
@@ -1172,6 +1206,7 @@ $("priceBtn").addEventListener("click", ()=>{
 });
 $("addBtn").addEventListener("click", ()=>{
   if(!$("aAcquired").value) $("aAcquired").value = todayStr();
+  fillCommunes(); addProducers(); addSuggest();
   $("addModal").classList.add("open"); $("aProducer").focus();
 });
 $("addCancel").addEventListener("click", ()=>$("addModal").classList.remove("open"));
@@ -1299,10 +1334,12 @@ function impBuild(){
   $("impDupLbl").textContent = nd ? tr("{0} of these are already in your cellar (same producer, wine, vintage and format):", nd) : "";
   impGoLabel();
 }
+// how many of the file's rows a set of bumps covers (several rows can add to one cellar row)
+const IMP_DUPES_IN = bs => { const rows = new Set(bs.map(b=>b.row)); return IMP.d.dupes.filter(d=>rows.has(d.row)).length; };
 const impMode = () => (document.querySelector('input[name="impDup"]:checked') || {}).value || "add";
 function impGoLabel(){
   const total = !IMP.d ? 0 : IMP.d.fresh.length + (impMode()==="add" ? IMP.d.dupes.length : 0);
-  $("impGo").textContent = tr("Import {0} wines", total);
+  $("impGo").textContent = tr("Import {0} wines", fmt(total));
   $("impGo").disabled = !total;
 }
 async function impRun(){
@@ -1311,16 +1348,20 @@ async function impRun(){
   const bumps = mode==="add" ? IMPORT.bumps(IMP.d.dupes) : [];
   const merged = mode==="add" ? IMP.d.dupes.length : 0, total = wines.length + merged;
   if(!total) return;
-  // an encrypted cellar runs it here in one go; a plain one sends it to Apps Script in chunks it can write in time
-  const size = (window.VAULT && VAULT.active()) ? wines.length || 1 : 400;
+  // in parts: Apps Script must write each in well under its 6 minutes (a plain sheet), and takes at most 5,000 rows a
+  // call (an encrypted cellar runs it here, so its parts are as big as that allows). Bottles added to rows already
+  // in the cellar go first, then the new wines.
+  const vault = window.VAULT && VAULT.active();
+  const parts = [], WSZ = vault ? 4000 : 400, BSZ = vault ? 4000 : 1000;
+  for(let i = 0; i < bumps.length; i += BSZ){ const b = bumps.slice(i, i + BSZ); parts.push({wines:[], bumps:b, n:IMP_DUPES_IN(b)}); }
+  for(let i = 0; i < wines.length; i += WSZ){ const w = wines.slice(i, i + WSZ); parts.push({wines:w, bumps:[], n:w.length}); }
   const btn = $("impGo"); btn.disabled = true; $("impErr").textContent = "";
   let done = 0;
   try{
-    for(let i = 0; i < Math.max(wines.length, 1); i += size){
-      const part = wines.slice(i, i + size);
-      btn.textContent = tr("Importing… {0} of {1}", done, total);
-      const res = await api({action:"addmany", wines:part, bumps: i === 0 ? bumps : []});
-      done += part.length + (i === 0 ? merged : 0);
+    for(const part of parts){
+      btn.textContent = tr("Importing… {0} of {1}", fmt(done), fmt(total));
+      const res = await api({action:"addmany", wines:part.wines, bumps:part.bumps});
+      done += part.n;
       WINES = normalize(res.wines);
     }
     renderOverview(); renderTable(); renderEnjoyed();
@@ -1369,9 +1410,9 @@ function sommLoad(){
   const lang = (window.I18N && I18N.lang) || "en";
   if(SOMM.ready && SOMM.lang === lang) return SOMM.ready;
   const need = [];
-  if(!window.WINE_KB) need.push("wine-kb.js?v=1");
-  if(!window.SOMM_DATA) need.push("sommelier-data.js?v=1");
-  if(!window.SOMMELIER) need.push("sommelier.js?v=1");
+  if(!window.WINE_KB) need.push("wine-kb.js?v=2");
+  if(!window.SOMM_DATA) need.push("sommelier-data.js?v=2");
+  if(!window.SOMMELIER) need.push("sommelier.js?v=2");
   if(!window.BURG_VINTAGES) need.push("burgundy-vintages.js?v=5");
   if(["da","fr","de"].includes(lang) && !(window.BURG_I18N && BURG_I18N[lang])) need.push(`burgundy-i18n-${lang}.js?v=${lang==="de"?1:5}`);
   SOMM.lang = lang;
@@ -1453,10 +1494,18 @@ function tidyRender(){
 async function tidyRun(){
   const S = TIDY_STATE, btn = $("tidyGo"); btn.disabled = true; $("tidyErr").textContent = "";
   try{
+    // in parts, like the import: each must be written well within Apps Script's time, and at most 5,000 a call
+    const vault = window.VAULT && VAULT.active(), ESZ = vault ? 4000 : 800, GSZ = vault ? 4000 : 300;
     let res;
-    if(S.edits.length) res = await api({action:"setinfomany", edits:S.edits});
-    const groups = S.groups.filter(g => !S.groupsOff.has(String(g.keep)));
-    if(groups.length) res = await api({action:"mergerows", groups});
+    for(let i = 0; i < S.edits.length; i += ESZ) res = await api({action:"setinfomany", edits:S.edits.slice(i, i + ESZ)});
+    // merging deletes rows, so the rows of the later parts move up by the rows deleted above them
+    let groups = S.groups.filter(g => !S.groupsOff.has(String(g.keep))), gone = [];
+    const moved = r => { let n = 0; for(const d of gone) if(d < r) n++; return r - n; };
+    for(let i = 0; i < groups.length; i += GSZ){
+      const part = groups.slice(i, i + GSZ).map(g => ({keep:moved(g.keep), drop:g.drop.map(moved)}));
+      res = await api({action:"mergerows", groups:part});
+      gone = gone.concat(groups.slice(i, i + GSZ).flatMap(g => g.drop)).sort((a,b)=>a-b);
+    }
     if(res){ WINES = normalize(res.wines); KEEP_OPEN = null; renderOverview(); renderTable(); renderEnjoyed(); }
     $("tidyModal").classList.remove("open");
     toast(tr("Cellar tidied 🧹"));
@@ -1514,7 +1563,10 @@ $("expCancel").addEventListener("click", ()=>$("expModal").classList.remove("ope
 $("expModal").addEventListener("click", e=>{ if(e.target===$("expModal")) $("expModal").classList.remove("open"); });
 
 /* ---------- filters / sorting (bound once) ---------- */
-$("q").addEventListener("input",e=>{ state.q=e.target.value; renderTable(); });
+// a big cellar waits for a pause in the typing instead of filtering thousands of wines on every key
+let Q_T = null;
+$("q").addEventListener("input",e=>{ state.q=e.target.value; clearTimeout(Q_T);
+  if(WINES.length > 2000) Q_T = setTimeout(renderTable, 160); else renderTable(); });
 $("fRegion").addEventListener("change",e=>{ state.region=e.target.value; renderTable(); });
 $("fLoc").addEventListener("change",e=>{ state.loc=e.target.value; renderTable(); });
 $("fStyle").addEventListener("change",e=>{ state.style=e.target.value; renderTable(); });
@@ -2345,6 +2397,57 @@ function wireAutofill(ids){
 const J_IDS = {producer:"jProducer", wine:"jWine", country:"jCountry", region:"jRegion", commune:"jCommune", grape:"jGrape", class:"jClass", note:"jFillNote"};
 const EA_IDS = {producer:"eaProducer", wine:"eaWine", country:"eaCountry", region:"eaRegion", commune:"eaCommune", grape:"eaGrape", class:"eaClass", type:"eaType", note:"eaFillNote"};
 wireAutofill(J_IDS); wireAutofill(EA_IDS);
+
+/* ---------- Add form: suggestions from where the wine is from ---------- */
+// A red Burgundy is Pinot Noir, a white one Chardonnay (Bourgogne Aligoté and Bouzeron aside), Mosel is Riesling:
+// once the name, commune or region says where a wine is from, the empty fields are filled in from the appellation
+// (wine-kb.js) and the atlas's climats (burgundy-match.js), and marked as suggested. A suggested field keeps
+// following what you type elsewhere until you type in it yourself; nothing you typed is overwritten.
+const ADD_IDS = {producer:"aProducer", wine:"aName", country:"aCountry", region:"aRegion", commune:"aCommune", grape:"aGrape", class:"aClass", type:"aType", note:"aFillNote"};
+wireAutofill(ADD_IDS);
+const ADD_SG = [["commune","aCommune"],["region","aRegion"],["country","aCountry"],["grape","aGrape"]];
+const sgFree = id => !$(id).value.trim() || $(id).dataset.sg==="1";
+function addSuggest(){
+  if(!window.WINE_KB) return;
+  const g = id => sgFree(id) ? "" : $(id).value.trim(), ty = $("aType");
+  const name = $("aName").value.trim(), commune = g("aCommune");
+  // the atlas's vineyards only for what could be a Burgundy
+  const reg = g("aRegion"), burg = !reg || /bourgogne|burgund|bourgogne|cote d.?or|chablis/i.test(WINE_KB.norm(reg));
+  const pl = burg && window.BURG_MATCH && BURG_MATCH.place ? BURG_MATCH.place({name, commune}) : null;
+  const sg = WINE_KB.suggest({name, commune, region:g("aRegion"), grape:g("aGrape"), type:ty.value, typeSet:ty.dataset.touched==="1", place:pl});
+  if(pl && pl.commune && !commune) sg.commune = pl.commune;
+  const said = [];
+  for(const [f, id] of ADD_SG){
+    const el = $(id); if(!sgFree(id)) { el.classList.remove("sg"); continue; }
+    if(sg[f]){ el.value = sg[f]; el.dataset.sg = "1"; el.classList.add("sg"); if(el.value!==el.defaultValue) said.push(f); }
+    else if(el.dataset.sg==="1"){ el.value = el.defaultValue; el.dataset.sg = el.defaultValue ? "1" : ""; el.classList.remove("sg"); }
+  }
+  if(ty.dataset.touched!=="1"){
+    ty.value = sg.type || "Rød"; ty.classList.toggle("sg", !!sg.type);
+    if(sg.type) said.push("colour");
+  }
+  const from = pl ? pl.climat : sg.app, nt = $("aSuggest");
+  nt.hidden = !said.length || !from;
+  if(!nt.hidden){
+    const L = {commune:tr("commune"), region:tr("region"), country:tr("country"), grape:tr("grape"), colour:tr("colour")};
+    nt.textContent = tr("Suggested from {0}: {1}. Change anything that's wrong.").replace("{0}", from).replace("{1}", said.map(f=>L[f]).join(", "));
+  }
+  classHint(ADD_IDS);
+}
+function addProducers(){
+  $("jProducers").innerHTML = [...new Set(WINES.map(w=>w.producer).filter(Boolean))].sort().map(x=>`<option>${esc(x)}</option>`).join("");
+}
+function addReset(){
+  $("addForm").reset(); $("aQty").value = 1;
+  ADD_SG.forEach(([, id])=>{ $(id).dataset.sg = $(id).defaultValue ? "1" : ""; $(id).classList.remove("sg"); });
+  $("aType").dataset.touched = ""; $("aType").classList.remove("sg"); $("aClass").dataset.auto = "1";
+  $("aFillNote").hidden = true; $("aSuggest").hidden = true; $("aClassHint").textContent = "";
+}
+// typing in a field makes it yours; the rest follow
+ADD_SG.forEach(([, id])=>$(id).addEventListener("input", ()=>{ $(id).dataset.sg = ""; $(id).classList.remove("sg"); }));
+["aName","aCommune","aRegion","aGrape","aProducer"].forEach(id=>$(id).addEventListener("input", addSuggest));
+$("aType").addEventListener("change", ()=>{ $("aType").classList.remove("sg"); addSuggest(); });
+addReset();
 function fillCommunes(){
   const B = window.BURG ? window.BURG.villages.flatMap(v=>v.n.split(" · ")) : [];
   $("communesList").innerHTML = [...new Set([...WINES.map(w=>w.commune), ...(JENTRIES||[]).map(e=>e.commune), ...B].map(x=>String(x||"").trim()).filter(Boolean))]
@@ -2607,7 +2710,8 @@ function renderEnjoyed(){
     $("eRows").innerHTML = `<tr><td colspan="7"><div class="spin">${q?"No enjoyed wines match your search.":"Nothing enjoyed yet — bottles you finish will collect here."}</div></td></tr>`;
     return;
   }
-  $("eRows").innerHTML = list.map((w,i)=>{
+  const shown = pageOf(list, "enjoyed");
+  $("eRows").innerHTML = shown.map((w,i)=>{
     const pn = PRODUCER_NOTES[w.producer];
     const badge = pn?`<span class="badge ${pn[0]}">${TIER_LABEL[pn[0]]}</span>`:"";
     const nm = [w.name, w.commune && w.commune!==w.name ? w.commune : ""].filter(Boolean).join(" · ");
@@ -2620,8 +2724,8 @@ function renderEnjoyed(){
       <td class="num">${w.drunkDate?esc(fmtDate(w.drunkDate)):"—"}</td>
       <td class="num">${SHOW_PRICES ? (w.price?kr(w.price):"—") : "···"}</td>
     </tr>
-    <tr class="detail" hidden><td colspan="7">${detailHTML(w)}</td></tr>`;
-  }).join("");
+    <tr class="detail" hidden><td colspan="7"></td></tr>`;
+  }).join("") + moreRow(list.length, shown.length, 7, "enjoyed");
   bindEnjoyedRows();
 }
 

@@ -28,7 +28,7 @@ let SRC = null;
 async function codeSource(url) {
   if (SRC) return SRC;
   if (node) SRC = require("fs").readFileSync(require("path").join(__dirname, "apps-script", "Code.gs"), "utf8");
-  else { const res = await fetch(url || "apps-script/Code.gs?v=32"); if (!res.ok) throw new Error("engine-load " + res.status); SRC = await res.text(); }
+  else { const res = await fetch(url || "apps-script/Code.gs?v=33"); if (!res.ok) throw new Error("engine-load " + res.status); SRC = await res.text(); }
   return SRC;
 }
 const keepTabs = (all, sheetName) => Object.fromEntries(Object.entries(all).filter(([n]) => n === sheetName || SHARED_TABS.includes(n)));

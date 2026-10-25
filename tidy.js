@@ -92,6 +92,12 @@ function titleCase(s) {
 // producer names compared without the usual prefixes, so "Domaine Roulot" and "Roulot" are the same producer
 const PREFIX = /^(domaine|dom|domaines|chateau|ch|clos du domaine|weingut|bodegas?|bodega|tenuta|azienda agricola|azienda|cantina|cantine|maison|champagne|cave|caves|quinta|herdade|weinbau|winery|estate|vignobles?|famille|les vins de) /;
 const prodKey = s => { let k = norm(s); for (let i = 0; i < 2; i++) k = k.replace(PREFIX, ""); return k; };
+// The kind of house a written prefix says: "Domaine Leroy" and "Maison Leroy" are the estate and the négociant, two
+// producers; "Dom." is Domaine, "Ch." Château. "" when there's no prefix.
+const PREFIX_KIND = { dom: "domaine", domaines: "domaine", ch: "chateau", bodegas: "bodega", caves: "cave", vignoble: "vignobles", azienda: "azienda agricola", cantine: "cantina" };
+const prodKind = s => { const m = norm(s).match(PREFIX); return m ? PREFIX_KIND[m[1]] || m[1] : ""; };
+// who a producer is: the name without its prefix, and the kind of house when one is written
+const prodId = s => prodKey(s) + "#" + prodKind(s);
 
 const STRUCT = ["producer", "name", "commune", "region", "country", "grape", "source", "location"];
 function create(opts) {
@@ -141,30 +147,42 @@ function create(opts) {
     return v;
   }
 
-  // the most used spelling of each producer (by prefix-free key), preferring one the cellar already has
+  // the most used spelling of each producer, preferring one the cellar already has. A name without a prefix joins the
+  // one house of that name ("Roulot" → "Domaine Roulot"), but not when there are two ("Leroy": Domaine or Maison?), and
+  // houses of different kinds are never joined
   function producerMap(list, existing) {
     const groups = new Map();
-    const add = (name, weight) => { const k = prodKey(name); if (!k) return; const g = groups.get(k) || new Map(); g.set(name, (g.get(name) || 0) + weight); groups.set(k, g); };
+    const add = (name, weight) => { const k = prodId(name); if (k[0] === "#") return; const g = groups.get(k) || new Map(); g.set(name, (g.get(name) || 0) + weight); groups.set(k, g); };
     (existing || []).forEach(w => add(w.producer, 1000)); // the cellar's own spelling wins
     list.forEach(w => add(w.producer, 1));
-    // a typo of a heavier group joins it ("bonneau du matray" → "bonneau du martray"); two producers the cellar already
-    // has separately are never joined, and short names must match exactly
+    const alias = new Map(), kinds = new Map();
+    for (const k of groups.keys()) { const [root, kind] = k.split("#"); if (kind) (kinds.get(root) || kinds.set(root, []).get(root)).push(k); }
+    for (const [k, g] of [...groups]) {
+      const [root, kind] = k.split("#"), to = kinds.get(root);
+      if (kind || !to || to.length !== 1) continue;
+      const big = groups.get(to[0]); for (const [n, w] of g) big.set(n, (big.get(n) || 0) + w);
+      groups.delete(k); alias.set(k, to[0]);
+    }
+    // a typo of a heavier group of the same kind joins it ("bonneau du matray" → "bonneau du martray"); two producers
+    // the cellar already has separately are never joined, and short names must match exactly
     const weight = k => [...groups.get(k).values()].reduce((a, b) => a + b, 0);
     const keys = [...groups.keys()].sort((a, b) => weight(b) - weight(a));
-    const alias = new Map();
     keys.forEach((k, i) => {
-      const max = k.length >= 16 ? 2 : k.length >= 8 ? 1 : 0; if (!max) return;
+      const [root, kind] = k.split("#"), max = root.length >= 16 ? 2 : root.length >= 8 ? 1 : 0; if (!max) return;
       for (const big of keys.slice(0, i)) {
         if (alias.has(big) || (weight(k) >= 1000 && weight(big) >= 1000)) continue;
-        if (dist(k, big, max) <= max) { alias.set(k, big); break; }
+        const [broot, bkind] = big.split("#");
+        if (bkind === kind && dist(root, broot, max) <= max) { alias.set(k, big); break; }
       }
     });
     const pick = new Map();
     for (const [k, g] of groups) {
-      // prefer the cellar's spelling, then mixed case with accents, then the longest (it carries the prefix), then the most used
-      pick.set(k, [...g.entries()].sort((a, b) => b[1] - a[1] || score(b[0]) - score(a[0]))[0][0]);
+      // prefer the cellar's spelling, then the full name with its prefix, then the most used, then mixed case with accents
+      const own = w => w >= 1000 ? 1 : 0, full = n => prodKind(n) ? 1 : 0;
+      pick.set(k, [...g.entries()].sort((a, b) => own(b[1]) - own(a[1]) || full(b[0]) - full(a[0]) || b[1] - a[1] || score(b[0]) - score(a[0]))[0][0]);
     }
-    return n => { const k = prodKey(n); return pick.get(alias.get(k) || k) || n; };
+    const res = k => { for (let i = 0; i < 3 && alias.has(k); i++) k = alias.get(k); return k; };
+    return n => pick.get(res(prodId(n))) || n;
   }
   const score = s => (/[a-z]/.test(s) && /[A-Z]/.test(s) ? 4 : 0) + (/[^\x00-\x7f]/.test(s) ? 2 : 0) + s.length / 100;
   // one spelling per name and commune within the same producer ("Perrieres" and "Perrières" → the accented one)
@@ -199,7 +217,7 @@ function create(opts) {
 // ── rows that are the same wine ──
 // a "wine name" that only repeats the commune is no name ("Roulot, Meursault, Meursault" = "Roulot, –, Meursault")
 const nameKey = w => { const n = norm(w.name); return n && n === norm(w.commune) ? "" : n; };
-const mergeKey = w => [prodKey(w.producer), nameKey(w), String(w.vintage || "").toLowerCase(), String(w.size || "").toLowerCase()].join("|");
+const mergeKey = w => [prodId(w.producer), nameKey(w), String(w.vintage || "").toLowerCase(), String(w.size || "").toLowerCase()].join("|");
 function merge(list) {
   const by = new Map(), out = [];
   let merged = 0;
@@ -227,7 +245,7 @@ function merge(list) {
   return { wines: out, merged };
 }
 
-const api = { create, merge, mergeKey, dist, titleCase, prodKey };
+const api = { create, merge, mergeKey, dist, titleCase, prodKey, prodId };
 if (typeof module !== "undefined" && module.exports) module.exports = api;
 else root.TIDY = api;
 })(typeof window !== "undefined" ? window : globalThis);

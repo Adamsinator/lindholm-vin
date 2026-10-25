@@ -408,6 +408,17 @@ the same path as "Add wine", so an encrypted cellar stays encrypted.
   whether to **add the bottles** to the existing row or **skip** them.
 - `addmany` in `Code.gs` writes the rows in one go, at most 5 000 per call. On an unencrypted cellar the site sends
   400 at a time. Text starting with `=`, `+` or `@` is stored as text, so a file can't plant a formula in a sheet.
+- **Big lists** (up to 25 000 rows a file) are sent in parts, so each Apps Script call finishes well within its
+  6-minute limit:
+  - a plain sheet takes 400 new wines a call, 1 000 rows that get bottles added, 800 Tidy-up edits or 300 merges;
+  - an encrypted cellar runs the same code in the browser and takes 4 000 a call;
+  - merges in later parts follow the rows that earlier parts deleted.
+
+  API 33 makes these calls read the sheet once and then only write (Apps Script flushes its queued writes on every
+  read), and saves an encrypted cellar's parts in one write. The 10 000-wine test list is 1.8 MB of ciphertext
+  encrypted (more with long notes); the limit is 8 MB.
+- **Producers with a prefix:** "Roulot" joins "Domaine Roulot", but "Domaine Leroy" and "Maison Leroy" (estate and
+  négociant) are two producers, so a bare "Leroy" is left alone. Weingut, Bodega, Château… likewise.
 
 **Messy lists.** Before anything is saved, the import cleans the file and shows what it changed. Each change can be
 unticked (`tidy.js`, using the reference in `wine-kb.js` and the atlas's communes, vineyards and producers):
@@ -437,7 +448,7 @@ unticked (`tidy.js`, using the reference in `wine-kb.js` and the atlas's commune
 - `setinfomany` writes only the cells that change, so formulas elsewhere in the sheet are left alone;
 - `mergerows` adds the bottles together, weights the price by bottles, keeps notes and locations, and deletes the
   extra rows;
-- it needs API 32.
+- it needs API 32; API 33 makes it fast enough for thousands of rows.
 
 **⬇ Export** saves a copy, built in the browser by `export.js` from the (decrypted) cellar:
 - **Excel workbook (.xlsx):** sheets *Kælder*, *Journal* and *Ønskeliste*, with real numbers and dates, bold
@@ -457,6 +468,17 @@ Tests:
 - `node tools/messy-test.js`: 30 checks with a deliberately messy workbook (`tools/fixtures/messy.xlsx`) and a
   messy cellar, on a plain sheet and an encrypted one.
 - `node tools/tidy-ui-test.js`: 15 checks on the corrections and Tidy up in the browser.
+- `node tools/big-import-test.js`: 18 checks with a 10 000-row list (`python3 tools/make-big-import.py` writes
+  `tools/fixtures/big.xlsx`: 1 500 producers, typos, repeated headings, a totals row). It runs through the real
+  Code.gs in parts, then the same list again (bottles added), then Tidy up in parts, and checks that every bottle
+  is kept.
+- `node tools/big-import-ui-test.js`: 13 checks on the same list in the browser:
+  - a plain sheet: import 25 parts, page through 10 000 wines, search, Tidy up;
+  - an encrypted cellar: import, then log in again.
+
+**Big cellars in the page.** The cellar and Enjoyed tables show 200 wines at a time with *Show more* and *Show all*.
+A wine's details are built when it's opened, and search waits for a pause in typing once a cellar has more than
+2 000 wines. With 10 000 wines the cellar opens in about 3 s; it used to take 35 s.
 
 ## Where the bottles are (API 31)
 
@@ -469,6 +491,25 @@ Each wine can have a **location**: free text such as "Kælder, reol 3, hylde 2" 
 - **The sheet:** it lives in a `Placering` column, created the first time you use it.
 - **Import and export:** import maps `Placering` / `Location` / `Bin` / `Lagerort` / `Hylde`… to it, joining
   CellarTracker's Location and Bin. Export writes the column, so it round-trips.
+
+## Suggestions in Add wine
+
+As soon as the name, commune or region says where a wine is from, the empty fields fill themselves in:
+- **What fills in:** the grape for the colour, the colour itself, the region and the country, plus the commune and
+  classification for a Burgundy vineyard.
+- **Examples:**
+  - a red Bourgogne is Pinot Noir and a white one Chardonnay, but Bourgogne Aligoté and Bouzeron are Aligoté;
+  - Meursault is white, Mosel is a white Riesling from Tyskland, Barolo is Nebbiolo from Piemonte, Champagne is
+    sparkling;
+  - "Clos St-Jacques" finds Gevrey-Chambertin and 1. cru.
+- **How it works:** `WINE_KB.suggest` in `wine-kb.js` picks the longest appellation written in the fields;
+  `BURG_MATCH.place` in `burgundy-match.js` knows the atlas's climats. A premier cru needs its commune, unless no
+  other vineyard has its name.
+- **Your changes win:** suggested fields have a dashed border and a ✨ note saying where they came from. They keep
+  following your changes (pick White and Pinot Noir becomes Chardonnay) until you type in them yourself. Nothing you
+  typed is overwritten.
+- **A wine you already have** still fills in from the cellar first.
+- Test: `node tools/add-suggest-ui-test.js` (23 checks, including what is saved and the wider page).
 
 ## Sommelier (offline questions)
 
@@ -484,8 +525,20 @@ It understands typos and English, Danish, German and French, and answers in the 
 - **Practicalities:** serving temperatures, decanting, storing and opened bottles, terms like "tertiary" or
   "élevage", and food pairing ("what goes with duck?"), suggesting matching bottles from your cellar.
 - **Your cellar:** "where is my Rousseau", "what should I drink now", "how many Barolo do I have", "oldest wine".
+- **How long it keeps:** "How long can I keep Barolo?" (8–30 years) or "…a 2010 Bonnes-Mares?" (2020–2040).
+  - Typical spans for about 100 appellations, Burgundy by level (regional, village, premier cru, grand cru) and
+    grapes as a fallback.
+  - With "my", the drink windows of your own bottles.
+- **The best years:** "best vintages for red Côte de Nuits" (95+ from the atlas chart), "a good Champagne vintage"
+  (★★★★★ from the charts).
+- **Comparisons and places:**
+  - "difference between premier cru and grand cru", "Barolo vs Barbaresco";
+  - "where is Chablis" (when it isn't in your cellar);
+  - "what soil is in Chablis". Style and soil notes for 45 key appellations also appear on their cards.
+- **70 terms:** brett, Kimmeridgian, the 1855 classification, left and right bank, dosage, bottle sizes, glasses,
+  glasses per bottle, calories and units, reduction, VA, solera, puttonyos…
 - **Files:** `sommelier.js` (the engine) and `sommelier-data.js` (its knowledge) load only when the panel is first
-  opened. Tests: `node tools/sommelier-test.js` (70 checks on the engine) and `node tools/sommelier-ui-test.js`
+  opened. Tests: `node tools/sommelier-test.js` (97 checks on the engine) and `node tools/sommelier-ui-test.js`
   (16 checks in the browser, including that asking sends nothing to the server).
 
 ## Surveyed vineyard outlines (INAO)
