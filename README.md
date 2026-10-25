@@ -409,6 +409,36 @@ the same path as "Add wine", so an encrypted cellar stays encrypted.
 - `addmany` in `Code.gs` writes the rows in one go, at most 5 000 per call. On an unencrypted cellar the site sends
   400 at a time. Text starting with `=`, `+` or `@` is stored as text, so a file can't plant a formula in a sheet.
 
+**Messy lists.** Before anything is saved, the import cleans the file and shows what it changed. Each change can be
+unticked (`tidy.js`, using the reference in `wine-kb.js` and the atlas's communes, vineyards and producers):
+- **Spelling slips and other languages' names:**
+  - regions: "bourgugndy", "Burgundy", "Burgund", "BOURGOGNE" → Bourgogne;
+  - countries: "frankriig", "France", "Untied States" → Frankrig, USA;
+  - grapes: "chardonay", "Cabernet Sauvignion" → Chardonnay, Cabernet Sauvignon;
+  - communes: "Vosne Romanee", "Chateauneuf du Pape" → Vosne-Romanée, Châteauneuf-du-Pape.
+- **Slip tolerance:** short names must match exactly. Longer ones may have one to three slips, and only when a
+  single name is that close.
+- **Capitals:** SHOUTED or all-lower-case names become Title Case, and lost accents come back
+  ("CHATEAU MARGAUX" → Château Margaux, "MEURSAULT PERRIERES" → Meursault Perrières). Text typed in mixed case is
+  left as it is.
+- **One producer, one spelling:** "Domaine Roulot", "DOMAINE ROULOT" and "Roulot" become the spelling the cellar
+  (or the rest of the file) already uses. A typo in a long name joins the right one ("Bonneau du Matray").
+- **The same wine on several rows** (producer, wine, vintage and format) becomes one wine:
+  - bottles add up;
+  - price and value are the bottle-weighted mean of the rows that have one;
+  - notes, locations and sources are kept side by side.
+
+  The merge can be turned off.
+- **Left out:** total rows ("Total", "I alt", "Summe"), a repeated heading row, blank rows, and Excel errors
+  (`#N/A`) in place of a value. Headings with typos ("Producnet", "Vintgae", "Pirce") are still recognised.
+
+**🧹 Tidy up** does the same for the cellar you already have:
+- it lists the spelling fixes and the wines that sit in several rows, and joins each ticked group into one row;
+- `setinfomany` writes only the cells that change, so formulas elsewhere in the sheet are left alone;
+- `mergerows` adds the bottles together, weights the price by bottles, keeps notes and locations, and deletes the
+  extra rows;
+- it needs API 32.
+
 **⬇ Export** saves a copy, built in the browser by `export.js` from the (decrypted) cellar:
 - **Excel workbook (.xlsx):** sheets *Kælder*, *Journal* and *Ønskeliste*, with real numbers and dates, bold
   headings and a frozen top row;
@@ -423,7 +453,10 @@ Tests:
   `python3 tools/make-import-fixtures.py`.
 - `node tools/export-test.js`: 19 checks. An independent reader (Python's openpyxl and csv) opens the files, and
   both are round-tripped through the importer.
-- `node tools/import-ui-test.js`: 26 checks on both dialogs.
+- `node tools/import-ui-test.js`: 27 checks on both dialogs.
+- `node tools/messy-test.js`: 30 checks with a deliberately messy workbook (`tools/fixtures/messy.xlsx`) and a
+  messy cellar, on a plain sheet and an encrypted one.
+- `node tools/tidy-ui-test.js`: 15 checks on the corrections and Tidy up in the browser.
 
 ## Where the bottles are (API 31)
 

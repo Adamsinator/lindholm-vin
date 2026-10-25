@@ -43,7 +43,7 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   const fields = await p.$$eval("#impCols select", s => s.map(x => x.value));
   check("each column is matched", fields.join() === "producer,country,region,commune,name,classification,type,grape,vintage,qty,price,drunk,source,note,acquired", fields.join());
   check("the preview shows the wines", (await p.textContent("#impPrev")).includes("Armand Rousseau") && /3 wines · 6 bottles/.test(await p.textContent("#impSum")), await p.textContent("#impSum"));
-  check("a row without producer is reported", /1 rows without a producer/.test(await p.textContent("#impSum")));
+  check("a row without producer is reported", /1 row without a producer/.test(await p.textContent("#impSum")));
   // unmap the price column: the preview follows
   const priceCell = () => p.textContent("#impPrev tbody tr:first-child td:nth-child(7)");
   const priceBefore = await priceCell();
