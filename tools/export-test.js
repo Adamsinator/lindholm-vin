@@ -20,7 +20,7 @@ const HEAD = ["Producent", "Land", "Område", "Kommune", "Mark/Navn", "Klassifik
   const call = p => gas.call({ code: "test-code", ...p });
   call({ action: "rate", row: 2, rating: 4 }); call({ action: "rate", row: 3, rating: 5 });
   call({ action: "setsize", row: 4, value: "Magnum" }); call({ action: "setvalue", row: 2, value: 6000 });
-  call({ action: "setwindow", row: 2, from: 2026, to: 2040 }); call({ action: "setdate", row: 2, field: "acquired", value: "2021-03-14" });
+  call({ action: "setwindow", row: 2, from: 2026, to: 2040 }); call({ action: "setinfo", row: 2, fields: { location: "Kælder, reol 3 · hylde 2" } }); call({ action: "setdate", row: 2, field: "acquired", value: "2021-03-14" });
   call({ action: "enjoyadd", entry: { producer: "Noma", wine: "Husets", rating: 3, date: "2025-11-02" } });
   call({ action: "jadd", entry: { date: "2026-01-05", producer: "Krug", wine: "Grande Cuvée", rating: 9, note: "smuk" } });
   call({ action: "wadd", entry: { producer: "Coche-Dury", wine: "Corton-Charlemagne", vintage: 2017, price: 15000 } });
@@ -52,9 +52,10 @@ print(json.dumps({"sheets": wb.sheetnames, "rows": rows, "freeze": ws.freeze_pan
   check("…numbers are numbers, dates are dates", o.rows[1][10] === 4500.5 && o.rows[1][8] === 2016 && o.dateType === "datetime" && o.rows[1][16] === "2021-03-14", J(o.rows[1]));
   check("…text with ; quotes and a line break survives", o.rows[1][13] === 'gave; "fin"\nlinje 2');
   check("…a formula-looking note stays text", o.rows[3][13] === '=HYPERLINK("x")');
+  check("…the location column", o.rows[0][22] === "Placering" && o.rows[1][22] === "Kælder, reol 3 · hylde 2", J(o.rows[1]));
   check("…Danish letters", o.rows[4][0] === "Bærtelsen & Søn" && o.rows[4][13] === "øl og ål");
   check("…the journal sheet", J(o.j) === J(["2026-01-05 00:00:00", "Krug", "Grande Cuvée"]) || (String(o.j[0]).startsWith("2026-01-05") && o.j[1] === "Krug"), J(o.j));
-  check("Python's csv reads the CSV in columns", o.csv.length === 6 && o.csv[0].length === 22 && o.csv[1][13] === 'gave; "fin"\nlinje 2' && o.csv[1][10] === "4500,5", J(o.csv[1]));
+  check("Python's csv reads the CSV in columns", o.csv.length === 6 && o.csv[0].length === 23 && o.csv[1][13] === 'gave; "fin"\nlinje 2' && o.csv[1][10] === "4500,5", J(o.csv[1]));
   check("…formula-looking text is guarded in the CSV", o.csv[3][13] === "'=HYPERLINK(\"x\")");
 
   // ── round trip: export → import into an empty cellar → the same wines ──

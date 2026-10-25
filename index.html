@@ -199,6 +199,9 @@ tr.main td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:no
   .rbadge.now{background:rgba(95,185,133,.2);color:#7fcf9e}
   .rbadge.young{background:rgba(78,138,192,.22);color:#88bce0}
 }
+.wloc{font-size:12px;color:var(--muted)}
+.locwrap{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:600;color:var(--accent)}
+.locwrap .setloc{width:170px;background:var(--card);border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:4px 7px;font:inherit;font-weight:400}
 .winwrap{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:600;color:var(--accent)}
 .winwrap .setwin{width:60px;background:var(--card);border:1px solid var(--line);color:var(--ink);
   border-radius:7px;padding:4px 6px;font-size:12.5px;font-family:inherit}
@@ -319,24 +322,6 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
 .impsum small{display:block;color:var(--muted);font-size:12.5px;margin-top:3px}
 #impDup{border:1px solid var(--line);border-radius:8px;padding:6px 12px 10px;margin:12px 0 0}
 #impDup legend{font-size:13.5px;padding:0 4px}
-/* AI helper */
-.links button.aiask{color:var(--gold)}
-.aibox:empty{display:none}
-.aicard{margin-top:12px;padding:12px 14px;border:1px solid var(--line);border-left:3px solid var(--gold);border-radius:8px;background:var(--card2);font-size:13.5px;line-height:1.5}
-.aicard p{margin:0 0 8px}
-.aicard .aimeta{color:var(--muted);font-size:12.5px}
-.aicard .aierr{color:var(--accent)}
-.aicard .aiwait{color:var(--muted);animation:aipulse 1.6s ease-in-out infinite}
-@keyframes aipulse{50%{opacity:.45}}
-@media (prefers-reduced-motion:reduce){.aicard .aiwait{animation:none}}
-.aihead{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-bottom:6px;font-size:14.5px}
-.airev{margin:4px 0 8px;padding-left:18px}
-.airev li{margin:3px 0}
-.airev a{color:var(--accent);white-space:nowrap}
-.aiact{display:flex;gap:8px;flex-wrap:wrap}
-.aicard button{font:inherit;font-size:12.5px;font-weight:600;padding:6px 11px;border-radius:7px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
-.aicard button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
-.aicard label.jcheck{display:flex;align-items:center;gap:7px;margin:0 0 10px;font-size:13px;cursor:pointer}
 .expopts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}
 .expopt{display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;padding:12px 14px;height:auto}
 .expopt small{font-size:12.5px;color:var(--muted);font-weight:400}
@@ -361,7 +346,7 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
 /* iOS zooms into any focused field with font-size < 16px — keep inputs at 16px on small screens */
 @media(max-width:640px){
   .filters input[type=search],.filters select,.modal input,.modal select,.modal textarea,.gate input,
-  .valwrap input,.ratewrap select,.datewrap input,.sizewrap select,.winwrap .setwin{font-size:16px}
+  .valwrap input,.ratewrap select,.datewrap input,.sizewrap select,.winwrap .setwin,.locwrap .setloc{font-size:16px}
 }
 /* tabs */
 .tabs{display:flex;flex-wrap:wrap;gap:4px;margin:-6px 0 18px}
@@ -671,6 +656,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
 <div class="filters">
   <input type="search" id="q" placeholder="Search producer, wine, commune, grape…" aria-label="Search wines">
   <select id="fRegion" aria-label="Filter by region"></select>
+  <select id="fLoc" aria-label="Filter by location" hidden></select>
   <select id="fStyle" aria-label="Filter by style"></select>
   <select id="fStatus" aria-label="Filter by status">
     <option value="cellar">In cellar</option>
@@ -836,7 +822,10 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
       <div><label for="aPrice">Price per bottle (kr.)</label><input id="aPrice" type="number" min="0" step="1"></div>
       <div><label for="aSource">Source / bought at</label><input id="aSource"></div>
     </div>
-    <label for="aAcquired">Acquired</label><input id="aAcquired" type="date">
+    <div class="row2">
+      <div><label for="aAcquired">Acquired</label><input id="aAcquired" type="date"></div>
+      <div><label for="aLocation" data-i18n>Location</label><input id="aLocation" list="locList" data-i18n-ph placeholder="e.g. Cellar, shelf 2"><datalist id="locList"></datalist></div>
+    </div>
     <label for="aNote">Note</label><input id="aNote">
     <div class="mact">
       <button type="button" class="btn" id="addCancel">Cancel</button>
@@ -959,8 +948,13 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
     <div class="row2">
       <div><label for="iGrape">Grape</label><input id="iGrape" list="grapes"></div>
       <div><label for="iType">Type</label>
-        <select id="iType"><option value="Rød">Red</option><option value="Hvid">White</option><option value="Mousserende">Sparkling</option><option value="Rose">Rosé</option></select></div>
+        <select id="iType"><option value="Rød">Red</option><option value="Hvid">White</option><option value="Bobler">Sparkling</option><option value="Rose">Rosé</option></select></div>
     </div>
+    <div class="row2">
+      <div><label for="iLocation" data-i18n>Location</label><input id="iLocation" list="locList" data-i18n-ph placeholder="e.g. Cellar, shelf 2"></div>
+      <div><label for="iSource">Source / bought at</label><input id="iSource"></div>
+    </div>
+    <label for="iNote">Note</label><input id="iNote">
     <label class="jcheck" id="iJWrap" hidden><input type="checkbox" id="iJournal" checked>
       <span id="iJLabel"></span></label>
     <div class="jerr" id="iErr" role="alert" hidden></div>
@@ -1084,7 +1078,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
 
 <!-- Pages serves these with max-age=600 and no revalidation, so a merged change can
      sit invisible behind a stale app.js for ten minutes. Bump v on every deploy. -->
-<script src="i18n.js?v=18"></script>
+<script src="i18n.js?v=19"></script>
 <script src="notes.js?v=4"></script>
 <script src="burgundy-data.js?v=13"></script>
 <script src="burgundy-data-beaune.js?v=12"></script>
@@ -1093,9 +1087,9 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
 <script src="gas-fake.js?v=4"></script>
 <script src="vault-crypto.js?v=1"></script>
 <script src="vault-engine.js?v=1"></script>
-<script src="vault.js?v=4"></script>
-<script src="import.js?v=2"></script>
-<script src="export.js?v=1"></script>
-<script src="app.js?v=12"></script>
+<script src="vault.js?v=5"></script>
+<script src="import.js?v=3"></script>
+<script src="export.js?v=2"></script>
+<script src="app.js?v=13"></script>
 </body>
 </html>

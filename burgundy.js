@@ -291,19 +291,19 @@ const GEOL = window.BURG_GEOL || null;
 let gGeol = null;
 // short names by BRGM notation (the French descriptions are BRGM's own and shown in full in French)
 const GEOL_GLOSS = {
-  C:["Colluvium (hillwash)","Kolluvium (skredjord)"], GP:["Periglacial scree and colluvium (grèzes)","Periglacialt skred og kolluvium (grèzes)"],
-  E:["Scree and landslips","Skred og jordskred"], j5b:["Oxfordian marls and marly limestones (Pernand marls)","Oxford-mergel og mergelkalk (Pernand-mergel)"],
-  j5a:["Oxfordian limestones","Oxford-kalksten"], j5:["Oxfordian iron oolite","Oxford-jernoolit"], j5c:["Upper Oxfordian limestones","Øvre Oxford-kalksten"],
-  "j5b-c":["Oxfordian limestones (Vermenton)","Oxford-kalksten (Vermenton)"], j6a:["Upper Oxfordian limestones (Tonnerre)","Øvre Oxford-kalksten (Tonnerre)"],
-  j4a:["Dalle nacrée — Callovian limestone","Dalle nacrée — Callovien-kalksten"], j3a:["Comblanchien limestone — upper Bathonian","Comblanchien-kalksten — øvre Bathonien"],
-  j3b:["Grenu limestone — late Bathonian","Grenu-kalksten — sen Bathonien"], j3:["Bathonian bioclastic limestones (Premeaux stone)","Bathonien-kalksten (Premeaux-sten)"],
-  j3O:["Oolithe blanche — Bathonian","Oolithe blanche — Bathonien"], j2:["Bajocian marls with Ostrea acuminata","Bajocien-mergel med Ostrea acuminata"],
-  "j1-2":["Crinoidal limestone — Aalenian–Bajocian","Krinoidekalk — Aalenien–Bajocien"], Fx:["Old alluvium","Ældre alluvium"], Fy:["Alluvial terrace","Alluvialterrasse"],
-  Fz:["Recent alluvium","Nyere alluvium"], l4:["Toarcian marls","Toarcien-mergel"], X:["Made ground","Opfyld"], "g1-2":["Oligocene 'saumon' complex","Oligocænt 'saumon'-kompleks"],
-  LP:["Plateau silts","Plateausilt"], Hydro:["Water","Vand"],
+  C:["Colluvium (hillwash)","Kolluvium (skredjord)","Kolluvium (Hangabtrag)"], GP:["Periglacial scree and colluvium (grèzes)","Periglacialt skred og kolluvium (grèzes)","Periglazialer Hangschutt und Kolluvium (grèzes)"],
+  E:["Scree and landslips","Skred og jordskred","Hangschutt und Rutschungen"], j5b:["Oxfordian marls and marly limestones (Pernand marls)","Oxford-mergel og mergelkalk (Pernand-mergel)","Oxford-Mergel und Mergelkalke (Pernand-Mergel)"],
+  j5a:["Oxfordian limestones","Oxford-kalksten","Oxford-Kalksteine"], j5:["Oxfordian iron oolite","Oxford-jernoolit","Oxford-Eisenoolith"], j5c:["Upper Oxfordian limestones","Øvre Oxford-kalksten","Obere Oxford-Kalksteine"],
+  "j5b-c":["Oxfordian limestones (Vermenton)","Oxford-kalksten (Vermenton)","Oxford-Kalksteine (Vermenton)"], j6a:["Upper Oxfordian limestones (Tonnerre)","Øvre Oxford-kalksten (Tonnerre)","Obere Oxford-Kalksteine (Tonnerre)"],
+  j4a:["Dalle nacrée — Callovian limestone","Dalle nacrée — Callovien-kalksten","Dalle nacrée — Callovium-Kalkstein"], j3a:["Comblanchien limestone — upper Bathonian","Comblanchien-kalksten — øvre Bathonien","Comblanchien-Kalkstein — oberes Bathonium"],
+  j3b:["Grenu limestone — late Bathonian","Grenu-kalksten — sen Bathonien","Grenu-Kalkstein — spätes Bathonium"], j3:["Bathonian bioclastic limestones (Premeaux stone)","Bathonien-kalksten (Premeaux-sten)","Bioklastische Bathonium-Kalksteine (Premeaux-Stein)"],
+  j3O:["Oolithe blanche — Bathonian","Oolithe blanche — Bathonien","Oolithe blanche — Bathonium"], j2:["Bajocian marls with Ostrea acuminata","Bajocien-mergel med Ostrea acuminata","Bajocium-Mergel mit Ostrea acuminata"],
+  "j1-2":["Crinoidal limestone — Aalenian–Bajocian","Krinoidekalk — Aalenien–Bajocien","Crinoidenkalk — Aalenium–Bajocium"], Fx:["Old alluvium","Ældre alluvium","Altes Alluvium"], Fy:["Alluvial terrace","Alluvialterrasse","Flussterrasse"],
+  Fz:["Recent alluvium","Nyere alluvium","Junges Alluvium"], l4:["Toarcian marls","Toarcien-mergel","Toarcium-Mergel"], X:["Made ground","Opfyld","Aufschüttung"], "g1-2":["Oligocene 'saumon' complex","Oligocænt 'saumon'-kompleks","Oligozäner 'saumon'-Komplex"],
+  LP:["Plateau silts","Plateausilt","Plateau-Schluffe"], Hydro:["Water","Vand","Wasser"],
 };
 const geolName = code => { const L = GEOL.legend[code]; if(!L) return code; const lg = window.I18N ? window.I18N.lang : "en", g = GEOL_GLOSS[L[0]];
-  return lg==="fr" || !g ? L[1] : g[lg==="da" ? 1 : 0]; };
+  return lg==="fr" || !g ? L[1] : g[lg==="da" ? 1 : lg==="de" ? 2 : 0]; };
 const geolColor = code => { const L = GEOL.legend[code]; if(!L) return TOK.none; return L[0]==="GP" ? "#D6CFC2" : L[2]; };
 function drawGeol(g){
   Object.entries(GEOL.shapes).forEach(([code, rings]) => {
@@ -1603,7 +1603,7 @@ function stepVintage(d){
   const j = Math.max(0, Math.min(yrs.length - 1, i + d)); if(yrs[j] !== st.vy){ st.vy = yrs[j]; renderSide(); paint(); syncHash(); }
 }
 function showVintage(y){ st.vy = +y; st.color = "vintage"; $("fColor").value = "vintage"; renderSide(); paint(); syncHash(); }
-const WINDS = {en:"N NNE NE ENE E ESE SE SSE S SSW SW WSW W WNW NW NNW", da:"N NNØ NØ ØNØ Ø ØSØ SØ SSØ S SSV SV VSV V VNV NV NNV", fr:"N NNE NE ENE E ESE SE SSE S SSO SO OSO O ONO NO NNO"};
+const WINDS = {en:"N NNE NE ENE E ESE SE SSE S SSW SW WSW W WNW NW NNW", da:"N NNØ NØ ØNØ Ø ØSØ SØ SSØ S SSV SV VSV V VNV NV NNV", fr:"N NNE NE ENE E ESE SE SSE S SSO SO OSO O ONO NO NNO", de:"N NNO NO ONO O OSO SO SSO S SSW SW WSW W WNW NW NNW"};
 const wind = deg => (WINDS[window.I18N ? window.I18N.lang : "en"] || WINDS.en).split(" ")[Math.round(deg/22.5) % 16];
 function detailHtml(c){
   const d = c.detail || {}, m = DEM[c.id];
@@ -2017,7 +2017,7 @@ $("printBtn").onclick = () => window.print();
 if("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("atlas-sw.js").catch(() => {});
 $("profBtn").onclick = () => profToggle();
 // terrain search bar
-const ASP8 = {en:"N NE E SE S SW W NW", da:"N NØ Ø SØ S SV V NV", fr:"N NE E SE S SO O NO"};
+const ASP8 = {en:"N NE E SE S SW W NW", da:"N NØ Ø SØ S SV V NV", fr:"N NE E SE S SO O NO", de:"N NO O SO S SW W NW"};
 function terrSync(){
   const T = st.terr, lg = window.I18N ? window.I18N.lang : "en", names = (ASP8[lg] || ASP8.en).split(" ");
   $("tAsp").innerHTML = names.map((n, i) => `<button type="button" data-a="${i}" class="${T.asp.has(i) ? "on" : ""}">${n}</button>`).join("");
@@ -2248,7 +2248,7 @@ const matchWine = window.BURG_MATCH.make(C, V).match;
 // An encrypted cellar: load the vault scripts only now, and decrypt here with the key the Cellar page kept for this session
 const loadScript = src => new Promise((res, rej) => { const el = document.createElement("script"); el.src = src; el.onload = res; el.onerror = () => rej(new Error("load " + src)); document.head.appendChild(el); });
 async function vaultData(api, user, token){
-  for(const f of ["gas-fake.js?v=4", "vault-crypto.js?v=1", "vault-engine.js?v=1", "vault.js?v=4"]) await loadScript(f);
+  for(const f of ["gas-fake.js?v=4", "vault-crypto.js?v=1", "vault-engine.js?v=1", "vault.js?v=5"]) await loadScript(f);
   const dek = await window.VCRYPTO.recall(user);
   if(!dek) throw new Error("token");
   const post = async p => (await fetch(api, {method:"POST", body:JSON.stringify(p), redirect:"follow"})).json();

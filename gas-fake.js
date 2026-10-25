@@ -139,19 +139,9 @@ function runtime(tabs, opts) {
   const Session = { getScriptTimeZone: () => opts.tz || "Europe/Copenhagen" };
   const MimeType = { PLAIN_TEXT: "text/plain" };
   const LockService = { getScriptLock: () => ({ waitLock() {}, releaseLock() {} }) };
-  // script properties (a plain map) and outbound HTTP through opts.fetch(url, params) → { code, body } (tests only)
-  const props = Object.assign({}, opts.properties || {});
-  const PropertiesService = { getScriptProperties: () => ({
-    getProperty: k => (k in props ? props[k] : null), setProperty(k, v) { props[k] = String(v); return this; }, deleteProperty(k) { delete props[k]; return this; } }) };
-  const UrlFetchApp = { fetch(url, params) {
-    if (!opts.fetch) throw new Error("no network in this runtime");
-    const r = opts.fetch(url, params || {});
-    return { getResponseCode: () => r.code, getContentText: () => r.body };
-  } };
   return {
     book: bound, books, files,
-    globals: { SpreadsheetApp, Utilities, Session, DriveApp, ContentService, MimeType, LockService, PropertiesService, UrlFetchApp },
-    props,
+    globals: { SpreadsheetApp, Utilities, Session, DriveApp, ContentService, MimeType, LockService },
     tabs: (id) => { const b = id ? books[id] : bound; return Object.fromEntries(b.order.filter(nm => b.sheets[nm]).map(nm => [nm, b.sheets[nm]._cells.map(r => [...r])])); },
   };
 }

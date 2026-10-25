@@ -77,6 +77,13 @@ const J = x => JSON.stringify(x);
   check("dates", J(["24.12.2025", "24/12/2025", "12/24/2025", "2025-1-5", 45000, "2019", "31.02"].map(I.isoDate)) === J(["2025-12-24", "2025-12-24", "2025-12-24", "2025-01-05", "2023-03-15", "2019-01-01", ""]), J(["24.12.2025", "24/12/2025", "12/24/2025", "2025-1-5", 45000, "2019", "31.02"].map(I.isoDate)));
   check("formats", J(["75cl", "750 ml", "0,75 l", "37.5", "1.5L", "150 cl", "3L", "Dobbelt magnum", "halv", "6 l", "Imperial"].map(I.size)) === J(["", "", "", "Half", "Magnum", "Magnum", "Jeroboam", "Jeroboam", "Half", "Methuselah", "Methuselah"]), J(["75cl", "750 ml", "0,75 l", "37.5", "1.5L", "150 cl", "3L", "Dobbelt magnum", "halv", "6 l", "Imperial"].map(I.size)));
   check("types", J(["Rød", "red", "Rouge", "White - Sweet/Dessert", "Rosé", "Champagne", "Mousserende", "Orange"].map(I.wineType)) === J(["Rød", "Rød", "Rød", "Hvid", "Rose", "Bobler", "Bobler", "Orange"]));
+  check("location headings (CellarTracker's Location and Bin, Danish, German)", ["Location", "Bin", "Placering", "Lagerort", "Hylde"].every(h => (I.matchHeader(h) || {}).field === "location"));
+  check("German headings", ["Weingut", "Jahrgang", "Rebsorte", "Anzahl Flaschen", "Preis pro Flasche", "Getrunken am", "Bemerkung", "Flaschengröße", "Trinkfenster", "Bestand"].map(h => (I.matchHeader(h) || {}).field || "-").join() === "producer,vintage,grape,qty,price,drunkDate,note,size,window,left");
+  {
+    const rows = [["Producer", "Wine", "Location", "Bin"], ["Roulot", "Meursault", "Cellar", "A3"]];
+    const t = I.table(rows), w = I.build(rows, t.header, t.columns.map(c => c.field)).wines[0];
+    check("Location and Bin both map, joined", w.location === "Cellar · A3", J(t.columns.map(c => c.field)));
+  }
   check("headings", ["Antal flasker", "Pris pr. flaske", "Årgang", "Mark/Navn", "Drukket dato", "Average rating"].map(h => (I.matchHeader(h) || {}).field || "-").join() === "qty,price,vintage,name,drunkDate,-");
 
   // ── duplicates ──

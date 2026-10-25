@@ -100,6 +100,12 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   await p.click("#impCancel"); await p.click("#impBtn"); await p.setInputFiles("#impFile", FIX("danish.csv")); await p.waitForSelector("#impMap:not([hidden])");
   check("the dialog follows the language", /Importér 2 vine/.test(await p.textContent("#impGo")) && /Overskrifter fundet/.test(await p.textContent("#impHint")), await p.textContent("#impGo"));
 
+  // in German
+  await p.evaluate(() => I18N.setLang("de")); await p.waitForTimeout(200);
+  await p.click("#impCancel"); await p.click("#impBtn"); await p.setInputFiles("#impFile", FIX("danish.csv")); await p.waitForSelector("#impMap:not([hidden])");
+  check("…and in German", /2 Weine importieren/.test(await p.textContent("#impGo")) && /Überschriften in Zeile 1/.test(await p.textContent("#impHint")), await p.textContent("#impGo"));
+  await p.evaluate(() => I18N.setLang("en"));
+
   // phone width: no sideways scrolling of the page
   await p.setViewportSize({ width: 375, height: 800 }); await p.waitForTimeout(200);
   check("fits a phone screen", await p.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1));

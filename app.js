@@ -141,7 +141,9 @@ const $ = id => document.getElementById(id);
 let WINES = [];          // normalized
 let KEEP_OPEN = null;    // row number of the expanded detail, kept open across re-renders
 let SHOW_PRICES = localStorage.getItem("vinHidePrices") !== "1"; // prices shown by default
-const state = {q:"", region:"", style:"", status:"cellar", ready:"", sortK:"price", sortDir:-1};
+const state = {q:"", region:"", style:"", status:"cellar", ready:"", loc:"", sortK:"price", sortDir:-1};
+// a location's first part ("Kælder" of "Kælder, reol 3, hylde 2") is the place the filter offers
+const locPlace = l => String(l||"").split(/[,;/·|]/)[0].trim();
 
 /* ---------- config / auth ---------- */
 const cfg = {
@@ -181,7 +183,8 @@ function normalize(rows){
     drunk = String(drunk).trim().toLowerCase()==="x" ? qty : (Number(drunk)||0);
     drunk = Math.min(drunk, qty);
     const type = String(r.type).trim();
-    const style = region==="Champagne" ? "Bobler" : ({"Rød":"Rød","Hvid":"Hvid","Rose":"Rosé"}[type] || type || "Rød");
+    // "Mousserende" is how the edit form used to save a sparkling wine; any spelling of it is sparkling
+    const style = region==="Champagne" ? "Bobler" : ({"Rød":"Rød","Hvid":"Hvid","Rose":"Rosé","Rosé":"Rosé","Bobler":"Bobler","Mousserende":"Bobler"}[type] || type || "Rød");
     return {
       row:r.row, producer:String(r.producer).trim(), country, region,
       commune:String(r.commune).trim(), name:String(r.name).trim(),
@@ -197,6 +200,7 @@ function normalize(rows){
       size:String(r.size||"").trim(),
       source:String(r.source).trim(), note:String(r.note).trim(),
       elsewhere: r.elsewhere===true,
+      location:String(r.location||"").trim(),
     };
   });
 }
@@ -385,6 +389,15 @@ function renderOverview(){
   const selS = $("fStyle");
   selS.innerHTML = '<option value="">All styles</option>' +
     STYLES.map(s=>`<option value="${s}"${state.style===s?" selected":""}>${STYLE_EN[s]}</option>`).join("");
+
+  const places = [...new Set(WINES.filter(w=>w.left>0||state.status!=="cellar").map(w=>locPlace(w.location)).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  const selL = $("fLoc");
+  if(places.length || state.loc){
+    selL.hidden = false;
+    selL.innerHTML = `<option value="">${esc(tr("All locations"))}</option>` + places.map(p=>`<option${state.loc===p?" selected":""}>${esc(p)}</option>`).join("")
+      + `<option value="-"${state.loc==="-"?" selected":""}>${esc(tr("No location yet"))}</option>`;
+  } else selL.hidden = true;
+  $("locList").innerHTML = [...new Set(WINES.map(w=>w.location).filter(Boolean))].sort().map(l=>`<option>${esc(l)}</option>`).join("");
 
   /* datalists in the add form */
   $("regionsList").innerHTML = [...new Set(WINES.map(w=>w.region).filter(Boolean))].sort().map(r=>`<option>${esc(r)}</option>`).join("");
@@ -650,13 +663,12 @@ function detailHTML(w){
     ["Commune", w.commune],["Classification", w.classification || (suggestClass(w) ? "≈ "+suggestClass(w).cls+" (suggested)" : "")],["Grape", w.grape],
     ["Format", isStdBottle(w) ? "" : formatOf(w).key+" · "+formatOf(w).note],
     ["Bought", w.qty+" btl."],["Enjoyed", w.drunk?w.drunk+" btl.":""],["Source", w.source],
-    ["Price", SHOW_PRICES && w.price ? kr(w.price) : ""],
+    ["Price", SHOW_PRICES && w.price ? kr(w.price) : ""],["Location", w.location],
   ].filter(c=>c[1]).map(([k,v])=>`<div><div class="k">${k}</div>${esc(v)}</div>`).join("");
   return `<div class="dgrid">${cells}</div>
     ${w.note?`<div class="unote">“${esc(w.note)}” — cellar note</div>`:""}
     ${pn?`<div class="pnote"><b>${esc(w.producer)}</b> · ${TIER_LABEL[pn[0]]} — ${pn[1]}</div>`:""}
     ${journalHTML(w)}
-    ${AI.on?`<div class="aibox" data-aikey="${esc(aiId(w))}" aria-live="polite">${aiBoxHTML(w)}</div>`:""}
     <div class="links">
       ${w.left>0?`<button class="drink" data-act="drink" data-row="${w.row}">🍷 Mark 1 bottle as drunk</button>`:""}
       ${w.drunk>0 && !w.elsewhere?`<button class="drink" data-act="undrink" data-row="${w.row}" title="${isElsewhere(w)?"Puts the bottle in your cellar":""}">↩︎ Undo drink</button>`:""}
@@ -672,6 +684,8 @@ function detailHTML(w){
         <select class="setsize" data-row="${w.row}">
           ${FORMATS.map(f=>`<option value="${f.key==="Bottle"?"":esc(f.key)}"${formatOf(w).key===f.key?" selected":""}>${esc(f.key)} · ${esc(f.note)}</option>`).join("")}
         </select></label>
+      ${isElsewhere(w)?"":`<label class="locwrap">📍 ${esc(tr("Location"))}
+        <input class="setloc" list="locList" data-row="${w.row}" value="${esc(w.location)}" placeholder="${esc(tr("e.g. Cellar, shelf 2"))}"></label>`}
       <label class="datewrap">Acquired
         <input class="setdate" type="date" data-field="acquired" data-row="${w.row}" value="${w.acquired||""}"></label>
       ${w.drunk>0?`<label class="datewrap">Last drunk
@@ -688,7 +702,6 @@ function detailHTML(w){
       <button class="fshare" data-row="${w.row}">📣 Share</button>
       ${searchLinks(w)}
       <button class="winfo" data-row="${w.row}">✏️ Edit details</button>
-      ${AI.on?`<button class="aiask" data-ai="ask" data-row="${w.row}">✨ ${esc(tr("Drink window & reviews"))}</button>`:""}
       <button class="drink del" data-act="delete" data-row="${w.row}">${isElsewhere(w) ? "🗑 Remove from Enjoyed" : "🗑 Delete wine"}</button>
     </div>`;
 }
@@ -700,13 +713,14 @@ function renderTable(){
     if(state.status==="drunk" && w.drunk===0) return false;
     if(state.region && w.region!==state.region) return false;
     if(state.style && w.style!==state.style) return false;
+    if(state.loc && (state.loc==="-" ? w.location : locPlace(w.location)!==state.loc)) return false;
     if(state.ready){
       const rd = readiness(w);
       if(state.ready==="soon"){ if(!(rd && rd.soon)) return false; }
       else if(!(rd && rd.k===state.ready)) return false;
     }
     if(q){
-      const hay = [w.producer,w.name,w.commune,w.region,w.grape,w.classification,String(w.vintage),w.note].join(" ").toLowerCase();
+      const hay = [w.producer,w.name,w.commune,w.region,w.grape,w.classification,String(w.vintage),w.note,w.location].join(" ").toLowerCase();
       if(!hay.includes(q)) return false;
     }
     return true;
@@ -728,7 +742,7 @@ function renderTable(){
     countTxt += ` · ${kr(vl)}`;
   }
   $("count").textContent = countTxt;
-  $("clear").classList.toggle("show", !!(q||state.region||state.style||state.ready||state.status!=="cellar"));
+  $("clear").classList.toggle("show", !!(q||state.region||state.style||state.ready||state.loc||state.status!=="cellar"));
   drawDrinkTimeline(list);
 
   document.querySelectorAll(".rbar").forEach(el=>el.classList.toggle("active", el.dataset.region===state.region && !!state.region));
@@ -745,7 +759,7 @@ function renderTable(){
     const rbadge = rd?`<span class="rbadge ${rd.k}${rd.est?" est":""}" title="${rd.est?"Estimated":"Your"} drink window ${rwin.from??"?"}–${rwin.to??"?"}${rd.est?" — set your own in the wine":""}">${rd.label}</span>`:"";
     const nm = [w.name, w.commune && w.commune!==w.name ? w.commune : ""].filter(Boolean).join(" · ");
     return `<tr class="main${w.left===0?" gone":""}" data-i="${i}" data-row="${w.row}" tabindex="0" aria-expanded="false">
-      <td><span class="prod">${esc(w.producer)}</span>${badge}${rbadge}<br><span class="wname">${fmtChip(w)}${esc(nm)}${classChip(w)}${w.rating?` · <span class="myscore">${w.rating}/10</span>`:""}</span></td>
+      <td><span class="prod">${esc(w.producer)}</span>${badge}${rbadge}<br><span class="wname">${fmtChip(w)}${esc(nm)}${classChip(w)}${w.rating?` · <span class="myscore">${w.rating}/10</span>`:""}</span>${w.location?`<br><span class="wloc">📍 ${esc(w.location)}</span>`:""}</td>
       <td class="num">${esc(w.vintage||"—")}</td>
       <td>${esc(w.region)}</td>
       <td><span class="sdot" style="background:var(${STYLE_VAR[w.style]||"--muted"})"></span>${STYLE_EN[w.style]||esc(w.style)}</td>
@@ -789,6 +803,8 @@ function bindWineRows(scope){
     inp.addEventListener("change",()=>setDateApi(Number(inp.dataset.row), inp.dataset.field, inp.value, inp)));
   document.querySelectorAll(`${scope} input.setwin`).forEach(inp=>
     inp.addEventListener("change",()=>setWindowApi(inp)));
+  document.querySelectorAll(`${scope} input.setloc`).forEach(inp=>
+    inp.addEventListener("change",()=>setLocationApi(Number(inp.dataset.row), inp.value, inp)));
   document.querySelectorAll(`${scope} .wj-more`).forEach(b=>
     b.addEventListener("click",()=>{ location.hash="journal"; }));
   document.querySelectorAll(`${scope} button.jlog`).forEach(b=>
@@ -819,7 +835,7 @@ async function loadData(){
     renderOverview(); renderTable(); renderEnjoyed();
     $("stamp").textContent = "Updated "+new Date().toLocaleString("da-DK",{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"});
     $("spin").hidden = true; $("content").hidden = false;
-    loadJournalSilently(); loadFeedSilently(); loadAiStatus();
+    loadJournalSilently(); loadFeedSilently();
   }catch(err){
     if(AUTH_ERRORS.has(err.message)){ forgetAuth(); setGateMode("login"); showGate(tr("Your session expired — log in again.")); }
     else { $("spin").textContent = "Could not reach the cellar API ("+err.message+"). Check your connection and refresh."; }
@@ -886,6 +902,16 @@ async function setWindowApi(inp){
   ins.forEach(x=>x.disabled=false);
 }
 
+async function setLocationApi(row, val, inp){
+  inp.disabled = true;
+  try{
+    const res = await api({action:"setinfo", row, fields:{location:String(val||"").trim()}});
+    KEEP_OPEN = row; WINES = normalize(res.wines);
+    renderOverview(); renderTable(); renderEnjoyed();
+    toast(String(val||"").trim() ? tr("Location saved") : tr("Location cleared"));
+  }catch(err){ toast(tr("Could not save location: {0}", err.message)); inp.disabled = false; }
+}
+
 async function setDateApi(row, field, val, inp){
   inp.disabled = true;
   const label = field==="acquired" ? "Acquired date" : "Last-drunk date";
@@ -939,7 +965,7 @@ async function addWine(e){
     vintage: /^\d{4}$/.test(v("aVintage")) ? Number(v("aVintage")) : v("aVintage"),
     qty: Number(v("aQty"))||1,
     price: v("aPrice")===""? "" : Number(v("aPrice")),
-    acquired: v("aAcquired"), source:v("aSource"), note:v("aNote"),
+    acquired: v("aAcquired"), source:v("aSource"), note:v("aNote"), location:v("aLocation"),
   };
   try{
     const res = await api({action:"add", wine});
@@ -1163,7 +1189,7 @@ const IMP_FIELDS = {"":"— not imported —", producer:"Producer", name:"Vineya
   country:"Country", classification:"Classification", type:"Type (red, white…)", grape:"Grape", vintage:"Vintage",
   qty:"Bottles", left:"Bottles left", drunk:"Drunk", price:"Price per bottle", value:"Value now", source:"Bought at",
   note:"Note", rating:"My rating", acquired:"Acquired date", drunkDate:"Drunk date", size:"Format",
-  drinkFrom:"Drink from", drinkTo:"Drink to", window:"Drink window (2025–2035)", elsewhere:"Drunk elsewhere (not from the cellar)", line:"The whole wine on one line"};
+  drinkFrom:"Drink from", drinkTo:"Drink to", window:"Drink window (2025–2035)", location:"Location (cellar, shelf…)", elsewhere:"Drunk elsewhere (not from the cellar)", line:"The whole wine on one line"};
 const IMP_ERR = {"not-zip":"That file doesn't look like an Excel workbook.", "bad-zip":"That file doesn't look like an Excel workbook.",
   "not-xlsx":"That file doesn't look like an Excel workbook.",
   "old-xls":"That's an older Excel file (.xls) or another spreadsheet format. In Excel choose File → Save As → Excel Workbook (.xlsx) or CSV, and import that.",
@@ -1280,7 +1306,7 @@ async function impRun(){
     if(AUTH_ERRORS.has(m)) showGate(authMsg(m));
   }
 }
-const I18N_LOCALE = () => ({en:"en-GB", fr:"fr-FR"})[window.I18N && I18N.lang] || "da-DK";
+const I18N_LOCALE = () => ({en:"en-GB", fr:"fr-FR", de:"de-DE"})[window.I18N && I18N.lang] || "da-DK";
 $("impBtn").addEventListener("click", ()=>{ impReset(); $("impModal").classList.add("open"); });
 $("impCancel").addEventListener("click", ()=>$("impModal").classList.remove("open"));
 $("impBack").addEventListener("click", impReset);
@@ -1296,84 +1322,6 @@ $("impCols").addEventListener("change", e=>{
 });
 document.querySelectorAll('input[name="impDup"]').forEach(r => r.addEventListener("change", impGoLabel));
 $("impGo").addEventListener("click", impRun);
-
-/* ---------- AI helper: a wine's drink window and critics' reviews (Claude with web search, via Code.gs) ---------- */
-// Asked per wine by a click; only that wine's identity is sent. The answers live in memory for this visit (nothing is
-// stored, not even in this browser) — "Use as my drink window" is what saves the years, in the cellar itself.
-const AI = {on:false, left:0, limit:0, res:new Map()};
-const aiId = w => [w.producer, w.name, w.vintage, w.size].join("|");
-const AI_ERR = {"ai-off":"The AI helper isn't set up on this site.", "ai-not-allowed":"The AI helper isn't turned on for your account.",
-  "ai-limit":"You've used today's AI lookups. Try again tomorrow.", "ai-budget":"The site's AI budget for this month is used up.",
-  "ai-busy":"The AI service is busy right now. Try again in a minute.", "ai-key":"The site's AI key isn't working — tell the site's owner.",
-  "ai-refused":"The AI declined this one.", "ai-no-answer":"The AI didn't come back with an answer. Try again.",
-  "ai-too-long":"The answer ran too long. Try again."};
-async function loadAiStatus(){
-  try{ const r = await api({action:"aistatus"}); const was = AI.on; Object.assign(AI, {on:!!r.ai.on, left:r.ai.left||0, limit:r.ai.limit||0}); if(AI.on!==was) renderTable(), renderEnjoyed(); }
-  catch(e){ /* an older Apps Script: no AI helper */ }
-}
-function aiBoxHTML(w){
-  const st = AI.res.get(aiId(w));
-  if(!st) return "";
-  if(st.k==="consent") return `<div class="aicard"><p>${esc(tr("This sends the wine's producer, name, vintage and region — nothing else from your cellar — through this site's server to Claude (Anthropic), which searches the web for critics' notes. Nothing is saved."))}</p>
-    <p class="aimeta">${esc(tr("{0} of {1} lookups left today.", AI.left, AI.limit))}</p>
-    <label class="jcheck"><input type="checkbox" class="airemember"> <span>${esc(tr("Don't ask me again"))}</span></label>
-    <div class="aiact"><button data-ai="go" data-row="${w.row}" class="primary">${esc(tr("Search"))}</button><button data-ai="close" data-row="${w.row}">${esc(tr("Cancel"))}</button></div></div>`;
-  if(st.k==="loading") return `<div class="aicard"><p class="aiwait">✨ ${esc(tr("Looking for critics' notes and drinking windows… this can take a minute."))}</p></div>`;
-  if(st.k==="error") return `<div class="aicard"><p class="aierr">${esc(st.msg)}</p><div class="aiact"><button data-ai="close" data-row="${w.row}">${esc(tr("Close"))}</button></div></div>`;
-  const r = st.r, win = r.drinkFrom||r.drinkTo ? `${r.drinkFrom||"…"}–${r.drinkTo||"…"}` : "";
-  const same = win && r.drinkFrom===w.drinkFrom && r.drinkTo===w.drinkTo;
-  const host = u => { try{ return new URL(u).hostname.replace(/^www\./,""); }catch(e){ return ""; } };
-  return `<div class="aicard">
-    <div class="aihead"><b>${win ? esc(tr("Drink window {0}", win)) : esc(tr("No drinking window found"))}</b>
-      ${win && !same ? `<button data-ai="use" data-row="${w.row}">${esc(tr("Use as my drink window"))}</button>` : ""}
-      ${same ? `<span class="aimeta">✓ ${esc(tr("saved as your window"))}</span>` : ""}</div>
-    ${r.windowBasis ? `<p class="aimeta">${esc(r.windowBasis)}</p>` : ""}
-    ${r.summary ? `<p>${esc(r.summary)}</p>` : ""}
-    ${r.reviews.length ? `<ul class="airev">${r.reviews.map(v => `<li><b>${esc(v.critic)}</b>${v.score?` · ${esc(v.score)}`:""}${v.vintage?` <span class="aimeta">(${esc(v.vintage)})</span>`:""}${v.note?` — ${esc(v.note)}`:""}${v.url?` <a href="${esc(v.url)}" target="_blank" rel="noopener noreferrer">${esc(host(v.url))} ↗</a>`:` <span class="aimeta">(${esc(tr("no link"))})</span>`}</li>`).join("")}</ul>` : ""}
-    <p class="aimeta">${esc(tr("Found by AI from {0} web results ({1} confidence) — check the sources before you rely on it.", r.searched, tr(r.confidence)))}${r.found ? "" : " " + esc(tr("Nothing was found for this exact vintage."))}</p>
-    <div class="aiact"><button data-ai="close" data-row="${w.row}">${esc(tr("Close"))}</button></div></div>`;
-}
-function aiPaint(w){ document.querySelectorAll(`.aibox[data-aikey="${CSS.escape(aiId(w))}"]`).forEach(b => { b.innerHTML = aiBoxHTML(w); }); }
-async function aiLookup(w){
-  AI.res.set(aiId(w), {k:"loading"}); aiPaint(w);
-  const lang = (window.I18N && I18N.lang) || "en";
-  try{
-    const res = await api({action:"ai", lang, wine:{producer:w.producer, name:w.name, vintage:w.vintage, commune:w.commune,
-      region:w.region, country:w.country, classification:w.classification, type:w.style, size:w.size}});
-    if(res.ai) Object.assign(AI, {left:res.ai.left, limit:res.ai.limit});
-    AI.res.set(aiId(w), {k:"done", r:res.result});
-  }catch(err){
-    const m = String(err && err.message || err);
-    if(err && err.data && err.data.ai) Object.assign(AI, {left:err.data.ai.left, limit:err.data.ai.limit});
-    if(AUTH_ERRORS.has(m)){ AI.res.delete(aiId(w)); showGate(authMsg(m)); return; }
-    AI.res.set(aiId(w), {k:"error", msg: AI_ERR[m] ? tr(AI_ERR[m]) : tr("The AI lookup failed ({0}).", m)});
-  }
-  const now = WINES.find(x => aiId(x)===aiId(w)) || w; aiPaint(now);
-}
-document.addEventListener("click", async e=>{
-  const b = e.target.closest("[data-ai]"); if(!b) return;
-  const w = WINES.find(x => x.row===Number(b.dataset.row)); if(!w) return;
-  const act = b.dataset.ai;
-  if(act==="ask"){
-    const st = AI.res.get(aiId(w));
-    if(st && (st.k==="loading" || st.k==="done")) return;
-    let skip = false; try{ skip = localStorage.getItem("vinAiOk")==="1"; }catch(x){}
-    if(skip) aiLookup(w); else { AI.res.set(aiId(w), {k:"consent"}); aiPaint(w); }
-  } else if(act==="go"){
-    const rem = b.closest(".aicard").querySelector(".airemember");
-    if(rem && rem.checked) try{ localStorage.setItem("vinAiOk","1"); }catch(x){}
-    aiLookup(w);
-  } else if(act==="close"){ AI.res.delete(aiId(w)); aiPaint(w); }
-  else if(act==="use"){
-    const r = (AI.res.get(aiId(w))||{}).r; if(!r) return;
-    b.disabled = true;
-    try{
-      const res = await api({action:"setwindow", row:w.row, from:r.drinkFrom||"", to:r.drinkTo||""});
-      KEEP_OPEN = w.row; WINES = normalize(res.wines); renderOverview(); renderTable(); renderEnjoyed();
-      toast(tr("Drink window saved"));
-    }catch(err){ b.disabled = false; toast(tr("Could not save window: {0}", err.message)); }
-  }
-});
 
 /* ---------- export (export.js builds the file here from the decrypted cellar) ---------- */
 async function expRun(kind){
@@ -1417,12 +1365,13 @@ $("expModal").addEventListener("click", e=>{ if(e.target===$("expModal")) $("exp
 /* ---------- filters / sorting (bound once) ---------- */
 $("q").addEventListener("input",e=>{ state.q=e.target.value; renderTable(); });
 $("fRegion").addEventListener("change",e=>{ state.region=e.target.value; renderTable(); });
+$("fLoc").addEventListener("change",e=>{ state.loc=e.target.value; renderTable(); });
 $("fStyle").addEventListener("change",e=>{ state.style=e.target.value; renderTable(); });
 $("fStatus").addEventListener("change",e=>{ state.status=e.target.value; renderTable(); });
 $("fReady").addEventListener("change",e=>{ state.ready=e.target.value; renderTable(); });
 $("clear").addEventListener("click",()=>{
-  state.q=state.region=state.style=state.ready=""; state.status="cellar";
-  $("q").value=""; $("fRegion").value=""; $("fStyle").value=""; $("fStatus").value="cellar"; $("fReady").value=""; renderTable(); });
+  state.q=state.region=state.style=state.ready=state.loc=""; state.status="cellar";
+  $("q").value=""; $("fRegion").value=""; $("fStyle").value=""; $("fStatus").value="cellar"; $("fReady").value=""; $("fLoc").value=""; renderTable(); });
 document.querySelectorAll("th[data-k]").forEach(th=>th.addEventListener("click",()=>{
   const k=th.dataset.k;
   if(state.sortK===k) state.sortDir*=-1; else { state.sortK=k; state.sortDir = (k==="price"||k==="left") ? -1 : 1; }
@@ -2709,9 +2658,10 @@ function openInfo(w){
   $("iTitle").textContent = isElsewhere(w) ? "Edit this Enjoyed wine" : "Edit wine details";
   $("iProducer").value = w.producer; $("iName").value = w.name; $("iVintage").value = w.vintage ?? "";
   $("iCommune").value = w.commune; $("iCountry").value = w.country; $("iRegion").value = w.region; $("iGrape").value = w.grape;
+  $("iLocation").value = w.location; $("iSource").value = w.source; $("iNote").value = w.note;
   if(w.classification) $("iClass").value = matchOpt($("iClass"), w.classification);
-  const ty = ({"Rød":"Rød","Hvid":"Hvid","Rosé":"Rose","Bobler":"Mousserende"})[w.style] || "Rød";
-  $("iType").value = String(w.style)==="Bobler" ? "Mousserende" : ty;
+  const ty = ({"Rød":"Rød","Hvid":"Hvid","Rosé":"Rose","Bobler":"Bobler"})[w.style] || "Rød";
+  $("iType").value = ty;
   classHint(I_IDS);
   const js = journalSameName(w);
   $("iJWrap").hidden = !js.length;
@@ -2729,9 +2679,11 @@ $("iForm").addEventListener("submit", async e=>{
   const v = id => $(id).value.trim();
   const vint = /^\d{4}$/.test(v("iVintage")) ? Number(v("iVintage")) : v("iVintage");
   const next = {producer:v("iProducer"), name:v("iName"), vintage:vint, commune:v("iCommune"), classification:$("iClass").value,
-    country:v("iCountry"), region:v("iRegion"), grape:v("iGrape"), type:$("iType").value};
+    country:v("iCountry"), region:v("iRegion"), grape:v("iGrape"), type:$("iType").value,
+    location:v("iLocation"), source:v("iSource"), note:v("iNote")};
   const was = {producer:w.producer, name:w.name, vintage:w.vintage??"", commune:w.commune, classification:w.classification,
-    country:w.country, region:w.region, grape:w.grape, type:({"Rød":"Rød","Hvid":"Hvid","Rosé":"Rose","Bobler":"Mousserende"})[w.style]||"Rød"};
+    country:w.country, region:w.region, grape:w.grape, type:({"Rød":"Rød","Hvid":"Hvid","Rosé":"Rose","Bobler":"Bobler"})[w.style]||"Rød",
+    location:w.location, source:w.source, note:w.note};
   // only what changed is sent, so a field the sheet spells its own way isn't rewritten for nothing
   const fields = {}; Object.keys(next).forEach(k=>{ if(jKey(next[k])!==jKey(was[k])) fields[k] = next[k]; });
   if(!Object.keys(fields).length){ $("iModal").classList.remove("open"); return; }

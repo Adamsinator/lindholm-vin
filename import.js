@@ -188,36 +188,38 @@ const norm = s => String(s == null ? "" : s).normalize("NFD").replace(/[̀-ͯ]/g
 // The fields a column can fill. "left" (bottles still there) and "window" ("2025–2035") are turned into qty/drunk and
 // drinkFrom/drinkTo; "line" is a whole wine written as one line of text.
 const FIELDS = ["producer", "name", "commune", "region", "country", "classification", "type", "grape", "vintage", "qty",
-  "left", "drunk", "price", "value", "source", "note", "rating", "acquired", "drunkDate", "size", "drinkFrom", "drinkTo", "window", "elsewhere", "line"];
-const TEXT_FIELDS = new Set(["producer", "name", "commune", "region", "country", "classification", "type", "grape", "source", "note"]);
+  "left", "drunk", "price", "value", "source", "note", "rating", "acquired", "drunkDate", "size", "drinkFrom", "drinkTo", "window", "elsewhere", "location", "line"];
+const TEXT_FIELDS = new Set(["producer", "name", "commune", "region", "country", "classification", "type", "grape", "source", "note", "location"]);
 const SYN = {
-  producer: ["producent", "producer", "producteur", "produttore", "productor", "erzeuger", "winery", "vinhus", "domaine", "domain", "estate", "maker", "house", "chateau", "vingard", "vigneron", "brand"],
-  name: ["mark navn", "mark", "navn", "name", "wine", "wine name", "vin", "vinnavn", "vinens navn", "cuvee", "vineyard", "climat", "lieu dit", "designation", "label", "betegnelse", "nom", "nom du vin", "etiket"],
-  commune: ["kommune", "commune", "village", "landsby", "appellation", "aoc", "aop", "sub appellation", "cru village"],
-  region: ["omrade", "region", "area", "wine region", "vinomrade", "distrikt", "district"],
-  country: ["land", "country", "pays", "nation", "origin", "oprindelsesland"],
-  classification: ["klassifikation", "classification", "class", "klasse", "cru", "rang", "level", "kvalitet", "quality", "niveau"],
-  type: ["type", "farve", "color", "colour", "couleur", "style", "stil", "wine type", "vintype", "kind"],
-  grape: ["drue", "druer", "grape", "grapes", "varietal", "variety", "varietals", "cepage", "cepages", "druesort", "drueart", "blend"],
+  producer: ["weingut", "winzer", "produzent", "hersteller", "producent", "producer", "producteur", "produttore", "productor", "erzeuger", "winery", "vinhus", "domaine", "domain", "estate", "maker", "house", "chateau", "vingard", "vigneron", "brand"],
+  name: ["wein", "weinname", "lage", "bezeichnung", "mark navn", "mark", "navn", "name", "wine", "wine name", "vin", "vinnavn", "vinens navn", "cuvee", "vineyard", "climat", "lieu dit", "designation", "label", "betegnelse", "nom", "nom du vin", "etiket"],
+  commune: ["gemeinde", "ort", "dorf", "kommune", "commune", "village", "landsby", "appellation", "aoc", "aop", "sub appellation", "cru village"],
+  region: ["anbaugebiet", "gebiet", "weinregion", "weinbaugebiet", "omrade", "region", "area", "wine region", "vinomrade", "distrikt", "district"],
+  country: ["herkunftsland", "land", "country", "pays", "nation", "origin", "oprindelsesland"],
+  classification: ["qualitatsstufe", "pradikat", "einstufung", "klassifikation", "classification", "class", "klasse", "cru", "rang", "level", "kvalitet", "quality", "niveau"],
+  type: ["weinart", "art", "weinfarbe", "type", "farve", "color", "colour", "couleur", "style", "stil", "wine type", "vintype", "kind"],
+  grape: ["rebsorte", "rebsorten", "traube", "trauben", "drue", "druer", "grape", "grapes", "varietal", "variety", "varietals", "cepage", "cepages", "druesort", "drueart", "blend"],
   vintage: ["argang", "vintage", "year", "millesime", "annee", "aar", "ar", "annata", "jahrgang"],
-  qty: ["antal", "qty", "quantity", "bottles", "flasker", "antal flasker", "count", "number", "stk", "nombre", "quantite", "units", "fl", "bouteilles", "purchased"],
-  left: ["tilbage", "remaining", "left", "on hand", "beholdning", "i kaelder", "in cellar", "in stock", "stock", "restant", "bottles left", "flasker tilbage"],
-  drunk: ["drukket", "drunk", "consumed", "opened", "abnet", "bu", "bues", "drukne"],
-  price: ["pris", "price", "pris kr", "pris kr ws", "cost", "kostpris", "indkobspris", "prix", "purchase price", "paid", "bottle price", "pris pr flaske", "my price", "wine price"],
-  value: ["vaerdi", "vaerdi kr", "value", "valuation", "market value", "current value", "valeur", "est value", "estimated value", "auction value"],
-  source: ["kilde", "source", "bought at", "kobt hos", "store", "shop", "merchant", "supplier", "leverandor", "forhandler", "vendor", "retailer", "fournisseur", "caviste", "importer", "importor"],
-  note: ["note", "noter", "notes", "comment", "comments", "kommentar", "kommentarer", "bemaerkning", "bemaerkninger", "remarks", "description", "beskrivelse", "your review", "my notes", "tasting note", "tasting notes", "smagsnote"],
-  rating: ["rating", "score", "points", "point", "karakter", "bedommelse", "my rating", "your rating", "my score", "personal rating"],
-  acquired: ["anskaffet", "acquired", "purchased on", "purchase date", "date purchased", "bought", "kobt", "kobsdato", "kobt dato", "indkobt", "date achat", "date d achat", "added"],
-  drunkDate: ["drukket dato", "drunk date", "date drunk", "consumed date", "consumption date", "drukket den", "date bu", "opened on", "date opened", "last drunk"],
-  size: ["storrelse", "size", "format", "bottle size", "flaskestorrelse", "volume", "cl", "contenance", "taille", "flaske"],
-  drinkFrom: ["drik fra", "drink from", "begin consume", "beginconsume", "ready from", "drinking window start", "drink window from", "from", "fra", "start", "a partir de", "apogee debut"],
-  drinkTo: ["drik til", "drink to", "drink by", "end consume", "endconsume", "drink before", "drinking window end", "drink window to", "until", "til", "end", "jusqu a", "apogee fin"],
+  qty: ["anzahl", "menge", "stuck", "anzahl flaschen", "antal", "qty", "quantity", "bottles", "flasker", "antal flasker", "count", "number", "stk", "nombre", "quantite", "units", "fl", "bouteilles", "purchased"],
+  left: ["bestand", "vorrat", "ubrig", "noch da", "im keller", "tilbage", "remaining", "left", "on hand", "beholdning", "i kaelder", "in cellar", "in stock", "stock", "restant", "bottles left", "flasker tilbage"],
+  drunk: ["getrunken", "geoffnet", "drukket", "drunk", "consumed", "opened", "abnet", "bu", "bues", "drukne"],
+  price: ["preis", "einkaufspreis", "kaufpreis", "preis pro flasche", "pris", "price", "pris kr", "pris kr ws", "cost", "kostpris", "indkobspris", "prix", "purchase price", "paid", "bottle price", "pris pr flaske", "my price", "wine price"],
+  value: ["wert", "marktwert", "aktueller wert", "vaerdi", "vaerdi kr", "value", "valuation", "market value", "current value", "valeur", "est value", "estimated value", "auction value"],
+  source: ["handler", "bezugsquelle", "gekauft bei", "lieferant", "weinhandler", "kilde", "source", "bought at", "kobt hos", "store", "shop", "merchant", "supplier", "leverandor", "forhandler", "vendor", "retailer", "fournisseur", "caviste", "importer", "importor"],
+  note: ["notiz", "notizen", "bemerkung", "bemerkungen", "verkostungsnotiz", "note", "noter", "notes", "comment", "comments", "kommentar", "kommentarer", "bemaerkning", "bemaerkninger", "remarks", "description", "beskrivelse", "your review", "my notes", "tasting note", "tasting notes", "smagsnote"],
+  rating: ["bewertung", "punkte", "meine bewertung", "rating", "score", "points", "point", "karakter", "bedommelse", "my rating", "your rating", "my score", "personal rating"],
+  acquired: ["gekauft am", "kaufdatum", "erworben", "erworben am", "anskaffet", "acquired", "purchased on", "purchase date", "date purchased", "bought", "kobt", "kobsdato", "kobt dato", "indkobt", "date achat", "date d achat", "added"],
+  drunkDate: ["getrunken am", "trinkdatum", "drukket dato", "drunk date", "date drunk", "consumed date", "consumption date", "drukket den", "date bu", "opened on", "date opened", "last drunk"],
+  size: ["flaschengrosse", "grosse", "inhalt", "storrelse", "size", "format", "bottle size", "flaskestorrelse", "volume", "cl", "contenance", "taille", "flaske"],
+  drinkFrom: ["trinken ab", "trinkreif ab", "drik fra", "drink from", "begin consume", "beginconsume", "ready from", "drinking window start", "drink window from", "from", "fra", "start", "a partir de", "apogee debut"],
+  drinkTo: ["trinken bis", "haltbar bis", "drik til", "drink to", "drink by", "end consume", "endconsume", "drink before", "drinking window end", "drink window to", "until", "til", "end", "jusqu a", "apogee fin"],
+  location: ["placering", "location", "lokation", "plads", "bin", "hylde", "reol", "rack", "shelf", "cellar location", "storage", "opbevaring",
+    "emplacement", "casier", "rangement", "lagerort", "standort", "fach", "regal", "lagerplatz", "where", "hvor"],
   elsewhere: ["drukket ude", "drunk elsewhere", "elsewhere", "not from cellar", "bu ailleurs"],
-  window: ["drikkevindue", "drink window", "drinking window", "window", "vindue", "fenetre", "fenetre de degustation", "apogee", "drink"],
+  window: ["trinkfenster", "trinkreife", "drikkevindue", "drink window", "drinking window", "window", "vindue", "fenetre", "fenetre de degustation", "apogee", "drink"],
 };
 // headings that look like a field but aren't (Vivino's community average, CellarTracker's community score, links…)
-const IGNORE = new Set(["average rating", "community score", "ct score", "link to wine", "label image", "scan date", "id", "iwine", "barcode", "image", "photo", "foto", "link", "url", "regional wine style", "sub region", "subregion", "location", "bin", "lokation", "placering", "hylde"]);
+const IGNORE = new Set(["average rating", "community score", "ct score", "link to wine", "label image", "scan date", "id", "iwine", "barcode", "image", "photo", "foto", "link", "url", "regional wine style", "sub region", "subregion"]);
 const LOOKUP = {}; for (const [f, list] of Object.entries(SYN)) list.forEach((s, i) => { if (!(s in LOOKUP)) LOOKUP[s] = { f, i }; });
 
 function matchHeader(label) {
@@ -256,7 +258,7 @@ function table(rows) {
   // each field goes to its best column, best matches first
   const taken = new Set();
   columns.map((col, i) => ({ i, m: col.match })).filter(x => x.m).sort((x, y) => y.m.score - x.m.score)
-    .forEach(({ i, m }) => { if (!taken.has(m.field)) { taken.add(m.field); columns[i].field = m.field; } });
+    .forEach(({ i, m }) => { if (!taken.has(m.field) || m.field === "location") { taken.add(m.field); columns[i].field = m.field; } });
   // a list without headings: one text column is a list of wines, a column of years is the vintage
   if (header < 0) {
     if (width === 1) columns[0].field = "line";
@@ -312,7 +314,7 @@ const has = (s, words) => words.some(w => new RegExp("\\b" + w + "\\b").test(s))
 function wineType(c) {
   const s = norm(c);
   if (!s) return "";
-  if (has(s, ["mousserende", "sparkling", "champagne", "cremant", "cava", "prosecco", "bobler", "petillant", "sekt", "spumante", "franciacorta", "mousseux", "petnat", "pet nat", "fizz"])) return "Bobler";
+  if (has(s, ["mousserende", "sparkling", "champagne", "cremant", "cava", "prosecco", "bobler", "petillant", "sekt", "spumante", "franciacorta", "mousseux", "petnat", "pet nat", "fizz", "perlwein", "schaumwein"])) return "Bobler";
   if (has(s, ["rose", "rosado", "rosato", "rosevin", "blush"])) return "Rose";
   if (has(s, ["rod", "rodvin", "red", "rouge", "rosso", "tinto", "rot", "rotwein"])) return "Rød";
   if (has(s, ["hvid", "hvidvin", "white", "blanc", "bianco", "blanco", "weiss", "weisswein", "branco"])) return "Hvid";
@@ -326,10 +328,12 @@ const COUNTRY = { france: "Frankrig", frankreich: "Frankrig", frankrig: "Frankri
   "south africa": "Sydafrika", "afrique du sud": "Sydafrika", sydafrika: "Sydafrika", argentina: "Argentina", argentine: "Argentina", chile: "Chile", chili: "Chile",
   hungary: "Ungarn", hongrie: "Ungarn", ungarn: "Ungarn", greece: "Grækenland", grece: "Grækenland", graekenland: "Grækenland", lebanon: "Libanon", liban: "Libanon",
   switzerland: "Schweiz", suisse: "Schweiz", schweiz: "Schweiz", england: "England", "united kingdom": "England", uk: "England", slovenia: "Slovenien", slovenie: "Slovenien",
+  neuseeland: "New Zealand", sudafrika: "Sydafrika", griechenland: "Grækenland", "vereinigte staaten": "USA",
   georgia: "Georgien", georgie: "Georgien", croatia: "Kroatien", croatie: "Kroatien", canada: "Canada", israel: "Israel", denmark: "Danmark", danemark: "Danmark", danmark: "Danmark" };
 const REGION = { burgundy: "Bourgogne", bourgogne: "Bourgogne", burgund: "Bourgogne", bordeaux: "Bordeaux", champagne: "Champagne", rhone: "Rhône", "rhone valley": "Rhône",
   "northern rhone": "Rhône", "southern rhone": "Rhône", "vallee du rhone": "Rhône", loire: "Loire", "loire valley": "Loire", "vallee de la loire": "Loire",
   alsace: "Alsace", beaujolais: "Beaujolais", jura: "Jura", savoie: "Savoie", savoy: "Savoie", languedoc: "Languedoc", "languedoc roussillon": "Languedoc",
+  elsass: "Alsace", toskana: "Toscana", rhonetal: "Rhône",
   provence: "Provence", piedmont: "Piemonte", piemonte: "Piemonte", piemont: "Piemonte", tuscany: "Toscana", toscana: "Toscana", toscane: "Toscana", mosel: "Mosel", moselle: "Mosel" };
 const BURGUNDY_SUB = /^(cote de nuits|cote de beaune|cote d or|cote chalonnaise|maconnais|chablis|hautes cotes)/;
 function classification(c) {
@@ -403,7 +407,7 @@ function build(rows, header, fields) {
     if (one("line") !== undefined) Object.assign(w, parseLine(cellStr(r[one("line")])));
     for (const f of TEXT_FIELDS) {
       const parts = col(f).map(i => cellStr(r[i])).filter(s => s && !NONE.test(s));
-      if (parts.length) w[f] = (w[f] ? w[f] + " " : "") + parts.join(" ");
+      if (parts.length) w[f] = (w[f] ? w[f] + " " : "") + parts.join(f === "location" ? " · " : " ");
     }
     if (w.type !== undefined) w.type = wineType(w.type);
     if (w.country !== undefined) w.country = COUNTRY[norm(w.country)] || w.country;

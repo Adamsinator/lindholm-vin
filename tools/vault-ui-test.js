@@ -40,6 +40,28 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   await p.fill("#aVintage", "2020"); await p.click('#addForm button[type="submit"]'); await p.waitForTimeout(1200);
   check("adding a wine works on the encrypted cellar", (await p.textContent("#tbl")).includes("Domaine Roulot"));
 
+  // a location for the bottle: inline in the details, shown in the table, filterable and searchable
+  await p.click('#tbl tr.main:has-text("Domaine Roulot")'); await p.waitForTimeout(200);
+  await p.fill("#tbl input.setloc", "Kælder, reol 3, hylde 2"); await p.press("#tbl input.setloc", "Tab"); await p.waitForTimeout(1200);
+  check("a location can be set in the details", (await p.textContent("#tbl")).includes("📍 Kælder, reol 3, hylde 2"));
+  check("…and the filter offers its place", (await p.$$eval("#fLoc option", o => o.map(x => x.textContent))).includes("Kælder") && await p.isVisible("#fLoc"));
+  await p.selectOption("#fLoc", "-"); await p.waitForTimeout(200);
+  check("…'No location yet' hides it", !(await p.textContent("#tbl")).includes("Domaine Roulot"));
+  await p.selectOption("#fLoc", "Kælder"); await p.waitForTimeout(200);
+  check("…its place shows it", (await p.textContent("#tbl")).includes("Domaine Roulot"));
+  await p.selectOption("#fLoc", ""); await p.fill("#q", "hylde 2"); await p.waitForTimeout(200);
+  check("…and search finds it", (await p.textContent("#tbl")).includes("Domaine Roulot"));
+  await p.fill("#q", ""); await p.dispatchEvent("#q", "input"); await p.waitForTimeout(200);
+  // the edit dialog: location, source and note; sparkling stays sparkling
+  await p.click('#tbl tr.main:has-text("Domaine Roulot")'); await p.waitForTimeout(150);
+  if (!(await p.isVisible("#tbl button.winfo"))) { await p.click('#tbl tr.main:has-text("Domaine Roulot")'); await p.waitForTimeout(150); }
+  await p.click("#tbl button.winfo");
+  check("the edit dialog shows the location", (await p.inputValue("#iLocation")) === "Kælder, reol 3, hylde 2");
+  await p.fill("#iLocation", "Køleskab, række 4"); await p.fill("#iNote", "til nytår"); await p.selectOption("#iType", "Bobler");
+  await p.click("#iSave"); await p.waitForTimeout(1500);
+  const saved = await p.evaluate(() => WINES.find(w => w.producer === "Domaine Roulot"));
+  check("…and saves location, note and a sparkling type", saved.location === "Køleskab, række 4" && saved.note === "til nytår" && saved.style === "Bobler", JSON.stringify(saved));
+
   // reload: the session key is kept for this session
   await p.reload(); await p.waitForTimeout(2500);
   check("a reload reopens the cellar without the password", await p.isVisible("#app") && (await p.textContent("#tbl")).includes("Domaine Roulot"));
