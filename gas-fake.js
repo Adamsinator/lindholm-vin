@@ -9,10 +9,14 @@
 (function (root) {
 "use strict";
 
-function makeSheet(name, rows, onRename) {
+function makeSheet(name, rows, onRename, sheetsText) {
   const cells = rows.map(r => [...r]);
   const lastRow = () => { for (let r = cells.length; r > 0; r--) if (cells[r - 1].some(v => v !== "" && v != null)) return r; return 0; };
   const lastCol = () => cells.reduce((m, r) => { for (let c = r.length; c > 0; c--) if (r[c - 1] !== "" && r[c - 1] != null) return Math.max(m, c); return m; }, 0);
+  // sheetsText (the test harness): as in Sheets, a leading apostrophe keeps text as text and isn't part of the value,
+  // and "=…" would become a formula. The vault engine stores text exactly as given.
+  const formulas = [];
+  const put = v => { if (!sheetsText || typeof v !== "string") return v; if (v[0] === "'") return v.slice(1); if (v[0] === "=") formulas.push(v); return v; };
   const at = (r, c) => { while (cells.length < r) cells.push([]); const row = cells[r - 1]; while (row.length < c) row.push(""); return row; };
   const sh = {
     getName: () => name,
@@ -29,13 +33,14 @@ function makeSheet(name, rows, onRename) {
       return {
         getValues: () => Array.from({ length: nr }, (_, i) => Array.from({ length: nc }, (_, j) => { const row = cells[r - 1 + i] || []; const v = row[c - 1 + j]; return v === undefined ? "" : v; })),
         getValue: () => { const row = cells[r - 1] || []; const v = row[c - 1]; return v === undefined ? "" : v; },
-        setValue(v) { at(r, c)[c - 1] = v; return this; },
+        setValue(v) { at(r, c)[c - 1] = put(v); return this; },
         setValues(vs) {
           if (vs.length > 1 && r + vs.length - 1 > Math.max(cells.length, 1)) throw new Error("Those rows are out of bounds."); // as Sheets does
-          vs.forEach((row, i) => row.forEach((v, j) => { at(r + i, c + j)[c + j - 1] = v; })); return this; },
+          vs.forEach((row, i) => row.forEach((v, j) => { at(r + i, c + j)[c + j - 1] = put(v); })); return this; },
       };
     },
     _cells: cells,
+    _formulas: formulas,
   };
   return sh;
 }
@@ -55,6 +60,7 @@ const utf8 = s => typeof TextEncoder !== "undefined" ? [...new TextEncoder().enc
 const unutf8 = b => typeof TextDecoder !== "undefined" ? new TextDecoder().decode(Uint8Array.from(b, x => x & 255)) : Buffer.from(b).toString("utf8");
 
 // opts.today pins "today" (tests); opts.digest(alg, str) → signed bytes, for password hashing (Node tests only)
+// opts.sheetsText: store text as Sheets does (a leading apostrophe dropped, "=…" noted as a formula), for the harness
 function runtime(tabs, opts) {
   opts = opts || {};
   let n = 0; const nid = p => p + (++n);
@@ -96,7 +102,7 @@ function runtime(tabs, opts) {
     const id = nid("book");
     const book = { sheets: {}, order: [], id, name, trashed: false };
     const rename = (old, nw) => { book.sheets[nw] = book.sheets[old]; delete book.sheets[old]; book.order = book.order.map(x => x === old ? nw : x); };
-    const add = (nm, rows) => { book.sheets[nm] = makeSheet(nm, rows || [], rename); book.order.push(nm); return book.sheets[nm]; };
+    const add = (nm, rows) => { book.sheets[nm] = makeSheet(nm, rows || [], rename, !!opts.sheetsText); book.order.push(nm); return book.sheets[nm]; };
     Object.entries(tabsIn || {}).forEach(([nm, rows]) => add(nm, rows));
     book.api = {
       getId: () => id, getName: () => name,

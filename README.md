@@ -377,7 +377,7 @@ They are:
 
 Until you redeploy, the site says so instead of failing silently.
 
-## Importing a cellar list (API 29)
+## Importing and exporting a cellar list (API 29)
 
 **⬆ Import** in the cellar adds many wines at once, one wine per row. It reads:
 - an Excel workbook (`.xlsx`, any sheet);
@@ -409,8 +409,21 @@ the same path as "Add wine", so an encrypted cellar stays encrypted.
 - `addmany` in `Code.gs` writes the rows in one go, at most 5 000 per call. On an unencrypted cellar the site sends
   400 at a time. Text starting with `=`, `+` or `@` is stored as text, so a file can't plant a formula in a sheet.
 
-Tests: `node tools/import-test.js` (46 checks on the sample files in `tools/fixtures`; regenerate them with
-`python3 tools/make-import-fixtures.py`) and `node tools/import-ui-test.js` (the dialog, 21).
+**⬇ Export** saves a copy, built in the browser by `export.js` from the (decrypted) cellar:
+- **Excel workbook (.xlsx):** sheets *Kælder*, *Journal* and *Ønskeliste*, with real numbers and dates, bold
+  headings and a frozen top row;
+- **CSV:** the cellar only, with semicolons and decimal commas so a Danish Excel opens it in columns.
+
+Both use the columns of the original sheet (Producent … Note, then Rating, Værdi kr, Anskaffet, Drukket dato,
+Størrelse, Drik fra/til, Drukket ude). So an export imports straight back, and the tests check that wine by wine.
+Note that an export of an encrypted cellar is *not* encrypted.
+
+Tests:
+- `node tools/import-test.js`: 47 checks on the sample files in `tools/fixtures`. Regenerate them with
+  `python3 tools/make-import-fixtures.py`.
+- `node tools/export-test.js`: 19 checks. An independent reader (Python's openpyxl and csv) opens the files, and
+  both are round-tripped through the importer.
+- `node tools/import-ui-test.js`: 26 checks on both dialogs.
 
 ## Surveyed vineyard outlines (INAO)
 
@@ -606,7 +619,7 @@ posts, follows and atlas corrections stay readable, because sharing them is the 
   the old copies gone for good. If a migration is interrupted, nothing is lost: the plain copy stays until the
   check passes, and the next login carries on.
 - **What changes for you.** Your own cellar is encrypted too, so wines can't be edited in Google Sheets any more.
-  Use the site instead (an export to CSV/Excel is coming). The legacy `ACCESS_CODE` stops working once your
+  Use the site instead; **⬇ Export** gives you an Excel or CSV copy at any time. The legacy `ACCESS_CODE` stops working once your
   cellar is encrypted.
 - **What the owner can still see.** Usernames; how big each vault is and when it changed; feed posts; and the
   fact that someone logged in. Not wines, notes, prices, ratings or photos.

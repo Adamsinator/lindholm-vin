@@ -319,6 +319,10 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
 .impsum small{display:block;color:var(--muted);font-size:12.5px;margin-top:3px}
 #impDup{border:1px solid var(--line);border-radius:8px;padding:6px 12px 10px;margin:12px 0 0}
 #impDup legend{font-size:13.5px;padding:0 4px}
+.expopts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}
+.expopt{display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;padding:12px 14px;height:auto}
+.expopt small{font-size:12.5px;color:var(--muted);font-weight:400}
+@media (max-width:480px){.expopts{grid-template-columns:1fr}}
 @media (max-width:600px){.impcols{grid-template-columns:minmax(0,1fr) minmax(0,1.2fr)}.impcols .is{display:none}}
 .spin{text-align:center;color:var(--muted);padding:60px 0;font-size:14px}
 #toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:var(--ink);color:var(--bg);
@@ -577,6 +581,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
 <div class="actions">
   <button class="btn primary" id="addBtn">＋ Add wine</button>
   <button class="btn" id="impBtn" data-i18n>⬆ Import</button>
+  <button class="btn" id="expBtn" data-i18n>⬇ Export</button>
   <button class="btn" id="tonightBtn">🎲 Tonight</button>
   <button class="btn" id="priceBtn">Show prices</button>
 </div>
@@ -822,6 +827,20 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
   </form>
 </div>
 
+<div class="modal" id="expModal" role="dialog" aria-modal="true" aria-labelledby="expTitle">
+  <div class="card">
+    <h2 id="expTitle" data-i18n>Export your cellar</h2>
+    <p data-i18n>Download a copy of your cellar to keep or to work on in Excel, Numbers or Google Sheets. It uses the same columns as the import, so the file imports straight back.</p>
+    <div class="expopts">
+      <button class="btn expopt" type="button" id="expXlsx"><b data-i18n>Excel workbook (.xlsx)</b><small data-i18n>Cellar, journal and wishlist, one sheet each</small></button>
+      <button class="btn expopt" type="button" id="expCsv"><b data-i18n>CSV file (.csv)</b><small data-i18n>The cellar only</small></button>
+    </div>
+    <p class="lockline" id="expLock"></p>
+    <div class="err" id="expErr" role="status" aria-live="polite"></div>
+    <div class="mact"><button class="btn" type="button" id="expCancel" data-i18n>Close</button></div>
+  </div>
+</div>
+
 <div class="modal" id="impModal" role="dialog" aria-modal="true" aria-labelledby="impTitle">
   <div class="card imp">
     <h2 id="impTitle" data-i18n>Import wines</h2>
@@ -1047,17 +1066,18 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
 
 <!-- Pages serves these with max-age=600 and no revalidation, so a merged change can
      sit invisible behind a stale app.js for ten minutes. Bump v on every deploy. -->
-<script src="i18n.js?v=16"></script>
+<script src="i18n.js?v=17"></script>
 <script src="notes.js?v=4"></script>
 <script src="burgundy-data.js?v=13"></script>
 <script src="burgundy-data-beaune.js?v=12"></script>
 <script src="burgundy-names.js?v=1"></script>
 <script src="burgundy-match.js?v=1"></script>
-<script src="gas-fake.js?v=2"></script>
+<script src="gas-fake.js?v=3"></script>
 <script src="vault-crypto.js?v=1"></script>
 <script src="vault-engine.js?v=1"></script>
-<script src="vault.js?v=2"></script>
-<script src="import.js?v=1"></script>
-<script src="app.js?v=10"></script>
+<script src="vault.js?v=3"></script>
+<script src="import.js?v=2"></script>
+<script src="export.js?v=1"></script>
+<script src="app.js?v=11"></script>
 </body>
 </html>

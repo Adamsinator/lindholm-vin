@@ -916,7 +916,7 @@ function enjoyAdd(e) {
 // Bulk import (the site's Import dialog reads the file in the browser): appends the new wines in one write, and adds
 // bottles to rows already in the cellar ("bumps": {row, qty, drunk}). The optional columns are created as needed.
 const IMPORT_MAX = 5000;
-const IMPORT_COLS = { rating: RATING_HEADER, value: VALUE_HEADER, drunkDate: DRUNK_DATE_HEADER, size: SIZE_HEADER, drinkFrom: DRINK_FROM_HEADER, drinkTo: DRINK_TO_HEADER };
+const IMPORT_COLS = { rating: RATING_HEADER, value: VALUE_HEADER, drunkDate: DRUNK_DATE_HEADER, size: SIZE_HEADER, drinkFrom: DRINK_FROM_HEADER, drinkTo: DRINK_TO_HEADER, elsewhere: ELSEWHERE_HEADER };
 function addMany(wines, bumps) {
   if (!Array.isArray(wines) || !Array.isArray(bumps)) throw new Error('Bad import');
   if (wines.length + bumps.length > IMPORT_MAX) throw new Error('Too many rows (at most ' + IMPORT_MAX + ')');
@@ -955,6 +955,7 @@ function addMany(wines, bumps) {
     if (!blank(w.size)) row[idx.size] = String(w.size).trim();
     if (!blank(w.drinkFrom)) row[idx.drinkFrom] = num(w.drinkFrom);
     if (!blank(w.drinkTo)) row[idx.drinkTo] = num(w.drinkTo);
+    if (!blank(w.elsewhere) && Number(w.elsewhere)) row[idx.elsewhere] = 1;
     return row;
   });
   const need = last + rows.length - sh.getMaxRows(); // a range can't reach past the sheet's rows (appendRow grows it, getRange doesn't)

@@ -12,6 +12,19 @@ const FLAGS = {
 const LANGS = [{id:"en", n:"English"}, {id:"da", n:"Dansk"}, {id:"fr", n:"Français"}];
 
 const DA = {
+  // export
+  "Drunk elsewhere (not from the cellar)": "Drukket ude (ikke fra kælderen)",
+  "⬇ Export": "⬇ Eksportér",
+  "Export your cellar": "Eksportér din kælder",
+  "Download a copy of your cellar to keep or to work on in Excel, Numbers or Google Sheets. It uses the same columns as the import, so the file imports straight back.": "Hent en kopi af din kælder til at gemme eller arbejde videre med i Excel, Numbers eller Google Sheets. Den har de samme kolonner som importen, så filen kan importeres direkte igen.",
+  "Excel workbook (.xlsx)": "Excel-projektmappe (.xlsx)",
+  "Cellar, journal and wishlist, one sheet each": "Kælder, journal og ønskeliste, ét ark hver",
+  "CSV file (.csv)": "CSV-fil (.csv)",
+  "The cellar only": "Kun kælderen",
+  "🔒 The file is made in this browser from your decrypted cellar. Keep it somewhere safe: it isn't encrypted.": "🔒 Filen laves i denne browser ud fra din dekrypterede kælder. Opbevar den et sikkert sted: den er ikke krypteret.",
+  "The file is made in this browser from your cellar.": "Filen laves i denne browser ud fra din kælder.",
+  "Saved {0}": "Gemt: {0}",
+  "Could not export: {0}": "Kunne ikke eksportere: {0}",
   // import
   "⬆ Import": "⬆ Importér",
   "Import wines": "Importér vine",
@@ -262,6 +275,19 @@ const DA = {
 };
 
 const FR = {
+  // export
+  "Drunk elsewhere (not from the cellar)": "Bu ailleurs (pas de la cave)",
+  "⬇ Export": "⬇ Exporter",
+  "Export your cellar": "Exporter votre cave",
+  "Download a copy of your cellar to keep or to work on in Excel, Numbers or Google Sheets. It uses the same columns as the import, so the file imports straight back.": "Téléchargez une copie de votre cave à conserver ou à retravailler dans Excel, Numbers ou Google Sheets. Elle utilise les mêmes colonnes que l'import, le fichier se réimporte donc tel quel.",
+  "Excel workbook (.xlsx)": "Classeur Excel (.xlsx)",
+  "Cellar, journal and wishlist, one sheet each": "Cave, journal et liste d'envies, une feuille chacun",
+  "CSV file (.csv)": "Fichier CSV (.csv)",
+  "The cellar only": "La cave seulement",
+  "🔒 The file is made in this browser from your decrypted cellar. Keep it somewhere safe: it isn't encrypted.": "🔒 Le fichier est créé dans ce navigateur à partir de votre cave déchiffrée. Gardez-le en lieu sûr : il n'est pas chiffré.",
+  "The file is made in this browser from your cellar.": "Le fichier est créé dans ce navigateur à partir de votre cave.",
+  "Saved {0}": "Enregistré : {0}",
+  "Could not export: {0}": "Export impossible : {0}",
   // import
   "⬆ Import": "⬆ Importer",
   "Import wines": "Importer des vins",
