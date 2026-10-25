@@ -6,6 +6,8 @@
 const path = require("path");
 const { chromium } = require("/opt/node22/lib/node_modules/playwright");
 const H = require("./gas-harness");
+const IMPORT = require("../import.js");
+const fs = require("fs");
 const BASE = process.env.BASE || "http://localhost:8765/";
 const FIX = n => path.join(__dirname, "fixtures", n);
 const gas = H({ Ark1: [["Producent", "Land", "Område", "Kommune", "Mark/Navn", "Klassifikation", "Type", "Drue", "Årgang", "Antal", "Pris kr (WS)", "Drukket", "Kilde", "Note"]] },
@@ -13,7 +15,7 @@ const gas = H({ Ark1: [["Producent", "Land", "Område", "Kommune", "Mark/Navn", 
 const results = []; const check = (name, ok, extra = "") => { results.push(ok); console.log((ok ? "PASS " : "FAIL ") + name + (ok ? "" : "  " + extra)); };
 
 (async () => {
-  const b = await chromium.launch(); const ctx = await b.newContext({ viewport: { width: 1280, height: 900 } });
+  const b = await chromium.launch(); const ctx = await b.newContext({ viewport: { width: 1280, height: 900 }, acceptDownloads: true });
   const seen = [];
   await ctx.route("https://script.google.com/**", async route => {
     const p = JSON.parse(route.request().postData() || "{}"); seen.push(p);
@@ -66,6 +68,21 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   await p.click("#impGo"); await closed(); await p.waitForTimeout(500);
   const counts = await p.evaluate(() => VAULT.call({ action: "data" }).then(r => r.wines.map(w => w.producer + ":" + w.qty + "/" + (Number(w.drunk) || 0))));
   check("adding bottles doubles them on the same rows", counts.join() === "Armand Rousseau:6/2,Domaine Leflaive:4/4,Krug:2/0", counts.join());
+
+  // export: both files download, and read back as the same cellar
+  await p.click("#expBtn");
+  check("export says the file isn't encrypted", /isn't encrypted/.test(await p.textContent("#expLock")));
+  const before = seen.length;
+  let dl = p.waitForEvent("download"); await p.click("#expXlsx"); let f = await dl;
+  check("Excel export downloads", /^allwine-carla-\d{4}-\d{2}-\d{2}\.xlsx$/.test(f.suggestedFilename()), f.suggestedFilename());
+  const readBack = async f => { const buf = fs.readFileSync(await f.path()); const book = await IMPORT.read({ name: f.suggestedFilename(), size: buf.length, arrayBuffer: async () => buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.length) });
+    const t = IMPORT.table(book.sheets[0].rows); return { book, wines: IMPORT.build(book.sheets[0].rows, t.header, t.columns.map(c => c.field)).wines }; };
+  let back = await readBack(f);
+  check("…with cellar, journal and wishlist, and the wines in it", back.book.sheets.map(x => x.name).join() === "Kælder,Journal,Ønskeliste" && back.wines.map(w => w.producer + ":" + w.qty).join() === "Armand Rousseau:6,Domaine Leflaive:4,Krug:2", back.wines.map(w => w.producer + ":" + w.qty).join());
+  check("…nothing readable was sent to make it", !/Rousseau|Krug/.test(JSON.stringify(seen.slice(before))));
+  await p.click("#expBtn"); dl = p.waitForEvent("download"); await p.click("#expCsv"); f = await dl;
+  back = await readBack(f);
+  check("CSV export reads back the same", /\.csv$/.test(f.suggestedFilename()) && back.wines.length === 3 && back.wines[0].price === 4500.5, JSON.stringify(back.wines[0]));
 
   // a plain list of wines in a text file
   await p.click("#impBtn"); await p.setInputFiles("#impFile", FIX("lines.txt")); await p.waitForSelector("#impMap:not([hidden])");

@@ -188,7 +188,7 @@ const norm = s => String(s == null ? "" : s).normalize("NFD").replace(/[̀-ͯ]/g
 // The fields a column can fill. "left" (bottles still there) and "window" ("2025–2035") are turned into qty/drunk and
 // drinkFrom/drinkTo; "line" is a whole wine written as one line of text.
 const FIELDS = ["producer", "name", "commune", "region", "country", "classification", "type", "grape", "vintage", "qty",
-  "left", "drunk", "price", "value", "source", "note", "rating", "acquired", "drunkDate", "size", "drinkFrom", "drinkTo", "window", "line"];
+  "left", "drunk", "price", "value", "source", "note", "rating", "acquired", "drunkDate", "size", "drinkFrom", "drinkTo", "window", "elsewhere", "line"];
 const TEXT_FIELDS = new Set(["producer", "name", "commune", "region", "country", "classification", "type", "grape", "source", "note"]);
 const SYN = {
   producer: ["producent", "producer", "producteur", "produttore", "productor", "erzeuger", "winery", "vinhus", "domaine", "domain", "estate", "maker", "house", "chateau", "vingard", "vigneron", "brand"],
@@ -213,6 +213,7 @@ const SYN = {
   size: ["storrelse", "size", "format", "bottle size", "flaskestorrelse", "volume", "cl", "contenance", "taille", "flaske"],
   drinkFrom: ["drik fra", "drink from", "begin consume", "beginconsume", "ready from", "drinking window start", "drink window from", "from", "fra", "start", "a partir de", "apogee debut"],
   drinkTo: ["drik til", "drink to", "drink by", "end consume", "endconsume", "drink before", "drinking window end", "drink window to", "until", "til", "end", "jusqu a", "apogee fin"],
+  elsewhere: ["drukket ude", "drunk elsewhere", "elsewhere", "not from cellar", "bu ailleurs"],
   window: ["drikkevindue", "drink window", "drinking window", "window", "vindue", "fenetre", "fenetre de degustation", "apogee", "drink"],
 };
 // headings that look like a field but aren't (Vivino's community average, CellarTracker's community score, links…)
@@ -233,7 +234,7 @@ function matchHeader(label) {
   }
   return best;
 }
-const cellStr = c => c == null ? "" : typeof c === "object" ? (c.date || "") : String(c).trim();
+const cellStr = c => c == null ? "" : typeof c === "object" ? (c.date || "") : String(c).trim().replace(/^'(?=[=+@])/, "");
 const looksYear = c => { const n = typeof c === "number" ? c : (/^\d{4}$/.test(cellStr(c)) ? Number(cellStr(c)) : NaN); return n >= 1900 && n <= 2100; };
 
 // Which row is the header, and which field each column fills.
@@ -391,7 +392,9 @@ function build(rows, header, fields) {
   // ratings may be on a 5-point (Vivino) or 100-point scale; the site uses 1–10
   const rIdx = one("rating");
   const rMax = rIdx === undefined ? 0 : body.reduce((m, r) => Math.max(m, num(r[rIdx]) || 0), 0);
-  const rScale = v => rMax > 10 ? Math.max(1, Math.min(10, (v - 50) / 5)) : rMax <= 5 ? v * 2 : v;
+  // …except the site's own "Rating" column (an exported cellar), which is 1–10 already
+  const own = rIdx !== undefined && header >= 0 && norm(cellStr((rows[header] || [])[rIdx])) === "rating";
+  const rScale = v => rMax > 10 ? Math.max(1, Math.min(10, (v - 50) / 5)) : rMax <= 5 && !own ? v * 2 : v;
   const wines = [], skipped = { noProducer: 0, zero: 0 };
   body.forEach((r, n) => {
     r = r || [];
@@ -450,6 +453,7 @@ function build(rows, header, fields) {
     if (at(r, "size") !== undefined) { const s = size(at(r, "size")); if (s) w.size = s; }
     if (at(r, "window") !== undefined) { const [a, b] = windowYears(at(r, "window")); if (a) w.drinkFrom = a; if (b) w.drinkTo = b; }
     for (const f of ["drinkFrom", "drinkTo"]) { const v = at(r, f); if (v !== undefined) { const y = windowYears(v)[0]; if (y) w[f] = y; } }
+    if (at(r, "elsewhere") !== undefined && cellStr(at(r, "elsewhere")) && (yes(cellStr(at(r, "elsewhere"))) || num(at(r, "elsewhere")) > 0)) w.elsewhere = 1;
     if (w.drinkFrom && w.drinkTo && w.drinkTo < w.drinkFrom) [w.drinkFrom, w.drinkTo] = [w.drinkTo, w.drinkFrom];
     w.src = header + 2 + n; // the row number in the file, for the preview
     wines.push(w);

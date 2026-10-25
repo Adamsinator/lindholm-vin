@@ -1161,7 +1161,7 @@ const IMP_FIELDS = {"":"— not imported —", producer:"Producer", name:"Vineya
   country:"Country", classification:"Classification", type:"Type (red, white…)", grape:"Grape", vintage:"Vintage",
   qty:"Bottles", left:"Bottles left", drunk:"Drunk", price:"Price per bottle", value:"Value now", source:"Bought at",
   note:"Note", rating:"My rating", acquired:"Acquired date", drunkDate:"Drunk date", size:"Format",
-  drinkFrom:"Drink from", drinkTo:"Drink to", window:"Drink window (2025–2035)", line:"The whole wine on one line"};
+  drinkFrom:"Drink from", drinkTo:"Drink to", window:"Drink window (2025–2035)", elsewhere:"Drunk elsewhere (not from the cellar)", line:"The whole wine on one line"};
 const IMP_ERR = {"not-zip":"That file doesn't look like an Excel workbook.", "bad-zip":"That file doesn't look like an Excel workbook.",
   "not-xlsx":"That file doesn't look like an Excel workbook.",
   "old-xls":"That's an older Excel file (.xls) or another spreadsheet format. In Excel choose File → Save As → Excel Workbook (.xlsx) or CSV, and import that.",
@@ -1294,6 +1294,45 @@ $("impCols").addEventListener("change", e=>{
 });
 document.querySelectorAll('input[name="impDup"]').forEach(r => r.addEventListener("change", impGoLabel));
 $("impGo").addEventListener("click", impRun);
+
+/* ---------- export (export.js builds the file here from the decrypted cellar) ---------- */
+async function expRun(kind){
+  const btn = $(kind==="xlsx" ? "expXlsx" : "expCsv"); btn.disabled = true; $("expErr").textContent = "";
+  try{
+    const rows = EXPORT.cellar((await api({action:"data"})).wines);
+    let blob;
+    if(kind==="csv") blob = new Blob([EXPORT.csv(rows)], {type:"text/csv;charset=utf-8"});
+    else{
+      const sheets = [{name:"Kælder", rows}];
+      const j = await api({action:"journal"}).catch(()=>null); if(j && j.entries) sheets.push({name:"Journal", rows:EXPORT.journal(j.entries)});
+      const w = await api({action:"wish"}).catch(()=>null); if(w && w.items) sheets.push({name:"Ønskeliste", rows:EXPORT.wishlist(w.items)});
+      blob = new Blob([EXPORT.xlsx(sheets)], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+    }
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `allwine-${(cfg.user||"cellar").replace(/[^\w-]+/g,"_")}-${todayStr()}.${kind}`;
+    document.body.appendChild(a); a.click();
+    setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+    $("expModal").classList.remove("open");
+    toast(tr("Saved {0}", a.download));
+  }catch(err){
+    const m = String(err && err.message || err);
+    $("expErr").textContent = tr("Could not export: {0}", m);
+    if(AUTH_ERRORS.has(m)) showGate(authMsg(m));
+  }
+  btn.disabled = false;
+}
+$("expBtn").addEventListener("click", ()=>{
+  $("expErr").textContent = "";
+  $("expLock").textContent = (window.VAULT && VAULT.active())
+    ? tr("🔒 The file is made in this browser from your decrypted cellar. Keep it somewhere safe: it isn't encrypted.")
+    : tr("The file is made in this browser from your cellar.");
+  $("expModal").classList.add("open");
+});
+$("expXlsx").addEventListener("click", ()=>expRun("xlsx"));
+$("expCsv").addEventListener("click", ()=>expRun("csv"));
+$("expCancel").addEventListener("click", ()=>$("expModal").classList.remove("open"));
+$("expModal").addEventListener("click", e=>{ if(e.target===$("expModal")) $("expModal").classList.remove("open"); });
 
 /* ---------- filters / sorting (bound once) ---------- */
 $("q").addEventListener("input",e=>{ state.q=e.target.value; renderTable(); });
