@@ -475,6 +475,32 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
 .jlightbox img{max-width:100%;max-height:100%;border-radius:8px;box-shadow:0 8px 40px rgba(0,0,0,.5)}
 
 @media (prefers-reduced-motion: reduce){*{transition:none !important}}
+
+/* sommelier */
+.sommbtn{position:fixed;right:18px;bottom:18px;z-index:80;border:0;border-radius:999px;padding:11px 16px;font:600 14px/1 inherit;font-family:inherit;
+  background:var(--accent);color:var(--accent-ink);box-shadow:0 6px 20px rgba(40,15,25,.25);cursor:pointer}
+.sommbtn:hover{filter:brightness(1.07)}
+.sommpanel{position:fixed;right:18px;bottom:18px;z-index:95;width:min(420px,calc(100vw - 36px));height:min(640px,calc(100vh - 36px));
+  display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:0 18px 50px rgba(30,10,20,.28);overflow:hidden}
+.sommpanel[hidden]{display:none}
+.sommhead{position:relative;padding:14px 44px 10px 16px;border-bottom:1px solid var(--line);background:var(--card2)}
+.sommhead h2{margin:0;font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;font-size:19px}
+.sommsub{display:block;font-size:12px;color:var(--muted);margin-top:2px}
+.sommx{position:absolute;right:8px;top:8px;border:0;background:none;font-size:24px;line-height:1;color:var(--muted);cursor:pointer;padding:4px 8px}
+.sommlog{flex:1;overflow:auto;padding:12px 14px;display:flex;flex-direction:column;gap:10px;font-size:14px;line-height:1.5}
+.sm-q{align-self:flex-end;max-width:85%;background:var(--accent);color:var(--accent-ink);padding:8px 12px;border-radius:14px 14px 4px 14px}
+.sm-a{align-self:flex-start;max-width:94%;background:var(--bg);border:1px solid var(--line);padding:9px 13px;border-radius:14px 14px 14px 4px}
+.sm-a p{margin:0 0 6px}.sm-a p:last-child{margin-bottom:0}
+.sm-a ul{margin:4px 0 6px;padding-left:18px}.sm-a li{margin:2px 0}
+.sm-a a{color:var(--accent)}
+.sm-m{color:var(--muted);font-size:12.5px}.sm-warn{color:var(--accent);font-size:12.5px;font-weight:600}.sm-st{color:var(--gold);letter-spacing:1px}
+.sommchips{display:flex;gap:6px;flex-wrap:wrap;padding:0 14px 8px}
+.sommchips button{border:1px solid var(--line);background:var(--card2);color:var(--ink);border-radius:999px;padding:5px 10px;font:inherit;font-size:12.5px;cursor:pointer}
+.sommchips button:hover{border-color:var(--accent)}
+.sommform{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--line)}
+.sommform input{flex:1;min-width:0;padding:9px 11px;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--ink);font:inherit;font-size:15px}
+@media (max-width:600px){.sommpanel{right:0;bottom:0;width:100vw;height:100dvh;border-radius:0}.sommbtn{right:12px;bottom:12px}}
+@media print{.sommbtn,.sommpanel{display:none!important}}
 </style>
 </head>
 <body>
@@ -1108,9 +1134,24 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
 <div id="tip" aria-hidden="true"></div>
 <div id="toast"></div>
 
+<button class="sommbtn" id="sommBtn" type="button" hidden aria-haspopup="dialog" aria-controls="sommPanel"><span aria-hidden="true">🍷</span> <span data-i18n>Ask the sommelier</span></button>
+<section class="sommpanel" id="sommPanel" role="dialog" aria-modal="false" aria-labelledby="sommTitle" hidden>
+  <header class="sommhead">
+    <h2 id="sommTitle" data-i18n>Sommelier</h2>
+    <span class="sommsub" data-i18n>Answers from the site's own knowledge — no AI service, nothing leaves the page.</span>
+    <button class="sommx" type="button" id="sommClose" data-i18n-aria aria-label="Close">×</button>
+  </header>
+  <div class="sommlog" id="sommLog" aria-live="polite"></div>
+  <div class="sommchips" id="sommChips"></div>
+  <form class="sommform" id="sommForm" autocomplete="off">
+    <input id="sommQ" type="text" maxlength="300" data-i18n-ph placeholder="Ask about a wine, a vintage, a pairing or your cellar…" data-i18n-aria aria-label="Your question">
+    <button class="btn primary" type="submit" data-i18n>Ask</button>
+  </form>
+</section>
+
 <!-- Pages serves these with max-age=600 and no revalidation, so a merged change can
      sit invisible behind a stale app.js for ten minutes. Bump v on every deploy. -->
-<script src="i18n.js?v=20"></script>
+<script src="i18n.js?v=21"></script>
 <script src="notes.js?v=4"></script>
 <script src="burgundy-data.js?v=13"></script>
 <script src="burgundy-data-beaune.js?v=12"></script>
@@ -1124,6 +1165,6 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
 <script src="tidy.js?v=1"></script>
 <script src="import.js?v=4"></script>
 <script src="export.js?v=2"></script>
-<script src="app.js?v=15"></script>
+<script src="app.js?v=16"></script>
 </body>
 </html>
