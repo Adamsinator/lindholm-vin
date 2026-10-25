@@ -1156,6 +1156,145 @@ document.addEventListener("keydown", e=>{
 $("addModal").addEventListener("click", e=>{ if(e.target===$("addModal")) $("addModal").classList.remove("open"); });
 $("addForm").addEventListener("submit", addWine);
 
+/* ---------- import (import.js reads the file here in the browser; the wines go in through 'addmany') ---------- */
+const IMP_FIELDS = {"":"— not imported —", producer:"Producer", name:"Vineyard / cuvée", commune:"Commune", region:"Region",
+  country:"Country", classification:"Classification", type:"Type (red, white…)", grape:"Grape", vintage:"Vintage",
+  qty:"Bottles", left:"Bottles left", drunk:"Drunk", price:"Price per bottle", value:"Value now", source:"Bought at",
+  note:"Note", rating:"My rating", acquired:"Acquired date", drunkDate:"Drunk date", size:"Format",
+  drinkFrom:"Drink from", drinkTo:"Drink to", window:"Drink window (2025–2035)", line:"The whole wine on one line"};
+const IMP_ERR = {"not-zip":"That file doesn't look like an Excel workbook.", "bad-zip":"That file doesn't look like an Excel workbook.",
+  "not-xlsx":"That file doesn't look like an Excel workbook.",
+  "old-xls":"That's an older Excel file (.xls) or another spreadsheet format. In Excel choose File → Save As → Excel Workbook (.xlsx) or CSV, and import that.",
+  "too-big":"That file is too large (at most 20 MB).", "zip-method":"Couldn't read that workbook. Save it as CSV and try again."};
+const IMP = {book:null, sheet:0, t:null, fields:[], built:null, d:null, name:""};
+function impReset(){
+  Object.assign(IMP, {book:null, sheet:0, t:null, fields:[], built:null, d:null, name:""});
+  $("impPick").hidden = false; $("impMap").hidden = true; $("impBack").hidden = true; $("impGo").hidden = true;
+  $("impErr").textContent = ""; $("impFile").value = "";
+  $("impLock").textContent = (window.VAULT && VAULT.active())
+    ? tr("🔒 The file is read in this browser and never uploaded. The wines are encrypted here before they're saved, like the rest of your cellar.")
+    : tr("The file is read in this browser and never uploaded; only the wines are saved to your cellar.");
+}
+async function impOpen(file){
+  $("impErr").textContent = "";
+  try{
+    const book = await IMPORT.read(file);
+    const sheets = book.sheets.filter(s => s.rows.some(r => r.some(c => String(c && c.date || c).trim() !== "")));
+    if(!sheets.length) throw new Error("empty");
+    book.sheets = sheets; IMP.book = book; IMP.name = file.name;
+    // start on the sheet that looks most like a cellar list
+    const score = s => { const t = IMPORT.table(s.rows); return (t.header >= 0 ? 1000 : 0) + t.columns.filter(c => c.field).length * 100 + Math.min(t.rows, 99) - (s.hidden ? 5000 : 0); };
+    IMP.sheet = sheets.map((s,i) => [score(s), i]).sort((a,b) => b[0]-a[0])[0][1];
+    $("impSheet").innerHTML = sheets.map((s,i) => `<option value="${i}">${esc(s.name)}</option>`).join("");
+    $("impSheet").value = IMP.sheet; $("impSheet").hidden = sheets.length < 2;
+    $("impName").textContent = file.name;
+    impSheet();
+    $("impPick").hidden = true; $("impMap").hidden = false; $("impBack").hidden = false; $("impGo").hidden = false;
+  }catch(err){
+    const m = String(err && err.message || err);
+    $("impErr").textContent = m === "empty" ? tr("No wines found in that file.")
+      : IMP_ERR[m] ? tr(IMP_ERR[m])
+      : /require|DecompressionStream/.test(m) ? tr("This browser can't open Excel files. Save the sheet as CSV and import that.")
+      : tr("Couldn't read that file ({0}).", m);
+  }
+}
+function impSheet(){
+  const rows = IMP.book.sheets[IMP.sheet].rows;
+  IMP.t = IMPORT.table(rows);
+  IMP.fields = IMP.t.columns.map(c => c.field);
+  $("impHint").textContent = IMP.t.header >= 0
+    ? tr("Headings found in row {0}. Check that each column goes to the right place:", IMP.t.header + 1)
+    : tr("No headings found, so the first row is a wine too. Choose what each column holds:");
+  const opts = Object.entries(IMP_FIELDS).map(([k,v]) => `<option value="${k}">${esc(tr(v))}</option>`).join("");
+  $("impCols").innerHTML = `<span class="ih">${esc(tr("Column"))}</span><span class="ih is">${esc(tr("Example"))}</span><span class="ih">${esc(tr("Goes to"))}</span>`
+    + IMP.t.columns.map((c,i) => `<span class="il">${esc(c.label)}</span><span class="is" title="${esc(c.sample.join(" · "))}">${esc(c.sample.join(" · ")) || "—"}</span>`
+      + `<select data-col="${i}" aria-label="${esc(c.label)}">${opts}</select>`).join("");
+  $("impCols").querySelectorAll("select").forEach(s => { s.value = IMP.fields[Number(s.dataset.col)]; s.classList.toggle("on", !!s.value); });
+  impBuild();
+}
+function impBuild(){
+  const rows = IMP.book.sheets[IMP.sheet].rows;
+  IMP.built = IMPORT.build(rows, IMP.t.header, IMP.fields);
+  IMP.d = IMPORT.dedupe(IMP.built.wines, WINES);
+  const ws = IMP.built.wines, dupRows = new Set(IMP.d.dupes.map(x => x.wine));
+  const fmt = n => Number(n).toLocaleString(I18N_LOCALE());
+  const head = ["", tr("Producer"), tr("Vineyard / cuvée"), tr("Commune"), tr("Vintage"), tr("Bottles"), tr("Price"), tr("Type"), tr("Format")];
+  $("impPrev").innerHTML = `<thead><tr>${head.map(h => `<th>${esc(h)}</th>`).join("")}</tr></thead><tbody>`
+    + ws.slice(0, 8).map(w => `<tr><td>${dupRows.has(w) ? `<span class="dup">${esc(tr("in cellar"))}</span>` : esc(tr("row {0}", w.src))}</td>`
+      + `<td>${esc(w.producer)}</td><td>${esc(w.name||"")}</td><td>${esc(w.commune||"")}</td><td>${esc(w.vintage||"")}</td>`
+      + `<td>${w.qty}${w.drunk ? " · "+esc(tr("{0} drunk", w.drunk)) : ""}</td><td>${w.price!=null ? esc(fmt(w.price)) : ""}</td>`
+      + `<td>${esc(w.type||"")}</td><td>${esc(w.size||"")}</td></tr>`).join("")
+    + (ws.length > 8 ? `<tr><td colspan="9">${esc(tr("… and {0} more", ws.length - 8))}</td></tr>` : "")
+    + (ws.length ? "" : `<tr><td colspan="9">${esc(tr("Nothing to import yet — choose which column holds the producer."))}</td></tr>`)
+    + "</tbody>";
+  const bottles = ws.reduce((s,w) => s + w.qty, 0);
+  const notes = [];
+  if(IMP.built.skipped.noProducer) notes.push(tr("{0} rows without a producer are left out.", IMP.built.skipped.noProducer));
+  if(IMP.built.skipped.zero) notes.push(tr("{0} rows with 0 bottles are left out.", IMP.built.skipped.zero));
+  if(IMP.built.truncated) notes.push(tr("Only the first {0} wines are imported at a time.", IMPORT.MAX_ROWS));
+  if(!IMP.fields.includes("producer") && !IMP.fields.includes("line")) notes.push(tr("Choose which column holds the producer."));
+  $("impSum").innerHTML = esc(tr("{0} wines · {1} bottles", fmt(ws.length), fmt(bottles))) + notes.map(n => `<small>${esc(n)}</small>`).join("");
+  const nd = IMP.d.dupes.length;
+  $("impDup").hidden = !nd;
+  $("impDupLbl").textContent = nd ? tr("{0} of these are already in your cellar (same producer, wine, vintage and format):", nd) : "";
+  impGoLabel();
+}
+const impMode = () => (document.querySelector('input[name="impDup"]:checked') || {}).value || "add";
+function impGoLabel(){
+  const total = !IMP.d ? 0 : IMP.d.fresh.length + (impMode()==="add" ? IMP.d.dupes.length : 0);
+  $("impGo").textContent = tr("Import {0} wines", total);
+  $("impGo").disabled = !total;
+}
+async function impRun(){
+  const mode = impMode();
+  const wines = IMP.d.fresh.map(IMPORT.clean);
+  const bumps = mode==="add" ? IMPORT.bumps(IMP.d.dupes) : [];
+  const merged = mode==="add" ? IMP.d.dupes.length : 0, total = wines.length + merged;
+  if(!total) return;
+  // an encrypted cellar runs it here in one go; a plain one sends it to Apps Script in chunks it can write in time
+  const size = (window.VAULT && VAULT.active()) ? wines.length || 1 : 400;
+  const btn = $("impGo"); btn.disabled = true; $("impErr").textContent = "";
+  let done = 0;
+  try{
+    for(let i = 0; i < Math.max(wines.length, 1); i += size){
+      const part = wines.slice(i, i + size);
+      btn.textContent = tr("Importing… {0} of {1}", done, total);
+      const res = await api({action:"addmany", wines:part, bumps: i === 0 ? bumps : []});
+      done += part.length + (i === 0 ? merged : 0);
+      WINES = normalize(res.wines);
+    }
+    renderOverview(); renderTable(); renderEnjoyed();
+    $("impModal").classList.remove("open");
+    toast(tr("{0} wines imported 🍷", done));
+  }catch(err){
+    const m = String(err && err.message || err);
+    if(done){ renderOverview(); renderTable(); renderEnjoyed(); }
+    $("impErr").textContent = m === "bad-action" ? tr("Importing needs the updated Apps Script (version 29) — redeploy Code.gs.")
+      : done ? tr("{0} of {1} wines were imported before an error: {2}", done, total, m)
+      : tr("Could not import: {0}", m);
+    // what went in now counts as "already in the cellar": skip it on a retry so nothing is added twice
+    if(done){ document.querySelector('input[name="impDup"][value="skip"]').checked = true; impBuild(); } else impGoLabel();
+    btn.disabled = false;
+    if(AUTH_ERRORS.has(m)) showGate(authMsg(m));
+  }
+}
+const I18N_LOCALE = () => ({en:"en-GB", fr:"fr-FR"})[window.I18N && I18N.lang] || "da-DK";
+$("impBtn").addEventListener("click", ()=>{ impReset(); $("impModal").classList.add("open"); });
+$("impCancel").addEventListener("click", ()=>$("impModal").classList.remove("open"));
+$("impBack").addEventListener("click", impReset);
+$("impModal").addEventListener("click", e=>{ if(e.target===$("impModal")) $("impModal").classList.remove("open"); });
+$("impFile").addEventListener("change", e=>{ const f = e.target.files && e.target.files[0]; if(f) impOpen(f); });
+["dragenter","dragover"].forEach(ev => $("impDrop").addEventListener(ev, e=>{ e.preventDefault(); $("impDrop").classList.add("over"); }));
+["dragleave","drop"].forEach(ev => $("impDrop").addEventListener(ev, e=>{ e.preventDefault(); $("impDrop").classList.remove("over"); }));
+$("impDrop").addEventListener("drop", e=>{ const f = e.dataTransfer && e.dataTransfer.files[0]; if(f) impOpen(f); });
+$("impSheet").addEventListener("change", e=>{ IMP.sheet = Number(e.target.value); impSheet(); });
+$("impCols").addEventListener("change", e=>{
+  const s = e.target.closest("select[data-col]"); if(!s) return;
+  IMP.fields[Number(s.dataset.col)] = s.value; s.classList.toggle("on", !!s.value); impBuild();
+});
+document.querySelectorAll('input[name="impDup"]').forEach(r => r.addEventListener("change", impGoLabel));
+$("impGo").addEventListener("click", impRun);
+
 /* ---------- filters / sorting (bound once) ---------- */
 $("q").addEventListener("input",e=>{ state.q=e.target.value; renderTable(); });
 $("fRegion").addEventListener("change",e=>{ state.region=e.target.value; renderTable(); });

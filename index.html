@@ -293,6 +293,33 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
 #recModal{z-index:110}
 .reccode{font:600 18px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.04em;background:var(--bg);border:1px dashed var(--line);border-radius:8px;padding:12px 14px;word-break:break-all;user-select:all}
 .lockline{font-size:12.5px;color:var(--muted);margin:12px 0 0;line-height:1.45}
+.modal .err{color:var(--accent);font-size:13px;min-height:18px;margin-top:10px}
+/* import */
+.modal .card.imp{max-width:880px}
+.impdrop{display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:120px;border:2px dashed var(--line);border-radius:12px;background:var(--card2);cursor:pointer;text-transform:none!important;letter-spacing:0!important;font-size:14px!important;color:var(--ink)!important;padding:16px;text-align:center}
+.impdrop.over{border-color:var(--accent);background:var(--bg)}
+.impdrop input{width:auto!important;max-width:100%}
+.impfile{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;font-size:14px}
+.impfile select{width:auto!important}
+.imphint{font-size:13px;color:var(--muted);margin:8px 0 4px}
+.impcols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr) minmax(0,1.2fr);gap:4px 10px;align-items:center;font-size:13px;max-height:38vh;overflow:auto;padding:6px 2px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.impcols .ih{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted)}
+.impcols .il{font-weight:600;overflow-wrap:anywhere}
+.impcols .is{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.impcols select{padding:5px 6px!important;font-size:13px!important}
+.impcols select.on{border-color:var(--accent)}
+.modal h3{font-size:12px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin:16px 0 6px;font-weight:600}
+.impprev{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
+.impprev table{border-collapse:collapse;width:100%;font-size:12.5px}
+.impprev th,.impprev td{padding:5px 8px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+.impprev th{font-weight:600;color:var(--muted);background:var(--card2)}
+.impprev tr:last-child td{border-bottom:0}
+.impprev .dup{font-size:11px;color:var(--gold);font-weight:600}
+.impsum{font-size:14px;margin:10px 0 0}
+.impsum small{display:block;color:var(--muted);font-size:12.5px;margin-top:3px}
+#impDup{border:1px solid var(--line);border-radius:8px;padding:6px 12px 10px;margin:12px 0 0}
+#impDup legend{font-size:13.5px;padding:0 4px}
+@media (max-width:600px){.impcols{grid-template-columns:minmax(0,1fr) minmax(0,1.2fr)}.impcols .is{display:none}}
 .spin{text-align:center;color:var(--muted);padding:60px 0;font-size:14px}
 #toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:var(--ink);color:var(--bg);
   padding:9px 16px;border-radius:8px;font-size:13.5px;z-index:120;opacity:0;transition:opacity .2s;pointer-events:none}
@@ -549,6 +576,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
 
 <div class="actions">
   <button class="btn primary" id="addBtn">＋ Add wine</button>
+  <button class="btn" id="impBtn" data-i18n>⬆ Import</button>
   <button class="btn" id="tonightBtn">🎲 Tonight</button>
   <button class="btn" id="priceBtn">Show prices</button>
 </div>
@@ -794,6 +822,39 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
   </form>
 </div>
 
+<div class="modal" id="impModal" role="dialog" aria-modal="true" aria-labelledby="impTitle">
+  <div class="card imp">
+    <h2 id="impTitle" data-i18n>Import wines</h2>
+    <div id="impPick">
+      <p data-i18n>Add many wines at once from an Excel workbook (.xlsx), a CSV file or a text file — one wine per row. Column headings in Danish, English or French are recognised, and you can correct the matching before anything is saved.</p>
+      <label class="impdrop" id="impDrop">
+        <span data-i18n>Choose a file or drop it here</span>
+        <input type="file" id="impFile" accept=".xlsx,.xlsm,.csv,.tsv,.txt,text/csv,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+      </label>
+      <p class="lockline" id="impLock"></p>
+    </div>
+    <div id="impMap" hidden>
+      <div class="impfile"><b id="impName"></b><select id="impSheet" aria-label="Sheet" hidden></select></div>
+      <p class="imphint" id="impHint"></p>
+      <div class="impcols" id="impCols"></div>
+      <h3 data-i18n>Preview</h3>
+      <div class="impprev"><table id="impPrev"></table></div>
+      <p class="impsum" id="impSum"></p>
+      <fieldset id="impDup" hidden>
+        <legend id="impDupLbl"></legend>
+        <label class="jcheck"><input type="radio" name="impDup" value="add" checked> <span data-i18n>Add the bottles to the wine already in my cellar</span></label>
+        <label class="jcheck"><input type="radio" name="impDup" value="skip"> <span data-i18n>Skip them</span></label>
+      </fieldset>
+    </div>
+    <div class="err" id="impErr" role="status" aria-live="polite"></div>
+    <div class="mact">
+      <button class="btn" type="button" id="impCancel" data-i18n>Cancel</button>
+      <button class="btn" type="button" id="impBack" hidden data-i18n>Choose another file</button>
+      <button class="btn primary" type="button" id="impGo" hidden></button>
+    </div>
+  </div>
+</div>
+
 <div class="modal" id="eaModal" role="dialog" aria-modal="true" aria-labelledby="eaTitle">
   <form class="card" id="eaForm">
     <h2 id="eaTitle">Add a wine I've had</h2>
@@ -986,16 +1047,17 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
 
 <!-- Pages serves these with max-age=600 and no revalidation, so a merged change can
      sit invisible behind a stale app.js for ten minutes. Bump v on every deploy. -->
-<script src="i18n.js?v=15"></script>
+<script src="i18n.js?v=16"></script>
 <script src="notes.js?v=4"></script>
 <script src="burgundy-data.js?v=13"></script>
 <script src="burgundy-data-beaune.js?v=12"></script>
 <script src="burgundy-names.js?v=1"></script>
 <script src="burgundy-match.js?v=1"></script>
-<script src="gas-fake.js?v=1"></script>
+<script src="gas-fake.js?v=2"></script>
 <script src="vault-crypto.js?v=1"></script>
 <script src="vault-engine.js?v=1"></script>
-<script src="vault.js?v=1"></script>
-<script src="app.js?v=9"></script>
+<script src="vault.js?v=2"></script>
+<script src="import.js?v=1"></script>
+<script src="app.js?v=10"></script>
 </body>
 </html>
