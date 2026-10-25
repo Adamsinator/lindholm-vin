@@ -2245,14 +2245,25 @@ function focusDefault(){ // Vosne and Flagey's grands crus
 const CELLAR = {loaded:false, by:{}, village:{}, msg:"Log in on the Cellar page to see your own bottles here.", args:[]};
 // which climat a bottle comes from: the same matcher the cellar app uses to suggest classifications (burgundy-match.js)
 const matchWine = window.BURG_MATCH.make(C, V).match;
+// An encrypted cellar: load the vault scripts only now, and decrypt here with the key the Cellar page kept for this session
+const loadScript = src => new Promise((res, rej) => { const el = document.createElement("script"); el.src = src; el.onload = res; el.onerror = () => rej(new Error("load " + src)); document.head.appendChild(el); });
+async function vaultData(api, user, token){
+  for(const f of ["gas-fake.js?v=1", "vault-crypto.js?v=1", "vault-engine.js?v=1", "vault.js?v=1"]) await loadScript(f);
+  const dek = await window.VCRYPTO.recall(user);
+  if(!dek) throw new Error("token");
+  const post = async p => (await fetch(api, {method:"POST", body:JSON.stringify(p), redirect:"follow"})).json();
+  await window.VAULT.start({post, user, token, dek});
+  return window.VAULT.call({action:"data"});
+}
 async function loadCellar(){
   const api = localStorage.getItem("vinApi") || (window.WINE_CONFIG && window.WINE_CONFIG.API_URL) || "";
   const user = localStorage.getItem("vinUser") || "", token = localStorage.getItem("vinToken") || "";
   if(!api || !token) return;
   CELLAR.msg = "Loading your cellar…"; CELLAR.args = []; renderLegend();
   try{
-    const res = await fetch(api, {method:"POST", body:JSON.stringify({user, token, action:"data"}), redirect:"follow"});
-    const data = await res.json();
+    let data;
+    if(localStorage.getItem("vinVault")==="1") data = await vaultData(api, user, token);
+    else { const res = await fetch(api, {method:"POST", body:JSON.stringify({user, token, action:"data"}), redirect:"follow"}); data = await res.json(); }
     if(!data.ok) throw new Error(data.error || "error");
     let n = 0;
     (data.wines||[]).forEach(r => {

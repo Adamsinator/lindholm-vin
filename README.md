@@ -526,8 +526,8 @@ Others can keep their own cellar behind a username + password:
 - Set `SIGNUP_CODE` in `Settings.gs` to an invite phrase (blank `''` turns signups
   off), redeploy, and share the site URL + that phrase.
 - A friend taps **Sign up**, picks a username/password + the invite code, and
-  gets their own empty cellar. Everything (wines, enjoyed, journal, wishlist,
-  ratings) is scoped to their own spreadsheet — they never see anyone else's.
+  gets their own empty, encrypted cellar (see below). Everything (wines, enjoyed, journal, wishlist,
+  ratings) is scoped to their own vault — they never see anyone else's, and neither do you.
 - **Your own account** (once, at setup): put `OWNER_USER` and `OWNER_PASSWORD` in `Settings.gs`, then run
   `makeOwner` once from the editor and blank the password again. It points your account at *this* (the master)
   spreadsheet, so your existing wines carry over.
@@ -536,11 +536,51 @@ Others can keep their own cellar behind a username + password:
   cellar is the master spreadsheet. To restrict atlas corrections to yourself, set `ATLAS_EDITORS` to your
   username.
 - Remove someone: delete their row from the `Users` tab (and their folder from
-  your Drive).
+  your Drive). Their vault can't be read without their password or recovery code anyway.
 - **Signed in on several devices at once** is fine: the `Token` cell keeps the
   five most recent sessions, so logging in on a phone no longer signs out the
   laptop. To force every device of an account to sign in again, clear that
   row's `Token` cell. Sessions still expire on their own after 60 idle minutes.
+
+## Privacy: encrypted cellars (API 28)
+
+Every account's private data is encrypted **in the browser**, so the server — and you, as the person who runs it —
+only ever holds ciphertext. That covers the cellar, Enjoyed, the journal, the wishlist and journal photos. Feed
+posts, follows and atlas corrections stay readable, because sharing them is the point.
+
+- **Keys.** The password never leaves the browser. PBKDF2-SHA256 (600 000 rounds) turns it into a login key, which
+  the server checks and stores only hashed, and a key that unwraps the account's random AES-256 data key
+  (`vault-crypto.js`). The data key exists in the clear only inside the browser. During a session it's kept as a
+  non-extractable key in IndexedDB, and it's dropped on logout and after the 60-minute idle sign-out.
+- **Recovery code.** At sign-up, and at each existing user's first login on the new version, the site shows a
+  recovery code once. It wraps the same data key, so a forgotten password can be reset from the login screen
+  (**Forgot password?**). Without the password *and* the code, the cellar is gone — nobody can open it, you
+  included. **Account** (top bar) changes the password or issues a new code.
+- **Where it lives.** Each account has an *AllWine vault — name* spreadsheet with one `Vault` tab of encrypted
+  chunks, plus a `Vault` folder of encrypted journal photos. `vault-engine.js` runs `Code.gs` itself in the browser
+  over the decrypted copy, so the cellar logic is the same code as the server's. `vault.js` then writes back only
+  the tabs that changed, with a version number so two devices can't overwrite each other.
+- **Migration.** An account from before encryption logs in with its password one last time. The browser creates
+  its keys, shows the recovery code, copies the plain tabs and photos into the vault encrypted, and reads
+  everything back to compare. Only then does it tell the server to let the plain copy go:
+  - **a friend's account:** the old spreadsheet and its journal photos go to the Drive trash;
+  - **your account:** the Ark1, Journal and Ønskeliste tabs of the master sheet are cleared. The master sheet still
+    holds the shared Users, Feed and atlas tabs.
+
+  Trashed files stay restorable for 30 days, so **empty the Drive trash** once everyone has migrated, if you want
+  the old copies gone for good. If a migration is interrupted, nothing is lost: the plain copy stays until the
+  check passes, and the next login carries on.
+- **What changes for you.** Your own cellar is encrypted too, so wines can't be edited in Google Sheets any more.
+  Use the site instead (an export to CSV/Excel is coming). The legacy `ACCESS_CODE` stops working once your
+  cellar is encrypted.
+- **What the owner can still see.** Usernames; how big each vault is and when it changed; feed posts; and the
+  fact that someone logged in. Not wines, notes, prices, ratings or photos.
+- **The trust you can't remove.** You deploy the code, so a changed version could capture keys. Users trust the
+  published code in this repository; that's the limit of any web app.
+
+Tests: `node tools/vault-test.js` (server and client modules, 34 checks), `node tools/vault-ui-test.js` (the
+screens, 13), and `MODE=vault node tools/cellar-flow-test.js` (the whole cellar flow on an encrypted account,
+including the migration, 36).
 
 ## Drive layout
 
@@ -550,9 +590,12 @@ Keep everything inside one folder so it doesn't sprawl as people join:
 AllWine/                          ← your master folder (put the master sheet here)
 ├─ AllWine (spreadsheet)          ← your own cellar (the bound script lives on it)
 ├─ Journalfotos/                  ← your journal photos
+├─ AllWine vault — adam           ← your encrypted cellar, after migrating
+├─ Vault/                         ← your encrypted journal photos
 ├─ AllWine — anna/                ← auto-created for each signup
-│  ├─ AllWine — anna (sheet)
-│  └─ Journalfotos/
+│  ├─ AllWine vault — anna        ← their encrypted cellar
+│  ├─ Vault/                      ← their encrypted journal photos
+│  └─ Journalfotos/               ← photos they share in the feed (plain, by design)
 └─ AllWine — bob/
    └─ …
 ```

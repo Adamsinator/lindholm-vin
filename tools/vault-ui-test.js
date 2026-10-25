@@ -1,0 +1,77 @@
+// Browser test of the encrypted-account screens against the real Code.gs (gas-harness.js): sign-up with the recovery
+// code, a reload that reopens the vault, logout forgetting the key, a password change, and recovery.
+//   (cd .. && python3 -m http.server 8765) & node tools/vault-ui-test.js
+"use strict";
+const { chromium } = require("/opt/node22/lib/node_modules/playwright");
+const H = require("./gas-harness");
+const BASE = process.env.BASE || "http://localhost:8765/";
+const gas = H({ Ark1: [["Producent", "Land", "Område", "Kommune", "Mark/Navn", "Klassifikation", "Type", "Drue", "Årgang", "Antal", "Pris kr (WS)", "Drukket", "Kilde", "Note"]] },
+              { settings: { SIGNUP_CODE: "invite" } });
+const results = []; const check = (name, ok, extra = "") => { results.push(ok); console.log((ok ? "PASS " : "FAIL ") + name + (ok ? "" : "  " + extra)); };
+
+(async () => {
+  const b = await chromium.launch(); const ctx = await b.newContext({ viewport: { width: 1280, height: 900 }, acceptDownloads: true });
+  const seen = [];
+  await ctx.route("https://script.google.com/**", async route => {
+    const p = JSON.parse(route.request().postData() || "{}"); seen.push(p);
+    await route.fulfill({ contentType: "application/json", body: JSON.stringify(gas.call(p)) });
+  });
+  const p = await ctx.newPage(); const errs = [];
+  p.on("pageerror", e => errs.push(e.message)); p.on("console", m => m.type() === "error" && errs.push(m.text()));
+  p.on("dialog", d => d.accept());
+  await p.goto(BASE); await p.waitForTimeout(400);
+
+  // sign up
+  await p.click("#gateToggle");
+  await p.fill("#gateUser", "anna"); await p.fill("#gatePass", "anna-pass-1"); await p.fill("#gateInvite", "invite");
+  await p.click("#gateSubmit");
+  await p.waitForSelector("#recModal.open", { timeout: 20000 });
+  const code = (await p.textContent("#recCode")).trim();
+  check("sign-up shows a recovery code", /^[0-9A-Z]{4}(-[0-9A-Z]{4}){7}$/.test(code), code);
+  const dl = p.waitForEvent("download"); await p.click("#recSave"); const file = await dl;
+  check("…which can be saved as a file", /allwine-recovery-anna\.txt/.test(file.suggestedFilename()));
+  await p.check("#recOk"); await p.click("#recDone");
+  await p.waitForSelector("#app:not([hidden])", { timeout: 20000 });
+  check("no password was sent to the server", !seen.some(x => JSON.stringify(x).includes("anna-pass-1")));
+  check("the Account button shows", await p.isVisible("#acctBtn"));
+
+  // add a wine through the normal form
+  await p.click("#addBtn"); await p.fill("#aProducer", "Domaine Roulot"); await p.fill("#aName", "Meursault Perrières");
+  await p.fill("#aVintage", "2020"); await p.click('#addForm button[type="submit"]'); await p.waitForTimeout(1200);
+  check("adding a wine works on the encrypted cellar", (await p.textContent("#tbl")).includes("Domaine Roulot"));
+
+  // reload: the session key is kept for this session
+  await p.reload(); await p.waitForTimeout(2500);
+  check("a reload reopens the cellar without the password", await p.isVisible("#app") && (await p.textContent("#tbl")).includes("Domaine Roulot"));
+
+  // the atlas reads the encrypted cellar too
+  await p.goto(BASE + "burgundy.html"); await p.waitForTimeout(6000);
+  check("the atlas shows the encrypted cellar's bottles", await p.isVisible("#cellarChip"));
+  await p.goto(BASE); await p.waitForTimeout(2500);
+
+  // change password
+  await p.click("#acctBtn"); await p.fill("#acctPass", "anna-pass-1"); await p.fill("#acctNew", "anna-pass-2");
+  await p.click("#acctSave"); await p.waitForTimeout(3500);
+  check("password change closes the dialog", !(await p.isVisible("#acctModal")), await p.textContent("#acctErr"));
+
+  // logout forgets the key: a reload asks for the password
+  await p.click("#lockBtn"); await p.waitForTimeout(500);
+  await p.reload(); await p.waitForTimeout(800);
+  check("after logout the gate shows", await p.isVisible("#gate"));
+  const kept = await p.evaluate(() => VCRYPTO.recall("anna").then(k => !!k));
+  check("…and the key is gone from the browser", kept === false);
+
+  // the old password fails, the new one works
+  await p.fill("#gateUser", "anna"); await p.fill("#gatePass", "anna-pass-1"); await p.click("#gateSubmit"); await p.waitForTimeout(3000);
+  check("old password is refused", /Wrong username or password/.test(await p.textContent("#gateErr")), await p.textContent("#gateErr"));
+
+  // forgot password: recovery code + new password
+  await p.click("#gateForgot");
+  await p.fill("#gateUser", "anna"); await p.fill("#gateRec", code.toLowerCase()); await p.fill("#gatePass", "anna-pass-3");
+  await p.click("#gateSubmit");
+  await p.waitForSelector("#app:not([hidden])", { timeout: 20000 }); await p.waitForTimeout(1500);
+  check("recovery opens the same cellar", (await p.textContent("#tbl")).includes("Domaine Roulot"));
+  check("no console errors", !errs.length, errs.join(" | "));
+  await b.close();
+  const n = results.filter(Boolean).length; console.log(`\n${n}/${results.length} passed`); process.exit(n === results.length ? 0 : 1);
+})().catch(e => { console.error(e); process.exit(1); });
