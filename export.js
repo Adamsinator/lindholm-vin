@@ -11,7 +11,7 @@
 const CELLAR = [["producer", "Producent"], ["country", "Land"], ["region", "Område"], ["commune", "Kommune"], ["name", "Mark/Navn"],
   ["classification", "Klassifikation"], ["type", "Type"], ["grape", "Drue"], ["vintage", "Årgang"], ["qty", "Antal"], ["price", "Pris kr (WS)"],
   ["drunk", "Drukket"], ["source", "Kilde"], ["note", "Note"], ["rating", "Rating"], ["value", "Værdi kr"], ["acquired", "Anskaffet"],
-  ["drunkDate", "Drukket dato"], ["size", "Størrelse"], ["drinkFrom", "Drik fra"], ["drinkTo", "Drik til"], ["elsewhere", "Drukket ude"]];
+  ["drunkDate", "Drukket dato"], ["size", "Størrelse"], ["drinkFrom", "Drik fra"], ["drinkTo", "Drik til"], ["elsewhere", "Drukket ude"], ["location", "Placering"]];
 const JOURNAL = [["date", "Dato"], ["producer", "Producent"], ["wine", "Vin"], ["vintage", "Årgang"], ["country", "Land"], ["region", "Område"],
   ["commune", "Kommune"], ["classification", "Klassifikation"], ["grape", "Drue"], ["place", "Sted"], ["rating", "Rating"], ["price", "Pris"], ["note", "Note"]];
 const WISH = [["producer", "Producent"], ["wine", "Vin"], ["vintage", "Årgang"], ["region", "Område"], ["price", "Målpris kr"], ["note", "Note"]];

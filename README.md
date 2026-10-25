@@ -425,46 +425,17 @@ Tests:
   both are round-tripped through the importer.
 - `node tools/import-ui-test.js`: 26 checks on both dialogs.
 
-## AI helper: drink window and critics' reviews (API 30)
+## Where the bottles are (API 31)
 
-**✨ Drink window & reviews** in a wine's details asks Claude (Claude Opus 5.5, Anthropic's API) to search the web
-for critics' notes on that exact wine and vintage, and for the drinking windows they give. It shows:
-- the window, with whose window it is;
-- a short summary;
-- the reviews (critic, score, vintage, a line, a link to the page);
-- how many web results the answer rests on, and a confidence level.
-
-**Use as my drink window** saves the years in the cellar, like typing them.
-
-- **What leaves the browser.** Only the wine's identity goes to Apps Script and on to Anthropic: producer, name,
-  vintage, commune, region, country, classification, type and format. Prices, notes, ratings and the rest of the
-  cellar are never sent, encrypted cellar or not. The first click says so and asks before anything is sent ("Don't
-  ask me again" remembers it in that browser). Nothing about the wine is stored: answers live in the page until you
-  leave it, and the server writes only each user's count for the day and the month's estimated spend (script
-  properties).
-- **Sources are checked.** Claude reports through a strict tool, so its answer always has the expected shape.
-  Every review's address is checked against the pages the search actually returned, and a review citing any other
-  address is dropped. It's still AI output, and the card says so: check the sources before you rely on it.
-- **Turning it on** (you pay for it on your Anthropic account):
-  1. create an API key at console.anthropic.com;
-  2. in the Apps Script editor, go to **Project Settings → Script properties** and add `ANTHROPIC_API_KEY` with the
-     key as its value. It never goes in a code file, and the site never sees it;
-  3. redeploy.
-- **Cost and limits.** A lookup costs roughly **$0.10–0.40** (Claude Opus 5.5 at $4/$20 per million tokens in/out,
-  plus web search at $10 per 1 000 searches, at most 5 per lookup). In `Settings.gs`:
-  - `AI_USERS` says who may use it (`''` = everyone signed in);
-  - `AI_DAILY_LIMIT` caps lookups per user per day (default 10);
-  - `AI_MONTHLY_USD` stops all lookups once the month's estimated spend reaches it (default $20).
-- **Details.**
-  - Requests use `web_search_20260209` (at most 5 searches) and effort `medium`.
-  - Server-side refusal fallbacks are on (`fallbacks: "default"`).
-  - A paused turn (`pause_turn`) is resumed.
-  - An answer given in prose instead of through the tool gets one nudge.
-  - Errors are reported in plain words: limit, budget, busy, bad key, declined.
-
-Tests:
-- `node tools/ai-test.js`: 27 checks against a stubbed API (what is sent, resuming, source checks, limits, errors).
-- `node tools/ai-ui-test.js`: 12 checks in the browser on an encrypted account.
+Each wine can have a **location**: free text such as "Kælder, reol 3, hylde 2" or "Køleskab, række 4".
+- **Setting it:** inline under 📍 in the wine's details, in the Add form, or in ✏️ Edit details (which now also
+  edits the source and note). Earlier locations are offered as suggestions.
+- **Seeing it:** it shows under the wine's name in the table, and search finds it.
+- **Filtering:** the location filter groups wines by the part before the first comma ("Kælder", "Køleskab"), and
+  offers "No location yet".
+- **The sheet:** it lives in a `Placering` column, created the first time you use it.
+- **Import and export:** import maps `Placering` / `Location` / `Bin` / `Lagerort` / `Hylde`… to it, joining
+  CellarTracker's Location and Bin. Export writes the column, so it round-trips.
 
 ## Surveyed vineyard outlines (INAO)
 
@@ -577,10 +548,15 @@ its site's own data and technical sheets. The 7 still unconfirmed are in `tools/
 
 ## Languages
 
-`i18n.js` holds the interface strings in English, Danish and French and draws the flag picker (front page and atlas
-header); the choice is remembered per browser. `burgundy-i18n-da.js` and `burgundy-i18n-fr.js` hold translated
-climat, commune, domaine and soil texts, keyed like the English data; anything missing falls back to English. The
-cellar app itself is still English.
+- **Interface:** `i18n.js` holds the interface strings in English, Danish, German and French and draws the flag
+  picker (front page and atlas header); the choice is remembered per browser.
+- **Atlas texts:** `burgundy-i18n-da.js`, `-de.js` and `-fr.js` hold translated climat, commune, domaine and soil
+  texts, keyed like the English data. Anything missing falls back to English.
+- **Vintage notes:** translated in `data/vintages/vintages-i18n.json`, built into `burgundy-vintages.js` by
+  `tools/vintages-build.js`.
+- **Cellar app:** still mostly English. Its newer dialogs (sign-in, account, import, export, location) are
+  translated.
+- **Test:** `node tools/i18n-test.js` checks that every language has every string, with the same placeholders.
 
 ## Smoke test
 
