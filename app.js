@@ -656,6 +656,7 @@ function detailHTML(w){
     ${w.note?`<div class="unote">“${esc(w.note)}” — cellar note</div>`:""}
     ${pn?`<div class="pnote"><b>${esc(w.producer)}</b> · ${TIER_LABEL[pn[0]]} — ${pn[1]}</div>`:""}
     ${journalHTML(w)}
+    ${AI.on?`<div class="aibox" data-aikey="${esc(aiId(w))}" aria-live="polite">${aiBoxHTML(w)}</div>`:""}
     <div class="links">
       ${w.left>0?`<button class="drink" data-act="drink" data-row="${w.row}">🍷 Mark 1 bottle as drunk</button>`:""}
       ${w.drunk>0 && !w.elsewhere?`<button class="drink" data-act="undrink" data-row="${w.row}" title="${isElsewhere(w)?"Puts the bottle in your cellar":""}">↩︎ Undo drink</button>`:""}
@@ -687,6 +688,7 @@ function detailHTML(w){
       <button class="fshare" data-row="${w.row}">📣 Share</button>
       ${searchLinks(w)}
       <button class="winfo" data-row="${w.row}">✏️ Edit details</button>
+      ${AI.on?`<button class="aiask" data-ai="ask" data-row="${w.row}">✨ ${esc(tr("Drink window & reviews"))}</button>`:""}
       <button class="drink del" data-act="delete" data-row="${w.row}">${isElsewhere(w) ? "🗑 Remove from Enjoyed" : "🗑 Delete wine"}</button>
     </div>`;
 }
@@ -817,7 +819,7 @@ async function loadData(){
     renderOverview(); renderTable(); renderEnjoyed();
     $("stamp").textContent = "Updated "+new Date().toLocaleString("da-DK",{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"});
     $("spin").hidden = true; $("content").hidden = false;
-    loadJournalSilently(); loadFeedSilently();
+    loadJournalSilently(); loadFeedSilently(); loadAiStatus();
   }catch(err){
     if(AUTH_ERRORS.has(err.message)){ forgetAuth(); setGateMode("login"); showGate(tr("Your session expired — log in again.")); }
     else { $("spin").textContent = "Could not reach the cellar API ("+err.message+"). Check your connection and refresh."; }
@@ -1294,6 +1296,84 @@ $("impCols").addEventListener("change", e=>{
 });
 document.querySelectorAll('input[name="impDup"]').forEach(r => r.addEventListener("change", impGoLabel));
 $("impGo").addEventListener("click", impRun);
+
+/* ---------- AI helper: a wine's drink window and critics' reviews (Claude with web search, via Code.gs) ---------- */
+// Asked per wine by a click; only that wine's identity is sent. The answers live in memory for this visit (nothing is
+// stored, not even in this browser) — "Use as my drink window" is what saves the years, in the cellar itself.
+const AI = {on:false, left:0, limit:0, res:new Map()};
+const aiId = w => [w.producer, w.name, w.vintage, w.size].join("|");
+const AI_ERR = {"ai-off":"The AI helper isn't set up on this site.", "ai-not-allowed":"The AI helper isn't turned on for your account.",
+  "ai-limit":"You've used today's AI lookups. Try again tomorrow.", "ai-budget":"The site's AI budget for this month is used up.",
+  "ai-busy":"The AI service is busy right now. Try again in a minute.", "ai-key":"The site's AI key isn't working — tell the site's owner.",
+  "ai-refused":"The AI declined this one.", "ai-no-answer":"The AI didn't come back with an answer. Try again.",
+  "ai-too-long":"The answer ran too long. Try again."};
+async function loadAiStatus(){
+  try{ const r = await api({action:"aistatus"}); const was = AI.on; Object.assign(AI, {on:!!r.ai.on, left:r.ai.left||0, limit:r.ai.limit||0}); if(AI.on!==was) renderTable(), renderEnjoyed(); }
+  catch(e){ /* an older Apps Script: no AI helper */ }
+}
+function aiBoxHTML(w){
+  const st = AI.res.get(aiId(w));
+  if(!st) return "";
+  if(st.k==="consent") return `<div class="aicard"><p>${esc(tr("This sends the wine's producer, name, vintage and region — nothing else from your cellar — through this site's server to Claude (Anthropic), which searches the web for critics' notes. Nothing is saved."))}</p>
+    <p class="aimeta">${esc(tr("{0} of {1} lookups left today.", AI.left, AI.limit))}</p>
+    <label class="jcheck"><input type="checkbox" class="airemember"> <span>${esc(tr("Don't ask me again"))}</span></label>
+    <div class="aiact"><button data-ai="go" data-row="${w.row}" class="primary">${esc(tr("Search"))}</button><button data-ai="close" data-row="${w.row}">${esc(tr("Cancel"))}</button></div></div>`;
+  if(st.k==="loading") return `<div class="aicard"><p class="aiwait">✨ ${esc(tr("Looking for critics' notes and drinking windows… this can take a minute."))}</p></div>`;
+  if(st.k==="error") return `<div class="aicard"><p class="aierr">${esc(st.msg)}</p><div class="aiact"><button data-ai="close" data-row="${w.row}">${esc(tr("Close"))}</button></div></div>`;
+  const r = st.r, win = r.drinkFrom||r.drinkTo ? `${r.drinkFrom||"…"}–${r.drinkTo||"…"}` : "";
+  const same = win && r.drinkFrom===w.drinkFrom && r.drinkTo===w.drinkTo;
+  const host = u => { try{ return new URL(u).hostname.replace(/^www\./,""); }catch(e){ return ""; } };
+  return `<div class="aicard">
+    <div class="aihead"><b>${win ? esc(tr("Drink window {0}", win)) : esc(tr("No drinking window found"))}</b>
+      ${win && !same ? `<button data-ai="use" data-row="${w.row}">${esc(tr("Use as my drink window"))}</button>` : ""}
+      ${same ? `<span class="aimeta">✓ ${esc(tr("saved as your window"))}</span>` : ""}</div>
+    ${r.windowBasis ? `<p class="aimeta">${esc(r.windowBasis)}</p>` : ""}
+    ${r.summary ? `<p>${esc(r.summary)}</p>` : ""}
+    ${r.reviews.length ? `<ul class="airev">${r.reviews.map(v => `<li><b>${esc(v.critic)}</b>${v.score?` · ${esc(v.score)}`:""}${v.vintage?` <span class="aimeta">(${esc(v.vintage)})</span>`:""}${v.note?` — ${esc(v.note)}`:""}${v.url?` <a href="${esc(v.url)}" target="_blank" rel="noopener noreferrer">${esc(host(v.url))} ↗</a>`:` <span class="aimeta">(${esc(tr("no link"))})</span>`}</li>`).join("")}</ul>` : ""}
+    <p class="aimeta">${esc(tr("Found by AI from {0} web results ({1} confidence) — check the sources before you rely on it.", r.searched, tr(r.confidence)))}${r.found ? "" : " " + esc(tr("Nothing was found for this exact vintage."))}</p>
+    <div class="aiact"><button data-ai="close" data-row="${w.row}">${esc(tr("Close"))}</button></div></div>`;
+}
+function aiPaint(w){ document.querySelectorAll(`.aibox[data-aikey="${CSS.escape(aiId(w))}"]`).forEach(b => { b.innerHTML = aiBoxHTML(w); }); }
+async function aiLookup(w){
+  AI.res.set(aiId(w), {k:"loading"}); aiPaint(w);
+  const lang = (window.I18N && I18N.lang) || "en";
+  try{
+    const res = await api({action:"ai", lang, wine:{producer:w.producer, name:w.name, vintage:w.vintage, commune:w.commune,
+      region:w.region, country:w.country, classification:w.classification, type:w.style, size:w.size}});
+    if(res.ai) Object.assign(AI, {left:res.ai.left, limit:res.ai.limit});
+    AI.res.set(aiId(w), {k:"done", r:res.result});
+  }catch(err){
+    const m = String(err && err.message || err);
+    if(err && err.data && err.data.ai) Object.assign(AI, {left:err.data.ai.left, limit:err.data.ai.limit});
+    if(AUTH_ERRORS.has(m)){ AI.res.delete(aiId(w)); showGate(authMsg(m)); return; }
+    AI.res.set(aiId(w), {k:"error", msg: AI_ERR[m] ? tr(AI_ERR[m]) : tr("The AI lookup failed ({0}).", m)});
+  }
+  const now = WINES.find(x => aiId(x)===aiId(w)) || w; aiPaint(now);
+}
+document.addEventListener("click", async e=>{
+  const b = e.target.closest("[data-ai]"); if(!b) return;
+  const w = WINES.find(x => x.row===Number(b.dataset.row)); if(!w) return;
+  const act = b.dataset.ai;
+  if(act==="ask"){
+    const st = AI.res.get(aiId(w));
+    if(st && (st.k==="loading" || st.k==="done")) return;
+    let skip = false; try{ skip = localStorage.getItem("vinAiOk")==="1"; }catch(x){}
+    if(skip) aiLookup(w); else { AI.res.set(aiId(w), {k:"consent"}); aiPaint(w); }
+  } else if(act==="go"){
+    const rem = b.closest(".aicard").querySelector(".airemember");
+    if(rem && rem.checked) try{ localStorage.setItem("vinAiOk","1"); }catch(x){}
+    aiLookup(w);
+  } else if(act==="close"){ AI.res.delete(aiId(w)); aiPaint(w); }
+  else if(act==="use"){
+    const r = (AI.res.get(aiId(w))||{}).r; if(!r) return;
+    b.disabled = true;
+    try{
+      const res = await api({action:"setwindow", row:w.row, from:r.drinkFrom||"", to:r.drinkTo||""});
+      KEEP_OPEN = w.row; WINES = normalize(res.wines); renderOverview(); renderTable(); renderEnjoyed();
+      toast(tr("Drink window saved"));
+    }catch(err){ b.disabled = false; toast(tr("Could not save window: {0}", err.message)); }
+  }
+});
 
 /* ---------- export (export.js builds the file here from the decrypted cellar) ---------- */
 async function expRun(kind){

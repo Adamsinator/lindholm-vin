@@ -22,4 +22,11 @@ var SETTINGS = {
   // exists none of this is needed — updating Code.gs never touches it.
   OWNER_USER: '',
   OWNER_PASSWORD: '',
+
+  // The AI helper (✨ in a wine's details: drink window and critics' reviews, found by Claude with web search). It's
+  // off until you put an Anthropic API key in Project Settings → Script properties as ANTHROPIC_API_KEY — never here.
+  // Each lookup costs you roughly $0.10–0.40 (Claude Opus 5.5 + web search). Who may use it: '' = everyone signed in, or e.g. 'adam,anna'.
+  AI_USERS: '',
+  AI_DAILY_LIMIT: 10,   // lookups per user per day
+  AI_MONTHLY_USD: 20,   // the site stops asking once the month's estimated spend reaches this
 };
