@@ -28,6 +28,10 @@ for (const f of ["app.js", "burgundy.js", "domaine.js", "vault.js"]) {
   const s = fs.readFileSync(R(f), "utf8");
   for (const m of s.matchAll(/\b(?:tr|t)\("((?:[^"\\]|\\.)+)"/g)) used.add(JSON.parse('"' + m[1] + '"'));
 }
+for (const f of ["index.html", "burgundy.html", "domaine.html"]) {
+  const s = fs.readFileSync(R(f), "utf8");
+  for (const m of s.matchAll(/<([a-z0-9]+)\b[^>]*\bdata-i18n(?=[\s>])[^>]*>([^<]+)</g)) used.add(m[2].trim());
+}
 const untranslated = [...used].filter(k => !(k in D.de) && /[a-z]{3}/i.test(k));
 check(`every t()/tr() string in the code is in the dictionaries (${used.size})`, !untranslated.length, untranslated.slice(0, 8).join(" | "));
 

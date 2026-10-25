@@ -13,7 +13,7 @@ const VC = node ? require("./vault-crypto.js") : root.VCRYPTO;
 const VE = node ? require("./vault-engine.js") : root.VAULT_ENGINE;
 
 const PRIVATE = new Set(["data", "add", "drink", "undrink", "delete", "rate", "setvalue", "setprice", "setdate", "setsize",
-  "setwindow", "setinfo", "enjoysync", "classfill", "enjoyadd", "addmany", "journal", "jadd", "jedit", "jdelete",
+  "setwindow", "setinfo", "enjoysync", "classfill", "enjoyadd", "addmany", "setinfomany", "mergerows", "journal", "jadd", "jedit", "jdelete",
   "wish", "wadd", "wedit", "wdelete", "wtocellar"]);
 const SHARED_TABS = ["Journal", "Ønskeliste"]; // plus the wine tab (meta.sheetName); nothing else is ever stored
 let S = null; // { post, user, token, dek, engine, sheetName, vers: {key: ver}, src, photoCache }
@@ -28,7 +28,7 @@ let SRC = null;
 async function codeSource(url) {
   if (SRC) return SRC;
   if (node) SRC = require("fs").readFileSync(require("path").join(__dirname, "apps-script", "Code.gs"), "utf8");
-  else { const res = await fetch(url || "apps-script/Code.gs?v=31"); if (!res.ok) throw new Error("engine-load " + res.status); SRC = await res.text(); }
+  else { const res = await fetch(url || "apps-script/Code.gs?v=32"); if (!res.ok) throw new Error("engine-load " + res.status); SRC = await res.text(); }
   return SRC;
 }
 const keepTabs = (all, sheetName) => Object.fromEntries(Object.entries(all).filter(([n]) => n === sheetName || SHARED_TABS.includes(n)));

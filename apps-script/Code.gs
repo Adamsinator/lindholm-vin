@@ -37,7 +37,7 @@ function setting(key) {
 // The legacy code only works once you've set a real one: the placeholder from the template is public.
 function accessCode() { const c = setting('ACCESS_CODE'); return c === 'CHANGE-ME' ? '' : c; }
 
-const API_VERSION = 31; // returned in every response; used to verify deployments
+const API_VERSION = 32; // returned in every response; used to verify deployments
 
 // Per-request spreadsheet for the authenticated user. Set in handle(); every
 // sheet helper reads it via ss(). Falls back to the bound (owner's) spreadsheet.
@@ -202,6 +202,12 @@ function handle(p) {
         return json({ ok: true, wines: readAll() });
       case 'addmany':
         addMany(p.wines || [], p.bumps || []);
+        return json({ ok: true, wines: readAll() });
+      case 'setinfomany':
+        setInfoMany(p.edits || []);
+        return json({ ok: true, wines: readAll() });
+      case 'mergerows':
+        mergeRows(p.groups || []);
         return json({ ok: true, wines: readAll() });
       case 'feed':
         return json({ ok: true, feed: readFeed(200), me: CTX_USER, users: listUsers(), follows: myFollows() });
@@ -528,7 +534,7 @@ function makeOwner() {
 // plain copy (vault-engine.js), and writes back the records that changed. Ver makes a write from a stale copy fail
 // instead of overwriting another device's change. Journal photos are encrypted files in a "Vault" folder.
 const PRIVATE_ACTIONS = { data: 1, add: 1, drink: 1, undrink: 1, delete: 1, rate: 1, setvalue: 1, setprice: 1, setdate: 1,
-  setsize: 1, setwindow: 1, setinfo: 1, enjoysync: 1, classfill: 1, enjoyadd: 1, addmany: 1, journal: 1, jadd: 1, jedit: 1,
+  setsize: 1, setwindow: 1, setinfo: 1, enjoysync: 1, classfill: 1, enjoyadd: 1, addmany: 1, setinfomany: 1, mergerows: 1, journal: 1, jadd: 1, jedit: 1,
   jdelete: 1, wish: 1, wadd: 1, wedit: 1, wdelete: 1, wtocellar: 1, photo: 1 };
 const VAULT_TAB = 'Vault';
 const VAULT_COLS = ['Key', 'Ver', 'Updated', 'Part', 'Data'];
@@ -969,6 +975,58 @@ function addMany(wines, bumps) {
   const need = last + rows.length - sh.getMaxRows(); // a range can't reach past the sheet's rows (appendRow grows it, getRange doesn't)
   if (need > 0) sh.insertRowsAfter(sh.getMaxRows(), need);
   sh.getRange(last + 1, 1, rows.length, width).setValues(rows);
+}
+
+// "Tidy up" in the site: many setInfo edits at once ({row, fields}). Only the cells that change are written, so a formula
+// elsewhere in the sheet is left alone.
+function setInfoMany(edits) {
+  if (!Array.isArray(edits) || edits.length > IMPORT_MAX) throw new Error('Bad edits');
+  const sh = sheet(), last = sh.getLastRow();
+  if (edits.some(e => e && e.fields && 'location' in e.fields)) ensureCol(sh, LOCATION_HEADER);
+  edits.forEach(e => { const r = Number(e && e.row); if (!r || r < 2 || r > last) throw new Error('Bad row'); });
+  edits.forEach(e => setInfo(Number(e.row), e.fields || {}));
+}
+
+// Rows that hold the same wine, joined into the first ({keep, drop: [rows]}): bottles and drunk bottles add up, price and
+// value become the bottle-weighted mean, notes, locations and sources are kept side by side, the earliest acquired and
+// latest drunk dates win. The other rows are then deleted.
+function mergeRows(groups) {
+  if (!Array.isArray(groups) || groups.length > IMPORT_MAX) throw new Error('Bad groups');
+  const sh = sheet(), last = sh.getLastRow(), idx = colIndexes(sh), width = sh.getLastColumn();
+  const seen = {};
+  groups.forEach(g => {
+    const rows = [Number(g && g.keep)].concat((g && g.drop || []).map(Number));
+    if (rows.length < 2) throw new Error('Bad groups');
+    rows.forEach(r => { if (!r || r < 2 || r > last || seen[r]) throw new Error('Bad row'); seen[r] = 1; });
+  });
+  const val = (row, i) => i >= 0 ? row[i] : '';
+  const blank = v => v === '' || v === null || v === undefined;
+  const drops = [];
+  groups.forEach(g => {
+    const rows = [Number(g.keep)].concat(g.drop.map(Number));
+    const data = rows.map(r => sh.getRange(r, 1, 1, width).getValues()[0]);
+    const qty = data.map(d => Number(val(d, idx.qty)) || 1);
+    const drunk = data.map((d, i) => String(val(d, idx.drunk)).trim().toLowerCase() === 'x' ? qty[i] : Math.min(qty[i], Number(val(d, idx.drunk)) || 0));
+    const sumQ = qty.reduce((a, b) => a + b, 0), sumD = drunk.reduce((a, b) => a + b, 0);
+    const mean = i => { let w = 0, s = 0; data.forEach((d, j) => { const v = val(d, i); if (!blank(v) && isFinite(Number(v))) { s += Number(v) * qty[j]; w += qty[j]; } });
+      return w ? Math.round(s / w * 100) / 100 : ''; };
+    const join = i => { const out = []; data.forEach(d => { String(val(d, i) || '').split(' · ').forEach(x => { x = x.trim(); if (x && out.indexOf(x) < 0) out.push(x); }); }); return out.join(' · '); };
+    const pick = (i, better) => { let b = ''; data.forEach(d => { const v = ymd(val(d, i)); if (v && (!b || better(v, b))) b = v; }); return b; };
+    const set = (i, v) => { if (i >= 0) sh.getRange(rows[0], i + 1).setValue(v); };
+    set(idx.qty, sumQ); set(idx.drunk, sumD || '');
+    set(idx.price, mean(idx.price)); if (idx.value >= 0) set(idx.value, mean(idx.value));
+    [idx.note, idx.source, idx.location].forEach(i => { if (i >= 0) set(i, join(i)); });
+    if (idx.acquired >= 0) set(idx.acquired, pick(idx.acquired, (a, b) => a < b));
+    if (idx.drunkDate >= 0) set(idx.drunkDate, pick(idx.drunkDate, (a, b) => a > b));
+    if (idx.rating >= 0) { const rs = data.map(d => Number(val(d, idx.rating))).filter(x => x > 0); if (rs.length) set(idx.rating, Math.max.apply(null, rs)); }
+    // fields the kept row lacks, from the others
+    ['commune', 'region', 'country', 'classification', 'type', 'grape', 'size', 'drinkFrom', 'drinkTo'].forEach(f => {
+      const i = idx[f]; if (i === undefined || i < 0 || !blank(val(data[0], i))) return;
+      const d = data.find(x => !blank(val(x, i))); if (d) set(i, val(d, i));
+    });
+    g.drop.forEach(r => drops.push(Number(r)));
+  });
+  drops.sort((a, b) => b - a).forEach(r => sh.deleteRow(r));
 }
 
 // Edit a wine's descriptive fields in place (only the INFO_FIELDS given; producer can't be blanked).

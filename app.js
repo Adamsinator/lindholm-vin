@@ -1194,9 +1194,24 @@ const IMP_ERR = {"not-zip":"That file doesn't look like an Excel workbook.", "ba
   "not-xlsx":"That file doesn't look like an Excel workbook.",
   "old-xls":"That's an older Excel file (.xls) or another spreadsheet format. In Excel choose File → Save As → Excel Workbook (.xlsx) or CSV, and import that.",
   "too-big":"That file is too large (at most 20 MB).", "zip-method":"Couldn't read that workbook. Save it as CSV and try again."};
-const IMP = {book:null, sheet:0, t:null, fields:[], built:null, d:null, name:""};
+// "1 row" / "3 rows": the singular is its own string, so every language can say it its own way
+const trn = (n, one, many, ...rest) => n === 1 ? tr(one, n, ...rest) : tr(many, n, ...rest);
+const IMP = {book:null, sheet:0, t:null, fields:[], built:null, d:null, name:"", off:new Set(), merge:true};
+// one tidier for the whole visit: the producers, communes and vineyards it knows, so spellings come out the same
+let TIDIER = null;
+function tidier(){
+  if(TIDIER) return TIDIER;
+  const B = window.BURG || {}, prods = new Set();
+  WINES.forEach(w => w.producer && prods.add(w.producer));
+  Object.values(B.producers || {}).forEach(p => prods.add(p));
+  Object.keys(window.PRODUCER_NOTES || {}).forEach(p => prods.add(p));
+  return TIDIER = TIDY.create({producers:[...prods], names:(B.climats || []).map(c => c.n),
+    communes:(B.villages || []).flatMap(v => String(v.n).split(" · ")).filter(n => n.length > 5)});
+}
+const FIX_FIELD = {producer:"Producer", name:"Vineyard / cuvée", commune:"Commune", region:"Region", country:"Country", grape:"Grape", source:"Bought at", location:"Location"};
 function impReset(){
-  Object.assign(IMP, {book:null, sheet:0, t:null, fields:[], built:null, d:null, name:""});
+  Object.assign(IMP, {book:null, sheet:0, t:null, fields:[], built:null, d:null, name:"", off:new Set(), merge:true});
+  TIDIER = null; $("impMerge").checked = true;
   $("impPick").hidden = false; $("impMap").hidden = true; $("impBack").hidden = true; $("impGo").hidden = true;
   $("impErr").textContent = ""; $("impFile").value = "";
   $("impLock").textContent = (window.VAULT && VAULT.active())
@@ -1243,12 +1258,17 @@ function impSheet(){
 function impBuild(){
   const rows = IMP.book.sheets[IMP.sheet].rows;
   IMP.built = IMPORT.build(rows, IMP.t.header, IMP.fields);
-  IMP.d = IMPORT.dedupe(IMP.built.wines, WINES);
-  const ws = IMP.built.wines, dupRows = new Set(IMP.d.dupes.map(x => x.wine));
+  // one spelling per thing (shown below, each can be undone), then rows of the same wine as one
+  const tidied = tidier().wines(IMP.built.wines, {existing:WINES, off:IMP.off});
+  IMP.fixes = tidied.fixes;
+  const mg = IMP.merge ? TIDY.merge(tidied.wines) : {wines:tidied.wines, merged:0};
+  IMP.merged = mg.merged;
+  IMP.d = IMPORT.dedupe(mg.wines, WINES, TIDY.mergeKey);
+  const ws = mg.wines, dupRows = new Set(IMP.d.dupes.map(x => x.wine));
   const fmt = n => Number(n).toLocaleString(I18N_LOCALE());
   const head = ["", tr("Producer"), tr("Vineyard / cuvée"), tr("Commune"), tr("Vintage"), tr("Bottles"), tr("Price"), tr("Type"), tr("Format")];
   $("impPrev").innerHTML = `<thead><tr>${head.map(h => `<th>${esc(h)}</th>`).join("")}</tr></thead><tbody>`
-    + ws.slice(0, 8).map(w => `<tr><td>${dupRows.has(w) ? `<span class="dup">${esc(tr("in cellar"))}</span>` : esc(tr("row {0}", w.src))}</td>`
+    + ws.slice(0, 8).map(w => `<tr><td>${dupRows.has(w) ? `<span class="dup">${esc(tr("in cellar"))}</span>` : w.rows ? `<span class="dup">${esc(tr("rows {0}", w.rows.join(", ")))}</span>` : esc(tr("row {0}", w.src))}</td>`
       + `<td>${esc(w.producer)}</td><td>${esc(w.name||"")}</td><td>${esc(w.commune||"")}</td><td>${esc(w.vintage||"")}</td>`
       + `<td>${w.qty}${w.drunk ? " · "+esc(tr("{0} drunk", w.drunk)) : ""}</td><td>${w.price!=null ? esc(fmt(w.price)) : ""}</td>`
       + `<td>${esc(w.type||"")}</td><td>${esc(w.size||"")}</td></tr>`).join("")
@@ -1257,11 +1277,23 @@ function impBuild(){
     + "</tbody>";
   const bottles = ws.reduce((s,w) => s + w.qty, 0);
   const notes = [];
-  if(IMP.built.skipped.noProducer) notes.push(tr("{0} rows without a producer are left out.", IMP.built.skipped.noProducer));
-  if(IMP.built.skipped.zero) notes.push(tr("{0} rows with 0 bottles are left out.", IMP.built.skipped.zero));
+  if(IMP.built.skipped.noProducer) notes.push(trn(IMP.built.skipped.noProducer, "{0} row without a producer is left out.", "{0} rows without a producer are left out."));
+  if(IMP.built.skipped.zero) notes.push(trn(IMP.built.skipped.zero, "{0} row with 0 bottles is left out.", "{0} rows with 0 bottles are left out."));
+  if(IMP.built.skipped.totals) notes.push(trn(IMP.built.skipped.totals, "{0} total row is left out.", "{0} total rows are left out."));
+  if(IMP.built.skipped.headers) notes.push(trn(IMP.built.skipped.headers, "{0} repeated heading row is left out.", "{0} repeated heading rows are left out."));
   if(IMP.built.truncated) notes.push(tr("Only the first {0} wines are imported at a time.", IMPORT.MAX_ROWS));
   if(!IMP.fields.includes("producer") && !IMP.fields.includes("line")) notes.push(tr("Choose which column holds the producer."));
   $("impSum").innerHTML = esc(tr("{0} wines · {1} bottles", fmt(ws.length), fmt(bottles))) + notes.map(n => `<small>${esc(n)}</small>`).join("");
+  // rows of the same wine, and the spelling fixes
+  const nm = IMP.merge ? IMP.merged : TIDY.merge(tidied.wines).merged;
+  $("impMergeWrap").hidden = !nm;
+  $("impMergeLbl").textContent = tr("Merge rows that are the same wine ({0} rows join others; bottles add up, prices are averaged per bottle)", nm);
+  const fx = IMP.fixes, offList = [...IMP.off].map(k => { const i = k.indexOf("|"); return {field:k.slice(0, i), from:k.slice(i + 1), to:null, n:0, off:true}; });
+  const all = fx.concat(offList);
+  $("impFixWrap").hidden = !all.length;
+  $("impFixes").innerHTML = all.slice(0, 80).map(f => `<label class="jcheck"><input type="checkbox" data-fix="${esc(f.field + "|" + f.from)}"${f.off ? "" : " checked"}>
+    <span><span class="fixf">${esc(tr(FIX_FIELD[f.field] || f.field))}</span> “${esc(f.from)}”${f.off ? "" : ` → “<b>${esc(f.to)}</b>”`}${f.n > 1 ? ` <span class="aimeta">${esc(trn(f.n, "{0} row", "{0} rows"))}</span>` : ""}</span></label>`).join("")
+    + (all.length > 80 ? `<p class="imphint">${esc(tr("… and {0} more", all.length - 80))}</p>` : "");
   const nd = IMP.d.dupes.length;
   $("impDup").hidden = !nd;
   $("impDupLbl").textContent = nd ? tr("{0} of these are already in your cellar (same producer, wine, vintage and format):", nd) : "";
@@ -1321,7 +1353,73 @@ $("impCols").addEventListener("change", e=>{
   IMP.fields[Number(s.dataset.col)] = s.value; s.classList.toggle("on", !!s.value); impBuild();
 });
 document.querySelectorAll('input[name="impDup"]').forEach(r => r.addEventListener("change", impGoLabel));
+$("impMerge").addEventListener("change", e=>{ IMP.merge = e.target.checked; impBuild(); });
+$("impFixes").addEventListener("change", e=>{
+  const c = e.target.closest("input[data-fix]"); if(!c) return;
+  if(c.checked) IMP.off.delete(c.dataset.fix); else IMP.off.add(c.dataset.fix);
+  impBuild();
+});
 $("impGo").addEventListener("click", impRun);
+
+/* ---------- tidy up the cellar (tidy.js): one spelling per thing, one row per wine ---------- */
+const TIDY_STATE = {off:new Set(), groupsOff:new Set(), fixes:[], edits:[], groups:[]};
+function tidyPlan(){
+  const base = WINES.map(w => ({row:w.row, producer:w.producer, name:w.name, commune:w.commune, region:w.region, country:w.country,
+    grape:w.grape, source:w.source, location:w.location, vintage:w.vintage, size:w.size, elsewhere:w.elsewhere}));
+  const t = tidier().wines(base, {off:TIDY_STATE.off});
+  const edits = [];
+  t.wines.forEach((w, i) => {
+    const fields = {};
+    for (const f of ["producer","name","commune","region","country","grape","source","location"]) if (String(w[f]||"") !== String(base[i][f]||"")) fields[f] = w[f];
+    if (Object.keys(fields).length) edits.push({row:w.row, fields});
+  });
+  // the same wine in several rows (after the spellings), never mixing in wines drunk elsewhere
+  const by = new Map();
+  t.wines.forEach(w => { if (w.elsewhere) return; const k = TIDY.mergeKey(w); (by.get(k) || by.set(k, []).get(k)).push(w.row); });
+  const groups = [...by.values()].filter(r => r.length > 1).map(r => r.sort((a,b) => a-b)).map(r => ({keep:r[0], drop:r.slice(1)}));
+  Object.assign(TIDY_STATE, {fixes:t.fixes, edits, groups});
+}
+function tidyRender(){
+  tidyPlan();
+  const S = TIDY_STATE, offList = [...S.off].map(k => { const i = k.indexOf("|"); return {field:k.slice(0, i), from:k.slice(i + 1), off:true}; });
+  const fx = S.fixes.concat(offList);
+  $("tidyFixWrap").hidden = !fx.length;
+  $("tidyFixes").innerHTML = fx.slice(0, 150).map(f => `<label class="jcheck"><input type="checkbox" data-fix="${esc(f.field + "|" + f.from)}"${f.off ? "" : " checked"}>
+    <span><span class="fixf">${esc(tr(FIX_FIELD[f.field] || f.field))}</span> “${esc(f.from)}”${f.off ? "" : ` → “<b>${esc(f.to)}</b>”`}${f.n > 1 ? ` <span class="aimeta">${esc(trn(f.n, "{0} wine", "{0} wines"))}</span>` : ""}</span></label>`).join("");
+  const byRow = new Map(WINES.map(w => [w.row, w]));
+  $("tidyDupWrap").hidden = !S.groups.length;
+  $("tidyDups").innerHTML = S.groups.map(g => { const ws = [g.keep, ...g.drop].map(r => byRow.get(r)), w = ws[0], key = String(g.keep);
+    return `<label class="jcheck"><input type="checkbox" data-grp="${key}"${S.groupsOff.has(key) ? "" : " checked"}>
+      <span><b>${esc(w.producer)}</b> ${esc([w.name, w.vintage].filter(Boolean).join(" "))} <span class="aimeta">${esc(tr("{0} rows: {1} bottles", ws.length, ws.map(x => x.qty).join(" + ")))}</span></span></label>`; }).join("");
+  const nEdit = S.edits.length, nGroup = S.groups.filter(g => !S.groupsOff.has(String(g.keep))).length;
+  $("tidyIntro").textContent = (nEdit || S.groups.length) ? tr("Here's what can be tidied. Untick anything you want left as it is.") : tr("Nothing to tidy: every spelling is consistent and no wine is in two rows.");
+  $("tidyGo").hidden = !(nEdit || S.groups.length);
+  $("tidyGo").textContent = tr("Tidy {0} wines and join {1} groups", nEdit, nGroup);
+  $("tidyGo").disabled = !(nEdit || nGroup);
+}
+async function tidyRun(){
+  const S = TIDY_STATE, btn = $("tidyGo"); btn.disabled = true; $("tidyErr").textContent = "";
+  try{
+    let res;
+    if(S.edits.length) res = await api({action:"setinfomany", edits:S.edits});
+    const groups = S.groups.filter(g => !S.groupsOff.has(String(g.keep)));
+    if(groups.length) res = await api({action:"mergerows", groups});
+    if(res){ WINES = normalize(res.wines); KEEP_OPEN = null; renderOverview(); renderTable(); renderEnjoyed(); }
+    $("tidyModal").classList.remove("open");
+    toast(tr("Cellar tidied 🧹"));
+  }catch(err){
+    const m = String(err && err.message || err);
+    $("tidyErr").textContent = m === "bad-action" ? tr("Tidying needs the updated Apps Script (version 32) — redeploy Code.gs.") : tr("Could not tidy: {0}", m);
+    btn.disabled = false;
+    if(AUTH_ERRORS.has(m)) showGate(authMsg(m));
+  }
+}
+$("tidyBtn").addEventListener("click", ()=>{ TIDIER = null; TIDY_STATE.off = new Set(); TIDY_STATE.groupsOff = new Set(); $("tidyErr").textContent = ""; tidyRender(); $("tidyModal").classList.add("open"); });
+$("tidyCancel").addEventListener("click", ()=>$("tidyModal").classList.remove("open"));
+$("tidyModal").addEventListener("click", e=>{ if(e.target===$("tidyModal")) $("tidyModal").classList.remove("open"); });
+$("tidyFixes").addEventListener("change", e=>{ const c = e.target.closest("input[data-fix]"); if(!c) return; if(c.checked) TIDY_STATE.off.delete(c.dataset.fix); else TIDY_STATE.off.add(c.dataset.fix); tidyRender(); });
+$("tidyDups").addEventListener("change", e=>{ const c = e.target.closest("input[data-grp]"); if(!c) return; if(c.checked) TIDY_STATE.groupsOff.delete(c.dataset.grp); else TIDY_STATE.groupsOff.add(c.dataset.grp); tidyRender(); });
+$("tidyGo").addEventListener("click", tidyRun);
 
 /* ---------- export (export.js builds the file here from the decrypted cellar) ---------- */
 async function expRun(kind){

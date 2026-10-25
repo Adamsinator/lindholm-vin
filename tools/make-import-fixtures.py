@@ -38,6 +38,29 @@ with open(os.path.join(D, "tabbed.txt"), "w", encoding="utf-8", newline="") as f
     f.write("Giacomo Conterno\tBarolo Francia\t2017\t3\tja\n")
     f.write("Clos Rougeard\tLe Bourg\t2014\t1\t0\n")
 
+# A messy list, as people really keep them: a title and a blank line, typos in the headings, shouting, stray spaces,
+# other languages' names, misspellings, the same wine on several rows, an Excel error, a repeated heading and a total.
+wb = openpyxl.Workbook(); ws = wb.active; ws.title = "Vine"
+ws.append(["MY WINES (updated)"]); ws.append([])
+H = ["Producnet", "Wine", "Vintgae", "Qunatity", "Pirce", "Locaton", "Regoin", "Contry", "Grpae"]
+ws.append(H)
+ws.append(["DOMAINE ROULOT", "meursault perrieres", 2020, 3, "1.250,00 kr", "Kælder A", "bourgugndy", "frankriig", "chardonay"])
+ws.append(["Domaine Roulot", "Meursault Perrières", 2020, 2, "1.350,00 kr", "Kælder B", "Burgundy", "France", "Chardonnay"])
+ws.append(["Roulot", "Meursault  Perrières", "2020", 1, None, None, "Bourgogne", "Frankrig", None])
+ws.append(["domaine leflaive", "PULIGNY-MONTRACHET 1ER CRU LES PUCELLES", 2019, 2, 1900, None, "BURGUNDY", "FRANCE", "chardonnay"])
+ws.append(["Château Margaux", None, 2015, 1, "#N/A", "Køleskab", "Bordeux", "Frankrig", "Cabernet Sauvignion, Merlot"])
+ws.append(H)
+ws.append(["CHATEAU MARGAUX", None, 2015, 2, 8000, None, "bordeaux", "frankrig", "cabernet sauvignon, merlot"])
+ws.append(["  Giacomo Conterno  ", "Barolo  Francia", "2017", "3 stk", "€ 95", None, "piedmont", "Italy", "nebbiolo"])
+ws.append(["GIACOMO CONTERNO", "barolo francia", 2017, 1, None, None, "Piemonte", "Italien", "Nebbiolo"])
+ws.append(["Bonneau du Martray", "Corton-Charlemagne", 2018, 2, 2100, None, "Bourgogne", "Frankrig", "Chardonnay"])
+ws.append(["Bonneau du Matray", "Corton-Charlemagne", 2018, 1, 2400, None, "Bourgogne", "Frankrig", "Chardonnay"])
+ws.append(["Ridge", "Monte Bello", 2016, 1, 1600, None, "Napa", "Untied States", "Cabernet Sauvignon"])
+ws.append(["Weingut Keller", "G-Max Riesling", 2019, 1, 3500, None, "rheinhessen", "Germany", "Reisling"])
+ws.append(["   ", None, None, None, None, None, None, None, None])
+ws.append(["Total", None, None, 18, "=SUM(E4:E15)", None, None, None, None])
+wb.save(os.path.join(D, "messy.xlsx"))
+
 with open(os.path.join(D, "lines.txt"), "w", encoding="utf-8", newline="") as f:
     f.write("3 x Domaine Roulot - Meursault Perrières 2020\n")
     f.write("Raveneau, Chablis Grand Cru Les Clos 2018 (2 fl)\n")

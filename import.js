@@ -234,9 +234,34 @@ function matchHeader(label) {
     if (sw.length === 1 && s.length < 4) continue;
     if (sw.every(w => words.has(w))) { const sc = 10 + s.length; if (!best || sc > best.score) best = { field: f, score: sc }; }
   }
-  return best;
+  if (best) return best;
+  // a typo in the heading ("Producnet", "Vintgae", "Pirce"): one slip in a short word, two in a long one, and only
+  // if every close heading points to the same field
+  if (a.length < 5) return null;
+  const max = a.length < 9 ? 1 : 2;
+  let d0 = max + 1, field = null, tie = false;
+  for (const [s, { f }] of Object.entries(LOOKUP)) {
+    if (s.length < 5 || Math.abs(s.length - a.length) > max) continue;
+    const d = osa(a, s);
+    if (d < d0) { d0 = d; field = f; tie = false; } else if (d === d0 && f !== field) tie = true;
+  }
+  return d0 <= max && !tie ? { field, score: 5 - d0 } : null;
 }
-const cellStr = c => c == null ? "" : typeof c === "object" ? (c.date || "") : String(c).trim().replace(/^'(?=[=+@])/, "");
+// edit distance with swapped neighbours counting as one slip
+function osa(a, b) {
+  const d = Array.from({ length: a.length + 1 }, (_, i) => [i]);
+  for (let j = 1; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++) {
+    d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
+  }
+  return d[a.length][b.length];
+}
+// a spreadsheet's error values (#N/A, #REF! …) are empty cells
+const XL_ERROR = /^#(N\/A|REF!|VALUE!|DIV\/0!|NAME\?|NUM!|NULL!|SPILL!|CALC!|FIELD!|BLOCKED!|GETTING_DATA)$/i;
+const cellStr = c => c == null ? "" : typeof c === "object" ? (c.date || "") : (s => XL_ERROR.test(s) ? "" : s)(String(c).trim().replace(/^'(?=[=+@])/, ""));
+// a row that sums the others ("Total", "I alt", "Summe") isn't a wine
+const TOTAL = /^(total|totals|totalt|sum|summe|sum total|i alt|ialt|alt i alt|gesamt|insgesamt|total general|grand total|subtotal|sous total|zwischensumme|in all)\b/;
 const looksYear = c => { const n = typeof c === "number" ? c : (/^\d{4}$/.test(cellStr(c)) ? Number(cellStr(c)) : NaN); return n >= 1900 && n <= 2100; };
 
 // Which row is the header, and which field each column fills.
@@ -399,10 +424,15 @@ function build(rows, header, fields) {
   // …except the site's own "Rating" column (an exported cellar), which is 1–10 already
   const own = rIdx !== undefined && header >= 0 && norm(cellStr((rows[header] || [])[rIdx])) === "rating";
   const rScale = v => rMax > 10 ? Math.max(1, Math.min(10, (v - 50) / 5)) : rMax <= 5 && !own ? v * 2 : v;
-  const wines = [], skipped = { noProducer: 0, zero: 0 };
+  const wines = [], skipped = { noProducer: 0, zero: 0, totals: 0, headers: 0 };
+  const headKey = header >= 0 ? (rows[header] || []).map(c => norm(cellStr(c))).join("|") : null;
   body.forEach((r, n) => {
     r = r || [];
     if (!r.some(c => cellStr(c) !== "")) return;
+    // the heading row repeated further down (a list pasted together from several sheets)
+    if (headKey && r.map(c => norm(cellStr(c))).join("|") === headKey) { skipped.headers++; return; }
+    { const p = one("producer") !== undefined ? norm(cellStr(r[one("producer")])) : "", first = norm(cellStr(r.find(c => cellStr(c) !== "")));
+      if (TOTAL.test(p) || (!p && TOTAL.test(first))) { skipped.totals++; return; } }
     const w = {};
     if (one("line") !== undefined) Object.assign(w, parseLine(cellStr(r[one("line")])));
     for (const f of TEXT_FIELDS) {
@@ -467,11 +497,12 @@ function build(rows, header, fields) {
 
 // ── already in the cellar? ─────────────────────────────────────────────────────
 const key = w => [norm(w.producer), norm(w.name), String(w.vintage || "").toLowerCase(), String(w.size || "").toLowerCase()].join("|");
-function dedupe(wines, existing) {
+function dedupe(wines, existing, keyOf) {
+  keyOf = keyOf || key;
   const have = new Map();
-  (existing || []).forEach(e => { if (!e.elsewhere) { const k = key(e); if (!have.has(k)) have.set(k, e.row); } });
+  (existing || []).forEach(e => { if (!e.elsewhere) { const k = keyOf(e); if (!have.has(k)) have.set(k, e.row); } });
   const fresh = [], dupes = [];
-  wines.forEach(w => { const row = have.get(key(w)); if (row) dupes.push({ wine: w, row }); else fresh.push(w); });
+  wines.forEach(w => { const row = have.get(keyOf(w)); if (row) dupes.push({ wine: w, row }); else fresh.push(w); });
   return { fresh, dupes };
 }
 // "add bottles to the existing row": one bump per row
@@ -480,7 +511,7 @@ function bumps(dupes) {
   dupes.forEach(({ wine, row }) => { const b = by.get(row) || { row, qty: 0, drunk: 0 }; b.qty += wine.qty; b.drunk += wine.drunk || 0; by.set(row, b); });
   return [...by.values()];
 }
-const clean = w => { const o = {}; for (const [k, v] of Object.entries(w)) if (k !== "src" && v !== "" && v != null) o[k] = v; return o; };
+const clean = w => { const o = {}; for (const [k, v] of Object.entries(w)) if (k !== "src" && k !== "rows" && v !== "" && v != null) o[k] = v; return o; };
 
 const api = { read, readText: (u8, name) => readText(u8, name || "file"), readXlsx, table, build, dedupe, bumps, clean, FIELDS, matchHeader, parseLine, num, vintage, isoDate, size, wineType, MAX_ROWS };
 if (typeof module !== "undefined" && module.exports) module.exports = api;
