@@ -19,6 +19,8 @@ function makeSheet(name, rows, onRename) {
     setName(n) { const old = name; name = n; if (onRename) onRename(old, n); return sh; },
     getLastRow: lastRow,
     getLastColumn: lastCol,
+    getMaxRows: () => Math.max(cells.length, 1),
+    insertRowsAfter(r, n) { for (let i = 0; i < n; i++) cells.splice(r, 0, []); return sh; },
     appendRow(vals) { cells.splice(lastRow(), cells.length - lastRow()); cells.push([...vals]); return sh; },
     deleteRow(r) { cells.splice(r - 1, 1); },
     deleteRows(r, n) { cells.splice(r - 1, n); },
@@ -28,7 +30,9 @@ function makeSheet(name, rows, onRename) {
         getValues: () => Array.from({ length: nr }, (_, i) => Array.from({ length: nc }, (_, j) => { const row = cells[r - 1 + i] || []; const v = row[c - 1 + j]; return v === undefined ? "" : v; })),
         getValue: () => { const row = cells[r - 1] || []; const v = row[c - 1]; return v === undefined ? "" : v; },
         setValue(v) { at(r, c)[c - 1] = v; return this; },
-        setValues(vs) { vs.forEach((row, i) => row.forEach((v, j) => { at(r + i, c + j)[c + j - 1] = v; })); return this; },
+        setValues(vs) {
+          if (vs.length > 1 && r + vs.length - 1 > Math.max(cells.length, 1)) throw new Error("Those rows are out of bounds."); // as Sheets does
+          vs.forEach((row, i) => row.forEach((v, j) => { at(r + i, c + j)[c + j - 1] = v; })); return this; },
       };
     },
     _cells: cells,

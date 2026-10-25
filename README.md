@@ -377,6 +377,41 @@ They are:
 
 Until you redeploy, the site says so instead of failing silently.
 
+## Importing a cellar list (API 29)
+
+**⬆ Import** in the cellar adds many wines at once, one wine per row. It reads:
+- an Excel workbook (`.xlsx`, any sheet);
+- a CSV, with `,` `;` tab or `|`, in UTF-8 or the Windows-1252 that Danish Excel writes;
+- a text file, either tab-separated or a plain list such as `3 x Domaine Roulot - Meursault Perrières 2020`.
+
+An old `.xls`, Numbers or `.ods` file gets the advice to save as `.xlsx` or CSV first.
+
+`import.js` does the reading in the browser. **The file is never uploaded**; only the resulting wines go in, through
+the same path as "Add wine", so an encrypted cellar stays encrypted.
+
+- **Columns.** The header row is found even under a title row. Its headings are matched in Danish, English and
+  French (Producent / Producer / Producteur, Årgang / Vintage / Millésime …), plus the CellarTracker and Vivino
+  export columns. Every column can be re-pointed in the dialog, and the preview follows. With no headings, a
+  one-column file is read as a list of wines.
+- **Values.**
+  - Prices: `1.250,00 kr` and `1,250.00`.
+  - Dates: Excel dates, `24.12.2025` and ISO.
+  - Vintages: `NV`, and CellarTracker's 1001.
+  - Formats: `1.5L` / `150 cl` → Magnum.
+  - Type, country and region are put in the site's terms: Red → Rød, France → Frankrig, Burgundy → Bourgogne.
+  - Appellations like "Chambolle-Musigny 1er Cru" are split into commune and classification.
+  - Ratings on a 5- or 100-point scale become 1–10.
+- **Bottles.** Use *Antal* + *Drukket* (a number, or `x`/`ja` for all), *Antal* + *Tilbage*, or *Tilbage* alone.
+  Drunk-out rows go in as cellar rows, exactly like your own sheet's. Rows with no producer or 0 bottles are left
+  out and counted.
+- **Already in the cellar** (same producer, wine, vintage and format, ignoring case and accents)? Each import asks
+  whether to **add the bottles** to the existing row or **skip** them.
+- `addmany` in `Code.gs` writes the rows in one go, at most 5 000 per call. On an unencrypted cellar the site sends
+  400 at a time. Text starting with `=`, `+` or `@` is stored as text, so a file can't plant a formula in a sheet.
+
+Tests: `node tools/import-test.js` (46 checks on the sample files in `tools/fixtures`; regenerate them with
+`python3 tools/make-import-fixtures.py`) and `node tools/import-ui-test.js` (the dialog, 21).
+
 ## Surveyed vineyard outlines (INAO)
 
 The atlas can draw the real vineyard boundaries from INAO's *Délimitation

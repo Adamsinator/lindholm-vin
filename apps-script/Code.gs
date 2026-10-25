@@ -37,7 +37,7 @@ function setting(key) {
 // The legacy code only works once you've set a real one: the placeholder from the template is public.
 function accessCode() { const c = setting('ACCESS_CODE'); return c === 'CHANGE-ME' ? '' : c; }
 
-const API_VERSION = 28; // returned in every response; used to verify deployments
+const API_VERSION = 29; // returned in every response; used to verify deployments
 
 // Per-request spreadsheet for the authenticated user. Set in handle(); every
 // sheet helper reads it via ss(). Falls back to the bound (owner's) spreadsheet.
@@ -196,6 +196,9 @@ function handle(p) {
         return json({ ok: true, wines: readAll(), entries: readJournal() });
       case 'enjoyadd':
         enjoyAdd(p.entry || {});
+        return json({ ok: true, wines: readAll() });
+      case 'addmany':
+        addMany(p.wines || [], p.bumps || []);
         return json({ ok: true, wines: readAll() });
       case 'feed':
         return json({ ok: true, feed: readFeed(200), me: CTX_USER, users: listUsers(), follows: myFollows() });
@@ -908,6 +911,55 @@ function enjoyAdd(e) {
   if (idx.rating >= 0 && e.rating !== '' && e.rating !== null && e.rating !== undefined)
     row[idx.rating] = Math.max(1, Math.min(10, Number(e.rating) || 0));
   sh.appendRow(row);
+}
+
+// Bulk import (the site's Import dialog reads the file in the browser): appends the new wines in one write, and adds
+// bottles to rows already in the cellar ("bumps": {row, qty, drunk}). The optional columns are created as needed.
+const IMPORT_MAX = 5000;
+const IMPORT_COLS = { rating: RATING_HEADER, value: VALUE_HEADER, drunkDate: DRUNK_DATE_HEADER, size: SIZE_HEADER, drinkFrom: DRINK_FROM_HEADER, drinkTo: DRINK_TO_HEADER };
+function addMany(wines, bumps) {
+  if (!Array.isArray(wines) || !Array.isArray(bumps)) throw new Error('Bad import');
+  if (wines.length + bumps.length > IMPORT_MAX) throw new Error('Too many rows (at most ' + IMPORT_MAX + ')');
+  const blank = v => v === undefined || v === null || String(v).trim() === '';
+  wines.forEach(w => { if (!w || blank(w.producer)) throw new Error('Producer is required'); });
+  const sh = sheet();
+  ensureCol(sh, ACQUIRED_HEADER);
+  Object.keys(IMPORT_COLS).forEach(f => { if (wines.some(w => !blank(w[f]))) ensureCol(sh, IMPORT_COLS[f]); });
+  const idx = colIndexes(sh), width = sh.getLastColumn(), last = sh.getLastRow();
+  const count = v => Math.max(0, Math.round(Number(v) || 0));
+  bumps.forEach(b => {
+    const r = Number(b.row);
+    if (!r || r < 2 || r > last) throw new Error('Bad row');
+    const qc = sh.getRange(r, idx.qty + 1), dc = sh.getRange(r, idx.drunk + 1);
+    const q0 = Number(qc.getValue()) || 1, d0raw = dc.getValue();
+    const d0 = String(d0raw).trim().toLowerCase() === 'x' ? q0 : Math.min(q0, Number(d0raw) || 0);
+    const q = count(b.qty), d = Math.min(count(b.drunk), q);
+    qc.setValue(q0 + q);
+    if (d || String(d0raw).trim().toLowerCase() === 'x') dc.setValue(d0 + d);
+  });
+  if (!wines.length) return;
+  const num = v => { const n = Number(v); return isFinite(n) ? n : ''; };
+  // text from someone else's file is kept as text: Sheets would run "=IMPORTXML(…)" as a formula
+  const text = v => { v = v.trim(); return !inEngine() && /^[=+@]/.test(v) ? "'" + v : v; };
+  const rows = wines.map(w => {
+    const row = new Array(width).fill('');
+    for (const f of Object.keys(HEADERS)) if (!blank(w[f])) row[idx[f]] = typeof w[f] === 'string' ? text(w[f]) : w[f];
+    const qty = Math.max(1, count(w.qty));
+    row[idx.qty] = qty;
+    row[idx.drunk] = Math.min(qty, count(w.drunk)) || '';
+    if (!blank(w.price)) row[idx.price] = num(w.price);
+    if (!blank(w.acquired)) row[idx.acquired] = ymd(w.acquired);
+    if (!blank(w.rating)) row[idx.rating] = Math.max(1, Math.min(10, Number(w.rating) || 0));
+    if (!blank(w.value)) row[idx.value] = num(w.value);
+    if (!blank(w.drunkDate)) row[idx.drunkDate] = ymd(w.drunkDate);
+    if (!blank(w.size)) row[idx.size] = String(w.size).trim();
+    if (!blank(w.drinkFrom)) row[idx.drinkFrom] = num(w.drinkFrom);
+    if (!blank(w.drinkTo)) row[idx.drinkTo] = num(w.drinkTo);
+    return row;
+  });
+  const need = last + rows.length - sh.getMaxRows(); // a range can't reach past the sheet's rows (appendRow grows it, getRange doesn't)
+  if (need > 0) sh.insertRowsAfter(sh.getMaxRows(), need);
+  sh.getRange(last + 1, 1, rows.length, width).setValues(rows);
 }
 
 // Edit a wine's descriptive fields in place (only the INFO_FIELDS given; producer can't be blanked).
