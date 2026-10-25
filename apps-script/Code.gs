@@ -8,6 +8,11 @@
  * The sheet itself stays private. This script is the only way in, and it
  * refuses everything without a valid login (or the legacy access code).
  *
+ * Since API 28 every account's cellar, journal, wishlist and journal photos are encrypted in the browser
+ * (vault-crypto.js / vault.js in the site): this script stores ciphertext for them and never sees a password.
+ * The private actions below still run — in the browser, on the decrypted copy (vault-engine.js); here they answer
+ * 'vaulted' for an encrypted account. See "Privacy: encrypted cellars" in the README.
+ *
  * ── YOUR SETTINGS ARE IN Settings.gs, NOT HERE ────────────────────────────────
  * Your access code, sheet name, invite code and atlas editors live in a second file in this project, Settings.gs
  * (template: apps-script/Settings.gs in the repo). Apps Script shares one global scope across a project's files,
@@ -32,12 +37,16 @@ function setting(key) {
 // The legacy code only works once you've set a real one: the placeholder from the template is public.
 function accessCode() { const c = setting('ACCESS_CODE'); return c === 'CHANGE-ME' ? '' : c; }
 
-const API_VERSION = 27; // returned in every response; used to verify deployments
+const API_VERSION = 28; // returned in every response; used to verify deployments
 
 // Per-request spreadsheet for the authenticated user. Set in handle(); every
 // sheet helper reads it via ss(). Falls back to the bound (owner's) spreadsheet.
 let CTX = null;
 let CTX_USER = null; // authenticated username (for the shared social feed)
+let CTX_ACCOUNT = null; // the signed-in account's Users record (null for the legacy access code)
+// True when this file runs inside the browser's vault engine (vault-engine.js) on a user's decrypted cellar rather
+// than on the server; the engine declares it before loading this file.
+function inEngine() { return typeof ENGINE !== 'undefined' && ENGINE === true; }
 function ss() { return CTX || SpreadsheetApp.getActiveSpreadsheet(); }
 
 // Column headers in row 1 of the sheet, mapped to API field names.
@@ -115,25 +124,30 @@ function handle(p) {
   CTX = null;
 
   // Account actions need no session.
-  if (p.action === 'signup') { try { return doSignup(p); } catch (err) { return json({ ok: false, error: String(err) }); } }
-  if (p.action === 'login')  { try { return doLogin(p);  } catch (err) { return json({ ok: false, error: String(err) }); } }
+  const open = { signup: doSignup, login: doLogin, prelogin: doPrelogin, recoverstart: doRecoverStart, recover: doRecover };
+  if (open[p.action]) { try { return open[p.action](p); } catch (err) { return json({ ok: false, error: String(err) }); } }
   // The Burgundy atlas is public reference data, so its corrections can be read without a session.
   if (p.action === 'atlas')  { try { return json({ ok: true, edits: readAtlas(false) }); } catch (err) { return json({ ok: false, error: String(err) }); } }
 
   // Authenticate: a multi-user token scopes to that user's own spreadsheet;
   // otherwise fall back to the legacy single access code + the bound spreadsheet.
-  CTX_USER = null;
+  CTX_USER = null; CTX_ACCOUNT = null;
   if (p.token || p.user) {
     const u = authToken(p);
     if (!u) return json({ ok: false, error: 'bad-token' });
     try { CTX = SpreadsheetApp.openById(u.spreadsheetId); }
     catch (err) { return json({ ok: false, error: 'no-cellar' }); }
-    CTX_USER = u.username;
+    CTX_USER = u.username; CTX_ACCOUNT = u;
+    // an encrypted account's private data lives only in its vault: the server never reads or writes it in the clear
+    if (u.state === 'done' && PRIVATE_ACTIONS[p.action] && p.action !== 'photo') return json({ ok: false, error: 'vaulted' });
+    if (u.state === 'migrating' && PRIVATE_ACTIONS[p.action] && p.action !== 'photo') return json({ ok: false, error: 'migrating' });
   } else {
     const code = accessCode();
     if (!code || String(p.code || '') !== code) return json({ ok: false, error: 'bad-code' });
+    // the legacy code can't unlock an encrypted cellar, so it stops working once the owner's cellar is encrypted
+    if (!inEngine() && ownerVaulted()) return json({ ok: false, error: 'vaulted' });
     CTX = SpreadsheetApp.getActiveSpreadsheet();
-    CTX_USER = 'cellar';
+    CTX_USER = inEngine() ? 'engine' : 'cellar';
   }
 
   try {
@@ -233,6 +247,16 @@ function handle(p) {
       case 'atlasedit':
         addAtlasEdit(p.edit || {});
         return json({ ok: true, edits: readAtlas(true) });
+      case 'upgrade':   return doUpgrade(p);
+      case 'changepw':  return doChangePw(p);
+      case 'newrec':    return doNewRecovery(p);
+      case 'vexport':   return json({ ok: true, ...vaultExport() });
+      case 'vget':      return json({ ok: true, records: readVault(vaultBook()), state: CTX_ACCOUNT.state });
+      case 'vput':      return json({ ok: true, ver: writeVault(vaultBook(), String(p.key || ''), Number(p.ver) || 0, String(p.data || '')) });
+      case 'vphotoput': return json({ ok: true, id: vaultPhotoPut(String(p.data || '')) });
+      case 'vphotoget': return json({ ok: true, data: vaultPhotoGet(String(p.id || '')) });
+      case 'vphotodel': vaultPhotoDel(String(p.id || '')); return json({ ok: true });
+      case 'vfinish':   return doVaultFinish(p);
       default:
         return json({ ok: false, error: 'bad-action' });
     }
@@ -247,14 +271,23 @@ function handle(p) {
 // spreadsheet. Passwords are never stored in the clear. Signups need the SIGNUP_CODE setting.
 
 const USERS_SHEET = 'Users';
-const USER_COLS = ['Username', 'Salt', 'Hash', 'SpreadsheetId', 'Token', 'Created'];
+// Kdf … OldSheet belong to encrypted accounts (API 28): the browser's key-derivation settings and salt, the data key
+// wrapped by the password and by the recovery code (useless without them), the recovery code's salt and its login key
+// hashed, the vault spreadsheet, and the migration state ('' plain, 'migrating', 'done') with the plain sheet it left.
+const USER_COLS = ['Username', 'Salt', 'Hash', 'SpreadsheetId', 'Token', 'Created',
+                   'Kdf', 'KdfSalt', 'WrapKey', 'WrapRec', 'RecSalt', 'RecHash', 'VaultId', 'State', 'OldSheet'];
+const UCOL = {}; USER_COLS.forEach((c, i) => { UCOL[c] = i + 1; });
 
 function usersSheet() {
   const book = SpreadsheetApp.getActiveSpreadsheet(); // registry always lives in the bound book
   let sh = book.getSheetByName(USERS_SHEET);
-  if (!sh) { sh = book.insertSheet(USERS_SHEET); sh.appendRow(USER_COLS); }
+  if (!sh) { sh = book.insertSheet(USERS_SHEET); sh.appendRow(USER_COLS); return sh; }
+  // a registry from before API 28 lacks the encryption columns: add their headers (existing rows read them as blank)
+  const head = sh.getRange(1, 1, 1, Math.max(1, sh.getLastColumn())).getValues()[0].map(String);
+  if (head.length < USER_COLS.length) sh.getRange(1, 1, 1, USER_COLS.length).setValues([USER_COLS]);
   return sh;
 }
+function setUser(u, field, value) { usersSheet().getRange(u.row, UCOL[field]).setValue(value); u[field.charAt(0).toLowerCase() + field.slice(1)] = value; }
 
 function normUser(s) { return String(s || '').trim().toLowerCase(); }
 
@@ -268,9 +301,12 @@ function findUser(username) {
   const rows = sh.getRange(2, 1, last - 1, USER_COLS.length).getValues();
   for (let i = 0; i < rows.length; i++) {
     if (normUser(rows[i][0]) === u) {
+      const c = k => String(rows[i][UCOL[k] - 1] === undefined ? '' : rows[i][UCOL[k] - 1]);
       return { row: i + 2, username: rows[i][0], salt: String(rows[i][1]),
                hash: String(rows[i][2]), spreadsheetId: String(rows[i][3]),
-               token: String(rows[i][4]) };
+               token: String(rows[i][4]), kdf: c('Kdf'), kdfSalt: c('KdfSalt'), wrapKey: c('WrapKey'),
+               wrapRec: c('WrapRec'), recSalt: c('RecSalt'), recHash: c('RecHash'), vaultId: c('VaultId'),
+               state: c('State'), oldSheet: c('OldSheet') };
     }
   }
   return null;
@@ -330,33 +366,131 @@ function createUserSpreadsheet(username) {
   return book.getId();
 }
 
+// Sign-up (API 28): the browser sends a login key derived from the password, never the password itself, plus the
+// account's data key wrapped two ways. The new account gets an empty vault spreadsheet of its own.
 function doSignup(p) {
   const invite = setting('SIGNUP_CODE');
   if (!invite) return json({ ok: false, error: 'signup-disabled' });
   if (String(p.code || '') !== invite) return json({ ok: false, error: 'bad-invite' });
+  if (p.pass !== undefined || !p.auth) return json({ ok: false, error: 'update-site' }); // a page from before encryption
   const username = String(p.user || '').trim();
   if (!/^[a-zA-Z0-9_.-]{3,24}$/.test(username)) return json({ ok: false, error: 'bad-username' });
-  if (String(p.pass || '').length < 6) return json({ ok: false, error: 'weak-pass' });
+  if (!validKeys(p)) return json({ ok: false, error: 'bad-keys' });
   if (findUser(username)) return json({ ok: false, error: 'user-taken' });
 
-  const salt = randToken();
+  const salt = randToken(), token = randToken();
+  const folder = masterFolder().createFolder('AllWine — ' + username);
+  const vaultId = createVaultBook(username, folder);
+  const row = new Array(USER_COLS.length).fill('');
+  const put = (k, v) => { row[UCOL[k] - 1] = v; };
+  put('Username', username); put('Salt', salt); put('Hash', hashPass(salt, p.auth)); put('SpreadsheetId', vaultId);
+  put('Token', token); put('Created', today()); put('Kdf', String(p.kdf)); put('KdfSalt', String(p.kdfSalt));
+  put('WrapKey', String(p.wrapKey)); put('WrapRec', String(p.wrapRec)); put('RecSalt', String(p.recSalt));
+  put('RecHash', hashPass(salt, p.recAuth)); put('VaultId', vaultId); put('State', 'done');
+  usersSheet().appendRow(row);
+  return json({ ok: true, user: username, token: token, state: 'done' });
+}
+function validKeys(p) {
+  const b64ish = v => /^[A-Za-z0-9+/=]{16,200}$/.test(String(v || ''));
+  return /^pbkdf2-sha256-\d{6,7}$/.test(String(p.kdf || '')) && b64ish(p.kdfSalt) && b64ish(p.auth) && b64ish(p.wrapKey)
+    && b64ish(p.wrapRec) && b64ish(p.recSalt) && b64ish(p.recAuth);
+}
+
+// Which key-derivation salt to use for a username. An unknown name gets a stable made-up salt, so the answer doesn't
+// tell who has an account; an account from before encryption answers 'legacy' and still logs in with its password,
+// once, to be upgraded.
+function doPrelogin(p) {
+  const u = findUser(p.user);
+  if (u && !u.kdf) return json({ ok: true, legacy: true });
+  if (u) return json({ ok: true, kdf: u.kdf, kdfSalt: u.kdfSalt });
+  return json({ ok: true, kdf: 'pbkdf2-sha256-600000', kdfSalt: fakeSalt(p.user) });
+}
+function fakeSalt(user) {
+  return hashPass(SpreadsheetApp.getActiveSpreadsheet().getId(), 'salt|' + normUser(user)).slice(0, 22) + '==';
+}
+
+function addSession(u) {
   const token = randToken();
-  const spreadsheetId = createUserSpreadsheet(username);
-  usersSheet().appendRow([username, salt, hashPass(salt, p.pass), spreadsheetId, token, today()]);
-  return json({ ok: true, user: username, token: token });
+  // Add this session rather than replacing the last one, dropping the oldest once we're past MAX_TOKENS.
+  const live = tokenList(u.token).concat(token).slice(-MAX_TOKENS);
+  usersSheet().getRange(u.row, UCOL.Token).setValue(live.join(', '));
+  return token;
 }
 
 function doLogin(p) {
   const u = findUser(p.user);
   const salt = u ? u.salt : 'x';                 // still hash on miss to blur timing
-  const ok = u && safeEqual(hashPass(salt, p.pass || ''), u.hash);
+  if (u && u.kdf) {
+    // an encrypted account: only the derived login key opens it; a plain password is refused, so it never travels
+    const ok = p.auth && safeEqual(hashPass(salt, p.auth), u.hash);
+    if (!ok) return json({ ok: false, error: 'bad-login' });
+    return json({ ok: true, user: u.username, token: addSession(u), wrapKey: u.wrapKey, state: u.state || 'done' });
+  }
+  const ok = u && p.pass !== undefined && safeEqual(hashPass(salt, p.pass || ''), u.hash);
+  hashPass(salt, String(p.auth || ''));
   if (!ok) return json({ ok: false, error: 'bad-login' });
-  const token = randToken();
-  // Add this session rather than replacing the last one, dropping the oldest
-  // once we're past MAX_TOKENS.
-  const live = tokenList(u.token).concat(token).slice(-MAX_TOKENS);
-  usersSheet().getRange(u.row, 5).setValue(live.join(', '));
-  return json({ ok: true, user: u.username, token: token });
+  return json({ ok: true, user: u.username, token: addSession(u), legacy: true });
+}
+
+// An account from before encryption, signed in with its password once more: store its new keys and give it an
+// empty vault. Its plain sheet stays until the browser has copied everything into the vault and checked it
+// (vaultExport → vput → vfinish).
+function doUpgrade(p) {
+  const u = CTX_ACCOUNT;
+  if (!u) return json({ ok: false, error: 'no-account' });
+  if (u.kdf) return json({ ok: false, error: 'already-upgraded' });
+  if (!validKeys(p)) return json({ ok: false, error: 'bad-keys' });
+  const owner = u.spreadsheetId === SpreadsheetApp.getActiveSpreadsheet().getId();
+  const folder = owner ? masterFolder() : userFolder();
+  const vaultId = createVaultBook(u.username, folder);
+  setUser(u, 'Kdf', String(p.kdf)); setUser(u, 'KdfSalt', String(p.kdfSalt));
+  setUser(u, 'WrapKey', String(p.wrapKey)); setUser(u, 'WrapRec', String(p.wrapRec)); setUser(u, 'RecSalt', String(p.recSalt));
+  setUser(u, 'RecHash', hashPass(u.salt, p.recAuth)); setUser(u, 'Hash', hashPass(u.salt, p.auth));
+  setUser(u, 'VaultId', vaultId); setUser(u, 'State', 'migrating'); setUser(u, 'OldSheet', u.spreadsheetId);
+  return json({ ok: true, state: 'migrating' });
+}
+
+// Password change while signed in: the browser re-wraps the same data key under the new password.
+function doChangePw(p) {
+  const u = CTX_ACCOUNT;
+  if (!u || !u.kdf) return json({ ok: false, error: 'no-account' });
+  if (!p.oldAuth || !safeEqual(hashPass(u.salt, p.oldAuth), u.hash)) return json({ ok: false, error: 'bad-login' });
+  if (!/^[A-Za-z0-9+/=]{16,200}$/.test(String(p.auth || '')) || !/^[A-Za-z0-9+/=]{16,200}$/.test(String(p.wrapKey || ''))
+      || !/^[A-Za-z0-9+/=]{16,200}$/.test(String(p.kdfSalt || ''))) return json({ ok: false, error: 'bad-keys' });
+  setUser(u, 'KdfSalt', String(p.kdfSalt)); setUser(u, 'WrapKey', String(p.wrapKey)); setUser(u, 'Hash', hashPass(u.salt, p.auth));
+  usersSheet().getRange(u.row, UCOL.Token).setValue(String(p.token || '')); // other devices are signed out
+  return json({ ok: true });
+}
+
+// A fresh recovery code (the old one stops working): the browser, holding the password, wraps the data key again.
+function doNewRecovery(p) {
+  const u = CTX_ACCOUNT;
+  if (!u || !u.kdf) return json({ ok: false, error: 'no-account' });
+  if (!p.oldAuth || !safeEqual(hashPass(u.salt, p.oldAuth), u.hash)) return json({ ok: false, error: 'bad-login' });
+  const ok = v => /^[A-Za-z0-9+/=]{16,200}$/.test(String(v || ''));
+  if (!ok(p.wrapRec) || !ok(p.recSalt) || !ok(p.recAuth)) return json({ ok: false, error: 'bad-keys' });
+  setUser(u, 'WrapRec', String(p.wrapRec)); setUser(u, 'RecSalt', String(p.recSalt)); setUser(u, 'RecHash', hashPass(u.salt, p.recAuth));
+  return json({ ok: true });
+}
+
+// Forgotten password: the recovery code unwraps the data key in the browser (the server hands out the wrapped key
+// and its salt, useless without the code) and proves itself with its own login key; the browser then sets a new
+// password. All sessions end.
+function doRecoverStart(p) {
+  const u = findUser(p.user);
+  if (u && u.kdf) return json({ ok: true, recSalt: u.recSalt, wrapRec: u.wrapRec });
+  return json({ ok: true, recSalt: fakeSalt('rec|' + p.user), wrapRec: fakeSalt('wrap|' + p.user) + fakeSalt('w2|' + p.user) });
+}
+function doRecover(p) {
+  const u = findUser(p.user);
+  const salt = u ? u.salt : 'x';
+  const ok = u && u.kdf && p.recAuth && safeEqual(hashPass(salt, p.recAuth), u.recHash);
+  if (!ok) return json({ ok: false, error: 'bad-recovery' });
+  if (!/^[A-Za-z0-9+/=]{16,200}$/.test(String(p.auth || '')) || !/^[A-Za-z0-9+/=]{16,200}$/.test(String(p.wrapKey || ''))
+      || !/^[A-Za-z0-9+/=]{16,200}$/.test(String(p.kdfSalt || ''))) return json({ ok: false, error: 'bad-keys' });
+  setUser(u, 'KdfSalt', String(p.kdfSalt)); setUser(u, 'WrapKey', String(p.wrapKey)); setUser(u, 'Hash', hashPass(u.salt, p.auth));
+  usersSheet().getRange(u.row, UCOL.Token).setValue('');
+  return json({ ok: true, user: u.username, token: addSession(findUser(u.username)), wrapKey: String(p.wrapKey), state: u.state });
 }
 
 // Validate {user, token}; returns the user record or null.
@@ -379,6 +513,139 @@ function makeOwner() {
   usersSheet().appendRow([username, salt, hashPass(salt, password),
                           SpreadsheetApp.getActiveSpreadsheet().getId(), randToken(), today()]);
   return 'Owner account "' + username + '" created, pointing at this spreadsheet. Now blank OWNER_PASSWORD in Settings.gs.';
+}
+
+// ── Encrypted vault (API 28) ─────────────────────────────────────────────────
+// An encrypted account keeps its cellar, journal and wishlist as ciphertext in a spreadsheet of its own, one "Vault"
+// tab of [Key, Ver, Updated, Part, Data] rows: each private tab is a record (key "tab:Ark1", "tab:Journal", …),
+// split over rows of at most 40 000 characters. The browser decrypts them, runs this same file's cellar logic on the
+// plain copy (vault-engine.js), and writes back the records that changed. Ver makes a write from a stale copy fail
+// instead of overwriting another device's change. Journal photos are encrypted files in a "Vault" folder.
+const PRIVATE_ACTIONS = { data: 1, add: 1, drink: 1, undrink: 1, delete: 1, rate: 1, setvalue: 1, setprice: 1, setdate: 1,
+  setsize: 1, setwindow: 1, setinfo: 1, enjoysync: 1, classfill: 1, enjoyadd: 1, addmany: 1, journal: 1, jadd: 1, jedit: 1,
+  jdelete: 1, wish: 1, wadd: 1, wedit: 1, wdelete: 1, wtocellar: 1, photo: 1 };
+const VAULT_TAB = 'Vault';
+const VAULT_COLS = ['Key', 'Ver', 'Updated', 'Part', 'Data'];
+const VAULT_PART = 40000, VAULT_MAX = 8000000;
+
+function createVaultBook(username, folder) {
+  const book = SpreadsheetApp.create('AllWine vault — ' + username);
+  const sh = book.getSheets()[0];
+  sh.setName(VAULT_TAB);
+  sh.appendRow(VAULT_COLS);
+  DriveApp.getFileById(book.getId()).moveTo(folder);
+  return book.getId();
+}
+function vaultBook() {
+  const u = CTX_ACCOUNT;
+  if (!u || !u.vaultId) throw new Error('no-vault');
+  return SpreadsheetApp.openById(u.vaultId);
+}
+function vaultSheet(book) {
+  const sh = book.getSheetByName(VAULT_TAB);
+  if (!sh) throw new Error('no-vault');
+  return sh;
+}
+function readVault(book) {
+  const sh = vaultSheet(book), last = sh.getLastRow(), out = {};
+  if (last < 2) return out;
+  const rows = sh.getRange(2, 1, last - 1, VAULT_COLS.length).getValues();
+  const parts = {};
+  rows.forEach(r => {
+    const k = String(r[0]); if (!k) return;
+    (parts[k] = parts[k] || []).push({ i: Number(r[3]) || 0, d: String(r[4] || ''), v: Number(r[1]) || 0, t: r[2] });
+  });
+  Object.keys(parts).forEach(k => {
+    const ps = parts[k].sort((a, b) => a.i - b.i);
+    out[k] = { ver: ps[0].v, data: ps.map(x => x.d).join(''), updated: feedTime(ps[0].t) };
+  });
+  return out;
+}
+function writeVault(book, key, baseVer, data) {
+  if (!/^[a-z]+:[^\n]{1,80}$/.test(key)) throw new Error('bad-key');
+  if (!/^v1\.[A-Za-z0-9+/=]+$/.test(data)) throw new Error('not-encrypted'); // only ciphertext is ever stored here
+  if (data.length > VAULT_MAX) throw new Error('too-big');
+  const lock = typeof LockService !== 'undefined' ? LockService.getScriptLock() : null;
+  if (lock) lock.waitLock(20000);
+  try {
+    const sh = vaultSheet(book), last = sh.getLastRow();
+    const rows = last >= 2 ? sh.getRange(2, 1, last - 1, 2).getValues() : [];
+    let cur = 0; const mine = [];
+    rows.forEach((r, i) => { if (String(r[0]) === key) { mine.push(i + 2); cur = Number(r[1]) || 0; } });
+    if (cur !== baseVer) throw new Error('stale');
+    for (let i = mine.length - 1; i >= 0; i--) sh.deleteRow(mine[i]);
+    const ver = cur + 1, now = new Date();
+    for (let i = 0, part = 0; i < data.length; i += VAULT_PART, part++) sh.appendRow([key, ver, now, part, data.slice(i, i + VAULT_PART)]);
+    return ver;
+  } finally { if (lock) lock.releaseLock(); }
+}
+
+// Journal photos of an encrypted account: ciphertext in a "Vault" folder next to its vault. Only files in that folder
+// are served or deleted, so the API can't be used to read anything else in Drive.
+function vaultPhotoFolder() {
+  const parents = DriveApp.getFileById(vaultBook().getId()).getParents();
+  const parent = parents.hasNext() ? parents.next() : masterFolder();
+  const it = parent.getFoldersByName('Vault');
+  return it.hasNext() ? it.next() : parent.createFolder('Vault');
+}
+function vaultPhotoFile(id) {
+  const f = DriveApp.getFileById(id), folder = vaultPhotoFolder().getId(), parents = f.getParents();
+  while (parents.hasNext()) if (parents.next().getId() === folder) return f;
+  throw new Error('Unknown photo');
+}
+function vaultPhotoPut(data) {
+  if (!/^v1\.[A-Za-z0-9+/=]+$/.test(data)) throw new Error('not-encrypted');
+  if (data.length > VAULT_MAX) throw new Error('too-big');
+  return vaultPhotoFolder().createFile('enc-' + Utilities.getUuid() + '.txt', data, MimeType.PLAIN_TEXT).getId();
+}
+function vaultPhotoGet(id) { return vaultPhotoFile(id).getBlob().getDataAsString(); }
+function vaultPhotoDel(id) { try { vaultPhotoFile(id).setTrashed(true); } catch (err) {} }
+
+// Migration, step 1: the plain private tabs of an account being upgraded, exactly as stored (dates as yyyy-MM-dd),
+// for the browser to encrypt. Only while the account is 'migrating'.
+function vaultExport() {
+  const u = CTX_ACCOUNT;
+  if (!u || u.state !== 'migrating') throw new Error('not-migrating');
+  const tabs = {}, book = ss();
+  [setting('SHEET_NAME'), JOURNAL_SHEET, WISHLIST_SHEET].forEach(name => {
+    const sh = book.getSheetByName(name);
+    if (!sh) return;
+    const lr = sh.getLastRow(), lc = sh.getLastColumn();
+    tabs[name] = lr && lc ? sh.getRange(1, 1, lr, lc).getValues().map(r => r.map(v => v instanceof Date ? ymd(v) : v)) : [];
+  });
+  const photos = tabs[JOURNAL_SHEET] ? Object.keys(journalPhotoIds()) : [];
+  return { tabs: tabs, sheetName: setting('SHEET_NAME'), photos: photos };
+}
+
+// Migration, last step: the browser has written the vault and read it back. The plain copy goes: a friend's own
+// spreadsheet and its journal photos to the Drive trash (Drive empties it after 30 days); in the owner's master book
+// the private tabs are cleared, since that book also holds the shared Users, Feed and atlas tabs.
+function doVaultFinish(p) {
+  const u = CTX_ACCOUNT;
+  if (!u || u.state !== 'migrating') return json({ ok: false, error: 'not-migrating' });
+  if (p.verified !== true) return json({ ok: false, error: 'not-verified' });
+  const book = ss(), photos = book.getSheetByName(JOURNAL_SHEET) ? journalPhotoIds() : {}, shared = feedPhotoIds();
+  Object.keys(photos).forEach(id => { if (!shared[id]) trashPhoto(id); });
+  const master = SpreadsheetApp.getActiveSpreadsheet().getId();
+  if (u.spreadsheetId === master) {
+    const main = book.getSheetByName(setting('SHEET_NAME'));
+    if (main) main.clear();
+    [JOURNAL_SHEET, WISHLIST_SHEET].forEach(n => { const sh = book.getSheetByName(n); if (sh) book.deleteSheet(sh); });
+  } else {
+    try { DriveApp.getFileById(u.spreadsheetId).setTrashed(true); } catch (err) {}
+  }
+  setUser(u, 'SpreadsheetId', u.vaultId);
+  setUser(u, 'State', 'done');
+  return json({ ok: true, state: 'done' });
+}
+
+// The legacy access code opens the master book's plain cellar; once the owner's cellar is encrypted there is none.
+function ownerVaulted() {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(USERS_SHEET);
+  if (!sh || sh.getLastRow() < 2) return false;
+  const master = SpreadsheetApp.getActiveSpreadsheet().getId();
+  const rows = sh.getRange(2, 1, sh.getLastRow() - 1, USER_COLS.length).getValues();
+  return rows.some(r => String(r[UCOL.OldSheet - 1]) === master && String(r[UCOL.State - 1]) === 'done');
 }
 
 // ── Social feed (shared across all accounts) ─────────────────────────────────
@@ -984,8 +1251,10 @@ function journalPhotoIds() {
 
 function getPhoto(id) {
   if (!id) throw new Error('No photo id');
-  // only serve photos that appear in this user's journal or in the shared feed
-  if (!journalPhotoIds()[id] && !feedPhotoIds()[id]) throw new Error('Unknown photo');
+  // only serve photos that appear in this user's journal or in the shared feed (an encrypted account's journal photos
+  // are encrypted files, fetched with vphotoget; its journal isn't readable here)
+  const vaulted = CTX_ACCOUNT && CTX_ACCOUNT.state === 'done';
+  if (!feedPhotoIds()[id] && (vaulted || !journalPhotoIds()[id])) throw new Error('Unknown photo');
   const blob = DriveApp.getFileById(id).getBlob();
   return 'data:' + blob.getContentType() + ';base64,' + Utilities.base64Encode(blob.getBytes());
 }

@@ -159,12 +159,14 @@ async function post(params){
 }
 
 async function api(params){
+  // an encrypted account: the cellar's own actions run here on the decrypted copy (vault.js); shared ones go out
+  if(window.VAULT && VAULT.active()) return VAULT.call(params);
   const data = await post({user:cfg.user, token:cfg.token, ...params});
   if(!data.ok){ const e = new Error(data.error || "unknown-error"); e.data = data; throw e; }
   return data;
 }
 // Auth errors that mean "the session is no longer valid → show the gate".
-const AUTH_ERRORS = new Set(["bad-token","bad-code","no-cellar"]);
+const AUTH_ERRORS = new Set(["bad-token","bad-code","no-cellar","vaulted","migrating","vault-closed"]);
 
 function normalize(rows){
   return rows.map(r=>{
@@ -962,14 +964,17 @@ function showGate(msg){
 }
 function setGateMode(mode){
   GATE_MODE = mode;
-  const signup = mode==="signup";
+  const signup = mode==="signup", recover = mode==="recover";
   $("gateInviteWrap").hidden = !signup;
-  $("gateLead").textContent = tr(signup
-    ? "Create your own cellar. You'll need an invite code."
+  $("gateRecWrap").hidden = !recover;
+  $("gateForgot").hidden = mode!=="login";
+  $("gateLead").textContent = tr(signup ? "Create your own cellar. You'll need an invite code."
+    : recover ? "Enter your recovery code and choose a new password."
     : "Your private cellar. Log in to continue.");
-  $("gateSubmit").textContent = tr(signup ? "Create account" : "Log in");
-  $("gateToggle").textContent = tr(signup ? "Have an account? Log in" : "Need an account? Sign up");
-  $("gatePass").setAttribute("autocomplete", signup ? "new-password" : "current-password");
+  $("gateSubmit").textContent = tr(signup ? "Create account" : recover ? "Set new password" : "Log in");
+  $("gateToggle").textContent = tr(signup || recover ? "Have an account? Log in" : "Need an account? Sign up");
+  $("gatePass").setAttribute("autocomplete", signup || recover ? "new-password" : "current-password");
+  document.querySelector('label[for="gatePass"]').textContent = tr(recover ? "New password" : "Password");
   $("gateErr").textContent = "";
 }
 // Friendly text for the error codes the API returns.
@@ -978,8 +983,15 @@ const AUTH_MSG = {
   "signup-disabled":"Signups are closed right now.", "user-taken":"That username is taken.",
   "bad-username":"Username: 3–24 letters, numbers, . _ or -.", "weak-pass":"Use a password of at least 6 characters.",
   "no-cellar":"Your cellar couldn't be opened. Contact the owner.",
+  "bad-recovery":"That recovery code doesn't match this account.", "update-site":"Reload the page — the site has been updated.",
+  "vaulted":"This cellar is encrypted: log in with your username and password.",
+  "bad-keys":"Something went wrong preparing your keys. Reload and try again.",
 };
+const authMsg = code => AUTH_MSG[code] ? tr(AUTH_MSG[code]) : tr("Could not sign in ({0}).", code);
 function forgetAuth(){
+  if(window.VCRYPTO) VCRYPTO.forget(cfg.user); // the session's unlocked key goes with the session
+  if(window.VAULT) VAULT.stop();
+  localStorage.removeItem("vinVault"); $("acctBtn").hidden = true;
   localStorage.removeItem("vinUser"); localStorage.removeItem("vinToken"); localStorage.removeItem("vinActive");
   cfg.user=""; cfg.token="";
   // Drop the previous user's cached data so the next login can't see it (the
@@ -990,6 +1002,81 @@ function forgetAuth(){
 function enterApp(){ $("gate").hidden = true; $("app").hidden = false; markActive(); loadData(); route(); }
 
 $("gateToggle").addEventListener("click", ()=> setGateMode(GATE_MODE==="login" ? "signup" : "login"));
+$("gateForgot").addEventListener("click", ()=> setGateMode("recover"));
+
+/* ---------- encrypted accounts (vault-crypto.js, vault.js) ---------- */
+// Shown once, after sign-up or an upgrade: the code that unlocks the cellar if the password is forgotten.
+function showRecoveryCode(code){
+  return new Promise(done=>{
+    $("recCode").textContent = code; $("recOk").checked = false; $("recDone").disabled = true;
+    $("recModal").classList.add("open");
+    $("recOk").onchange = ()=>{ $("recDone").disabled = !$("recOk").checked; };
+    $("recCopy").onclick = async ()=>{ try{ await navigator.clipboard.writeText(code); toast(tr("Copied")); }catch(e){ toast(tr("Select the code and copy it")); } };
+    $("recSave").onclick = ()=>{
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([tr("AllWine recovery code for {0}", cfg.user)+":\n\n"+code+"\n"], {type:"text/plain"}));
+      a.download = "allwine-recovery-"+cfg.user+".txt"; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
+    };
+    $("recDone").onclick = ()=>{ $("recModal").classList.remove("open"); done(); };
+  });
+}
+async function openVault(user, token, dek){
+  cfg.user = user; cfg.token = token;
+  localStorage.setItem("vinUser", user); localStorage.setItem("vinToken", token); localStorage.setItem("vinVault", "1");
+  await VCRYPTO.keep(user, dek);
+  await VAULT.start({post, user, token, dek});
+  $("acctBtn").hidden = false;
+}
+const STEP_MSG = { export:"Reading your cellar…", photos:"Encrypting journal photos ({0} of {1})…", write:"Encrypting your cellar…",
+  verify:"Checking the encrypted copy…", finish:"Removing the unencrypted copy…" };
+async function migrateNow(user, token, dek){
+  await VAULT.migrate({post, user, token, dek, onStep:(k, i, n)=>{ $("gateErr").textContent = tr(STEP_MSG[k] || k, i, n); }});
+}
+
+// Sign-up, login (with a one-time upgrade of an account from before encryption) and recovery → true when signed in
+async function gateEncrypted(mode, user, pass){
+  if(mode==="signup"){
+    const pre = await post({action:"prelogin", user});
+    if(!pre.ok || (pre.v||0) < 28) return false; // an older Apps Script: the plain sign-up below
+    $("gateErr").textContent = tr("Creating your keys…");
+    const k = await VAULT.newKeys(pass);
+    const data = await post({action:"signup", user, code:$("gateInvite").value.trim(), ...k.fields});
+    if(!data.ok) throw new Error(data.error);
+    cfg.user = data.user;
+    await showRecoveryCode(k.recoveryCode);
+    await openVault(data.user, data.token, k.dek);
+    return true;
+  }
+  if(mode==="recover"){
+    const code = $("gateRec").value.trim();
+    if(!code) throw new Error("bad-recovery");
+    $("gateErr").textContent = tr("Unlocking with your recovery code…");
+    const r = await VAULT.recover({post, user, code, newPass:pass});
+    await openVault(r.user, r.token, r.dek);
+    if(r.state==="migrating") await migrateNow(r.user, r.token, r.dek);
+    return true;
+  }
+  $("gateErr").textContent = tr("Unlocking your cellar…");
+  const li = await VAULT.login({post, user, pass});
+  if(li.oldServer) return false;
+  if(li.legacy){
+    // an account from before encryption: sign in with the password one last time, then encrypt everything
+    const data = await post({action:"login", user, pass});
+    if(!data.ok) throw new Error(data.error);
+    cfg.user = data.user; cfg.token = data.token;
+    $("gateErr").textContent = tr("Creating your keys…");
+    const k = await VAULT.newKeys(pass);
+    const up = await post({user:data.user, token:data.token, action:"upgrade", ...k.fields});
+    if(!up.ok) throw new Error(up.error);
+    await showRecoveryCode(k.recoveryCode);
+    await migrateNow(data.user, data.token, k.dek);
+    await openVault(data.user, data.token, k.dek);
+    return true;
+  }
+  if(li.state==="migrating") await migrateNow(li.user, li.token, li.dek); // an upgrade that was interrupted
+  await openVault(li.user, li.token, li.dek);
+  return true;
+}
 
 $("gateForm").addEventListener("submit", async e=>{
   e.preventDefault();
@@ -998,20 +1085,52 @@ $("gateForm").addEventListener("submit", async e=>{
   if(!cfg.api){ $("gateErr").textContent = tr("The API URL is missing."); return; }
   const user = $("gateUser").value.trim(), pass = $("gatePass").value;
   if(!user || !pass){ $("gateErr").textContent = tr("Enter your username and password."); return; }
+  if(GATE_MODE!=="login" && pass.length < 8){ $("gateErr").textContent = tr("Use a password of at least 8 characters."); return; }
   const signup = GATE_MODE==="signup";
   $("gateSubmit").disabled = true; $("gateErr").textContent = tr(signup ? "Creating…" : "Signing in…");
   try{
+    if(window.VAULT && await gateEncrypted(GATE_MODE, user, pass)){
+      $("gatePass").value = ""; $("gateInvite").value = ""; $("gateRec").value = "";
+      enterApp(); return;
+    }
+    if(GATE_MODE==="recover"){ $("gateErr").textContent = tr("Recovery needs the updated Apps Script (version 28)."); return; }
     const params = signup
       ? {action:"signup", user, pass, code:$("gateInvite").value.trim()}
       : {action:"login", user, pass};
     const data = await post(params);
-    if(!data.ok){ $("gateErr").textContent = AUTH_MSG[data.error] ? tr(AUTH_MSG[data.error]) : tr("Could not sign in ({0}).", data.error); return; }
+    if(!data.ok){ $("gateErr").textContent = authMsg(data.error); return; }
     cfg.user = data.user; cfg.token = data.token;
     localStorage.setItem("vinUser", cfg.user); localStorage.setItem("vinToken", cfg.token);
     $("gatePass").value = ""; $("gateInvite").value = "";
     enterApp();
-  }catch(err){ $("gateErr").textContent = tr("Could not reach the cellar API ({0}).", err.message); }
+  }catch(err){
+    const m = String(err.message||"").replace(/^Error: /,"");
+    $("gateErr").textContent = AUTH_MSG[m] ? authMsg(m)
+      : /^verify-failed/.test(m) ? tr("Encrypting your cellar stopped before it finished — nothing was lost. Log in again to continue.")
+      : tr("Could not reach the cellar API ({0}).", m);
+  }
   finally{ $("gateSubmit").disabled = false; }
+});
+
+/* ---------- account: change password, new recovery code ---------- */
+$("acctBtn").addEventListener("click", ()=>{ $("acctErr").textContent=""; $("acctPass").value=""; $("acctNew").value=""; $("acctModal").classList.add("open"); $("acctPass").focus(); });
+$("acctCancel").addEventListener("click", ()=>$("acctModal").classList.remove("open"));
+$("acctForm").addEventListener("submit", async e=>{
+  e.preventDefault();
+  const oldPass = $("acctPass").value, newPass = $("acctNew").value;
+  if(!oldPass || newPass.length < 8){ $("acctErr").textContent = tr("Enter your current password and a new one of at least 8 characters."); return; }
+  $("acctErr").textContent = tr("Changing…");
+  try{ await VAULT.changePassword({post, user:cfg.user, token:cfg.token, oldPass, newPass});
+    $("acctModal").classList.remove("open"); toast(tr("Password changed. Other devices are signed out."));
+  }catch(err){ $("acctErr").textContent = authMsg(String(err.message).replace(/^Error: /,"")); }
+});
+$("acctRec").addEventListener("click", async ()=>{
+  const pass = $("acctPass").value;
+  if(!pass){ $("acctErr").textContent = tr("Enter your current password first."); return; }
+  $("acctErr").textContent = tr("Making a new code…");
+  try{ const code = await VAULT.newRecovery({post, user:cfg.user, token:cfg.token, pass});
+    $("acctModal").classList.remove("open"); await showRecoveryCode(code); toast(tr("New recovery code saved; the old one no longer works."));
+  }catch(err){ $("acctErr").textContent = authMsg(String(err.message).replace(/^Error: /,"")); }
 });
 
 /* ---------- header actions ---------- */
@@ -2698,7 +2817,16 @@ setInterval(checkIdle, 30*1000);
 /* ---------- boot ---------- */
 const bootActive = Number(localStorage.getItem("vinActive")||0);
 const sessionFresh = bootActive && (Date.now()-bootActive < IDLE_MS);
-if(cfg.api && cfg.user && cfg.token && sessionFresh){
+if(cfg.api && cfg.user && cfg.token && sessionFresh && localStorage.getItem("vinVault")==="1"){
+  // an encrypted session: reopen the vault with the key kept for this session, or ask for the password again
+  lastActive = bootActive;
+  (async ()=>{
+    const dek = window.VCRYPTO ? await VCRYPTO.recall(cfg.user) : null;
+    try{ if(!dek) throw new Error("no-key"); await VAULT.start({post, user:cfg.user, token:cfg.token, dek});
+      $("acctBtn").hidden = false; $("app").hidden=false; loadData(); route(); }
+    catch(err){ forgetAuth(); setGateMode("login"); showGate(tr("Log in again to unlock your cellar.")); }
+  })();
+}else if(cfg.api && cfg.user && cfg.token && sessionFresh){
   lastActive = bootActive; $("app").hidden=false; loadData(); route();
 }else{
   const staleDrop = !!cfg.token && !sessionFresh; // had a session, but it went cold
