@@ -21,13 +21,17 @@
  *   ACCESS_CODE    legacy single-user code for the bound sheet. '' (or the placeholder 'CHANGE-ME') turns it off;
  *                  accounts (username + password) don't need it.
  *   SHEET_NAME     the tab that holds the wine list (default 'Ark1')
- *   SIGNUP_CODE    invite code friends type to create their own account; '' turns signups off
+ *   SIGNUP_CODE    an optional shared invite code; better: personal single-use codes in the "Invites" tab (run
+ *                  makeInvites() from the editor). With neither, signups are off
+ *   MAX_USERS      the most accounts there can be (default 50)
+ *   SESSION_DAYS   a login lasts this many days without use (default 30)
  *   ATLAS_EDITORS  who may correct vineyard holdings in the Burgundy atlas: '' = anyone signed in,
  *                  or a comma-separated list of usernames, e.g. 'adam,anna'
  *   OWNER_USER / OWNER_PASSWORD   only for the one-time makeOwner() setup of your own account (see below)
  * ─────────────────────────────────────────────────────────────────────────────
  */
-const DEFAULT_SETTINGS = { ACCESS_CODE: '', SHEET_NAME: 'Ark1', SIGNUP_CODE: '', ATLAS_EDITORS: '', OWNER_USER: '', OWNER_PASSWORD: '' };
+const DEFAULT_SETTINGS = { ACCESS_CODE: '', SHEET_NAME: 'Ark1', SIGNUP_CODE: '', ATLAS_EDITORS: '', OWNER_USER: '', OWNER_PASSWORD: '',
+  MAX_USERS: '50', SESSION_DAYS: '30' };
 // Read at call time (not load time), so it doesn't matter in which order Apps Script loads the two files.
 function setting(key) {
   const s = (typeof SETTINGS === 'object' && SETTINGS) || {};
@@ -37,7 +41,7 @@ function setting(key) {
 // The legacy code only works once you've set a real one: the placeholder from the template is public.
 function accessCode() { const c = setting('ACCESS_CODE'); return c === 'CHANGE-ME' ? '' : c; }
 
-const API_VERSION = 33; // returned in every response; used to verify deployments
+const API_VERSION = 34; // returned in every response; used to verify deployments
 
 // Per-request spreadsheet for the authenticated user. Set in handle(); every
 // sheet helper reads it via ss(). Falls back to the bound (owner's) spreadsheet.
@@ -119,7 +123,9 @@ function doGet(e) { return handle((e && e.parameter) || {}); }
 
 function doPost(e) {
   let p = {};
-  try { p = JSON.parse(e.postData.contents); } catch (err) {}
+  const body = e && e.postData ? String(e.postData.contents || '') : '';
+  if (body.length > REQUEST_MAX) return json({ ok: false, error: 'too-big' });
+  try { p = JSON.parse(body); } catch (err) {}
   return handle(p);
 }
 
@@ -224,10 +230,10 @@ function handle(p) {
         addFeedComment(String(p.id || ''), p.text || '');
         return json({ ok: true, feed: readFeed(200), me: CTX_USER, follows: myFollows() });
       case 'follow':
-        setFollow(String(p.user || ''), true);
+        setFollow(String(p.target || ''), true); // not p.user: that's the signed-in account
         return json({ ok: true, follows: myFollows() });
       case 'unfollow':
-        setFollow(String(p.user || ''), false);
+        setFollow(String(p.target || ''), false);
         return json({ ok: true, follows: myFollows() });
       case 'journal':
         return json({ ok: true, entries: readJournal() });
@@ -276,6 +282,26 @@ function handle(p) {
     return json({ ok: false, error: String(err) });
   }
 }
+
+// ── Limits against abuse ─────────────────────────────────────────────────────
+// Apps Script never sees a caller's IP address, so limits count per account (or, for sign-up, for everyone) in the
+// script cache, which forgets on its own. Each limit is generous for a person and tight for a script.
+const REQUEST_MAX = 12000000;   // characters in one request (a vault record is at most 8 MB)
+const PHOTO_MAX = 5000000;      // characters in one photo (the site sends ~0.5 MB; encrypted ones a little more)
+const VAULT_KEYS_MAX = 16;      // records in an encrypted cellar (it uses a handful: tab:Ark1, tab:Journal …)
+const VAULT_PARTS_MAX = 600;    // 40 000-character parts in one, ~24 MB
+const LOGIN_TRIES = 5, LOCK_SECONDS = 900;          // wrong passwords before a username waits 15 minutes
+const SIGNUPS_PER_HOUR = 5, BAD_INVITES_PER_HOUR = 20;
+const RATES = { post: [30, 21600], comment: [100, 21600], photo: [60, 21600], atlas: [100, 21600], follow: [200, 21600] }; // [max, seconds]
+function scriptCache() { return typeof CacheService !== 'undefined' ? CacheService.getScriptCache() : null; }
+function peekCount(key) { const c = scriptCache(); return c ? Number(c.get(key)) || 0 : 0; }
+function bumpCount(key, seconds) { const c = scriptCache(); if (!c) return 0; const n = peekCount(key) + 1; c.put(key, String(n), seconds); return n; }
+// one more of something an account does: refused past its limit
+function rateLimit(kind) {
+  const r = RATES[kind]; if (!r || inEngine()) return;
+  if (bumpCount('rl:' + kind + ':' + normUser(CTX_USER || 'cellar'), r[1]) > r[0]) throw new Error('too-many');
+}
+const clip = (v, n) => String(v == null ? '' : v).trim().slice(0, n);
 
 // ── Accounts (registry + per-user spreadsheet) ───────────────────────────────
 // A "Users" tab in the bound (owner's) spreadsheet is the registry. Each row is
@@ -330,10 +356,17 @@ function randToken() { return Utilities.getUuid().replace(/-/g, '') + Utilities.
 // a phone and a laptop can be signed in at once. A cell written by an older
 // version holds a single token and parses as a one-item list — nothing to migrate.
 // Sessions still expire on their own: the site signs out after 60 idle minutes.
-const MAX_TOKENS = 5;
+// Each is stored as "token@time" (ms) and lapses after SESSION_DAYS without use; the time is refreshed at most once a
+// day, so a busy session doesn't write to the sheet on every request. A token from before API 34 has no time and is
+// stamped on its next use.
+const MAX_TOKENS = 5, SESSION_REFRESH_MS = 864e5;
+function sessionMs() { return Math.max(1, Number(setting('SESSION_DAYS')) || 30) * 864e5; }
 function tokenList(cell) {
-  return String(cell || '').split(',').map(t => t.trim()).filter(Boolean);
+  return String(cell || '').split(',').map(t => t.trim()).filter(Boolean)
+    .map(t => { const i = t.lastIndexOf('@'); return i > 0 ? { t: t.slice(0, i), at: Number(t.slice(i + 1)) || 0 } : { t: t, at: 0 }; });
 }
+const tokenCell = list => list.map(x => x.t + '@' + x.at).join(', ');
+const liveTokens = list => { const now = Date.now(); return list.filter(x => !x.at || now - x.at <= sessionMs()); };
 
 function hashPass(salt, pass) {
   const bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, String(salt) + '|' + String(pass));
@@ -380,15 +413,27 @@ function createUserSpreadsheet(username) {
 
 // Sign-up (API 28): the browser sends a login key derived from the password, never the password itself, plus the
 // account's data key wrapped two ways. The new account gets an empty vault spreadsheet of its own.
+// Sign-up needs a personal invite from the "Invites" tab (used up by the account it creates) or the shared SIGNUP_CODE,
+// and stops at MAX_USERS accounts. At most SIGNUPS_PER_HOUR a hour, and a burst of wrong codes pauses sign-up for
+// everyone for an hour, so neither a leaked code nor guessing can flood the Drive with accounts.
 function doSignup(p) {
-  const invite = setting('SIGNUP_CODE');
-  if (!invite) return json({ ok: false, error: 'signup-disabled' });
-  if (String(p.code || '') !== invite) return json({ ok: false, error: 'bad-invite' });
+  const lock = typeof LockService !== 'undefined' ? LockService.getScriptLock() : null;
+  if (lock) lock.waitLock(20000);
+  try { return signupLocked(p); } finally { if (lock) lock.releaseLock(); }
+}
+function signupLocked(p) {
+  const shared = setting('SIGNUP_CODE'), code = String(p.code || '').trim();
+  const invite = findInvite(code);
+  if (!invite && !shared && !hasInvites()) return json({ ok: false, error: 'signup-disabled' });
+  if (peekCount('signups') >= SIGNUPS_PER_HOUR || peekCount('badinvites') >= BAD_INVITES_PER_HOUR) return json({ ok: false, error: 'signup-busy' });
+  if (!invite && !(shared && code === shared)) { bumpCount('badinvites', 3600); return json({ ok: false, error: 'bad-invite' }); }
   if (p.pass !== undefined || !p.auth) return json({ ok: false, error: 'update-site' }); // a page from before encryption
   const username = String(p.user || '').trim();
   if (!/^[a-zA-Z0-9_.-]{3,24}$/.test(username)) return json({ ok: false, error: 'bad-username' });
   if (!validKeys(p)) return json({ ok: false, error: 'bad-keys' });
   if (findUser(username)) return json({ ok: false, error: 'user-taken' });
+  if (listUsers().length >= Math.max(1, Number(setting('MAX_USERS')) || 50)) return json({ ok: false, error: 'signup-full' });
+  bumpCount('signups', 3600);
 
   const salt = randToken(), token = randToken();
   const folder = masterFolder().createFolder('AllWine — ' + username);
@@ -396,11 +441,42 @@ function doSignup(p) {
   const row = new Array(USER_COLS.length).fill('');
   const put = (k, v) => { row[UCOL[k] - 1] = v; };
   put('Username', username); put('Salt', salt); put('Hash', hashPass(salt, p.auth)); put('SpreadsheetId', vaultId);
-  put('Token', token); put('Created', today()); put('Kdf', String(p.kdf)); put('KdfSalt', String(p.kdfSalt));
+  put('Token', token + '@' + Date.now()); put('Created', today()); put('Kdf', String(p.kdf)); put('KdfSalt', String(p.kdfSalt));
   put('WrapKey', String(p.wrapKey)); put('WrapRec', String(p.wrapRec)); put('RecSalt', String(p.recSalt));
   put('RecHash', hashPass(salt, p.recAuth)); put('VaultId', vaultId); put('State', 'done');
   usersSheet().appendRow(row);
+  if (invite) useInvite(invite, username);
   return json({ ok: true, user: username, token: token, state: 'done' });
+}
+
+// Personal invites: a tab of codes in the bound sheet. A code works once; its row then records who used it and when.
+// Make some with makeInvites() from the editor, or type your own codes into the Code column.
+const INVITES_SHEET = 'Invites', INVITE_COLS = ['Code', 'Note', 'Created', 'UsedBy', 'UsedAt'];
+const inviteKey = c => String(c || '').trim().toUpperCase().replace(/[\s-]+/g, '');
+function invitesSheet(create) {
+  const book = SpreadsheetApp.getActiveSpreadsheet();
+  let sh = book.getSheetByName(INVITES_SHEET);
+  if (!sh && create) { sh = book.insertSheet(INVITES_SHEET); sh.appendRow(INVITE_COLS); }
+  return sh;
+}
+function inviteRows() {
+  const sh = invitesSheet(false); if (!sh || sh.getLastRow() < 2) return [];
+  return sh.getRange(2, 1, sh.getLastRow() - 1, INVITE_COLS.length).getValues().map((r, i) => ({ row: i + 2, code: r[0], usedBy: String(r[3] || '') }));
+}
+function hasInvites() { return inviteRows().some(r => inviteKey(r.code) && !r.usedBy); }
+function findInvite(code) {
+  const k = inviteKey(code); if (k.length < 6) return null;
+  return inviteRows().find(r => !r.usedBy && safeEqual(inviteKey(r.code), k)) || null;
+}
+function useInvite(inv, username) { invitesSheet(false).getRange(inv.row, 4, 1, 2).setValues([[username, new Date()]]); }
+// Run from the editor: five new codes in the Invites tab, returned to the log so you can send one to each friend.
+function makeInvites() {
+  const sh = invitesSheet(true), A = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789', codes = [];
+  for (let n = 0; n < 5; n++) {
+    let c = 'AW-'; for (let i = 0; i < 8; i++) { if (i === 4) c += '-'; c += A.charAt(Math.floor(Math.random() * A.length)); }
+    codes.push(c); sh.appendRow([c, '', new Date(), '', '']);
+  }
+  return 'New invite codes (each works once): ' + codes.join(', ');
 }
 function validKeys(p) {
   const b64ish = v => /^[A-Za-z0-9+/=]{16,200}$/.test(String(v || ''));
@@ -424,23 +500,32 @@ function fakeSalt(user) {
 function addSession(u) {
   const token = randToken();
   // Add this session rather than replacing the last one, dropping the oldest once we're past MAX_TOKENS.
-  const live = tokenList(u.token).concat(token).slice(-MAX_TOKENS);
-  usersSheet().getRange(u.row, UCOL.Token).setValue(live.join(', '));
+  const live = liveTokens(tokenList(u.token)).concat({ t: token, at: Date.now() }).slice(-MAX_TOKENS);
+  usersSheet().getRange(u.row, UCOL.Token).setValue(tokenCell(live));
   return token;
 }
 
+// Guessing passwords: after LOGIN_TRIES wrong ones a username (known or not, so the answer gives nothing away) waits
+// LOCK_SECONDS, counted from the last wrong try. The right password resets the count.
+const failKey = user => 'fail:' + normUser(user);
+const lockedOut = user => peekCount(failKey(user)) >= LOGIN_TRIES;
+function failed(user, error) { bumpCount(failKey(user), LOCK_SECONDS); return json({ ok: false, error: error }); }
+function cleared(user) { const c = scriptCache(); if (c) c.remove(failKey(user)); }
 function doLogin(p) {
+  if (lockedOut(p.user)) return json({ ok: false, error: 'locked' });
   const u = findUser(p.user);
   const salt = u ? u.salt : 'x';                 // still hash on miss to blur timing
   if (u && u.kdf) {
     // an encrypted account: only the derived login key opens it; a plain password is refused, so it never travels
     const ok = p.auth && safeEqual(hashPass(salt, p.auth), u.hash);
-    if (!ok) return json({ ok: false, error: 'bad-login' });
+    if (!ok) return failed(p.user, 'bad-login');
+    cleared(p.user);
     return json({ ok: true, user: u.username, token: addSession(u), wrapKey: u.wrapKey, state: u.state || 'done' });
   }
   const ok = u && p.pass !== undefined && safeEqual(hashPass(salt, p.pass || ''), u.hash);
   hashPass(salt, String(p.auth || ''));
-  if (!ok) return json({ ok: false, error: 'bad-login' });
+  if (!ok) return failed(p.user, 'bad-login');
+  cleared(p.user);
   return json({ ok: true, user: u.username, token: addSession(u), legacy: true });
 }
 
@@ -466,11 +551,12 @@ function doUpgrade(p) {
 function doChangePw(p) {
   const u = CTX_ACCOUNT;
   if (!u || !u.kdf) return json({ ok: false, error: 'no-account' });
-  if (!p.oldAuth || !safeEqual(hashPass(u.salt, p.oldAuth), u.hash)) return json({ ok: false, error: 'bad-login' });
+  if (lockedOut(u.username)) return json({ ok: false, error: 'locked' });
+  if (!p.oldAuth || !safeEqual(hashPass(u.salt, p.oldAuth), u.hash)) return failed(u.username, 'bad-login');
   if (!/^[A-Za-z0-9+/=]{16,200}$/.test(String(p.auth || '')) || !/^[A-Za-z0-9+/=]{16,200}$/.test(String(p.wrapKey || ''))
       || !/^[A-Za-z0-9+/=]{16,200}$/.test(String(p.kdfSalt || ''))) return json({ ok: false, error: 'bad-keys' });
   setUser(u, 'KdfSalt', String(p.kdfSalt)); setUser(u, 'WrapKey', String(p.wrapKey)); setUser(u, 'Hash', hashPass(u.salt, p.auth));
-  usersSheet().getRange(u.row, UCOL.Token).setValue(String(p.token || '')); // other devices are signed out
+  usersSheet().getRange(u.row, UCOL.Token).setValue(p.token ? String(p.token) + '@' + Date.now() : ''); // other devices are signed out
   return json({ ok: true });
 }
 
@@ -478,7 +564,8 @@ function doChangePw(p) {
 function doNewRecovery(p) {
   const u = CTX_ACCOUNT;
   if (!u || !u.kdf) return json({ ok: false, error: 'no-account' });
-  if (!p.oldAuth || !safeEqual(hashPass(u.salt, p.oldAuth), u.hash)) return json({ ok: false, error: 'bad-login' });
+  if (lockedOut(u.username)) return json({ ok: false, error: 'locked' });
+  if (!p.oldAuth || !safeEqual(hashPass(u.salt, p.oldAuth), u.hash)) return failed(u.username, 'bad-login');
   const ok = v => /^[A-Za-z0-9+/=]{16,200}$/.test(String(v || ''));
   if (!ok(p.wrapRec) || !ok(p.recSalt) || !ok(p.recAuth)) return json({ ok: false, error: 'bad-keys' });
   setUser(u, 'WrapRec', String(p.wrapRec)); setUser(u, 'RecSalt', String(p.recSalt)); setUser(u, 'RecHash', hashPass(u.salt, p.recAuth));
@@ -494,10 +581,12 @@ function doRecoverStart(p) {
   return json({ ok: true, recSalt: fakeSalt('rec|' + p.user), wrapRec: fakeSalt('wrap|' + p.user) + fakeSalt('w2|' + p.user) });
 }
 function doRecover(p) {
+  if (lockedOut(p.user)) return json({ ok: false, error: 'locked' });
   const u = findUser(p.user);
   const salt = u ? u.salt : 'x';
   const ok = u && u.kdf && p.recAuth && safeEqual(hashPass(salt, p.recAuth), u.recHash);
-  if (!ok) return json({ ok: false, error: 'bad-recovery' });
+  if (!ok) return failed(p.user, 'bad-recovery');
+  cleared(p.user);
   if (!/^[A-Za-z0-9+/=]{16,200}$/.test(String(p.auth || '')) || !/^[A-Za-z0-9+/=]{16,200}$/.test(String(p.wrapKey || ''))
       || !/^[A-Za-z0-9+/=]{16,200}$/.test(String(p.kdfSalt || ''))) return json({ ok: false, error: 'bad-keys' });
   setUser(u, 'KdfSalt', String(p.kdfSalt)); setUser(u, 'WrapKey', String(p.wrapKey)); setUser(u, 'Hash', hashPass(u.salt, p.auth));
@@ -509,7 +598,12 @@ function doRecover(p) {
 function authToken(p) {
   const u = findUser(p.user);
   if (!u || !u.token || !p.token) return null;
-  return tokenList(u.token).some(t => safeEqual(p.token, t)) ? u : null;
+  const list = tokenList(u.token), hit = list.find(x => safeEqual(p.token, x.t));
+  if (!hit) return null;
+  const now = Date.now(), live = liveTokens(list);
+  if (live.indexOf(hit) < 0) { usersSheet().getRange(u.row, UCOL.Token).setValue(tokenCell(live)); return null; } // lapsed
+  if (!hit.at || now - hit.at > SESSION_REFRESH_MS) { hit.at = now; usersSheet().getRange(u.row, UCOL.Token).setValue(tokenCell(live)); }
+  return u;
 }
 
 // Run ONCE from the editor to give yourself an account whose cellar is THIS (the bound) spreadsheet, so your
@@ -523,7 +617,7 @@ function makeOwner() {
   if (findUser(username)) return 'Account "' + username + '" already exists — nothing changed. Blank OWNER_PASSWORD in Settings.gs.';
   const salt = randToken();
   usersSheet().appendRow([username, salt, hashPass(salt, password),
-                          SpreadsheetApp.getActiveSpreadsheet().getId(), randToken(), today()]);
+                          SpreadsheetApp.getActiveSpreadsheet().getId(), randToken() + '@' + Date.now(), today()]);
   return 'Owner account "' + username + '" created, pointing at this spreadsheet. Now blank OWNER_PASSWORD in Settings.gs.';
 }
 
@@ -585,6 +679,9 @@ function writeVault(book, key, baseVer, data) {
     let cur = 0; const mine = [];
     rows.forEach((r, i) => { if (String(r[0]) === key) { mine.push(i + 2); cur = Number(r[1]) || 0; } });
     if (cur !== baseVer) throw new Error('stale');
+    // an encrypted cellar holds a handful of records; refuse more, and more than ~24 MB in all
+    const keys = {}; rows.forEach(r => { keys[String(r[0])] = 1; }); keys[key] = 1;
+    if (Object.keys(keys).length > VAULT_KEYS_MAX || rows.length - mine.length + Math.ceil(data.length / VAULT_PART) > VAULT_PARTS_MAX) throw new Error('too-big');
     // the old parts go bottom up, next-door rows together; the new ones in one write (a big cellar is ~70 parts)
     for (let i = mine.length - 1; i >= 0;) { let j = i; while (j > 0 && mine[j - 1] === mine[j] - 1) j--; sh.deleteRows(mine[j], i - j + 1); i = j - 1; }
     const ver = cur + 1, now = new Date(), parts = [];
@@ -613,7 +710,8 @@ function vaultPhotoFile(id) {
 }
 function vaultPhotoPut(data) {
   if (!/^v1\.[A-Za-z0-9+/=]+$/.test(data)) throw new Error('not-encrypted');
-  if (data.length > VAULT_MAX) throw new Error('too-big');
+  if (data.length > PHOTO_MAX) throw new Error('too-big');
+  rateLimit('photo');
   return vaultPhotoFolder().createFile('enc-' + Utilities.getUuid() + '.txt', data, MimeType.PLAIN_TEXT).getId();
 }
 function vaultPhotoGet(id) { return vaultPhotoFile(id).getBlob().getDataAsString(); }
@@ -724,6 +822,10 @@ function addFeed(e) {
   const from = CTX_USER || 'cellar';
   if (!String(e.producer || '').trim() && !String(e.wine || '').trim() && !String(e.note || '').trim() && !e.photo)
     throw new Error('Empty post');
+  rateLimit('post'); if (e.photo) rateLimit('photo');
+  e = { producer: clip(e.producer, 120), wine: clip(e.wine, 160), vintage: clip(e.vintage, 12), region: clip(e.region, 80),
+    rating: e.rating === '' || e.rating == null ? '' : Math.max(1, Math.min(10, Math.round(Number(e.rating) || 0))) || '',
+    note: clip(e.note, 2000), to: clip(e.to, 40), type: ['bought', 'drank', 'note'].indexOf(e.type) >= 0 ? e.type : 'note', photo: e.photo };
   const sh = feedSheet(), idx = feedIdx(sh), row = new Array(sh.getLastColumn()).fill('');
   const set = (c, v) => { if (idx[c] >= 0) row[idx[c]] = v; };
   set('Id', Utilities.getUuid().slice(0, 8));
@@ -788,8 +890,9 @@ function readFeedComments() {
   return g;
 }
 function addFeedComment(id, text) {
-  id = String(id || ''); text = String(text || '').trim();
+  id = String(id || '').slice(0, 40); text = clip(text, 500);
   if (!id || !text) throw new Error('Empty comment');
+  rateLimit('comment');
   fcmtSheet().appendRow([id, new Date(), CTX_USER || 'cellar', text]);
 }
 
@@ -812,6 +915,8 @@ function setFollow(target, on) {
   target = String(target || '').trim();
   const me = String(CTX_USER || '').trim();
   if (!target || target.toLowerCase() === me.toLowerCase()) throw new Error('Bad target');
+  if (on && !listUsers().some(n => n.toLowerCase() === target.toLowerCase())) throw new Error('Bad target'); // only real accounts
+  rateLimit('follow');
   const sh = followsSheet(), last = sh.getLastRow();
   const rows = last > 1 ? sh.getRange(2, 1, last - 1, 2).getValues() : [];
   const at = rows.findIndex(r => String(r[0]).trim().toLowerCase() === me.toLowerCase()
@@ -1372,6 +1477,7 @@ function savePhoto(dataUrl, name) {
     b64 = b64.slice(comma + 1);
   }
   if (!b64) throw new Error('Empty photo');
+  if (b64.length > PHOTO_MAX) throw new Error('too-big');
   const blob = Utilities.newBlob(Utilities.base64Decode(b64), mime, name || 'foto.jpg');
   return photoFolder().createFile(blob).getId();
 }
@@ -1493,6 +1599,7 @@ function readAtlas(withUser) { // usernames only go to signed-in callers
 }
 function addAtlasEdit(e) {
   const who = CTX_USER || 'cellar';
+  rateLimit('atlas');
   const allowed = setting('ATLAS_EDITORS').split(',').map(normUser).filter(Boolean);
   if (allowed.length && allowed.indexOf(normUser(who)) === -1) throw new Error('not-an-atlas-editor');
   const climat = String(e.climat || '').trim(), producer = String(e.producer || '').trim().slice(0, 80);

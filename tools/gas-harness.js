@@ -10,7 +10,9 @@ const fs = require("fs"), path = require("path"), vm = require("vm"), crypto = r
 const FAKE = require("../gas-fake.js");
 
 module.exports = function harness(tabs, opts = {}) {
+  let skew = 0; // advance(ms) moves the clock the cache and sessions see
   const rt = FAKE.runtime(tabs, {
+    now: () => Date.now() + skew,
     today: opts.today || "2026-10-16",
     sheetsText: true, // text and formulas as Sheets stores them
     // Apps Script gives digests as Java bytes: -128…127
@@ -30,6 +32,7 @@ module.exports = function harness(tabs, opts = {}) {
     rows: n => rt.book.sheets[n] ? rt.book.sheets[n]._cells.map(r => [...r]) : null,
     sheet: n => rt.book.sheets[n],
     run: code => vm.runInContext(code, ctx), // e.g. run("makeOwner()") — as if from the script editor
+    advance: ms => { skew += ms; }, // the cache (login lockouts, rate limits) sees a later time
     rt,
   };
 };

@@ -139,9 +139,17 @@ function runtime(tabs, opts) {
   const Session = { getScriptTimeZone: () => opts.tz || "Europe/Copenhagen" };
   const MimeType = { PLAIN_TEXT: "text/plain" };
   const LockService = { getScriptLock: () => ({ waitLock() {}, releaseLock() {} }) };
+  // CacheService: values that expire after their time-to-live (opts.now lets a test move the clock)
+  const cacheStore = new Map(), now = () => (opts.now ? opts.now() : Date.now());
+  const scriptCache = {
+    get: k => { const e = cacheStore.get(k); if (!e) return null; if (e.until <= now()) { cacheStore.delete(k); return null; } return e.v; },
+    put: (k, v, ttl) => { cacheStore.set(k, { v: String(v), until: now() + 1000 * Math.min(21600, ttl || 600) }); },
+    remove: k => { cacheStore.delete(k); },
+  };
+  const CacheService = { getScriptCache: () => scriptCache };
   return {
     book: bound, books, files,
-    globals: { SpreadsheetApp, Utilities, Session, DriveApp, ContentService, MimeType, LockService },
+    globals: { SpreadsheetApp, Utilities, Session, DriveApp, ContentService, MimeType, LockService, CacheService },
     tabs: (id) => { const b = id ? books[id] : bound; return Object.fromEntries(b.order.filter(nm => b.sheets[nm]).map(nm => [nm, b.sheets[nm]._cells.map(r => [...r])])); },
   };
 }

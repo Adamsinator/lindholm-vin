@@ -697,8 +697,12 @@ Then press **Log out** in the site and sign in again.
 
 Others can keep their own cellar behind a username + password:
 
-- Set `SIGNUP_CODE` in `Settings.gs` to an invite phrase (blank `''` turns signups
-  off), redeploy, and share the site URL + that phrase.
+- **Invite people with personal codes (API 34):** in the Apps Script editor, pick `makeInvites` and press Run. It
+  adds five codes like `AW-K7QM-3XPD` to an `Invites` tab and shows them in the log. Send one per friend.
+  - Each code works once; its row then records who used it and when.
+  - You can also type your own codes into the `Code` column.
+  - A shared `SIGNUP_CODE` in `Settings.gs` still works, but a leaked shared code lets anyone in, so personal codes
+    are safer. With neither, sign-up is off.
 - A friend taps **Sign up**, picks a username/password + the invite code, and
   gets their own empty, encrypted cellar (see below). Everything (wines, enjoyed, journal, wishlist,
   ratings) is scoped to their own vault — they never see anyone else's, and neither do you.
@@ -714,7 +718,32 @@ Others can keep their own cellar behind a username + password:
 - **Signed in on several devices at once** is fine: the `Token` cell keeps the
   five most recent sessions, so logging in on a phone no longer signs out the
   laptop. To force every device of an account to sign in again, clear that
-  row's `Token` cell. Sessions still expire on their own after 60 idle minutes.
+  row's `Token` cell. The site signs out after 60 idle minutes, and since API 34 the server forgets a session
+  that hasn't been used for `SESSION_DAYS` (default 30). Each session is stored as `token@time`.
+
+### Limits against abuse (API 34)
+
+Apps Script never sees a visitor's IP address, so `Code.gs` counts per account (or, for sign-up, for everyone) in the
+script cache, which forgets on its own:
+- **Sign-up:**
+  - at most `MAX_USERS` accounts (default 50);
+  - at most 5 new accounts an hour;
+  - 20 wrong invite codes in an hour pause sign-up for everyone for an hour.
+- **Guessing passwords:** 5 wrong passwords (or recovery codes) lock that username for 15 minutes, counted from
+  the last wrong try. The right password resets the count. Unknown usernames lock the same way, so the answer
+  never tells whether an account exists.
+- **What an account can store:**
+  - a request is at most 12 MB, and a photo at most 5 MB;
+  - an encrypted cellar holds at most 16 records and about 24 MB in all;
+  - feed text is cut to size (2 000 characters per note, 500 per comment);
+  - you can only follow real accounts.
+- **How often:** per account per 6 hours, at most 30 posts, 100 comments, 60 photos, 100 atlas corrections and
+  200 follows.
+
+The site says each limit in words (in all four languages). Test: `node tools/abuse-test.js` (43 checks).
+
+The remaining security and housekeeping to-dos (a Cloudflare Worker in front of the API, automatic tests, backups,
+a content-security policy, privacy page, monitoring) are tracked in `SECURITY-TODO.md`.
 
 ## Privacy: encrypted cellars (API 28)
 

@@ -1,0 +1,125 @@
+// Tests of the limits against abuse in apps-script/Code.gs (API 34), run against the real file in Node
+// (gas-harness.js), with the script cache's clock moved forward where a limit should lift:
+// personal single-use invites, the account cap and the sign-up rate; locking a username after wrong passwords or
+// recovery codes; sessions that lapse after SESSION_DAYS; and size and rate limits on what accounts can store.
+//   node tools/abuse-test.js
+"use strict";
+const H = require("./gas-harness");
+const results = []; const check = (name, ok, extra = "") => { results.push(ok); console.log((ok ? "PASS " : "FAIL ") + name + (ok ? "" : "  " + extra)); };
+const HEAD = ["Producent", "Land", "Område", "Kommune", "Mark/Navn", "Klassifikation", "Type", "Drue", "Årgang", "Antal", "Pris kr (WS)", "Drukket", "Kilde", "Note"];
+const B64 = s => Buffer.from(String(s).padEnd(24, "x")).toString("base64");
+// what the site sends for a new encrypted account (only the shapes matter to the server)
+const keys = (user, pass) => ({ kdf: "pbkdf2-sha256-600000", kdfSalt: B64("salt" + user), auth: B64("auth" + user + pass), wrapKey: B64("wrap" + user),
+  wrapRec: B64("wraprec" + user), recSalt: B64("recsalt" + user), recAuth: B64("rec" + user) });
+const signup = (gas, user, code, pass = "pw") => gas.call({ action: "signup", user, code, ...keys(user, pass) });
+const login = (gas, user, pass = "pw") => gas.call({ action: "login", user, auth: keys(user, pass).auth });
+const MIN = 60000, HOUR = 60 * MIN, DAY = 24 * HOUR;
+
+// ── invites ──
+{
+  const gas = H({ Ark1: [HEAD] }, { settings: { SIGNUP_CODE: "" } });
+  check("no shared code and no invites: sign-up is off", signup(gas, "anna", "whatever").error === "signup-disabled");
+  const made = gas.run("makeInvites()"), codes = made.match(/AW-[A-Z2-9]{4}-[A-Z2-9]{4}/g) || [];
+  check("makeInvites() makes five codes in an Invites tab", codes.length === 5 && gas.rows("Invites").length === 6, made);
+  check("a wrong code is refused", signup(gas, "anna", "AW-XXXX-XXXX").error === "bad-invite");
+  const r = signup(gas, "anna", codes[0].toLowerCase().replace(/-/g, " "));
+  check("an invite works however it's typed (case, spaces)", r.ok, JSON.stringify(r));
+  check("…and records who used it", gas.rows("Invites")[1][3] === "anna");
+  check("…once: the same code can't make a second account", signup(gas, "bob", codes[0]).error === "bad-invite");
+  check("the other codes still work", signup(gas, "bob", codes[1]).ok);
+}
+{
+  const gas = H({ Ark1: [HEAD] }, { settings: { SIGNUP_CODE: "shared-code", MAX_USERS: "3" } });
+  check("the shared SIGNUP_CODE still works", signup(gas, "user1", "shared-code").ok && signup(gas, "user2", "shared-code").ok);
+  check("…up to MAX_USERS accounts", signup(gas, "user3", "shared-code").ok && signup(gas, "user4", "shared-code").error === "signup-full");
+}
+{
+  const gas = H({ Ark1: [HEAD] }, { settings: { SIGNUP_CODE: "shared-code", MAX_USERS: "100" } });
+  const ok = [1, 2, 3, 4, 5].map(i => signup(gas, "sign" + i, "shared-code").ok);
+  check("five sign-ups in an hour go through", ok.every(Boolean));
+  check("…the sixth waits", signup(gas, "sign6", "shared-code").error === "signup-busy");
+  gas.advance(HOUR + MIN);
+  check("…and goes through an hour later", signup(gas, "sign6", "shared-code").ok);
+  for (let i = 0; i < 20; i++) signup(gas, "guess" + i, "guess-" + i);
+  check("20 wrong codes pause sign-up for everyone, right code too", signup(gas, "sign7", "shared-code").error === "signup-busy");
+  gas.advance(HOUR + MIN);
+  check("…for an hour", signup(gas, "sign7", "shared-code").ok);
+}
+
+// ── guessing passwords ──
+{
+  const gas = H({ Ark1: [HEAD] }, { settings: { SIGNUP_CODE: "c" } });
+  signup(gas, "vera", "c", "right");
+  check("the right password logs in", login(gas, "vera", "right").ok);
+  for (let i = 0; i < 4; i++) login(gas, "vera", "wrong" + i);
+  check("four wrong tries, then the right one: in, and the count resets", login(gas, "vera", "right").ok);
+  for (let i = 0; i < 4; i++) login(gas, "vera", "wrong" + i);
+  check("…so four more wrong ones don't lock it", login(gas, "vera", "right").ok);
+  for (let i = 0; i < 5; i++) login(gas, "vera", "wrong" + i);
+  check("five wrong tries lock the username, even with the right password", login(gas, "vera", "right").error === "locked");
+  gas.advance(10 * MIN);
+  check("…still locked after 10 minutes", login(gas, "vera", "right").error === "locked");
+  gas.advance(6 * MIN);
+  check("…open again after 15", login(gas, "vera", "right").ok);
+  for (let i = 0; i < 5; i++) login(gas, "nobody", "x" + i);
+  check("an unknown username locks the same way (nothing to learn from the answer)", login(gas, "nobody", "x").error === "locked");
+  for (let i = 0; i < 5; i++) gas.call({ action: "recover", user: "vera", recAuth: B64("guess" + i), auth: B64("a"), wrapKey: B64("w"), kdfSalt: B64("k") });
+  check("guessing recovery codes locks too", gas.call({ action: "recover", user: "vera", recAuth: keys("vera").recAuth, auth: B64("a"), wrapKey: B64("w"), kdfSalt: B64("k") }).error === "locked");
+}
+
+// ── sessions ──
+{
+  const gas = H({ Ark1: [HEAD] }, { settings: { SIGNUP_CODE: "c", SESSION_DAYS: "30" } });
+  const s = signup(gas, "tom", "c");
+  const cell = () => String(gas.rows("Users")[1][4]);
+  check("a session is stored with its time", new RegExp("^" + s.token + "@\\d{13}$").test(cell()), cell());
+  const feed = tok => gas.call({ action: "feed", user: "tom", token: tok });
+  check("…and works", feed(s.token).ok);
+  const users = gas.sheet("Users");
+  users.getRange(2, 5).setValue(s.token);
+  check("a session from before API 34 (no time) still works", feed(s.token).ok);
+  check("…and is stamped on its first use", /@\d{13}$/.test(cell()), cell());
+  users.getRange(2, 5).setValue(s.token + "@" + (Date.now() - 31 * DAY));
+  check("a session unused for 31 days has lapsed", feed(s.token).error === "bad-token");
+  check("…and is removed", !cell().includes(s.token), cell());
+  const l = login(gas, "tom");
+  users.getRange(2, 5).setValue(l.token + "@" + (Date.now() - 2 * DAY));
+  check("one used two days ago works", feed(l.token).ok);
+  check("…and its time moves to now", Math.abs(Number(cell().split("@")[1]) - Date.now()) < 60000, cell());
+}
+
+// ── what an account can store ──
+{
+  const gas = H({ Ark1: [HEAD] }, { settings: { SIGNUP_CODE: "c" } });
+  const a = signup(gas, "amy", "c"), b = signup(gas, "ben", "c");
+  const as = p => gas.call({ user: "amy", token: a.token, ...p });
+  const r = as({ action: "feedpost", entry: { producer: "x".repeat(500), note: "n".repeat(5000), type: "drank", rating: 99 } });
+  const post = r.feed && r.feed[0];
+  check("feed text is cut to size", post && post.producer.length === 120 && post.note.length === 2000 && Number(post.rating) === 10, JSON.stringify(post).slice(0, 200));
+  let n = 1; while (n < 30 && as({ action: "feedpost", entry: { note: "hi " + n } }).ok) n++;
+  check("30 posts in six hours go through", n === 30, String(n));
+  check("…the 31st waits", /too-many/.test(as({ action: "feedpost", entry: { note: "one more" } }).error || ""));
+  gas.advance(6 * HOUR + MIN);
+  check("…until six hours later", as({ action: "feedpost", entry: { note: "later" } }).ok);
+  const id = as({ action: "feed" }).feed[0].id;
+  as({ action: "feedcomment", id, text: "c".repeat(900) });
+  check("a comment is cut to 500 characters", (as({ action: "feed" }).feed[0].comments || [])[0].text.length === 500);
+  check("following someone who doesn't exist is refused", /Bad target/.test(as({ action: "follow", target: "ghost" }).error || ""));
+  const f = as({ action: "follow", target: "ben" });
+  check("following a real account works (it sends the target as 'target', not 'user')", f.ok && f.follows.includes("ben"), JSON.stringify(f));
+  check("a photo over 5 MB is refused", /too-big/.test(as({ action: "feedpost", entry: { note: "pic", photo: "data:image/jpeg;base64," + "A".repeat(5000004) } }).error || ""));
+  check("an encrypted photo over 5 MB is refused", /too-big/.test(as({ action: "vphotoput", data: "v1." + "A".repeat(5000000) }).error || ""));
+  const put = (key, ver) => as({ action: "vput", key, ver, data: "v1.QUJD" });
+  let k = 0; while (k < 16 && put("tab:T" + k, 0).ok) k++;
+  check("an encrypted cellar holds 16 records", k === 16, String(k));
+  check("…not a 17th", /too-big/.test(put("tab:T16", 0).error || ""));
+  check("…but its records can still be rewritten", put("tab:T3", 1).ok);
+}
+{
+  // a request bigger than 12 MB never reaches the code
+  const gas = H({ Ark1: [HEAD] }, { settings: { SIGNUP_CODE: "c" } });
+  const out = JSON.parse(gas.run(`doPost({ postData: { contents: "x".repeat(12000001) } }).getContent()`));
+  check("a request over 12 MB is refused before it's read", out.error === "too-big", JSON.stringify(out));
+}
+
+const n = results.filter(Boolean).length; console.log(`\n${n}/${results.length} passed`); process.exit(n === results.length ? 0 : 1);
