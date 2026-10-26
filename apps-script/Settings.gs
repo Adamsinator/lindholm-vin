@@ -1,6 +1,8 @@
 /**
  * AllWine — your settings. Keep this as a second file (Settings.gs) next to Code.gs in the Apps Script project.
  * Updating the API means replacing Code.gs only; this file is never overwritten, so set these once.
+ * After changing a setting, redeploy (Deploy → Manage deployments → ✏️ → New version → Deploy): the web app runs the
+ * files as they were when deployed. Functions run from the editor, and the weekly backup, use what's saved now.
  */
 var SETTINGS = {
   // Legacy single-user access code for the bound sheet. Leave '' to turn it off — logging in with a username and
