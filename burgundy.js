@@ -2248,7 +2248,7 @@ const matchWine = window.BURG_MATCH.make(C, V).match;
 // An encrypted cellar: load the vault scripts only now, and decrypt here with the key the Cellar page kept for this session
 const loadScript = src => new Promise((res, rej) => { const el = document.createElement("script"); el.src = src; el.onload = res; el.onerror = () => rej(new Error("load " + src)); document.head.appendChild(el); });
 async function vaultData(api, user, token){
-  for(const f of ["gas-fake.js?v=4", "vault-crypto.js?v=1", "vault-engine.js?v=1", "vault.js?v=10"]) await loadScript(f);
+  for(const f of ["gas-fake.js?v=4", "vault-crypto.js?v=1", "vault-engine.js?v=1", "vault.js?v=11"]) await loadScript(f);
   const dek = await window.VCRYPTO.recall(user);
   if(!dek) throw new Error("token");
   const post = async p => (await fetch(api, {method:"POST", body:JSON.stringify(p), redirect:"follow"})).json();

@@ -5,6 +5,8 @@ are done (see "Limits against abuse" in the README). Tick a box when an item shi
 
 ## Do soon
 
+- [ ] **Deploy `Code.gs` API 36** (Delete my account, the event log, the daily check): paste it, Manage deployments →
+      ✏️ on the Worker's deployment → New version. Then run `installDailyReport` once.
 - [x] **Redeploy `Code.gs` (API 34)** in Apps Script, then run `makeInvites` once and blank `SIGNUP_CODE` in
       `Settings.gs`. The new limits and backups only work once the new version is deployed. Add the new settings
       (`MAX_USERS`, `SESSION_DAYS`, `BACKUP_KEEP`, `RESTORE_USER`, `RESTORE_FROM`) to your `Settings.gs` from
@@ -56,28 +58,30 @@ are done (see "Limits against abuse" in the README). Tick a box when an item shi
 
 ## Privacy (GDPR — the site is run from Denmark)
 
-- [ ] A short privacy page, linked from the front page and from the sign-up form:
+- [x] A short privacy page (`privacy.html`, four languages), linked from the login form and the Account dialog:
   - what's stored: username, encrypted cellar, feed posts, follows;
   - where: the owner's Google Drive;
   - that cellars are encrypted in the browser and the owner can't read them;
   - how to get a copy (Export) and how to leave.
-- [ ] **Delete my account** in the account dialog.
-  - [ ] Removes the Users row, the vault spreadsheet and folder, and the photos.
-  - [ ] Removes or anonymises the account's feed posts, comments and follows.
-- [ ] Decide how long feed posts and old sessions are kept.
+- [x] **Delete my account** in the Account dialog (API 36).
+  - [x] Removes the Users row, and sends the vault spreadsheet, folder and photos to the Drive trash.
+  - [x] Removes the account's feed posts, comments, cheers and follows; signs its invites and atlas corrections
+        "(deleted account)".
+- [x] How long things are kept: sessions end after 30 days unused; feed posts stay until deleted; backups 8 weeks
+      (stated on the privacy page).
 
 ## Watching it run
 
 - [ ] Check the Apps Script **Executions** page weekly for errors and unusual traffic.
-- [ ] A daily time-driven trigger that emails the owner when sign-ups, lockouts or errors jump (counts from the
-      Users and Invites tabs and the cache).
+- [x] A daily check that emails the owner when sign-ups, lockouts, errors or refused requests jump, accounts near
+      `MAX_USERS`, or the backup is missing (`dailyReport`, the "Log" tab; API 36).
+  - [ ] Run `installDailyReport` once in the editor after deploying API 36, and check that the test email arrives.
 - [ ] Note the Google account's Drive usage now and then. Everything lives in one account, which is a single point
       of failure; consider moving the master sheet to a dedicated Google account for the site.
 
 ## Smaller things noticed along the way
 
-- [ ] Server error messages from Google (e.g. "Could not save: Exception: …") reach the user untranslated. Map the
-      common ones to friendly text.
-- [ ] Dialog titles set while a dialog is open keep the old language until it's reopened.
+- [x] Server error messages from Google reach users in plain words, in their language (`errText` in `app.js`).
+- [x] Dialog titles follow the language picker while the dialog is open (`trSet`).
 - [ ] The non-Burgundy vintage charts (Napa above all) are a rough consensus. Revisit them with sources.
 - [ ] Time a real 10 000-row import against Google Sheets: the tests use an in-memory fake.

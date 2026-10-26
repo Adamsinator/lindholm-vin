@@ -60,6 +60,10 @@ header.top h1 em{font-style:italic;color:var(--accent)}
 .who{font-size:13px;font-weight:600;color:var(--accent);background:var(--chip);
   border-radius:20px;padding:3px 11px;white-space:nowrap}
 .sub{color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.12em}
+.topright{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.acctfoot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid var(--line);font-size:13px}
+.acctfoot a{color:var(--muted)}
+.btn.danger{color:var(--c-red)}
 .actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
 .btn{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;
   padding:8px 12px;font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit}
@@ -557,6 +561,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
     <button class="btn quiet" type="button" id="gateToggle" style="width:100%;margin-top:6px">Need an account? Sign up</button>
     <button class="btn quiet" type="button" id="gateForgot" style="width:100%;margin-top:2px;font-size:13px" data-i18n>Forgot password?</button>
     <p class="lockline" data-i18n>🔒 Your cellar is encrypted on this device with a key from your password. The site's owner can't read it.</p>
+    <p class="lockline"><a href="privacy.html" data-i18n>Privacy: what's stored and where</a></p>
   </form>
   </main>
  </div>
@@ -590,6 +595,10 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
       <button class="btn" type="button" id="acctRec" data-i18n>New recovery code</button>
       <button class="btn primary" type="submit" id="acctSave" data-i18n>Change password</button>
     </div>
+    <div class="acctfoot">
+      <a href="privacy.html" target="_blank" rel="noopener" data-i18n>Privacy: what's stored and where</a>
+      <button class="btn quiet danger" type="button" id="acctDelete" data-i18n>Delete my account…</button>
+    </div>
   </form>
 </div>
 
@@ -599,7 +608,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
     <h1>All<em>Wine</em></h1>
     <span class="who" id="who" hidden></span>
   </div>
-  <div class="sub" data-i18n>Cellar overview</div>
+  <div class="topright"><span class="sub" data-i18n>Cellar overview</span><span data-langpick></span></div>
 </header>
 
 <div class="gbar">
@@ -1158,7 +1167,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
 
 <!-- Pages serves these with max-age=600 and no revalidation, so a merged change can
      sit invisible behind a stale app.js for ten minutes. Bump v on every deploy. -->
-<script src="i18n.js?v=26"></script>
+<script src="i18n.js?v=27"></script>
 <script src="notes.js?v=4"></script>
 <script src="notes-i18n.js?v=1"></script>
 <script src="burgundy-data.js?v=13"></script>
@@ -1168,11 +1177,11 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
 <script src="gas-fake.js?v=4"></script>
 <script src="vault-crypto.js?v=1"></script>
 <script src="vault-engine.js?v=1"></script>
-<script src="vault.js?v=10"></script>
+<script src="vault.js?v=11"></script>
 <script src="wine-kb.js?v=2"></script>
 <script src="tidy.js?v=2"></script>
 <script src="import.js?v=5"></script>
 <script src="export.js?v=2"></script>
-<script src="app.js?v=22"></script>
+<script src="app.js?v=23"></script>
 </body>
 </html>

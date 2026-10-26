@@ -31,6 +31,9 @@ var SETTINGS = {
   // GATEWAY_SECRET. Once set, only requests through the Worker are served. '' = off (the API answers anyone, as before).
   GATEWAY_SECRET: '',
 
+  // Where the daily check (run installDailyReport once) sends its alerts: '' = the Google account that owns the script.
+  REPORT_EMAIL: '',
+
   // Who may correct vineyard holdings in the Burgundy atlas: '' = anyone signed in,
   // or a comma-separated list of usernames, e.g. 'adam,anna'.
   ATLAS_EDITORS: '',
