@@ -67,6 +67,17 @@ const file = name => { const b = fs.readFileSync(path.join(__dirname, "fixtures"
   const tc = tidier([]).wines(wines.map(w => ({ ...w })), {});
   const edits = []; tc.wines.forEach((w, i) => { const f = {}; for (const k of ["producer", "name", "commune", "region", "country", "grape", "source", "location"]) if (String(w[k] || "") !== String(wines[i][k] || "")) f[k] = w[k]; if (Object.keys(f).length) edits.push({ row: w.row, fields: f }); });
   check("tidy finds the fixes in the cellar (and leaves the clean rows alone)", edits.length === 2 && J(edits.map(e => e.row)) === "[2,4]" && edits[0].fields.name === "Meursault Perrières" && edits[1].fields.producer === "Domaine Roulot", J(edits));
+  // one producer written three ways, with and without accents and prefix: each spelling is one fix to the same final
+  // name, and the accents are kept (a user's cellar after importing a tasting list)
+  { const meo = [{ producer: "Domaine Meo-Camuzet" }, { producer: "Meo-Camuzet" }, { producer: "Francois Cotat" }, { producer: "Méo-Camuzet" }, { producer: "François Cotat" }];
+    const tm = tidier(meo).wines(meo.map(w => ({ ...w })), {});
+    check("three spellings of Méo-Camuzet become one, with its accents", tm.wines.filter((w, i) => i !== 2 && i !== 4).every(w => w.producer === "Domaine Méo-Camuzet") && tm.wines[2].producer === "François Cotat", J(tm.wines.map(w => w.producer)));
+    check("…each shown once, from what was written to where it ends (no fix of a fix)", tm.fixes.length === 4 && tm.fixes.every(f => f.to === "Domaine Méo-Camuzet" || f.to === "François Cotat") && !tm.fixes.some(f => f.from === "François Cotat"), J(tm.fixes));
+    const tOff = tidier(meo).wines(meo.map(w => ({ ...w })), { off: new Set(["producer|Méo-Camuzet"]) });
+    check("…and unticking one leaves just that one as written", tOff.wines[3].producer === "Méo-Camuzet" && tOff.wines[1].producer === "Domaine Méo-Camuzet", J(tOff.wines.map(w => w.producer)));
+    // on an import the cellar's spelling still wins, so the cellar keeps one spelling
+    const ti = tidier([{ producer: "Meo-Camuzet" }]).wines([{ producer: "Méo-Camuzet" }], { existing: [{ producer: "Meo-Camuzet" }] });
+    check("…but an imported 'Méo-Camuzet' takes the cellar's 'Meo-Camuzet'", ti.wines[0].producer === "Meo-Camuzet", J(ti.wines)); }
   let r2 = g2.call({ code: "test-code", action: "setinfomany", edits });
   check("setinfomany writes them", r2.ok && r2.wines.filter(w => w.producer === "Domaine Roulot").length === 3 && r2.wines.every(w => w.region === "Bourgogne" && w.country === "Frankrig"), J(r2.wines.map(w => [w.producer, w.region, w.country, w.grape])));
   const by = new Map(); tc.wines.forEach(w => { const k = T.mergeKey(w); by.set(k, (by.get(k) || []).concat(w.row)); });
