@@ -394,7 +394,8 @@ function renderOverview(){
     (byV[k] ??= {b:0,wines:[]}).b += w.left; byV[k].wines.push(w); });
   const years = Object.keys(byV).filter(k=>k!=="NV").map(Number).sort((a,b)=>a-b);
   const keys = [...years, ...(byV.NV?["NV"]:[])];
-  const W=980,H=190,P={l:8,r:8,t:14,b:22};
+  // as wide as its box really is (the side column, or a full row), so labels keep their size
+  const W=Math.max(300, Math.round(($("vintChart").parentElement||{}).clientWidth || 980)), H=W<600?160:190, P={l:8,r:8,t:14,b:22};
   const maxV = Math.max(1,...keys.map(k=>byV[k].b));
   const bw = (W-P.l-P.r)/Math.max(1,keys.length);
   const svg = $("vintChart");
@@ -516,7 +517,7 @@ function renderPriorities(cellar){
   const chips=defs.filter(([k])=>cat[k]>0).map(([k,fval,label])=>
     `<button class="prio ${k}" data-ready="${fval}"><span class="prio-n">${fmt(cat[k])}</span> ${label}</button>`).join("");
   el.innerHTML = chips || `<span class="ins-h">${esc(tr("Set drink windows on your wines to see priorities here."))}</span>`;
-  const panel=el.closest(".panel"); if(panel) panel.hidden = !chips;
+  const panel=el.closest(".chipbar"); if(panel) panel.hidden = !chips;
   el.querySelectorAll(".prio").forEach(b=>b.addEventListener("click",()=>{
     state.status="cellar"; $("fStatus").value="cellar";
     state.ready=b.dataset.ready; $("fReady").value=b.dataset.ready;
@@ -553,6 +554,7 @@ function buildHistory(wines, now){
 function drawHistory(){
   const svg=$("histChart"), cap=$("histCap"); if(!svg) return;
   const H = buildHistory(WINES);
+  $("histPanel").hidden = !H.events.length; // an empty box until wines have an acquired date
   if(!H.events.length){
     svg.innerHTML=""; svg.removeAttribute("viewBox");
     cap.textContent = tr("Add an “Acquired” date to your wines (in the sheet, or when adding one) to see the collection grow over time.");
@@ -613,12 +615,40 @@ function drawHistory(){
   cap.textContent = bits.join(" · ");
 }
 
+/* ---------- the cellar's two views: the list, or its drink windows on a timeline (same filters) ---------- */
+let CELLAR_VIEW = (()=>{ try{ return localStorage.getItem("vinView")==="timeline" ? "timeline" : "list"; }catch(e){ return "list"; } })();
+function setCellarView(v){
+  CELLAR_VIEW = v; try{ localStorage.setItem("vinView", v); }catch(e){}
+  $("viewList").classList.toggle("on", v==="list"); $("viewList").setAttribute("aria-selected", v==="list");
+  $("viewTl").classList.toggle("on", v==="timeline"); $("viewTl").setAttribute("aria-selected", v==="timeline");
+  document.querySelector("#pageCellar .tablewrap").hidden = v==="timeline";
+  if(WINES.length) renderTable(); else $("dwPanel").hidden = v!=="timeline";
+}
+$("viewList").addEventListener("click", ()=>setCellarView("list"));
+$("viewTl").addEventListener("click", ()=>setCellarView("timeline"));
+setCellarView(CELLAR_VIEW);
+
+/* The overview column: always open beside the list on wide screens; on narrower ones a fold above it that
+   remembers whether you left it open. Its charts are drawn for the width they get, so they redraw when it opens. */
+const WIDE = matchMedia("(min-width:1181px)");
+const OVERVIEWS = [["overview", () => renderOverview()], ["eOverview", () => renderEnjoyed()]];
+function syncOverview(){
+  let keep = false; try{ keep = localStorage.getItem("vinOverview")==="1"; }catch(e){}
+  OVERVIEWS.forEach(([id]) => { $(id).open = WIDE.matches || keep; });
+}
+OVERVIEWS.forEach(([id, redraw]) => $(id).addEventListener("toggle", ()=>{
+  if(!WIDE.matches){ try{ localStorage.setItem("vinOverview", $(id).open ? "1" : "0"); }catch(e){} }
+  if($(id).open && WINES.length) redraw();
+}));
+(WIDE.addEventListener ? WIDE.addEventListener("change", syncOverview) : WIDE.addListener(syncOverview));
+syncOverview();
+
 /* ---------- when-to-drink timeline (respects the current table filters) ---------- */
 function drawDrinkTimeline(list){
   const el=$("dwtl"), panel=$("dwPanel"); if(!el) return;
   const wins = list.filter(w=>w.left>0 && readiness(w)).map(w=>({w, win:drinkWindow(w), rd:readiness(w)}));
-  if(!wins.length){ if(panel) panel.hidden=true; el.innerHTML=""; $("dwCount").textContent=""; return; }
-  if(panel) panel.hidden=false;
+  if(panel) panel.hidden = CELLAR_VIEW!=="timeline";
+  if(!wins.length){ el.innerHTML = `<p class="ph">${esc(tr("Set drink windows on your wines to see them on the timeline."))}</p>`; $("dwCount").textContent=""; return; }
   const now=new Date().getFullYear();
   let lo=now, hi=now;
   wins.forEach(({win})=>{ if(win.from!=null){lo=Math.min(lo,win.from);hi=Math.max(hi,win.from);}
@@ -2881,7 +2911,7 @@ function drawDrinkingTime(drunk){
   const ks=Object.keys(byMonth).sort();
   const months=monthRange(ks[0], ks[ks.length-1]);
   const maxY=Math.max(1,...months.map(m=>Object.values(byMonth[m]||{}).reduce((a,b)=>a+b,0)));
-  const W=980,H=210,P={l:22,r:10,t:14,b:26};
+  const W=Math.max(300, Math.round((svg.parentElement||{}).clientWidth || 980)), H=W<600?170:210, P={l:22,r:10,t:14,b:26};
   const bw=(W-P.l-P.r)/Math.max(1,months.length);
   const Y=v=>H-P.b-(v/maxY)*(H-P.t-P.b);
   let parts=[`<text class="hist-axis" x="2" y="${(Y(maxY)+3).toFixed(1)}">${maxY}</text>

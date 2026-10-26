@@ -843,6 +843,21 @@ send headers), plus `referrer: strict-origin-when-cross-origin`.
 `tools/csp-ui-test.js` checks that every real feature works under the policy with no violation, and that injected
 script is blocked. Adding an outside service means adding its host to the policy, or the browser refuses it.
 
+### The cellar page's layout
+
+- **The list comes first.** The totals sit in one slim strip, and the wine list starts in the first screen: one line
+  per wine, the name giving way (…) before anything wraps, and the whole wine shown when a row is opened.
+- **The overview column.** Insights, regions, producers, style, vintages and the map (folded until asked for) sit in a
+  column beside the list that stays in view while you scroll. Below 1180 px it becomes a fold above the list that
+  remembers whether you left it open. Its charts are drawn for the width they get.
+- **List / Timeline.** The drink-window timeline is a second view of the same filtered list, and the page remembers
+  which view you used. "Collection over time" only shows once wines have an acquired date.
+- **Phones.** Each wine is a two-line card, and the filters scroll away.
+- **The other tabs.** Enjoyed uses the same layout. The Journal and the Wishlist are grids of cards, the Feed is one
+  reading column, and the page tabs share the top row with Refresh, Account and Log out.
+
+`tools/layout-ui-test.js` checks these with 120 wines, so a later change can't quietly bring back the long page.
+
 ### Privacy page and "Delete my account" (API 36)
 
 `privacy.html` says, in all four languages, what is stored, where, for how long, and how to get it out or deleted.

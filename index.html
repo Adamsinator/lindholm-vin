@@ -512,6 +512,99 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
 .sommform input{flex:1;min-width:0;padding:9px 11px;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--ink);font:inherit;font-size:15px}
 @media (max-width:600px){.sommpanel{right:0;bottom:0;width:100vw;height:100dvh;border-radius:0}.sommbtn{right:12px;bottom:12px}}
 @media print{.sommbtn,.sommpanel{display:none!important}}
+
+/* ── the cellar page: the wine list first, the overview in a column beside it that stays in view; on narrower
+   screens the overview stacks above the list and folds open on a tap ── */
+.kpis{display:flex;flex-wrap:wrap;gap:0;background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);margin-bottom:14px;overflow:hidden}
+.kpis .kpi{flex:1 1 170px;border:0;border-right:1px solid var(--line);border-radius:0;box-shadow:none;background:none;padding:11px 16px;min-width:0}
+.kpis .kpi:last-child{border-right:0}
+.kpis .kpi .val{font-size:24px}
+.kpis .kpi .hint{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cellar-layout{display:grid;grid-template-columns:minmax(0,1fr) clamp(340px,26vw,440px);grid-template-areas:"main side";gap:16px;align-items:start}
+.cellar-main{grid-area:main;min-width:0}
+.cellar-side{grid-area:side;position:sticky;top:12px;max-height:calc(100vh - 24px);overflow:auto;overscroll-behavior:contain;scrollbar-width:thin}
+.side-sum{display:none}
+.side-body{display:flex;flex-direction:column;gap:12px}
+.side-body .panel{padding:12px 14px}
+.side-body h2{font-size:15px}
+.side-body .ph{font-size:11.5px}
+.cellar-main .filters{position:sticky;top:0;z-index:6;background:var(--bg);padding:8px 0;margin:0 0 6px}
+.chipbar{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;margin:0 0 10px}
+.chipbar-lbl{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)}
+.viewswitch{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;margin:0 0 10px;background:var(--card)}
+.viewswitch button{border:0;background:none;font:inherit;font-size:13px;font-weight:600;color:var(--muted);padding:6px 14px;cursor:pointer}
+.viewswitch button.on{background:var(--accent);color:var(--accent-ink)}
+.side-body #insights{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:10px 14px}
+.side-body #stylePie,.side-body #ePie{width:140px;height:140px;float:left;margin:4px 14px 4px 0}
+.side-body .slegend{overflow:hidden}
+.mapfold summary{cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:8px}
+.mapfold summary::-webkit-details-marker{display:none}
+.mapfold summary h2{margin:0}
+.mapfold[open] summary .ph{display:none}
+.mapfold[open] summary{margin-bottom:6px}
+/* one line per wine: the name gives way (…) before anything wraps; the whole wine shows when it's opened */
+#tbl td,#eTbl td{padding:7px 10px}
+#tbl td:nth-child(3),#tbl td:nth-child(4),#eTbl td:nth-child(3),#eTbl td:nth-child(4),#eTbl td:nth-child(6){white-space:nowrap}
+@media (min-width:701px){
+  #tbl tr.main td:first-child,#eTbl tr.main td:first-child{max-width:0;width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #tbl td:first-child br,#eTbl td:first-child br{display:none}
+  #tbl td:first-child .wname,#tbl td:first-child .wloc,#eTbl td:first-child .wname{margin-left:8px}
+}
+/* the header: the page tabs share a row with Refresh, Account and Log out */
+.gbar{flex-wrap:wrap;row-gap:6px;margin:-4px 0 14px}
+.gbar .tabs{margin:0 auto 0 0;flex:1 1 auto}
+.gbar .stamp{order:2}
+.gbar > .btn{order:3}
+/* the journal and the wishlist as a grid of cards; the feed as one reading column */
+#jList,#wList{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px;align-items:start}
+#jList > .jentry,#wList > .jentry{margin:0}
+#jList > .spin,#wList > .spin{grid-column:1/-1}
+#pageFeed > *{max-width:780px;margin-left:auto;margin-right:auto}
+@media (max-width:1180px){
+  .cellar-layout{grid-template-columns:minmax(0,1fr);grid-template-areas:"side" "main"}
+  .cellar-side{position:static;max-height:none;overflow:visible}
+  .side-sum{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;cursor:pointer;list-style:none;padding:11px 16px;background:var(--card);
+    border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);font-weight:650;margin-bottom:12px}
+  .side-sum::-webkit-details-marker{display:none}
+  .side-sum .ph{font-weight:400;font-size:12px;margin:0}
+  .side-sum::after{content:"▾";margin-left:auto;color:var(--muted)}
+  .cellar-side[open] .side-sum::after{content:"▴"}
+  .cellar-side[open] .side-body{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));align-items:start;margin-bottom:14px}
+}
+@media (max-width:700px){
+  /* phones: each wine is a two-line card — the wine, then region · vintage · bottles · price */
+  #tbl{min-width:0;display:block} #tbl thead,#tbl tbody{display:block}
+  #tbl tr.main,#tbl thead tr{display:grid;grid-template-columns:minmax(0,1fr) 56px 62px 86px;align-items:baseline}
+  #tbl tbody tr:not(.main):not([hidden]){display:block} #tbl tbody tr:not(.main) > td{display:block}
+  #tbl tr.main > td{border-bottom:0;padding:2px 10px}
+  #tbl tr.main{border-bottom:1px solid var(--line);padding:8px 0 6px}
+  #tbl tr.main > td:nth-child(1){grid-row:1;grid-column:1/-1;padding-bottom:3px}
+  #tbl tr.main > td:nth-child(3){grid-row:2;grid-column:1;color:var(--muted);font-size:13px;overflow:hidden;text-overflow:ellipsis}
+  #tbl tr.main > td:nth-child(2){grid-row:2;grid-column:2}
+  #tbl tr.main > td:nth-child(5){grid-row:2;grid-column:3}
+  #tbl tr.main > td:nth-child(6){grid-row:2;grid-column:4}
+  #tbl tr.main > td:nth-child(4),#tbl thead th:nth-child(3),#tbl thead th:nth-child(4){display:none}
+  #tbl thead th:nth-child(2){grid-column:2} #tbl thead th:nth-child(5){grid-column:3} #tbl thead th:nth-child(6){grid-column:4}
+  #tbl thead th{padding:8px 6px;font-size:10px;letter-spacing:.05em}
+  .cellar-main .filters{position:static}
+  #eTbl{min-width:0;display:block} #eTbl thead,#eTbl tbody{display:block}
+  #eTbl tr.main,#eTbl thead tr{display:grid;grid-template-columns:minmax(0,1fr) 56px 40px 92px;align-items:baseline}
+  #eTbl tbody tr:not(.main):not([hidden]){display:block} #eTbl tbody tr:not(.main) > td{display:block}
+  #eTbl tr.main > td{border-bottom:0;padding:2px 10px}
+  #eTbl tr.main{border-bottom:1px solid var(--line);padding:8px 0 6px}
+  #eTbl tr.main > td:nth-child(1){grid-row:1;grid-column:1/-1;padding-bottom:3px}
+  #eTbl tr.main > td:nth-child(3){grid-row:2;grid-column:1;color:var(--muted);font-size:13px;overflow:hidden;text-overflow:ellipsis}
+  #eTbl tr.main > td:nth-child(2){grid-row:2;grid-column:2}
+  #eTbl tr.main > td:nth-child(5){grid-row:2;grid-column:3}
+  #eTbl tr.main > td:nth-child(6){grid-row:2;grid-column:4}
+  #eTbl tr.main > td:nth-child(4),#eTbl tr.main > td:nth-child(7),#eTbl thead th:nth-child(3),#eTbl thead th:nth-child(4),#eTbl thead th:nth-child(7){display:none}
+  #eTbl thead th:nth-child(2){grid-column:2} #eTbl thead th:nth-child(5){grid-column:3} #eTbl thead th:nth-child(6){grid-column:4}
+  #eTbl thead th{padding:8px 6px;font-size:10px;letter-spacing:.05em}
+  #jList,#wList{grid-template-columns:minmax(0,1fr)}
+  .kpis .kpi{flex-basis:46%;border-bottom:1px solid var(--line);padding:9px 12px}
+  .kpis .kpi .val{font-size:20px}
+  .cellar-side[open] .side-body{grid-template-columns:minmax(0,1fr)}
+}
 </style>
 </head>
 <body>
@@ -612,12 +705,6 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
 </header>
 
 <div class="gbar">
-  <span class="stamp" id="stamp"></span>
-  <button class="btn" id="refreshBtn" data-i18n>Refresh</button>
-  <button class="btn quiet" id="acctBtn" title="Password and recovery code" hidden data-i18n data-i18n-title>Account</button>
-  <button class="btn quiet" id="lockBtn" title="Sign out on this device" data-i18n data-i18n-title>🔒 Log out</button>
-</div>
-
 <nav class="tabs" aria-label="Pages" data-i18n-aria>
   <button class="tab active" data-page="cellar" data-i18n>Cellar</button>
   <button class="tab" data-page="enjoyed" data-i18n>Enjoyed</button>
@@ -626,6 +713,11 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
   <button class="tab" data-page="feed"><span data-i18n>Feed</span> <span class="tabbadge" id="feedBadge" hidden></span></button>
   <a class="tablink" href="burgundy.html" title="Côte de Nuits climat map" data-i18n data-i18n-title>Burgundy atlas ↗</a>
 </nav>
+  <span class="stamp" id="stamp"></span>
+  <button class="btn" id="refreshBtn" data-i18n>Refresh</button>
+  <button class="btn quiet" id="acctBtn" title="Password and recovery code" hidden data-i18n data-i18n-title>Account</button>
+  <button class="btn quiet" id="lockBtn" title="Sign out on this device" data-i18n data-i18n-title>🔒 Log out</button>
+</div>
 
 <div id="pageCellar">
 
@@ -643,65 +735,8 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
 
 <section class="kpis" id="kpis" aria-label="Cellar totals" data-i18n-aria></section>
 
-<div class="panel" id="prioPanel" style="margin-bottom:24px" hidden>
-  <h2 data-i18n>Drinking priorities</h2>
-  <p class="ph" data-i18n>What to open, by drink window · click to filter the list below</p>
-  <div id="priorities" class="priorities"></div>
-</div>
-
-<div class="panel" id="insightsPanel" style="margin-bottom:24px">
-  <h2 data-i18n>Cellar insights</h2>
-  <div id="insights" class="insights"></div>
-</div>
-
-<div class="grid">
-  <div class="panel">
-    <h2 data-i18n>Regions</h2>
-    <p class="ph" data-i18n>Bottles in the cellar · click to filter the list</p>
-    <div id="regions"></div>
-  </div>
-  <div class="panel">
-    <h2 data-i18n>Producers</h2>
-    <p class="ph" data-i18n>Bottles in the cellar · click to filter the list</p>
-    <div id="producers"></div>
-  </div>
-</div>
-
-<div class="grid">
-  <div class="panel">
-    <h2 data-i18n>By style</h2>
-    <p class="ph" data-i18n>Bottles in the cellar · click a slice to filter</p>
-    <svg id="stylePie" role="img" aria-label="Pie chart of the cellar by style" data-i18n-aria></svg>
-    <div class="slegend" id="slegend"></div>
-  </div>
-  <div class="panel">
-    <h2 data-i18n>Map</h2>
-    <p class="ph" data-i18n>Bottles by country · click a country, then a region (Bourgogne, Champagne, Mosel, Piemonte drill to villages)</p>
-    <div id="mapbar" hidden>
-      <button class="btn" id="mapBack">← All regions</button>
-      <span id="mapTitle"></span>
-    </div>
-    <svg id="map" role="img" aria-label="Stylized map of the wine regions in the cellar" data-i18n-aria></svg>
-  </div>
-</div>
-
-<div class="panel" style="margin-bottom:24px">
-  <h2 data-i18n>Vintages</h2>
-  <p class="ph" data-i18n>Bottles in the cellar by vintage · NV = non-vintage champagne · click a bar to filter</p>
-  <svg id="vintChart" role="img" aria-label="Bar chart of bottles per vintage year" data-i18n-aria></svg>
-</div>
-
-<div class="panel" style="margin-bottom:24px">
-  <h2 data-i18n>Collection over time</h2>
-  <p class="ph"><span data-i18n>Bottles held since the first acquisition</span> · <b>＋</b> <span data-i18n>added</span> · <b>–</b> <span data-i18n>drunk</span> · <span data-i18n>colour by style:</span>
-    <span class="hleg"><span class="hswatch" style="background:var(--h-red)"></span><span data-i18n>red</span></span>
-    <span class="hleg"><span class="hswatch" style="background:var(--h-white)"></span><span data-i18n>white</span></span>
-    <span class="hleg"><span class="hswatch" style="background:var(--h-gold)"></span><span data-i18n>sparkling</span></span>
-    <span class="hleg"><span class="hswatch" style="background:var(--h-rose)"></span>rosé</span></p>
-  <svg id="histChart" role="img" aria-label="Bottles in the collection over time" data-i18n-aria></svg>
-  <p class="ph" id="histCap" style="margin-top:8px"></p>
-</div>
-
+<div class="cellar-layout">
+<div class="cellar-main">
 <div class="filters">
   <input type="search" id="q" placeholder="Search producer, wine, commune, grape…" aria-label="Search wines" data-i18n-ph data-i18n-aria>
   <select id="fRegion" aria-label="Filter by region" data-i18n-aria></select>
@@ -723,7 +758,17 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
   <span class="count" id="count"></span>
 </div>
 
-<div class="panel" id="dwPanel" style="margin-bottom:16px" hidden>
+<div class="chipbar" id="prioPanel" hidden>
+  <span class="chipbar-lbl" data-i18n>What to open</span>
+  <div id="priorities" class="priorities"></div>
+</div>
+
+<div class="viewswitch" role="tablist" aria-label="View" data-i18n-aria>
+  <button type="button" role="tab" id="viewList" class="on" aria-selected="true" data-i18n>List</button>
+  <button type="button" role="tab" id="viewTl" aria-selected="false" data-i18n>Timeline</button>
+</div>
+
+<div class="panel" id="dwPanel" hidden>
   <h2><span data-i18n>When to drink</span> <span class="stamp" id="dwCount"></span></h2>
   <p class="ph"><span data-i18n>Each wine's drink window</span> · <span class="dwleg young">▬</span> <span data-i18n>too young</span> · <span class="dwleg soon">▬</span> <span data-i18n>soon</span>
     · <span class="dwleg now">▬</span> <span data-i18n>now</span> · <span class="dwleg past">▬</span> <span data-i18n>past</span> · <span data-i18n>dashed = estimated</span> · <b>|</b> <span data-i18n>today</span> · <span data-i18n>follows the filters</span></p>
@@ -743,6 +788,64 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
   <tbody id="rows"></tbody>
 </table>
 </div>
+</div><!-- /cellar-main -->
+
+<details class="cellar-side" id="overview">
+<summary class="side-sum"><span data-i18n>Overview</span> <span class="ph" data-i18n>regions, producers, styles, vintages, map</span></summary>
+<div class="side-body">
+<div class="panel" id="insightsPanel">
+  <h2 data-i18n>Cellar insights</h2>
+  <div id="insights" class="insights"></div>
+</div>
+
+<div class="panel">
+  <h2 data-i18n>Regions</h2>
+  <p class="ph" data-i18n>Bottles in the cellar · click to filter the list</p>
+  <div id="regions"></div>
+</div>
+
+<div class="panel">
+  <h2 data-i18n>Producers</h2>
+  <p class="ph" data-i18n>Bottles in the cellar · click to filter the list</p>
+  <div id="producers"></div>
+</div>
+
+<div class="panel">
+  <h2 data-i18n>By style</h2>
+  <p class="ph" data-i18n>Bottles in the cellar · click a slice to filter</p>
+  <svg id="stylePie" role="img" aria-label="Pie chart of the cellar by style" data-i18n-aria></svg>
+  <div class="slegend" id="slegend"></div>
+</div>
+
+<div class="panel">
+  <h2 data-i18n>Vintages</h2>
+  <p class="ph" data-i18n>Bottles in the cellar by vintage · NV = non-vintage champagne · click a bar to filter</p>
+  <svg id="vintChart" role="img" aria-label="Bar chart of bottles per vintage year" data-i18n-aria></svg>
+</div>
+
+<details class="panel mapfold" id="mapFold">
+  <summary><h2 data-i18n>Map</h2> <span class="ph" data-i18n>show</span></summary>
+  <p class="ph" data-i18n>Bottles by country · click a country, then a region (Bourgogne, Champagne, Mosel, Piemonte drill to villages)</p>
+  <div id="mapbar" hidden>
+    <button class="btn" id="mapBack">← All regions</button>
+    <span id="mapTitle"></span>
+  </div>
+  <svg id="map" role="img" aria-label="Stylized map of the wine regions in the cellar" data-i18n-aria></svg>
+</details>
+
+<div class="panel" id="histPanel" hidden>
+  <h2 data-i18n>Collection over time</h2>
+  <p class="ph"><span data-i18n>Bottles held since the first acquisition</span> · <b>＋</b> <span data-i18n>added</span> · <b>–</b> <span data-i18n>drunk</span> · <span data-i18n>colour by style:</span>
+    <span class="hleg"><span class="hswatch" style="background:var(--h-red)"></span><span data-i18n>red</span></span>
+    <span class="hleg"><span class="hswatch" style="background:var(--h-white)"></span><span data-i18n>white</span></span>
+    <span class="hleg"><span class="hswatch" style="background:var(--h-gold)"></span><span data-i18n>sparkling</span></span>
+    <span class="hleg"><span class="hswatch" style="background:var(--h-rose)"></span>rosé</span></p>
+  <svg id="histChart" role="img" aria-label="Bottles in the collection over time" data-i18n-aria></svg>
+  <p class="ph" id="histCap" style="margin-top:8px"></p>
+</div>
+</div>
+</details>
+</div><!-- /cellar-layout -->
 
 <footer>
   <p><strong data-i18n>About ratings:</strong> <span data-i18n>Badges and producer profiles are general critic-reputation summaries (Icon &gt; Top tier &gt; Well regarded), not bottle-level scores. Open a wine and use the Vivino / Wine-Searcher links for live ratings and market prices.</span></p>
@@ -759,27 +862,8 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
   <p class="ph" style="margin:0 0 14px" data-i18n>Bottles from the cellar you've finished, plus wines you drank elsewhere — a restaurant, a friend's table.</p>
   <section class="kpis" id="eKpis" aria-label="Enjoyed totals" data-i18n-aria></section>
 
-  <div class="grid">
-    <div class="panel">
-      <h2 data-i18n>By style</h2>
-      <p class="ph" data-i18n>Bottles you've enjoyed · click a slice to filter</p>
-      <svg id="ePie" role="img" aria-label="Enjoyed bottles by style" data-i18n-aria></svg>
-      <div class="slegend" id="eLegend"></div>
-    </div>
-    <div class="panel">
-      <h2 data-i18n>Most enjoyed</h2>
-      <p class="ph" data-i18n>Producers by bottles enjoyed · click to filter</p>
-      <div id="eProducers"></div>
-    </div>
-  </div>
-
-  <div class="panel" style="margin-bottom:24px">
-    <h2 data-i18n>Drinking over time</h2>
-    <p class="ph" data-i18n>Bottles enjoyed per month · coloured by style</p>
-    <svg id="eTime" role="img" aria-label="Bottles enjoyed per month" data-i18n-aria></svg>
-    <p class="ph" id="eTimeCap" style="margin-top:8px"></p>
-  </div>
-
+  <div class="cellar-layout">
+  <div class="cellar-main">
   <div class="fillbar" id="eFill" hidden></div>
   <div class="filters">
     <input type="search" id="eq" placeholder="Search wines you've enjoyed…" aria-label="Search enjoyed wines" data-i18n-ph data-i18n-aria>
@@ -800,6 +884,30 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
       </tr></thead>
       <tbody id="eRows"></tbody>
     </table>
+  </div>
+  </div><!-- /cellar-main -->
+  <details class="cellar-side" id="eOverview">
+  <summary class="side-sum"><span data-i18n>Overview</span> <span class="ph" data-i18n>styles, producers, drinking over time</span></summary>
+  <div class="side-body">
+  <div class="panel">
+    <h2 data-i18n>By style</h2>
+    <p class="ph" data-i18n>Bottles you've enjoyed · click a slice to filter</p>
+    <svg id="ePie" role="img" aria-label="Enjoyed bottles by style" data-i18n-aria></svg>
+    <div class="slegend" id="eLegend"></div>
+  </div>
+  <div class="panel">
+    <h2 data-i18n>Most enjoyed</h2>
+    <p class="ph" data-i18n>Producers by bottles enjoyed · click to filter</p>
+    <div id="eProducers"></div>
+  </div>
+  <div class="panel">
+    <h2 data-i18n>Drinking over time</h2>
+    <p class="ph" data-i18n>Bottles enjoyed per month · coloured by style</p>
+    <svg id="eTime" role="img" aria-label="Bottles enjoyed per month" data-i18n-aria></svg>
+    <p class="ph" id="eTimeCap" style="margin-top:8px"></p>
+  </div>
+  </div>
+  </details>
   </div>
 </div>
 
@@ -1167,7 +1275,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
 
 <!-- Pages serves these with max-age=600 and no revalidation, so a merged change can
      sit invisible behind a stale app.js for ten minutes. Bump v on every deploy. -->
-<script src="i18n.js?v=27"></script>
+<script src="i18n.js?v=28"></script>
 <script src="notes.js?v=4"></script>
 <script src="notes-i18n.js?v=1"></script>
 <script src="burgundy-data.js?v=13"></script>
@@ -1182,6 +1290,6 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
 <script src="tidy.js?v=2"></script>
 <script src="import.js?v=5"></script>
 <script src="export.js?v=2"></script>
-<script src="app.js?v=23"></script>
+<script src="app.js?v=24"></script>
 </body>
 </html>
