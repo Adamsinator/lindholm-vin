@@ -2770,11 +2770,13 @@ function renderEnjoyed(){
   drawEnjoyedCharts(drunk);
   // KPIs over everything enjoyed
   const bottles = drunk.reduce((s,w)=>s+w.drunk,0);
-  const valueDrunk = drunk.reduce((s,w)=>s+(w.price||0)*w.drunk,0);
+  // what a bottle was worth: what you paid, or its value when you didn't buy it (a tasting, a restaurant list)
+  const worth = w => w.price || w.value || 0;
+  const valueDrunk = drunk.reduce((s,w)=>s+worth(w)*w.drunk,0);
   const prodAgg = {}; drunk.forEach(w=>{ prodAgg[w.producer]=(prodAgg[w.producer]||0)+w.drunk; });
   const top = Object.entries(prodAgg).sort((a,b)=>b[1]-a[1])[0];
   const kpis = [[tr("Bottles enjoyed"), fmt(bottles), tr("{0} different wines", drunk.length), ""]];
-  if(SHOW_PRICES) kpis.push([tr("Value enjoyed"), kr(valueDrunk), tr("at purchase price"), ""]);
+  if(SHOW_PRICES) kpis.push([tr("Value enjoyed"), kr(valueDrunk), drunk.some(w=>!w.price && w.value) ? tr("at purchase price, or value where none was paid") : tr("at purchase price"), ""]);
   else kpis.push([tr("Value enjoyed"), "🔒 "+tr("hidden"), tr("press Show prices"), "locked"]);
   if(top) kpis.push([tr("Most enjoyed"), esc(top[0]), esc(nBottles(top[1])), ""]);
   const rated = drunk.filter(w=>w.rating), away = drunk.filter(isElsewhere);
@@ -2806,6 +2808,7 @@ function renderEnjoyed(){
     let va=a[k], vb=b[k];
     if(k==="vintage"){ va=typeof va==="number"?va:9999; vb=typeof vb==="number"?vb:9999; }
     if(k==="drunkDate"){ va=va||""; vb=vb||""; }
+    if(k==="price"){ va=worth(a); vb=worth(b); }
     if(typeof va==="string") return va.localeCompare(vb)*dir;
     return ((va??0)-(vb??0))*dir;
   });
@@ -2813,7 +2816,7 @@ function renderEnjoyed(){
   const th=document.querySelector(`#eTbl th[data-k="${k}"] .arr`); if(th) th.textContent = dir>0?"▲":"▼";
 
   let ct = `${nWines(list.length)} · ${btl(fmt(list.reduce((s,w)=>s+w.drunk,0)))}`;
-  if(SHOW_PRICES) ct += ` · ${kr(list.reduce((s,w)=>s+(w.price||0)*w.drunk,0))}`;
+  if(SHOW_PRICES) ct += ` · ${kr(list.reduce((s,w)=>s+worth(w)*w.drunk,0))}`;
   $("eCount").textContent = ct;
 
   if(!list.length){
@@ -2832,7 +2835,7 @@ function renderEnjoyed(){
       <td><span class="sdot" style="background:var(${STYLE_VAR[w.style]||"--muted"})"></span>${tr(STYLE_EN[w.style])||esc(w.style)}</td>
       <td class="num">${w.drunk}</td>
       <td class="num">${w.drunkDate?esc(fmtDate(w.drunkDate)):"—"}</td>
-      <td class="num">${SHOW_PRICES ? (w.price?kr(w.price):"—") : "···"}</td>
+      <td class="num">${SHOW_PRICES ? (w.price ? kr(w.price) : w.value ? `<span class="est" title="${esc(tr("Value: not what you paid"))}">≈ ${kr(w.value)}</span>` : "—") : "···"}</td>
     </tr>
     <tr class="detail" hidden><td colspan="7"></td></tr>`;
   }).join("") + moreRow(list.length, shown.length, 7, "enjoyed");
