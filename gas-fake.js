@@ -71,7 +71,12 @@ function runtime(tabs, opts) {
     const api = {
       getId: () => id, getName: () => f.name,
       getParents: () => iter(f.parent ? [folderApi(f.parent)] : []),
-      getFoldersByName: name => iter(Object.values(folders).filter(x => x.parent === id && x.name === name).map(x => folderApi(x.id))),
+      getFoldersByName: name => iter(Object.values(folders).filter(x => x.parent === id && x.name === name && !x.trashed).map(x => folderApi(x.id))),
+      getFolders: () => iter(Object.values(folders).filter(x => x.parent === id && !x.trashed).map(x => folderApi(x.id))),
+      getFiles: () => iter(Object.values(files).filter(x => x.folder === id && !x.trashed).map(x => fileApi(x.id))),
+      getFilesByName: name => iter(Object.values(files).filter(x => x.folder === id && x.name === name && !x.trashed).map(x => fileApi(x.id))),
+      isTrashed: () => !!f.trashed,
+      setTrashed(t) { f.trashed = !!t; return this; },
       createFolder: name => { const fid = nid("fold"); folders[fid] = { id: fid, name, parent: id }; return folderApi(fid); },
       createFile: (a, content, mime) => {
         const fid = nid("file");
@@ -85,10 +90,16 @@ function runtime(tabs, opts) {
   function fileApi(id) {
     const f = files[id]; if (!f) throw new Error("No item with the given ID could be found");
     return {
-      getId: () => id, getName: () => f.name, isTrashed: () => f.trashed,
+      getId: () => id, getName: () => f.name, isTrashed: () => f.trashed, setName(n) { f.name = n; return this; },
       setTrashed(t) { f.trashed = !!t; if (f.book) f.book.trashed = !!t; return this; },
       getParents: () => iter(f.folder ? [folderApi(f.folder)] : []),
       moveTo(folder) { f.folder = folder.getId(); return this; },
+      // a copy in a folder: a spreadsheet becomes a new spreadsheet with the same tabs and cells
+      makeCopy(name, folder) {
+        if (f.book) { const b = f.book, c = makeBook(Object.fromEntries(b.order.filter(nm => b.sheets[nm]).map(nm => [nm, b.sheets[nm]._cells.map(r => [...r])])), name);
+          files[c.id].folder = folder ? folder.getId() : f.folder; return fileApi(c.id); }
+        const fid = nid("file"); files[fid] = { ...f, id: fid, name, folder: folder ? folder.getId() : f.folder, bytes: [...f.bytes] }; return fileApi(fid);
+      },
       getBlob: () => ({ getBytes: () => f.bytes, getContentType: () => f.mime, getDataAsString: () => unutf8(f.bytes) }),
     };
   }
@@ -147,9 +158,19 @@ function runtime(tabs, opts) {
     remove: k => { cacheStore.delete(k); },
   };
   const CacheService = { getScriptCache: () => scriptCache };
+  // ScriptApp: time-driven triggers, only recorded (a test calls the function itself)
+  const triggers = [];
+  const ScriptApp = {
+    WeekDay: { SUNDAY: "SUNDAY", MONDAY: "MONDAY" },
+    getProjectTriggers: () => triggers.slice(),
+    deleteTrigger: t => { const i = triggers.indexOf(t); if (i >= 0) triggers.splice(i, 1); },
+    newTrigger: fn => { const spec = { fn }; const b = {
+      timeBased: () => b, onWeekDay: d => { spec.day = d; return b; }, atHour: h => { spec.hour = h; return b; }, everyWeeks: n => { spec.weeks = n; return b; },
+      create: () => { const t = { getHandlerFunction: () => fn, spec }; triggers.push(t); return t; } }; return b; },
+  };
   return {
     book: bound, books, files,
-    globals: { SpreadsheetApp, Utilities, Session, DriveApp, ContentService, MimeType, LockService, CacheService },
+    globals: { SpreadsheetApp, Utilities, Session, DriveApp, ContentService, MimeType, LockService, CacheService, ScriptApp },
     tabs: (id) => { const b = id ? books[id] : bound; return Object.fromEntries(b.order.filter(nm => b.sheets[nm]).map(nm => [nm, b.sheets[nm]._cells.map(r => [...r])])); },
   };
 }

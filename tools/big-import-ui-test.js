@@ -4,7 +4,7 @@
 //   python3 tools/make-big-import.py; (cd .. && python3 -m http.server 8765) & node tools/big-import-ui-test.js
 "use strict";
 const fs = require("fs"), path = require("path");
-const { chromium } = require("/opt/node22/lib/node_modules/playwright");
+const { chromium } = require("./pw");
 const H = require("./gas-harness");
 const BASE = process.env.BASE || "http://localhost:8765/";
 const FIX = path.join(__dirname, "fixtures", "big.xlsx");

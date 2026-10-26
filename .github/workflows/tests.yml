@@ -1,0 +1,34 @@
+# Every test suite (tools/run-tests.js) on each pull request and on main: the Node suites, then the browser suites
+# in headless Chromium against the site served from the checkout. A red run means something broke; the failing
+# suite's output is in the log.
+name: Tests
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  test:
+    # pinned: Playwright 1.56 supports Ubuntu up to 24.04 (ubuntu-latest moved to 26.04); move both together
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Tools the tests use
+        run: |
+          pip install openpyxl==3.1.5
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Run all suites
+        run: node tools/run-tests.js

@@ -742,6 +742,34 @@ script cache, which forgets on its own:
 
 The site says each limit in words (in all four languages). Test: `node tools/abuse-test.js` (43 checks).
 
+### Backups (API 34)
+
+Run `installWeeklyBackup` once from the Apps Script editor (Google asks you to allow scheduled runs). Every Sunday
+at about 04:00, `backupNow` then copies, into a dated folder under `Backups` next to the master sheet:
+- the master spreadsheet: accounts, invites, feed, follows, atlas corrections and your own cellar;
+- every account's own spreadsheet: its encrypted vault, or a plain cellar from before encryption.
+
+Each backup has a `manifest.txt` of what went where, and the newest `BACKUP_KEEP` (8) are kept.
+- **Encrypted cellars stay encrypted in the copies.** Only their owners' passwords or recovery codes open them, so
+  a backup can't leak them, and can't help someone who has lost both.
+- **Journal photos aren't copied.** They stay as files in Drive, and Drive keeps deleted files in its bin for 30 days.
+- **Restore one account:**
+  1. Put its username in `RESTORE_USER` and the backup folder's name (e.g. `2026-11-01T04:00`) in `RESTORE_FROM`
+     in `Settings.gs`.
+  2. Run `restoreFromBackup`, then blank both settings again.
+  3. The account then uses a copy of the backed-up spreadsheet (the current one is kept, renamed "replaced"), and
+     its devices are signed out so they reload.
+- **Restore the master sheet:** open the backup copy and copy its tabs back into the master spreadsheet. The
+  script is bound to the master, so the master itself must stay.
+- **Test:** `node tools/backup-test.js` (17 checks) backs up two encrypted cellars, changes one, restores it, and
+  opens it again with its owner's password.
+
+### Tests on every pull request
+
+`.github/workflows/tests.yml` runs `node tools/run-tests.js` on each pull request and on `main`: the Node suites,
+then the browser suites in headless Chromium against the checkout. About 8 minutes. Run the same locally before a
+PR: `node tools/run-tests.js` (or `--node` for the quick ones, or name suites: `node tools/run-tests.js abuse vault`).
+
 The remaining security and housekeeping to-dos (a Cloudflare Worker in front of the API, automatic tests, backups,
 a content-security policy, privacy page, monitoring) are tracked in `SECURITY-TODO.md`.
 

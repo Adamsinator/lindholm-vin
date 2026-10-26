@@ -7,7 +7,7 @@
 //                                                 encryption logs in, is upgraded and migrated, then everything runs
 //                                                 in the browser's vault; checks read the cellar back through the page
 "use strict";
-const { chromium } = require("/opt/node22/lib/node_modules/playwright");
+const { chromium } = require("./pw");
 const H = require("./gas-harness");
 const BASE = process.env.BASE || "http://localhost:8765/";
 const HEAD = ["Producent", "Land", "Område", "Kommune", "Mark/Navn", "Klassifikation", "Type", "Drue", "Årgang", "Antal", "Pris kr (WS)", "Drukket", "Kilde", "Note", "Anskaffet", "Drukket dato", "Rating"];
