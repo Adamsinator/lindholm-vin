@@ -18,6 +18,13 @@ var SETTINGS = {
   MAX_USERS: 50,
   SESSION_DAYS: 30,
 
+  // Backups: how many weekly backups to keep (run installWeeklyBackup once to start them). To put one account back as
+  // it was in a backup, fill in its username and the backup folder's name (e.g. '2026-11-01T04:00'), run
+  // restoreFromBackup, then blank both again.
+  BACKUP_KEEP: 8,
+  RESTORE_USER: '',
+  RESTORE_FROM: '',
+
   // Who may correct vineyard holdings in the Burgundy atlas: '' = anyone signed in,
   // or a comma-separated list of usernames, e.g. 'adam,anna'.
   ATLAS_EDITORS: '',

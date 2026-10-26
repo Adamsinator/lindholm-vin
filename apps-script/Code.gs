@@ -25,13 +25,14 @@
  *                  makeInvites() from the editor). With neither, signups are off
  *   MAX_USERS      the most accounts there can be (default 50)
  *   SESSION_DAYS   a login lasts this many days without use (default 30)
+ *   BACKUP_KEEP    how many weekly backups to keep (default 8); RESTORE_USER / RESTORE_FROM for restoreFromBackup()
  *   ATLAS_EDITORS  who may correct vineyard holdings in the Burgundy atlas: '' = anyone signed in,
  *                  or a comma-separated list of usernames, e.g. 'adam,anna'
  *   OWNER_USER / OWNER_PASSWORD   only for the one-time makeOwner() setup of your own account (see below)
  * ─────────────────────────────────────────────────────────────────────────────
  */
 const DEFAULT_SETTINGS = { ACCESS_CODE: '', SHEET_NAME: 'Ark1', SIGNUP_CODE: '', ATLAS_EDITORS: '', OWNER_USER: '', OWNER_PASSWORD: '',
-  MAX_USERS: '50', SESSION_DAYS: '30' };
+  MAX_USERS: '50', SESSION_DAYS: '30', BACKUP_KEEP: '8', RESTORE_USER: '', RESTORE_FROM: '' };
 // Read at call time (not load time), so it doesn't matter in which order Apps Script loads the two files.
 function setting(key) {
   const s = (typeof SETTINGS === 'object' && SETTINGS) || {};
@@ -1611,6 +1612,68 @@ function addAtlasEdit(e) {
   const since = e.since === '' || e.since == null ? '' : Math.round(Number(e.since));
   if (since !== '' && !(since > 1000 && since < 2200)) throw new Error('bad-since');
   atlasSheet().appendRow([new Date(), who, climat, producer, ha, kind, since, action, String(e.note || '').slice(0, 400)]);
+}
+
+// ── Backups ──────────────────────────────────────────────────────────────────
+// backupNow() copies the master spreadsheet (accounts, invites, feed, follows, atlas corrections, your own cellar) and
+// every account's spreadsheet — its encrypted vault, or a plain cellar from before encryption — into a dated folder
+// under "Backups" next to the master sheet, with a manifest of what is where, and keeps the newest BACKUP_KEEP.
+// installWeeklyBackup() runs it every Sunday at about 04:00. Encrypted cellars stay encrypted in the copies: only
+// their owners' passwords or recovery codes open them. Journal photos are files in Drive and aren't copied.
+function backupsFolder() {
+  const root = masterFolder(), it = root.getFoldersByName('Backups');
+  return it.hasNext() ? it.next() : root.createFolder('Backups');
+}
+function backupNow() {
+  const master = SpreadsheetApp.getActiveSpreadsheet(), masterId = master.getId();
+  const stamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd'T'HH:mm");
+  const dir = backupsFolder().createFolder(stamp), lines = ['AllWine backup ' + stamp, ''];
+  const copy = (id, name) => { const f = DriveApp.getFileById(id).makeCopy(name, dir); lines.push(name + '\t' + f.getId()); };
+  copy(masterId, 'master');
+  let n = 0, failed = 0;
+  readUsers().forEach(u => {
+    const ids = {};
+    if (u.vaultId) ids[u.vaultId] = 'vault';
+    if (u.spreadsheetId && u.spreadsheetId !== masterId && !ids[u.spreadsheetId]) ids[u.spreadsheetId] = 'cellar';
+    Object.keys(ids).forEach(id => {
+      try { copy(id, normUser(u.username) + ' — ' + ids[id]); n++; }
+      catch (err) { failed++; lines.push('could not copy ' + u.username + ' ' + ids[id] + ': ' + err); }
+    });
+  });
+  dir.createFile('manifest.txt', lines.join('\n'), MimeType.PLAIN_TEXT);
+  // keep the newest BACKUP_KEEP (the folder names sort by date)
+  const keep = Math.max(1, Number(setting('BACKUP_KEEP')) || 8), all = [], it = backupsFolder().getFolders();
+  while (it.hasNext()) all.push(it.next());
+  all.sort((a, b) => b.getName() < a.getName() ? -1 : 1).slice(keep).forEach(f => f.setTrashed(true));
+  return 'Backup ' + stamp + ': the master sheet and ' + n + ' account spreadsheet(s)' + (failed ? ', ' + failed + ' could not be copied (see manifest.txt)' : '') + '.';
+}
+// Run once from the editor: back up every Sunday at about 04:00 (running it again doesn't add a second schedule).
+function installWeeklyBackup() {
+  ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'backupNow').forEach(t => ScriptApp.deleteTrigger(t));
+  ScriptApp.newTrigger('backupNow').timeBased().onWeekDay(ScriptApp.WeekDay.SUNDAY).atHour(4).create();
+  return 'Weekly backup scheduled (Sundays ~04:00). ' + backupNow();
+}
+// Put one account back as it was in a backup: set RESTORE_USER and RESTORE_FROM (the backup folder's name, e.g.
+// 2026-11-01T04:00) in Settings.gs, run this, then blank them again. The account then uses a copy of the backed-up
+// spreadsheet (its current one is kept, renamed "replaced"), and its devices are signed out so they reload.
+function restoreFromBackup() {
+  const user = normUser(setting('RESTORE_USER')), from = setting('RESTORE_FROM');
+  if (!user || !from) return 'Set RESTORE_USER and RESTORE_FROM in Settings.gs first.';
+  const u = findUser(user); if (!u) return 'No account "' + user + '".';
+  const dirs = backupsFolder().getFoldersByName(from); if (!dirs.hasNext()) return 'No backup folder "' + from + '" in Backups.';
+  const kind = u.vaultId ? 'vault' : 'cellar', files = dirs.next().getFilesByName(user + ' — ' + kind);
+  if (!files.hasNext()) return 'That backup has no ' + kind + ' for "' + user + '".';
+  const currentId = u.vaultId || u.spreadsheetId, current = DriveApp.getFileById(currentId);
+  const parents = current.getParents(), home = parents.hasNext() ? parents.next() : masterFolder();
+  const restored = files.next().makeCopy('AllWine ' + kind + ' — ' + u.username, home);
+  current.setName(current.getName() + ' (replaced ' + Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd') + ')');
+  if (u.vaultId) setUser(u, 'VaultId', restored.getId());
+  if (u.spreadsheetId === currentId) setUser(u, 'SpreadsheetId', restored.getId());
+  usersSheet().getRange(u.row, UCOL.Token).setValue('');
+  return 'Restored ' + kind + ' of "' + u.username + '" from ' + from + '. Blank RESTORE_USER and RESTORE_FROM again.';
+}
+function readUsers() {
+  return listUsers().map(findUser).filter(Boolean);
 }
 
 function json(obj) {

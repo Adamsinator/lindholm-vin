@@ -4,7 +4,7 @@
 //   (cd .. && python3 -m http.server 8765) & node tools/import-ui-test.js
 "use strict";
 const path = require("path");
-const { chromium } = require("/opt/node22/lib/node_modules/playwright");
+const { chromium } = require("./pw");
 const H = require("./gas-harness");
 const IMPORT = require("../import.js");
 const fs = require("fs");

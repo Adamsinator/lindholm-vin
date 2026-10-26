@@ -3,7 +3,7 @@
 // underneath stays in the sheet's own words (Rød, Hvid, "cellar"), and no English is left where the interface talks.
 //   (cd .. && python3 -m http.server 8765) & node tools/i18n-ui-test.js
 "use strict";
-const { chromium } = require("/opt/node22/lib/node_modules/playwright");
+const { chromium } = require("./pw");
 const H = require("./gas-harness");
 const BASE = process.env.BASE || "http://localhost:8765/";
 const HEAD = ["Producent", "Land", "Område", "Kommune", "Mark/Navn", "Klassifikation", "Type", "Drue", "Årgang", "Antal", "Pris kr (WS)", "Drukket", "Kilde", "Note"];

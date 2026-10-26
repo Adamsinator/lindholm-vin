@@ -4,7 +4,7 @@
 // them yourself; and what's saved is what the form showed. Against the real Code.gs (gas-harness.js).
 //   (cd .. && python3 -m http.server 8765) & node tools/add-suggest-ui-test.js        SHOTS=dir for screenshots
 "use strict";
-const { chromium } = require("/opt/node22/lib/node_modules/playwright");
+const { chromium } = require("./pw");
 const H = require("./gas-harness");
 const BASE = process.env.BASE || "http://localhost:8765/", SHOTS = process.env.SHOTS || "";
 const HEAD = ["Producent", "Land", "Område", "Kommune", "Mark/Navn", "Klassifikation", "Type", "Drue", "Årgang", "Antal", "Pris kr (WS)", "Drukket", "Kilde", "Note"];
