@@ -141,7 +141,8 @@ function create(opts) {
     if (field === "region") return region(s) || titleCase(s);
     if (field === "grape") return fixGrape(s);
     if (field === "commune") return commune(s) || titleCase(s);
-    if (field === "producer") { const t = titleCase(s); return known.get(norm(t)) || t; }
+    // a producer the cellar or the atlas knows, in its spelling, unless that only drops accents ("Méo-Camuzet" stays)
+    if (field === "producer") { const t = titleCase(s), k = known.get(norm(t)); return k && score(k) >= score(t) ? k : t; }
     if (field === "name") return fixName(titleCase(s));
     if (STRUCT.includes(field)) return titleCase(s);
     return v;
@@ -179,11 +180,20 @@ function create(opts) {
     for (const [k, g] of groups) {
       // prefer the cellar's spelling, then the full name with its prefix, then the most used, then mixed case with accents
       const own = w => w >= 1000 ? 1 : 0, full = n => prodKind(n) ? 1 : 0;
-      pick.set(k, [...g.entries()].sort((a, b) => own(b[1]) - own(a[1]) || full(b[0]) - full(a[0]) || b[1] - a[1] || score(b[0]) - score(a[0]))[0][0]);
+      const [best, bw] = [...g.entries()].sort((a, b) => own(b[1]) - own(a[1]) || full(b[0]) - full(a[0]) || b[1] - a[1] || score(b[0]) - score(a[0]))[0];
+      // …written with the accents another spelling of the same name has ("Meo-Camuzet" + "Méo-Camuzet" → "Domaine
+      // Méo-Camuzet"); on an import only from the cellar's own spellings, so the cellar stays one spelling
+      const [pre, root] = splitPrefix(best);
+      const accented = [...g.entries()].filter(([, w]) => own(w) >= own(bw)).map(([n]) => splitPrefix(n)[1])
+        .filter(r => norm(r) === norm(root) && score(r) > score(root)).sort((a, b) => score(b) - score(a))[0];
+      pick.set(k, accented ? pre + accented : best);
     }
     const res = k => { for (let i = 0; i < 3 && alias.has(k); i++) k = alias.get(k); return k; };
     return n => pick.get(res(prodId(n))) || n;
   }
+  // "Domaine Meo-Camuzet" → ["Domaine ", "Meo-Camuzet"]: the written prefix (as many words as PREFIX matched) and the rest
+  const splitPrefix = n => { let pre = ""; const m = norm(n).match(PREFIX); if (m) { const k = m[0].trim().split(" ").length, parts = String(n).split(/(\s+)/);
+    if (parts.length > 2 * k) pre = parts.slice(0, 2 * k).join(""); } return [pre, String(n).slice(pre.length)]; };
   const score = s => (/[a-z]/.test(s) && /[A-Z]/.test(s) ? 4 : 0) + (/[^\x00-\x7f]/.test(s) ? 2 : 0) + s.length / 100;
   // one spelling per name and commune within the same producer ("Perrieres" and "Perrières" → the accented one)
   function spellingMap(list, field) {
@@ -199,15 +209,18 @@ function create(opts) {
     const tally = new Map();
     const note = (field, from, to) => { if (String(from) === String(to)) return false; const k = field + "|" + from; if (off.has(k)) return false;
       const t = tally.get(k) || { field, from: String(from), to: String(to), n: 0 }; t.n++; tally.set(k, t); return true; };
+    // the steps run one after another, but each value is reported once, from what was written to where it ends up
+    // ("Méo-Camuzet" → "Domaine Méo-Camuzet", not a fix and then a fix of the fix), and turned off as one
     const step1 = list.map(w => {
       const o2 = Object.assign({}, w);
-      for (const f of STRUCT) if (o2[f] != null && o2[f] !== "") { const v = fix(f, o2[f]); if (note(f, o2[f], v)) o2[f] = v; }
+      for (const f of STRUCT) if (o2[f] != null && o2[f] !== "") o2[f] = fix(f, o2[f]);
       return o2;
     });
     const prod = producerMap(step1, o.existing);
-    step1.forEach(w => { const v = prod(w.producer); if (note("producer", w.producer, v)) w.producer = v; });
+    step1.forEach(w => { if (w.producer) w.producer = prod(w.producer); });
     for (const f of ["name", "commune"]) { const m = spellingMap(step1.concat((o.existing || []).map(e => ({ producer: prod(e.producer), [f]: e[f] }))), f);
-      step1.forEach(w => { if (!w[f]) return; const v = m(w); if (note(f, w[f], v)) w[f] = v; }); }
+      step1.forEach(w => { if (w[f]) w[f] = m(w); }); }
+    step1.forEach((w, i) => { for (const f of STRUCT) { const was = list[i][f]; if (was == null || was === "") continue; if (!note(f, was, w[f])) w[f] = was; } });
     // a "Wine" that is just the commune again isn't a cuvée name when the commune is given
     return { wines: step1, fixes: [...tally.values()].sort((a, b) => b.n - a.n || a.field.localeCompare(b.field)) };
   }
