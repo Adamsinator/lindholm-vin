@@ -1709,7 +1709,7 @@ function renderGcOwners(){
 
 /* ---------- corrections: shared edits stored in the cellar's Google Sheet ---------- */
 const EDITS = {list:[], can:false, status:"", open:null};
-function apiUrl(){ return localStorage.getItem("vinApi") || (window.WINE_CONFIG && window.WINE_CONFIG.API_URL) || ""; }
+function apiUrl(){ return (window.WINE_CONFIG && window.WINE_CONFIG.API_URL) || localStorage.getItem("vinApi") || ""; }
 function keyFor(name){
   if(P[name]) return name;
   const n = norm(name), hit = Object.keys(P).find(k => norm(P[k])===n);
@@ -2256,7 +2256,7 @@ async function vaultData(api, user, token){
   return window.VAULT.call({action:"data"});
 }
 async function loadCellar(){
-  const api = localStorage.getItem("vinApi") || (window.WINE_CONFIG && window.WINE_CONFIG.API_URL) || "";
+  const api = apiUrl();
   const user = localStorage.getItem("vinUser") || "", token = localStorage.getItem("vinToken") || "";
   if(!api || !token) return;
   CELLAR.msg = "Loading your cellar…"; CELLAR.args = []; renderLegend();

@@ -17,7 +17,8 @@ const EN = /\b(the|and|your|you|with|from|click|bottles?|wines|enjoyed|cellar|(?
 
 (async () => {
   const b = await chromium.launch(); const ctx = await b.newContext({ viewport: { width: 1440, height: 900 } });
-  await ctx.route("https://script.google.com/**", async route => { const p = JSON.parse(route.request().postData() || "{}"); let r;
+  await require("./turnstile-fake")(ctx);
+  await ctx.route(require("./api-route"), async route => { const p = JSON.parse(route.request().postData() || "{}"); let r;
     if (p.action === "login") r = { ok: true, user: p.user, token: "tok", v: 26 }; else if (p.action === "prelogin") r = { ok: false, error: "bad-code", v: 27 };
     else { delete p.user; delete p.token; p.code = "test-code"; r = gas.call(p); }
     await route.fulfill({ contentType: "application/json", body: JSON.stringify(r) }); });

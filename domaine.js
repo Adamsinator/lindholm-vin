@@ -59,8 +59,8 @@ function applyEdits(list){
 }
 indexHoldings();
 async function loadEdits(){
-  let api = ""; try{ api = localStorage.getItem("vinApi") || ""; }catch(e){}
-  api = api || (window.WINE_CONFIG && window.WINE_CONFIG.API_URL) || ""; if(!api) return;
+  let api = (window.WINE_CONFIG && window.WINE_CONFIG.API_URL) || ""; try{ api = api || localStorage.getItem("vinApi") || ""; }catch(e){}
+  if(!api) return;
   try{
     const res = await fetch(api, {method:"POST", body:JSON.stringify({action:"atlas"}), redirect:"follow"});
     const data = await res.json(); if(data.ok && (data.edits||[]).length){ applyEdits(data.edits); render(); }

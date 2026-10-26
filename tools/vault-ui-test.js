@@ -12,7 +12,8 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
 (async () => {
   const b = await chromium.launch(); const ctx = await b.newContext({ viewport: { width: 1280, height: 900 }, acceptDownloads: true });
   const seen = [];
-  await ctx.route("https://script.google.com/**", async route => {
+  await require("./turnstile-fake")(ctx);
+  await ctx.route(require("./api-route"), async route => {
     const p = JSON.parse(route.request().postData() || "{}"); seen.push(p);
     await route.fulfill({ contentType: "application/json", body: JSON.stringify(gas.call(p)) });
   });
