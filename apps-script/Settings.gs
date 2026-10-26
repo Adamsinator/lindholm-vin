@@ -27,6 +27,10 @@ var SETTINGS = {
   RESTORE_USER: '',
   RESTORE_FROM: '',
 
+  // The Cloudflare Worker in front of the API (worker/index.js): a long random value, the same one the Worker has as
+  // GATEWAY_SECRET. Once set, only requests through the Worker are served. '' = off (the API answers anyone, as before).
+  GATEWAY_SECRET: '',
+
   // Who may correct vineyard holdings in the Burgundy atlas: '' = anyone signed in,
   // or a comma-separated list of usernames, e.g. 'adam,anna'.
   ATLAS_EDITORS: '',

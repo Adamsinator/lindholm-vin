@@ -2,6 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<!-- what the page may load (see README, "Content-Security-Policy"); GitHub Pages can't send it as a header -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; script-src 'self'; frame-src 'none'; img-src 'self' data: blob: https://data.geopf.fr; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://*.workers.dev https://data.geopf.fr">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>Domaines — AllWine</title>
@@ -15,7 +18,7 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍷</text></svg>">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="theme-color" content="#7C2D3E">
-<script src="config.js?v=4"></script>
+<script src="config.js?v=5"></script>
 <style>
 :root{
   --bg:#F7F4F1; --card:#FFFFFF; --card2:#FBF9F7; --ink:#2A2126; --muted:#756A70;
@@ -132,7 +135,7 @@ table.own.small td{padding:6px 10px}
 <div id="main"></div>
 </main>
 </div>
-<script src="i18n.js?v=25"></script>
+<script src="i18n.js?v=26"></script>
 <script src="burgundy-i18n-da.js?v=5"></script>
 <script src="burgundy-i18n-fr.js?v=5"></script>
 <script src="burgundy-i18n-de.js?v=1"></script>

@@ -776,8 +776,75 @@ Each backup has a `manifest.txt` of what went where, and the newest `BACKUP_KEEP
 then the browser suites in headless Chromium against the checkout. About 8 minutes. Run the same locally before a
 PR: `node tools/run-tests.js` (or `--node` for the quick ones, or name suites: `node tools/run-tests.js abuse vault`).
 
-The remaining security and housekeeping to-dos (a Cloudflare Worker in front of the API, automatic tests, backups,
-a content-security policy, privacy page, monitoring) are tracked in `SECURITY-TODO.md`.
+### API gateway: a Cloudflare Worker in front of Apps Script (API 35)
+
+Apps Script can't see who is calling, and runs only about 30 requests at a time per Google account, so a flood
+aimed at its URL could make the site unusable (not unsafe: cellars stay encrypted and logins locked). `worker/index.js`
+is a Cloudflare Worker (free plan) that sits in between:
+
+- **Per IP address:** 120 requests a minute in all, and 10 a minute for logging in, signing up and recovery. It
+  answers `too-many` (HTTP 429) beyond that. With the rate limiting bindings from `worker/wrangler.toml`, Cloudflare
+  counts. Pasted into the dashboard without them, the Worker counts in its own memory, which is looser (each
+  Cloudflare location and instance counts on its own).
+- **Turnstile** ("are you human") on sign-up and recovery, when the Worker has `TURNSTILE_SECRET` and `config.js`
+  has the widget's `TURNSTILE_SITE_KEY`. Logging in has no check, so it stays one quick request; the per-IP limit
+  and the per-username lockout cover it.
+- **Only the site:** browsers on another address get 403, bodies over 12 MB are refused, and Google's error pages
+  come back as a short JSON error.
+- **The secret:** the Worker adds `GATEWAY_SECRET` to every request. With the same value in `Settings.gs`, `Code.gs`
+  refuses anything without it (`gateway`) before touching a spreadsheet. The Apps Script URL then lives only in the
+  Worker's settings, and the old public one is archived.
+
+Tests: `tools/worker-test.js` runs the Worker in Node in front of the real `Code.gs`. `wrangler dev` runs the same in
+Cloudflare's runtime, `workerd`.
+
+**Setting it up, in this order (the site keeps working throughout):**
+
+1. **A secret.** Make a long random value, 40+ letters and digits, e.g. with a password manager. Keep it to paste
+   twice.
+2. **Apps Script.** Paste the new `Code.gs` (API 35). In `Settings.gs` set `GATEWAY_SECRET: '<the secret>'`. Then
+   **Deploy → New deployment** → Web app (Execute as: Me, Who has access: Anyone) → Deploy. Copy its URL and keep it
+   private. Leave the old deployment alone for now: the site still uses it, and it still runs the old version
+   without the secret.
+   - Check: the new URL with `?action=atlas` on the end says `{"ok":false,"error":"gateway","v":35}`.
+3. **Turnstile** (optional but recommended): Cloudflare dashboard → **Turnstile → Add widget**. Name it AllWine,
+   add the hostnames `allwine.dk` and `www.allwine.dk`, and choose Managed mode. Keep the **site key** and the
+   **secret key**.
+4. **The Worker.** Cloudflare dashboard → **Workers & Pages → Create → Worker**. Name it `allwine-api` → Deploy →
+   **Edit code**, replace everything with `worker/index.js` → Deploy. Then **Settings → Variables and secrets**:
+   - `API_URL` (Secret): the new deployment's URL from step 2;
+   - `GATEWAY_SECRET` (Secret): the value from step 1;
+   - `TURNSTILE_SECRET` (Secret): the Turnstile secret key from step 3, if you made one.
+
+   Or, with Node installed: `cd worker && npx wrangler login && npx wrangler deploy`, then `npx wrangler secret put`
+   for each of the three. This way also sets up the rate limiting bindings.
+   - Check: the Worker's address (`https://allwine-api.<your-subdomain>.workers.dev`) in a browser says
+     `AllWine API gateway`.
+5. **Point the site at it.** In `config.js` set `API_URL` to the Worker's address and `TURNSTILE_SITE_KEY` to the
+   site key. In the three pages' Content-Security-Policy, replace `https://*.workers.dev` with the Worker's exact
+   address and drop the two Google hosts. (Or send the two values to whoever maintains the site.)
+6. **Close the old door.** Once the site works through the Worker: Apps Script → **Deploy → Manage deployments**.
+   Archive the old deployment, the one whose URL is in the git history. Its URL stops answering.
+
+### Content-Security-Policy
+
+`index.html`, `burgundy.html` and `domaine.html` each carry a policy as a `<meta http-equiv>` tag (GitHub Pages can't
+send headers), plus `referrer: strict-origin-when-cross-origin`.
+
+- **Scripts:** only the site's own files; Turnstile's script on the cellar page.
+- **No inline script:** an injected `<img onerror>`, `<script>` or `javascript:` link doesn't run. The pages have
+  no inline scripts or handlers to begin with.
+- **Requests:** only the API (Apps Script or the Worker), and IGN for the atlas's relief tiles and slope profile.
+- **Images:** the site's own, `data:` and `blob:` (photos, exports), and IGN's tiles.
+- **`'unsafe-eval'`** is allowed on the cellar and atlas pages only, because the encrypted cellar runs `Code.gs` in
+  the browser through `new Function` (`vault-engine.js`). It doesn't let injected HTML run anything.
+- **Inline styles** are allowed: the pages use `style=""` throughout, and styles can't run code.
+
+`tools/csp-ui-test.js` checks that every real feature works under the policy with no violation, and that injected
+script is blocked. Adding an outside service means adding its host to the policy, or the browser refuses it.
+
+The remaining security and housekeeping to-dos (privacy page, account deletion, monitoring) are tracked in
+`SECURITY-TODO.md`.
 
 ## Privacy: encrypted cellars (API 28)
 

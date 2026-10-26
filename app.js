@@ -165,7 +165,11 @@ const cfg = {
 // the login/signup gate, which needs to read the error itself.
 async function post(params){
   const res = await fetch(cfg.api, {method:"POST", body:JSON.stringify(params), redirect:"follow"});
-  if(!res.ok) throw new Error("HTTP "+res.status);
+  if(!res.ok){ // the API gateway answers its refusals ("too-many", "too-big" …) in JSON, like the API does
+    let data = null; try{ data = await res.json(); }catch(e){}
+    if(data && data.error) return data;
+    throw new Error("HTTP "+res.status);
+  }
   return res.json();
 }
 
@@ -1051,7 +1055,20 @@ function setGateMode(mode){
   $("gatePass").setAttribute("autocomplete", signup || recover ? "new-password" : "current-password");
   document.querySelector('label[for="gatePass"]').textContent = tr(recover ? "New password" : "Password");
   $("gateErr").textContent = "";
+  humanShow(signup || recover);
 }
+// "Are you human" (Cloudflare Turnstile) on sign-up and recovery, when config.js has a site key; the API gateway
+// (worker/index.js) checks the token. Loaded only when one of those forms opens.
+const HUMAN = { key: (window.WINE_CONFIG && window.WINE_CONFIG.TURNSTILE_SITE_KEY) || "", id: null, loading: null };
+function humanShow(on){
+  $("gateHuman").hidden = !(on && HUMAN.key);
+  if(!on || !HUMAN.key) return;
+  if(!HUMAN.loading) HUMAN.loading = loadJS("https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit");
+  HUMAN.loading.then(()=>{ if(HUMAN.id===null) HUMAN.id = window.turnstile.render("#gateHuman", {sitekey:HUMAN.key, "refresh-expired":"auto"}); })
+    .catch(()=>{ HUMAN.loading = null; });
+}
+function humanToken(){ try{ return HUMAN.id!==null ? (window.turnstile.getResponse(HUMAN.id) || "") : ""; }catch(e){ return ""; } }
+function humanReset(){ try{ if(HUMAN.id!==null) window.turnstile.reset(HUMAN.id); }catch(e){} } // a token works once
 // Friendly text for the error codes the API returns.
 const AUTH_MSG = {
   "bad-login":"Wrong username or password.", "bad-invite":"That invite code isn't right, or it has already been used.",
@@ -1060,6 +1077,10 @@ const AUTH_MSG = {
   "signup-disabled":"Signups are closed right now.", "user-taken":"That username is taken.",
   "bad-username":"Username: 3–24 letters, numbers, . _ or -.", "weak-pass":"Use a password of at least 6 characters.",
   "no-cellar":"Your cellar couldn't be opened. Contact the owner.",
+  "human-check":"The \"are you human\" check didn't go through. Wait for it to finish and try again.",
+  "gateway":"The site's server isn't set up right. Tell the owner.", "origin":"The site's server isn't set up right. Tell the owner.",
+  "upstream":"The cellar's server didn't answer. Try again in a moment.",
+  "too-many":"You've done that a lot in a short time — wait a while and try again.",
   "bad-recovery":"That recovery code doesn't match this account.", "update-site":"Reload the page — the site has been updated.",
   "vaulted":"This cellar is encrypted: log in with your username and password.",
   "bad-keys":"Something went wrong preparing your keys. Reload and try again.",
@@ -1125,7 +1146,7 @@ async function gateEncrypted(mode, user, pass){
     if(!pre.ok || (pre.v||0) < 28) return false; // an older Apps Script: the plain sign-up below
     $("gateErr").textContent = tr("Creating your keys…");
     const k = await VAULT.newKeys(pass);
-    const data = await post({action:"signup", user, code:$("gateInvite").value.trim(), ...k.fields});
+    const data = await post({action:"signup", user, code:$("gateInvite").value.trim(), turnstile:humanToken(), ...k.fields});
     if(!data.ok) throw new Error(data.error);
     cfg.user = data.user; VAULT.rememberSalt(data.user, k.fields);
     await showRecoveryCode(k.recoveryCode);
@@ -1136,7 +1157,7 @@ async function gateEncrypted(mode, user, pass){
     const code = $("gateRec").value.trim();
     if(!code) throw new Error("bad-recovery");
     $("gateErr").textContent = tr("Unlocking with your recovery code…");
-    const r = await VAULT.recover({post, user, code, newPass:pass});
+    const r = await VAULT.recover({post, user, code, newPass:pass, turnstile:humanToken()});
     await openVault(r.user, r.token, r.dek);
     if(r.state==="migrating") await migrateNow(r.user, r.token, r.dek);
     return true;
@@ -1172,6 +1193,7 @@ $("gateForm").addEventListener("submit", async e=>{
   const user = $("gateUser").value.trim(), pass = $("gatePass").value;
   if(!user || !pass){ $("gateErr").textContent = tr("Enter your username and password."); return; }
   if(GATE_MODE!=="login" && pass.length < 8){ $("gateErr").textContent = tr("Use a password of at least 8 characters."); return; }
+  if(GATE_MODE!=="login" && HUMAN.key && !humanToken()){ $("gateErr").textContent = tr("Wait for the \"are you human\" check to finish."); return; }
   const signup = GATE_MODE==="signup";
   localStorage.setItem("vinStay", $("gateStay").checked ? "1" : "0");
   $("gateSubmit").disabled = true; $("gateErr").textContent = tr(signup ? "Creating…" : "Signing in…");
@@ -1182,7 +1204,7 @@ $("gateForm").addEventListener("submit", async e=>{
     }
     if(GATE_MODE==="recover"){ $("gateErr").textContent = tr("Recovery needs the updated Apps Script (version 28)."); return; }
     const params = signup
-      ? {action:"signup", user, pass, code:$("gateInvite").value.trim()}
+      ? {action:"signup", user, pass, code:$("gateInvite").value.trim(), turnstile:humanToken()}
       : {action:"login", user, pass};
     const data = await post(params);
     if(!data.ok){ $("gateErr").textContent = authMsg(data.error); return; }
@@ -1196,7 +1218,7 @@ $("gateForm").addEventListener("submit", async e=>{
       : /^verify-failed/.test(m) ? tr("Encrypting your cellar stopped before it finished — nothing was lost. Log in again to continue.")
       : tr("Could not reach the cellar API ({0}).", m);
   }
-  finally{ $("gateSubmit").disabled = false; }
+  finally{ $("gateSubmit").disabled = false; if(GATE_MODE!=="login") humanReset(); }
 });
 
 /* ---------- account: change password, new recovery code ---------- */

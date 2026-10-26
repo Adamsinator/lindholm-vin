@@ -65,7 +65,7 @@ let SRC = null;
 async function codeSource(url) {
   if (SRC) return SRC;
   if (node) SRC = require("fs").readFileSync(require("path").join(__dirname, "apps-script", "Code.gs"), "utf8");
-  else { const res = await fetch(url || "apps-script/Code.gs?v=34"); if (!res.ok) throw new Error("engine-load " + res.status); SRC = await res.text(); }
+  else { const res = await fetch(url || "apps-script/Code.gs?v=35"); if (!res.ok) throw new Error("engine-load " + res.status); SRC = await res.text(); }
   return SRC;
 }
 const keepTabs = (all, sheetName) => Object.fromEntries(Object.entries(all).filter(([n]) => n === sheetName || SHARED_TABS.includes(n)));
@@ -241,7 +241,7 @@ async function recover(o) {
   let dekX; try { dekX = await VC.unwrap(rs.wrapRec, rk.kek, true); } catch (e) { throw new Error("bad-recovery"); }
   const kdfSalt = VC.newSalt(), nk = await VC.fromPassword(newPass, kdfSalt);
   const wrapKey = await VC.wrap(dekX, nk.kek);
-  const r = await srv(post, { action: "recover", user, recAuth: rk.auth, auth: nk.auth, kdfSalt, wrapKey });
+  const r = await srv(post, { action: "recover", user, recAuth: rk.auth, auth: nk.auth, kdfSalt, wrapKey, turnstile: o.turnstile || "" });
   saltPut(user, { kdf: VC.KDF, kdfSalt });
   return { token: r.token, user: r.user, state: r.state, dek: await VC.unwrap(wrapKey, nk.kek, false) };
 }
