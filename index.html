@@ -532,7 +532,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
     <h2 data-i18n>Your cellar</h2>
     <p id="gateLead">Your private cellar. Log in to continue.</p>
     <div id="gateApiWrap" hidden>
-      <label for="gateApi">API URL (Apps Script deployment)</label>
+      <label for="gateApi" data-i18n>API URL (Apps Script deployment)</label>
       <input id="gateApi" type="url" placeholder="https://script.google.com/macros/s/…/exec">
     </div>
     <label for="gateUser" data-i18n>Username</label>
@@ -550,7 +550,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
     <div class="err" id="gateErr" role="status" aria-live="polite"></div>
     <button class="btn primary" type="submit" id="gateSubmit" style="width:100%;margin-top:8px;padding:10px">Log in</button>
     <button class="btn quiet" type="button" id="gateToggle" style="width:100%;margin-top:6px">Need an account? Sign up</button>
-    <button class="btn quiet" type="button" id="gateForgot" style="width:100%;margin-top:2px;font-size:13px">Forgot password?</button>
+    <button class="btn quiet" type="button" id="gateForgot" style="width:100%;margin-top:2px;font-size:13px" data-i18n>Forgot password?</button>
     <p class="lockline" data-i18n>🔒 Your cellar is encrypted on this device with a key from your password. The site's owner can't read it.</p>
   </form>
   </main>
@@ -594,199 +594,195 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
     <h1>All<em>Wine</em></h1>
     <span class="who" id="who" hidden></span>
   </div>
-  <div class="sub">Cellar overview</div>
+  <div class="sub" data-i18n>Cellar overview</div>
 </header>
 
 <div class="gbar">
   <span class="stamp" id="stamp"></span>
-  <button class="btn" id="refreshBtn">Refresh</button>
-  <button class="btn quiet" id="acctBtn" title="Password and recovery code" hidden>Account</button>
-  <button class="btn quiet" id="lockBtn" title="Sign out on this device">🔒 Log out</button>
+  <button class="btn" id="refreshBtn" data-i18n>Refresh</button>
+  <button class="btn quiet" id="acctBtn" title="Password and recovery code" hidden data-i18n data-i18n-title>Account</button>
+  <button class="btn quiet" id="lockBtn" title="Sign out on this device" data-i18n data-i18n-title>🔒 Log out</button>
 </div>
 
-<nav class="tabs" aria-label="Pages">
-  <button class="tab active" data-page="cellar">Cellar</button>
-  <button class="tab" data-page="enjoyed">Enjoyed</button>
-  <button class="tab" data-page="wishlist">Wishlist</button>
-  <button class="tab" data-page="journal">Journal</button>
-  <button class="tab" data-page="feed">Feed <span class="tabbadge" id="feedBadge" hidden></span></button>
-  <a class="tablink" href="burgundy.html" title="Côte de Nuits climat map">Burgundy atlas ↗</a>
+<nav class="tabs" aria-label="Pages" data-i18n-aria>
+  <button class="tab active" data-page="cellar" data-i18n>Cellar</button>
+  <button class="tab" data-page="enjoyed" data-i18n>Enjoyed</button>
+  <button class="tab" data-page="wishlist" data-i18n>Wishlist</button>
+  <button class="tab" data-page="journal" data-i18n>Journal</button>
+  <button class="tab" data-page="feed"><span data-i18n>Feed</span> <span class="tabbadge" id="feedBadge" hidden></span></button>
+  <a class="tablink" href="burgundy.html" title="Côte de Nuits climat map" data-i18n data-i18n-title>Burgundy atlas ↗</a>
 </nav>
 
 <div id="pageCellar">
 
 <div class="actions">
-  <button class="btn primary" id="addBtn">＋ Add wine</button>
+  <button class="btn primary" id="addBtn" data-i18n>＋ Add wine</button>
   <button class="btn" id="impBtn" data-i18n>⬆ Import</button>
   <button class="btn" id="expBtn" data-i18n>⬇ Export</button>
   <button class="btn" id="tidyBtn" data-i18n>🧹 Tidy up</button>
-  <button class="btn" id="tonightBtn">🎲 Tonight</button>
+  <button class="btn" id="tonightBtn" data-i18n>🎲 Tonight</button>
   <button class="btn" id="priceBtn">Show prices</button>
 </div>
 
-<div class="spin" id="spin">Fetching the cellar…</div>
+<div class="spin" id="spin" data-i18n>Fetching the cellar…</div>
 <div id="content" hidden>
 
-<section class="kpis" id="kpis" aria-label="Cellar totals"></section>
+<section class="kpis" id="kpis" aria-label="Cellar totals" data-i18n-aria></section>
 
 <div class="panel" id="prioPanel" style="margin-bottom:24px" hidden>
-  <h2>Drinking priorities</h2>
-  <p class="ph">What to open, by drink window · click to filter the list below</p>
+  <h2 data-i18n>Drinking priorities</h2>
+  <p class="ph" data-i18n>What to open, by drink window · click to filter the list below</p>
   <div id="priorities" class="priorities"></div>
 </div>
 
 <div class="panel" id="insightsPanel" style="margin-bottom:24px">
-  <h2>Cellar insights</h2>
+  <h2 data-i18n>Cellar insights</h2>
   <div id="insights" class="insights"></div>
 </div>
 
 <div class="grid">
   <div class="panel">
-    <h2>Regions</h2>
-    <p class="ph">Bottles in the cellar · click to filter the list</p>
+    <h2 data-i18n>Regions</h2>
+    <p class="ph" data-i18n>Bottles in the cellar · click to filter the list</p>
     <div id="regions"></div>
   </div>
   <div class="panel">
-    <h2>Producers</h2>
-    <p class="ph">Bottles in the cellar · click to filter the list</p>
+    <h2 data-i18n>Producers</h2>
+    <p class="ph" data-i18n>Bottles in the cellar · click to filter the list</p>
     <div id="producers"></div>
   </div>
 </div>
 
 <div class="grid">
   <div class="panel">
-    <h2>By style</h2>
-    <p class="ph">Bottles in the cellar · click a slice to filter</p>
-    <svg id="stylePie" role="img" aria-label="Pie chart of the cellar by style"></svg>
+    <h2 data-i18n>By style</h2>
+    <p class="ph" data-i18n>Bottles in the cellar · click a slice to filter</p>
+    <svg id="stylePie" role="img" aria-label="Pie chart of the cellar by style" data-i18n-aria></svg>
     <div class="slegend" id="slegend"></div>
   </div>
   <div class="panel">
-    <h2>Map</h2>
-    <p class="ph">Bottles by country · click a country, then a region (Bourgogne, Champagne, Mosel, Piemonte drill to villages)</p>
+    <h2 data-i18n>Map</h2>
+    <p class="ph" data-i18n>Bottles by country · click a country, then a region (Bourgogne, Champagne, Mosel, Piemonte drill to villages)</p>
     <div id="mapbar" hidden>
       <button class="btn" id="mapBack">← All regions</button>
       <span id="mapTitle"></span>
     </div>
-    <svg id="map" role="img" aria-label="Stylized map of the wine regions in the cellar"></svg>
+    <svg id="map" role="img" aria-label="Stylized map of the wine regions in the cellar" data-i18n-aria></svg>
   </div>
 </div>
 
 <div class="panel" style="margin-bottom:24px">
-  <h2>Vintages</h2>
-  <p class="ph">Bottles in the cellar by vintage · NV = non-vintage champagne · click a bar to filter</p>
-  <svg id="vintChart" role="img" aria-label="Bar chart of bottles per vintage year"></svg>
+  <h2 data-i18n>Vintages</h2>
+  <p class="ph" data-i18n>Bottles in the cellar by vintage · NV = non-vintage champagne · click a bar to filter</p>
+  <svg id="vintChart" role="img" aria-label="Bar chart of bottles per vintage year" data-i18n-aria></svg>
 </div>
 
 <div class="panel" style="margin-bottom:24px">
-  <h2>Collection over time</h2>
-  <p class="ph">Bottles held since the first acquisition · <b>＋</b> added · <b>–</b> drunk · colour by style:
-    <span class="hleg"><span class="hswatch" style="background:var(--h-red)"></span>red</span>
-    <span class="hleg"><span class="hswatch" style="background:var(--h-white)"></span>white</span>
-    <span class="hleg"><span class="hswatch" style="background:var(--h-gold)"></span>sparkling</span>
+  <h2 data-i18n>Collection over time</h2>
+  <p class="ph"><span data-i18n>Bottles held since the first acquisition</span> · <b>＋</b> <span data-i18n>added</span> · <b>–</b> <span data-i18n>drunk</span> · <span data-i18n>colour by style:</span>
+    <span class="hleg"><span class="hswatch" style="background:var(--h-red)"></span><span data-i18n>red</span></span>
+    <span class="hleg"><span class="hswatch" style="background:var(--h-white)"></span><span data-i18n>white</span></span>
+    <span class="hleg"><span class="hswatch" style="background:var(--h-gold)"></span><span data-i18n>sparkling</span></span>
     <span class="hleg"><span class="hswatch" style="background:var(--h-rose)"></span>rosé</span></p>
-  <svg id="histChart" role="img" aria-label="Bottles in the collection over time"></svg>
+  <svg id="histChart" role="img" aria-label="Bottles in the collection over time" data-i18n-aria></svg>
   <p class="ph" id="histCap" style="margin-top:8px"></p>
 </div>
 
 <div class="filters">
-  <input type="search" id="q" placeholder="Search producer, wine, commune, grape…" aria-label="Search wines">
-  <select id="fRegion" aria-label="Filter by region"></select>
-  <select id="fLoc" aria-label="Filter by location" hidden></select>
-  <select id="fStyle" aria-label="Filter by style"></select>
-  <select id="fStatus" aria-label="Filter by status">
-    <option value="cellar">In cellar</option>
-    <option value="all">All wines</option>
-    <option value="drunk">Enjoyed</option>
+  <input type="search" id="q" placeholder="Search producer, wine, commune, grape…" aria-label="Search wines" data-i18n-ph data-i18n-aria>
+  <select id="fRegion" aria-label="Filter by region" data-i18n-aria></select>
+  <select id="fLoc" aria-label="Filter by location" hidden data-i18n-aria></select>
+  <select id="fStyle" aria-label="Filter by style" data-i18n-aria></select>
+  <select id="fStatus" aria-label="Filter by status" data-i18n-aria>
+    <option value="cellar" data-i18n>In cellar</option>
+    <option value="all" data-i18n>All wines</option>
+    <option value="drunk" data-i18n>Enjoyed</option>
   </select>
-  <select id="fReady" aria-label="Filter by drink window">
-    <option value="">Any readiness</option>
-    <option value="now">Drink now</option>
-    <option value="soon">Drink soon</option>
-    <option value="young">Too young</option>
-    <option value="past">Past peak</option>
+  <select id="fReady" aria-label="Filter by drink window" data-i18n-aria>
+    <option value="" data-i18n>Any readiness</option>
+    <option value="now" data-i18n>Drink now</option>
+    <option value="soon" data-i18n>Drink soon</option>
+    <option value="young" data-i18n>Too young</option>
+    <option value="past" data-i18n>Past peak</option>
   </select>
-  <button class="clearbtn" id="clear">Clear filters</button>
+  <button class="clearbtn" id="clear" data-i18n>Clear filters</button>
   <span class="count" id="count"></span>
 </div>
 
 <div class="panel" id="dwPanel" style="margin-bottom:16px" hidden>
-  <h2>When to drink <span class="stamp" id="dwCount"></span></h2>
-  <p class="ph">Each wine's drink window · <span class="dwleg young">▬</span> too young · <span class="dwleg soon">▬</span> soon
-    · <span class="dwleg now">▬</span> now · <span class="dwleg past">▬</span> past · dashed = estimated · <b>|</b> today · follows the filters</p>
+  <h2><span data-i18n>When to drink</span> <span class="stamp" id="dwCount"></span></h2>
+  <p class="ph"><span data-i18n>Each wine's drink window</span> · <span class="dwleg young">▬</span> <span data-i18n>too young</span> · <span class="dwleg soon">▬</span> <span data-i18n>soon</span>
+    · <span class="dwleg now">▬</span> <span data-i18n>now</span> · <span class="dwleg past">▬</span> <span data-i18n>past</span> · <span data-i18n>dashed = estimated</span> · <b>|</b> <span data-i18n>today</span> · <span data-i18n>follows the filters</span></p>
   <div id="dwtl"></div>
 </div>
 
 <div class="tablewrap">
 <table id="tbl">
   <thead><tr>
-    <th data-k="producer">Producer <span class="arr"></span></th>
-    <th data-k="vintage" class="num">Vintage <span class="arr"></span></th>
-    <th data-k="region">Region <span class="arr"></span></th>
-    <th data-k="style">Style <span class="arr"></span></th>
-    <th data-k="left" class="num">Bottles <span class="arr"></span></th>
-    <th data-k="price" class="num">Price <span class="arr"></span></th>
+    <th data-k="producer"><span data-i18n>Producer</span> <span class="arr"></span></th>
+    <th data-k="vintage" class="num"><span data-i18n>Vintage</span> <span class="arr"></span></th>
+    <th data-k="region"><span data-i18n>Region</span> <span class="arr"></span></th>
+    <th data-k="style"><span data-i18n>Style</span> <span class="arr"></span></th>
+    <th data-k="left" class="num"><span data-i18n>Bottles</span> <span class="arr"></span></th>
+    <th data-k="price" class="num"><span data-i18n>Price</span> <span class="arr"></span></th>
   </tr></thead>
   <tbody id="rows"></tbody>
 </table>
 </div>
 
 <footer>
-  <p><strong>About ratings:</strong> badges and producer profiles are general critic-reputation summaries
-  (Icon &gt; Top tier &gt; Well regarded), not bottle-level scores. Open a wine and use the
-  <em>Vivino</em> / <em>Wine-Searcher</em> links for live ratings and market prices.</p>
-  <p><strong>Current value:</strong> open a wine and type today's worth in the <em>Value kr</em> box. The
-  overview then shows the cellar's current value and the unrealised gain or loss vs. what you paid, over the
-  wines you've valued. Leave it blank for wines you're not tracking.</p>
-  <p>Data lives in the Google Sheet — this page reads and writes it through a private API.</p>
+  <p><strong data-i18n>About ratings:</strong> <span data-i18n>Badges and producer profiles are general critic-reputation summaries (Icon &gt; Top tier &gt; Well regarded), not bottle-level scores. Open a wine and use the Vivino / Wine-Searcher links for live ratings and market prices.</span></p>
+  <p><strong data-i18n>Current value:</strong> <span data-i18n>Open a wine and type today's worth in the “Value kr” box. The overview then shows the cellar's current value and the unrealised gain or loss vs. what you paid, over the wines you've valued. Leave it blank for wines you're not tracking.</span></p>
+  <p data-i18n>Data lives in the Google Sheet — this page reads and writes it through a private API.</p>
 </footer>
 </div><!-- /content -->
 </div><!-- /pageCellar -->
 
 <div id="pageEnjoyed" hidden>
   <div class="actions">
-    <button class="btn primary" id="eAddBtn">＋ Add a wine I've had</button>
+    <button class="btn primary" id="eAddBtn" data-i18n>＋ Add a wine I've had</button>
   </div>
-  <p class="ph" style="margin:0 0 14px">Bottles from the cellar you've finished, plus wines you drank elsewhere — a restaurant, a friend's table.</p>
-  <section class="kpis" id="eKpis" aria-label="Enjoyed totals"></section>
+  <p class="ph" style="margin:0 0 14px" data-i18n>Bottles from the cellar you've finished, plus wines you drank elsewhere — a restaurant, a friend's table.</p>
+  <section class="kpis" id="eKpis" aria-label="Enjoyed totals" data-i18n-aria></section>
 
   <div class="grid">
     <div class="panel">
-      <h2>By style</h2>
-      <p class="ph">Bottles you've enjoyed · click a slice to filter</p>
-      <svg id="ePie" role="img" aria-label="Enjoyed bottles by style"></svg>
+      <h2 data-i18n>By style</h2>
+      <p class="ph" data-i18n>Bottles you've enjoyed · click a slice to filter</p>
+      <svg id="ePie" role="img" aria-label="Enjoyed bottles by style" data-i18n-aria></svg>
       <div class="slegend" id="eLegend"></div>
     </div>
     <div class="panel">
-      <h2>Most enjoyed</h2>
-      <p class="ph">Producers by bottles enjoyed · click to filter</p>
+      <h2 data-i18n>Most enjoyed</h2>
+      <p class="ph" data-i18n>Producers by bottles enjoyed · click to filter</p>
       <div id="eProducers"></div>
     </div>
   </div>
 
   <div class="panel" style="margin-bottom:24px">
-    <h2>Drinking over time</h2>
-    <p class="ph">Bottles enjoyed per month · coloured by style</p>
-    <svg id="eTime" role="img" aria-label="Bottles enjoyed per month"></svg>
+    <h2 data-i18n>Drinking over time</h2>
+    <p class="ph" data-i18n>Bottles enjoyed per month · coloured by style</p>
+    <svg id="eTime" role="img" aria-label="Bottles enjoyed per month" data-i18n-aria></svg>
     <p class="ph" id="eTimeCap" style="margin-top:8px"></p>
   </div>
 
   <div class="fillbar" id="eFill" hidden></div>
   <div class="filters">
-    <input type="search" id="eq" placeholder="Search wines you've enjoyed…" aria-label="Search enjoyed wines">
-    <div class="segf" id="eCls" role="group" aria-label="Classification"></div>
-    <div class="segf" id="eWhere" role="group" aria-label="Where"></div>
+    <input type="search" id="eq" placeholder="Search wines you've enjoyed…" aria-label="Search enjoyed wines" data-i18n-ph data-i18n-aria>
+    <div class="segf" id="eCls" role="group" aria-label="Classification" data-i18n-aria></div>
+    <div class="segf" id="eWhere" role="group" aria-label="Where" data-i18n-aria></div>
     <span class="count" id="eCount"></span>
   </div>
   <div class="tablewrap">
     <table id="eTbl">
       <thead><tr>
-        <th data-k="producer">Producer <span class="arr"></span></th>
-        <th data-k="vintage" class="num">Vintage <span class="arr"></span></th>
-        <th data-k="region">Region <span class="arr"></span></th>
-        <th data-k="style">Style <span class="arr"></span></th>
-        <th data-k="drunk" class="num">Enjoyed <span class="arr"></span></th>
-        <th data-k="drunkDate">Last drunk <span class="arr"></span></th>
-        <th data-k="price" class="num">Price <span class="arr"></span></th>
+        <th data-k="producer"><span data-i18n>Producer</span> <span class="arr"></span></th>
+        <th data-k="vintage" class="num"><span data-i18n>Vintage</span> <span class="arr"></span></th>
+        <th data-k="region"><span data-i18n>Region</span> <span class="arr"></span></th>
+        <th data-k="style"><span data-i18n>Style</span> <span class="arr"></span></th>
+        <th data-k="drunk" class="num"><span data-i18n>Enjoyed</span> <span class="arr"></span></th>
+        <th data-k="drunkDate"><span data-i18n>Last drunk</span> <span class="arr"></span></th>
+        <th data-k="price" class="num"><span data-i18n>Price</span> <span class="arr"></span></th>
       </tr></thead>
       <tbody id="eRows"></tbody>
     </table>
@@ -795,78 +791,78 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
 
 <div id="pageWishlist" hidden>
   <div class="actions">
-    <button class="btn primary" id="wAddBtn">＋ Add wish</button>
+    <button class="btn primary" id="wAddBtn" data-i18n>＋ Add wish</button>
     <span class="stamp" id="wCount"></span>
   </div>
-  <p class="ph" style="margin:0 0 14px">Wines you're after — jot them down, then move one into the cellar when you buy it.</p>
-  <div class="spin" id="wSpin" hidden>Fetching the wishlist…</div>
+  <p class="ph" style="margin:0 0 14px" data-i18n>Wines you're after — jot them down, then move one into the cellar when you buy it.</p>
+  <div class="spin" id="wSpin" hidden data-i18n>Fetching the wishlist…</div>
   <div id="wList"></div>
 </div>
 
 <div id="pageJournal" hidden>
   <div class="actions">
-    <button class="btn primary" id="jAddBtn">＋ New entry</button>
+    <button class="btn primary" id="jAddBtn" data-i18n>＋ New entry</button>
     <span class="stamp" id="jCount"></span>
   </div>
-  <p class="ph" style="margin:0 0 14px">Tasting log — any wine, any place: from the cellar, a restaurant, or a friend's table.</p>
-  <div class="spin" id="jSpin" hidden>Fetching the journal…</div>
+  <p class="ph" style="margin:0 0 14px" data-i18n>Tasting log — any wine, any place: from the cellar, a restaurant, or a friend's table.</p>
+  <div class="spin" id="jSpin" hidden data-i18n>Fetching the journal…</div>
   <div id="jList"></div>
 </div>
 
 <div id="pageFeed" hidden>
   <div class="actions">
-    <button class="btn primary" id="feedNewBtn">＋ Share a bottle</button>
+    <button class="btn primary" id="feedNewBtn" data-i18n>＋ Share a bottle</button>
     <span class="stamp" id="feedCount"></span>
   </div>
-  <p class="ph" style="margin:0 0 12px">A shared feed — bottles friends have bought or drunk. Share your own, or send one to a specific person.</p>
+  <p class="ph" style="margin:0 0 12px" data-i18n>A shared feed — bottles friends have bought or drunk. Share your own, or send one to a specific person.</p>
   <div class="feedtabs" id="feedTabs"></div>
-  <div class="spin" id="feedSpin" hidden>Fetching the feed…</div>
+  <div class="spin" id="feedSpin" hidden data-i18n>Fetching the feed…</div>
   <div id="feedList"></div>
 </div>
 </div><!-- /app -->
 
 <div class="modal" id="addModal" role="dialog" aria-modal="true" aria-labelledby="addTitle">
   <form class="card" id="addForm">
-    <h2 id="addTitle">Add wine</h2>
-    <label for="aProducer">Producer *</label><input id="aProducer" required list="jProducers" autocomplete="off">
+    <h2 id="addTitle" data-i18n>Add wine</h2>
+    <label for="aProducer" data-i18n>Producer *</label><input id="aProducer" required list="jProducers" autocomplete="off">
     <div class="row2">
-      <div><label for="aName">Vineyard / cuvée</label><input id="aName" list="jWines" autocomplete="off"></div>
-      <div><label for="aCommune">Commune</label><input id="aCommune" list="communesList" autocomplete="off"></div>
+      <div><label for="aName" data-i18n>Vineyard / cuvée</label><input id="aName" list="jWines" autocomplete="off"></div>
+      <div><label for="aCommune" data-i18n>Commune</label><input id="aCommune" list="communesList" autocomplete="off"></div>
     </div>
     <div class="row2">
-      <div><label for="aCountry">Country</label><input id="aCountry" value="Frankrig" list="countries">
+      <div><label for="aCountry" data-i18n>Country</label><input id="aCountry" value="Frankrig" list="countries">
         <datalist id="countries"></datalist></div>
-      <div><label for="aRegion">Region</label><input id="aRegion" list="regionsList"><datalist id="regionsList"></datalist><datalist id="communesList"></datalist></div>
+      <div><label for="aRegion" data-i18n>Region</label><input id="aRegion" list="regionsList"><datalist id="regionsList"></datalist><datalist id="communesList"></datalist></div>
     </div>
     <div class="row2">
-      <div><label for="aClass">Classification <span class="lopt clshint" id="aClassHint"></span></label>
+      <div><label for="aClass"><span data-i18n>Classification</span> <span class="lopt clshint" id="aClassHint"></span></label>
         <select id="aClass"><option>AOC</option><option>1. cru</option><option>Grand cru</option><option>Special club</option><option value=""></option></select></div>
-      <div><label for="aType">Type</label>
-        <select id="aType"><option value="Rød">Red</option><option value="Hvid">White</option><option value="Rose">Rosé</option><option value="Bobler">Sparkling</option></select></div>
+      <div><label for="aType" data-i18n>Type</label>
+        <select id="aType"><option value="Rød" data-i18n>Red</option><option value="Hvid" data-i18n>White</option><option value="Rose">Rosé</option><option value="Bobler" data-i18n>Sparkling</option></select></div>
     </div>
     <div class="row2">
-      <div><label for="aGrape">Grape</label><input id="aGrape" list="grapes"><datalist id="grapes"></datalist></div>
-      <div><label for="aVintage">Vintage (year or NV)</label><input id="aVintage" placeholder="2022"></div>
+      <div><label for="aGrape" data-i18n>Grape</label><input id="aGrape" list="grapes"><datalist id="grapes"></datalist></div>
+      <div><label for="aVintage" data-i18n>Vintage (year or NV)</label><input id="aVintage" placeholder="2022"></div>
     </div>
     <div class="row2">
-      <div><label for="aQty">Bottles</label><input id="aQty" type="number" min="1" value="1"></div>
-      <div><label for="aSize">Format</label>
-        <select id="aSize"><option value="">Bottle · 75 cl</option><option>Piccolo</option><option>Half</option><option>Magnum</option><option>Jeroboam</option><option>Rehoboam</option><option>Methuselah</option><option>Salmanazar</option><option>Balthazar</option><option>Nebuchadnezzar</option></select></div>
+      <div><label for="aQty" data-i18n>Bottles</label><input id="aQty" type="number" min="1" value="1"></div>
+      <div><label for="aSize" data-i18n>Format</label>
+        <select id="aSize"><option value="" data-i18n>Bottle · 75 cl</option><option>Piccolo</option><option value="Half" data-i18n>Half</option><option>Magnum</option><option>Jeroboam</option><option>Rehoboam</option><option>Methuselah</option><option>Salmanazar</option><option>Balthazar</option><option>Nebuchadnezzar</option></select></div>
     </div>
     <div class="row2">
-      <div><label for="aPrice">Price per bottle (kr.)</label><input id="aPrice" type="number" min="0" step="1"></div>
-      <div><label for="aSource">Source / bought at</label><input id="aSource"></div>
+      <div><label for="aPrice" data-i18n>Price per bottle (kr.)</label><input id="aPrice" type="number" min="0" step="1"></div>
+      <div><label for="aSource" data-i18n>Source / bought at</label><input id="aSource"></div>
     </div>
     <div class="row2">
-      <div><label for="aAcquired">Acquired</label><input id="aAcquired" type="date"></div>
+      <div><label for="aAcquired" data-i18n>Acquired</label><input id="aAcquired" type="date"></div>
       <div><label for="aLocation" data-i18n>Location</label><input id="aLocation" list="locList" data-i18n-ph placeholder="e.g. Cellar, shelf 2"><datalist id="locList"></datalist></div>
     </div>
-    <label for="aNote">Note</label><input id="aNote">
+    <label for="aNote" data-i18n>Note</label><input id="aNote">
     <p class="lopt jfill" id="aFillNote" hidden></p>
     <p class="lopt jfill sgnote" id="aSuggest" hidden></p>
     <div class="mact">
-      <button type="button" class="btn" id="addCancel">Cancel</button>
-      <button type="submit" class="btn primary" id="addSave">Add to cellar</button>
+      <button type="button" class="btn" id="addCancel" data-i18n>Cancel</button>
+      <button type="submit" class="btn primary" id="addSave" data-i18n>Add to cellar</button>
     </div>
   </form>
 </div>
@@ -918,7 +914,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
       <p class="lockline" id="impLock"></p>
     </div>
     <div id="impMap" hidden>
-      <div class="impfile"><b id="impName"></b><select id="impSheet" aria-label="Sheet" hidden></select></div>
+      <div class="impfile"><b id="impName"></b><select id="impSheet" aria-label="Sheet" hidden data-i18n-aria></select></div>
       <p class="imphint" id="impHint"></p>
       <div class="impcols" id="impCols"></div>
       <h3 data-i18n>Preview</h3>
@@ -947,47 +943,47 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
 
 <div class="modal" id="eaModal" role="dialog" aria-modal="true" aria-labelledby="eaTitle">
   <form class="card" id="eaForm">
-    <h2 id="eaTitle">Add a wine I've had</h2>
-    <label for="eaProducer">Producer *</label><input id="eaProducer" list="jProducers" required>
+    <h2 id="eaTitle" data-i18n>Add a wine I've had</h2>
+    <label for="eaProducer" data-i18n>Producer *</label><input id="eaProducer" list="jProducers" required>
     <div class="row2">
-      <div><label for="eaWine">Wine / cuvée</label><input id="eaWine" list="jWines" autocomplete="off"></div>
-      <div><label for="eaVintage">Vintage</label><input id="eaVintage" placeholder="2019 or NV"></div>
+      <div><label for="eaWine" data-i18n>Wine / cuvée</label><input id="eaWine" list="jWines" autocomplete="off"></div>
+      <div><label for="eaVintage" data-i18n>Vintage</label><input id="eaVintage" placeholder="2019 or NV"></div>
     </div>
     <div class="row2">
-      <div><label for="eaType">Type</label>
-        <select id="eaType"><option value="Rød">Red</option><option value="Hvid">White</option><option value="Bobler">Sparkling</option><option value="Rose">Rosé</option></select></div>
-      <div><label for="eaCountry">Country</label><input id="eaCountry" list="countries"></div>
+      <div><label for="eaType" data-i18n>Type</label>
+        <select id="eaType"><option value="Rød" data-i18n>Red</option><option value="Hvid" data-i18n>White</option><option value="Bobler" data-i18n>Sparkling</option><option value="Rose">Rosé</option></select></div>
+      <div><label for="eaCountry" data-i18n>Country</label><input id="eaCountry" list="countries"></div>
     </div>
     <div class="row2">
-      <div><label for="eaRegion">Region</label><input id="eaRegion" list="regionsList"></div>
-      <div><label for="eaCommune">Commune</label><input id="eaCommune" list="communesList"></div>
+      <div><label for="eaRegion" data-i18n>Region</label><input id="eaRegion" list="regionsList"></div>
+      <div><label for="eaCommune" data-i18n>Commune</label><input id="eaCommune" list="communesList"></div>
     </div>
-    <label for="eaClass">Classification <span class="lopt clshint" id="eaClassHint"></span></label>
+    <label for="eaClass"><span data-i18n>Classification</span> <span class="lopt clshint" id="eaClassHint"></span></label>
     <select id="eaClass"><option value="">—</option><option>AOC</option><option>1. cru</option><option>Grand cru</option><option>Special club</option></select>
     <p class="lopt jfill" id="eaFillNote" hidden></p>
 
     <div class="row2">
-      <div><label for="eaGrape">Grape</label><input id="eaGrape" list="grapes"></div>
-      <div><label for="eaPlace">Place had</label><input id="eaPlace" placeholder="restaurant · hos …"></div>
+      <div><label for="eaGrape" data-i18n>Grape</label><input id="eaGrape" list="grapes"></div>
+      <div><label for="eaPlace" data-i18n>Place had</label><input id="eaPlace" placeholder="restaurant · hos …" data-i18n-ph></div>
     </div>
     <div class="row2">
-      <div><label for="eaDate">Date drunk</label><input id="eaDate" type="date"></div>
-      <div><label for="eaRating">Rating</label>
+      <div><label for="eaDate" data-i18n>Date drunk</label><input id="eaDate" type="date"></div>
+      <div><label for="eaRating" data-i18n>Rating</label>
         <select id="eaRating"><option value="">—</option>
           <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option>
           <option>6</option><option>7</option><option>8</option><option>9</option><option>10</option></select></div>
     </div>
     <div class="row2">
-      <div><label for="eaSize">Format</label>
-        <select id="eaSize"><option value="">Bottle · 75 cl</option><option>Piccolo</option><option>Half</option><option>Magnum</option><option>Jeroboam</option><option>Rehoboam</option><option>Methuselah</option><option>Salmanazar</option><option>Balthazar</option><option>Nebuchadnezzar</option></select></div>
-      <div><label for="eaPrice">Price <span class="lopt">(what it cost)</span></label>
+      <div><label for="eaSize" data-i18n>Format</label>
+        <select id="eaSize"><option value="" data-i18n>Bottle · 75 cl</option><option>Piccolo</option><option value="Half" data-i18n>Half</option><option>Magnum</option><option>Jeroboam</option><option>Rehoboam</option><option>Methuselah</option><option>Salmanazar</option><option>Balthazar</option><option>Nebuchadnezzar</option></select></div>
+      <div><label for="eaPrice"><span data-i18n>Price</span> <span class="lopt" data-i18n>(what it cost)</span></label>
         <input id="eaPrice" type="number" min="0" step="1" inputmode="numeric" placeholder="kr."></div>
     </div>
-    <label for="eaNote">Note</label><textarea id="eaNote" rows="2"></textarea>
+    <label for="eaNote" data-i18n>Note</label><textarea id="eaNote" rows="2"></textarea>
     <div class="jerr" id="eaErr" role="alert" hidden></div>
     <div class="mact">
-      <button type="button" class="btn" id="eaCancel">Cancel</button>
-      <button type="submit" class="btn primary" id="eaSave">Add to Enjoyed</button>
+      <button type="button" class="btn" id="eaCancel" data-i18n>Cancel</button>
+      <button type="submit" class="btn primary" id="eaSave" data-i18n>Add to Enjoyed</button>
     </div>
   </form>
 </div>
@@ -995,36 +991,36 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
 <div class="modal" id="iModal" role="dialog" aria-modal="true" aria-labelledby="iTitle">
   <form class="card" id="iForm">
     <h2 id="iTitle">Edit wine details</h2>
-    <label for="iProducer">Producer *</label><input id="iProducer" list="jProducers" required>
+    <label for="iProducer" data-i18n>Producer *</label><input id="iProducer" list="jProducers" required>
     <div class="row2">
-      <div><label for="iName">Wine / cuvée</label><input id="iName"></div>
-      <div><label for="iVintage">Vintage</label><input id="iVintage" placeholder="2019 or NV"></div>
+      <div><label for="iName" data-i18n>Wine / cuvée</label><input id="iName"></div>
+      <div><label for="iVintage" data-i18n>Vintage</label><input id="iVintage" placeholder="2019 or NV"></div>
     </div>
     <div class="row2">
-      <div><label for="iCommune">Commune</label><input id="iCommune" list="communesList"></div>
-      <div><label for="iClass">Classification <span class="lopt clshint" id="iClassHint"></span></label>
+      <div><label for="iCommune" data-i18n>Commune</label><input id="iCommune" list="communesList"></div>
+      <div><label for="iClass"><span data-i18n>Classification</span> <span class="lopt clshint" id="iClassHint"></span></label>
         <select id="iClass"><option value="">—</option><option>AOC</option><option>1. cru</option><option>Grand cru</option><option>Special club</option></select></div>
     </div>
     <div class="row2">
-      <div><label for="iCountry">Country</label><input id="iCountry" list="countries"></div>
-      <div><label for="iRegion">Region</label><input id="iRegion" list="regionsList"></div>
+      <div><label for="iCountry" data-i18n>Country</label><input id="iCountry" list="countries"></div>
+      <div><label for="iRegion" data-i18n>Region</label><input id="iRegion" list="regionsList"></div>
     </div>
     <div class="row2">
-      <div><label for="iGrape">Grape</label><input id="iGrape" list="grapes"></div>
-      <div><label for="iType">Type</label>
-        <select id="iType"><option value="Rød">Red</option><option value="Hvid">White</option><option value="Bobler">Sparkling</option><option value="Rose">Rosé</option></select></div>
+      <div><label for="iGrape" data-i18n>Grape</label><input id="iGrape" list="grapes"></div>
+      <div><label for="iType" data-i18n>Type</label>
+        <select id="iType"><option value="Rød" data-i18n>Red</option><option value="Hvid" data-i18n>White</option><option value="Bobler" data-i18n>Sparkling</option><option value="Rose">Rosé</option></select></div>
     </div>
     <div class="row2">
       <div><label for="iLocation" data-i18n>Location</label><input id="iLocation" list="locList" data-i18n-ph placeholder="e.g. Cellar, shelf 2"></div>
-      <div><label for="iSource">Source / bought at</label><input id="iSource"></div>
+      <div><label for="iSource" data-i18n>Source / bought at</label><input id="iSource"></div>
     </div>
-    <label for="iNote">Note</label><input id="iNote">
+    <label for="iNote" data-i18n>Note</label><input id="iNote">
     <label class="jcheck" id="iJWrap" hidden><input type="checkbox" id="iJournal" checked>
       <span id="iJLabel"></span></label>
     <div class="jerr" id="iErr" role="alert" hidden></div>
     <div class="mact">
-      <button type="button" class="btn" id="iCancel">Cancel</button>
-      <button type="submit" class="btn primary" id="iSave">Save details</button>
+      <button type="button" class="btn" id="iCancel" data-i18n>Cancel</button>
+      <button type="submit" class="btn primary" id="iSave" data-i18n>Save details</button>
     </div>
   </form>
 </div>
@@ -1032,19 +1028,19 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
 <div class="modal" id="wModal" role="dialog" aria-modal="true" aria-labelledby="wTitle">
   <form class="card" id="wForm">
     <h2 id="wTitle">Add to wishlist</h2>
-    <label for="wProducer">Producer *</label><input id="wProducer" list="jProducers" required>
+    <label for="wProducer" data-i18n>Producer *</label><input id="wProducer" list="jProducers" required>
     <div class="row2">
-      <div><label for="wWine">Wine / cuvée</label><input id="wWine"></div>
-      <div><label for="wVintage">Vintage</label><input id="wVintage" placeholder="2019 or NV"></div>
+      <div><label for="wWine" data-i18n>Wine / cuvée</label><input id="wWine"></div>
+      <div><label for="wVintage" data-i18n>Vintage</label><input id="wVintage" placeholder="2019 or NV"></div>
     </div>
     <div class="row2">
-      <div><label for="wRegion">Region</label><input id="wRegion" list="regionsList"></div>
-      <div><label for="wPrice">Target price (kr.)</label><input id="wPrice" type="number" min="0" step="1"></div>
+      <div><label for="wRegion" data-i18n>Region</label><input id="wRegion" list="regionsList"></div>
+      <div><label for="wPrice" data-i18n>Target price (kr.)</label><input id="wPrice" type="number" min="0" step="1"></div>
     </div>
-    <label for="wNote">Note</label><textarea id="wNote" rows="2" placeholder="Where to find it, why you want it…"></textarea>
+    <label for="wNote" data-i18n>Note</label><textarea id="wNote" rows="2" placeholder="Where to find it, why you want it…" data-i18n-ph></textarea>
     <div class="jerr" id="wErr" role="alert" hidden></div>
     <div class="mact">
-      <button type="button" class="btn" id="wCancel">Cancel</button>
+      <button type="button" class="btn" id="wCancel" data-i18n>Cancel</button>
       <button type="submit" class="btn primary" id="wSave">Save</button>
     </div>
   </form>
@@ -1052,34 +1048,34 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
 
 <div class="modal" id="shareModal" role="dialog" aria-modal="true" aria-labelledby="shareTitle">
   <form class="card" id="shareForm">
-    <h2 id="shareTitle">Share a bottle</h2>
+    <h2 id="shareTitle" data-i18n>Share a bottle</h2>
     <div class="row2">
-      <div><label for="shType">What</label>
-        <select id="shType"><option value="drank">Drank</option><option value="bought">Bought</option><option value="note">Note</option></select></div>
-      <div><label for="shTo">Send to</label>
-        <select id="shTo"><option value="">Everyone</option></select></div>
+      <div><label for="shType" data-i18n>What</label>
+        <select id="shType"><option value="drank" data-i18n>Drank</option><option value="bought" data-i18n>Bought</option><option value="note" data-i18n>Note</option></select></div>
+      <div><label for="shTo" data-i18n>Send to</label>
+        <select id="shTo"><option value="" data-i18n>Everyone</option></select></div>
     </div>
-    <label for="shProducer">Producer</label><input id="shProducer" list="jProducers">
+    <label for="shProducer" data-i18n>Producer</label><input id="shProducer" list="jProducers">
     <div class="row2">
-      <div><label for="shWine">Wine / cuvée</label><input id="shWine"></div>
-      <div><label for="shVintage">Vintage</label><input id="shVintage" placeholder="2019 or NV"></div>
+      <div><label for="shWine" data-i18n>Wine / cuvée</label><input id="shWine"></div>
+      <div><label for="shVintage" data-i18n>Vintage</label><input id="shVintage" placeholder="2019 or NV"></div>
     </div>
     <div class="row2">
-      <div><label for="shRegion">Region</label><input id="shRegion" list="regionsList"></div>
-      <div><label for="shRating">Rating</label>
+      <div><label for="shRegion" data-i18n>Region</label><input id="shRegion" list="regionsList"></div>
+      <div><label for="shRating" data-i18n>Rating</label>
         <select id="shRating"><option value="">—</option>
           <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option>
           <option>6</option><option>7</option><option>8</option><option>9</option><option>10</option></select></div>
     </div>
-    <label for="shNote">Note</label><textarea id="shNote" rows="2" placeholder="Say something about it…"></textarea>
-    <label for="shPhoto">Photo <span class="lopt">(optional)</span></label>
+    <label for="shNote" data-i18n>Note</label><textarea id="shNote" rows="2" placeholder="Say something about it…" data-i18n-ph></textarea>
+    <label for="shPhoto"><span data-i18n>Photo</span> <span class="lopt" data-i18n>(optional)</span></label>
     <input id="shPhoto" type="file" accept="image/*">
     <img id="shPhotoPrev" class="jphoto-prev" alt="Selected photo preview" hidden>
-    <button type="button" class="btn quiet" id="shPhotoRemove" hidden>Remove photo</button>
+    <button type="button" class="btn quiet" id="shPhotoRemove" hidden data-i18n>Remove photo</button>
     <div class="jerr" id="shErr" role="alert" hidden></div>
     <div class="mact">
-      <button type="button" class="btn" id="shCancel">Cancel</button>
-      <button type="submit" class="btn primary" id="shSave">Share</button>
+      <button type="button" class="btn" id="shCancel" data-i18n>Cancel</button>
+      <button type="submit" class="btn primary" id="shSave" data-i18n>Share</button>
     </div>
   </form>
 </div>
@@ -1088,27 +1084,27 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
   <form class="card" id="jForm">
     <h2 id="jTitle">New journal entry</h2>
     <div class="row2">
-      <div><label for="jDate">Date</label><input id="jDate" type="date" required></div>
-      <div><label for="jPlace">Place</label><input id="jPlace" placeholder="Home · restaurant · hos …" list="jPlaces">
+      <div><label for="jDate" data-i18n>Date</label><input id="jDate" type="date" required></div>
+      <div><label for="jPlace" data-i18n>Place</label><input id="jPlace" placeholder="Home · restaurant · hos …" list="jPlaces" data-i18n-ph>
         <datalist id="jPlaces"></datalist></div>
     </div>
-    <label for="jProducer">Producer</label><input id="jProducer" list="jProducers" required>
+    <label for="jProducer" data-i18n>Producer</label><input id="jProducer" list="jProducers" required>
     <datalist id="jProducers"></datalist>
     <div class="row2">
-      <div><label for="jWine">Wine / cuvée</label><input id="jWine" list="jWines" autocomplete="off"><datalist id="jWines"></datalist></div>
-      <div><label for="jVintage">Vintage</label><input id="jVintage" placeholder="2019 or NV"></div>
+      <div><label for="jWine" data-i18n>Wine / cuvée</label><input id="jWine" list="jWines" autocomplete="off"><datalist id="jWines"></datalist></div>
+      <div><label for="jVintage" data-i18n>Vintage</label><input id="jVintage" placeholder="2019 or NV"></div>
     </div>
     <div class="row2">
-      <div><label for="jCountry">Country</label><input id="jCountry" list="countries"></div>
-      <div><label for="jRegion">Region</label><input id="jRegion" list="regionsList"></div>
+      <div><label for="jCountry" data-i18n>Country</label><input id="jCountry" list="countries"></div>
+      <div><label for="jRegion" data-i18n>Region</label><input id="jRegion" list="regionsList"></div>
     </div>
     <div class="row2">
-      <div><label for="jCommune">Commune</label><input id="jCommune" list="communesList"></div>
-      <div><label for="jClass">Classification <span class="lopt clshint" id="jClassHint"></span></label>
+      <div><label for="jCommune" data-i18n>Commune</label><input id="jCommune" list="communesList"></div>
+      <div><label for="jClass"><span data-i18n>Classification</span> <span class="lopt clshint" id="jClassHint"></span></label>
         <select id="jClass"><option value="">—</option><option>AOC</option><option>1. cru</option><option>Grand cru</option><option>Special club</option></select></div>
     </div>
-    <label for="jGrape">Grape / blend</label><input id="jGrape" list="grapes">
-    <label for="jRating">Rating</label>
+    <label for="jGrape" data-i18n>Grape / blend</label><input id="jGrape" list="grapes">
+    <label for="jRating" data-i18n>Rating</label>
     <select id="jRating">
       <option value="">—</option>
       <option value="1">1 / 10</option><option value="2">2 / 10</option>
@@ -1117,21 +1113,21 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
       <option value="7">7 / 10</option><option value="8">8 / 10</option>
       <option value="9">9 / 10</option><option value="10">10 / 10</option>
     </select>
-    <label for="jPrice">Price <span class="lopt" id="jPriceOpt">(optional — what the bottle cost)</span></label>
+    <label for="jPrice"><span data-i18n>Price</span> <span class="lopt" id="jPriceOpt">(optional — what the bottle cost)</span></label>
     <input id="jPrice" type="number" min="0" step="1" inputmode="numeric" placeholder="kr.">
-    <label for="jNote">Note</label><textarea id="jNote" rows="3" placeholder="How was it?"></textarea>
-    <label for="jPhoto">Photo <span class="lopt">(optional — label, bottle, the moment)</span></label>
+    <label for="jNote" data-i18n>Note</label><textarea id="jNote" rows="3" placeholder="How was it?" data-i18n-ph></textarea>
+    <label for="jPhoto"><span data-i18n>Photo</span> <span class="lopt" data-i18n>(optional — label, bottle, the moment)</span></label>
     <input id="jPhoto" type="file" accept="image/*">
     <img id="jPhotoPrev" class="jphoto-prev" alt="Selected photo preview" hidden>
-    <button type="button" class="btn quiet" id="jPhotoRemoveBtn" hidden>Remove photo</button>
+    <button type="button" class="btn quiet" id="jPhotoRemoveBtn" hidden data-i18n>Remove photo</button>
     <label class="jcheck" id="jEnjoyWrap"><input type="checkbox" id="jEnjoy">
-      <span id="jEnjoyLabel">Also add to <b>Enjoyed</b></span>
+      <span id="jEnjoyLabel">Also add to <b data-i18n>Enjoyed</b></span>
       <span class="lopt" id="jEnjoyHint">— for a wine you drank but don't own</span></label>
-    <div class="jdone" id="jEnjoyDone" hidden>✓ Already in <b>Enjoyed</b> <span class="lopt" id="jEnjoyDoneHint"></span></div>
+    <div class="jdone" id="jEnjoyDone" hidden>✓ <span data-i18n>Already in</span> <b data-i18n>Enjoyed</b> <span class="lopt" id="jEnjoyDoneHint"></span></div>
     <p class="lopt jfill" id="jFillNote" hidden></p>
     <div class="jerr" id="jErr" role="alert" hidden></div>
     <div class="mact">
-      <button type="button" class="btn" id="jCancel">Cancel</button>
+      <button type="button" class="btn" id="jCancel" data-i18n>Cancel</button>
       <button type="submit" class="btn primary" id="jSave">Save entry</button>
     </div>
   </form>
@@ -1157,8 +1153,9 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
 
 <!-- Pages serves these with max-age=600 and no revalidation, so a merged change can
      sit invisible behind a stale app.js for ten minutes. Bump v on every deploy. -->
-<script src="i18n.js?v=22"></script>
+<script src="i18n.js?v=23"></script>
 <script src="notes.js?v=4"></script>
+<script src="notes-i18n.js?v=1"></script>
 <script src="burgundy-data.js?v=13"></script>
 <script src="burgundy-data-beaune.js?v=12"></script>
 <script src="burgundy-names.js?v=1"></script>
@@ -1171,6 +1168,6 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
 <script src="tidy.js?v=2"></script>
 <script src="import.js?v=5"></script>
 <script src="export.js?v=2"></script>
-<script src="app.js?v=17"></script>
+<script src="app.js?v=18"></script>
 </body>
 </html>

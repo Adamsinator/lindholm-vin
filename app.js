@@ -1,6 +1,10 @@
 /* AllWine — cellar app. Data comes from the Apps Script API; nothing is stored here. */
 "use strict";
 
+// The interface language (i18n.js): tr(englishText, a, b) gives it in the chosen language, {0} {1} filled in.
+const tr = (window.I18N && window.I18N.t) || ((s, ...a) => a.length ? s.replace(/\{(\d)\}/g, (m, i) => a[i] ?? "") : s);
+const I18N_LOCALE = () => ({en:"en-GB", fr:"fr-FR", de:"de-DE"})[window.I18N && I18N.lang] || "da-DK";
+
 const TIER_LABEL = {legend:"Icon", top:"Top tier", solid:"Well regarded"};
 const STYLES = ["Rød","Hvid","Bobler","Rosé"];
 const STYLE_EN = {"Rød":"Red","Hvid":"White","Bobler":"Sparkling","Rosé":"Rosé"};
@@ -43,12 +47,12 @@ function formatOf(w){
 const isStdBottle = w => formatOf(w) === BOTTLE;
 const fmtLitres = n => new Intl.NumberFormat("da-DK",{maximumFractionDigits:1}).format(n);
 const fmtChip = w => isStdBottle(w) ? "" :
-  `<span class="fmt" title="${esc(formatOf(w).note)}">${esc(formatOf(w).key)}</span>`;
+  `<span class="fmt" title="${esc(formatOf(w).note)}">${esc(tr(formatOf(w).key))}</span>`;
 
 const fmt = n => new Intl.NumberFormat("da-DK",{maximumFractionDigits:0}).format(n);
 const kr = n => fmt(n)+" kr.";
 const fmtDate = s => { const d=new Date(String(s).slice(0,10)+"T12:00:00");
-  return isNaN(d)?String(s):d.toLocaleDateString("da-DK",{day:"numeric",month:"short",year:"numeric"}); };
+  return isNaN(d)?String(s):d.toLocaleDateString(I18N_LOCALE(),{day:"numeric",month:"short",year:"numeric"}); };
 
 // A date in the browser's own timezone. toISOString() gives the UTC date, which
 // is still yesterday in Copenhagen between midnight and 01:00/02:00 — exactly
@@ -130,13 +134,18 @@ function readiness(w, now){
   if(!win) return null;
   const y = now || new Date().getFullYear();
   const {from,to,est} = win;
-  if(from!=null && y < from) return {k:"young", label:"Too young", soon:from===y+1, est};
-  if(to!=null && y > to) return {k:"past", label:"Past peak", soon:false, est};
+  if(from!=null && y < from) return {k:"young", label:tr("Too young"), soon:from===y+1, est};
+  if(to!=null && y > to) return {k:"past", label:tr("Past peak"), soon:false, est};
   const soon = to!=null && (to - y) <= 1; // closing this year or next
-  return {k:"now", label: soon?"Drink soon":"Drink now", soon, est};
+  return {k:"now", label: soon?tr("Drink soon"):tr("Drink now"), soon, est};
 }
 const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 const $ = id => document.getElementById(id);
+const btl = n => tr("{0} btl.", n); // "12 btl." — fl. in Danish
+// a producer's reputation note (notes.js) in the interface language (notes-i18n.js), or the English
+const noteText = t => (((window.PRODUCER_NOTES_I18N||{})[window.I18N && I18N.lang])||{})[t] || t;
+const nBottles = n => n===1 ? tr("1 bottle") : tr("{0} bottles", n);
+const nWines = n => n===1 ? tr("1 wine") : tr("{0} wines", n);
 
 let WINES = [];          // normalized
 let KEEP_OPEN = null;    // row number of the expanded detail, kept open across re-renders
@@ -226,7 +235,7 @@ function classShown(w){
 // " · Grand cru" after a wine's name; a suggested one is marked ≈ and dashed. Plain AOC isn't worth the space.
 function classChip(w){
   const c = classShown(w); if(!c || clsKey(c.txt)==="V") return "";
-  return c.est ? ` · <b class="clsest" title="Suggested from ${esc(c.sg.climat||"the label")} — not saved yet">≈ ${esc(c.txt)}</b>` : " · <b>"+esc(c.txt)+"</b>";
+  return c.est ? ` · <b class="clsest" title="${esc(tr("Suggested from {0} — not saved yet", c.sg.climat||tr("the label")))}">≈ ${esc(c.txt)}</b>` : " · <b>"+esc(c.txt)+"</b>";
 }
 // A wine drunk somewhere else and never in the cellar: marked by the API since v26; older rows by their shape.
 const isElsewhere = w => w.elsewhere || (w.qty===1 && w.drunk===1 && !w.acquired);
@@ -252,38 +261,38 @@ function renderOverview(){
   // name the icon producers actually in the cellar, most bottles first
   const iconBy = {}; iconWines.forEach(w=>{ iconBy[w.producer]=(iconBy[w.producer]||0)+w.left; });
   const iconNames = Object.entries(iconBy).sort((a,b)=>b[1]-a[1]).map(([p])=>p);
-  const iconHint = iconNames.length ? esc(iconNames.slice(0,3).join(", "))+(iconNames.length>3?"…":"") : "none in the cellar yet";
+  const iconHint = iconNames.length ? esc(iconNames.slice(0,3).join(", "))+(iconNames.length>3?"…":"") : tr("none in the cellar yet");
 
   const litres = cellar.reduce((s,w)=>s+formatOf(w).l*w.left,0);
   const anyBig = cellar.some(w=>!isStdBottle(w));
   const kpis = [
-    ["Bottles in cellar", fmt(bottlesLeft),
-      cellar.length+" different wines"+(anyBig?" · "+fmtLitres(litres)+" L":""), ""],
+    [tr("Bottles in cellar"), fmt(bottlesLeft),
+      tr("{0} different wines", cellar.length)+(anyBig?" · "+fmtLitres(litres)+" L":""), ""],
   ];
   if(SHOW_PRICES){
     const valueLeft = cellar.reduce((s,w)=>s+(w.price||0)*w.left,0);
-    kpis.push(["Cellar value", kr(valueLeft), "at purchase price", ""]);
-    kpis.push(["Avg. bottle", kr(bottlesLeft?valueLeft/bottlesLeft:0), "cellar average", ""]);
+    kpis.push([tr("Cellar value"), kr(valueLeft), tr("at purchase price"), ""]);
+    kpis.push([tr("Avg. bottle"), kr(bottlesLeft?valueLeft/bottlesLeft:0), tr("cellar average"), ""]);
     const valued = cellar.filter(w=>w.value!=null);
     if(valued.length){
       const market = valued.reduce((s,w)=>s+w.value*w.left,0);
       const paid = valued.reduce((s,w)=>s+(w.price||0)*w.left,0);
       const nBtl = valued.reduce((s,w)=>s+w.left,0);
-      kpis.push(["Current value", kr(market),
-        valued.length+" of "+cellar.length+" wines valued · "+fmt(nBtl)+" btl.", ""]);
+      kpis.push([tr("Current value"), kr(market),
+        tr("{0} of {1} wines valued", valued.length, cellar.length)+" · "+btl(fmt(nBtl)), ""]);
       if(paid>0){
         const gain = market-paid, pct = Math.round(gain/paid*100);
-        kpis.push([(gain>=0?"Unrealised gain":"Unrealised loss"),
+        kpis.push([(gain>=0?tr("Unrealised gain"):tr("Unrealised loss")),
           (gain>=0?"+":"−")+kr(Math.abs(gain)),
-          "vs. paid on valued wines"+(isFinite(pct)?" · "+(gain>=0?"+":"−")+Math.abs(pct)+"%":""),
+          tr("vs. paid on valued wines")+(isFinite(pct)?" · "+(gain>=0?"+":"−")+Math.abs(pct)+"%":""),
           ""]);
       }
     }
   }else{
-    kpis.push(["Cellar value", "🔒 hidden", "press Show prices above", "locked"]);
+    kpis.push([tr("Cellar value"), "🔒 "+tr("hidden"), tr("press Show prices above"), "locked"]);
   }
-  kpis.push(["Icon-producer bottles", fmt(iconCount), iconHint, ""]);
-  kpis.push(["Enjoyed so far", fmt(drunk), "bottles drunk", ""]);
+  kpis.push([tr("Icon-producer bottles"), fmt(iconCount), iconHint, ""]);
+  kpis.push([tr("Enjoyed so far"), fmt(drunk), tr("bottles drunk"), ""]);
   $("kpis").innerHTML = kpis.map(([l,v,h,c])=>
     `<div class="kpi ${c}"><div class="lbl">${l}</div><div class="val">${v}</div><div class="hint">${h}</div></div>`).join("");
 
@@ -293,20 +302,20 @@ function renderOverview(){
   const regs = Object.entries(regAgg).sort((a,b)=>b[1].b-a[1].b);
   const topRegs = regs.slice(0,8);
   const rest = regs.slice(8);
-  if(rest.length) topRegs.push(["Other ("+rest.length+" regions)",
+  if(rest.length) topRegs.push([tr("Other ({0} regions)", rest.length),
     {b:rest.reduce((s,r)=>s+r[1].b,0), v:rest.reduce((s,r)=>s+r[1].v,0), other:true}]);
   const maxB = topRegs.length ? topRegs[0][1].b : 1;
   $("regions").innerHTML = topRegs.map(([name,r])=>`
-    <button class="rbar" data-region="${r.other?"":esc(name)}" aria-label="${esc(name)}: ${r.b} bottles">
+    <button class="rbar" data-region="${r.other?"":esc(name)}" aria-label="${esc(name)}: ${esc(tr("{0} bottles", r.b))}">
       <span class="rb-name">${esc(name)}</span>
       <span class="rb-track"><span class="rb-fill" style="width:${Math.max(1.5,r.b/maxB*100)}%"></span></span>
-      <span class="rb-n">${r.b} btl.</span>
+      <span class="rb-n">${btl(r.b)}</span>
     </button>`).join("");
   document.querySelectorAll(".rbar").forEach(el=>{
     el.addEventListener("mousemove",e=>{
       const label = el.querySelector(".rb-name").textContent;
       const r = topRegs.find(t=>t[0]===label)[1];
-      showTip(`<b>${esc(label)}</b><br>${r.b} bottles${SHOW_PRICES?" · "+kr(r.v):""}`,e.clientX,e.clientY);
+      showTip(`<b>${esc(label)}</b><br>${esc(tr("{0} bottles", r.b))}${SHOW_PRICES?" · "+kr(r.v):""}`,e.clientX,e.clientY);
     });
     el.addEventListener("mouseleave",hideTip);
     el.addEventListener("click",()=>{ const name=el.dataset.region; if(!name) return;
@@ -321,7 +330,7 @@ function renderOverview(){
   drawPie(styList, styAgg, bottlesLeft);
   $("slegend").innerHTML = styList.map(s=>`
     <button data-style="${s}"><span class="dot" style="background:var(${STYLE_VAR[s]})"></span>
-    <span>${STYLE_EN[s]}</span><span class="n">${styAgg[s]} btl. · ${Math.round(styAgg[s]/Math.max(1,bottlesLeft)*100)}%</span></button>`).join("");
+    <span>${tr(STYLE_EN[s])}</span><span class="n">${btl(styAgg[s])} · ${Math.round(styAgg[s]/Math.max(1,bottlesLeft)*100)}%</span></button>`).join("");
   document.querySelectorAll("#slegend button").forEach(el=>
     el.addEventListener("click",()=>{ const s=el.dataset.style;
       state.style = state.style===s ? "" : s;
@@ -334,14 +343,14 @@ function renderOverview(){
   const topProds = prods.slice(0,10);
   const maxPB = topProds.length ? topProds[0][1].b : 1;
   $("producers").innerHTML = topProds.map(([name,p])=>`
-    <button class="rbar" data-prod="${esc(name)}" aria-label="${esc(name)}: ${p.b} bottles">
+    <button class="rbar" data-prod="${esc(name)}" aria-label="${esc(name)}: ${esc(tr("{0} bottles", p.b))}">
       <span class="rb-name">${esc(name)}</span>
       <span class="rb-track"><span class="rb-fill" style="width:${Math.max(1.5,p.b/maxPB*100)}%"></span></span>
-      <span class="rb-n">${p.b} btl.</span>
-    </button>`).join("") + (prods.length>10?`<div class="morep">+ ${prods.length-10} more producers — use the search box</div>`:"");
+      <span class="rb-n">${btl(p.b)}</span>
+    </button>`).join("") + (prods.length>10?`<div class="morep">${esc(tr("+ {0} more producers — use the search box", prods.length-10))}</div>`:"");
   document.querySelectorAll("#producers .rbar").forEach(el=>{
     const name = el.dataset.prod, p = prodAgg[name];
-    el.addEventListener("mousemove",e=>showTip(`<b>${esc(name)}</b><br>${p.b} bottle${p.b>1?"s":""} · ${p.n} wine${p.n>1?"s":""}${SHOW_PRICES?" · "+kr(p.v):""}`,e.clientX,e.clientY));
+    el.addEventListener("mousemove",e=>showTip(`<b>${esc(name)}</b><br>${esc(nBottles(p.b))} · ${esc(nWines(p.n))}${SHOW_PRICES?" · "+kr(p.v):""}`,e.clientX,e.clientY));
     el.addEventListener("mouseleave",hideTip);
     el.addEventListener("click",()=>{
       state.q = state.q.trim()===name ? "" : name;
@@ -379,7 +388,7 @@ function renderOverview(){
     const k = g.dataset.k, d = byV[k==="NV"?"NV":Number(k)];
     g.addEventListener("mousemove",e=>{
       const names = d.wines.slice(0,3).map(w=>w.producer).join(", ");
-      showTip(`<b>${k==="NV"?"Non-vintage":k}</b><br>${d.b} bottle${d.b>1?"s":""} · ${d.wines.length} wine${d.wines.length>1?"s":""}<br><span style="opacity:.75">${esc(names)}${d.wines.length>3?"…":""}</span>`,e.clientX,e.clientY);
+      showTip(`<b>${k==="NV"?esc(tr("Non-vintage")):k}</b><br>${esc(nBottles(d.b))} · ${esc(nWines(d.wines.length))}<br><span style="opacity:.75">${esc(names)}${d.wines.length>3?"…":""}</span>`,e.clientX,e.clientY);
     });
     g.addEventListener("mouseleave",hideTip);
     g.addEventListener("click",()=>{ $("q").value = state.q = (k==="NV"?"NV":k); renderTable(); });
@@ -387,11 +396,11 @@ function renderOverview(){
 
   /* filter dropdown options (preserve selection) */
   const selR = $("fRegion");
-  selR.innerHTML = '<option value="">All regions</option>' +
+  selR.innerHTML = `<option value="">${esc(tr("All regions"))}</option>` +
     regs.map(([name])=>`<option${state.region===name?" selected":""}>${esc(name)}</option>`).join("");
   const selS = $("fStyle");
-  selS.innerHTML = '<option value="">All styles</option>' +
-    STYLES.map(s=>`<option value="${s}"${state.style===s?" selected":""}>${STYLE_EN[s]}</option>`).join("");
+  selS.innerHTML = `<option value="">${esc(tr("All styles"))}</option>` +
+    STYLES.map(s=>`<option value="${s}"${state.style===s?" selected":""}>${tr(STYLE_EN[s])}</option>`).join("");
 
   const places = [...new Set(WINES.filter(w=>w.left>0||state.status!=="cellar").map(w=>locPlace(w.location)).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
   const selL = $("fLoc");
@@ -429,11 +438,11 @@ function drawPie(styList, styAgg, total){
     a0=a1;
   });
   html+=`<text class="pcen" x="${C}" y="${C+2}" text-anchor="middle">${fmt(total)}</text>
-    <text class="pcen2" x="${C}" y="${C+22}" text-anchor="middle">bottles</text>`;
+    <text class="pcen2" x="${C}" y="${C+22}" text-anchor="middle">${esc(tr("bottles"))}</text>`;
   svg.innerHTML=html;
   svg.querySelectorAll(".pslice").forEach(pl=>{
     const st=pl.dataset.style;
-    pl.addEventListener("mousemove",e=>showTip(`<b>${STYLE_EN[st]}</b><br>${styAgg[st]} btl. · ${Math.round(styAgg[st]/Math.max(1,total)*100)}%`,e.clientX,e.clientY));
+    pl.addEventListener("mousemove",e=>showTip(`<b>${tr(STYLE_EN[st])}</b><br>${btl(styAgg[st])} · ${Math.round(styAgg[st]/Math.max(1,total)*100)}%`,e.clientX,e.clientY));
     pl.addEventListener("mouseleave",hideTip);
     pl.addEventListener("click",()=>{ state.style = state.style===st ? "" : st;
       $("fStyle").value = state.style; renderTable(); });
@@ -446,22 +455,22 @@ function renderInsights(cellar){
   const items=[];
   const vintaged=cellar.filter(w=>typeof w.vintage==="number");
   if(vintaged.length){ const o=vintaged.reduce((a,b)=>b.vintage<a.vintage?b:a);
-    items.push(["Oldest vintage", o.vintage, esc(o.producer)]); }
+    items.push([tr("Oldest vintage"), o.vintage, esc(o.producer)]); }
   if(SHOW_PRICES){ const priced=cellar.filter(w=>w.price);
     if(priced.length){ const p=priced.reduce((a,b)=>b.price>a.price?b:a);
-      items.push(["Priciest bottle", kr(p.price), esc(p.producer)]); } }
+      items.push([tr("Priciest bottle"), kr(p.price), esc(p.producer)]); } }
   const reg={}; cellar.forEach(w=>{ if(w.region) reg[w.region]=(reg[w.region]||0)+w.left; });
-  const tr=Object.entries(reg).sort((a,b)=>b[1]-a[1])[0];
-  if(tr) items.push(["Top region", esc(tr[0]), tr[1]+" btl."]);
+  const topR=Object.entries(reg).sort((a,b)=>b[1]-a[1])[0];
+  if(topR) items.push([tr("Top region"), esc(topR[0]), btl(topR[1])]);
   const gr={}; cellar.forEach(w=>{ if(w.grape) gr[w.grape]=(gr[w.grape]||0)+w.left; });
   const tg=Object.entries(gr).sort((a,b)=>b[1]-a[1])[0];
-  if(tg) items.push(["Top grape", esc(tg[0]), tg[1]+" btl."]);
+  if(tg) items.push([tr("Top grape"), esc(tg[0]), btl(tg[1])]);
   const rated=cellar.filter(w=>w.rating!=null);
   if(rated.length){ const avg=rated.reduce((s,w)=>s+w.rating,0)/rated.length;
-    items.push(["Average score", avg.toFixed(1)+"/10", rated.length+" rated"]); }
+    items.push([tr("Average score"), avg.toFixed(1)+"/10", tr("{0} rated", rated.length)]); }
   const windowed=cellar.filter(w=>readiness(w));
   if(windowed.length){ const ready=cellar.filter(w=>{const r=readiness(w);return r&&r.k==="now";}).reduce((s,w)=>s+w.left,0);
-    items.push(["Ready to drink", fmt(ready)+" btl.", "in their window now"]); }
+    items.push([tr("Ready to drink"), btl(fmt(ready)), tr("in their window now")]); }
   el.innerHTML = items.map(([l,v,h])=>`<div class="ins"><div class="ins-l">${l}</div><div class="ins-v">${v}</div><div class="ins-h">${h}</div></div>`).join("");
   const panel = el.closest(".panel"); if(panel) panel.hidden = !items.length;
 }
@@ -473,14 +482,14 @@ function renderPriorities(cellar){
   cellar.forEach(w=>{ const r=readiness(w); if(!r) return;
     const k = r.k==="now" ? (r.soon?"soon":"now") : r.k; cat[k]+=w.left; });
   const defs=[
-    ["past","past","Past peak — drink up"],
-    ["soon","soon","Closing soon"],
-    ["now","now","Drink now"],
-    ["young","young","Too young"],
+    ["past","past",tr("Past peak — drink up")],
+    ["soon","soon",tr("Closing soon")],
+    ["now","now",tr("Drink now")],
+    ["young","young",tr("Too young")],
   ];
   const chips=defs.filter(([k])=>cat[k]>0).map(([k,fval,label])=>
     `<button class="prio ${k}" data-ready="${fval}"><span class="prio-n">${fmt(cat[k])}</span> ${label}</button>`).join("");
-  el.innerHTML = chips || `<span class="ins-h">Set drink windows on your wines to see priorities here.</span>`;
+  el.innerHTML = chips || `<span class="ins-h">${esc(tr("Set drink windows on your wines to see priorities here."))}</span>`;
   const panel=el.closest(".panel"); if(panel) panel.hidden = !chips;
   el.querySelectorAll(".prio").forEach(b=>b.addEventListener("click",()=>{
     state.status="cellar"; $("fStatus").value="cellar";
@@ -520,7 +529,7 @@ function drawHistory(){
   const H = buildHistory(WINES);
   if(!H.events.length){
     svg.innerHTML=""; svg.removeAttribute("viewBox");
-    cap.textContent = "Add an “Acquired” date to your wines (in the sheet, or when adding one) to see the collection grow over time.";
+    cap.textContent = tr("Add an “Acquired” date to your wines (in the sheet, or when adding one) to see the collection grow over time.");
     return;
   }
   const W=980,Hh=250,P={l:26,r:16,t:20,b:30};
@@ -556,7 +565,7 @@ function drawHistory(){
     const hz=`M ${(cx-a).toFixed(1)} ${cy.toFixed(1)} H ${(cx+a).toFixed(1)}`;
     const gd = p.kind==="acq" ? `${hz} M ${cx.toFixed(1)} ${(cy-a).toFixed(1)} V ${(cy+a).toFixed(1)}` : hz;
     parts.push(`<g class="hist-ev" data-t="${p.t}" data-d="${p.d}" data-cum="${p.cum}"
-        data-style="${esc(STYLE_EN[p.w.style]||p.w.style||"")}" data-w="${esc((p.w.producer||"")+(p.w.name?" · "+p.w.name:""))}">
+        data-style="${esc(tr(STYLE_EN[p.w.style])||p.w.style||"")}" data-w="${esc((p.w.producer||"")+(p.w.name?" · "+p.w.name:""))}">
       <path class="hist-halo" d="${gd}"/>
       <path class="hist-glyph" style="stroke:${col}" d="${gd}"/>
       <circle class="hist-hit" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="10"/></g>`);
@@ -567,14 +576,14 @@ function drawHistory(){
   svg.querySelectorAll(".hist-ev").forEach(g=>{
     g.addEventListener("mousemove",e=>{
       const n=Number(g.dataset.d), when=fmtDate(ymdLocal(new Date(Number(g.dataset.t))));
-      const what = n>0 ? `added ${n}` : `drunk ${-n}`;
-      showTip(`<b>${when}</b> · ${esc(g.dataset.style)}<br>${what} — ${esc(g.dataset.w)}<br><span style="opacity:.75">${g.dataset.cum} in cellar after</span>`,e.clientX,e.clientY);
+      const what = n>0 ? tr("added {0}", n) : tr("drunk {0}", -n);
+      showTip(`<b>${when}</b> · ${esc(g.dataset.style)}<br>${esc(what)} — ${esc(g.dataset.w)}<br><span style="opacity:.75">${esc(tr("{0} in cellar after", g.dataset.cum))}</span>`,e.clientX,e.clientY);
     });
     g.addEventListener("mouseleave",hideTip);
   });
 
-  const bits=[`${H.withAcq} wine${H.withAcq===1?"":"s"} on the timeline`, `${H.drinkEvents} drunk`];
-  if(H.withoutAcq) bits.push(`${H.withoutAcq} without an acquired date (not shown)`);
+  const bits=[H.withAcq===1 ? tr("1 wine on the timeline") : tr("{0} wines on the timeline", H.withAcq), tr("{0} drunk", H.drinkEvents)];
+  if(H.withoutAcq) bits.push(tr("{0} without an acquired date (not shown)", H.withoutAcq));
   cap.textContent = bits.join(" · ");
 }
 
@@ -599,7 +608,7 @@ function drawDrinkTimeline(list){
       <div class="dw-label" title="${esc(w.producer)}${w.name?" · "+esc(w.name):""}">${label}</div>
       <div class="dw-track">
         <div class="dw-bar ${cls}${rd.est?" est":""}" style="left:${l.toFixed(1)}%;width:${Math.max(1.5,r-l).toFixed(1)}%"
-          title="${win.from??"?"}–${win.to??"?"} · ${rd.label}${rd.est?" (estimated)":""}"></div>
+          title="${win.from??"?"}–${win.to??"?"} · ${esc(rd.label)}${rd.est?" ("+esc(tr("estimated"))+")":""}"></div>
         <div class="dw-now" style="left:${nowPct.toFixed(1)}%"></div>
       </div></div>`;
   }).join("");
@@ -617,7 +626,7 @@ function drawDrinkTimeline(list){
     <div class="dw-track dw-axis-track">${ticks.join("")}
       <span class="dw-nowlabel" style="left:${nowPct.toFixed(1)}%">${fmtYr(now)}</span>
       <div class="dw-now" style="left:${nowPct.toFixed(1)}%"></div></div></div>${rows}`;
-  $("dwCount").textContent = `${wins.length} wine${wins.length>1?"s":""}`;
+  $("dwCount").textContent = nWines(wins.length);
   el.querySelectorAll(".dwrow[data-row]").forEach(r=>r.addEventListener("click",()=>{
     const w=WINES.find(x=>x.row===Number(r.dataset.row));
     if(w){ state.q=w.producer; $("q").value=w.producer; renderTable(); }
@@ -629,8 +638,8 @@ function searchLinks(w){
   const q = [w.producer, w.name!==w.commune?w.name:"", w.commune, typeof w.vintage==="number"?w.vintage:""]
     .filter(Boolean).join(" ");
   const enc = encodeURIComponent(q);
-  return `<a target="_blank" rel="noopener" href="https://www.vivino.com/search/wines?q=${enc}">Ratings on Vivino ↗</a>
-    <a target="_blank" rel="noopener" href="https://www.wine-searcher.com/find/${enc.replace(/%20/g,"+")}">Scores &amp; prices on Wine-Searcher ↗</a>`;
+  return `<a target="_blank" rel="noopener" href="https://www.vivino.com/search/wines?q=${enc}">${esc(tr("Ratings on Vivino ↗"))}</a>
+    <a target="_blank" rel="noopener" href="https://www.wine-searcher.com/find/${enc.replace(/%20/g,"+")}">${esc(tr("Scores & prices on Wine-Searcher ↗"))}</a>`;
 }
 
 // Journal entries that plausibly belong to this cellar wine.
@@ -656,56 +665,56 @@ function journalHTML(w){
     const head = bits.join(" · ");
     return `<div class="wj"><span class="wj-h">${head}</span>${e.note?`<span class="wj-n">${esc(e.note)}</span>`:""}</div>`;
   }).join("");
-  const more = js.length>3 ? `<button class="wj-more" data-page="journal">+ ${js.length-3} more in the Journal ↗</button>` : "";
-  return `<div class="wjournal"><div class="k">From your journal</div>${rows}${more}</div>`;
+  const more = js.length>3 ? `<button class="wj-more" data-page="journal">${esc(tr("+ {0} more in the Journal ↗", js.length-3))}</button>` : "";
+  return `<div class="wjournal"><div class="k">${esc(tr("From your journal"))}</div>${rows}${more}</div>`;
 }
 
 function detailHTML(w){
   const pn = PRODUCER_NOTES[w.producer];
   const cells = [
-    ["Commune", w.commune],["Classification", w.classification || (suggestClass(w) ? "≈ "+suggestClass(w).cls+" (suggested)" : "")],["Grape", w.grape],
-    ["Format", isStdBottle(w) ? "" : formatOf(w).key+" · "+formatOf(w).note],
-    ["Bought", w.qty+" btl."],["Enjoyed", w.drunk?w.drunk+" btl.":""],["Source", w.source],
+    ["Commune", w.commune],["Classification", w.classification || (suggestClass(w) ? "≈ "+suggestClass(w).cls+" ("+tr("suggested")+")" : "")],["Grape", w.grape],
+    ["Format", isStdBottle(w) ? "" : tr(formatOf(w).key)+" · "+formatOf(w).note],
+    ["Bought", btl(w.qty)],["Enjoyed", w.drunk?btl(w.drunk):""],["Source", w.source],
     ["Price", SHOW_PRICES && w.price ? kr(w.price) : ""],["Location", w.location],
-  ].filter(c=>c[1]).map(([k,v])=>`<div><div class="k">${k}</div>${esc(v)}</div>`).join("");
+  ].filter(c=>c[1]).map(([k,v])=>`<div><div class="k">${esc(tr(k))}</div>${esc(v)}</div>`).join("");
   return `<div class="dgrid">${cells}</div>
-    ${w.note?`<div class="unote">“${esc(w.note)}” — cellar note</div>`:""}
-    ${pn?`<div class="pnote"><b>${esc(w.producer)}</b> · ${TIER_LABEL[pn[0]]} — ${pn[1]}</div>`:""}
+    ${w.note?`<div class="unote">“${esc(w.note)}” — ${esc(tr("cellar note"))}</div>`:""}
+    ${pn?`<div class="pnote"><b>${esc(w.producer)}</b> · ${esc(tr(TIER_LABEL[pn[0]]))} — ${esc(noteText(pn[1]))}</div>`:""}
     ${journalHTML(w)}
     <div class="links">
-      ${w.left>0?`<button class="drink" data-act="drink" data-row="${w.row}">🍷 Mark 1 bottle as drunk</button>`:""}
-      ${w.drunk>0 && !w.elsewhere?`<button class="drink" data-act="undrink" data-row="${w.row}" title="${isElsewhere(w)?"Puts the bottle in your cellar":""}">↩︎ Undo drink</button>`:""}
-      <label class="ratewrap">My score
+      ${w.left>0?`<button class="drink" data-act="drink" data-row="${w.row}">🍷 ${esc(tr("Mark 1 bottle as drunk"))}</button>`:""}
+      ${w.drunk>0 && !w.elsewhere?`<button class="drink" data-act="undrink" data-row="${w.row}" title="${isElsewhere(w)?esc(tr("Puts the bottle in your cellar")):""}">↩︎ ${esc(tr("Undo drink"))}</button>`:""}
+      <label class="ratewrap">${esc(tr("My score"))}
         <select class="rate" data-row="${w.row}">
           <option value="">—</option>
           ${Array.from({length:10},(_,i)=>`<option value="${i+1}"${w.rating===i+1?" selected":""}>${i+1}</option>`).join("")}
         </select></label>
-      ${SHOW_PRICES?`<label class="valwrap">Value kr
+      ${SHOW_PRICES?`<label class="valwrap">${esc(tr("Value kr"))}
         <input class="setval" type="number" min="0" step="1" inputmode="numeric"
           data-row="${w.row}" value="${w.value!=null?w.value:""}" placeholder="—"></label>`:""}
-      <label class="sizewrap">Format
+      <label class="sizewrap">${esc(tr("Format"))}
         <select class="setsize" data-row="${w.row}">
-          ${FORMATS.map(f=>`<option value="${f.key==="Bottle"?"":esc(f.key)}"${formatOf(w).key===f.key?" selected":""}>${esc(f.key)} · ${esc(f.note)}</option>`).join("")}
+          ${FORMATS.map(f=>`<option value="${f.key==="Bottle"?"":esc(f.key)}"${formatOf(w).key===f.key?" selected":""}>${esc(tr(f.key))} · ${esc(f.note)}</option>`).join("")}
         </select></label>
       ${isElsewhere(w)?"":`<label class="locwrap">📍 ${esc(tr("Location"))}
         <input class="setloc" list="locList" data-row="${w.row}" value="${esc(w.location)}" placeholder="${esc(tr("e.g. Cellar, shelf 2"))}"></label>`}
-      <label class="datewrap">Acquired
+      <label class="datewrap">${esc(tr("Acquired"))}
         <input class="setdate" type="date" data-field="acquired" data-row="${w.row}" value="${w.acquired||""}"></label>
-      ${w.drunk>0?`<label class="datewrap">Last drunk
+      ${w.drunk>0?`<label class="datewrap">${esc(tr("Last drunk"))}
         <input class="setdate" type="date" data-field="drunkDate" data-row="${w.row}" value="${w.drunkDate||""}"></label>`:""}
       ${(()=>{const est=defaultWindow(w), r=readiness(w);
         const ph=(x,d)=>x!=null?"≈"+x:d;
-        return `<span class="winwrap">Drink window
-        <input class="setwin" type="number" inputmode="numeric" placeholder="${ph(est&&est.from,"from")}" data-end="from" data-row="${w.row}" value="${w.drinkFrom??""}">
+        return `<span class="winwrap">${esc(tr("Drink window"))}
+        <input class="setwin" type="number" inputmode="numeric" placeholder="${ph(est&&est.from,esc(tr("from")))}" data-end="from" data-row="${w.row}" value="${w.drinkFrom??""}">
         <span class="wsep">–</span>
-        <input class="setwin" type="number" inputmode="numeric" placeholder="${ph(est&&est.to,"to")}" data-end="to" data-row="${w.row}" value="${w.drinkTo??""}">
+        <input class="setwin" type="number" inputmode="numeric" placeholder="${ph(est&&est.to,esc(tr("to")))}" data-end="to" data-row="${w.row}" value="${w.drinkTo??""}">
         ${r?`<span class="rbadge ${r.k}${r.est?" est":""}">${r.label}</span>`:""}
-        ${r&&r.est?`<span class="est-note">estimated · type to set your own</span>`:""}</span>`;})()}
-      <button class="jlog" data-row="${w.row}">📓 Log in journal</button>
-      <button class="fshare" data-row="${w.row}">📣 Share</button>
+        ${r&&r.est?`<span class="est-note">${esc(tr("estimated · type to set your own"))}</span>`:""}</span>`;})()}
+      <button class="jlog" data-row="${w.row}">📓 ${esc(tr("Log in journal"))}</button>
+      <button class="fshare" data-row="${w.row}">📣 ${esc(tr("Share"))}</button>
       ${searchLinks(w)}
-      <button class="winfo" data-row="${w.row}">✏️ Edit details</button>
-      <button class="drink del" data-act="delete" data-row="${w.row}">${isElsewhere(w) ? "🗑 Remove from Enjoyed" : "🗑 Delete wine"}</button>
+      <button class="winfo" data-row="${w.row}">✏️ ${esc(tr("Edit details"))}</button>
+      <button class="drink del" data-act="delete" data-row="${w.row}">${isElsewhere(w) ? "🗑 "+esc(tr("Remove from Enjoyed")) : "🗑 "+esc(tr("Delete wine"))}</button>
     </div>`;
 }
 
@@ -739,7 +748,7 @@ function renderTable(){
   const th=document.querySelector(`th[data-k="${k}"] .arr`); if(th) th.textContent = dir>0?"▲":"▼";
 
   const bl = list.reduce((s,w)=>s+(state.status==="drunk"?w.drunk:w.left),0);
-  let countTxt = `${list.length} wines · ${fmt(bl)} btl.`;
+  let countTxt = `${nWines(list.length)} · ${btl(fmt(bl))}`;
   if(SHOW_PRICES){
     const vl = list.reduce((s,w)=>s+(w.price||0)*(state.status==="drunk"?w.drunk:w.left),0);
     countTxt += ` · ${kr(vl)}`;
@@ -757,16 +766,16 @@ function renderTable(){
   const shown = pageOf(list, "cellar");
   $("rows").innerHTML = shown.map((w,i)=>{
     const pn = PRODUCER_NOTES[w.producer];
-    const badge = pn?`<span class="badge ${pn[0]}">${TIER_LABEL[pn[0]]}</span>`:"";
+    const badge = pn?`<span class="badge ${pn[0]}">${tr(TIER_LABEL[pn[0]])}</span>`:"";
     const rd = w.left>0 ? readiness(w) : null;
     const rwin = rd ? drinkWindow(w) : null;
-    const rbadge = rd?`<span class="rbadge ${rd.k}${rd.est?" est":""}" title="${rd.est?"Estimated":"Your"} drink window ${rwin.from??"?"}–${rwin.to??"?"}${rd.est?" — set your own in the wine":""}">${rd.label}</span>`:"";
+    const rbadge = rd?`<span class="rbadge ${rd.k}${rd.est?" est":""}" title="${esc(rd.est ? tr("Estimated drink window {0} — set your own in the wine", `${rwin.from??"?"}–${rwin.to??"?"}`) : tr("Your drink window {0}", `${rwin.from??"?"}–${rwin.to??"?"}`))}">${esc(rd.label)}</span>`:"";
     const nm = [w.name, w.commune && w.commune!==w.name ? w.commune : ""].filter(Boolean).join(" · ");
     return `<tr class="main${w.left===0?" gone":""}" data-i="${i}" data-row="${w.row}" tabindex="0" aria-expanded="false">
       <td><span class="prod">${esc(w.producer)}</span>${badge}${rbadge}<br><span class="wname">${fmtChip(w)}${esc(nm)}${classChip(w)}${w.rating?` · <span class="myscore">${w.rating}/10</span>`:""}</span>${w.location?`<br><span class="wloc">📍 ${esc(w.location)}</span>`:""}</td>
       <td class="num">${esc(w.vintage||"—")}</td>
       <td>${esc(w.region)}</td>
-      <td><span class="sdot" style="background:var(${STYLE_VAR[w.style]||"--muted"})"></span>${STYLE_EN[w.style]||esc(w.style)}</td>
+      <td><span class="sdot" style="background:var(${STYLE_VAR[w.style]||"--muted"})"></span>${tr(STYLE_EN[w.style])||esc(w.style)}</td>
       <td class="num">${state.status==="drunk"?w.drunk:w.left}</td>
       <td class="num">${SHOW_PRICES ? (w.price?kr(w.price):"—") : "···"}</td>
     </tr>
@@ -774,8 +783,8 @@ function renderTable(){
   }).join("") + moreRow(list.length, shown.length, 6, "cellar");
   if(!list.length){
     const anyWines = WINES.some(w=>w.left>0);
-    const msg = !anyWines ? "Your cellar is empty — press <b>＋ Add wine</b> to start building it."
-              : "No wines match these filters.";
+    const msg = !anyWines ? esc(tr("Your cellar is empty — press ＋ Add wine to start building it."))
+              : esc(tr("No wines match these filters."));
     $("rows").innerHTML = `<tr><td colspan="6" class="emptyrow">${msg}</td></tr>`;
   }
 
@@ -784,16 +793,16 @@ function renderTable(){
 
 // Wire up expand + per-row controls for a wine table (cellar or enjoyed).
 function bindWineRows(scope){
-  document.querySelectorAll(`${scope} tr.main`).forEach(tr=>{
-    const open = ()=>{ const d=tr.nextElementSibling; const show=d.hidden; if(show) fillDetail(d, tr); d.hidden=!show;
-      tr.setAttribute("aria-expanded",String(show)); KEEP_OPEN = show ? Number(tr.dataset.row) : null; };
-    tr.addEventListener("click",e=>{ if(e.target.closest("a,button,select,input,label")) return; open(); });
-    tr.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); open(); } });
+  document.querySelectorAll(`${scope} tr.main`).forEach(row=>{
+    const open = ()=>{ const d=row.nextElementSibling; const show=d.hidden; if(show) fillDetail(d, row); d.hidden=!show;
+      row.setAttribute("aria-expanded",String(show)); KEEP_OPEN = show ? Number(row.dataset.row) : null; };
+    row.addEventListener("click",e=>{ if(e.target.closest("a,button,select,input,label")) return; open(); });
+    row.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); open(); } });
   });
   // keep the actively-edited row expanded through re-renders
   if(KEEP_OPEN!=null){
-    const tr=document.querySelector(`${scope} tr.main[data-row="${KEEP_OPEN}"]`);
-    if(tr && tr.nextElementSibling){ fillDetail(tr.nextElementSibling, tr); tr.nextElementSibling.hidden=false; tr.setAttribute("aria-expanded","true"); }
+    const row=document.querySelector(`${scope} tr.main[data-row="${KEEP_OPEN}"]`);
+    if(row && row.nextElementSibling){ fillDetail(row.nextElementSibling, row); row.nextElementSibling.hidden=false; row.setAttribute("aria-expanded","true"); }
   }
   document.querySelectorAll(`${scope} tr.morerow button`).forEach(b=>b.addEventListener("click",()=>{
     PAGE_SIZE[b.dataset.tbl].n = b.dataset.all ? Infinity : PAGE_SIZE[b.dataset.tbl].n + PAGE_STEP;
@@ -802,9 +811,9 @@ function bindWineRows(scope){
 }
 // A wine's details are built when its row is first opened: a big cellar would otherwise build thousands of them on
 // every render (and every keystroke in the search).
-function fillDetail(d, tr){
+function fillDetail(d, row){
   const td = d.firstElementChild; if(!td || td.childElementCount) return;
-  const w = WINES.find(x=>x.row===Number(tr.dataset.row)); if(!w) return;
+  const w = WINES.find(x=>x.row===Number(row.dataset.row)); if(!w) return;
   td.innerHTML = detailHTML(w); bindDetail(td);
 }
 // The tables show a page at a time, and "Show more" adds the next; changing the search, a filter or the sort starts again
@@ -859,20 +868,22 @@ function bindDetail(root){
 }
 
 /* ---------- actions ---------- */
+let LOADED_AT = null; // when the cellar was last fetched, for "Updated …" in the interface language
+function stampText(){ if(LOADED_AT) $("stamp").textContent = tr("Updated {0}", LOADED_AT.toLocaleString(I18N_LOCALE(),{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"})); }
 async function loadData(){
   $("spin").hidden = false; $("content").hidden = true;
   if(cfg.user){ $("who").textContent = cfg.user; $("who").hidden = false; }
   try{
     const res = await api({action:"data"});
     WINES = normalize(res.wines);
-    $("priceBtn").textContent = SHOW_PRICES ? "Hide prices" : "Show prices";
+    $("priceBtn").textContent = SHOW_PRICES ? tr("Hide prices") : tr("Show prices");
     renderOverview(); renderTable(); renderEnjoyed();
-    $("stamp").textContent = "Updated "+new Date().toLocaleString("da-DK",{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"});
+    LOADED_AT = new Date(); stampText();
     $("spin").hidden = true; $("content").hidden = false;
     loadJournalSilently(); loadFeedSilently();
   }catch(err){
     if(AUTH_ERRORS.has(err.message)){ forgetAuth(); setGateMode("login"); showGate(tr("Your session expired — log in again.")); }
-    else { $("spin").textContent = "Could not reach the cellar API ("+err.message+"). Check your connection and refresh."; }
+    else { $("spin").textContent = tr("Could not reach the cellar API ({0}). Check your connection and refresh.", err.message); }
   }
 }
 
@@ -892,8 +903,8 @@ async function rateWine(row, val, sel){
     const res = await api({action:"rate", row, rating: val===""?"":Number(val)});
     WINES = normalize(res.wines);
     renderOverview(); renderTable(); renderEnjoyed();
-    toast(val==="" ? "Score cleared" : "Scored "+val+"/10 🍷");
-  }catch(err){ toast("Could not save score: "+err.message); }
+    toast(val==="" ? tr("Score cleared") : tr("Scored {0}/10 🍷", val));
+  }catch(err){ toast(tr("Could not save score: {0}", err.message)); }
   sel.disabled = false;
 }
 
@@ -904,8 +915,8 @@ async function setValueApi(row, val, inp){
     const res = await api({action:"setvalue", row, value: clean});
     WINES = normalize(res.wines);
     renderOverview(); renderTable(); renderEnjoyed();
-    toast(clean==="" ? "Value cleared" : "Value set to "+kr(clean));
-  }catch(err){ toast("Could not save value: "+err.message); }
+    toast(clean==="" ? tr("Value cleared") : tr("Value set to {0}", kr(clean)));
+  }catch(err){ toast(tr("Could not save value: {0}", err.message)); }
   inp.disabled = false;
 }
 
@@ -915,8 +926,8 @@ async function setSizeApi(row, val, sel){
     const res = await api({action:"setsize", row, value: val});
     WINES = normalize(res.wines);
     renderOverview(); renderTable(); renderEnjoyed();
-    toast(val ? "Format set to "+val : "Back to a standard bottle");
-  }catch(err){ toast("Could not save format: "+err.message); }
+    toast(val ? tr("Format set to {0}", tr(val)) : tr("Back to a standard bottle"));
+  }catch(err){ toast(tr("Could not save format: {0}", err.message)); }
   sel.disabled = false;
 }
 
@@ -931,8 +942,8 @@ async function setWindowApi(inp){
     const res = await api({action:"setwindow", row, from, to});
     WINES = normalize(res.wines);
     renderOverview(); renderTable(); renderEnjoyed();
-    toast((from||to) ? "Drink window saved" : "Drink window cleared");
-  }catch(err){ toast("Could not save window: "+err.message); }
+    toast((from||to) ? tr("Drink window saved") : tr("Drink window cleared"));
+  }catch(err){ toast(tr("Could not save window: {0}", err.message)); }
   ins.forEach(x=>x.disabled=false);
 }
 
@@ -948,25 +959,25 @@ async function setLocationApi(row, val, inp){
 
 async function setDateApi(row, field, val, inp){
   inp.disabled = true;
-  const label = field==="acquired" ? "Acquired date" : "Last-drunk date";
+  const acq = field==="acquired";
   try{
     const res = await api({action:"setdate", row, field, value: val||""});
     WINES = normalize(res.wines);
     renderOverview(); renderTable(); renderEnjoyed();
-    toast(val ? label+" updated" : label+" cleared");
-  }catch(err){ toast("Could not save date: "+err.message); }
+    toast(acq ? (val ? tr("Acquired date updated") : tr("Acquired date cleared")) : (val ? tr("Last-drunk date updated") : tr("Last-drunk date cleared")));
+  }catch(err){ toast(tr("Could not save date: {0}", err.message)); }
   inp.disabled = false;
 }
 
 async function rowAction(act, row, btn){
   const w = WINES.find(x=>x.row===row);
   if(act==="delete"){
-    const name = w ? `${w.producer} ${w.name} ${w.vintage||""}`.trim() : "this wine";
-    if(!confirm(w && isElsewhere(w) ? `Remove ${name} from Enjoyed?\nYour journal entries for it stay.` : `Delete ${name} from the cellar?\nThis removes the whole row from the sheet.`)) return;
+    const name = w ? `${w.producer} ${w.name} ${w.vintage||""}`.trim() : tr("this wine");
+    if(!confirm(w && isElsewhere(w) ? tr("Remove {0} from Enjoyed?\nYour journal entries for it stay.", name) : tr("Delete {0} from the cellar?\nThis removes the whole row from the sheet.", name))) return;
   }
   const wasLast = act==="drink" && w && w.left===1;
   const label = btn.textContent;
-  btn.disabled = true; btn.textContent = "Updating…";
+  btn.disabled = true; btn.textContent = tr("Updating…");
   try{
     const res = await api({action:act, row, qty:1});
     WINES = normalize(res.wines);
@@ -974,23 +985,23 @@ async function rowAction(act, row, btn){
     // now points at a different wine — forget it rather than expand a stranger.
     if(act==="delete") KEEP_OPEN = null;
     renderOverview(); renderTable(); renderEnjoyed();
-    toast(act==="drink" ? "Skål! Bottle marked as drunk 🍷"
-        : act==="undrink" ? "Bottle back in the cellar 🍾"
-        : "Wine deleted from the sheet");
+    toast(act==="drink" ? tr("Skål! Bottle marked as drunk 🍷")
+        : act==="undrink" ? tr("Bottle back in the cellar 🍾")
+        : tr("Wine deleted from the sheet"));
     if(wasLast){
       const nw = WINES.find(x=>x.row===row) || w;
       setTimeout(()=>{
-        if(confirm(`That was your last ${nw.producer}${nw.name?" "+nw.name:""}${nw.vintage?" "+nw.vintage:""} 🍷\nLog a tasting note in the journal?`))
+        if(confirm(tr("That was your last {0} 🍷\nLog a tasting note in the journal?", `${nw.producer}${nw.name?" "+nw.name:""}${nw.vintage?" "+nw.vintage:""}`)))
           openJournalModal({producer:nw.producer, wine:nw.name, vintage:nw.vintage,
             country:nw.country, region:nw.region, grape:nw.grape, commune:nw.commune, classification:nw.classification});
       }, 250);
     }
-  }catch(err){ toast("Could not update: "+err.message); btn.disabled=false; btn.textContent=label; }
+  }catch(err){ toast(tr("Could not update: {0}", err.message)); btn.disabled=false; btn.textContent=label; }
 }
 
 async function addWine(e){
   e.preventDefault();
-  const btn = $("addSave"); btn.disabled = true; btn.textContent = "Adding…";
+  const btn = $("addSave"); btn.disabled = true; btn.textContent = tr("Adding…");
   const v = id => $(id).value.trim();
   const wine = {
     producer:v("aProducer"), name:v("aName"), commune:v("aCommune"),
@@ -1007,14 +1018,13 @@ async function addWine(e){
     renderOverview(); renderTable(); renderEnjoyed();
     $("addModal").classList.remove("open");
     addReset();
-    toast(wine.producer+" added to the cellar");
-  }catch(err){ toast("Could not add: "+err.message); }
-  btn.disabled = false; btn.textContent = "Add to cellar";
+    toast(tr("{0} added to the cellar", wine.producer));
+  }catch(err){ toast(tr("Could not add: {0}", err.message)); }
+  btn.disabled = false; btn.textContent = tr("Add to cellar");
 }
 
 /* ---------- gate ---------- */
 let GATE_MODE = "login"; // or "signup"
-const tr = (window.I18N && window.I18N.t) || (s => s); // the front page follows the language picker (i18n.js)
 if(window.I18N) window.I18N.onChange(() => setGateMode(GATE_MODE));
 function showGate(msg){
   $("app").hidden = true; $("gate").hidden = false;
@@ -1201,7 +1211,7 @@ $("lockBtn").addEventListener("click", ()=>{ forgetAuth(); setGateMode("login");
 $("priceBtn").addEventListener("click", ()=>{
   SHOW_PRICES = !SHOW_PRICES;
   localStorage.setItem("vinHidePrices", SHOW_PRICES ? "0" : "1");
-  $("priceBtn").textContent = SHOW_PRICES ? "Hide prices" : "Show prices";
+  $("priceBtn").textContent = SHOW_PRICES ? tr("Hide prices") : tr("Show prices");
   renderOverview(); renderTable(); renderEnjoyed();
 });
 $("addBtn").addEventListener("click", ()=>{
@@ -1379,7 +1389,6 @@ async function impRun(){
     if(AUTH_ERRORS.has(m)) showGate(authMsg(m));
   }
 }
-const I18N_LOCALE = () => ({en:"en-GB", fr:"fr-FR", de:"de-DE"})[window.I18N && I18N.lang] || "da-DK";
 $("impBtn").addEventListener("click", ()=>{ impReset(); $("impModal").classList.add("open"); });
 $("impCancel").addEventListener("click", ()=>$("impModal").classList.remove("open"));
 $("impBack").addEventListener("click", impReset);
@@ -1421,7 +1430,7 @@ function sommLoad(){
 function sommCtx(){
   const lang = (window.I18N && I18N.lang) || "en";
   return {lang, wines:WINES, burg:window.BURG, vint:window.BURG_VINTAGES, burgI18n:(window.BURG_I18N||{})[lang] || null,
-    readiness, window:drinkWindow, notes:window.PRODUCER_NOTES};
+    readiness, window:drinkWindow, notes:Object.fromEntries(Object.entries(window.PRODUCER_NOTES||{}).map(([k,v])=>[k,[v[0],noteText(v[1])]]))};
 }
 function sommSay(html, who){
   const d = document.createElement("div"); d.className = who === "q" ? "sm-q" : "sm-a";
@@ -1801,17 +1810,17 @@ function renderMap(){
   hideTip(); // re-rendering replaces the dots; any hover tip would otherwise be orphaned
   $("mapbar").hidden = MAP_VIEW==="europe";
   if(MAP_VIEW!=="europe"){
-    $("mapBack").textContent = MAP_VIEW.startsWith("country:") ? "← Europe"
-      : REGION_COUNTRY[MAP_VIEW] ? "← "+COUNTRY_EN[REGION_COUNTRY[MAP_VIEW]] : "← Europe";
+    $("mapBack").textContent = MAP_VIEW.startsWith("country:") ? "← "+tr("Europe")
+      : REGION_COUNTRY[MAP_VIEW] ? "← "+countryLabel(REGION_COUNTRY[MAP_VIEW]) : "← "+tr("Europe");
   }
   if(MAP_VIEW.startsWith("country:")) return renderCountryMap(svg, MAP_VIEW.slice(8));
   if(MAP_VIEW==="Bourgogne") return renderCoteMap(svg);
   if(MAP_VIEW==="Champagne") return renderChampagneMap(svg);
   if(MAP_VIEW==="Mosel") return renderScatterMap(svg, {
-    title:"Mosel · Saar · Ruwer — villages", region:"Mosel",
+    title:"Mosel · Saar · Ruwer — "+tr("villages"), region:"Mosel",
     geo:MOSEL_GEO, cities:MOSEL_CITIES, areas:MOSEL_AREAS, lat:49.8 });
   if(MAP_VIEW==="Piemonte") return renderScatterMap(svg, {
-    title:"Piemonte — Langhe & beyond", region:"Piemonte",
+    title:tr("Piemonte — Langhe & beyond"), region:"Piemonte",
     geo:PIEMONTE_GEO, cities:PIEMONTE_CITIES, areas:PIEMONTE_AREAS, lat:44.7 });
   renderEuropeMap(svg);
 }
@@ -1824,7 +1833,7 @@ function bindDot(c, tipHtml, onClick){
 
 const DRILLABLE = ["Bourgogne","Champagne","Mosel","Piemonte"];
 const baseCountry = k => String(k).replace(/~\d+$/,"");     // "Italy~1" → "Italy"
-const countryLabel = k => COUNTRY_EN[k] || k;                // English name for any country
+const countryLabel = k => tr(COUNTRY_EN[k] || k);            // any country, in the interface language
 
 // Top level: the whole of Europe. Every country is clickable → its country map.
 function renderEuropeMap(svg){
@@ -1835,7 +1844,7 @@ function renderEuropeMap(svg){
   // faint English names for the backdrop countries
   html += NEIGHBOR_LABELS.map(([name,g])=>{
     const [x,y]=proj([g[1],g[0]]);
-    return `<text class="cname" text-anchor="middle" x="${x.toFixed(1)}" y="${y.toFixed(1)}">${esc(name)}</text>`;
+    return `<text class="cname" text-anchor="middle" x="${x.toFixed(1)}" y="${y.toFixed(1)}">${esc(tr(name))}</text>`;
   }).join("");
   const present = COUNTRIES.filter(c=>agg[c.key]).sort((a,b)=>agg[b.key].b-agg[a.key].b);
   html += present.map(c=>{
@@ -1845,20 +1854,20 @@ function renderEuropeMap(svg){
   html += present.map(c=>{
     const [x,y]=proj([c.geo[1],c.geo[0]]); const a=agg[c.key], rad=r(a.b), left=x>W*0.6;
     const lx=(left?x-rad-4:x+rad+4).toFixed(1), anc=left?"end":"start";
-    return `<text class="dlabel" text-anchor="${anc}" x="${lx}" y="${(y-1).toFixed(1)}">${esc(COUNTRY_EN[c.key])}</text>
-      <text class="dsub" text-anchor="${anc}" x="${lx}" y="${(y+10).toFixed(1)}">${a.b} btl.</text>`;
+    return `<text class="dlabel" text-anchor="${anc}" x="${lx}" y="${(y-1).toFixed(1)}">${esc(countryLabel(c.key))}</text>
+      <text class="dsub" text-anchor="${anc}" x="${lx}" y="${(y+10).toFixed(1)}">${btl(a.b)}</text>`;
   }).join("");
   svg.setAttribute("viewBox",`0 0 ${W} ${Math.round(H)}`);
   svg.innerHTML = html;
   const openCountry = key => { MAP_VIEW="country:"+key; state.q=""; $("q").value=""; renderMap(); };
   svg.querySelectorAll(".land.clickable").forEach(p=>{
     const key=p.dataset.country, a=agg[key];
-    bindDot(p, `<b>${esc(countryLabel(key))}</b>${a?`<br>${a.b} bottle${a.b>1?"s":""} · ${a.n} wine${a.n>1?"s":""}`:""}<br><i>click to explore</i>`,
+    bindDot(p, `<b>${esc(countryLabel(key))}</b>${a?`<br>${esc(nBottles(a.b))} · ${esc(nWines(a.n))}`:""}<br><i>${esc(tr("click to explore"))}</i>`,
       ()=>openCountry(key));
   });
   svg.querySelectorAll(".dot").forEach(c=>{
     const key=c.dataset.country, a=agg[key];
-    bindDot(c, `<b>${esc(COUNTRY_EN[key])}</b><br>${a.b} bottle${a.b>1?"s":""} · ${a.n} wine${a.n>1?"s":""}<br><i>click to explore</i>`,
+    bindDot(c, `<b>${esc(countryLabel(key))}</b><br>${esc(nBottles(a.b))} · ${esc(nWines(a.n))}<br><i>${esc(tr("click to explore"))}</i>`,
       ()=>openCountry(key));
   });
 }
@@ -1866,7 +1875,7 @@ function renderEuropeMap(svg){
 // Middle level: one country, its regions as dots. Click a region to filter (or
 // drill further for Bourgogne / Champagne / Mosel / Piemonte).
 function renderCountryMap(svg, key){
-  $("mapTitle").textContent = countryLabel(key) + " — regions";
+  $("mapTitle").textContent = countryLabel(key) + " — " + tr("regions");
   const agg={};
   LAST_CELLAR.forEach(w=>{ if((countryOf(w)||{}).key!==key) return;
     const a=agg[w.region] ??= {b:0,n:0}; a.b+=w.left; a.n++; });
@@ -1881,7 +1890,7 @@ function renderCountryMap(svg, key){
   const HB = buckets.length ? 30 : 0;
   let parts = outline.map(poly=>`<path class="land" d="${landPath(poly,proj)}"/>`).join("");
   if(!names.length){ // a country with nothing in the cellar (e.g. a backdrop country)
-    parts += `<text class="dsub" text-anchor="middle" x="${(W/2).toFixed(1)}" y="${(H/2).toFixed(1)}">No wines from ${esc(countryLabel(key))} yet.</text>`;
+    parts += `<text class="dsub" text-anchor="middle" x="${(W/2).toFixed(1)}" y="${(H/2).toFixed(1)}">${esc(tr("No wines from {0} yet.", countryLabel(key)))}</text>`;
     svg.setAttribute("viewBox",`0 0 ${W} ${Math.round(H)}`); svg.innerHTML=parts; return;
   }
   const placedL=[], placedR=[];
@@ -1896,7 +1905,7 @@ function renderCountryMap(svg, key){
   // regions we can't place on the map get a row along the bottom
   if(buckets.length){
     let bx=34; const by=H+HB-12;
-    parts += `<text class="dsub" x="30" y="${(by-20).toFixed(1)}">Not placed:</text>`;
+    parts += `<text class="dsub" x="30" y="${(by-20).toFixed(1)}">${esc(tr("Not placed:"))}</text>`;
     buckets.forEach(n=>{ const a=agg[n], rad=r(a.b);
       parts += `<circle class="dot" data-region="${esc(n)}" cx="${bx.toFixed(1)}" cy="${by.toFixed(1)}" r="${rad.toFixed(1)}"/>
         <text class="dlabel" x="${(bx+rad+6).toFixed(1)}" y="${(by+4).toFixed(1)}">${esc(n)} · ${a.b}</text>`;
@@ -1907,7 +1916,7 @@ function renderCountryMap(svg, key){
   svg.innerHTML = parts;
   svg.querySelectorAll(".dot").forEach(c=>{
     const name=c.dataset.region, a=agg[name], drill=DRILLABLE.includes(name);
-    bindDot(c, `<b>${esc(name)}</b><br>${a.b} bottle${a.b>1?"s":""} · ${a.n} wine${a.n>1?"s":""}${drill?"<br><i>click to explore</i>":"<br><i>click to filter the list</i>"}`,
+    bindDot(c, `<b>${esc(name)}</b><br>${esc(nBottles(a.b))} · ${esc(nWines(a.n))}${drill?"<br><i>"+esc(tr("click to explore"))+"</i>":"<br><i>"+esc(tr("click to filter the list"))+"</i>"}`,
       ()=>{
         if(drill){ MAP_VIEW=name; state.region=name; $("fRegion").value=name; state.q=""; $("q").value=""; renderTable(); renderMap(); return; }
         state.region = state.region===name ? "" : name;
@@ -1970,18 +1979,18 @@ function renderCoteMap(svg){
     const a=agg[o.l], [x,y]=o.p, rad=4+Math.sqrt(a.b)*1.9;
     const ly=Math.max(y, lastY+16); lastY=ly;
     parts.push(`<path class="lead" d="M ${(x+rad+2).toFixed(1)} ${y.toFixed(1)} L ${(LX-6).toFixed(1)} ${ly.toFixed(1)}"/>
-      <circle class="dot" data-q="${esc(a.q)}" data-label="${esc(o.l)}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${rad.toFixed(1)}"/>
-      <text class="dlabel" x="${LX}" y="${(ly+4).toFixed(1)}">${esc(o.l)} · ${a.b}</text>`);
+      <circle class="dot" data-q="${esc(a.q)}" data-label="${esc(tr(o.l))}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${rad.toFixed(1)}"/>
+      <text class="dlabel" x="${LX}" y="${(ly+4).toFixed(1)}">${esc(tr(o.l))} · ${a.b}</text>`);
   });
   // wines without a single spot on the Côte
   if(buckets.length){
     const by=H-42; let bx=X0;
-    parts.push(`<text class="dsub" x="18" y="${by-26}">Without a spot on the Côte:</text>`);
+    parts.push(`<text class="dsub" x="18" y="${by-26}">${esc(tr("Without a spot on the Côte:"))}</text>`);
     buckets.forEach(l=>{
       const a=agg[l], rad=4+Math.sqrt(a.b)*1.9;
-      parts.push(`<circle class="dot" data-q="${esc(a.q)}" data-label="${esc(l)}" cx="${bx.toFixed(1)}" cy="${by}" r="${rad.toFixed(1)}"/>
-        <text class="dlabel" x="${(bx+rad+7).toFixed(1)}" y="${by+4}">${esc(l)} · ${a.b}</text>`);
-      bx += rad + 7 + (l.length+String(a.b).length+3)*7.2 + 44;
+      parts.push(`<circle class="dot" data-q="${esc(a.q)}" data-label="${esc(tr(l))}" cx="${bx.toFixed(1)}" cy="${by}" r="${rad.toFixed(1)}"/>
+        <text class="dlabel" x="${(bx+rad+7).toFixed(1)}" y="${by+4}">${esc(tr(l))} · ${a.b}</text>`);
+      bx += rad + 7 + (tr(l).length+String(a.b).length+3)*7.2 + 44;
     });
   }
   svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
@@ -1990,7 +1999,7 @@ function renderCoteMap(svg){
 }
 
 function renderChampagneMap(svg){
-  $("mapTitle").textContent = "Champagne — villages";
+  $("mapTitle").textContent = "Champagne — "+tr("villages");
   const agg={}; let other=null;
   LAST_CELLAR.forEach(w=>{
     if(w.region!=="Champagne") return;
@@ -2045,7 +2054,7 @@ function renderChampagneMap(svg){
     placed.push(ly);
     parts.push(`<text class="dlabel" text-anchor="${left?"end":"start"}" x="${(left?x-rad-5:x+rad+5).toFixed(1)}" y="${ly.toFixed(1)}">${esc(a.label)} · ${a.b}</text>`);
   });
-  if(other) parts.push(`<text class="dsub" x="${pad}" y="${(H-12).toFixed(1)}">+ ${other.b} btl. elsewhere (${esc(other.q)}…)</text>`);
+  if(other) parts.push(`<text class="dsub" x="${pad}" y="${(H-12).toFixed(1)}">${esc(tr("+ {0} elsewhere ({1}…)", btl(other.b), other.q))}</text>`);
   svg.setAttribute("viewBox",`0 0 ${W} ${Math.round(H)}`);
   svg.innerHTML=parts.join("");
   bindDetailDots(svg, null);
@@ -2097,7 +2106,7 @@ function renderScatterMap(svg, cfg){
     placed.push(ly);
     parts.push(`<text class="dlabel" text-anchor="${left?"end":"start"}" x="${(left?x-rad-5:x+rad+5).toFixed(1)}" y="${ly.toFixed(1)}">${esc(a.label)} · ${a.b}</text>`);
   });
-  if(other) parts.push(`<text class="dsub" x="${pad}" y="${(H-12).toFixed(1)}">+ ${other.b} btl. elsewhere (${esc(other.q)}…)</text>`);
+  if(other) parts.push(`<text class="dsub" x="${pad}" y="${(H-12).toFixed(1)}">${esc(tr("+ {0} elsewhere ({1}…)", btl(other.b), other.q))}</text>`);
   svg.setAttribute("viewBox",`0 0 ${W} ${Math.round(H)}`);
   svg.innerHTML=parts.join("");
   bindDetailDots(svg);
@@ -2106,7 +2115,7 @@ function renderScatterMap(svg, cfg){
 function bindDetailDots(svg){
   svg.querySelectorAll(".dot").forEach(c=>{
     const q=c.dataset.q, label=c.dataset.label||q;
-    bindDot(c, `<b>${esc(label)}</b><br><i>click to filter the list</i>`, ()=>{
+    bindDot(c, `<b>${esc(label)}</b><br><i>${esc(tr("click to filter the list"))}</i>`, ()=>{
       state.q = state.q===q ? "" : q;
       $("q").value = state.q; renderTable();
     });
@@ -2137,20 +2146,20 @@ function tonightWeight(w){
 }
 function pickTonight(){
   const pool = WINES.filter(w=>w.left>0);
-  if(!pool.length){ toast("The cellar is empty…"); return; }
+  if(!pool.length){ toast(tr("The cellar is empty…")); return; }
   const total = pool.reduce((s,w)=>s+tonightWeight(w),0);
   let pick = pool[pool.length-1], r = Math.random()*total;
   for(const w of pool){ r -= tonightWeight(w); if(r<=0){ pick = w; break; } }
   const m = document.createElement("div");
   m.className = "modal open";
   m.innerHTML = `<div class="card" style="max-width:560px">
-    <h2>Tonight's bottle 🍷</h2>
+    <h2>${esc(tr("Tonight's bottle 🍷"))}</h2>
     <p style="margin:0 0 2px;font-size:16px"><b>${esc(pick.producer)}</b> · ${esc(pick.name)}${pick.vintage?" · "+esc(pick.vintage):""}</p>
     <p style="color:var(--muted);font-size:13px;margin:0 0 12px">${esc(pick.region)}${pick.commune&&pick.commune!==pick.name?" · "+esc(pick.commune):""}</p>
     ${detailHTML(pick)}
     <div class="mact">
-      <button type="button" class="btn" data-x="again">🎲 Pick another</button>
-      <button type="button" class="btn primary" data-x="close">Close</button>
+      <button type="button" class="btn" data-x="again">🎲 ${esc(tr("Pick another"))}</button>
+      <button type="button" class="btn primary" data-x="close">${esc(tr("Close"))}</button>
     </div></div>`;
   document.body.appendChild(m);
   m.addEventListener("click",e=>{ if(e.target===m) m.remove(); });
@@ -2232,10 +2241,10 @@ async function loadJournal(force){
 
 function renderJournal(){
   const list = [...(JENTRIES||[])].sort((a,b)=>String(b.date).localeCompare(String(a.date)) || b.row-a.row);
-  $("jCount").textContent = list.length ? list.length+(list.length===1?" entry":" entries") : "";
+  $("jCount").textContent = list.length ? (list.length===1 ? tr("1 entry") : tr("{0} entries", list.length)) : "";
   $("jList").innerHTML = list.length ? list.map(e=>{
     const d = e.date ? new Date(String(e.date).slice(0,10)+"T12:00:00") : null;
-    const ds = d && !isNaN(d) ? d.toLocaleDateString("da-DK",{day:"numeric",month:"long",year:"numeric"}) : esc(String(e.date));
+    const ds = d && !isNaN(d) ? d.toLocaleDateString(I18N_LOCALE(),{day:"numeric",month:"long",year:"numeric"}) : esc(String(e.date));
     const n = Math.max(0, Math.min(10, Number(e.rating)||0));
     const glasses = n ? n+"/10 🍷" : "";
     const price = (SHOW_PRICES && e.price!=="" && e.price!=null && Number(e.price)>0)
@@ -2244,45 +2253,45 @@ function renderJournal(){
     return `<div class="jentry">
       <div class="jtop"><span class="jdate">${ds}</span>
         ${e.place?`<span class="jplace">📍 ${esc(e.place)}</span>`:""}
-        <button class="jedit" data-row="${e.row}" title="Edit entry">✏️</button>
-        <button class="jdel" data-row="${e.row}" title="Delete entry">🗑</button></div>
+        <button class="jedit" data-row="${e.row}" title="${esc(tr("Edit entry"))}">✏️</button>
+        <button class="jdel" data-row="${e.row}" title="${esc(tr("Delete entry"))}">🗑</button></div>
       <div class="jwine">${esc(e.producer)}${e.wine?" · "+esc(e.wine):""}${e.vintage?" · "+esc(e.vintage):""}${classChip(e)}
         ${glasses?`<span class="jglasses">${glasses}</span>`:""}${price}</div>
       ${(e.commune||e.region||e.country||e.grape)?`<div class="jmeta">${[e.commune,e.region,e.country,e.grape].filter(Boolean).map(esc).join(" · ")}</div>`:""}
       ${e.note?`<div class="jnote">${esc(e.note)}</div>`:""}
       ${photo}
     </div>`;
-  }).join("") : `<div class="spin">No entries yet — press “＋ New entry” after your next good bottle.</div>`;
+  }).join("") : `<div class="spin">${esc(tr("No entries yet — press “＋ New entry” after your next good bottle."))}</div>`;
   document.querySelectorAll(".jphoto[data-id]").forEach(el=>{
     const id = el.dataset.id;
     loadPhoto(id).then(src=>{
-      el.innerHTML = `<img src="${src}" alt="Tasting photo" loading="lazy">`;
+      el.innerHTML = `<img src="${src}" alt="${esc(tr("Tasting photo"))}" loading="lazy">`;
       el.classList.add("ready");
       el.addEventListener("click",()=>openPhotoLightbox(src));
-    }).catch(()=>{ el.innerHTML = `<span class="jphoto-ph err">photo unavailable</span>`; });
+    }).catch(()=>{ el.innerHTML = `<span class="jphoto-ph err">${esc(tr("photo unavailable"))}</span>`; });
   });
   document.querySelectorAll(".jedit").forEach(b=>b.addEventListener("click",()=>{
     const e = (JENTRIES||[]).find(x=>x.row===Number(b.dataset.row));
     if(e) openJournalEdit(e);
   }));
   document.querySelectorAll(".jdel").forEach(b=>b.addEventListener("click", async ()=>{
-    if(!confirm("Delete this journal entry?")) return;
+    if(!confirm(tr("Delete this journal entry?"))) return;
     const e = (JENTRIES||[]).find(x=>x.row===Number(b.dataset.row));
     const t = e ? enjoyTarget(e) : null; // looked up before the delete
     try{
       const res = await api({action:"jdelete", row:Number(b.dataset.row)});
-      JENTRIES = res.entries || []; renderJournal(); toast("Entry deleted");
-    }catch(err){ toast("Could not delete: "+err.message); return; }
+      JENTRIES = res.entries || []; renderJournal(); toast(tr("Entry deleted"));
+    }catch(err){ toast(tr("Could not delete: {0}", err.message)); return; }
     // the entry put a wine in Enjoyed: ask whether that goes too
     if(t && t.kind==="logged"){
       const nm = `${t.wine.producer}${t.wine.name?" "+t.wine.name:""}${t.wine.vintage?" "+t.wine.vintage:""}`;
-      const ask = t.elsewhere ? `Also remove ${nm} from Enjoyed?` : `Also put the bottle of ${nm} back in your cellar (undo the drink)?`;
+      const ask = t.elsewhere ? tr("Also remove {0} from Enjoyed?", nm) : tr("Also put the bottle of {0} back in your cellar (undo the drink)?", nm);
       if(!confirm(ask)) return;
       try{
         const r2 = await api({action: t.elsewhere ? "delete" : "undrink", row:t.wine.row, qty:1});
         WINES = normalize(r2.wines); KEEP_OPEN = null; renderOverview(); renderTable(); renderEnjoyed();
-        toast(t.elsewhere ? "Removed from Enjoyed" : "Bottle back in the cellar 🍾");
-      }catch(err){ toast("Could not update Enjoyed: "+err.message); }
+        toast(t.elsewhere ? tr("Removed from Enjoyed") : tr("Bottle back in the cellar 🍾"));
+      }catch(err){ toast(tr("Could not update Enjoyed: {0}", err.message)); }
     }
   }));
 }
@@ -2314,25 +2323,25 @@ function syncEnjoyOption(){
   const done = t.kind==="logged";
   $("jEnjoyWrap").hidden = done;
   $("jEnjoyDone").hidden = !done;
-  if(done) $("jEnjoyDoneHint").textContent = t.elsewhere ? "— as a wine drunk elsewhere" : "— a bottle from your cellar, marked drunk that day";
+  if(done) $("jEnjoyDoneHint").textContent = t.elsewhere ? tr("— as a wine drunk elsewhere") : tr("— a bottle from your cellar, marked drunk that day");
   if(done) $("jEnjoy").checked = false;
   else if(t.kind==="cellar"){
     const left = t.wine.left;
-    $("jEnjoyLabel").innerHTML = "Also mark a bottle as <b>drunk</b>";
-    $("jEnjoyHint").textContent = `— you own ${left} bottle${left===1?"":"s"}; this moves one to Enjoyed`;
+    $("jEnjoyLabel").innerHTML = esc(tr("Also mark a bottle as {0}", "\u0001")).replace("\u0001", `<b>${esc(tr("drunk"))}</b>`);
+    $("jEnjoyHint").textContent = left===1 ? tr("— you own 1 bottle; this moves it to Enjoyed") : tr("— you own {0} bottles; this moves one to Enjoyed", left);
   }else{
-    $("jEnjoyLabel").innerHTML = "Also add to <b>Enjoyed</b>";
-    $("jEnjoyHint").textContent = "— for a wine you drank but don't own";
+    $("jEnjoyLabel").innerHTML = esc(tr("Also add to {0}", "\u0001")).replace("\u0001", `<b>${esc(tr("Enjoyed"))}</b>`);
+    $("jEnjoyHint").textContent = tr("— for a wine you drank but don't own");
   }
   // A bottle we bought keeps its purchase price — a journal price is what it cost
   // that night, which may be a restaurant's. A row the journal itself created has
   // no other source, so there the journal stays authoritative.
   $("jPriceOpt").textContent =
-      done && !t.elsewhere ? (Number(t.wine.price) > 0 ? "(optional — kept here; your cellar's own price is left alone)" : "(optional — also fills the blank price on your cellar row)")
+  tr(done && !t.elsewhere ? (Number(t.wine.price) > 0 ? "(optional — kept here; your cellar's own price is left alone)" : "(optional — also fills the blank price on your cellar row)")
     : done ? "(optional — also saved onto its Enjoyed row)"
     : t.kind!=="cellar" ? "(optional — what the bottle cost)"
     : Number(t.wine.price) > 0 ? "(optional — kept here; your cellar's own price is left alone)"
-    : "(optional — also fills the blank price on your cellar row)";
+    : "(optional — also fills the blank price on your cellar row)");
 }
 ["jProducer","jWine","jVintage","jDate"].forEach(id=>
   $(id).addEventListener("input", syncEnjoyOption));
@@ -2343,10 +2352,10 @@ function syncEnjoyOption(){
 function knownWine(producer, wine){
   const p = jKey(producer), n = jKey(wine); if(!p || !n) return null;
   const w = [...WINES].sort((a,b)=>b.row-a.row).find(x=>jKey(x.producer)===p && jKey(x.name)===n);
-  if(w) return {from:`your ${w.name}${w.vintage?" "+w.vintage:""}`, country:w.country, region:w.region, commune:w.commune, grape:w.grape,
+  if(w) return {from:tr("your {0}", `${w.name}${w.vintage?" "+w.vintage:""}`), country:w.country, region:w.region, commune:w.commune, grape:w.grape,
     classification:w.classification, type:({"Rød":"Rød","Hvid":"Hvid","Rosé":"Rose","Bobler":"Bobler"})[w.style]||""};
   const e = [...(JENTRIES||[])].sort((a,b)=>String(b.date).localeCompare(String(a.date))).find(x=>jKey(x.producer)===p && jKey(x.wine)===n);
-  if(e) return {from:`your journal entry of ${fmtDate(e.date)}`, country:e.country, region:e.region, commune:e.commune, grape:e.grape, classification:e.classification};
+  if(e) return {from:tr("your journal entry of {0}", fmtDate(e.date)), country:e.country, region:e.region, commune:e.commune, grape:e.grape, classification:e.classification};
   return null;
 }
 // the wine names you've used for a producer, for the Wine field's suggestions
@@ -2360,14 +2369,14 @@ function autofill(ids){
   const k = knownWine($(ids.producer).value, $(ids.wine).value), filled = [];
   if(k){
     [["country","Country"],["region","Region"],["commune","Commune"],["grape","Grape"]].forEach(([f, lbl])=>{
-      const el = $(ids[f]); if(el && !el.value.trim() && k[f]){ el.value = k[f]; filled.push(lbl.toLowerCase()); }
+      const el = $(ids[f]); if(el && !el.value.trim() && k[f]){ el.value = k[f]; filled.push(tr(lbl.toLowerCase())); }
     });
     const cs = $(ids.class);
-    if(cs && k.classification && (!cs.value || cs.dataset.auto==="1")){ cs.value = matchOpt(cs, k.classification); cs.dataset.auto = ""; filled.push("classification"); }
+    if(cs && k.classification && (!cs.value || cs.dataset.auto==="1")){ cs.value = matchOpt(cs, k.classification); cs.dataset.auto = ""; filled.push(tr("classification")); }
     if(ids.type && k.type && $(ids.type).dataset.touched!=="1"){ $(ids.type).value = k.type; }
   }
   const nt = $(ids.note);
-  if(nt){ nt.hidden = !filled.length; nt.textContent = filled.length ? `Filled in ${filled.join(", ")} from ${k.from}.` : ""; }
+  if(nt){ nt.hidden = !filled.length; nt.textContent = filled.length ? tr("Filled in {0} from {1}.", filled.join(", "), k.from) : ""; }
   classHint(ids);
 }
 // pick the select option that means the same classification ("1er Cru" in a sheet → "1. cru")
@@ -2380,7 +2389,7 @@ function matchOpt(sel, val){
 function classHint(ids){
   const cs = $(ids.class), hint = $(ids.class+"Hint"); if(!cs) return;
   const sg = suggestClass({name:$(ids.wine).value, commune:$(ids.commune).value, region:$(ids.region).value});
-  if(hint) hint.textContent = sg ? `(suggested: ${sg.cls}${sg.climat?" — "+sg.climat:""})` : "";
+  if(hint) hint.textContent = sg ? tr("(suggested: {0})", sg.cls+(sg.climat?" — "+sg.climat:"")) : "";
   if(sg && (!cs.value || cs.dataset.auto==="1")){ cs.value = matchOpt(cs, sg.cls); cs.dataset.auto = "1"; }
   else if(!sg && cs.dataset.auto==="1"){ cs.value = ""; cs.dataset.auto = ""; }
 }
@@ -2472,8 +2481,8 @@ let J_ORIG = null; // the entry as it was before an edit, to find the Enjoyed ro
 function openJournalModal(prefill){
   J_EDIT = null; J_ORIG = null;
   prepJournalModal();
-  $("jTitle").textContent = "New journal entry";
-  $("jSave").textContent = "Save entry";
+  $("jTitle").textContent = tr("New journal entry");
+  $("jSave").textContent = tr("Save entry");
   $("jEnjoyWrap").hidden = false;
   $("jEnjoy").checked = true; // journaling a wine means you drank it
   $("jDate").value = todayStr();
@@ -2495,8 +2504,8 @@ function openJournalModal(prefill){
 function openJournalEdit(e){
   J_EDIT = e.row; J_ORIG = {...e};
   prepJournalModal();
-  $("jTitle").textContent = "Edit journal entry";
-  $("jSave").textContent = "Save changes";
+  $("jTitle").textContent = tr("Edit journal entry");
+  $("jSave").textContent = tr("Save changes");
   $("jEnjoyWrap").hidden = false;
   // An old entry was most likely dealt with when it was written: editing it shouldn't drink another bottle
   // unless you tick the box (it's hidden altogether once the entry is in Enjoyed).
@@ -2542,7 +2551,7 @@ $("jForm").addEventListener("submit", async e=>{
   e.preventDefault();
   const editing = J_EDIT !== null;
   $("jErr").hidden = true; $("jErr").textContent = "";
-  const btn = $("jSave"); btn.disabled = true; btn.textContent = "Saving…";
+  const btn = $("jSave"); btn.disabled = true; btn.textContent = tr("Saving…");
   const v = id => $(id).value.trim();
   const entry = {
     date: v("jDate"), producer: v("jProducer"), wine: v("jWine"),
@@ -2554,14 +2563,14 @@ $("jForm").addEventListener("submit", async e=>{
   };
   const file = $("jPhoto").files[0];
   if(file){
-    btn.textContent = "Preparing photo…";
+    btn.textContent = tr("Preparing photo…");
     try{ entry.photo = await shrinkImage(file); }
-    catch(err){ toast("Couldn't read that photo — saving without it"); }
+    catch(err){ toast(tr("Couldn't read that photo — saving without it")); }
   }else if(editing && J_PHOTO_REMOVE){
     entry.photoRemove = true;
   }
   try{
-    btn.textContent = "Saving…";
+    btn.textContent = tr("Saving…");
     // what this entry already put in Enjoyed, judged by the entry as it was (its name or date may change now)
     const tOld = editing && J_ORIG ? enjoyTarget(J_ORIG) : null;
     const res = editing
@@ -2583,14 +2592,14 @@ $("jForm").addEventListener("submit", async e=>{
           if(entry.rating!=="" && !tOld.wine.rating) r4 = await api({action:"rate", row:tOld.wine.row, rating:entry.rating});
         }
         if(r4){ WINES = normalize(r4.wines); renderOverview(); renderTable(); renderEnjoyed(); }
-      }catch(e4){ if(e4.message==="bad-action") toast("Journal saved — update the Apps Script to keep Enjoyed in step"); }
+      }catch(e4){ if(e4.message==="bad-action") toast(tr("Journal saved — update the Apps Script to keep Enjoyed in step")); }
     }
     const t = enjoyTarget(entry);
     if($("jEnjoy").checked && !$("jEnjoyWrap").hidden){
       try{
         let r2 = null;
         if(t.kind==="cellar"){
-          btn.textContent = "Marking drunk…";
+          btn.textContent = tr("Marking drunk…");
           r2 = await api({action:"drink", row:t.wine.row, qty:1});
           // the server stamps today; keep Enjoyed in step with the tasting date
           const d = String(entry.date||"").slice(0,10);
@@ -2631,22 +2640,22 @@ $("jForm").addEventListener("submit", async e=>{
     $("jModal").classList.remove("open");
     renderJournal();
     if(location.hash!=="#journal") location.hash = "#journal";
-    const what = editing ? "Journal entry updated" : "Journal entry saved";
-    toast(alsoEnjoyed==="synced" ? what+" — Enjoyed updated too 🍷"
-        : alsoEnjoyed==="drunk" ? what+" — bottle marked drunk 🍷"
-        : alsoEnjoyed==="added" ? what+" + added to Enjoyed 🍷"
-        : alsoEnjoyed==="priced" ? what+" — price saved to Enjoyed 🍷"
+    const what = editing ? tr("Journal entry updated") : tr("Journal entry saved");
+    toast(alsoEnjoyed==="synced" ? what+" — "+tr("Enjoyed updated too 🍷")
+        : alsoEnjoyed==="drunk" ? what+" — "+tr("bottle marked drunk 🍷")
+        : alsoEnjoyed==="added" ? what+" + "+tr("added to Enjoyed 🍷")
+        : alsoEnjoyed==="priced" ? what+" — "+tr("price saved to Enjoyed 🍷")
         : what+" 📓");
   }catch(err){
     const m = String(err.message||"");
     const hint = /authori[sz]|permission/i.test(m)
-      ? " — the API needs Drive access. In Apps Script, run the “authorize” function once and approve, then try again."
+      ? " — "+tr("the API needs Drive access. In Apps Script, run the “authorize” function once and approve, then try again.")
       : "";
-    $("jErr").textContent = "Could not save: "+m+hint;
+    $("jErr").textContent = tr("Could not save: {0}", m)+hint;
     $("jErr").hidden = false;
-    toast("Could not save — see the message in the form");
+    toast(tr("Could not save — see the message in the form"));
   }
-  btn.disabled = false; btn.textContent = editing ? "Save changes" : "Save entry";
+  btn.disabled = false; btn.textContent = editing ? tr("Save changes") : tr("Save entry");
 });
 
 /* ---------- enjoyed (cellar history) ---------- */
@@ -2663,23 +2672,23 @@ function renderEnjoyed(){
   const valueDrunk = drunk.reduce((s,w)=>s+(w.price||0)*w.drunk,0);
   const prodAgg = {}; drunk.forEach(w=>{ prodAgg[w.producer]=(prodAgg[w.producer]||0)+w.drunk; });
   const top = Object.entries(prodAgg).sort((a,b)=>b[1]-a[1])[0];
-  const kpis = [["Bottles enjoyed", fmt(bottles), drunk.length+" different wines", ""]];
-  if(SHOW_PRICES) kpis.push(["Value enjoyed", kr(valueDrunk), "at purchase price", ""]);
-  else kpis.push(["Value enjoyed", "🔒 hidden", "press Show prices", "locked"]);
-  if(top) kpis.push(["Most enjoyed", esc(top[0]), top[1]+" bottle"+(top[1]>1?"s":""), ""]);
+  const kpis = [[tr("Bottles enjoyed"), fmt(bottles), tr("{0} different wines", drunk.length), ""]];
+  if(SHOW_PRICES) kpis.push([tr("Value enjoyed"), kr(valueDrunk), tr("at purchase price"), ""]);
+  else kpis.push([tr("Value enjoyed"), "🔒 "+tr("hidden"), tr("press Show prices"), "locked"]);
+  if(top) kpis.push([tr("Most enjoyed"), esc(top[0]), esc(nBottles(top[1])), ""]);
   const rated = drunk.filter(w=>w.rating), away = drunk.filter(isElsewhere);
-  if(rated.length) kpis.push(["Your average score", (rated.reduce((s,w)=>s+w.rating,0)/rated.length).toFixed(1)+"/10", rated.length+" wine"+(rated.length>1?"s":"")+" scored", ""]);
-  kpis.push(["Drunk elsewhere", fmt(away.reduce((s,w)=>s+w.drunk,0)), "restaurants, friends' tables · the rest came from your cellar", ""]);
+  if(rated.length) kpis.push([tr("Your average score"), (rated.reduce((s,w)=>s+w.rating,0)/rated.length).toFixed(1)+"/10", rated.length===1 ? tr("1 wine scored") : tr("{0} wines scored", rated.length), ""]);
+  kpis.push([tr("Drunk elsewhere"), fmt(away.reduce((s,w)=>s+w.drunk,0)), tr("restaurants, friends' tables · the rest came from your cellar"), ""]);
   $("eKpis").innerHTML = kpis.map(([l,v,h,c])=>
     `<div class="kpi ${c}"><div class="lbl">${l}</div><div class="val">${v}</div><div class="hint">${h}</div></div>`).join("");
 
   // filter + sort the list
   const q = eState.q.trim().toLowerCase();
   // filters: classification, and whether the bottle came from your cellar
-  const CLS_F = [["","All"],["GC","Grand cru"],["1er","1. cru"],["V","Village / AOC"],["other","Other"]];
+  const CLS_F = [["",tr("All")],["GC","Grand cru"],["1er","1. cru"],["V",tr("Village / AOC")],["other",tr("Other")]];
   const counts = {}; drunk.forEach(w=>{ const g = clsGroup(w); counts[g] = (counts[g]||0) + w.drunk; });
   $("eCls").innerHTML = CLS_F.filter(([k])=>!k || counts[k]).map(([k,l])=>`<button type="button" data-cls="${k}" class="${eState.cls===k?"on":""}">${l}${k?` <span class="n">${counts[k]}</span>`:""}</button>`).join("");
-  $("eWhere").innerHTML = [["","Everywhere"],["cellar","From my cellar"],["away","Elsewhere"]].map(([k,l])=>`<button type="button" data-where="${k}" class="${eState.where===k?"on":""}">${l}</button>`).join("");
+  $("eWhere").innerHTML = [["",tr("Everywhere")],["cellar",tr("From my cellar")],["away",tr("Elsewhere")]].map(([k,l])=>`<button type="button" data-where="${k}" class="${eState.where===k?"on":""}">${esc(l)}</button>`).join("");
   $("eCls").querySelectorAll("button").forEach(b=>b.onclick=()=>{ eState.cls=b.dataset.cls; renderEnjoyed(); });
   $("eWhere").querySelectorAll("button").forEach(b=>b.onclick=()=>{ eState.where=b.dataset.where; renderEnjoyed(); });
   renderFillBar();
@@ -2702,24 +2711,24 @@ function renderEnjoyed(){
   document.querySelectorAll("#eTbl th[data-k] .arr").forEach(s=>s.textContent="");
   const th=document.querySelector(`#eTbl th[data-k="${k}"] .arr`); if(th) th.textContent = dir>0?"▲":"▼";
 
-  let ct = `${list.length} wines · ${fmt(list.reduce((s,w)=>s+w.drunk,0))} btl.`;
+  let ct = `${nWines(list.length)} · ${btl(fmt(list.reduce((s,w)=>s+w.drunk,0)))}`;
   if(SHOW_PRICES) ct += ` · ${kr(list.reduce((s,w)=>s+(w.price||0)*w.drunk,0))}`;
   $("eCount").textContent = ct;
 
   if(!list.length){
-    $("eRows").innerHTML = `<tr><td colspan="7"><div class="spin">${q?"No enjoyed wines match your search.":"Nothing enjoyed yet — bottles you finish will collect here."}</div></td></tr>`;
+    $("eRows").innerHTML = `<tr><td colspan="7"><div class="spin">${esc(q?tr("No enjoyed wines match your search."):tr("Nothing enjoyed yet — bottles you finish will collect here."))}</div></td></tr>`;
     return;
   }
   const shown = pageOf(list, "enjoyed");
   $("eRows").innerHTML = shown.map((w,i)=>{
     const pn = PRODUCER_NOTES[w.producer];
-    const badge = pn?`<span class="badge ${pn[0]}">${TIER_LABEL[pn[0]]}</span>`:"";
+    const badge = pn?`<span class="badge ${pn[0]}">${tr(TIER_LABEL[pn[0]])}</span>`:"";
     const nm = [w.name, w.commune && w.commune!==w.name ? w.commune : ""].filter(Boolean).join(" · ");
     return `<tr class="main" data-i="${i}" data-row="${w.row}" tabindex="0" aria-expanded="false">
       <td><span class="prod">${esc(w.producer)}</span>${badge}<br><span class="wname">${fmtChip(w)}${esc(nm)}${classChip(w)}${w.rating?` · <span class="myscore">${w.rating}/10</span>`:""}</span></td>
       <td class="num">${esc(w.vintage||"—")}</td>
       <td>${esc(w.region)}</td>
-      <td><span class="sdot" style="background:var(${STYLE_VAR[w.style]||"--muted"})"></span>${STYLE_EN[w.style]||esc(w.style)}</td>
+      <td><span class="sdot" style="background:var(${STYLE_VAR[w.style]||"--muted"})"></span>${tr(STYLE_EN[w.style])||esc(w.style)}</td>
       <td class="num">${w.drunk}</td>
       <td class="num">${w.drunkDate?esc(fmtDate(w.drunkDate)):"—"}</td>
       <td class="num">${SHOW_PRICES ? (w.price?kr(w.price):"—") : "···"}</td>
@@ -2737,7 +2746,7 @@ function drawEnjoyedCharts(drunk){
   drawEnjoyedPie($("ePie"), styList, styAgg, total);
   $("eLegend").innerHTML = styList.map(s=>`
     <button data-style="${s}"><span class="dot" style="background:${styleColor(s)}"></span>
-    <span>${STYLE_EN[s]}</span><span class="n">${styAgg[s]} btl. · ${Math.round(styAgg[s]/Math.max(1,total)*100)}%</span></button>`).join("");
+    <span>${tr(STYLE_EN[s])}</span><span class="n">${btl(styAgg[s])} · ${Math.round(styAgg[s]/Math.max(1,total)*100)}%</span></button>`).join("");
   document.querySelectorAll("#eLegend button").forEach(el=>{
     el.classList.toggle("active", el.dataset.style===eState.style && !!eState.style);
     el.addEventListener("click",()=>{ eState.style = eState.style===el.dataset.style ? "" : el.dataset.style; renderEnjoyed(); });
@@ -2747,10 +2756,10 @@ function drawEnjoyedCharts(drunk){
   const prods=Object.entries(prodAgg).sort((a,b)=>b[1]-a[1]).slice(0,8);
   const maxB=prods.length?prods[0][1]:1;
   $("eProducers").innerHTML = prods.map(([name,b])=>`
-    <button class="rbar" data-prod="${esc(name)}" aria-label="${esc(name)}: ${b} bottles">
+    <button class="rbar" data-prod="${esc(name)}" aria-label="${esc(name)}: ${esc(tr("{0} bottles", b))}">
       <span class="rb-name">${esc(name)}</span>
       <span class="rb-track"><span class="rb-fill" style="width:${Math.max(2,b/maxB*100)}%"></span></span>
-      <span class="rb-n">${b} btl.</span></button>`).join("") || `<div class="ph">Nothing yet.</div>`;
+      <span class="rb-n">${btl(b)}</span></button>`).join("") || `<div class="ph">${esc(tr("Nothing yet."))}</div>`;
   document.querySelectorAll("#eProducers .rbar").forEach(el=>{
     el.classList.toggle("active", el.dataset.prod===eState.q.trim() && !!eState.q.trim());
     el.addEventListener("click",()=>{ eState.q = eState.q.trim()===el.dataset.prod ? "" : el.dataset.prod; $("eq").value=eState.q; renderEnjoyed(); });
@@ -2769,12 +2778,12 @@ function drawEnjoyedPie(svg, styList, styAgg, total){
     a0=a1;
   });
   html+=`<text class="pcen" x="${C}" y="${C+2}" text-anchor="middle">${fmt(total)}</text>
-    <text class="pcen2" x="${C}" y="${C+22}" text-anchor="middle">enjoyed</text>`;
+    <text class="pcen2" x="${C}" y="${C+22}" text-anchor="middle">${esc(tr("enjoyed"))}</text>`;
   svg.innerHTML=html;
   svg.querySelectorAll(".pslice").forEach(pl=>{
     const st=pl.dataset.style;
     pl.classList.toggle("on", st===eState.style && !!eState.style);
-    pl.addEventListener("mousemove",e=>showTip(`<b>${STYLE_EN[st]}</b><br>${styAgg[st]} btl. · ${Math.round(styAgg[st]/Math.max(1,total)*100)}%`,e.clientX,e.clientY));
+    pl.addEventListener("mousemove",e=>showTip(`<b>${tr(STYLE_EN[st])}</b><br>${btl(styAgg[st])} · ${Math.round(styAgg[st]/Math.max(1,total)*100)}%`,e.clientX,e.clientY));
     pl.addEventListener("mouseleave",hideTip);
     pl.addEventListener("click",()=>{ eState.style = eState.style===st ? "" : st; renderEnjoyed(); });
   });
@@ -2793,7 +2802,7 @@ function drawDrinkingTime(drunk){
   const nodate = drunk.reduce((s,w)=>s+(dm(w)?0:w.drunk),0);
   if(!dated.length){
     svg.innerHTML=""; svg.removeAttribute("viewBox");
-    cap.textContent = nodate ? `${nodate} bottle${nodate>1?"s":""} enjoyed without a date — mark drinks in the app so they’re dated.` : "";
+    cap.textContent = nodate ? tr("{0} enjoyed without a date — mark drinks in the app so they’re dated.", nBottles(nodate)) : "";
     return;
   }
   const byMonth={};
@@ -2824,14 +2833,14 @@ function drawDrinkingTime(drunk){
   svg.querySelectorAll(".etime-hit").forEach(r=>{
     r.addEventListener("mousemove",e=>{
       const seg=JSON.parse(r.dataset.seg);
-      const breakdown=STYLES.filter(s=>seg[s]).map(s=>`${STYLE_EN[s]} ${seg[s]}`).join(" · ");
+      const breakdown=STYLES.filter(s=>seg[s]).map(s=>`${tr(STYLE_EN[s])} ${seg[s]}`).join(" · ");
       const d=new Date(r.dataset.m+"-01T12:00:00");
-      const ml=isNaN(d)?r.dataset.m:d.toLocaleDateString("da-DK",{month:"short",year:"numeric"});
-      showTip(`<b>${ml}</b><br>${r.dataset.tot} bottle${r.dataset.tot>1?"s":""}<br><span style="opacity:.75">${esc(breakdown)}</span>`,e.clientX,e.clientY);
+      const ml=isNaN(d)?r.dataset.m:d.toLocaleDateString(I18N_LOCALE(),{month:"short",year:"numeric"});
+      showTip(`<b>${ml}</b><br>${esc(nBottles(Number(r.dataset.tot)))}<br><span style="opacity:.75">${esc(breakdown)}</span>`,e.clientX,e.clientY);
     });
     r.addEventListener("mouseleave",hideTip);
   });
-  cap.textContent = nodate ? `${nodate} more enjoyed without a date (not shown)` : "";
+  cap.textContent = nodate ? tr("{0} more enjoyed without a date (not shown)", nodate) : "";
 }
 
 function bindEnjoyedRows(){ bindWineRows("#eRows"); }
@@ -2882,7 +2891,7 @@ $("eaCancel").addEventListener("click",()=>$("eaModal").classList.remove("open")
 $("eaModal").addEventListener("click",e=>{ if(e.target===$("eaModal")) $("eaModal").classList.remove("open"); });
 $("eaForm").addEventListener("submit", async e=>{
   e.preventDefault();
-  const btn=$("eaSave"); btn.disabled=true; btn.textContent="Adding…"; $("eaErr").hidden=true;
+  const btn=$("eaSave"); btn.disabled=true; btn.textContent=tr("Adding…"); $("eaErr").hidden=true;
   const v=id=>$(id).value.trim();
   const entry={ producer:v("eaProducer"), wine:v("eaWine"),
     vintage: /^\d{4}$/.test(v("eaVintage"))?Number(v("eaVintage")):v("eaVintage"),
@@ -2897,9 +2906,9 @@ $("eaForm").addEventListener("submit", async e=>{
     $("eaModal").classList.remove("open");
     renderOverview(); renderTable(); renderEnjoyed();
     if(location.hash!=="#enjoyed") location.hash="#enjoyed";
-    toast("Added to Enjoyed 🍷");
-  }catch(err){ $("eaErr").textContent="Could not add: "+err.message; $("eaErr").hidden=false; }
-  btn.disabled=false; btn.textContent="Add to Enjoyed";
+    toast(tr("Added to Enjoyed 🍷"));
+  }catch(err){ $("eaErr").textContent=tr("Could not add: {0}", err.message); $("eaErr").hidden=false; }
+  btn.disabled=false; btn.textContent=tr("Add to Enjoyed");
 });
 
 /* ---------- edit a wine's details (rename, fix a commune, set a classification…) ---------- */
@@ -2910,7 +2919,7 @@ const I_IDS = {producer:"iProducer", wine:"iName", country:"iCountry", region:"i
 function openInfo(w){
   I_WINE = w;
   $("iForm").reset(); $("iErr").hidden = true; fillCommunes(); $("iClass").dataset.auto = "";
-  $("iTitle").textContent = isElsewhere(w) ? "Edit this Enjoyed wine" : "Edit wine details";
+  $("iTitle").textContent = isElsewhere(w) ? tr("Edit this Enjoyed wine") : tr("Edit wine details");
   $("iProducer").value = w.producer; $("iName").value = w.name; $("iVintage").value = w.vintage ?? "";
   $("iCommune").value = w.commune; $("iCountry").value = w.country; $("iRegion").value = w.region; $("iGrape").value = w.grape;
   $("iLocation").value = w.location; $("iSource").value = w.source; $("iNote").value = w.note;
@@ -2920,7 +2929,7 @@ function openInfo(w){
   classHint(I_IDS);
   const js = journalSameName(w);
   $("iJWrap").hidden = !js.length;
-  $("iJLabel").innerHTML = js.length ? `Also rename its <b>${js.length}</b> journal entr${js.length===1?"y":"ies"} if the name changes` : "";
+  $("iJLabel").innerHTML = js.length ? esc(js.length===1 ? tr("Also rename its journal entry if the name changes") : tr("Also rename its {0} journal entries if the name changes", js.length)) : "";
   $("iModal").classList.add("open");
   setTimeout(()=>$("iName").focus(), 40);
 }
@@ -2943,19 +2952,19 @@ $("iForm").addEventListener("submit", async e=>{
   const fields = {}; Object.keys(next).forEach(k=>{ if(jKey(next[k])!==jKey(was[k])) fields[k] = next[k]; });
   if(!Object.keys(fields).length){ $("iModal").classList.remove("open"); return; }
   const renamed = ["producer","name","vintage"].some(k=>k in fields);
-  const btn = $("iSave"); btn.disabled = true; btn.textContent = "Saving…";
+  const btn = $("iSave"); btn.disabled = true; btn.textContent = tr("Saving…");
   try{
     const res = await api({action:"setinfo", row:w.row, fields, old:{producer:w.producer, wine:w.name, vintage:w.vintage??""},
       journal: !$("iJWrap").hidden && $("iJournal").checked});
     WINES = normalize(res.wines); if(res.entries) JENTRIES = res.entries;
     $("iModal").classList.remove("open");
     renderOverview(); renderTable(); renderEnjoyed(); if(JENTRIES) renderJournal();
-    toast(renamed ? "Renamed ✏️" : "Details saved ✏️");
+    toast(renamed ? tr("Renamed ✏️") : tr("Details saved ✏️"));
   }catch(err){
-    $("iErr").textContent = err.message==="bad-action" ? "The Apps Script needs the latest version (26) for this — paste apps-script/Code.gs into it and redeploy." : "Could not save: "+err.message;
+    $("iErr").textContent = err.message==="bad-action" ? tr("The Apps Script needs the latest version (26) for this — paste apps-script/Code.gs into it and redeploy.") : tr("Could not save: {0}", err.message);
     $("iErr").hidden = false;
   }
-  btn.disabled = false; btn.textContent = "Save details";
+  btn.disabled = false; btn.textContent = tr("Save details");
 });
 
 /* ---------- fill in classifications the app can tell from the names ---------- */
@@ -2969,18 +2978,18 @@ function renderFillBar(){
   const {wines, entries} = classSuggestions(), n = wines.length + entries.length;
   box.hidden = !n; if(!n){ box.innerHTML = ""; return; }
   const eg = [...wines.map(x=>[x.w.producer+" "+x.w.name, x.sg]), ...entries.map(x=>[x.e.producer+" "+x.e.wine, x.sg])].slice(0, 40);
-  box.innerHTML = `<div class="fb-t"><b>${n}</b> ${n===1?"wine has":"wines have"} no classification yet — the app can tell from the name
-      (${wines.length} in your cellar &amp; Enjoyed, ${entries.length} in the journal).
-      <button class="btn primary" id="eFillGo">Fill ${n===1?"it":"them"} in</button></div>
-    <details><summary>See the suggestions</summary><ul>${eg.map(([nm, sg])=>`<li>${esc(nm)} → <b>${esc(sg.cls)}</b>${sg.climat?` <span class="ph">(${esc(sg.climat)})</span>`:sg.why==="label"?` <span class="ph">(on the label)</span>`:""}</li>`).join("")}${n>eg.length?`<li class="ph">…and ${n-eg.length} more</li>`:""}</ul></details>`;
+  box.innerHTML = `<div class="fb-t">${esc(n===1 ? tr("1 wine has no classification yet — the app can tell from the name") : tr("{0} wines have no classification yet — the app can tell from the name", n))}
+      (${esc(tr("{0} in your cellar & Enjoyed, {1} in the journal", wines.length, entries.length))}).
+      <button class="btn primary" id="eFillGo">${esc(n===1?tr("Fill it in"):tr("Fill them in"))}</button></div>
+    <details><summary>${esc(tr("See the suggestions"))}</summary><ul>${eg.map(([nm, sg])=>`<li>${esc(nm)} → <b>${esc(sg.cls)}</b>${sg.climat?` <span class="ph">(${esc(sg.climat)})</span>`:sg.why==="label"?` <span class="ph">(${esc(tr("on the label"))})</span>`:""}</li>`).join("")}${n>eg.length?`<li class="ph">${esc(tr("…and {0} more", n-eg.length))}</li>`:""}</ul></details>`;
   $("eFillGo").onclick = async ()=>{
-    const b = $("eFillGo"); b.disabled = true; b.textContent = "Saving…";
+    const b = $("eFillGo"); b.disabled = true; b.textContent = tr("Saving…");
     try{
       const res = await api({action:"classfill", wines:wines.map(x=>({row:x.w.row, value:x.sg.cls})), journal:entries.map(x=>({row:x.e.row, value:x.sg.cls}))});
       WINES = normalize(res.wines); if(res.entries) JENTRIES = res.entries;
       renderOverview(); renderTable(); renderEnjoyed(); if(JENTRIES) renderJournal();
-      toast(`${n} classification${n===1?"":"s"} filled in ✓`);
-    }catch(err){ toast(err.message==="bad-action" ? "Update the Apps Script (version 26) to save these" : "Could not save: "+err.message); b.disabled = false; b.textContent = "Fill them in"; }
+      toast(n===1 ? tr("1 classification filled in ✓") : tr("{0} classifications filled in ✓", n));
+    }catch(err){ toast(err.message==="bad-action" ? tr("Update the Apps Script (version 26) to save these") : tr("Could not save: {0}", err.message)); b.disabled = false; b.textContent = n===1?tr("Fill it in"):tr("Fill them in"); }
   };
 }
 
@@ -2996,42 +3005,42 @@ async function loadWishlist(force){
     renderWishlist();
   }catch(err){
     if(AUTH_ERRORS.has(err.message)){ forgetAuth(); setGateMode("login"); showGate(tr("Your session expired — log in again.")); }
-    else $("wList").innerHTML = `<div class="spin">Could not load the wishlist (${esc(err.message)}). The Apps Script may need the latest redeploy.</div>`;
+    else $("wList").innerHTML = `<div class="spin">${esc(tr("Could not load the wishlist ({0}). The Apps Script may need the latest redeploy.", err.message))}</div>`;
   }
   $("wSpin").hidden = true;
 }
 
 function renderWishlist(){
   const list = [...(WITEMS||[])].sort((a,b)=>String(a.producer).localeCompare(String(b.producer)));
-  $("wCount").textContent = list.length ? list.length+(list.length===1?" wish":" wishes") : "";
+  $("wCount").textContent = list.length ? (list.length===1 ? tr("1 wish") : tr("{0} wishes", list.length)) : "";
   $("wList").innerHTML = list.length ? list.map(e=>{
-    const meta=[e.region, e.price?("target "+kr(e.price)):""].filter(Boolean).map(esc).join(" · ");
+    const meta=[e.region, e.price?tr("target {0}", kr(e.price)):""].filter(Boolean).map(esc).join(" · ");
     return `<div class="jentry">
       <div class="jtop"><span class="jwine">${esc(e.producer)}${e.wine?" · "+esc(e.wine):""}${e.vintage?" · "+esc(e.vintage):""}</span>
-        <button class="wedit" data-row="${e.row}" title="Edit">✏️</button>
-        <button class="wdel" data-row="${e.row}" title="Delete">🗑</button></div>
+        <button class="wedit" data-row="${e.row}" title="${esc(tr("Edit"))}">✏️</button>
+        <button class="wdel" data-row="${e.row}" title="${esc(tr("Delete"))}">🗑</button></div>
       ${meta?`<div class="jmeta">${meta}</div>`:""}
       ${e.note?`<div class="jnote">${esc(e.note)}</div>`:""}
-      <div class="wact"><button class="wmove" data-row="${e.row}">＋ Add to cellar</button></div>
+      <div class="wact"><button class="wmove" data-row="${e.row}">＋ ${esc(tr("Add to cellar"))}</button></div>
     </div>`;
-  }).join("") : `<div class="spin">Nothing on the wishlist yet — press “＋ Add wish”.</div>`;
+  }).join("") : `<div class="spin">${esc(tr("Nothing on the wishlist yet — press “＋ Add wish”."))}</div>`;
   document.querySelectorAll(".wedit").forEach(b=>b.addEventListener("click",()=>{
     const e=(WITEMS||[]).find(x=>x.row===Number(b.dataset.row)); if(e) openWishEdit(e); }));
   document.querySelectorAll(".wdel").forEach(b=>b.addEventListener("click", async ()=>{
-    if(!confirm("Remove this wish?")) return;
-    try{ const res=await api({action:"wdelete", row:Number(b.dataset.row)}); WITEMS=res.items||[]; renderWishlist(); toast("Wish removed"); }
-    catch(err){ toast("Could not remove: "+err.message); }
+    if(!confirm(tr("Remove this wish?"))) return;
+    try{ const res=await api({action:"wdelete", row:Number(b.dataset.row)}); WITEMS=res.items||[]; renderWishlist(); toast(tr("Wish removed")); }
+    catch(err){ toast(tr("Could not remove: {0}", err.message)); }
   }));
   document.querySelectorAll(".wmove").forEach(b=>b.addEventListener("click", async ()=>{
     const e=(WITEMS||[]).find(x=>x.row===Number(b.dataset.row));
-    if(!confirm(`Move ${e?e.producer:"this wine"} into the cellar (1 bottle)?`)) return;
-    b.disabled=true; b.textContent="Adding…";
+    if(!confirm(tr("Move {0} into the cellar (1 bottle)?", e?e.producer:tr("this wine")))) return;
+    b.disabled=true; b.textContent=tr("Adding…");
     try{
       const res=await api({action:"wtocellar", row:Number(b.dataset.row)});
       WITEMS=res.items||[]; if(res.wines) WINES=normalize(res.wines);
       renderWishlist(); renderOverview(); renderTable(); renderEnjoyed();
-      toast("Added to the cellar 🍷");
-    }catch(err){ toast("Could not move: "+err.message); b.disabled=false; b.textContent="＋ Add to cellar"; }
+      toast(tr("Added to the cellar 🍷"));
+    }catch(err){ toast(tr("Could not move: {0}", err.message)); b.disabled=false; b.textContent="＋ "+tr("Add to cellar"); }
   }));
 }
 
@@ -3041,13 +3050,13 @@ function prepWishModal(){
   $("wModal").classList.add("open");
 }
 function openWishModal(prefill){
-  W_EDIT=null; prepWishModal(); $("wTitle").textContent="Add to wishlist"; $("wSave").textContent="Save";
+  W_EDIT=null; prepWishModal(); $("wTitle").textContent=tr("Add to wishlist"); $("wSave").textContent=tr("Save");
   if(prefill){ $("wProducer").value=prefill.producer||""; $("wWine").value=prefill.wine||"";
     $("wVintage").value=prefill.vintage||""; $("wRegion").value=prefill.region||""; }
   setTimeout(()=>$("wProducer").focus(),40);
 }
 function openWishEdit(e){
-  W_EDIT=e.row; prepWishModal(); $("wTitle").textContent="Edit wish"; $("wSave").textContent="Save changes";
+  W_EDIT=e.row; prepWishModal(); $("wTitle").textContent=tr("Edit wish"); $("wSave").textContent=tr("Save changes");
   $("wProducer").value=e.producer||""; $("wWine").value=e.wine||"";
   $("wVintage").value=e.vintage!==""&&e.vintage!=null?e.vintage:"";
   $("wRegion").value=e.region||""; $("wPrice").value=e.price!==""&&e.price!=null?e.price:""; $("wNote").value=e.note||"";
@@ -3059,7 +3068,7 @@ $("wModal").addEventListener("click",e=>{ if(e.target===$("wModal")) $("wModal")
 $("wForm").addEventListener("submit", async e=>{
   e.preventDefault();
   const editing=W_EDIT!==null; $("wErr").hidden=true;
-  const btn=$("wSave"); btn.disabled=true; btn.textContent="Saving…";
+  const btn=$("wSave"); btn.disabled=true; btn.textContent=tr("Saving…");
   const v=id=>$(id).value.trim();
   const entry={ producer:v("wProducer"), wine:v("wWine"),
     vintage: /^\d{4}$/.test(v("wVintage"))?Number(v("wVintage")):v("wVintage"),
@@ -3068,22 +3077,22 @@ $("wForm").addEventListener("submit", async e=>{
     const res= editing ? await api({action:"wedit", row:W_EDIT, entry}) : await api({action:"wadd", entry});
     WITEMS=res.items||[]; $("wModal").classList.remove("open"); renderWishlist();
     if(location.hash!=="#wishlist") location.hash="#wishlist";
-    toast(editing?"Wish updated":"Added to wishlist");
-  }catch(err){ $("wErr").textContent="Could not save: "+err.message; $("wErr").hidden=false; }
-  btn.disabled=false; btn.textContent= editing?"Save changes":"Save";
+    toast(editing?tr("Wish updated"):tr("Added to wishlist"));
+  }catch(err){ $("wErr").textContent=tr("Could not save: {0}", err.message); $("wErr").hidden=false; }
+  btn.disabled=false; btn.textContent= editing?tr("Save changes"):tr("Save");
 });
 
 /* ---------- page routing ---------- */
 /* ---------- social feed ---------- */
 let FEED=null, FEED_ME="", FEED_USERS=[], FEED_FOLLOWS=[], FEED_VIEW="all"; // all | following
-const feedVerb = t => t==="bought" ? "bought" : t==="drank" ? "drank" : "shared";
+const feedVerb = t => t==="bought" ? tr("bought") : t==="drank" ? tr("drank") : tr("shared");
 function feedLine(e){
   return [e.producer, e.wine, e.vintage].map(x=>String(x==null?"":x).trim()).filter(Boolean).join(" ");
 }
 function fTime(iso){
   if(!iso) return "";
   const d=new Date(String(iso).replace(" ","T"));
-  return isNaN(d) ? esc(String(iso)) : d.toLocaleString("da-DK",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
+  return isNaN(d) ? esc(String(iso)) : d.toLocaleString(I18N_LOCALE(),{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
 }
 function feedSeenKey(){ return "vinFeedSeen_"+(cfg.user||""); }
 function markFeedSeen(){ if(FEED&&FEED.length) localStorage.setItem(feedSeenKey(), FEED[0].time||""); updateFeedBadge(); }
@@ -3109,7 +3118,7 @@ async function loadFeed(force){
   }catch(err){
     $("feedSpin").hidden=true;
     if(AUTH_ERRORS.has(err.message)){ forgetAuth(); setGateMode("login"); showGate(tr("Your session expired — log in again.")); }
-    else $("feedList").innerHTML=`<div class="spin">Could not load the feed (${esc(err.message)}). The Apps Script may need the latest redeploy.</div>`;
+    else $("feedList").innerHTML=`<div class="spin">${esc(tr("Could not load the feed ({0}). The Apps Script may need the latest redeploy.", err.message))}</div>`;
   }
 }
 const FEED_OPEN = new Set(); // post ids whose comments are expanded
@@ -3118,13 +3127,13 @@ function renderFeed(){
   const me=(FEED_ME||cfg.user||"").toLowerCase();
   let list=FEED||[];
   if(FEED_VIEW==="following") list=list.filter(e=>{const f=(e.from||"").toLowerCase(); return f===me||iFollow(e.from)||(e.to||"").toLowerCase()===me;});
-  $("feedCount").textContent = (FEED||[]).length ? `${(FEED||[]).length} post${(FEED||[]).length>1?"s":""}` : "";
+  $("feedCount").textContent = (FEED||[]).length ? ((FEED||[]).length===1 ? tr("1 post") : tr("{0} posts", (FEED||[]).length)) : "";
   // Everyone / Following toggle
-  $("feedTabs").innerHTML = `<button class="ftog${FEED_VIEW==="all"?" on":""}" data-v="all">Everyone</button>`+
-    `<button class="ftog${FEED_VIEW==="following"?" on":""}" data-v="following">Following${FEED_FOLLOWS.length?` · ${FEED_FOLLOWS.length}`:""}</button>`;
+  $("feedTabs").innerHTML = `<button class="ftog${FEED_VIEW==="all"?" on":""}" data-v="all">${esc(tr("Everyone"))}</button>`+
+    `<button class="ftog${FEED_VIEW==="following"?" on":""}" data-v="following">${esc(tr("Following"))}${FEED_FOLLOWS.length?` · ${FEED_FOLLOWS.length}`:""}</button>`;
   $("feedTabs").querySelectorAll(".ftog").forEach(b=>b.addEventListener("click",()=>{ FEED_VIEW=b.dataset.v; renderFeed(); }));
   if(!list.length){
-    $("feedList").innerHTML=`<div class="spin">${FEED_VIEW==="following"?"Nobody you follow has shared yet — switch to Everyone and follow some people.":"Nothing shared yet — press “＋ Share a bottle”."}</div>`;
+    $("feedList").innerHTML=`<div class="spin">${esc(FEED_VIEW==="following"?tr("Nobody you follow has shared yet — switch to Everyone and follow some people."):tr("Nothing shared yet — press “＋ Share a bottle”."))}</div>`;
     updateFeedBadge(); return;
   }
   $("feedList").innerHTML = list.map(e=>{
@@ -3134,35 +3143,35 @@ function renderFeed(){
     return `<div class="fcard${tome?" tome":""}">
       <div class="ftop">
         <span class="fwho">${esc(e.from||"?")}</span><span class="fverb">${esc(feedVerb(e.type))}</span>
-        ${!mine?`<button class="followbtn${iFollow(e.from)?" on":""}" data-user="${esc(e.from)}">${iFollow(e.from)?"Following":"Follow"}</button>`:``}
-        ${e.to?`<span class="fto">→ ${esc(e.to)}${tome?" (you)":""}</span>`:``}
+        ${!mine?`<button class="followbtn${iFollow(e.from)?" on":""}" data-user="${esc(e.from)}">${esc(iFollow(e.from)?tr("Following"):tr("Follow"))}</button>`:``}
+        ${e.to?`<span class="fto">→ ${esc(e.to)}${tome?" ("+esc(tr("you"))+")":""}</span>`:``}
         <span class="ftime">${fTime(e.time)}</span>
-        ${mine?`<button class="fdel" data-row="${e.row}" title="Delete post">🗑</button>`:``}
+        ${mine?`<button class="fdel" data-row="${e.row}" title="${esc(tr("Delete post"))}">🗑</button>`:``}
       </div>
       ${line?`<div class="fwine"><b>${esc(line)}</b>${e.rating?` · <span class="myscore">${esc(e.rating)}/10</span>`:""}</div>`:``}
       ${e.region?`<div class="fmeta">${esc(e.region)}</div>`:``}
       ${e.note?`<div class="fnote">${esc(e.note)}</div>`:``}
       ${e.photo?`<div class="fphoto" data-photo="${esc(e.photo)}"><span class="jphoto-ph">🍷</span></div>`:``}
       <div class="fact">
-        <button class="cheer${iCheered?" on":""}" data-id="${esc(e.id)}" title="${esc((cheers.join(', '))||'Cheers')}">🍷 Cheers${cheers.length?` · ${cheers.length}`:""}</button>
-        <button class="cmtbtn" data-id="${esc(e.id)}">💬 ${comments.length?comments.length+" ":""}Comment${comments.length===1?"":"s"}</button>
+        <button class="cheer${iCheered?" on":""}" data-id="${esc(e.id)}" title="${esc((cheers.join(', '))||tr("Cheers"))}">🍷 ${esc(tr("Cheers"))}${cheers.length?` · ${cheers.length}`:""}</button>
+        <button class="cmtbtn" data-id="${esc(e.id)}">💬 ${esc(!comments.length ? tr("Comments") : comments.length===1 ? tr("1 comment") : tr("{0} comments", comments.length))}</button>
       </div>
       ${open?`<div class="fcmts">
         ${comments.map(c=>`<div class="fcmt"><b>${esc(c.from)}</b> ${esc(c.text)} <span class="fcmt-t">${fTime(c.time)}</span></div>`).join("")}
-        <form class="fcmt-add" data-id="${esc(e.id)}"><input placeholder="Add a comment…" maxlength="300" aria-label="Comment"><button class="btn" type="submit">Post</button></form>
+        <form class="fcmt-add" data-id="${esc(e.id)}"><input placeholder="${esc(tr("Add a comment…"))}" maxlength="300" aria-label="${esc(tr("Comment"))}"><button class="btn" type="submit">${esc(tr("Post"))}</button></form>
       </div>`:``}
     </div>`;
   }).join("");
   const F=$("feedList");
   F.querySelectorAll(".fdel").forEach(b=>b.addEventListener("click", async()=>{
-    if(!confirm("Delete this post?")) return;
-    try{ const res=await api({action:"feeddelete", row:Number(b.dataset.row)}); FEED=res.feed||[]; renderFeed(); toast("Post deleted"); }
-    catch(err){ toast("Could not delete: "+err.message); }
+    if(!confirm(tr("Delete this post?"))) return;
+    try{ const res=await api({action:"feeddelete", row:Number(b.dataset.row)}); FEED=res.feed||[]; renderFeed(); toast(tr("Post deleted")); }
+    catch(err){ toast(tr("Could not delete: {0}", err.message)); }
   }));
   F.querySelectorAll(".cheer").forEach(b=>b.addEventListener("click", async()=>{
     b.disabled=true;
     try{ const res=await api({action:"feedcheer", id:b.dataset.id}); FEED=res.feed||[]; renderFeed(); }
-    catch(err){ toast("Could not cheer: "+err.message); b.disabled=false; }
+    catch(err){ toast(tr("Could not cheer: {0}", err.message)); b.disabled=false; }
   }));
   F.querySelectorAll(".cmtbtn").forEach(b=>b.addEventListener("click", ()=>{
     const id=b.dataset.id; if(FEED_OPEN.has(id)) FEED_OPEN.delete(id); else FEED_OPEN.add(id); renderFeed();
@@ -3173,14 +3182,14 @@ function renderFeed(){
     if(!text) return;
     inp.disabled=true;
     try{ const res=await api({action:"feedcomment", id, text}); FEED=res.feed||[]; FEED_OPEN.add(id); renderFeed(); }
-    catch(err){ toast("Could not comment: "+err.message); inp.disabled=false; }
+    catch(err){ toast(tr("Could not comment: {0}", err.message)); inp.disabled=false; }
   }));
   F.querySelectorAll(".followbtn").forEach(b=>b.addEventListener("click", ()=>{
     b.disabled=true; toggleFollow(b.dataset.user, !iFollow(b.dataset.user));
   }));
   F.querySelectorAll(".fphoto").forEach(el=>{
     const id=el.dataset.photo;
-    loadPhoto(id).then(src=>{ el.classList.add("ready"); el.innerHTML=`<img src="${src}" alt="Shared photo">`;
+    loadPhoto(id).then(src=>{ el.classList.add("ready"); el.innerHTML=`<img src="${src}" alt="${esc(tr("Shared photo"))}">`;
       el.addEventListener("click", ()=>openPhotoLightbox(src)); })
       .catch(()=>{ el.querySelector(".jphoto-ph").textContent="—"; });
   });
@@ -3197,7 +3206,7 @@ function openShareModal(prefill){
   $("shNote").value="";
   $("shPhoto").value=""; $("shPhotoPrev").hidden=true; $("shPhotoPrev").removeAttribute("src"); $("shPhotoRemove").hidden=true;
   const me=(cfg.user||"").toLowerCase();
-  $("shTo").innerHTML=`<option value="">Everyone</option>`+
+  $("shTo").innerHTML=`<option value="">${esc(tr("Everyone"))}</option>`+
     (FEED_USERS||[]).filter(u=>u.toLowerCase()!==me).map(u=>`<option value="${esc(u)}">${esc(u)}</option>`).join("");
   $("shErr").hidden=true;
   $("shareModal").classList.add("open"); $("shProducer").focus();
@@ -3211,7 +3220,7 @@ async function shareWine(ev){
     vintage:$("shVintage").value.trim(), region:$("shRegion").value.trim(),
     rating:$("shRating").value, note:$("shNote").value.trim() };
   const file=$("shPhoto").files[0];
-  if(!entry.producer && !entry.wine && !entry.note && !file){ $("shErr").textContent="Add a wine, a note or a photo."; $("shErr").hidden=false; return; }
+  if(!entry.producer && !entry.wine && !entry.note && !file){ $("shErr").textContent=tr("Add a wine, a note or a photo."); $("shErr").hidden=false; return; }
   $("shSave").disabled=true; $("shErr").hidden=true;
   try{
     if(file){ try{ entry.photo=await shrinkImage(file); }catch(e){ /* skip a bad image */ } }
@@ -3219,8 +3228,8 @@ async function shareWine(ev){
     FEED=res.feed||[]; FEED_ME=res.me||FEED_ME; FEED_FOLLOWS=res.follows||FEED_FOLLOWS;
     $("shareModal").classList.remove("open");
     if(location.hash==="#feed"){ renderFeed(); markFeedSeen(); }
-    toast(entry.to?("Sent to "+entry.to+" 🍷"):"Shared to the feed 🍷");
-  }catch(err){ $("shErr").textContent="Could not share: "+err.message; $("shErr").hidden=false; }
+    toast(entry.to?tr("Sent to {0} 🍷", entry.to):tr("Shared to the feed 🍷"));
+  }catch(err){ $("shErr").textContent=tr("Could not share: {0}", err.message); $("shErr").hidden=false; }
   $("shSave").disabled=false;
 }
 $("shPhoto").addEventListener("change", ()=>{
@@ -3236,7 +3245,7 @@ $("shareForm").addEventListener("submit", shareWine);
 
 async function toggleFollow(user, follow){
   try{ const res=await api({action:follow?"follow":"unfollow", user}); FEED_FOLLOWS=res.follows||[]; renderFeed(); }
-  catch(err){ toast("Could not update follow: "+err.message); }
+  catch(err){ toast(tr("Could not update follow: {0}", err.message)); }
 }
 
 function route(){
@@ -3279,6 +3288,19 @@ function checkIdle(){ if(cfg.token && Date.now()-lastActive > IDLE_MS) idleLogou
 document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) checkIdle(); });
 setInterval(checkIdle, 30*1000);
 
+/* ---------- language: the picker redraws everything on screen ---------- */
+if(window.I18N) window.I18N.onChange(()=>{
+  if($("app").hidden) return;
+  stampText();
+  $("priceBtn").textContent = SHOW_PRICES ? tr("Hide prices") : tr("Show prices");
+  if(WINES.length){ renderOverview(); renderTable(); renderEnjoyed(); }
+  if(JENTRIES) renderJournal();
+  if(WITEMS) renderWishlist();
+  if(FEED) renderFeed();
+  if($("jModal").classList.contains("open")) syncEnjoyOption();
+  if($("addModal").classList.contains("open")) addSuggest();
+});
+
 /* ---------- boot ---------- */
 const bootActive = Number(localStorage.getItem("vinActive")||0);
 const sessionFresh = bootActive && (Date.now()-bootActive < IDLE_MS);
@@ -3298,5 +3320,5 @@ if(cfg.api && cfg.user && cfg.token && sessionFresh && localStorage.getItem("vin
   if(staleDrop) forgetAuth();                     // (e.g. overnight) — drop it
   localStorage.removeItem("vinActive");
   setGateMode("login");
-  showGate(staleDrop ? "Your session expired after inactivity — log in again." : "");
+  showGate(staleDrop ? tr("Your session expired after inactivity — log in again.") : "");
 }
