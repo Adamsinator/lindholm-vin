@@ -3,6 +3,7 @@
 //
 //   const gas = require("./gas-harness")({ Ark1: [[headers…], [row…], …], Journal: […] });
 //   gas.call({ code: "test-code", action: "data" })  → parsed JSON response
+//   gas.post('{"action":"atlas"}'), gas.get({ … })    → the same through doPost / doGet, as the web app receives it
 //   gas.rows("Ark1")                                   → the bound sheet's current cells
 //   gas.rt                                             → the runtime: rt.books, rt.files, rt.tabs(bookId)
 "use strict";
@@ -23,12 +24,14 @@ module.exports = function harness(tabs, opts = {}) {
   // the project's two files, as Apps Script loads them (one shared global scope); Code.gs first, to show the
   // order doesn't matter. The test sets its own access code.
   const read = f => fs.readFileSync(path.join(__dirname, "..", "apps-script", f), "utf8");
-  vm.runInContext(read("Code.gs") + "\n;globalThis.__handle = handle;", ctx);
+  vm.runInContext(read("Code.gs") + "\n;globalThis.__handle = handle; globalThis.__doPost = doPost; globalThis.__doGet = doGet;", ctx);
   vm.runInContext(read("Settings.gs"), ctx);
   vm.runInContext(`SETTINGS.ACCESS_CODE = ${JSON.stringify("code" in opts ? opts.code : "test-code")};`, ctx);
   if (opts.settings) vm.runInContext(`Object.assign(SETTINGS, ${JSON.stringify(opts.settings)});`, ctx);
   return {
     call: p => JSON.parse(ctx.__handle(JSON.parse(JSON.stringify(p))).s),
+    post: body => JSON.parse(ctx.__doPost({ postData: { contents: String(body) } }).s),
+    get: params => JSON.parse(ctx.__doGet({ parameter: params }).s),
     rows: n => rt.book.sheets[n] ? rt.book.sheets[n]._cells.map(r => [...r]) : null,
     sheet: n => rt.book.sheets[n],
     run: code => vm.runInContext(code, ctx), // e.g. run("makeOwner()") — as if from the script editor

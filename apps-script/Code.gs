@@ -32,7 +32,7 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 const DEFAULT_SETTINGS = { ACCESS_CODE: '', SHEET_NAME: 'Ark1', SIGNUP_CODE: '', ATLAS_EDITORS: '', OWNER_USER: '', OWNER_PASSWORD: '',
-  MAX_USERS: '50', SESSION_DAYS: '30', BACKUP_KEEP: '8', RESTORE_USER: '', RESTORE_FROM: '' };
+  MAX_USERS: '50', SESSION_DAYS: '30', BACKUP_KEEP: '8', RESTORE_USER: '', RESTORE_FROM: '', GATEWAY_SECRET: '' };
 // Read at call time (not load time), so it doesn't matter in which order Apps Script loads the two files.
 function setting(key) {
   const s = (typeof SETTINGS === 'object' && SETTINGS) || {};
@@ -42,7 +42,7 @@ function setting(key) {
 // The legacy code only works once you've set a real one: the placeholder from the template is public.
 function accessCode() { const c = setting('ACCESS_CODE'); return c === 'CHANGE-ME' ? '' : c; }
 
-const API_VERSION = 34; // returned in every response; used to verify deployments
+const API_VERSION = 35; // returned in every response; used to verify deployments
 
 // Per-request spreadsheet for the authenticated user. Set in handle(); every
 // sheet helper reads it via ss(). Falls back to the bound (owner's) spreadsheet.
@@ -51,6 +51,14 @@ let CTX_USER = null; // authenticated username (for the shared social feed)
 let CTX_ACCOUNT = null; // the signed-in account's Users record (null for the legacy access code)
 // True when this file runs inside the browser's vault engine (vault-engine.js) on a user's decrypted cellar rather
 // than on the server; the engine declares it before loading this file.
+// With GATEWAY_SECRET set, only requests that came through the Cloudflare Worker (worker/index.js) are served: it adds
+// the secret to each one. Others are refused straight away, before any spreadsheet is opened. The browser's own copy
+// of this file (vault-engine.js) never needs it.
+function throughGateway(p) {
+  const secret = setting('GATEWAY_SECRET'), sent = String(p._gw || '');
+  delete p._gw;
+  return !secret || inEngine() || safeEqual(sent, secret);
+}
 function inEngine() { return typeof ENGINE !== 'undefined' && ENGINE === true; }
 function ss() { return CTX || SpreadsheetApp.getActiveSpreadsheet(); }
 
@@ -124,13 +132,15 @@ function authorize() {
   return told('Authorized. You can close this.');
 }
 
-function doGet(e) { return handle((e && e.parameter) || {}); }
+function doGet(e) { const p = Object.assign({}, (e && e.parameter) || {}); return throughGateway(p) ? handle(p) : json({ ok: false, error: 'gateway' }); }
 
 function doPost(e) {
   let p = {};
   const body = e && e.postData ? String(e.postData.contents || '') : '';
   if (body.length > REQUEST_MAX) return json({ ok: false, error: 'too-big' });
   try { p = JSON.parse(body); } catch (err) {}
+  if (!p || typeof p !== 'object') p = {};
+  if (!throughGateway(p)) return json({ ok: false, error: 'gateway' });
   return handle(p);
 }
 
