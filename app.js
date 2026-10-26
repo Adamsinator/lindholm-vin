@@ -873,8 +873,8 @@ function bindDetail(root){
 /* ---------- actions ---------- */
 let LOADED_AT = null; // when the cellar was last fetched, for "Updated …" in the interface language
 function stampText(){ if(LOADED_AT) $("stamp").textContent = tr("Updated {0}", LOADED_AT.toLocaleString(I18N_LOCALE(),{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"})); }
-async function loadData(){
-  $("spin").hidden = false; $("content").hidden = true;
+async function loadData(quiet){
+  if(!quiet){ $("spin").hidden = false; $("content").hidden = true; }
   if(cfg.user){ $("who").textContent = cfg.user; $("who").hidden = false; }
   try{
     const res = await api({action:"data"});
@@ -1101,9 +1101,17 @@ async function openVault(user, token, dek){
   cfg.user = user; cfg.token = token;
   localStorage.setItem("vinUser", user); localStorage.setItem("vinToken", token); localStorage.setItem("vinVault", "1");
   await VCRYPTO.keep(user, dek);
-  await VAULT.start({post, user, token, dek});
+  await VAULT.start({post, user, token, dek, ...VAULT_HOOKS});
   $("acctBtn").hidden = false;
 }
+// The vault opens from the device's encrypted copy; when the server's copy turns out newer, redraw from it
+const VAULT_HOOKS = {
+  onRefresh(){
+    JENTRIES = null; WITEMS = null; loadData(true);
+    if(location.hash==="#journal" || location.hash==="#wishlist") route();
+  },
+  onLost(){ forgetAuth(); setGateMode("login"); showGate(tr("Your session expired — log in again.")); },
+};
 const STEP_MSG = { export:"Reading your cellar…", photos:"Encrypting journal photos ({0} of {1})…", write:"Encrypting your cellar…",
   verify:"Checking the encrypted copy…", finish:"Removing the unencrypted copy…" };
 async function migrateNow(user, token, dek){
@@ -1119,7 +1127,7 @@ async function gateEncrypted(mode, user, pass){
     const k = await VAULT.newKeys(pass);
     const data = await post({action:"signup", user, code:$("gateInvite").value.trim(), ...k.fields});
     if(!data.ok) throw new Error(data.error);
-    cfg.user = data.user;
+    cfg.user = data.user; VAULT.rememberSalt(data.user, k.fields);
     await showRecoveryCode(k.recoveryCode);
     await openVault(data.user, data.token, k.dek);
     return true;
@@ -1145,6 +1153,7 @@ async function gateEncrypted(mode, user, pass){
     const k = await VAULT.newKeys(pass);
     const up = await post({user:data.user, token:data.token, action:"upgrade", ...k.fields});
     if(!up.ok) throw new Error(up.error);
+    VAULT.rememberSalt(data.user, k.fields);
     await showRecoveryCode(k.recoveryCode);
     await migrateNow(data.user, data.token, k.dek);
     await openVault(data.user, data.token, k.dek);
@@ -1164,6 +1173,7 @@ $("gateForm").addEventListener("submit", async e=>{
   if(!user || !pass){ $("gateErr").textContent = tr("Enter your username and password."); return; }
   if(GATE_MODE!=="login" && pass.length < 8){ $("gateErr").textContent = tr("Use a password of at least 8 characters."); return; }
   const signup = GATE_MODE==="signup";
+  localStorage.setItem("vinStay", $("gateStay").checked ? "1" : "0");
   $("gateSubmit").disabled = true; $("gateErr").textContent = tr(signup ? "Creating…" : "Signing in…");
   try{
     if(window.VAULT && await gateEncrypted(GATE_MODE, user, pass)){
@@ -1212,7 +1222,7 @@ $("acctRec").addEventListener("click", async ()=>{
 
 /* ---------- header actions ---------- */
 $("refreshBtn").addEventListener("click", loadData);
-$("lockBtn").addEventListener("click", ()=>{ forgetAuth(); setGateMode("login"); showGate(tr("Signed out. Log in to reopen.")); });
+$("lockBtn").addEventListener("click", ()=>{ if(window.VAULT) VAULT.forgetCache(cfg.user); forgetAuth(); setGateMode("login"); showGate(tr("Signed out. Log in to reopen.")); });
 $("priceBtn").addEventListener("click", ()=>{
   SHOW_PRICES = !SHOW_PRICES;
   localStorage.setItem("vinHidePrices", SHOW_PRICES ? "0" : "1");
@@ -3276,8 +3286,12 @@ window.addEventListener("hashchange", route);
 
 /* ---------- inactivity auto-logout ---------- */
 // Sign out after 60 minutes with no interaction — and don't carry a session over
-// a long gap (e.g. overnight): a stale timestamp means log in again on return.
-const IDLE_MS = 60*60*1000;
+// a long gap (e.g. overnight): a stale timestamp means log in again on return. With "Stay signed in on this device"
+// (the default) the limit is 30 days, as long as the server keeps a session that isn't used.
+const STAY_MS = 30*24*60*60*1000, SHORT_MS = 60*60*1000;
+const staySignedIn = () => localStorage.getItem("vinStay") !== "0";
+const idleMs = () => staySignedIn() ? STAY_MS : SHORT_MS;
+$("gateStay").checked = staySignedIn();
 let lastActive = Date.now();
 function markActive(){
   lastActive = Date.now();
@@ -3286,9 +3300,10 @@ function markActive(){
 }
 function idleLogout(){
   forgetAuth(); localStorage.removeItem("vinActive");
-  setGateMode("login"); showGate(tr("Signed out after 60 minutes of inactivity — log in again."));
+  setGateMode("login");
+  showGate(staySignedIn() ? tr("Your session expired after inactivity — log in again.") : tr("Signed out after 60 minutes of inactivity — log in again."));
 }
-function checkIdle(){ if(cfg.token && Date.now()-lastActive > IDLE_MS) idleLogout(); }
+function checkIdle(){ if(cfg.token && Date.now()-lastActive > idleMs()) idleLogout(); }
 ["click","keydown","pointerdown","scroll","touchstart"].forEach(ev=>
   document.addEventListener(ev, markActive, {passive:true, capture:true}));
 document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) checkIdle(); });
@@ -3309,13 +3324,13 @@ if(window.I18N) window.I18N.onChange(()=>{
 
 /* ---------- boot ---------- */
 const bootActive = Number(localStorage.getItem("vinActive")||0);
-const sessionFresh = bootActive && (Date.now()-bootActive < IDLE_MS);
+const sessionFresh = bootActive && (Date.now()-bootActive < idleMs());
 if(cfg.api && cfg.user && cfg.token && sessionFresh && localStorage.getItem("vinVault")==="1"){
   // an encrypted session: reopen the vault with the key kept for this session, or ask for the password again
   lastActive = bootActive;
   (async ()=>{
     const dek = window.VCRYPTO ? await VCRYPTO.recall(cfg.user) : null;
-    try{ if(!dek) throw new Error("no-key"); await VAULT.start({post, user:cfg.user, token:cfg.token, dek});
+    try{ if(!dek) throw new Error("no-key"); await VAULT.start({post, user:cfg.user, token:cfg.token, dek, ...VAULT_HOOKS});
       $("acctBtn").hidden = false; $("app").hidden=false; loadData(); route(); }
     catch(err){ forgetAuth(); setGateMode("login"); showGate(tr("Log in again to unlock your cellar.")); }
   })();

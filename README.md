@@ -788,7 +788,14 @@ posts, follows and atlas corrections stay readable, because sharing them is the 
 - **Keys.** The password never leaves the browser. PBKDF2-SHA256 (600 000 rounds) turns it into a login key, which
   the server checks and stores only hashed, and a key that unwraps the account's random AES-256 data key
   (`vault-crypto.js`). The data key exists in the clear only inside the browser. During a session it's kept as a
-  non-extractable key in IndexedDB, and it's dropped on logout and after the 60-minute idle sign-out.
+  non-extractable key in IndexedDB, and it's dropped on logout and after the idle sign-out: 30 quiet days with
+  **Stay signed in on this device** ticked (the default), 60 minutes without it.
+- **Fast login.** Every request to Apps Script takes 2–3 seconds, so the device keeps a copy of the vault's
+  encrypted records (IndexedDB `allwine-cache`, ciphertext only) and the account's key-derivation salt. A reload
+  opens the cellar from that copy at once, and a login on a known device makes one request (the password check)
+  before the cellar shows. The server's copy is fetched in the background and replaces the device's when it's
+  newer; a save from an older copy is refused as stale and redone on the fresh one, as before. **Sign out** forgets
+  the device's copy and the salt. A device that has never logged in makes three requests, as before.
 - **Recovery code.** At sign-up, and at each existing user's first login on the new version, the site shows a
   recovery code once. It wraps the same data key, so a forgotten password can be reset from the login screen
   (**Forgot password?**). Without the password *and* the code, the cellar is gone — nobody can open it, you

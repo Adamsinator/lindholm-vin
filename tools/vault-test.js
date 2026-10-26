@@ -94,8 +94,14 @@ const plainWine = ["Armand Rousseau", "Frankrig", "Bourgogne", "Gevrey-Chamberti
   const fold = gas.rt.globals.DriveApp.getRootFolder().createFolder("Journalfotos");
   const f = fold.createFile({ b: [65, 66, 67], m: "image/jpeg", n: "old.jpg" });
   gas.sheet("Journal")._cells[1][3] = f.getId();
-  const mig = await VAULT.migrate({ post, user: "adam", token: r.token, dek: ok3.dek });
-  check("migration copies tabs and photos", mig.tabs.includes("Ark1") && mig.tabs.includes("Journal") && mig.photos === 1, JSON.stringify(mig));
+  // four more entries with photos (they go three at a time), one of them reusing the first entry's photo
+  const more = [1, 2, 3].map(i => fold.createFile({ b: [65 + i, 66, 67], m: "image/jpeg", n: "old" + i + ".jpg" }));
+  more.forEach((x, i) => gas.sheet("Journal")._cells.push(["2026-01-0" + (i + 1), "Producer " + i, "Wine " + i, x.getId()]));
+  gas.sheet("Journal")._cells.push(["2026-02-01", "Armand Rousseau", "again", f.getId()]);
+  const steps = [];
+  const mig = await VAULT.migrate({ post, user: "adam", token: r.token, dek: ok3.dek, onStep: (k, i, n) => k === "photos" && steps.push(i + "/" + n) });
+  check("migration copies tabs and photos", mig.tabs.includes("Ark1") && mig.tabs.includes("Journal") && mig.photos === 4, JSON.stringify(mig));
+  check("…counting each photo once, up to all of them", steps[0] === "0/4" && steps[steps.length - 1] === "4/4", JSON.stringify(steps));
   check("…the plain wine tab is cleared", gas.rows("Ark1").length === 0);
   check("…the plain journal tab is gone", gas.rows("Journal") === null);
   check("…the plain photo is in the trash", gas.rt.files[f.getId()].trashed === true);
@@ -107,6 +113,8 @@ const plainWine = ["Armand Rousseau", "Frankrig", "Bourgogne", "Gevrey-Chamberti
   const j = await VAULT.call({ action: "journal" });
   const jp = await VAULT.call({ action: "photo", id: j.entries[0].photo });
   check("…with its journal photo, re-encrypted", jp.photo === "data:image/jpeg;base64,QUJD", jp.photo);
+  const pics = await Promise.all(j.entries.map(e => VAULT.call({ action: "photo", id: e.photo }).then(x => x.photo)));
+  check("…every entry keeps its own photo, the shared one on both", JSON.stringify(pics) === JSON.stringify(["QUJD", "QkJD", "Q0JD", "REJD", "QUJD"].map(x => "data:image/jpeg;base64," + x)), JSON.stringify(pics));
   check("…and the shared feed still works", (await VAULT.call({ action: "feed" })).ok);
 
   const n = results.filter(Boolean).length;
