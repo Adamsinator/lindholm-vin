@@ -85,6 +85,12 @@ const wines = Array.from({ length: 120 }, (_, i) => { const p = P[i % P.length];
 
   // ── the journal as a grid ──
   await p.setViewportSize({ width: 1650, height: 1000 });
+  for (const w of [1650, 1280]) {
+    await p.setViewportSize({ width: w, height: 1000 }); await p.click('.tab[data-page="enjoyed"]'); await p.waitForTimeout(300);
+    const cols = await p.$$eval("#eTbl thead th", ts => ts.map(t => Math.round(t.getBoundingClientRect().width)));
+    check(`Enjoyed at ${w} px: the wine has the room, the small columns stay small (${cols.join(" · ")})`, cols[0] >= 320 && cols[4] <= 60 && cols[0] > cols.slice(1).reduce((a, b) => Math.max(a, b), 0) * 2.3, cols.join(","));
+  }
+  await p.setViewportSize({ width: 1650, height: 1000 });
   for (let i = 0; i < 4; i++) await p.evaluate(n => api({ action: "jadd", entry: { date: "2026-10-1" + n, producer: "Krug", wine: "Grande Cuvée", rating: 8, note: "fine" } }), i);
   await p.click('.tab[data-page="journal"]'); await p.evaluate(() => { JENTRIES = null; loadJournal(); }); await p.waitForTimeout(800);
   const jy = await p.$$eval("#jList .jentry", es => es.map(e => Math.round(e.getBoundingClientRect().y)));

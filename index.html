@@ -549,8 +549,18 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
 #tbl td:nth-child(3),#tbl td:nth-child(4),#eTbl td:nth-child(3),#eTbl td:nth-child(4),#eTbl td:nth-child(6){white-space:nowrap}
 @media (min-width:701px){
   #tbl tr.main td:first-child,#eTbl tr.main td:first-child{max-width:0;width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* Enjoyed: fixed widths, so the same in every browser; the wine has the rest */
+  #eTbl{table-layout:fixed}
+  #eTbl thead th{overflow:hidden;text-overflow:ellipsis}
+  #eTbl thead th:nth-child(2){width:72px} #eTbl thead th:nth-child(3){width:118px} #eTbl thead th:nth-child(4){width:142px}
+  #eTbl thead th:nth-child(5){width:54px} #eTbl thead th:nth-child(6){width:124px} #eTbl thead th:nth-child(7){width:126px}
+  #eTbl tr.main td:nth-child(3),#eTbl tr.main td:nth-child(4){overflow:hidden;text-overflow:ellipsis}
   #tbl td:first-child br,#eTbl td:first-child br{display:none}
   #tbl td:first-child .wname,#tbl td:first-child .wloc,#eTbl td:first-child .wname{margin-left:8px}
+}
+/* with the overview in its column beside the list there's less room: the region (it's in the overview) gives way */
+@media (min-width:1181px) and (max-width:1499px){
+  #eTbl thead th:nth-child(3),#eTbl tr.main td:nth-child(3){display:none}
 }
 /* the header: the page tabs share a row with Refresh, Account and Log out */
 .gbar{flex-wrap:wrap;row-gap:6px;margin:-4px 0 14px}
