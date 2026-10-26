@@ -248,7 +248,10 @@ function showTip(html,x,y){ tip.innerHTML=html; tip.style.opacity=1;
   tip.style.top=Math.max(4,(y-r.height-10))+"px"; }
 function hideTip(){ tip.style.opacity=0; }
 let toastT;
-function toast(msg){ const t=$("toast"); t.textContent=msg; t.style.opacity=1;
+// the server's limits, said in words wherever an error message shows their code
+const LIMIT_MSG = {"too-many":"You've done that a lot in a short time — wait a while and try again.", "too-big":"That's too large to save."};
+const limitText = m => String(m).replace(/\b(too-many|too-big)\b/, c => tr(LIMIT_MSG[c]));
+function toast(msg){ msg = limitText(msg); const t=$("toast"); t.textContent=msg; t.style.opacity=1;
   clearTimeout(toastT); toastT=setTimeout(()=>t.style.opacity=0, 2600); }
 
 /* ---------- overview (rebuilt on every data load) ---------- */
@@ -1051,7 +1054,9 @@ function setGateMode(mode){
 }
 // Friendly text for the error codes the API returns.
 const AUTH_MSG = {
-  "bad-login":"Wrong username or password.", "bad-invite":"That invite code isn't right.",
+  "bad-login":"Wrong username or password.", "bad-invite":"That invite code isn't right, or it has already been used.",
+  "locked":"Too many wrong tries — wait 15 minutes and try again.", "signup-full":"There's no room for new accounts right now. Ask the owner.",
+  "signup-busy":"Too many sign-ups just now — try again in an hour.",
   "signup-disabled":"Signups are closed right now.", "user-taken":"That username is taken.",
   "bad-username":"Username: 3–24 letters, numbers, . _ or -.", "weak-pass":"Use a password of at least 6 characters.",
   "no-cellar":"Your cellar couldn't be opened. Contact the owner.",
@@ -3229,7 +3234,7 @@ async function shareWine(ev){
     $("shareModal").classList.remove("open");
     if(location.hash==="#feed"){ renderFeed(); markFeedSeen(); }
     toast(entry.to?tr("Sent to {0} 🍷", entry.to):tr("Shared to the feed 🍷"));
-  }catch(err){ $("shErr").textContent=tr("Could not share: {0}", err.message); $("shErr").hidden=false; }
+  }catch(err){ $("shErr").textContent=limitText(tr("Could not share: {0}", err.message)); $("shErr").hidden=false; }
   $("shSave").disabled=false;
 }
 $("shPhoto").addEventListener("change", ()=>{
@@ -3244,7 +3249,8 @@ $("shareModal").addEventListener("click", e=>{ if(e.target===$("shareModal")) $(
 $("shareForm").addEventListener("submit", shareWine);
 
 async function toggleFollow(user, follow){
-  try{ const res=await api({action:follow?"follow":"unfollow", user}); FEED_FOLLOWS=res.follows||[]; renderFeed(); }
+  // the target goes as "target": "user" is the signed-in account, and would be overwritten
+  try{ const res=await api({action:follow?"follow":"unfollow", target:user}); FEED_FOLLOWS=res.follows||[]; renderFeed(); }
   catch(err){ toast(tr("Could not update follow: {0}", err.message)); }
 }
 

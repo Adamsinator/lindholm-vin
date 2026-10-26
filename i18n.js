@@ -14,6 +14,13 @@ const LANGS = [{id:"en", n:"English"}, {id:"da", n:"Dansk"}, {id:"de", n:"Deutsc
 
 const DA = {
   // cellar app
+  "That invite code isn't right, or it has already been used.": "Den invitationskode er forkert, eller den er allerede brugt.",
+  "Too many wrong tries — wait 15 minutes and try again.": "For mange forkerte forsøg — vent 15 minutter og prøv igen.",
+  "There's no room for new accounts right now. Ask the owner.": "Der er ikke plads til flere konti lige nu. Spørg ejeren.",
+  "Too many sign-ups just now — try again in an hour.": "For mange oprettelser lige nu — prøv igen om en time.",
+  "You've done that a lot in a short time — wait a while and try again.": "Du har gjort det mange gange på kort tid — vent lidt og prøv igen.",
+  "That's too large to save.": "Det er for stort til at blive gemt.",
+  // cellar app
   "(optional — kept here; your cellar's own price is left alone)": "(valgfri — gemmes her; kælderens egen pris røres ikke)",
   "(optional — also fills the blank price on your cellar row)": "(valgfri — udfylder også den tomme pris på kælderrækken)",
   "(optional — also saved onto its Enjoyed row)": "(valgfri — gemmes også på dens række i Nydt)",
@@ -731,6 +738,13 @@ const DA = {
 
 const FR = {
   // cellar app
+  "That invite code isn't right, or it has already been used.": "Ce code d'invitation est erroné ou a déjà servi.",
+  "Too many wrong tries — wait 15 minutes and try again.": "Trop d'essais erronés — attendez 15 minutes et réessayez.",
+  "There's no room for new accounts right now. Ask the owner.": "Plus de place pour de nouveaux comptes pour l'instant. Demandez au propriétaire.",
+  "Too many sign-ups just now — try again in an hour.": "Trop d'inscriptions en ce moment — réessayez dans une heure.",
+  "You've done that a lot in a short time — wait a while and try again.": "Vous l'avez fait souvent en peu de temps — patientez un peu et réessayez.",
+  "That's too large to save.": "C'est trop volumineux pour être enregistré.",
+  // cellar app
   "(optional — kept here; your cellar's own price is left alone)": "(facultatif — gardé ici ; le prix de votre cave n'est pas modifié)",
   "(optional — also fills the blank price on your cellar row)": "(facultatif — complète aussi le prix vide de la ligne en cave)",
   "(optional — also saved onto its Enjoyed row)": "(facultatif — enregistré aussi sur sa ligne des Dégustés)",
@@ -1435,6 +1449,13 @@ const FR = {
   "About the data.": "À propos des données.", "Language": "Langue",
 };
 const DE = {
+  // cellar app
+  "That invite code isn't right, or it has already been used.": "Dieser Einladungscode stimmt nicht oder wurde schon benutzt.",
+  "Too many wrong tries — wait 15 minutes and try again.": "Zu viele Fehlversuche — warten Sie 15 Minuten und versuchen Sie es erneut.",
+  "There's no room for new accounts right now. Ask the owner.": "Derzeit ist kein Platz für neue Konten. Fragen Sie den Betreiber.",
+  "Too many sign-ups just now — try again in an hour.": "Gerade zu viele Anmeldungen — versuchen Sie es in einer Stunde erneut.",
+  "You've done that a lot in a short time — wait a while and try again.": "Sie haben das in kurzer Zeit sehr oft getan — warten Sie etwas und versuchen Sie es erneut.",
+  "That's too large to save.": "Das ist zu groß zum Speichern.",
   // cellar app
   "(optional — kept here; your cellar's own price is left alone)": "(optional — wird hier gespeichert; der Kellerpreis bleibt unverändert)",
   "(optional — also fills the blank price on your cellar row)": "(optional — füllt auch den leeren Preis in der Kellerzeile)",

@@ -10,8 +10,13 @@ var SETTINGS = {
   // The tab in your Google Sheet that holds the wine list.
   SHEET_NAME: 'Ark1',
 
-  // Invite code friends type to create their own account (each gets a private spreadsheet). '' = signups off.
+  // A shared invite code for sign-up. Better: leave this '' and make personal single-use codes with makeInvites()
+  // (they go in the sheet's "Invites" tab). With neither, sign-up is off.
   SIGNUP_CODE: '',
+
+  // The most accounts there can be, and how many days a login lasts without being used.
+  MAX_USERS: 50,
+  SESSION_DAYS: 30,
 
   // Who may correct vineyard holdings in the Burgundy atlas: '' = anyone signed in,
   // or a comma-separated list of usernames, e.g. 'adam,anna'.
