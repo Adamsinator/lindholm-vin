@@ -156,7 +156,8 @@ const locPlace = l => String(l||"").split(/[,;/·|]/)[0].trim();
 
 /* ---------- config / auth ---------- */
 const cfg = {
-  api: localStorage.getItem("vinApi") || (window.WINE_CONFIG && window.WINE_CONFIG.API_URL) || "",
+  // the site's own setting wins: an address saved in this browser (from before config.js had one) is only a fallback
+  api: (window.WINE_CONFIG && window.WINE_CONFIG.API_URL) || localStorage.getItem("vinApi") || "",
   user: localStorage.getItem("vinUser") || "",
   token: localStorage.getItem("vinToken") || "",
 };

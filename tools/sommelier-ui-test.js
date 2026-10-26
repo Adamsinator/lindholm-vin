@@ -13,7 +13,7 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
 (async () => {
   const b = await chromium.launch(); const ctx = await b.newContext({ viewport: { width: 1280, height: 900 } });
   let calls = 0; const loaded = [];
-  await ctx.route("https://script.google.com/**", async route => { calls++; await route.fulfill({ contentType: "application/json", body: JSON.stringify(gas.call(JSON.parse(route.request().postData() || "{}"))) }); });
+  await ctx.route(require("./api-route"), async route => { calls++; await route.fulfill({ contentType: "application/json", body: JSON.stringify(gas.call(JSON.parse(route.request().postData() || "{}"))) }); });
   const p = await ctx.newPage(); const errs = [];
   p.on("request", r => loaded.push(r.url()));
   p.on("pageerror", e => errs.push(e.message)); p.on("console", m => m.type() === "error" && errs.push(m.text()));

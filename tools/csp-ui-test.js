@@ -21,7 +21,7 @@ const FAKE_TURNSTILE = `window.turnstile = {
 (async () => {
   const b = await chromium.launch(); const ctx = await b.newContext({ viewport: { width: 1280, height: 900 } });
   const sent = [];
-  await ctx.route("https://script.google.com/**", async route => { const q = JSON.parse(route.request().postData() || "{}"); sent.push(q);
+  await ctx.route(require("./api-route"), async route => { const q = JSON.parse(route.request().postData() || "{}"); sent.push(q);
     await route.fulfill({ contentType: "application/json", body: JSON.stringify(gas.call(q)) }); });
   await ctx.route(/data\.geopf\.fr\/wmts/, route => route.fulfill({ contentType: "image/png", body: BLANK }));
   await ctx.route(/data\.geopf\.fr\/altimetrie/, route => route.fulfill({ contentType: "application/json",
@@ -31,7 +31,10 @@ const FAKE_TURNSTILE = `window.turnstile = {
   await ctx.route(/\/config\.js/, route => route.fulfill({ contentType: "text/javascript", body: config }));
   // every violation the browser reports, from the start of each page
   await ctx.addInitScript(() => { window.__csp = []; document.addEventListener("securitypolicyviolation", e => window.__csp.push(e.violatedDirective + " " + e.blockedURI)); });
-  const errs = [];
+  // a browser that saved the old Apps Script address (from before config.js had one) still uses config.js's
+  await ctx.addInitScript(() => { try { localStorage.setItem("vinApi", "https://script.google.com/macros/s/OLD/exec"); } catch (e) {} });
+  const errs = [], apiHosts = new Set();
+  ctx.on("request", q => { const u = new URL(q.url()); if (q.method() === "POST") apiHosts.add(u.host); });
   const open = async url => { const p = await ctx.newPage(); p.on("pageerror", e => errs.push(url + ": " + e.message));
     p.on("console", m => m.type() === "error" && errs.push(url + ": " + m.text())); await p.goto(BASE + url); await p.waitForTimeout(500); return p; };
   const violations = p => p.evaluate(() => window.__csp);
@@ -89,6 +92,7 @@ const FAKE_TURNSTILE = `window.turnstile = {
   const r = await open(""); await r.evaluate(() => localStorage.clear());
   await r.reload(); await r.waitForTimeout(400); await r.click("#gateForgot"); await r.waitForTimeout(400);
   check("recovery shows the human check", await r.isVisible("#gateHuman"));
+  check("requests go to config.js's API, not an address saved in the browser", !apiHosts.has("script.google.com") && [...apiHosts].some(h => /workers\.dev$/.test(h)), [...apiHosts].join(", "));
   const real = errs.filter(e => !/example\.com/.test(e)); // the blocked fetch above is this test's own
   check("no console errors", !real.length, real.join(" | "));
   await b.close();

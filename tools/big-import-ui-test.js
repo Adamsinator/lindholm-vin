@@ -16,7 +16,7 @@ const ms = t => ((Date.now() - t) / 1000).toFixed(1) + " s";
 async function session(b, gas, plain) {
   const ctx = await b.newContext({ viewport: { width: 1440, height: 900 } });
   const calls = [];
-  await ctx.route("https://script.google.com/**", async route => {
+  await ctx.route(require("./api-route"), async route => {
     const p = JSON.parse(route.request().postData() || "{}"); let r;
     if (plain && p.action === "login") r = { ok: true, user: p.user, token: "tok", v: 26 };
     else if (plain && p.action === "prelogin") r = { ok: false, error: "bad-code", v: 27 };

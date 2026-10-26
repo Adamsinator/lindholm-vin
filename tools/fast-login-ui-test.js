@@ -19,7 +19,7 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   const device = async () => {
     const ctx = await b.newContext({ viewport: { width: 1280, height: 900 } });
     const seen = [];
-    await ctx.route("https://script.google.com/**", async route => {
+    await ctx.route(require("./api-route"), async route => {
       const q = JSON.parse(route.request().postData() || "{}"); seen.push(q.action);
       if (hold) await hold.promise;
       await new Promise(r => setTimeout(r, LAG));
