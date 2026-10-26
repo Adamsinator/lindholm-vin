@@ -108,6 +108,10 @@ function ymd(v) {
   return v === null || v === undefined ? '' : String(v).trim();
 }
 
+// The functions you run from the editor return their message for the tests and also print it, since the editor's
+// execution log shows only what is printed, not what a function returns.
+function told(msg) { console.log(msg); return msg; }
+
 /**
  * Run this ONCE from the Apps Script editor to grant the permissions the web app
  * needs (Sheets + Drive). Pick "authorize" in the toolbar's function dropdown,
@@ -117,7 +121,7 @@ function ymd(v) {
 function authorize() {
   SpreadsheetApp.getActiveSpreadsheet().getName(); // Sheets scope
   photoFolder();                                   // Drive scope (creates the photos folder)
-  return 'Authorized. You can close this.';
+  return told('Authorized. You can close this.');
 }
 
 function doGet(e) { return handle((e && e.parameter) || {}); }
@@ -477,7 +481,7 @@ function makeInvites() {
     let c = 'AW-'; for (let i = 0; i < 8; i++) { if (i === 4) c += '-'; c += A.charAt(Math.floor(Math.random() * A.length)); }
     codes.push(c); sh.appendRow([c, '', new Date(), '', '']);
   }
-  return 'New invite codes (each works once): ' + codes.join(', ');
+  return told('New invite codes (each works once): ' + codes.join(', '));
 }
 function validKeys(p) {
   const b64ish = v => /^[A-Za-z0-9+/=]{16,200}$/.test(String(v || ''));
@@ -613,13 +617,13 @@ function authToken(p) {
 // (yours included) is never touched by this or by updating the script.
 function makeOwner() {
   const username = setting('OWNER_USER'), password = setting('OWNER_PASSWORD');
-  if (!username || !password) return 'Set OWNER_USER and OWNER_PASSWORD in Settings.gs first.';
-  if (password.length < 8 || password === 'change-this') return 'Pick a real password (8+ characters) for OWNER_PASSWORD.';
-  if (findUser(username)) return 'Account "' + username + '" already exists — nothing changed. Blank OWNER_PASSWORD in Settings.gs.';
+  if (!username || !password) return told('Set OWNER_USER and OWNER_PASSWORD in Settings.gs first.');
+  if (password.length < 8 || password === 'change-this') return told('Pick a real password (8+ characters) for OWNER_PASSWORD.');
+  if (findUser(username)) return told('Account "' + username + '" already exists — nothing changed. Blank OWNER_PASSWORD in Settings.gs.');
   const salt = randToken();
   usersSheet().appendRow([username, salt, hashPass(salt, password),
                           SpreadsheetApp.getActiveSpreadsheet().getId(), randToken() + '@' + Date.now(), today()]);
-  return 'Owner account "' + username + '" created, pointing at this spreadsheet. Now blank OWNER_PASSWORD in Settings.gs.';
+  return told('Owner account "' + username + '" created, pointing at this spreadsheet. Now blank OWNER_PASSWORD in Settings.gs.');
 }
 
 // ── Encrypted vault (API 28) ─────────────────────────────────────────────────
@@ -1645,24 +1649,24 @@ function backupNow() {
   const keep = Math.max(1, Number(setting('BACKUP_KEEP')) || 8), all = [], it = backupsFolder().getFolders();
   while (it.hasNext()) all.push(it.next());
   all.sort((a, b) => b.getName() < a.getName() ? -1 : 1).slice(keep).forEach(f => f.setTrashed(true));
-  return 'Backup ' + stamp + ': the master sheet and ' + n + ' account spreadsheet(s)' + (failed ? ', ' + failed + ' could not be copied (see manifest.txt)' : '') + '.';
+  return told('Backup ' + stamp + ': the master sheet and ' + n + ' account spreadsheet(s)' + (failed ? ', ' + failed + ' could not be copied (see manifest.txt)' : '') + '.');
 }
 // Run once from the editor: back up every Sunday at about 04:00 (running it again doesn't add a second schedule).
 function installWeeklyBackup() {
   ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'backupNow').forEach(t => ScriptApp.deleteTrigger(t));
   ScriptApp.newTrigger('backupNow').timeBased().onWeekDay(ScriptApp.WeekDay.SUNDAY).atHour(4).create();
-  return 'Weekly backup scheduled (Sundays ~04:00). ' + backupNow();
+  return told('Weekly backup scheduled (Sundays ~04:00). ' + backupNow());
 }
 // Put one account back as it was in a backup: set RESTORE_USER and RESTORE_FROM (the backup folder's name, e.g.
 // 2026-11-01T04:00) in Settings.gs, run this, then blank them again. The account then uses a copy of the backed-up
 // spreadsheet (its current one is kept, renamed "replaced"), and its devices are signed out so they reload.
 function restoreFromBackup() {
   const user = normUser(setting('RESTORE_USER')), from = setting('RESTORE_FROM');
-  if (!user || !from) return 'Set RESTORE_USER and RESTORE_FROM in Settings.gs first.';
-  const u = findUser(user); if (!u) return 'No account "' + user + '".';
-  const dirs = backupsFolder().getFoldersByName(from); if (!dirs.hasNext()) return 'No backup folder "' + from + '" in Backups.';
+  if (!user || !from) return told('Set RESTORE_USER and RESTORE_FROM in Settings.gs first.');
+  const u = findUser(user); if (!u) return told('No account "' + user + '".');
+  const dirs = backupsFolder().getFoldersByName(from); if (!dirs.hasNext()) return told('No backup folder "' + from + '" in Backups.');
   const kind = u.vaultId ? 'vault' : 'cellar', files = dirs.next().getFilesByName(user + ' — ' + kind);
-  if (!files.hasNext()) return 'That backup has no ' + kind + ' for "' + user + '".';
+  if (!files.hasNext()) return told('That backup has no ' + kind + ' for "' + user + '".');
   const currentId = u.vaultId || u.spreadsheetId, current = DriveApp.getFileById(currentId);
   const parents = current.getParents(), home = parents.hasNext() ? parents.next() : masterFolder();
   const restored = files.next().makeCopy('AllWine ' + kind + ' — ' + u.username, home);
@@ -1670,7 +1674,7 @@ function restoreFromBackup() {
   if (u.vaultId) setUser(u, 'VaultId', restored.getId());
   if (u.spreadsheetId === currentId) setUser(u, 'SpreadsheetId', restored.getId());
   usersSheet().getRange(u.row, UCOL.Token).setValue('');
-  return 'Restored ' + kind + ' of "' + u.username + '" from ' + from + '. Blank RESTORE_USER and RESTORE_FROM again.';
+  return told('Restored ' + kind + ' of "' + u.username + '" from ' + from + '. Blank RESTORE_USER and RESTORE_FROM again.');
 }
 function readUsers() {
   return listUsers().map(findUser).filter(Boolean);

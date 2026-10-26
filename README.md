@@ -38,6 +38,12 @@ private Google Sheet through a Google Apps Script API.
 **Updating the API:** paste the new `Code.gs` over the old one. Leave `Settings.gs` as it is. Then go to
 Deploy → Manage deployments → ✏️ → Version: **New version** → Deploy. This keeps the same URL.
 
+**When a change needs a redeploy:** the web app runs a frozen copy of *every* file in the project, made when you
+deployed, so a change to `Settings.gs` (e.g. blanking `SIGNUP_CODE`) only reaches the site after another
+Manage deployments → ✏️ → New version → Deploy. Functions you run from the editor (`makeInvites`,
+`installWeeklyBackup`, `restoreFromBackup`, …) and the weekly backup trigger always use the code as last saved, so
+they need no redeploy. Those editor functions print what they did in the execution log at the bottom of the editor.
+
 ### 2. The site
 
 Open the site, and on first visit enter the web app URL and the access code.

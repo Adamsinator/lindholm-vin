@@ -31,8 +31,11 @@ const HEAD = ["Producent", "Land", "Område", "Kommune", "Mark/Navn", "Klassifik
   }
 
   // ── a backup ──
+  const printed = [], log0 = console.log; console.log = m => printed.push(String(m));
   const msg = gas.run("backupNow()");
+  console.log = log0;
   check("backupNow() copies the master sheet and both vaults", /the master sheet and 2 account/.test(msg), msg);
+  check("…and prints it, for the editor's execution log", printed.length === 1 && printed[0] === msg, JSON.stringify(printed));
   const dirs = backupDirs();
   check("…into a dated folder under Backups", dirs.length === 1 && /^\d{4}-\d\d-\d\dT\d\d:\d\d$/.test(dirs[0]), JSON.stringify(dirs));
   const names = gas.run(`(() => { const out = []; const it = backupsFolder().getFoldersByName(${JSON.stringify(dirs[0])}).next().getFiles(); while (it.hasNext()) out.push(it.next().getName()); return out.sort(); })()`);
