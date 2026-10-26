@@ -147,7 +147,10 @@ function runtime(tabs, opts) {
   };
   const DriveApp = { getFileById: fileApi, getRootFolder: () => folderApi(rootId), getFolderById: folderApi };
   const ContentService = { createTextOutput: s => ({ s, setMimeType() { return this; }, getContent() { return s; } }), MimeType: { JSON: "json" } };
-  const Session = { getScriptTimeZone: () => opts.tz || "Europe/Copenhagen" };
+  const Session = { getScriptTimeZone: () => opts.tz || "Europe/Copenhagen", getEffectiveUser: () => ({ getEmail: () => opts.ownerEmail || "owner@example.com" }) };
+  // MailApp: emails are only recorded (rt.mails)
+  const mails = [];
+  const MailApp = { sendEmail: (to, subject, body) => { mails.push({ to, subject, body }); } };
   const MimeType = { PLAIN_TEXT: "text/plain" };
   const LockService = { getScriptLock: () => ({ waitLock() {}, releaseLock() {} }) };
   // CacheService: values that expire after their time-to-live (opts.now lets a test move the clock)
@@ -165,12 +168,12 @@ function runtime(tabs, opts) {
     getProjectTriggers: () => triggers.slice(),
     deleteTrigger: t => { const i = triggers.indexOf(t); if (i >= 0) triggers.splice(i, 1); },
     newTrigger: fn => { const spec = { fn }; const b = {
-      timeBased: () => b, onWeekDay: d => { spec.day = d; return b; }, atHour: h => { spec.hour = h; return b; }, everyWeeks: n => { spec.weeks = n; return b; },
+      timeBased: () => b, onWeekDay: d => { spec.day = d; return b; }, atHour: h => { spec.hour = h; return b; }, everyWeeks: n => { spec.weeks = n; return b; }, everyDays: n => { spec.days = n; return b; },
       create: () => { const t = { getHandlerFunction: () => fn, spec }; triggers.push(t); return t; } }; return b; },
   };
   return {
-    book: bound, books, files,
-    globals: { SpreadsheetApp, Utilities, Session, DriveApp, ContentService, MimeType, LockService, CacheService, ScriptApp },
+    book: bound, books, files, mails,
+    globals: { SpreadsheetApp, Utilities, Session, DriveApp, ContentService, MimeType, LockService, CacheService, ScriptApp, MailApp },
     tabs: (id) => { const b = id ? books[id] : bound; return Object.fromEntries(b.order.filter(nm => b.sheets[nm]).map(nm => [nm, b.sheets[nm]._cells.map(r => [...r])])); },
   };
 }

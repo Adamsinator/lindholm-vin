@@ -843,8 +843,40 @@ send headers), plus `referrer: strict-origin-when-cross-origin`.
 `tools/csp-ui-test.js` checks that every real feature works under the policy with no violation, and that injected
 script is blocked. Adding an outside service means adding its host to the policy, or the browser refuses it.
 
-The remaining security and housekeeping to-dos (privacy page, account deletion, monitoring) are tracked in
-`SECURITY-TODO.md`.
+### Privacy page and "Delete my account" (API 36)
+
+`privacy.html` says, in all four languages, what is stored, where, for how long, and how to get it out or deleted.
+It is linked from the login form and the Account dialog. Update it if what the site stores ever changes.
+
+**Account → Delete my account…** asks for the password, then removes the account at once:
+- **Files:** the account's folder in Drive (vault or cellar spreadsheet, journal and vault photos) goes to the owner's
+  Drive trash, which empties itself after 30 days.
+- **Shared tabs:** its feed posts, comments and follows (both ways) are removed, and its cheers taken back. Invites it
+  used and atlas corrections it made stay, signed "(deleted account)".
+- **The Users row:** removed, so every session ends.
+- **The browser:** the device's copies are wiped.
+
+Weekly backups keep a copy until they rotate out (`BACKUP_KEEP` weeks). The owner's own account, whose cellar is the
+master sheet, can't be deleted this way. Tested in `tools/account-test.js` and `tools/account-ui-test.js`.
+
+### Watching it run (API 36)
+
+Unusual events go to a **Log** tab in the master sheet (time, kind, username, detail):
+- lockouts after 5 wrong passwords;
+- rate-limit refusals, and requests without the gateway secret;
+- server errors, sign-ups, and sign-up pauses.
+
+At most 50 of a kind are written an hour, and only the newest 1000 rows are kept, so a flood can't become a flood of
+writes.
+
+`dailyReport()` emails you when the last 24 hours pass a threshold:
+- 3 sign-ups, 3 lockouts, 5 errors, 20 rate-limit refusals or 10 gateway refusals;
+- or the accounts reach 90 % of `MAX_USERS`;
+- or the newest weekly backup is more than 8 days old.
+
+On a quiet day it sends nothing. **Run `installDailyReport` once** from the editor: it schedules the check for about
+07:00 every day and sends a test email straight away. The first run asks to allow sending email. Alerts go to the
+Google account that owns the script, or to `REPORT_EMAIL` in `Settings.gs`.
 
 ## Privacy: encrypted cellars (API 28)
 

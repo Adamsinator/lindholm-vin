@@ -32,7 +32,7 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 const DEFAULT_SETTINGS = { ACCESS_CODE: '', SHEET_NAME: 'Ark1', SIGNUP_CODE: '', ATLAS_EDITORS: '', OWNER_USER: '', OWNER_PASSWORD: '',
-  MAX_USERS: '50', SESSION_DAYS: '30', BACKUP_KEEP: '8', RESTORE_USER: '', RESTORE_FROM: '', GATEWAY_SECRET: '' };
+  MAX_USERS: '50', SESSION_DAYS: '30', BACKUP_KEEP: '8', RESTORE_USER: '', RESTORE_FROM: '', GATEWAY_SECRET: '', REPORT_EMAIL: '' };
 // Read at call time (not load time), so it doesn't matter in which order Apps Script loads the two files.
 function setting(key) {
   const s = (typeof SETTINGS === 'object' && SETTINGS) || {};
@@ -42,7 +42,7 @@ function setting(key) {
 // The legacy code only works once you've set a real one: the placeholder from the template is public.
 function accessCode() { const c = setting('ACCESS_CODE'); return c === 'CHANGE-ME' ? '' : c; }
 
-const API_VERSION = 35; // returned in every response; used to verify deployments
+const API_VERSION = 36; // returned in every response; used to verify deployments
 
 // Per-request spreadsheet for the authenticated user. Set in handle(); every
 // sheet helper reads it via ss(). Falls back to the bound (owner's) spreadsheet.
@@ -140,7 +140,7 @@ function doPost(e) {
   if (body.length > REQUEST_MAX) return json({ ok: false, error: 'too-big' });
   try { p = JSON.parse(body); } catch (err) {}
   if (!p || typeof p !== 'object') p = {};
-  if (!throughGateway(p)) return json({ ok: false, error: 'gateway' });
+  if (!throughGateway(p)) { logEvent('gateway', '', 'POST without the secret'); return json({ ok: false, error: 'gateway' }); }
   return handle(p);
 }
 
@@ -283,6 +283,7 @@ function handle(p) {
       case 'upgrade':   return doUpgrade(p);
       case 'changepw':  return doChangePw(p);
       case 'newrec':    return doNewRecovery(p);
+      case 'deleteaccount': return doDeleteAccount(p);
       case 'vexport':   return json({ ok: true, ...vaultExport() });
       case 'vget':      return json({ ok: true, records: readVault(vaultBook()), state: CTX_ACCOUNT.state });
       case 'vput':      return json({ ok: true, ver: writeVault(vaultBook(), String(p.key || ''), Number(p.ver) || 0, String(p.data || '')) });
@@ -294,7 +295,9 @@ function handle(p) {
         return json({ ok: false, error: 'bad-action' });
     }
   } catch (err) {
-    return json({ ok: false, error: String(err) });
+    const m = String(err);
+    if (!/too-many|stale/.test(m)) logEvent('error', CTX_USER, (p.action || '') + ': ' + m);
+    return json({ ok: false, error: m });
   }
 }
 
@@ -314,7 +317,69 @@ function bumpCount(key, seconds) { const c = scriptCache(); if (!c) return 0; co
 // one more of something an account does: refused past its limit
 function rateLimit(kind) {
   const r = RATES[kind]; if (!r || inEngine()) return;
-  if (bumpCount('rl:' + kind + ':' + normUser(CTX_USER || 'cellar'), r[1]) > r[0]) throw new Error('too-many');
+  if (bumpCount('rl:' + kind + ':' + normUser(CTX_USER || 'cellar'), r[1]) > r[0]) { logEvent('rate-limit', CTX_USER, kind); throw new Error('too-many'); }
+}
+
+// ── Watching it run (API 36): unusual events go to a "Log" tab (time, kind, user, detail) — lockouts, refused
+// requests, errors, sign-ups — at most LOG_PER_HOUR of each kind an hour, so a flood can't turn into a flood of writes,
+// and only the newest LOG_KEEP rows are kept. dailyReport() (installDailyReport() runs it every morning) emails the
+// owner when the last day's counts pass ALERTS, the accounts near MAX_USERS, or the newest backup is over 8 days old.
+const LOG_SHEET = 'Log', LOG_COLS = ['Time', 'Kind', 'User', 'Detail'], LOG_KEEP = 1000, LOG_PER_HOUR = 50;
+const ALERTS = { signup: 3, lockout: 3, error: 5, 'rate-limit': 20, gateway: 10, 'signup-busy': 1 };
+function logSheet() {
+  const book = SpreadsheetApp.getActiveSpreadsheet();
+  let sh = book.getSheetByName(LOG_SHEET);
+  if (!sh) { sh = book.insertSheet(LOG_SHEET); sh.appendRow(LOG_COLS); }
+  return sh;
+}
+function logEvent(kind, user, detail) {
+  if (inEngine()) return;
+  try {
+    if (bumpCount('log:' + kind, 3600) > LOG_PER_HOUR) return;
+    const sh = logSheet();
+    sh.appendRow([new Date(), kind, clip(user, 40), clip(detail, 300)]);
+    const extra = sh.getLastRow() - 1 - LOG_KEEP;
+    if (extra > 100) sh.deleteRows(2, extra); // trim now and then, not on every write
+  } catch (err) { /* the log never breaks a request */ }
+}
+function lastDay(now) {
+  const sh = logSheet(), last = sh.getLastRow(), since = now - 864e5, out = [];
+  if (last < 2) return out;
+  sh.getRange(2, 1, last - 1, LOG_COLS.length).getValues().forEach(r => {
+    const t = r[0] instanceof Date ? r[0].getTime() : Date.parse(r[0]);
+    if (t >= since) out.push({ time: t, kind: String(r[1]), user: String(r[2] || ''), detail: String(r[3] || '') });
+  });
+  return out;
+}
+function dailyReport() {
+  const now = Date.now(), events = lastDay(now), counts = {};
+  events.forEach(e => { counts[e.kind] = (counts[e.kind] || 0) + 1; });
+  const why = Object.keys(ALERTS).filter(k => (counts[k] || 0) >= ALERTS[k]).map(k => k + ': ' + counts[k] + ' in 24 hours');
+  const users = listUsers().length, cap = Math.max(1, Number(setting('MAX_USERS')) || 50);
+  if (users >= 0.9 * cap) why.push('accounts: ' + users + ' of ' + cap);
+  const it = backupsFolder().getFolders(), dirs = [];
+  while (it.hasNext()) dirs.push(it.next().getName());
+  const hasSchedule = ScriptApp.getProjectTriggers().some(t => t.getHandlerFunction() === 'backupNow');
+  const newest = dirs.sort().pop(), age = newest ? (now - Date.parse(newest)) / 864e5 : null;
+  if (hasSchedule && (age === null || age > 8)) why.push('backups: ' + (newest ? 'newest is ' + newest : 'none yet'));
+  const summary = Object.keys(counts).sort().map(k => k + ' ' + counts[k]).join(', ') || 'no events';
+  if (!why.length) return told('All quiet: ' + summary + '; ' + users + ' accounts.');
+  const lines = ['AllWine noticed something in the last 24 hours:', ''].concat(why.map(w => '• ' + w), ['', 'Latest events:'],
+    events.slice(-15).reverse().map(e => Utilities.formatDate(new Date(e.time), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm') +
+      '  ' + e.kind + (e.user ? '  ' + e.user : '') + (e.detail ? '  ' + e.detail : '')),
+    ['', 'The full list is in the "Log" tab of the master sheet.']);
+  MailApp.sendEmail(reportTo(), 'AllWine: ' + why[0], lines.join('\n'));
+  return told('Emailed ' + reportTo() + ': ' + why.join('; '));
+}
+function reportTo() { return setting('REPORT_EMAIL') || Session.getEffectiveUser().getEmail(); }
+// Run once from the editor: check every morning at about 07:00 (running it again doesn't add a second schedule).
+// Sends one email now, so you can see the alerts will arrive.
+function installDailyReport() {
+  ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'dailyReport').forEach(t => ScriptApp.deleteTrigger(t));
+  ScriptApp.newTrigger('dailyReport').timeBased().everyDays(1).atHour(7).create();
+  MailApp.sendEmail(reportTo(), 'AllWine: daily check installed',
+    'From now on AllWine checks every morning and emails you here only when something looks unusual (many sign-ups, lockouts, errors or refused requests, accounts near the limit, or a missing backup).');
+  return told('Daily check scheduled (about 07:00); a test email went to ' + reportTo() + '.');
 }
 const clip = (v, n) => String(v == null ? '' : v).trim().slice(0, n);
 
@@ -440,7 +505,7 @@ function signupLocked(p) {
   const shared = setting('SIGNUP_CODE'), code = String(p.code || '').trim();
   const invite = findInvite(code);
   if (!invite && !shared && !hasInvites()) return json({ ok: false, error: 'signup-disabled' });
-  if (peekCount('signups') >= SIGNUPS_PER_HOUR || peekCount('badinvites') >= BAD_INVITES_PER_HOUR) return json({ ok: false, error: 'signup-busy' });
+  if (peekCount('signups') >= SIGNUPS_PER_HOUR || peekCount('badinvites') >= BAD_INVITES_PER_HOUR) { logEvent('signup-busy', p.user, ''); return json({ ok: false, error: 'signup-busy' }); }
   if (!invite && !(shared && code === shared)) { bumpCount('badinvites', 3600); return json({ ok: false, error: 'bad-invite' }); }
   if (p.pass !== undefined || !p.auth) return json({ ok: false, error: 'update-site' }); // a page from before encryption
   const username = String(p.user || '').trim();
@@ -461,6 +526,7 @@ function signupLocked(p) {
   put('RecHash', hashPass(salt, p.recAuth)); put('VaultId', vaultId); put('State', 'done');
   usersSheet().appendRow(row);
   if (invite) useInvite(invite, username);
+  logEvent('signup', username, invite ? 'invite' : 'shared code');
   return json({ ok: true, user: username, token: token, state: 'done' });
 }
 
@@ -524,7 +590,10 @@ function addSession(u) {
 // LOCK_SECONDS, counted from the last wrong try. The right password resets the count.
 const failKey = user => 'fail:' + normUser(user);
 const lockedOut = user => peekCount(failKey(user)) >= LOGIN_TRIES;
-function failed(user, error) { bumpCount(failKey(user), LOCK_SECONDS); return json({ ok: false, error: error }); }
+function failed(user, error) {
+  if (bumpCount(failKey(user), LOCK_SECONDS) === LOGIN_TRIES) logEvent('lockout', user, LOGIN_TRIES + ' wrong passwords');
+  return json({ ok: false, error: error });
+}
 function cleared(user) { const c = scriptCache(); if (c) c.remove(failKey(user)); }
 function doLogin(p) {
   if (lockedOut(p.user)) return json({ ok: false, error: 'locked' });
@@ -584,6 +653,62 @@ function doNewRecovery(p) {
   const ok = v => /^[A-Za-z0-9+/=]{16,200}$/.test(String(v || ''));
   if (!ok(p.wrapRec) || !ok(p.recSalt) || !ok(p.recAuth)) return json({ ok: false, error: 'bad-keys' });
   setUser(u, 'WrapRec', String(p.wrapRec)); setUser(u, 'RecSalt', String(p.recSalt)); setUser(u, 'RecHash', hashPass(u.salt, p.recAuth));
+  return json({ ok: true });
+}
+
+// Delete my account (API 36), with the password once more. Its files go to the owner's Drive trash (which empties itself
+// after 30 days): the account's own folder (its vault or cellar spreadsheet, journal and vault photos), or the files
+// one by one if they sit elsewhere. Its feed posts, comments and follows (both ways) are removed and its cheers taken
+// back; invites it used and atlas corrections it made stay, signed "(deleted account)". Weekly backups keep a copy
+// until they rotate out (BACKUP_KEEP weeks). The owner's own account, whose cellar is the master sheet, can't be
+// deleted this way.
+const GONE = '(deleted account)';
+function dropRows(sh, test) {
+  const last = sh.getLastRow(); if (last < 2) return 0;
+  const rows = sh.getRange(2, 1, last - 1, Math.max(1, sh.getLastColumn())).getValues();
+  let n = 0;
+  for (let i = rows.length - 1; i >= 0; i--) if (test(rows[i])) { sh.deleteRow(i + 2); n++; }
+  return n;
+}
+function relabel(sh, col, who) {
+  const last = sh.getLastRow(); if (last < 2 || col < 0) return;
+  const r = sh.getRange(2, col + 1, last - 1, 1), v = r.getValues();
+  if (v.some(x => normUser(x[0]) === who)) r.setValues(v.map(x => [normUser(x[0]) === who ? GONE : x[0]]));
+}
+function doDeleteAccount(p) {
+  const u = CTX_ACCOUNT;
+  if (!u) return json({ ok: false, error: 'no-account' });
+  const masterId = SpreadsheetApp.getActiveSpreadsheet().getId();
+  if (u.spreadsheetId === masterId || u.oldSheet === masterId) return json({ ok: false, error: 'owner-account' });
+  if (lockedOut(u.username)) return json({ ok: false, error: 'locked' });
+  const ok = u.kdf ? p.auth && safeEqual(hashPass(u.salt, p.auth), u.hash) : p.pass !== undefined && safeEqual(hashPass(u.salt, p.pass || ''), u.hash);
+  if (!ok) return failed(u.username, 'bad-login');
+  const lock = typeof LockService !== 'undefined' ? LockService.getScriptLock() : null;
+  if (lock) lock.waitLock(20000);
+  try {
+    const who = normUser(u.username), master = masterFolder().getId();
+    // the files: the account's own folder if it has one, else each file
+    const ids = [u.vaultId, u.spreadsheetId, u.oldSheet].filter(id => id && id !== masterId);
+    const folders = {};
+    ids.forEach(id => { try {
+      const f = DriveApp.getFileById(id), ps = f.getParents(), parent = ps.hasNext() ? ps.next() : null;
+      if (parent && parent.getId() !== master && parent.getName() === 'AllWine — ' + u.username) folders[parent.getId()] = parent;
+      else f.setTrashed(true);
+    } catch (err) { /* already gone */ } });
+    Object.keys(folders).forEach(id => folders[id].setTrashed(true));
+    // the shared tabs
+    const feed = feedSheet(), idx = feedIdx(feed);
+    dropRows(feed, r => normUser(r[idx.From]) === who);
+    if (idx.Cheers >= 0 && feed.getLastRow() > 1) {
+      const r = feed.getRange(2, idx.Cheers + 1, feed.getLastRow() - 1, 1), v = r.getValues();
+      r.setValues(v.map(x => [String(x[0] || '').split(',').map(t => t.trim()).filter(t => t && normUser(t) !== who).join(', ')]));
+    }
+    dropRows(fcmtSheet(), r => normUser(r[2]) === who);
+    dropRows(followsSheet(), r => normUser(r[0]) === who || normUser(r[1]) === who);
+    const inv = invitesSheet(false); if (inv) relabel(inv, INVITE_COLS.indexOf('UsedBy'), who);
+    relabel(atlasSheet(), ATLAS_COLS.indexOf('User'), who);
+    usersSheet().deleteRow(u.row);
+  } finally { if (lock) lock.releaseLock(); }
   return json({ ok: true });
 }
 

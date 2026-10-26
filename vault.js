@@ -65,7 +65,7 @@ let SRC = null;
 async function codeSource(url) {
   if (SRC) return SRC;
   if (node) SRC = require("fs").readFileSync(require("path").join(__dirname, "apps-script", "Code.gs"), "utf8");
-  else { const res = await fetch(url || "apps-script/Code.gs?v=35"); if (!res.ok) throw new Error("engine-load " + res.status); SRC = await res.text(); }
+  else { const res = await fetch(url || "apps-script/Code.gs?v=36"); if (!res.ok) throw new Error("engine-load " + res.status); SRC = await res.text(); }
   return SRC;
 }
 const keepTabs = (all, sheetName) => Object.fromEntries(Object.entries(all).filter(([n]) => n === sheetName || SHARED_TABS.includes(n)));
@@ -233,6 +233,15 @@ async function newRecovery(o) {
   await srv(post, { user, token, action: "newrec", oldAuth: pk.auth, wrapRec: await VC.wrap(dekX, rk.kek), recSalt, recAuth: rk.auth });
   return code;
 }
+// Delete the account, proven with the password once more; then nothing of it is left on this device either
+async function deleteAccount(o) {
+  const { post, user, token, pass } = o;
+  const pre = await srv(post, { action: "prelogin", user });
+  const pk = await VC.fromPassword(pass, pre.kdfSalt, pre.kdf);
+  await srv(post, { user, token, action: "deleteaccount", auth: pk.auth });
+  await forgetCache(user);
+  if (S && S.user === user) S = null;
+}
 // Forgotten password: unlock with the recovery code, set a new password → {token, dek}
 async function recover(o) {
   const { post, user, code, newPass } = o;
@@ -325,7 +334,7 @@ async function migrate(o) {
 
 const rememberSalt = (user, fields) => saltPut(user, fields);
 const synced = () => (S && S.synced) || Promise.resolve(false);
-const api = { start, stop, active, call, newKeys, migrate, login, recover, changePassword, newRecovery, forgetCache, rememberSalt, synced, PRIVATE,
+const api = { start, stop, active, call, newKeys, migrate, login, recover, changePassword, newRecovery, forgetCache, rememberSalt, deleteAccount, synced, PRIVATE,
   user: () => S && S.user };
 if (node) module.exports = api;
 else root.VAULT = api;

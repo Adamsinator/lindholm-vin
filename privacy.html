@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- what the page may load (see README, "Content-Security-Policy"); GitHub Pages can't send it as a header -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; script-src 'self'; connect-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy — AllWine</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍷</text></svg>">
+<style>
+:root{--bg:#F7F4F1;--card:#FFFFFF;--ink:#2A2126;--muted:#756A70;--line:#E7DFDD;--accent:#7C2D3E}
+@media (prefers-color-scheme: dark){:root{--bg:#171114;--card:#221A1F;--ink:#EFE7E8;--muted:#A5949C;--line:#382C32;--accent:#C86A7C}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:760px;margin:0 auto;padding:28px 16px 60px}
+header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+h1,.brand{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;font-weight:600;margin:0;font-size:30px}
+.brand{color:var(--ink);text-decoration:none;font-size:24px}
+.brand em{font-style:italic;color:var(--accent)}
+h2{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;font-size:20px;margin:26px 0 6px}
+section{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:6px 22px 16px;margin-top:14px}
+ul{padding-left:20px;margin:6px 0}
+li{margin:4px 0}
+p.lead,.small{color:var(--muted)}
+.small{font-size:13px;margin-top:22px}
+a{color:var(--accent)}
+.langpick{display:flex;gap:4px}
+.langpick button{width:28px;height:20px;padding:0;border:1px solid var(--line);border-radius:4px;background:none;cursor:pointer;overflow:hidden;opacity:.55}
+.langpick button svg{width:100%;height:100%;display:block}
+.langpick button.on{opacity:1;box-shadow:0 0 0 2px var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <a class="brand" href="./">All<em>Wine</em></a>
+  <div data-langpick></div>
+</header>
+<h1 data-i18n>Privacy</h1>
+<p class="lead" data-i18n>AllWine is a small private site, run from Denmark by its owner for friends who have an invite. Here is what it keeps about you, where, for how long, and how to get it out or have it deleted.</p>
+
+<section>
+  <h2 data-i18n>What is stored</h2>
+  <ul>
+    <li data-i18n>Your username and the date you signed up.</li>
+    <li data-i18n>Not your password: only a hash of a key derived from it in your browser, so the password itself never leaves your device.</li>
+    <li data-i18n>Your encryption keys, locked with your password and with your recovery code. They are useless without one of the two.</li>
+    <li data-i18n>Your cellar, Enjoyed list, journal, wishlist and journal photos — encrypted in your browser before they are saved. The owner cannot read them.</li>
+    <li data-i18n>What you share on purpose, readable by other members: feed posts, comments, cheers, who you follow, and corrections to the Burgundy atlas (with your username).</li>
+    <li data-i18n>Login sessions, so you don't have to type your password every time. They end after 30 days without use, or when you log out.</li>
+    <li data-i18n>A log of unusual events — lockouts after wrong passwords, refused requests, errors — with the username involved, so the owner can spot abuse. Only the newest 1000 are kept.</li>
+  </ul>
+</section>
+
+<section>
+  <h2 data-i18n>Where it is kept</h2>
+  <ul>
+    <li data-i18n>In the owner's Google Drive, as Google Sheets and files, through a Google Apps Script.</li>
+    <li data-i18n>Requests pass through Cloudflare, which counts requests per IP address to stop floods and checks that sign-ups and recoveries come from a person (Turnstile). AllWine does not store IP addresses.</li>
+    <li data-i18n>The site itself is served by GitHub Pages. The atlas loads map tiles and elevations from IGN, the French national mapping agency.</li>
+    <li data-i18n>On your own device: your session, an encrypted copy of your cellar for a fast start, the last feed you saw, and your language and display choices. Logging out removes the session, the copies and the feed.</li>
+  </ul>
+  <p data-i18n>There are no ads, no tracking and no analytics, and no cookies are set.</p>
+</section>
+
+<section>
+  <h2 data-i18n>How long</h2>
+  <ul>
+    <li data-i18n>Everything stays until you delete it or delete your account.</li>
+    <li data-i18n>Weekly backups keep a copy for up to 8 weeks. Your cellar stays encrypted in them, too.</li>
+  </ul>
+</section>
+
+<section>
+  <h2 data-i18n>Your choices</h2>
+  <ul>
+    <li data-i18n>Get a copy: Export in the cellar gives you your wines as a spreadsheet.</li>
+    <li data-i18n>Delete a feed post: the 🗑 on the post.</li>
+    <li data-i18n>Delete your account: Account → Delete my account. Your cellar, journal, wishlist, photos, feed posts, comments and follows are removed at once. Files go to the Drive trash, which empties itself after 30 days, and backups age out within 8 weeks. Invites you used and atlas corrections you made stay, signed "(deleted account)".</li>
+    <li data-i18n>Anything else, or a question: ask the owner, who sent you your invite. You can also complain to Datatilsynet, the Danish data protection authority.</li>
+  </ul>
+</section>
+
+<p class="small"><a href="./" data-i18n>← AllWine</a></p>
+</div>
+<script src="i18n.js?v=27"></script>
+</body>
+</html>

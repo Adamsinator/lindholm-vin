@@ -3,6 +3,8 @@
 
 // The interface language (i18n.js): tr(englishText, a, b) gives it in the chosen language, {0} {1} filled in.
 const tr = (window.I18N && window.I18N.t) || ((s, ...a) => a.length ? s.replace(/\{(\d)\}/g, (m, i) => a[i] ?? "") : s);
+// Text set from code that should follow the language picker: marked for I18N.apply, which re-translates it on a change
+function trSet(key, el){ if(!el) return; el.setAttribute("data-i18n", key); el.dataset.i18n = key; el.textContent = tr(key); }
 const I18N_LOCALE = () => ({en:"en-GB", fr:"fr-FR", de:"de-DE"})[window.I18N && I18N.lang] || "da-DK";
 
 const TIER_LABEL = {legend:"Icon", top:"Top tier", solid:"Well regarded"};
@@ -256,6 +258,22 @@ let toastT;
 // the server's limits, said in words wherever an error message shows their code
 const LIMIT_MSG = {"too-many":"You've done that a lot in a short time — wait a while and try again.", "too-big":"That's too large to save."};
 const limitText = m => String(m).replace(/\b(too-many|too-big)\b/, c => tr(LIMIT_MSG[c]));
+// An error as a person should read it: the API's codes and Google's usual exception texts (quotas, timeouts, locks,
+// permissions) in plain words, in the chosen language; anything else as it came, without "Error:"/"Exception:".
+const ERR_TEXT = [
+  [/^(too-many|too-big)$/, m => tr(LIMIT_MSG[m])],
+  [/^stale$/, () => tr("Changed on another device meanwhile. Reload and try again.")],
+  [/^(upstream|Failed to fetch|NetworkError.*|Load failed|HTTP 5\d\d)$/i, () => tr("The cellar's server didn't answer. Try again in a moment.")],
+  [/^(gateway|origin|gateway-setup)$/, () => tr("The site's server isn't set up right. Tell the owner.")],
+  [/Service invoked too many times|Rate Limit Exceeded|too many (requests|times)|Exceeded maximum execution time|timed out|Lock timeout|could not obtain lock|server error occurred|Service unavailable|temporarily unavailable|Address unavailable/i,
+    () => tr("Google's servers are busy right now. Try again in a minute.")],
+  [/permission|not authori[sz]ed|access denied|authorization is required/i, () => tr("The cellar's server isn't allowed to do that. Tell the owner.")],
+];
+function errText(err){
+  const m = String(err && err.message !== undefined ? err.message : err || "").replace(/^(Error|Exception|TypeError):\s*/i, "").replace(/^Exception:\s*/i, "").trim();
+  for(const [re, f] of ERR_TEXT) if(re.test(m)) return f(m);
+  return m;
+}
 function toast(msg){ msg = limitText(msg); const t=$("toast"); t.textContent=msg; t.style.opacity=1;
   clearTimeout(toastT); toastT=setTimeout(()=>t.style.opacity=0, 2600); }
 
@@ -891,7 +909,7 @@ async function loadData(quiet){
     loadJournalSilently(); loadFeedSilently();
   }catch(err){
     if(AUTH_ERRORS.has(err.message)){ forgetAuth(); setGateMode("login"); showGate(tr("Your session expired — log in again.")); }
-    else { $("spin").textContent = tr("Could not reach the cellar API ({0}). Check your connection and refresh.", err.message); }
+    else { $("spin").textContent = tr("Could not reach the cellar API ({0}). Check your connection and refresh.", errText(err)); }
   }
 }
 
@@ -912,7 +930,7 @@ async function rateWine(row, val, sel){
     WINES = normalize(res.wines);
     renderOverview(); renderTable(); renderEnjoyed();
     toast(val==="" ? tr("Score cleared") : tr("Scored {0}/10 🍷", val));
-  }catch(err){ toast(tr("Could not save score: {0}", err.message)); }
+  }catch(err){ toast(tr("Could not save score: {0}", errText(err))); }
   sel.disabled = false;
 }
 
@@ -924,7 +942,7 @@ async function setValueApi(row, val, inp){
     WINES = normalize(res.wines);
     renderOverview(); renderTable(); renderEnjoyed();
     toast(clean==="" ? tr("Value cleared") : tr("Value set to {0}", kr(clean)));
-  }catch(err){ toast(tr("Could not save value: {0}", err.message)); }
+  }catch(err){ toast(tr("Could not save value: {0}", errText(err))); }
   inp.disabled = false;
 }
 
@@ -935,7 +953,7 @@ async function setSizeApi(row, val, sel){
     WINES = normalize(res.wines);
     renderOverview(); renderTable(); renderEnjoyed();
     toast(val ? tr("Format set to {0}", tr(val)) : tr("Back to a standard bottle"));
-  }catch(err){ toast(tr("Could not save format: {0}", err.message)); }
+  }catch(err){ toast(tr("Could not save format: {0}", errText(err))); }
   sel.disabled = false;
 }
 
@@ -951,7 +969,7 @@ async function setWindowApi(inp){
     WINES = normalize(res.wines);
     renderOverview(); renderTable(); renderEnjoyed();
     toast((from||to) ? tr("Drink window saved") : tr("Drink window cleared"));
-  }catch(err){ toast(tr("Could not save window: {0}", err.message)); }
+  }catch(err){ toast(tr("Could not save window: {0}", errText(err))); }
   ins.forEach(x=>x.disabled=false);
 }
 
@@ -962,7 +980,7 @@ async function setLocationApi(row, val, inp){
     KEEP_OPEN = row; WINES = normalize(res.wines);
     renderOverview(); renderTable(); renderEnjoyed();
     toast(String(val||"").trim() ? tr("Location saved") : tr("Location cleared"));
-  }catch(err){ toast(tr("Could not save location: {0}", err.message)); inp.disabled = false; }
+  }catch(err){ toast(tr("Could not save location: {0}", errText(err))); inp.disabled = false; }
 }
 
 async function setDateApi(row, field, val, inp){
@@ -973,7 +991,7 @@ async function setDateApi(row, field, val, inp){
     WINES = normalize(res.wines);
     renderOverview(); renderTable(); renderEnjoyed();
     toast(acq ? (val ? tr("Acquired date updated") : tr("Acquired date cleared")) : (val ? tr("Last-drunk date updated") : tr("Last-drunk date cleared")));
-  }catch(err){ toast(tr("Could not save date: {0}", err.message)); }
+  }catch(err){ toast(tr("Could not save date: {0}", errText(err))); }
   inp.disabled = false;
 }
 
@@ -1004,7 +1022,7 @@ async function rowAction(act, row, btn){
             country:nw.country, region:nw.region, grape:nw.grape, commune:nw.commune, classification:nw.classification});
       }, 250);
     }
-  }catch(err){ toast(tr("Could not update: {0}", err.message)); btn.disabled=false; btn.textContent=label; }
+  }catch(err){ toast(tr("Could not update: {0}", errText(err))); btn.disabled=false; btn.textContent=label; }
 }
 
 async function addWine(e){
@@ -1027,7 +1045,7 @@ async function addWine(e){
     $("addModal").classList.remove("open");
     addReset();
     toast(tr("{0} added to the cellar", wine.producer));
-  }catch(err){ toast(tr("Could not add: {0}", err.message)); }
+  }catch(err){ toast(tr("Could not add: {0}", errText(err))); }
   btn.disabled = false; btn.textContent = tr("Add to cellar");
 }
 
@@ -1048,13 +1066,13 @@ function setGateMode(mode){
   $("gateInviteWrap").hidden = !signup;
   $("gateRecWrap").hidden = !recover;
   $("gateForgot").hidden = mode!=="login";
-  $("gateLead").textContent = tr(signup ? "Create your own cellar. You'll need an invite code."
+  trSet(signup ? "Create your own cellar. You'll need an invite code."
     : recover ? "Enter your recovery code and choose a new password."
-    : "Your private cellar. Log in to continue.");
-  $("gateSubmit").textContent = tr(signup ? "Create account" : recover ? "Set new password" : "Log in");
-  $("gateToggle").textContent = tr(signup || recover ? "Have an account? Log in" : "Need an account? Sign up");
+    : "Your private cellar. Log in to continue.", $("gateLead"));
+  trSet(signup ? "Create account" : recover ? "Set new password" : "Log in", $("gateSubmit"));
+  trSet(signup || recover ? "Have an account? Log in" : "Need an account? Sign up", $("gateToggle"));
   $("gatePass").setAttribute("autocomplete", signup || recover ? "new-password" : "current-password");
-  document.querySelector('label[for="gatePass"]').textContent = tr(recover ? "New password" : "Password");
+  trSet(recover ? "New password" : "Password", document.querySelector('label[for="gatePass"]'));
   $("gateErr").textContent = "";
   humanShow(signup || recover);
 }
@@ -1217,7 +1235,7 @@ $("gateForm").addEventListener("submit", async e=>{
     const m = String(err.message||"").replace(/^Error: /,"");
     $("gateErr").textContent = AUTH_MSG[m] ? authMsg(m)
       : /^verify-failed/.test(m) ? tr("Encrypting your cellar stopped before it finished — nothing was lost. Log in again to continue.")
-      : tr("Could not reach the cellar API ({0}).", m);
+      : tr("Could not reach the cellar API ({0}).", errText(m));
   }
   finally{ $("gateSubmit").disabled = false; if(GATE_MODE!=="login") humanReset(); }
 });
@@ -1243,9 +1261,24 @@ $("acctRec").addEventListener("click", async ()=>{
   }catch(err){ $("acctErr").textContent = authMsg(String(err.message).replace(/^Error: /,"")); }
 });
 
+$("acctDelete").addEventListener("click", async ()=>{
+  const pass = $("acctPass").value;
+  if(!pass){ $("acctErr").textContent = tr("Enter your current password first."); $("acctPass").focus(); return; }
+  if(!confirm(tr("Delete your account \"{0}\" and everything in it: cellar, journal, wishlist, photos, feed posts and follows? This can't be undone.", cfg.user))) return;
+  $("acctErr").textContent = tr("Deleting…");
+  try{
+    await VAULT.deleteAccount({post, user:cfg.user, token:cfg.token, pass});
+    if(window.VCRYPTO) VCRYPTO.forget(cfg.user);
+    feedForgetAll(); $("acctModal").classList.remove("open");
+    forgetAuth(); setGateMode("login"); showGate(tr("Your account has been deleted."));
+  }catch(err){ const m = String(err.message).replace(/^Error: /,"");
+    $("acctErr").textContent = m==="owner-account" ? tr("This is the owner's account (its cellar is the master sheet), so it can't be deleted here.")
+      : m==="bad-action" ? tr("The site's server needs the latest Apps Script (version 36) for this. Tell the owner.") : authMsg(m); }
+});
+
 /* ---------- header actions ---------- */
 $("refreshBtn").addEventListener("click", loadData);
-$("lockBtn").addEventListener("click", ()=>{ if(window.VAULT) VAULT.forgetCache(cfg.user); forgetAuth(); setGateMode("login"); showGate(tr("Signed out. Log in to reopen.")); });
+$("lockBtn").addEventListener("click", ()=>{ if(window.VAULT) VAULT.forgetCache(cfg.user); feedForgetAll(); forgetAuth(); setGateMode("login"); showGate(tr("Signed out. Log in to reopen.")); });
 $("priceBtn").addEventListener("click", ()=>{
   SHOW_PRICES = !SHOW_PRICES;
   localStorage.setItem("vinHidePrices", SHOW_PRICES ? "0" : "1");
@@ -1482,13 +1515,13 @@ async function sommAsk(q){
   q = String(q || "").trim(); if(!q) return;
   sommSay(q, "q"); $("sommQ").value = "";
   try{ await sommLoad(); const r = SOMMELIER.answer(q, sommCtx()); sommSay(r.html); sommChips(r.chips); }
-  catch(err){ sommSay(esc(tr("The sommelier couldn't load ({0}). Check your connection and try again.", err.message))); }
+  catch(err){ sommSay(esc(tr("The sommelier couldn't load ({0}). Check your connection and try again.", errText(err)))); }
 }
 async function sommOpen(){
   $("sommPanel").hidden = false; $("sommBtn").hidden = true;
   if(!$("sommLog").children.length){
     try{ await sommLoad(); const r = SOMMELIER.answer("", sommCtx()); sommSay(r.html); sommChips(r.chips); }
-    catch(err){ sommSay(esc(tr("The sommelier couldn't load ({0}). Check your connection and try again.", err.message))); }
+    catch(err){ sommSay(esc(tr("The sommelier couldn't load ({0}). Check your connection and try again.", errText(err)))); }
   }
   setTimeout(() => $("sommQ").focus(), 30);
 }
@@ -2272,7 +2305,7 @@ async function loadJournal(force){
     renderJournal();
   }catch(err){
     if(AUTH_ERRORS.has(err.message)){ forgetAuth(); setGateMode("login"); showGate(tr("Your session expired — log in again.")); }
-    else $("jList").innerHTML = `<div class="spin">Could not load the journal (${esc(err.message)}). The Apps Script may need the latest redeploy.</div>`;
+    else $("jList").innerHTML = `<div class="spin">${esc(tr("Could not load the journal ({0}). The Apps Script may need the latest redeploy.", errText(err)))}</div>`;
   }
   $("jSpin").hidden = true;
 }
@@ -2319,7 +2352,7 @@ function renderJournal(){
     try{
       const res = await api({action:"jdelete", row:Number(b.dataset.row)});
       JENTRIES = res.entries || []; renderJournal(); toast(tr("Entry deleted"));
-    }catch(err){ toast(tr("Could not delete: {0}", err.message)); return; }
+    }catch(err){ toast(tr("Could not delete: {0}", errText(err))); return; }
     // the entry put a wine in Enjoyed: ask whether that goes too
     if(t && t.kind==="logged"){
       const nm = `${t.wine.producer}${t.wine.name?" "+t.wine.name:""}${t.wine.vintage?" "+t.wine.vintage:""}`;
@@ -2329,7 +2362,7 @@ function renderJournal(){
         const r2 = await api({action: t.elsewhere ? "delete" : "undrink", row:t.wine.row, qty:1});
         WINES = normalize(r2.wines); KEEP_OPEN = null; renderOverview(); renderTable(); renderEnjoyed();
         toast(t.elsewhere ? tr("Removed from Enjoyed") : tr("Bottle back in the cellar 🍾"));
-      }catch(err){ toast(tr("Could not update Enjoyed: {0}", err.message)); }
+      }catch(err){ toast(tr("Could not update Enjoyed: {0}", errText(err))); }
     }
   }));
 }
@@ -2519,7 +2552,7 @@ let J_ORIG = null; // the entry as it was before an edit, to find the Enjoyed ro
 function openJournalModal(prefill){
   J_EDIT = null; J_ORIG = null;
   prepJournalModal();
-  $("jTitle").textContent = tr("New journal entry");
+  trSet("New journal entry", $("jTitle"));
   $("jSave").textContent = tr("Save entry");
   $("jEnjoyWrap").hidden = false;
   $("jEnjoy").checked = true; // journaling a wine means you drank it
@@ -2542,7 +2575,7 @@ function openJournalModal(prefill){
 function openJournalEdit(e){
   J_EDIT = e.row; J_ORIG = {...e};
   prepJournalModal();
-  $("jTitle").textContent = tr("Edit journal entry");
+  trSet("Edit journal entry", $("jTitle"));
   $("jSave").textContent = tr("Save changes");
   $("jEnjoyWrap").hidden = false;
   // An old entry was most likely dealt with when it was written: editing it shouldn't drink another bottle
@@ -2689,7 +2722,7 @@ $("jForm").addEventListener("submit", async e=>{
     const hint = /authori[sz]|permission/i.test(m)
       ? " — "+tr("the API needs Drive access. In Apps Script, run the “authorize” function once and approve, then try again.")
       : "";
-    $("jErr").textContent = tr("Could not save: {0}", m)+hint;
+    $("jErr").textContent = tr("Could not save: {0}", errText(m))+hint;
     $("jErr").hidden = false;
     toast(tr("Could not save — see the message in the form"));
   }
@@ -2945,7 +2978,7 @@ $("eaForm").addEventListener("submit", async e=>{
     renderOverview(); renderTable(); renderEnjoyed();
     if(location.hash!=="#enjoyed") location.hash="#enjoyed";
     toast(tr("Added to Enjoyed 🍷"));
-  }catch(err){ $("eaErr").textContent=tr("Could not add: {0}", err.message); $("eaErr").hidden=false; }
+  }catch(err){ $("eaErr").textContent=tr("Could not add: {0}", errText(err)); $("eaErr").hidden=false; }
   btn.disabled=false; btn.textContent=tr("Add to Enjoyed");
 });
 
@@ -2957,7 +2990,7 @@ const I_IDS = {producer:"iProducer", wine:"iName", country:"iCountry", region:"i
 function openInfo(w){
   I_WINE = w;
   $("iForm").reset(); $("iErr").hidden = true; fillCommunes(); $("iClass").dataset.auto = "";
-  $("iTitle").textContent = isElsewhere(w) ? tr("Edit this Enjoyed wine") : tr("Edit wine details");
+  if(isElsewhere(w)) trSet("Edit this Enjoyed wine", $("iTitle")); else trSet("Edit wine details", $("iTitle"));
   $("iProducer").value = w.producer; $("iName").value = w.name; $("iVintage").value = w.vintage ?? "";
   $("iCommune").value = w.commune; $("iCountry").value = w.country; $("iRegion").value = w.region; $("iGrape").value = w.grape;
   $("iLocation").value = w.location; $("iSource").value = w.source; $("iNote").value = w.note;
@@ -2999,7 +3032,7 @@ $("iForm").addEventListener("submit", async e=>{
     renderOverview(); renderTable(); renderEnjoyed(); if(JENTRIES) renderJournal();
     toast(renamed ? tr("Renamed ✏️") : tr("Details saved ✏️"));
   }catch(err){
-    $("iErr").textContent = err.message==="bad-action" ? tr("The Apps Script needs the latest version (26) for this — paste apps-script/Code.gs into it and redeploy.") : tr("Could not save: {0}", err.message);
+    $("iErr").textContent = err.message==="bad-action" ? tr("The Apps Script needs the latest version (26) for this — paste apps-script/Code.gs into it and redeploy.") : tr("Could not save: {0}", errText(err));
     $("iErr").hidden = false;
   }
   btn.disabled = false; btn.textContent = tr("Save details");
@@ -3027,7 +3060,7 @@ function renderFillBar(){
       WINES = normalize(res.wines); if(res.entries) JENTRIES = res.entries;
       renderOverview(); renderTable(); renderEnjoyed(); if(JENTRIES) renderJournal();
       toast(n===1 ? tr("1 classification filled in ✓") : tr("{0} classifications filled in ✓", n));
-    }catch(err){ toast(err.message==="bad-action" ? tr("Update the Apps Script (version 26) to save these") : tr("Could not save: {0}", err.message)); b.disabled = false; b.textContent = n===1?tr("Fill it in"):tr("Fill them in"); }
+    }catch(err){ toast(err.message==="bad-action" ? tr("Update the Apps Script (version 26) to save these") : tr("Could not save: {0}", errText(err))); b.disabled = false; b.textContent = n===1?tr("Fill it in"):tr("Fill them in"); }
   };
 }
 
@@ -3043,7 +3076,7 @@ async function loadWishlist(force){
     renderWishlist();
   }catch(err){
     if(AUTH_ERRORS.has(err.message)){ forgetAuth(); setGateMode("login"); showGate(tr("Your session expired — log in again.")); }
-    else $("wList").innerHTML = `<div class="spin">${esc(tr("Could not load the wishlist ({0}). The Apps Script may need the latest redeploy.", err.message))}</div>`;
+    else $("wList").innerHTML = `<div class="spin">${esc(tr("Could not load the wishlist ({0}). The Apps Script may need the latest redeploy.", errText(err)))}</div>`;
   }
   $("wSpin").hidden = true;
 }
@@ -3067,7 +3100,7 @@ function renderWishlist(){
   document.querySelectorAll(".wdel").forEach(b=>b.addEventListener("click", async ()=>{
     if(!confirm(tr("Remove this wish?"))) return;
     try{ const res=await api({action:"wdelete", row:Number(b.dataset.row)}); WITEMS=res.items||[]; renderWishlist(); toast(tr("Wish removed")); }
-    catch(err){ toast(tr("Could not remove: {0}", err.message)); }
+    catch(err){ toast(tr("Could not remove: {0}", errText(err))); }
   }));
   document.querySelectorAll(".wmove").forEach(b=>b.addEventListener("click", async ()=>{
     const e=(WITEMS||[]).find(x=>x.row===Number(b.dataset.row));
@@ -3078,7 +3111,7 @@ function renderWishlist(){
       WITEMS=res.items||[]; if(res.wines) WINES=normalize(res.wines);
       renderWishlist(); renderOverview(); renderTable(); renderEnjoyed();
       toast(tr("Added to the cellar 🍷"));
-    }catch(err){ toast(tr("Could not move: {0}", err.message)); b.disabled=false; b.textContent="＋ "+tr("Add to cellar"); }
+    }catch(err){ toast(tr("Could not move: {0}", errText(err))); b.disabled=false; b.textContent="＋ "+tr("Add to cellar"); }
   }));
 }
 
@@ -3088,13 +3121,13 @@ function prepWishModal(){
   $("wModal").classList.add("open");
 }
 function openWishModal(prefill){
-  W_EDIT=null; prepWishModal(); $("wTitle").textContent=tr("Add to wishlist"); $("wSave").textContent=tr("Save");
+  W_EDIT=null; prepWishModal(); trSet("Add to wishlist", $("wTitle")); trSet("Save", $("wSave"));
   if(prefill){ $("wProducer").value=prefill.producer||""; $("wWine").value=prefill.wine||"";
     $("wVintage").value=prefill.vintage||""; $("wRegion").value=prefill.region||""; }
   setTimeout(()=>$("wProducer").focus(),40);
 }
 function openWishEdit(e){
-  W_EDIT=e.row; prepWishModal(); $("wTitle").textContent=tr("Edit wish"); $("wSave").textContent=tr("Save changes");
+  W_EDIT=e.row; prepWishModal(); trSet("Edit wish", $("wTitle")); trSet("Save changes", $("wSave"));
   $("wProducer").value=e.producer||""; $("wWine").value=e.wine||"";
   $("wVintage").value=e.vintage!==""&&e.vintage!=null?e.vintage:"";
   $("wRegion").value=e.region||""; $("wPrice").value=e.price!==""&&e.price!=null?e.price:""; $("wNote").value=e.note||"";
@@ -3116,7 +3149,7 @@ $("wForm").addEventListener("submit", async e=>{
     WITEMS=res.items||[]; $("wModal").classList.remove("open"); renderWishlist();
     if(location.hash!=="#wishlist") location.hash="#wishlist";
     toast(editing?tr("Wish updated"):tr("Added to wishlist"));
-  }catch(err){ $("wErr").textContent=tr("Could not save: {0}", err.message); $("wErr").hidden=false; }
+  }catch(err){ $("wErr").textContent=tr("Could not save: {0}", errText(err)); $("wErr").hidden=false; }
   btn.disabled=false; btn.textContent= editing?tr("Save changes"):tr("Save");
 });
 
@@ -3141,22 +3174,34 @@ function updateFeedBadge(){
 }
 
 // Background load on app open: refreshes the unread badge without marking read.
+// The feed as last fetched, kept on this device so it shows at once after a reload; refreshed in the background, and
+// forgotten on sign-out. It holds only what the feed shows anyway (posts shared with you, who follows whom).
+const feedKey = () => "vinFeed:" + String(cfg.user||"").toLowerCase();
+function feedKeep(){ try{ localStorage.setItem(feedKey(), JSON.stringify({feed:FEED, me:FEED_ME, users:FEED_USERS, follows:FEED_FOLLOWS})); }catch(e){} }
+function feedRecall(){
+  if(FEED || !cfg.user) return;
+  try{ const c = JSON.parse(localStorage.getItem(feedKey()) || "null");
+    if(c && Array.isArray(c.feed)){ FEED=c.feed; FEED_ME=c.me||""; FEED_USERS=c.users||[]; FEED_FOLLOWS=c.follows||[]; } }catch(e){}
+}
+function feedForgetAll(){ try{ Object.keys(localStorage).filter(k => k.startsWith("vinFeed:")).forEach(k => localStorage.removeItem(k)); }catch(e){} }
 async function loadFeedSilently(){
-  try{ const r=await api({action:"feed"}); FEED=r.feed||[]; FEED_ME=r.me||""; FEED_USERS=r.users||[]; FEED_FOLLOWS=r.follows||[];
+  feedRecall(); if(FEED && location.hash==="#feed") renderFeed();
+  try{ const r=await api({action:"feed"}); FEED=r.feed||[]; FEED_ME=r.me||""; FEED_USERS=r.users||[]; FEED_FOLLOWS=r.follows||[]; feedKeep();
     if(location.hash==="#feed"){ renderFeed(); markFeedSeen(); } else updateFeedBadge();
   }catch(e){ /* feed is optional; older API may not have it */ }
 }
 async function loadFeed(force){
+  if(!force) feedRecall();
   if(FEED && !force){ renderFeed(); markFeedSeen(); return; }
   $("feedSpin").hidden=false; $("feedList").innerHTML="";
   try{
     const res=await api({action:"feed"});
-    FEED=res.feed||[]; FEED_ME=res.me||cfg.user||""; FEED_USERS=res.users||[]; FEED_FOLLOWS=res.follows||[];
+    FEED=res.feed||[]; FEED_ME=res.me||cfg.user||""; FEED_USERS=res.users||[]; FEED_FOLLOWS=res.follows||[]; feedKeep();
     $("feedSpin").hidden=true; renderFeed(); markFeedSeen();
   }catch(err){
     $("feedSpin").hidden=true;
     if(AUTH_ERRORS.has(err.message)){ forgetAuth(); setGateMode("login"); showGate(tr("Your session expired — log in again.")); }
-    else $("feedList").innerHTML=`<div class="spin">${esc(tr("Could not load the feed ({0}). The Apps Script may need the latest redeploy.", err.message))}</div>`;
+    else $("feedList").innerHTML=`<div class="spin">${esc(tr("Could not load the feed ({0}). The Apps Script may need the latest redeploy.", errText(err)))}</div>`;
   }
 }
 const FEED_OPEN = new Set(); // post ids whose comments are expanded
@@ -3204,12 +3249,12 @@ function renderFeed(){
   F.querySelectorAll(".fdel").forEach(b=>b.addEventListener("click", async()=>{
     if(!confirm(tr("Delete this post?"))) return;
     try{ const res=await api({action:"feeddelete", row:Number(b.dataset.row)}); FEED=res.feed||[]; renderFeed(); toast(tr("Post deleted")); }
-    catch(err){ toast(tr("Could not delete: {0}", err.message)); }
+    catch(err){ toast(tr("Could not delete: {0}", errText(err))); }
   }));
   F.querySelectorAll(".cheer").forEach(b=>b.addEventListener("click", async()=>{
     b.disabled=true;
     try{ const res=await api({action:"feedcheer", id:b.dataset.id}); FEED=res.feed||[]; renderFeed(); }
-    catch(err){ toast(tr("Could not cheer: {0}", err.message)); b.disabled=false; }
+    catch(err){ toast(tr("Could not cheer: {0}", errText(err))); b.disabled=false; }
   }));
   F.querySelectorAll(".cmtbtn").forEach(b=>b.addEventListener("click", ()=>{
     const id=b.dataset.id; if(FEED_OPEN.has(id)) FEED_OPEN.delete(id); else FEED_OPEN.add(id); renderFeed();
@@ -3220,7 +3265,7 @@ function renderFeed(){
     if(!text) return;
     inp.disabled=true;
     try{ const res=await api({action:"feedcomment", id, text}); FEED=res.feed||[]; FEED_OPEN.add(id); renderFeed(); }
-    catch(err){ toast(tr("Could not comment: {0}", err.message)); inp.disabled=false; }
+    catch(err){ toast(tr("Could not comment: {0}", errText(err))); inp.disabled=false; }
   }));
   F.querySelectorAll(".followbtn").forEach(b=>b.addEventListener("click", ()=>{
     b.disabled=true; toggleFollow(b.dataset.user, !iFollow(b.dataset.user));
@@ -3267,7 +3312,7 @@ async function shareWine(ev){
     $("shareModal").classList.remove("open");
     if(location.hash==="#feed"){ renderFeed(); markFeedSeen(); }
     toast(entry.to?tr("Sent to {0} 🍷", entry.to):tr("Shared to the feed 🍷"));
-  }catch(err){ $("shErr").textContent=limitText(tr("Could not share: {0}", err.message)); $("shErr").hidden=false; }
+  }catch(err){ $("shErr").textContent=limitText(tr("Could not share: {0}", errText(err))); $("shErr").hidden=false; }
   $("shSave").disabled=false;
 }
 $("shPhoto").addEventListener("change", ()=>{
@@ -3284,7 +3329,7 @@ $("shareForm").addEventListener("submit", shareWine);
 async function toggleFollow(user, follow){
   // the target goes as "target": "user" is the signed-in account, and would be overwritten
   try{ const res=await api({action:follow?"follow":"unfollow", target:user}); FEED_FOLLOWS=res.follows||[]; renderFeed(); }
-  catch(err){ toast(tr("Could not update follow: {0}", err.message)); }
+  catch(err){ toast(tr("Could not update follow: {0}", errText(err))); }
 }
 
 function route(){
