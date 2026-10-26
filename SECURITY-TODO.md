@@ -25,16 +25,15 @@ are done (see "Limits against abuse" in the README). Tick a box when an item shi
   - [ ] Remind users that their recovery code is the only way back into an encrypted cellar. Nobody, the owner
         included, can reset it.
 
-## API gateway (the code is done; the setup is yours)
+## API gateway (done, 26 October 2026)
 
 - [x] **A Cloudflare Worker in front of the Apps Script URL** — `worker/index.js`, `GATEWAY_SECRET` in `Code.gs` (API 35).
   - [x] Rate limits per IP address: 120 a minute, 10 a minute for login, sign-up and recovery.
   - [x] Turnstile on sign-up and recovery. Not on login, which stays one request; the IP limit and lockout cover it.
   - [x] Code.gs refuses requests that didn't come through the Worker, once `GATEWAY_SECRET` is set.
-  - [ ] Set it up: README → "API gateway", steps 1–4 (secret, new Apps Script deployment, Turnstile widget, Worker).
-  - [ ] Point `config.js` at the Worker, put in the Turnstile site key, and narrow the CSP to the Worker's exact
-        address (step 5).
-  - [ ] Archive the old Apps Script deployment, whose URL is public in the git history (step 6).
+  - [x] Set up: secret, new Apps Script deployment, Turnstile widget, Worker `allwine-api.adamlenzing.workers.dev`.
+  - [x] `config.js` points at the Worker with the Turnstile site key; the CSP allows only the Worker's address.
+  - [x] Old Apps Script deployment archived: its URL (public in the git history) answers 404.
 
 ## When the site grows beyond friends, or abuse shows up
 
@@ -48,7 +47,7 @@ are done (see "Limits against abuse" in the README). Tick a box when an item shi
   - [x] Scripts only from `'self'` (plus Turnstile's on the cellar page); no inline script.
   - [x] Requests only to the API and IGN; images from `'self'`, `data:`, `blob:` and IGN's tiles.
   - [x] Every page checked under it, the atlas maps included.
-  - [ ] Narrow `https://*.workers.dev` to the Worker's own address once it exists (gateway step 5).
+  - [x] Narrowed to the Worker's own address.
   - [ ] `'unsafe-eval'` stays while the encrypted cellar runs `Code.gs` through `new Function`. Removing it would
         mean running the engine in a Web Worker from a `.js` copy of `Code.gs`.
 - [ ] Confirm **Enforce HTTPS** is ticked under the repository's Settings → Pages.
