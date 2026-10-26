@@ -14,7 +14,8 @@ concurrency:
   cancel-in-progress: true
 jobs:
   test:
-    runs-on: ubuntu-latest
+    # pinned: Playwright 1.56 supports Ubuntu up to 24.04 (ubuntu-latest moved to 26.04); move both together
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
