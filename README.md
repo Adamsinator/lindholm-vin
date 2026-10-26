@@ -658,8 +658,13 @@ its site's own data and technical sheets. The 7 still unconfirmed are in `tools/
   texts, keyed like the English data. Anything missing falls back to English.
 - **Vintage notes:** translated in `data/vintages/vintages-i18n.json`, built into `burgundy-vintages.js` by
   `tools/vintages-build.js`.
-- **Cellar app:** still mostly English. Its newer dialogs (sign-in, account, import, export, location) are
-  translated.
+- **Cellar app:** fully translated:
+  - the page, every dialog, the Enjoyed, wishlist, journal and feed pages, messages and tooltips;
+  - dates follow the language too, and the producer reputation notes are translated in `notes-i18n.js`;
+  - switching language redraws what's on screen;
+  - the data itself stays in the sheet's words (Rød, Hvid, Bobler), whatever the language.
+- **Test:** `node tools/i18n-ui-test.js` (21 checks) uses the app in Danish, German and French and fails on any
+  English left where the interface talks.
 - **Test:** `node tools/i18n-test.js` checks that every language has every string, with the same placeholders.
 
 ## Smoke test

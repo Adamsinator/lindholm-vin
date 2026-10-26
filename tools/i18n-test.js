@@ -30,10 +30,15 @@ for (const f of ["app.js", "burgundy.js", "domaine.js", "vault.js"]) {
 }
 for (const f of ["index.html", "burgundy.html", "domaine.html"]) {
   const s = fs.readFileSync(R(f), "utf8");
-  for (const m of s.matchAll(/<([a-z0-9]+)\b[^>]*\bdata-i18n(?=[\s>])[^>]*>([^<]+)</g)) used.add(m[2].trim());
+  for (const m of s.matchAll(/<([a-z0-9]+)\b[^>]*\bdata-i18n(?=[\s>])[^>]*>([^<]+)</g)) used.add(m[2].trim().replace(/&gt;/g, ">").replace(/&lt;/g, "<").replace(/&amp;/g, "&"));
+  // placeholders, tooltips and aria labels marked for translation
+  for (const m of s.matchAll(/<[a-z0-9]+\b[^>]*>/g)) for (const [attr, mark] of [["placeholder", "data-i18n-ph"], ["title", "data-i18n-title"], ["aria-label", "data-i18n-aria"]]) {
+    const v = m[0].match(new RegExp(`\\b${attr}="([^"]*)"`)); if (v && m[0].includes(mark)) used.add(v[1].replace(/&gt;/g, ">").replace(/&lt;/g, "<").replace(/&amp;/g, "&"));
+  }
 }
 const untranslated = [...used].filter(k => !(k in D.de) && /[a-z]{3}/i.test(k));
-check(`every t()/tr() string in the code is in the dictionaries (${used.size})`, !untranslated.length, untranslated.slice(0, 8).join(" | "));
+check(`every t()/tr() string in the code is in the dictionaries (${used.size})`, !untranslated.length, untranslated.length + " missing: " + untranslated.slice(0, 8).join(" | "));
+if (process.env.MISSING) require("fs").writeFileSync(process.env.MISSING, JSON.stringify(untranslated, null, 1));
 
 // atlas texts: German and French mirror the Danish file's structure
 global.window = {};
