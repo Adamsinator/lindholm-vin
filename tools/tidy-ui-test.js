@@ -13,6 +13,7 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
 
 (async () => {
   const b = await chromium.launch(); const ctx = await b.newContext({ viewport: { width: 1280, height: 900 } });
+  await require("./turnstile-fake")(ctx);
   await ctx.route(require("./api-route"), async route => {
     await route.fulfill({ contentType: "application/json", body: JSON.stringify(gas.call(JSON.parse(route.request().postData() || "{}"))) });
   });

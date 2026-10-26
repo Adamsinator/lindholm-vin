@@ -16,6 +16,7 @@ const ms = t => ((Date.now() - t) / 1000).toFixed(1) + " s";
 async function session(b, gas, plain) {
   const ctx = await b.newContext({ viewport: { width: 1440, height: 900 } });
   const calls = [];
+  await require("./turnstile-fake")(ctx);
   await ctx.route(require("./api-route"), async route => {
     const p = JSON.parse(route.request().postData() || "{}"); let r;
     if (plain && p.action === "login") r = { ok: true, user: p.user, token: "tok", v: 26 };

@@ -4,5 +4,5 @@
 //   TURNSTILE_SITE_KEY  the Turnstile widget's site key ("are you human" on sign-up and recovery); '' = none
 window.WINE_CONFIG = {
   API_URL: "https://allwine-api.adamlenzing.workers.dev",
-  TURNSTILE_SITE_KEY: ""
+  TURNSTILE_SITE_KEY: "0x4AAAAAAFmp5IeCDktkq8Wg"
 };

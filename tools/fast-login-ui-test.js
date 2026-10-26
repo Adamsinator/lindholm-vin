@@ -19,6 +19,7 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   const device = async () => {
     const ctx = await b.newContext({ viewport: { width: 1280, height: 900 } });
     const seen = [];
+    await require("./turnstile-fake")(ctx);
     await ctx.route(require("./api-route"), async route => {
       const q = JSON.parse(route.request().postData() || "{}"); seen.push(q.action);
       if (hold) await hold.promise;

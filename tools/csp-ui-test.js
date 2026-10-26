@@ -13,11 +13,6 @@ const gas = H({ Ark1: [["Producent", "Land", "Område", "Kommune", "Mark/Navn", 
               { settings: { SIGNUP_CODE: "invite" } });
 const results = []; const check = (name, ok, extra = "") => { results.push(ok); console.log((ok ? "PASS " : "FAIL ") + name + (ok ? "" : "  " + extra)); };
 const BLANK = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==", "base64");
-// a stand-in for Cloudflare's widget, served from its address so the policy is tested as it will be
-const FAKE_TURNSTILE = `window.turnstile = {
-  render(sel, o) { const el = document.querySelector(sel); el.textContent = "[human check]"; window.__ts = { key: o.sitekey, resets: 0 }; return "w1"; },
-  getResponse() { return "XXXX.DUMMY.TOKEN.XXXX"; }, reset() { window.__ts.resets++; } };`;
-
 (async () => {
   const b = await chromium.launch(); const ctx = await b.newContext({ viewport: { width: 1280, height: 900 } });
   const sent = [];
@@ -26,9 +21,8 @@ const FAKE_TURNSTILE = `window.turnstile = {
   await ctx.route(/data\.geopf\.fr\/wmts/, route => route.fulfill({ contentType: "image/png", body: BLANK }));
   await ctx.route(/data\.geopf\.fr\/altimetrie/, route => route.fulfill({ contentType: "application/json",
     body: JSON.stringify({ elevations: Array.from({ length: 30 }, (_, i) => ({ z: 300 - i })) }) }));
-  await ctx.route(/challenges\.cloudflare\.com\/turnstile/, route => route.fulfill({ contentType: "text/javascript", body: FAKE_TURNSTILE }));
-  const config = fs.readFileSync(path.join(__dirname, "..", "config.js"), "utf8").replace(/TURNSTILE_SITE_KEY: ""/, 'TURNSTILE_SITE_KEY: "1x00000000000000000000AA"');
-  await ctx.route(/\/config\.js/, route => route.fulfill({ contentType: "text/javascript", body: config }));
+  await require("./turnstile-fake")(ctx);
+  const SITE_KEY = fs.readFileSync(path.join(__dirname, "..", "config.js"), "utf8").match(/TURNSTILE_SITE_KEY:\s*"([^"]*)"/)[1];
   // every violation the browser reports, from the start of each page
   await ctx.addInitScript(() => { window.__csp = []; document.addEventListener("securitypolicyviolation", e => window.__csp.push(e.violatedDirective + " " + e.blockedURI)); });
   // a browser that saved the old Apps Script address (from before config.js had one) still uses config.js's
@@ -60,7 +54,7 @@ const FAKE_TURNSTILE = `window.turnstile = {
   // sign-up with the human check
   check("no human check on the login form", !(await p.isVisible("#gateHuman")));
   await p.click("#gateToggle"); await p.waitForTimeout(400);
-  check("sign-up shows the human check, with the site key", await p.isVisible("#gateHuman") && (await p.evaluate(() => window.__ts && window.__ts.key)) === "1x00000000000000000000AA");
+  check("sign-up shows the human check, with the site key", await p.isVisible("#gateHuman") && SITE_KEY && (await p.evaluate(() => window.__ts && window.__ts.key)) === SITE_KEY);
   await p.fill("#gateUser", "anna"); await p.fill("#gatePass", "anna-pass-1"); await p.fill("#gateInvite", "invite"); await p.click("#gateSubmit");
   await p.waitForSelector("#recModal.open", { timeout: 20000 }); await p.check("#recOk"); await p.click("#recDone");
   await p.waitForSelector("#app:not([hidden])", { timeout: 20000 });

@@ -34,6 +34,7 @@ const W = async (prod, name) => (await (await wines())).find(w => w.producer ===
 (async () => {
   const b = await chromium.launch(); const ctx = await b.newContext({ viewport: { width: 1280, height: 900 } });
   await ctx.addInitScript(`{ const D = Date; const fixed = new D("${TODAY}T18:00:00").getTime(); Date = class extends D { constructor(...a){ super(...(a.length ? a : [fixed])); } static now(){ return fixed; } }; }`);
+  await require("./turnstile-fake")(ctx);
   await ctx.route(require("./api-route"), async route => {
     const p = JSON.parse(route.request().postData() || "{}");
     let r;

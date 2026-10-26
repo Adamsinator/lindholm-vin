@@ -60,6 +60,7 @@ const overflow=async(p,where)=>{ const o=await p.evaluate(()=>document.documentE
  const b=await chromium.launch();
  for(const [tag,vp,scheme] of [['desk',{width:1366,height:900},'light'],['mob',{width:390,height:844},'light'],['dark',{width:1366,height:900},'dark']]){
   const ctx=await b.newContext({viewport:vp,colorScheme:scheme,isMobile:tag==='mob',hasTouch:tag==='mob'});
+  await require("./turnstile-fake")(ctx);
   await ctx.route(require("./api-route"), backend());
   const p=await ctx.newPage(); const W_=tag; await watch(p,W_);
   // front page, logged out
