@@ -69,6 +69,20 @@ const wines = Array.from({ length: 120 }, (_, i) => { const p = P[i % P.length];
   check("phone rows are two-line cards: the wine across the full width, numbers below", card.nameW > card.rowW * 0.9 && card.vintY > card.nameY && card.h < 110, JSON.stringify(card));
   check("the filters scroll away on a phone", await p.$eval("#pageCellar .filters", e => getComputedStyle(e).position) === "static");
 
+  // ── Enjoyed: a bottle you didn't buy (a tasting) counts at its value ──
+  await p.evaluate(async () => { await api({ action: "addmany", wines: [{ producer: "Domaine du Comte Liger-Belair", name: "La Romanée", vintage: 2011, size: "Magnum", qty: 1, drunk: 1, drunkDate: "2026-10-24", elsewhere: 1, value: 125000 },
+    { producer: "Krug", name: "Clos du Mesnil", vintage: 2002, qty: 1, drunk: 1, drunkDate: "2026-10-23", elsewhere: 1, price: 9000, value: 12000 }], bumps: [] }); await loadData(); });
+  await p.click('.tab[data-page="cellar"]'); if (!(await p.evaluate(() => SHOW_PRICES))) await p.click("#priceBtn");
+  await p.click('.tab[data-page="enjoyed"]'); await p.fill("#eq", "la romanée"); await p.waitForTimeout(300);
+  const cell = await p.$eval("#eRows tr.main td:last-child", td => td.textContent.trim()).catch(() => "");
+  check("Enjoyed shows the value of a bottle with no price, marked as a value", /≈\s*125[.,\s]?000/.test(cell), cell);
+  await p.fill("#eq", "clos du mesnil"); await p.waitForTimeout(300);
+  const krug = await p.$eval("#eRows tr.main td:last-child", td => td.textContent.trim()).catch(() => "");
+  check("…and what you paid when there is a price", /^9[.,\s]?000/.test(krug) && !/≈/.test(krug), krug);
+  const kpi = await p.$$eval("#eKpis .kpi", ks => ks.map(k => k.textContent).join(" | "));
+  check("…and 'Value enjoyed' counts both, saying so", /134[.,\s]?000/.test(kpi) && /value where none was paid/.test(kpi), kpi);
+  await p.fill("#eq", "");
+
   // ── the journal as a grid ──
   await p.setViewportSize({ width: 1650, height: 1000 });
   for (let i = 0; i < 4; i++) await p.evaluate(n => api({ action: "jadd", entry: { date: "2026-10-1" + n, producer: "Krug", wine: "Grande Cuvée", rating: 8, note: "fine" } }), i);
