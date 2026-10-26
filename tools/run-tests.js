@@ -9,7 +9,7 @@ const http = require("http"), fs = require("fs"), path = require("path"), { spaw
 const ROOT = path.join(__dirname, ".."), PORT = 8765;
 const NODE = ["i18n-test", "import-test", "export-test", "messy-test", "vault-test", "sommelier-test", "big-import-test", "abuse-test", "backup-test"];
 const BROWSER = ["import-ui-test", "tidy-ui-test", "vault-ui-test", "sommelier-ui-test", "add-suggest-ui-test", "i18n-ui-test",
-  "cellar-flow-test", "cellar-flow-test:vault", "big-import-ui-test", "smoke-test"];
+  "cellar-flow-test", "cellar-flow-test:vault", "big-import-ui-test", "fast-login-ui-test", "smoke-test"];
 const args = process.argv.slice(2);
 let suites = args.includes("--node") ? NODE : NODE.concat(BROWSER);
 const named = args.filter(a => !a.startsWith("--"));
@@ -52,7 +52,10 @@ function run(suite) {
   for (const s of suites) {
     const r = await run(s); results.push(r);
     console.log(`${r.ok ? "✓" : "✗"} ${s.padEnd(24)} ${r.tally.padEnd(14)} ${r.secs}s`);
-    if (!r.ok) console.log(r.out.split("\n").filter(l => /FAIL|Error|error|timed out/.test(l)).slice(0, 15).map(l => "    " + l).join("\n"));
+    if (!r.ok) {
+      const lines = r.out.split("\n"), hits = lines.filter(l => /FAIL|Error|error|timed out/.test(l)).slice(0, 15);
+      console.log((hits.length ? hits : lines.filter(l => l.trim()).slice(-15)).map(l => "    " + l).join("\n")); // else its last lines
+    }
   }
   if (srv) srv.close();
   const bad = results.filter(r => !r.ok);

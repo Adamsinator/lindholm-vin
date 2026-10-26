@@ -16,9 +16,14 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
     const p = JSON.parse(route.request().postData() || "{}"); seen.push(p);
     await route.fulfill({ contentType: "application/json", body: JSON.stringify(gas.call(p)) });
   });
+  // the atlas's relief tiles come from IGN, which answers 404 for some of them now and then: a blank tile instead,
+  // so this test doesn't depend on a third party being up
+  const BLANK = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==", "base64");
+  await ctx.route(/data\.geopf\.fr\/wmts/, route => route.fulfill({ contentType: "image/png", body: BLANK }));
   const p = await ctx.newPage(); const errs = [];
   p.on("pageerror", e => errs.push(e.message)); p.on("console", m => m.type() === "error" && errs.push(m.text()));
   p.on("dialog", d => d.accept());
+  p.on("response", r => r.status() >= 400 && errs.push(r.status() + " " + r.url())); // which file, when one is missing
   await p.goto(BASE); await p.waitForTimeout(400);
 
   // sign up
