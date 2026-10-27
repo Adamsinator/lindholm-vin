@@ -5,9 +5,8 @@ are done (see "Limits against abuse" in the README). Tick a box when an item shi
 
 ## Do soon
 
-- [ ] **Deploy `Code.gs` API 39** (Admin → Remove a member): paste it, Manage deployments → ✏️ on the Worker's
-      deployment → New version. Until then, Remove answers with an error and nothing is removed.
-- [x] **Deploy `Code.gs` API 38** (private mode, email at sign-up, the admin page): done 27 October 2026.
+- [x] **Deploy `Code.gs` API 38 and 39** (private mode, email at sign-up, the admin page, Remove a member): done
+      27 October 2026; the Worker reports v:39.
 - [x] **Deploy `Code.gs` API 36/37** (Delete my account, the event log, daily backups, Recently deleted): done
       27 October 2026, with `installDailyBackup` run.
 - [x] **Redeploy `Code.gs` (API 34)** in Apps Script, then run `makeInvites` once and blank `SIGNUP_CODE` in
