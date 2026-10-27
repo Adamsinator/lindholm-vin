@@ -85,6 +85,7 @@ const overflow=async(p,where)=>{ const o=await p.evaluate(()=>document.documentE
        const open=await p.evaluate(()=>!!document.querySelector('.modal.open')); if(open){ note(tag,'add modal does not close on Escape'); await p.evaluate(()=>document.querySelectorAll('.modal.open').forEach(m=>m.classList.remove('open'))); } }catch(e){note(tag,'add modal '+e.message)}
   try{ await p.click('#tonightBtn'); await p.waitForTimeout(300); await p.keyboard.press('Escape'); await p.evaluate(()=>document.querySelectorAll('.modal.open').forEach(m=>m.classList.remove('open'))); }catch(e){note(tag,'tonight '+e.message)}
   // map drill to Bourgogne (the map sits folded in the overview: open both, as a person would)
+  await p.evaluate(()=>{ if(window.setLayout) ["overview","eOverview"].forEach(id=>setLayout(id, panelEls(id).map(e=>e.dataset.panel))); });
   await p.evaluate(()=>{ const o=document.getElementById('overview'); if(o) o.open=true; const m=document.getElementById('mapFold'); if(m) m.open=true; }); await p.waitForTimeout(300);
   try{ const dot=await p.$('#map circle.dot, #map .dot'); if(dot){ await dot.click(); await p.waitForTimeout(300);} }catch(e){note(tag,'map '+e.message)}
   for(const pg of ['enjoyed','wishlist','journal','feed','cellar']){

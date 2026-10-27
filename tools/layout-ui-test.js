@@ -30,6 +30,8 @@ const wines = Array.from({ length: 120 }, (_, i) => { const p = P[i % P.length];
   await p.waitForTimeout(800);
   const box = sel => p.$eval(sel, e => { const r = e.getBoundingClientRect(); return { x: r.x, y: r.y + scrollY, w: r.width, h: r.height }; });
 
+  // every panel on (the default shows five), so all of them are checked
+  await p.evaluate(() => ["overview", "eOverview"].forEach(id => setLayout(id, panelEls(id).map(e => e.dataset.panel)))); await p.waitForTimeout(300);
   // ── wide screen ──
   const list = await box("#pageCellar .tablewrap"), side = await box("#overview");
   check("the wine list starts within the first screen", list.y < 700, JSON.stringify(list));

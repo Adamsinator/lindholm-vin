@@ -80,14 +80,15 @@ async function load(post, user, token, dek) {
   return Object.assign(await decode(user, dek, r.records || {}), { state: r.state });
 }
 async function decode(user, dek, records) {
-  const vers = {}, tabs = {}; let sheetName = "Ark1";
+  const vers = {}, tabs = {}; let sheetName = "Ark1", prefs = null;
   for (const [key, rec] of Object.entries(records)) {
     vers[key] = rec.ver;
     const plain = JSON.parse(await VC.decrypt(dek, rec.data, aad(user, key)));
     if (key === "meta:cellar") sheetName = plain.sheetName || sheetName;
+    else if (key === "meta:prefs") prefs = plain;
     else if (key.slice(0, 4) === "tab:") tabs[key.slice(4)] = plain;
   }
-  return { sheetName, tabs, vers, records };
+  return { sheetName, tabs, vers, records, prefs };
 }
 async function put(post, user, token, dek, vers, key, value) {
   const data = await VC.encrypt(dek, JSON.stringify(value), aad(user, key));
@@ -115,7 +116,7 @@ function openWith(o, v, src) {
   // a brand-new vault has no wine tab yet: start it with the column headers the server would give a new sheet
   if (!v.tabs[v.sheetName]) v.tabs[v.sheetName] = [];
   S = { post: o.post, user: o.user, token: o.token, dek: o.dek, sheetName: v.sheetName, vers: v.vers, src, photoCache: {},
-        recs: Object.assign({}, v.records), busy: 0, writes: 0, onRefresh: o.onRefresh, onLost: o.onLost,
+        recs: Object.assign({}, v.records), prefs: v.prefs || null, busy: 0, writes: 0, onRefresh: o.onRefresh, onLost: o.onLost,
         engine: VE.create(src, v.tabs, { sheetName: v.sheetName, today: o.today }) };
   if (!v.tabs[v.sheetName].length) { // seed the headers the way createUserSpreadsheet did
     const H = ["Producent", "Land", "Område", "Kommune", "Mark/Navn", "Klassifikation", "Type", "Drue", "Årgang", "Antal", "Pris kr (WS)", "Drukket", "Kilde", "Note"];
@@ -154,6 +155,19 @@ async function refresh(o, mine) {
   return false;
 }
 const active = () => !!S;
+// The account's preferences (the overview's layout): one small encrypted record beside the cellar, never wines
+const prefs = () => (S ? S.prefs : null);
+async function setPrefs(value) {
+  if (!S) return;
+  const mine = S; mine.prefs = JSON.parse(JSON.stringify(value)); mine.writes++;
+  try { await put(mine.post, mine.user, mine.token, mine.dek, mine.vers, "meta:prefs", mine.prefs); }
+  catch (err) { // saved from another device meanwhile: this one is newer, so write over it
+    if (err.message !== "stale" || S !== mine) throw err;
+    const r = await srv(mine.post, { user: mine.user, token: mine.token, action: "vget" });
+    mine.vers["meta:prefs"] = ((r.records || {})["meta:prefs"] || {}).ver || 0;
+    await put(mine.post, mine.user, mine.token, mine.dek, mine.vers, "meta:prefs", mine.prefs);
+  }
+}
 function stop() { S = null; }
 
 async function call(params, retried) {
@@ -338,7 +352,7 @@ async function migrate(o) {
 
 const rememberSalt = (user, fields) => saltPut(user, fields);
 const synced = () => (S && S.synced) || Promise.resolve(false);
-const api = { start, stop, active, call, newKeys, migrate, login, recover, changePassword, newRecovery, forgetCache, rememberSalt, deleteAccount, synced, PRIVATE,
+const api = { start, stop, active, prefs, setPrefs, call, newKeys, migrate, login, recover, changePassword, newRecovery, forgetCache, rememberSalt, deleteAccount, synced, PRIVATE,
   user: () => S && S.user };
 if (node) module.exports = api;
 else root.VAULT = api;

@@ -540,7 +540,20 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
 .side-body{display:flex;flex-direction:column;gap:12px}
 .cellar-side{border-left:1px solid var(--line);padding-left:22px}
 .side-body .panel{padding:12px 0 16px;border-top-color:var(--line)}
-.side-body .panel:first-child{border-top:0;padding-top:2px}
+/* "Customise": a quiet link above the panels; its editor lists them with ↑ ↓ ✕ and the ones to add back */
+.side-body .panel.off{display:none!important}
+.custbar{display:flex;justify-content:flex-end;margin:-4px 0 -10px;grid-column:1/-1}
+.custbar .btn{padding:3px 0;font-size:12.5px}
+.custed{grid-column:1/-1;border:1px solid var(--line);border-radius:3px;padding:10px 12px;background:var(--card2)}
+.custed h3{margin:0 0 4px;font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:600}
+.custlist{list-style:none;margin:0 0 10px;padding:0}
+.custlist li{display:flex;align-items:center;gap:4px;padding:4px 0;border-top:1px solid var(--line);font-size:13.5px}
+.custlist li:first-child{border-top:0}
+.custlist li > span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.custlist .ph{font-size:11.5px}
+.ibtn{border:1px solid var(--line);background:none;color:var(--ink);border-radius:3px;width:30px;height:28px;font-size:14px;cursor:pointer;font-family:inherit;padding:0}
+.ibtn:hover:not(:disabled){border-color:var(--ink)} .ibtn:disabled{opacity:.3;cursor:default}
+.custact{display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap}
 .side-body h2{font-size:15px}
 .side-body .ph{font-size:11.5px}
 .cellar-main .filters{position:sticky;top:0;z-index:6;background:var(--bg);padding:8px 0;margin:0 0 6px}
@@ -840,61 +853,63 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
 <details class="cellar-side" id="overview">
 <summary class="side-sum"><span data-i18n>Overview</span> <span class="ph" data-i18n>regions, producers, styles, vintages, map</span></summary>
 <div class="side-body">
-<div class="panel" id="insightsPanel">
+<div class="custbar"><button type="button" class="btn quiet custbtn" aria-expanded="false" data-i18n>✎ Customise</button></div>
+<div class="custed" hidden></div>
+<div class="panel" id="insightsPanel" data-panel="insights">
   <h2 data-i18n>Cellar insights</h2>
   <div id="insights" class="insights"></div>
 </div>
 
-<div class="panel">
+<div class="panel" data-panel="regions">
   <h2 data-i18n>Regions</h2>
   <p class="ph" data-i18n>Bottles in the cellar · click to filter the list</p>
   <div id="regions"></div>
 </div>
 
-<div class="panel">
+<div class="panel" data-panel="producers">
   <h2 data-i18n>Producers</h2>
   <p class="ph" data-i18n>Bottles in the cellar · click to filter the list</p>
   <div id="producers"></div>
 </div>
 
-<div class="panel">
+<div class="panel" data-panel="styles">
   <h2 data-i18n>By style</h2>
   <p class="ph" data-i18n>Bottles in the cellar · click a slice to filter</p>
   <svg id="stylePie" role="img" aria-label="Pie chart of the cellar by style" data-i18n-aria></svg>
   <div class="slegend" id="slegend"></div>
 </div>
 
-<div class="panel">
+<div class="panel" data-panel="vintages">
   <h2 data-i18n>Vintages</h2>
   <p class="ph" data-i18n>Bottles in the cellar by vintage · NV = non-vintage champagne · click a bar to filter</p>
   <svg id="vintChart" role="img" aria-label="Bar chart of bottles per vintage year" data-i18n-aria></svg>
 </div>
 
-<div class="panel" id="pressPanel" hidden>
+<div class="panel" id="pressPanel" data-panel="press" hidden>
   <h2 data-i18n>When they need drinking</h2>
   <p class="ph" data-i18n>Bottles whose drink window closes each year · your windows, or estimates</p>
   <div id="press"></div>
 </div>
 
-<div class="panel" id="worthPanel" hidden>
+<div class="panel" id="worthPanel" data-panel="worth" hidden>
   <h2 data-i18n>Value against what you paid</h2>
   <p class="ph" data-i18n>The bottles in the cellar with a value set</p>
   <div id="worth"></div>
 </div>
 
-<div class="panel" id="buyPanel" hidden>
+<div class="panel" id="buyPanel" data-panel="buy" hidden>
   <h2 data-i18n>Bought and drunk by year</h2>
   <p class="ph" data-i18n>Bottles in by acquired date, out by drunk date</p>
   <div id="buy"></div>
 </div>
 
-<div class="panel" id="bandPanel" hidden>
+<div class="panel" id="bandPanel" data-panel="bands" hidden>
   <h2 data-i18n>Price bands</h2>
   <p class="ph" data-i18n>Bottles in the cellar by what one bottle cost</p>
   <div id="bands"></div>
 </div>
 
-<details class="panel mapfold" id="mapFold">
+<details class="panel mapfold" id="mapFold" data-panel="map">
   <summary><h2 data-i18n>Map</h2> <span class="ph" data-i18n>show</span></summary>
   <p class="ph" data-i18n>Bottles by country · click a country, then a region (Bourgogne, Champagne, Mosel, Piemonte drill to villages)</p>
   <div id="mapbar" hidden>
@@ -904,7 +919,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
   <svg id="map" role="img" aria-label="Stylized map of the wine regions in the cellar" data-i18n-aria></svg>
 </details>
 
-<div class="panel" id="histPanel" hidden>
+<div class="panel" id="histPanel" data-panel="hist" hidden>
   <h2 data-i18n>Collection over time</h2>
   <p class="ph"><span data-i18n>Bottles held since the first acquisition</span> · <b>＋</b> <span data-i18n>added</span> · <b>–</b> <span data-i18n>drunk</span> · <span data-i18n>colour by style:</span>
     <span class="hleg"><span class="hswatch" style="background:var(--h-red)"></span><span data-i18n>red</span></span>
@@ -960,18 +975,20 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
   <details class="cellar-side" id="eOverview">
   <summary class="side-sum"><span data-i18n>Overview</span> <span class="ph" data-i18n>styles, producers, drinking over time</span></summary>
   <div class="side-body">
-  <div class="panel">
+  <div class="custbar"><button type="button" class="btn quiet custbtn" aria-expanded="false" data-i18n>✎ Customise</button></div>
+  <div class="custed" hidden></div>
+  <div class="panel" data-panel="estyles">
     <h2 data-i18n>By style</h2>
     <p class="ph" data-i18n>Bottles you've enjoyed · click a slice to filter</p>
     <svg id="ePie" role="img" aria-label="Enjoyed bottles by style" data-i18n-aria></svg>
     <div class="slegend" id="eLegend"></div>
   </div>
-  <div class="panel">
+  <div class="panel" data-panel="eproducers">
     <h2 data-i18n>Most enjoyed</h2>
     <p class="ph" data-i18n>Producers by bottles enjoyed · click to filter</p>
     <div id="eProducers"></div>
   </div>
-  <div class="panel">
+  <div class="panel" data-panel="etime">
     <h2 data-i18n>Drinking over time</h2>
     <p class="ph" data-i18n>Bottles enjoyed per month · coloured by style</p>
     <svg id="eTime" role="img" aria-label="Bottles enjoyed per month" data-i18n-aria></svg>
@@ -1356,7 +1373,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
 
 <!-- Pages serves these with max-age=600 and no revalidation, so a merged change can
      sit invisible behind a stale app.js for ten minutes. Bump v on every deploy. -->
-<script src="i18n.js?v=33"></script>
+<script src="i18n.js?v=34"></script>
 <script src="notes.js?v=4"></script>
 <script src="notes-i18n.js?v=1"></script>
 <script src="burgundy-data.js?v=13"></script>
@@ -1366,11 +1383,11 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
 <script src="gas-fake.js?v=4"></script>
 <script src="vault-crypto.js?v=2"></script>
 <script src="vault-engine.js?v=1"></script>
-<script src="vault.js?v=13"></script>
+<script src="vault.js?v=14"></script>
 <script src="wine-kb.js?v=2"></script>
 <script src="tidy.js?v=3"></script>
 <script src="import.js?v=5"></script>
 <script src="export.js?v=2"></script>
-<script src="app.js?v=30"></script>
+<script src="app.js?v=31"></script>
 </body>
 </html>

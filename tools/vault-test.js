@@ -53,6 +53,13 @@ const plainWine = ["Armand Rousseau", "Frankrig", "Bourgogne", "Gevrey-Chamberti
   await VAULT2.call({ action: "rate", row: 2, rating: 8 });
   r = await VAULT.call({ action: "setprice", row: 2, value: 2100 });
   check("second device's change isn't lost", r.wines[0].rating === 8 && r.wines[0].price === 2100, JSON.stringify(r.wines[0]));
+  // the overview layout: a small encrypted record of its own, saved from both devices (the later one wins)
+  await VAULT2.setPrefs({ layout: { overview: ["press"] } });
+  await VAULT.setPrefs({ layout: { overview: ["regions", "worth"] } });
+  const VAULT3 = (() => { delete require.cache[require.resolve("../vault.js")]; return require("../vault.js"); })();
+  await VAULT3.start({ post, user: "anna", token: t2, dek, fresh: true });
+  check("layout saved from two devices: the later one opens", JSON.stringify(VAULT3.prefs()) === JSON.stringify({ layout: { overview: ["regions", "worth"] } }), JSON.stringify(VAULT3.prefs()));
+  check("…and the cellar is the same", (await VAULT3.call({ action: "data" })).wines[0].price === 2100);
 
   // ── forgotten password: the recovery code sets a new one ──
   const rs = await post({ action: "recoverstart", user: "anna" });
