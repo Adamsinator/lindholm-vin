@@ -103,8 +103,15 @@ function baseWindow(w){
   if(has(reg,["rhone","rhône","cornas","hermitage","cote rotie","côte rôtie","gigondas","chateauneuf","châteauneuf"]) || grape.includes("syrah"))
     return has(reg,["hermitage","cornas","cote rotie","côte rôtie"]) ? span(5,28) : span(4,20);
   // Riesling — Mosel/Saar & German/Alsace whites age superbly, often 20–40 yrs
-  if(grape.includes("riesling") || has(reg,["mosel","saar","ruwer","rheingau","nahe","pfalz","rheinhessen","alsace"]))
+  if(grape.includes("riesling") || has(reg,["mosel","saar","ruwer","rheingau","nahe","pfalz","rheinhessen","alsace"])){
+    // the German ripeness level says much about how long it keeps: a Kabinett is lighter, a TBA nearly immortal
+    if(has(cls,["beerenauslese","eiswein","tba"]) || /\bba\b/.test(cls)) return span(8,50);
+    if(cls.includes("auslese")) return span(5,30);
+    if(cls.includes("spatlese")) return span(3,25);
+    if(cls.includes("kabinett")) return span(2,15);
+    if(has(cls,["grosses gewachs","gg","grosse lage"])) return span(3,20);
     return grand?span(3,35):span(3,25);
+  }
   return style==="Hvid" ? span(1,6) : span(2,10);         // generic white / red
 }
 
@@ -373,7 +380,10 @@ function renderOverview(){
   if(SHOW_PRICES){
     const valueLeft = cellar.reduce((s,w)=>s+(w.price||0)*w.left,0);
     kpis.push([tr("Cellar value"), kr(valueLeft), tr("at purchase price"), ""]);
-    kpis.push([tr("Avg. bottle"), kr(bottlesLeft?valueLeft/bottlesLeft:0), tr("cellar average"), ""]);
+    // the average over the bottles that have a price: one at 150 and one with none averages 150, not 75
+    const pricedLeft = cellar.reduce((s,w)=>s+(w.price>0?w.left:0),0);
+    kpis.push([tr("Avg. bottle"), kr(pricedLeft?valueLeft/pricedLeft:0),
+      pricedLeft < bottlesLeft ? tr("over {0} with a price", btl(fmt(pricedLeft))) : tr("cellar average"), ""]);
     const valued = cellar.filter(w=>w.value!=null);
     if(valued.length){
       const market = valued.reduce((s,w)=>s+w.value*w.left,0);
@@ -523,6 +533,7 @@ function renderOverview(){
   $("regionsList").innerHTML = [...new Set(WINES.map(w=>w.region).filter(Boolean))].sort().map(r=>`<option>${esc(r)}</option>`).join("");
   $("countries").innerHTML = [...new Set(WINES.map(w=>w.country).filter(Boolean))].sort().map(r=>`<option>${esc(r)}</option>`).join("");
   $("grapes").innerHTML = [...new Set(WINES.map(w=>w.grape).filter(Boolean))].sort().map(r=>`<option>${esc(r)}</option>`).join("");
+  renderQuickPicks();
 }
 
 /* ---------- style pie ---------- */
@@ -1239,7 +1250,7 @@ async function addWine(e){
   const v = id => $(id).value.trim();
   const wine = {
     producer:v("aProducer"), name:v("aName"), commune:v("aCommune"),
-    country:v("aCountry"), region:v("aRegion"), classification:v("aClass"),
+    country:v("aCountry"), region:v("aRegion"), classification:clsValue("aClass"),
     type:v("aType"), grape:v("aGrape"), size:$("aSize").value,
     vintage: /^\d{4}$/.test(v("aVintage")) ? Number(v("aVintage")) : v("aVintage"),
     qty: Number(v("aQty"))||1,
@@ -2716,9 +2727,70 @@ function autofill(ids){
   if(nt){ nt.hidden = !filled.length; nt.textContent = filled.length ? tr("Filled in {0} from {1}.", filled.join(", "), k.from) : ""; }
   classHint(ids);
 }
+// The classification list for a country: France's AOC / Premier cru / Grand cru (and Bordeaux's crus), Germany's
+// Prädikat and VDP levels, Italy's and Spain's own; "Other…" takes anything else as text. A value a wine already has
+// stays selectable (Special club, Cru classé…).
+function classOptions(country, region){
+  const c = normName(country||""), r = normName(region||"");
+  if(/^(tyskland|germany|allemagne|deutschland)$/.test(c) || /mosel|rheingau|nahe|pfalz|rheinhessen|franken|baden/.test(r))
+    return ["Kabinett","Spätlese","Auslese","Beerenauslese","Trockenbeerenauslese","Eiswein","Grosses Gewächs","Erste Lage"];
+  if(/^(ostrig|austria|autriche|osterreich)$/.test(c) || /wachau|kamptal|kremstal|burgenland/.test(r))
+    return ["Smaragd","Federspiel","Steinfeder","Erste Lage","Grosse Lage","Kabinett","Spätlese","Auslese","Beerenauslese","Trockenbeerenauslese","Eiswein"];
+  if(/^(italien|italy|italie)$/.test(c) || /piemonte|toscana|veneto|sicilia/.test(r)) return ["DOCG","DOC","Riserva","IGT"];
+  if(/^(spanien|spain|espagne)$/.test(c) || /rioja|ribera|priorat/.test(r)) return ["DOCa","DO","Crianza","Reserva","Gran Reserva"];
+  if(/^(portugal)$/.test(c) || /douro|porto/.test(r)) return ["DOC","Reserva","Vintage","LBV"];
+  const fr = ["AOC","1. cru","Grand cru"];
+  return /bordeaux/.test(r) ? fr.concat(["Cru classé","Cru bourgeois"]) : fr;
+}
+const CLS_LABEL = {"1. cru": "Premier cru"};
+function fillClassSelect(sel){
+  const keep = sel.value === "__other" ? "" : sel.value, country = $(sel.dataset.country), region = $(sel.dataset.region);
+  const opts = classOptions(country && country.value, region && region.value);
+  sel.innerHTML = `<option value="">—</option>` + opts.map(o=>`<option value="${esc(o)}">${esc(CLS_LABEL[o] ? tr(CLS_LABEL[o]) : o)}</option>`).join("")
+    + `<option value="__other">${esc(tr("Other…"))}</option>`;
+  if(keep) sel.value = matchOpt(sel, keep, true);
+  otherBox(sel, true);
+}
+// the text field for "Other…", right under the list
+function otherBox(sel, quiet){
+  let box = sel.parentNode.querySelector(".clsother");
+  if(sel.value !== "__other"){ if(box) box.hidden = true; return; }
+  if(!box){ box = document.createElement("input"); box.className = "clsother"; box.setAttribute("aria-label", tr("Classification"));
+    box.placeholder = tr("Type the classification"); sel.after(box); }
+  box.hidden = false; if(!quiet) box.focus();
+}
+// what a classification list holds: the option, or the text typed under "Other…"
+function clsValue(id){
+  const sel = $(id); if(sel.value !== "__other") return sel.value;
+  const box = sel.parentNode.querySelector(".clsother"); return box ? box.value.trim() : "";
+}
+document.querySelectorAll("select[data-country]").forEach(sel=>{
+  fillClassSelect(sel);
+  sel.addEventListener("change", ()=>{ sel.dataset.auto = ""; otherBox(sel); });
+  [sel.dataset.country, sel.dataset.region].forEach(id=>{ const el = $(id); if(el) el.addEventListener("change", ()=>fillClassSelect(sel)); });
+});
+// Quick picks under Country and Location: the usual countries and your own, the places you use most
+const QP_COUNTRIES = ["Frankrig","Italien","Spanien","Tyskland","Østrig","Portugal"];
+function renderQuickPicks(){
+  const byCount = key => { const m = new Map(); WINES.forEach(w=>{ const v = String(w[key]||"").trim(); if(v) m.set(v, (m.get(v)||0) + 1); });
+    return [...m.entries()].sort((a,b)=>b[1]-a[1]).map(x=>x[0]); };
+  const countries = [...new Set([...QP_COUNTRIES, ...byCount("country")])].slice(0, 8), places = byCount("location").slice(0, 6);
+  document.querySelectorAll(".qpick").forEach(box=>{
+    const list = box.dataset.kind === "country" ? countries : places, inp = $(box.dataset.for);
+    box.innerHTML = list.map(v=>`<button type="button">${esc(v)}</button>`).join("");
+    const mark = ()=>box.querySelectorAll("button").forEach(b=>b.classList.toggle("on", b.textContent===inp.value.trim()));
+    box.querySelectorAll("button").forEach(b=>b.addEventListener("click", ()=>{
+      inp.value = b.textContent; inp.dispatchEvent(new Event("input", {bubbles:true})); inp.dispatchEvent(new Event("change", {bubbles:true})); mark(); }));
+    if(!inp.dataset.qp){ inp.dataset.qp = "1"; inp.addEventListener("input", ()=>{ const q = inp.parentNode.querySelector(".qpick"); if(q) q.querySelectorAll("button").forEach(b=>b.classList.toggle("on", b.textContent===inp.value.trim())); }); }
+    mark();
+  });
+}
+
 // pick the select option that means the same classification ("1er Cru" in a sheet → "1. cru")
-function matchOpt(sel, val){
-  const k = clsKey(val), o = [...sel.options].find(o=>o.value && clsKey(o.value)===k);
+function matchOpt(sel, val, filled){
+  // a classification list redraws for the form's country first (it may have been filled in just now)
+  if(!filled && sel.dataset.country){ sel.value = ""; fillClassSelect(sel); }
+  const k = clsKey(val), o = [...sel.options].find(o=>o.value && o.value !== "__other" && clsKey(o.value)===k);
   if(o) return o.value;
   const extra = document.createElement("option"); extra.value = extra.textContent = String(val).trim(); sel.appendChild(extra); return extra.value;
 }
@@ -2894,7 +2966,7 @@ $("jForm").addEventListener("submit", async e=>{
     date: v("jDate"), producer: v("jProducer"), wine: v("jWine"),
     vintage: /^\d{4}$/.test(v("jVintage")) ? Number(v("jVintage")) : v("jVintage"),
     country: v("jCountry"), region: v("jRegion"), grape: v("jGrape"),
-    commune: v("jCommune"), classification: $("jClass").value,
+    commune: v("jCommune"), classification: clsValue("jClass"),
     place: v("jPlace"), rating: v("jRating") ? Number(v("jRating")) : "",
     price: v("jPrice") === "" ? "" : Math.max(0, Number(v("jPrice")) || 0), note: v("jNote"),
   };
@@ -3236,7 +3308,7 @@ $("eaForm").addEventListener("submit", async e=>{
   const entry={ producer:v("eaProducer"), wine:v("eaWine"),
     vintage: /^\d{4}$/.test(v("eaVintage"))?Number(v("eaVintage")):v("eaVintage"),
     type:$("eaType").value, size:$("eaSize").value,
-    region:v("eaRegion"), country:v("eaCountry"), commune:v("eaCommune"), classification:$("eaClass").value,
+    region:v("eaRegion"), country:v("eaCountry"), commune:v("eaCommune"), classification:clsValue("eaClass"),
     grape:v("eaGrape"), place:v("eaPlace"),
     drunkDate:v("eaDate"), rating: v("eaRating")?Number(v("eaRating")):"",
     price: v("eaPrice")==="" ? "" : Math.max(0, Number(v("eaPrice"))||0), note:v("eaNote") };
@@ -3282,7 +3354,7 @@ $("iForm").addEventListener("submit", async e=>{
   const w = I_WINE; if(!w) return;
   const v = id => $(id).value.trim();
   const vint = /^\d{4}$/.test(v("iVintage")) ? Number(v("iVintage")) : v("iVintage");
-  const next = {producer:v("iProducer"), name:v("iName"), vintage:vint, commune:v("iCommune"), classification:$("iClass").value,
+  const next = {producer:v("iProducer"), name:v("iName"), vintage:vint, commune:v("iCommune"), classification:clsValue("iClass"),
     country:v("iCountry"), region:v("iRegion"), grape:v("iGrape"), type:$("iType").value,
     location:v("iLocation"), source:v("iSource"), note:v("iNote")};
   const was = {producer:w.producer, name:w.name, vintage:w.vintage??"", commune:w.commune, classification:w.classification,

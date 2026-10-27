@@ -481,6 +481,16 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
 .lopt{text-transform:none;letter-spacing:0;font-weight:400;opacity:.7}
 .modal label.jcheck{display:flex;align-items:center;gap:7px;margin-top:12px;font-size:13.5px;text-transform:none;letter-spacing:0;color:var(--ink);cursor:pointer}
 .jcheck input{width:auto;margin:0}
+/* quick picks under a field: the usual countries, your own places — one tap fills it, typing still works */
+.qpick{display:flex;flex-wrap:nowrap;gap:5px;margin-top:6px;width:0;min-width:100%;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding-bottom:2px}
+.qpick::-webkit-scrollbar{display:none} .qpick button{flex:none}
+.qpick{-webkit-mask-image:linear-gradient(to right,#000 82%,transparent);mask-image:linear-gradient(to right,#000 82%,transparent)}
+.qpick:empty{display:none}
+.qpick button{border:1px solid var(--line);background:var(--card2);color:var(--ink);border-radius:999px;padding:3px 10px;font:inherit;font-size:12.5px;cursor:pointer}
+.qpick button:hover,.qpick button.on{border-color:var(--accent);color:var(--accent)}
+/* "Other…" classification: a text field under the list */
+.clsother{margin-top:6px}
+.appfoot{text-align:center;margin:28px 0 0;font-size:12.5px} .appfoot a{color:var(--muted)}
 .jcheck .lopt{font-size:12.5px;color:var(--muted)}
 .jdone{margin-top:12px;font-size:13px;color:var(--muted);background:var(--chip);border-radius:var(--r);padding:8px 10px}
 .clshint{color:var(--accent);opacity:.9}
@@ -1069,6 +1079,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
   <div class="spin" id="feedSpin" hidden data-i18n>Fetching the feed…</div>
   <div id="feedList"></div>
 </div>
+<p class="appfoot"><a href="privacy.html" target="_blank" rel="noopener" data-i18n>Privacy: what's stored and where</a></p>
 </div><!-- /app -->
 
 <div class="modal" id="addModal" role="dialog" aria-modal="true" aria-labelledby="addTitle">
@@ -1080,13 +1091,13 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
       <div><label for="aCommune" data-i18n>Commune</label><input id="aCommune" list="communesList" autocomplete="off"></div>
     </div>
     <div class="row2">
-      <div><label for="aCountry" data-i18n>Country</label><input id="aCountry" value="Frankrig" list="countries">
+      <div><label for="aCountry" data-i18n>Country</label><input id="aCountry" value="Frankrig" list="countries"><div class="qpick" data-for="aCountry" data-kind="country"></div>
         <datalist id="countries"></datalist></div>
       <div><label for="aRegion" data-i18n>Region</label><input id="aRegion" list="regionsList"><datalist id="regionsList"></datalist><datalist id="communesList"></datalist></div>
     </div>
     <div class="row2">
       <div><label for="aClass"><span data-i18n>Classification</span> <span class="lopt clshint" id="aClassHint"></span></label>
-        <select id="aClass"><option>AOC</option><option>1. cru</option><option>Grand cru</option><option>Special club</option><option value=""></option></select></div>
+        <select id="aClass" data-country="aCountry" data-region="aRegion"></select></div>
       <div><label for="aType" data-i18n>Type</label>
         <select id="aType"><option value="Rød" data-i18n>Red</option><option value="Hvid" data-i18n>White</option><option value="Rose">Rosé</option><option value="Bobler" data-i18n>Sparkling</option></select></div>
     </div>
@@ -1105,7 +1116,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
     </div>
     <div class="row2">
       <div><label for="aAcquired" data-i18n>Acquired</label><input id="aAcquired" type="date"></div>
-      <div><label for="aLocation" data-i18n>Location</label><input id="aLocation" list="locList" data-i18n-ph placeholder="e.g. Cellar, shelf 2"><datalist id="locList"></datalist></div>
+      <div><label for="aLocation" data-i18n>Location</label><input id="aLocation" list="locList" data-i18n-ph placeholder="e.g. Cellar, shelf 2"><datalist id="locList"></datalist><div class="qpick" data-for="aLocation" data-kind="location"></div></div>
     </div>
     <label for="aNote" data-i18n>Note</label><input id="aNote">
     <p class="lopt jfill" id="aFillNote" hidden></p>
@@ -1212,14 +1223,14 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
     <div class="row2">
       <div><label for="eaType" data-i18n>Type</label>
         <select id="eaType"><option value="Rød" data-i18n>Red</option><option value="Hvid" data-i18n>White</option><option value="Bobler" data-i18n>Sparkling</option><option value="Rose">Rosé</option></select></div>
-      <div><label for="eaCountry" data-i18n>Country</label><input id="eaCountry" list="countries"></div>
+      <div><label for="eaCountry" data-i18n>Country</label><input id="eaCountry" list="countries"><div class="qpick" data-for="eaCountry" data-kind="country"></div></div>
     </div>
     <div class="row2">
       <div><label for="eaRegion" data-i18n>Region</label><input id="eaRegion" list="regionsList"></div>
       <div><label for="eaCommune" data-i18n>Commune</label><input id="eaCommune" list="communesList"></div>
     </div>
     <label for="eaClass"><span data-i18n>Classification</span> <span class="lopt clshint" id="eaClassHint"></span></label>
-    <select id="eaClass"><option value="">—</option><option>AOC</option><option>1. cru</option><option>Grand cru</option><option>Special club</option></select>
+    <select id="eaClass" data-country="eaCountry" data-region="eaRegion"></select>
     <p class="lopt jfill" id="eaFillNote" hidden></p>
 
     <div class="row2">
@@ -1259,10 +1270,10 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
     <div class="row2">
       <div><label for="iCommune" data-i18n>Commune</label><input id="iCommune" list="communesList"></div>
       <div><label for="iClass"><span data-i18n>Classification</span> <span class="lopt clshint" id="iClassHint"></span></label>
-        <select id="iClass"><option value="">—</option><option>AOC</option><option>1. cru</option><option>Grand cru</option><option>Special club</option></select></div>
+        <select id="iClass" data-country="iCountry" data-region="iRegion"></select></div>
     </div>
     <div class="row2">
-      <div><label for="iCountry" data-i18n>Country</label><input id="iCountry" list="countries"></div>
+      <div><label for="iCountry" data-i18n>Country</label><input id="iCountry" list="countries"><div class="qpick" data-for="iCountry" data-kind="country"></div></div>
       <div><label for="iRegion" data-i18n>Region</label><input id="iRegion" list="regionsList"></div>
     </div>
     <div class="row2">
@@ -1271,7 +1282,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
         <select id="iType"><option value="Rød" data-i18n>Red</option><option value="Hvid" data-i18n>White</option><option value="Bobler" data-i18n>Sparkling</option><option value="Rose">Rosé</option></select></div>
     </div>
     <div class="row2">
-      <div><label for="iLocation" data-i18n>Location</label><input id="iLocation" list="locList" data-i18n-ph placeholder="e.g. Cellar, shelf 2"></div>
+      <div><label for="iLocation" data-i18n>Location</label><input id="iLocation" list="locList" data-i18n-ph placeholder="e.g. Cellar, shelf 2"><div class="qpick" data-for="iLocation" data-kind="location"></div></div>
       <div><label for="iSource" data-i18n>Source / bought at</label><input id="iSource"></div>
     </div>
     <label for="iNote" data-i18n>Note</label><input id="iNote">
@@ -1355,13 +1366,13 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
       <div><label for="jVintage" data-i18n>Vintage</label><input id="jVintage" placeholder="2019 or NV"></div>
     </div>
     <div class="row2">
-      <div><label for="jCountry" data-i18n>Country</label><input id="jCountry" list="countries"></div>
+      <div><label for="jCountry" data-i18n>Country</label><input id="jCountry" list="countries"><div class="qpick" data-for="jCountry" data-kind="country"></div></div>
       <div><label for="jRegion" data-i18n>Region</label><input id="jRegion" list="regionsList"></div>
     </div>
     <div class="row2">
       <div><label for="jCommune" data-i18n>Commune</label><input id="jCommune" list="communesList"></div>
       <div><label for="jClass"><span data-i18n>Classification</span> <span class="lopt clshint" id="jClassHint"></span></label>
-        <select id="jClass"><option value="">—</option><option>AOC</option><option>1. cru</option><option>Grand cru</option><option>Special club</option></select></div>
+        <select id="jClass" data-country="jCountry" data-region="jRegion"></select></div>
     </div>
     <label for="jGrape" data-i18n>Grape / blend</label><input id="jGrape" list="grapes">
     <label for="jRating" data-i18n>Rating</label>
@@ -1413,7 +1424,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
 
 <!-- Pages serves these with max-age=600 and no revalidation, so a merged change can
      sit invisible behind a stale app.js for ten minutes. Bump v on every deploy. -->
-<script src="i18n.js?v=37"></script>
+<script src="i18n.js?v=38"></script>
 <script src="notes.js?v=4"></script>
 <script src="notes-i18n.js?v=1"></script>
 <script src="burgundy-data.js?v=13"></script>
@@ -1428,6 +1439,6 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
 <script src="tidy.js?v=3"></script>
 <script src="import.js?v=5"></script>
 <script src="export.js?v=2"></script>
-<script src="app.js?v=34"></script>
+<script src="app.js?v=35"></script>
 </body>
 </html>

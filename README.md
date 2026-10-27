@@ -542,6 +542,20 @@ The layout is kept on the device and, for an encrypted account, as one small enc
 (`meta:prefs`), so it follows to other devices. When the two differ, the one changed last wins. It holds panel names
 only, never wines.
 
+## Adding a wine: the lists
+
+- **Classification** follows the country:
+  - France: AOC, Premier cru (stored as "1. cru"), Grand cru, plus Cru classé and Cru bourgeois for Bordeaux;
+  - Germany: Kabinett, Spätlese, Auslese, Beerenauslese, Trockenbeerenauslese, Eiswein, Grosses Gewächs, Erste Lage;
+  - Austria: Smaragd, Federspiel, Steinfeder, the VDP-style levels and the Prädikat;
+  - Italy: DOCG, DOC, Riserva, IGT; Spain: DOCa, DO, Crianza, Reserva, Gran Reserva; Portugal: DOC, Reserva, Vintage, LBV.
+  **Other…** takes any text. A value a wine already has (Special club) stays selectable on that wine.
+- A Riesling's estimated window follows its Prädikat: Kabinett 2–15 years, Spätlese 3–25, Auslese 5–30,
+  BA/TBA/Eiswein 8–50, Grosses Gewächs 3–20.
+- **Quick picks** under Country (the usual six and your own) and Location (the places you use most): one tap
+  fills the field; typing still works.
+- The **average bottle** counts only bottles with a price.
+
 ## Big cellars
 
 The wine list and Enjoyed show 100 wines at first. The next 100 come by themselves as the end of the list scrolls near,
