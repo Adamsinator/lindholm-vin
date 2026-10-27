@@ -152,7 +152,7 @@ const nWines = n => n===1 ? tr("1 wine") : tr("{0} wines", n);
 let WINES = [];          // normalized
 let KEEP_OPEN = null;    // row number of the expanded detail, kept open across re-renders
 let SHOW_PRICES = localStorage.getItem("vinHidePrices") !== "1"; // prices shown by default
-const state = {q:"", country:"", region:"", style:"", status:"cellar", ready:"", loc:"", sortK:"price", sortDir:-1};
+const state = {q:"", country:"", region:"", style:"", status:"cellar", ready:"", loc:"", closes:"", sortK:"price", sortDir:-1};
 // a location's first part ("Kælder" of "Kælder, reol 3, hylde 2") is the place the filter offers
 const locPlace = l => String(l||"").split(/[,;/·|]/)[0].trim();
 
@@ -279,8 +279,15 @@ function toast(msg){ msg = limitText(msg); const t=$("toast"); t.textContent=msg
 
 /* ---------- four more views of the cellar: when it needs drinking, value against price, buying and drinking by
    year, price bands. Each panel shows only once there's something to show (and money only with Show prices). ---------- */
-function kbar(label, n, max, txt, cls){
-  return `<div class="kbar${cls?" "+cls:""}"><span class="rb-name">${esc(label)}</span><span class="rb-track"><span class="rb-fill" style="width:${max?Math.max(1.5,n/max*100):0}%"></span></span><span class="rb-n">${esc(txt)}</span></div>`;
+function kbar(label, n, max, txt, cls, closes){
+  const k = closes!=null ? ` data-closes="${esc(closes)}" role="button" tabindex="0" title="${esc(tr("Show these in the list"))}"` : "";
+  return `<div class="kbar${cls?" "+cls:""}"${k}><span class="rb-name">${esc(label)}</span><span class="rb-track"><span class="rb-fill" style="width:${max?Math.max(1.5,n/max*100):0}%"></span></span><span class="rb-n">${esc(txt)}</span></div>`;
+}
+// the drinking-pressure chart's filter: the year a wine's drink window closes ("past", "later", or a year)
+function closesIn(w, k){
+  const win = drinkWindow(w); if(!win || win.to==null) return false;
+  const Y = new Date().getFullYear();
+  return k==="past" ? win.to < Y : k==="later" ? win.to > Y+10 : win.to===Number(k);
 }
 function renderMore(cellar){
   const Y = new Date().getFullYear();
@@ -288,12 +295,19 @@ function renderMore(cellar){
   const by = new Map(); let past = 0, later = 0;
   cellar.forEach(w=>{ const win = drinkWindow(w); if(!win || win.to==null) return;
     if(win.to < Y) past += w.left; else if(win.to > Y+10) later += w.left; else by.set(win.to, (by.get(win.to)||0) + w.left); });
-  const rows = []; if(past) rows.push([tr("Past"), past, "warn"]);
-  for(let y = Y; y <= Y+10; y++) if(by.get(y)) rows.push([String(y), by.get(y), y <= Y+1 ? "warn" : ""]);
-  if(later) rows.push([tr("Later"), later, ""]);
+  const rows = []; if(past) rows.push([tr("Past"), past, "warn", "past"]);
+  for(let y = Y; y <= Y+10; y++) if(by.get(y)) rows.push([String(y), by.get(y), y <= Y+1 ? "warn" : "", String(y)]);
+  if(later) rows.push([tr("Later"), later, "", "later"]);
   $("pressPanel").hidden = rows.length < 2;
   const pm = Math.max(1, ...rows.map(r=>r[1]));
-  $("press").innerHTML = rows.map(([l,n,c])=>kbar(l, n, pm, btl(n), c)).join("");
+  $("press").innerHTML = rows.map(([l,n,c,k])=>kbar(l, n, pm, btl(n), c, k)).join("");
+  // a click shows those bottles in the list, like the other charts; again, and the filter goes
+  $("press").querySelectorAll(".kbar[data-closes]").forEach(el=>{
+    const go = ()=>{ const k = el.dataset.closes; state.closes = state.closes===k ? "" : k;
+      if(state.closes){ state.status="cellar"; $("fStatus").value="cellar"; } renderTable(); };
+    el.addEventListener("click", go);
+    el.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); go(); } });
+  });
   // 2. value against price: only bottles with both, so the two sums compare like with like
   const both = cellar.filter(w=>w.value!=null && w.price);
   $("worthPanel").hidden = !both.length;
@@ -705,7 +719,7 @@ syncOverview();
 /* The overview's panels: which show, and in what order. A calm default of a few; "Customise" moves, removes and adds
    them. Saved per account on this device and, for an encrypted account, in its vault (encrypted), so the layout follows
    to the phone. Only what shows changes: the wines don't. */
-const PANEL_DEFAULT = { overview: ["insights","press","regions","vintages","worth"], eOverview: ["estyles","eproducers","etime"] };
+const PANEL_DEFAULT = { overview: ["insights","press","regions","map","vintages","worth"], eOverview: ["estyles","eproducers","etime"] };
 let LAYOUT = {}, layoutT = null;
 const layoutKey = () => "vinLayout:" + String(cfg.user||"").toLowerCase();
 const panelEls = id => [...$(id).querySelectorAll(".side-body > [data-panel]")];
@@ -916,6 +930,7 @@ function renderTable(){
     if(state.status==="drunk" && w.drunk===0) return false;
     if(state.country && w.country!==state.country) return false;
     if(state.region && w.region!==state.region) return false;
+    if(state.closes && !closesIn(w, state.closes)) return false;
     if(state.style && w.style!==state.style) return false;
     if(state.loc && (state.loc==="-" ? w.location : locPlace(w.location)!==state.loc)) return false;
     if(state.ready){
@@ -945,8 +960,10 @@ function renderTable(){
     const vl = list.reduce((s,w)=>s+(w.price||0)*(state.status==="drunk"?w.drunk:w.left),0);
     countTxt += ` · ${kr(vl)}`;
   }
+  if(state.closes) countTxt += " · " + tr("window closes {0}", state.closes==="past" ? tr("Past").toLowerCase() : state.closes==="later" ? tr("Later").toLowerCase() : state.closes);
   $("count").textContent = countTxt;
-  $("clear").classList.toggle("show", !!(q||state.country||state.region||state.style||state.ready||state.loc||state.status!=="cellar"));
+  $("clear").classList.toggle("show", !!(q||state.country||state.region||state.style||state.ready||state.loc||state.closes||state.status!=="cellar"));
+  document.querySelectorAll("#press .kbar[data-closes]").forEach(el=>el.classList.toggle("active", el.dataset.closes===state.closes));
   drawDrinkTimeline(list);
 
   document.querySelectorAll(".rbar").forEach(el=>el.classList.toggle("active", el.dataset.region===state.region && !!state.region));
@@ -1705,8 +1722,9 @@ function sommLoad(){
   if(SOMM.ready && SOMM.lang === lang) return SOMM.ready;
   const need = [];
   if(!window.WINE_KB) need.push("wine-kb.js?v=2");
-  if(!window.SOMM_DATA) need.push("sommelier-data.js?v=3");
-  if(!window.SOMMELIER) need.push("sommelier.js?v=3");
+  if(!window.SOMM_DATA) need.push("sommelier-data.js?v=4");
+  if(!window.SOMM_WORLD) need.push("sommelier-world.js?v=1");
+  if(!window.SOMMELIER) need.push("sommelier.js?v=4");
   if(!window.BURG_VINTAGES) need.push("burgundy-vintages.js?v=5");
   if(["da","fr","de"].includes(lang) && !(window.BURG_I18N && BURG_I18N[lang])) need.push(`burgundy-i18n-${lang}.js?v=${lang==="de"?1:5}`);
   SOMM.lang = lang;
@@ -1715,7 +1733,7 @@ function sommLoad(){
 function sommCtx(){
   const lang = (window.I18N && I18N.lang) || "en";
   return {lang, wines:WINES, burg:window.BURG, vint:window.BURG_VINTAGES, burgI18n:(window.BURG_I18N||{})[lang] || null,
-    readiness, window:drinkWindow, notes:Object.fromEntries(Object.entries(window.PRODUCER_NOTES||{}).map(([k,v])=>[k,[v[0],noteText(v[1])]]))};
+    readiness, window:drinkWindow, prev:SOMM.prev || "", notes:Object.fromEntries(Object.entries(window.PRODUCER_NOTES||{}).map(([k,v])=>[k,[v[0],noteText(v[1])]]))};
 }
 function sommSay(html, who){
   const d = document.createElement("div"); d.className = who === "q" ? "sm-q" : "sm-a";
@@ -1728,7 +1746,7 @@ function sommChips(list){
 async function sommAsk(q){
   q = String(q || "").trim(); if(!q) return;
   sommSay(q, "q"); $("sommQ").value = "";
-  try{ await sommLoad(); const r = SOMMELIER.answer(q, sommCtx()); sommSay(r.html); sommChips(r.chips); }
+  try{ await sommLoad(); const r = SOMMELIER.answer(q, sommCtx()); SOMM.prev = r.asked || q; sommSay(r.html); sommChips(r.chips); }
   catch(err){ sommSay(esc(tr("The sommelier couldn't load ({0}). Check your connection and try again.", errText(err)))); }
 }
 async function sommOpen(){
@@ -1868,7 +1886,7 @@ $("fStyle").addEventListener("change",e=>{ state.style=e.target.value; renderTab
 $("fStatus").addEventListener("change",e=>{ state.status=e.target.value; renderTable(); });
 $("fReady").addEventListener("change",e=>{ state.ready=e.target.value; renderTable(); });
 $("clear").addEventListener("click",()=>{
-  state.q=state.country=state.region=state.style=state.ready=state.loc=""; state.status="cellar";
+  state.q=state.country=state.region=state.style=state.ready=state.loc=state.closes=""; state.status="cellar";
   $("q").value=""; $("fCountry").value=""; $("fRegion").value=""; $("fStyle").value=""; $("fStatus").value="cellar"; $("fReady").value=""; $("fLoc").value=""; renderTable(); });
 document.querySelectorAll("th[data-k]").forEach(th=>th.addEventListener("click",()=>{
   const k=th.dataset.k;

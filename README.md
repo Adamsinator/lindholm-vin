@@ -522,6 +522,7 @@ As soon as the name, commune or region says where a wine is from, the empty fiel
 Four panels in the overview, each shown once there's something in it. Money only shows with **Show prices**.
 - **When they need drinking:** bottles by the year their drink window closes. Past windows come first, then this
   year and the next ten, then later. The coming two years are marked. It uses your own windows, or estimates.
+  A click on a bar shows those bottles in the list (again, or Clear filters, takes it off).
 - **Value against what you paid:** for bottles with both a price and a value: what you paid, what they're worth,
   the difference in kr and %, and the biggest gains.
 - **Bought and drunk by year:** bottles in by acquired date and out by drunk date, for the last ten years, with
@@ -532,9 +533,9 @@ Tested in `tools/layout-ui-test.js`: every bottle is counted once, and the value
 
 ## Your own overview
 
-The overview starts with five panels: **Cellar insights**, **When they need drinking**, **Regions**, **Vintages** and
-**Value against what you paid**. **✎ Customise** at its top lists them with ↑ ↓ to move and ✕ to remove, and
-the rest under **＋ Add a chart**. **Reset to default** puts the five back. Enjoyed has its own (all three to start).
+The overview starts with six panels: **Cellar insights**, **When they need drinking**, **Regions**, **Map**,
+**Vintages** and **Value against what you paid**. **✎ Customise** at its top lists them with ↑ ↓ to move and ✕ to remove, and
+the rest under **＋ Add a chart**. **Reset to default** puts the six back. Enjoyed has its own (all three to start).
 The layout is kept on the device and, for an encrypted account, as one small encrypted record in the vault
 (`meta:prefs`), so it follows to other devices. When the two differ, the one changed last wins. It holds panel names
 only, never wines.
@@ -561,6 +562,22 @@ It understands typos and English, Danish, German and French, and answers in the 
 - **Practicalities:** serving temperatures, decanting, storing and opened bottles, terms like "tertiary" or
   "élevage", and food pairing ("what goes with duck?"), suggesting matching bottles from your cellar.
 - **Your cellar:** "where is my Rousseau", "what should I drink now", "how many Barolo do I have", "oldest wine".
+- **What's due:** "which wines should I drink this year" (windows closing this year, or by the end of next year
+  for "soon"), and "what is past its peak".
+- **What you have most of and what's worth most:** "which producer do I have most of" (also by region, grape,
+  country and vintage), and "my most valuable bottle" (by value, else what you paid).
+- **A wine in a given year:** "is 2019 Barolo ready?" weighs the vintage against how long that wine keeps
+  (too young / in its window / past it), with the year's rating.
+- **A dish wins:** "what should I drink tonight with steak" pairs with the steak and picks from your ready bottles.
+- **Producers beyond Burgundy:** about 60, from Bordeaux, the Rhône, Champagne, Piedmont, Tuscany, Spain,
+  Germany, Alsace, Austria, the Loire, Portugal, California and Australia (`sommelier-world.js`), plus the profiles
+  in `notes.js`. "Krug or Bollinger?" describes both side by side.
+- **More terms:** Chablis's seven grands crus, the Beaujolais crus, Alsace grands crus, the 1855 first growths,
+  super seconds, crus bourgeois, Saint-Émilion's classification, Barolo's MGAs, Gran Selezione, Port styles,
+  Wachau's Smaragd, Charmat, pét-nat, why Burgundy costs so much, opening an old bottle.
+- **Value:** "a good-value Burgundy", "billig Bordeaux": where to look in the region, and the cheapest picks.
+- **Follow-ups:** "and 2013?" or "hvad med Barbaresco?" re-asks the last question with the year or the wine
+  swapped.
 - **How long it keeps:** "How long can I keep Barolo?" (8–30 years) or "…a 2010 Bonnes-Mares?" (2020–2040).
   - Typical spans for about 100 appellations, Burgundy by level (regional, village, premier cru, grand cru) and
     grapes as a fallback.

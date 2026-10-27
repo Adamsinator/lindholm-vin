@@ -41,6 +41,12 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   check("answers about the cellar, with the location", /Clos St-Jacques 2016.*Kælder, reol 3/.test(await last()), await last());
   await p.click("#sommChips button:nth-child(2)"); await p.waitForTimeout(300);
   check("a suggestion can be clicked", /Côte de Nuits 2005: 98\/100/.test(await last()), await last());
+  // a follow-up: the page hands the sommelier the previous question
+  await p.fill("#sommQ", "how long can I keep Barolo?"); await p.press("#sommQ", "Enter"); await p.waitForTimeout(300);
+  await p.fill("#sommQ", "and Barbaresco?"); await p.press("#sommQ", "Enter"); await p.waitForTimeout(300);
+  check("a follow-up ('and Barbaresco?') answers from the question before", /^Barbaresco: typically at its best/.test((await last()).trim()), (await last()).slice(0, 120));
+  await p.fill("#sommQ", "tell me about Egon Müller"); await p.press("#sommQ", "Enter"); await p.waitForTimeout(300);
+  check("…and it knows producers beyond Burgundy (sommelier-world.js loads)", /Scharzhofberger/.test(await last()));
   check("the question is shown as typed, as text", (await p.$$eval("#sommLog .sm-q", q => q.map(x => x.innerHTML))).every(h => !/</.test(h)));
   await p.fill("#sommQ", "<img src=x onerror=window.__x=1>"); await p.press("#sommQ", "Enter"); await p.waitForTimeout(300);
   check("typed HTML stays text", await p.evaluate(() => !window.__x && !document.querySelector("#sommLog img")));
