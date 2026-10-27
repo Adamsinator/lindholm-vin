@@ -541,10 +541,22 @@ It understands typos and English, Danish, German and French, and answers in the 
   - "difference between premier cru and grand cru", "Barolo vs Barbaresco";
   - "where is Chablis" (when it isn't in your cellar);
   - "what soil is in Chablis". Style and soil notes for 45 key appellations also appear on their cards.
+- **Recommendations:** "recommend a wine from Piemonte", "a white Burgundy under 60 €", "anbefal en champagne
+  under 500 kr", "what Riesling should I buy". First your own bottles that fit and are ready, then wines worth
+  buying, one per price band from everyday to special. Prices are in € (with kroner in Danish), and a budget
+  in €, kr or $ is read.
+  - The wines come from ~100 picks from well-known producers in `sommelier-data.js` (`PICKS`), with rough shop
+    prices for a recent vintage.
+  - With no place named, it starts from the region you drink most.
+  - "If I gave you 1000 euros, which wine would you buy?" gives one great bottle, or six at about a sixth each.
+- **Opinions:** "Do you prefer white Burgundy or Danish white?", "Barolo or Barbaresco?". It picks one and says
+  why: how long each keeps, the price range, and how many bottles of each are in your cellar. Between two
+  greats, it calls it a close call and lets your cellar decide. Country adjectives (dansk, Italian, französisch…)
+  are understood.
 - **70 terms:** brett, Kimmeridgian, the 1855 classification, left and right bank, dosage, bottle sizes, glasses,
   glasses per bottle, calories and units, reduction, VA, solera, puttonyos…
 - **Files:** `sommelier.js` (the engine) and `sommelier-data.js` (its knowledge) load only when the panel is first
-  opened. Tests: `node tools/sommelier-test.js` (97 checks on the engine) and `node tools/sommelier-ui-test.js`
+  opened. Tests: `node tools/sommelier-test.js` (111 checks on the engine) and `node tools/sommelier-ui-test.js`
   (16 checks in the browser, including that asking sends nothing to the server).
 
 ## Surveyed vineyard outlines (INAO)

@@ -115,6 +115,24 @@ const SAY = {
   bestFor: ["The best vintages for {0}:", "De bedste årgange for {0}:", "Les meilleurs millésimes pour {0} :", "Die besten Jahrgänge für {0}:"],
   windowTo: ["drink {0}–{1}", "drik {0}–{1}", "à boire {0}–{1}", "trinken {0}–{1}"],
   worthNow: [", and {0} at the values you've set", ", og {0} efter de værdier, du har sat", ", et {0} selon les valeurs que vous avez indiquées", ", und {0} nach den von Ihnen gesetzten Werten"],
+  recCellar: ["From your own cellar, ready to drink:", "Fra din egen kælder, klar til at drikke:", "De votre propre cave, prêts à boire :", "Aus Ihrem eigenen Keller, trinkreif:"],
+  recBuy: ["Worth buying{0}:", "Værd at købe{0}:", "À acheter{0} :", "Kaufenswert{0}:"],
+  recUpTo: [" for up to {0} a bottle", " til højst {0} flasken", " jusqu'à {0} la bouteille", " bis {0} pro Flasche"],
+  recOne: ["For {0} I'd buy one great bottle:", "For {0} ville jeg købe én stor flaske:", "Avec {0}, j'achèterais une grande bouteille :", "Für {0} würde ich eine große Flasche kaufen:"],
+  recSix: ["Or make it six bottles at about {0} each:", "Eller gør det til seks flasker til ca. {0} stykket:", "Ou six bouteilles à environ {0} chacune :", "Oder sechs Flaschen zu je etwa {0}:"],
+  recTaste: ["You drink a lot of {0}, so I started there.", "Du drikker meget {0}, så jeg startede der.", "Vous buvez beaucoup de {0}, j'ai donc commencé par là.", "Sie trinken viel {0}, also habe ich dort angefangen."],
+  recNone: ["I have no picks for that yet. Try a region (Burgundy, Barolo, Champagne, Rioja, Mosel …), a grape or a budget.", "Jeg har ingen forslag til det endnu. Prøv et område (Bourgogne, Barolo, Champagne, Rioja, Mosel …), en drue eller et budget.", "Je n'ai pas encore de suggestion pour cela. Essayez une région (Bourgogne, Barolo, Champagne, Rioja, Moselle …), un cépage ou un budget.", "Dafür habe ich noch keine Empfehlung. Versuchen Sie eine Region (Burgund, Barolo, Champagne, Rioja, Mosel …), eine Rebsorte oder ein Budget."],
+  recPrices: ["Rough shop prices for a recent vintage; older vintages and magnums cost more, and prices move.", "Cirka butikspriser for en nyere årgang; ældre årgange og magnummer koster mere, og priserne flytter sig.", "Prix indicatifs en boutique pour un millésime récent ; les vieux millésimes et les magnums coûtent plus, et les prix bougent.", "Ungefähre Ladenpreise für einen jüngeren Jahrgang; ältere Jahrgänge und Magnums kosten mehr, und Preise ändern sich."],
+  prefPick: ["If I had to choose: <b>{0}</b>.", "Hvis jeg skulle vælge: <b>{0}</b>.", "S'il fallait choisir : <b>{0}</b>.", "Wenn ich wählen müsste: <b>{0}</b>."],
+  prefDeeper: ["It has more depth, and it keeps far longer.", "Den har mere dybde, og den holder meget længere.", "Il a plus de profondeur et se garde bien plus longtemps.", "Er hat mehr Tiefe und hält viel länger."],
+  prefClose: ["A close call: both are among the world's great wines. Your cellar tips it.", "Tæt løb: begge hører til verdens store vine. Din kælder afgør det.", "Match serré : tous deux comptent parmi les grands vins du monde. Votre cave fait pencher la balance.", "Knappe Sache: beide gehören zu den großen Weinen der Welt. Ihr Keller gibt den Ausschlag."],
+  prefCloseNo: ["A close call: both are among the world's great wines.", "Tæt løb: begge hører til verdens store vine.", "Match serré : tous deux comptent parmi les grands vins du monde.", "Knappe Sache: beide gehören zu den großen Weinen der Welt."],
+  prefOther: ["{0} has its moments too: {1}", "{0} har også sine øjeblikke: {1}", "{0} a aussi ses moments : {1}", "Auch {0} hat seine Momente: {1}"],
+  prefKeeps: ["keeps {0}–{1} years", "holder {0}–{1} år", "se garde {0} à {1} ans", "hält {0}–{1} Jahre"],
+  prefPrice: ["about {0}–{1} a bottle", "ca. {0}–{1} flasken", "environ {0} à {1} la bouteille", "etwa {0}–{1} pro Flasche"],
+  prefYours: ["In your cellar: {0}.", "I din kælder: {0}.", "Dans votre cave : {0}.", "In Ihrem Keller: {0}."],
+  prefTaste: ["In the end it's your glass: taste them side by side.", "I sidste ende er det dit glas: smag dem side om side.", "Au fond, c'est votre verre : goûtez-les côte à côte.", "Am Ende ist es Ihr Glas: probieren Sie sie nebeneinander."],
+  prefOne: ["Name two and I'll pick one — for example \"Barolo or Barbaresco?\"", "Nævn to, så vælger jeg — fx \"Barolo eller Barbaresco?\"", "Citez-en deux et je choisis — par exemple « Barolo ou Barbaresco ? »", "Nennen Sie zwei, und ich wähle – etwa „Barolo oder Barbaresco?“"],
 };
 const say = (lang, key, ...a) => { const v = SAY[key]; const s = v ? (v[Math.max(0, L.indexOf(lang))] || v[0]) : key;
   return String(s).replace(/\{(\d)\}/g, (m, i) => a[i] == null ? "" : a[i]).replace(/\.\.$/, "."); };
@@ -130,7 +148,7 @@ const W = {
   storage: ["store", "storing", "storage", "cellar temperature", "opbevar", "opbevare", "opbevaring", "conserver", "conservation", "stocker", "lagern", "lagerung", "aufbewahren", "humidity", "luftfugtighed", "humidite", "luftfeuchtigkeit"],
   opened: ["opened", "open bottle", "after opening", "keep after", "abnet", "abnede", "efter abning", "ouverte", "ouvert", "entamee", "geoffnet", "angebrochen", "nach dem offnen", "how long does", "how long will", "hvor laenge", "combien de temps", "wie lange"],
   pair: ["goes with", "go with", "goes well", "go well", "well with", "what wine with", "wine with", "vin til", "vin avec", "wein zu", "pair", "pairing", "match with", "with dinner", "eat with", "drink with", "serve with", "passer til", "passer med", "til maden", "drikke til", "avec", "accord", "accorder", "accompagner", "passt zu", "passen zu", "dazu", "zum essen", "trinken zu"],
-  drinkNow: ["drink now", "ready", "drinkable", "ready to drink", "open tonight", "should i open", "should i drink", "what to drink", "what to open", "drikke nu", "drikkeklar", "drikkeklare", "klar til", "skal jeg abne", "skal jeg drikke", "i aften", "a boire", "pret a boire", "que boire", "quoi ouvrir", "ouvrir ce soir", "trinkreif", "jetzt trinken", "soll ich offnen", "soll ich trinken", "heute abend"],
+  drinkNow: ["drink now", "tonight", "this evening", "ce soir", "ready", "drinkable", "ready to drink", "open tonight", "should i open", "should i drink", "what to drink", "what to open", "drikke nu", "drikkeklar", "drikkeklare", "klar til", "skal jeg abne", "skal jeg drikke", "i aften", "a boire", "pret a boire", "que boire", "quoi ouvrir", "ouvrir ce soir", "trinkreif", "jetzt trinken", "soll ich offnen", "soll ich trinken", "heute abend"],
   howMany: ["how many", "how much", "hvor mange", "hvor meget", "combien", "wie viele", "wie viel", "number of", "antal", "count"],
   where: ["where is", "where are", "where s", "wheres", "hvor er", "hvor star", "hvor ligger", "ou est", "ou sont", "wo ist", "wo sind", "wo liegt", "wo liegen", "wo steht", "find my", "find min", "find mine"],
   have: ["do i have", "have i got", "have i", "har jeg", "ai je", "est ce que j ai", "habe ich", "hab ich"],
@@ -156,6 +174,12 @@ const W = {
     "gode argange", "store argange", "meilleur millesime", "meilleurs millesimes", "meilleures annees", "grands millesimes", "beste jahrgang", "beste jahrgange", "beste jahre", "gute jahrgange", "grosse jahrgange"],
   compare: ["difference", "differences", "vs", "versus", "compare", "compared", "comparison", "forskel", "forskellen", "forskellene", "sammenlign", "sammenligne", "comparer", "comparaison",
     "unterschied", "unterschiede", "vergleich", "vergleichen"],
+  recommend: ["recommend", "recommendation", "recommendations", "suggest", "suggestion", "suggestions", "which wine should", "what wine should", "would you buy", "should i buy", "what to buy", "worth buying", "buy", "buying",
+    "give me a wine", "a good wine", "a nice wine", "pick a wine", "pick me", "anbefal", "anbefale", "anbefaling", "anbefalinger", "foresla", "forslag", "hvilken vin skal", "hvad skal jeg kobe", "kobe", "kob",
+    "en god vin", "recommande", "recommander", "conseille", "conseiller", "conseil", "suggere", "acheter", "quel vin acheter", "un bon vin", "empfehlen", "empfiehl", "empfehlung", "vorschlag", "kaufen",
+    "welchen wein", "einen guten wein"],
+  prefer: ["prefer", "do you like", "which is better", "what is better", "whats better", "better", "favourite", "favorite", "which one would you", "would you rather", "foretraekker", "kan du bedst lide",
+    "hvad er bedst", "hvilken er bedst", "bedre", "yndlings", "prefere", "preferes", "preferez", "prefereriez", "mieux", "lequel", "laquelle", "lieber", "bevorzugst", "bevorzugen", "besser", "liebsten", "welcher ist"],
   soil: ["soil", "soils", "geology", "jord", "jordbund", "jordbunden", "jordtype", "jordtyper", "sol", "sols", "geologie", "terre", "terres", "boden", "boeden", "untergrund"],
 };
 const hasW = (t, key) => W[key].some(p => (" " + t + " ").includes(" " + p + " "));
@@ -164,13 +188,23 @@ const hasW = (t, key) => W[key].some(p => (" " + t + " ").includes(" " + p + " "
 let IDX = null, IDX_FOR = null;
 const NOMATCH = new Set(["langhe", "rolle", "steen", "melon", "breton", "bouchet", "cot", "morillon", "favorita", "pigato", "listan", "mansois", "jaen", "calabrese", "auxerrois", "naturé", "nature", "meunier", "macabeu", "malvoisie", "sercial", "boal", "bual",
   "port", "porto", "sherry", "asti", "toro", "etna", "cava", "nahe", "ahr", "wien", "graves", "baden", "franken", "jura", "corse", "marche", "puglia", "vaud", "washington", "oregon", "santorini", "madeira", "navarra", "alsace", "loire", "champagne", "beaujolais", "bordeaux", "bourgogne", "chablis", "rioja", "mosel", "douro", "barolo", "napa"]);
+// "Danish white", "dansk hvidvin", "vin danois": a country by its adjective
+const ADJ = { Danmark: ["danish", "dansk", "danske", "danois", "danoise", "danish wine", "danischer", "danisch", "danische"],
+  Frankrig: ["french", "fransk", "franske", "francais", "francaise", "franzosisch", "franzosischer", "franzosische"],
+  Italien: ["italian", "italiensk", "italienske", "italien", "italienne", "italienisch", "italienischer", "italienische"],
+  Spanien: ["spanish", "spansk", "spanske", "espagnol", "espagnole", "spanisch", "spanischer", "spanische"],
+  Tyskland: ["german", "tysk", "tyske", "allemand", "allemande", "deutsch", "deutscher", "deutsche"],
+  Portugal: ["portuguese", "portugisisk", "portugisiske", "portugais", "portugaise", "portugiesisch", "portugiesischer"],
+  "Østrig": ["austrian", "ostrigsk", "ostrigske", "autrichien", "autrichienne", "osterreichisch", "osterreichischer"],
+  England: ["english", "engelsk", "engelske", "anglais", "anglaise", "englisch", "englischer"] };
 function buildIndex(burg) {
   const entries = [];
   const add = (name, type, ref, opts) => { const k = norm(name); if (!k || k.length < 3) return; entries.push({ k, n: k.split(" ").length, type, ref, fuzzy: !(opts && opts.exact) && !NOMATCH.has(k) && k.length >= 6 }); };
   KB.apps.forEach(a => add(a.n, "app", a));
   KB.grapes.forEach(g => { add(g.n, "grape", g); g.syn.forEach(s => add(s, "grape", g, { exact: NOMATCH.has(norm(s)) })); });
   KB.regions.forEach(r => { add(r.n, "region", r); Object.values(r.names).forEach(x => add(x, "region", r)); r.alias.forEach(x => add(x, "region", r)); });
-  KB.countries.forEach(c => { Object.values(c.names).forEach(x => add(x, "country", c, { exact: true })); c.alias.forEach(x => add(x, "country", c, { exact: true })); });
+  KB.countries.forEach(c => { Object.values(c.names).forEach(x => add(x, "country", c, { exact: true })); c.alias.forEach(x => add(x, "country", c, { exact: true }));
+    (ADJ[c.n] || []).forEach(x => add(x, "country", c, { exact: true })); });
   D.glossary.forEach(g => g.alias.forEach(a => add(a, "term", g, { exact: a.length < 6 })));
   if (burg) {
     (burg.climats || []).forEach(c => { add(c.n, "climat", c); const bare = c.n.replace(/^(Les|La|Le|L'|Aux|Au|En) /, ""); if (bare !== c.n && norm(bare).length >= 5) add(bare, "climat", c); });
@@ -385,6 +419,11 @@ function answer(q, ctx) {
     if (c && c.c === "GC") { e.type = "climat"; e.ref = c; } });
   const named = ents.filter(e => ["climat", "app", "producer", "grape", "region", "term", "village", "country"].includes(e.type));
 
+  // "do you prefer white Burgundy or Danish white?" — an opinion, with reasons
+  const either = named.length >= 2 && / (or|eller|ou|oder) /.test(" " + text + " ") && text.split(" ").length <= 9; // "Barolo or Barbaresco?"
+  if ((hasW(text, "prefer") || either) && named.length >= 2) { const pr = prefer(lang, named, text, ctx); if (pr) return res(pr); }
+  // "recommend a wine from Piemonte", "a white Burgundy under 50 €", "what would you buy for 1000 euros?"
+  if (hasW(text, "recommend") || (budgetOf(q) && /wine|vin|wein|bottle|flaske|bouteille|flasche/.test(text))) return res(recommend(lang, ents, text, q, ctx));
   // "what's the difference between premier cru and grand cru" — both, one after the other
   if (hasW(text, "compare")) { const two = [];
     named.forEach(e => { if (two.length < 2 && !two.some(x => x.ref === e.ref)) two.push(e); });
@@ -466,6 +505,124 @@ function answer(q, ctx) {
     return res(p(`<b>${esc(v.n)}</b>`) + p(esc(tx.note || v.note || "")) + p(`<span class="sm-m">${esc(tx.aoc || v.aoc || "")}</span> <a href="burgundy.html#v=${esc(v.id)}" target="_blank" rel="noopener">${esc(say(lang, "openAtlas"))}</a>`)); }
   if (hasW(text, "help")) return res(help(lang, ctx));
   return res(p(say(lang, "unknown")) + p(say(lang, "tryAsk")) + ul(examples(lang, ctx).map(esc)));
+}
+
+// ── recommendations: from your cellar first, then wines worth buying (sommelier-data.js PICKS) ──
+const EUR_DKK = 7.46, EUR_USD = 1.08;
+const eur = (lang, e) => { const r = e >= 1000 ? Math.round(e / 100) * 100 : e >= 100 ? Math.round(e / 10) * 10 : Math.round(e);
+  return "€" + r.toLocaleString(lang === "en" ? "en-GB" : "da-DK") + (lang === "da" ? ` (≈ ${kr(e * EUR_DKK)})` : ""); };
+// "under 500 kr", "1000 euros", "€80", "$100" → the most a bottle may cost, in euros
+function budgetOf(q) {
+  const t = String(q).toLowerCase(), num = x => Number(String(x).replace(/[.,\s](?=\d{3}\b)/g, "").replace(",", "."));
+  let m = t.match(/(?:€|eur\b|euro?s?\b)\s*(\d[\d.,\s]*)/) || t.match(/(\d[\d.,]*)\s*(?:€|eur\b|euros?\b)/);
+  if (m) return num(m[1]);
+  m = t.match(/(\d[\d.,]*)\s*(?:kr\b|kr\.|kroner|dkk)/) || t.match(/(?:dkk|kr\.?)\s*(\d[\d.,]*)/); if (m) return num(m[1]) / EUR_DKK;
+  m = t.match(/\$\s*(\d[\d.,]*)/) || t.match(/(\d[\d.,]*)\s*(?:\$|usd|dollars?)/); if (m) return num(m[1]) / EUR_USD;
+  return null;
+}
+const colourOfText = text => hasW(text, "sparkling") ? "s" : hasW(text, "sweet") ? "d" : hasW(text, "red") ? "r" : hasW(text, "white") ? "w" : /\bport|portvin|porto|sherry\b/.test(text) ? "f" : null;
+const PICK_STYLE = { r: "Rød", w: "Hvid", s: "Bobler", d: "Hvid", f: "Rød" };
+// what a question narrows to: a place, a colour, a grape
+function scopeOf(ents, text) {
+  const geo = ents.find(e => ["app", "region", "climat", "village", "country"].includes(e.type));
+  const grape = ents.find(e => e.type === "grape");
+  let region = null, country = null, label = "";
+  if (geo) { if (geo.type === "country") { country = geo.ref.n; label = geo.ref.names.en ? null : ""; }
+    else if (geo.type === "region") region = geo.ref.n; else if (geo.type === "app") region = geo.ref.region; else region = "Bourgogne"; }
+  return { geo, region, country, grape: grape && grape.ref, col: colourOfText(text) };
+}
+const pickFits = (pk, sc) => (!sc.region || pk.region === sc.region) && (!sc.country || pk.region === sc.country || countryOfRegion(pk.region) === sc.country)
+  && (!sc.col || pk.col === sc.col) && (!sc.grape || pk.grape === sc.grape.n || sc.grape.syn.includes(pk.grape));
+// the regions you drink most, by bottles (in the cellar and enjoyed)
+function tasteOf(ctx) {
+  const by = new Map(); (ctx.wines || []).forEach(w => { if (!w.region) return; const n = (Number(w.qty) || 0) || 1; by.set(w.region, (by.get(w.region) || 0) + n); });
+  return [...by.entries()].sort((a, b) => b[1] - a[1]).map(x => x[0]).filter(r => D.picks.some(pk => pk.region === r));
+}
+function recommend(lang, ents, text, q, ctx) {
+  const sc = scopeOf(ents, text), budget = budgetOf(q), buying = /\b(buy|buying|kobe|kob|acheter|kaufen|gave you|gav dig|give you)\b/.test(text);
+  let html = "", taste = null;
+  // your own bottles that fit and are ready, best first
+  if (!buying && ctx.wines) {
+    const ready = ctx.wines.filter(w => left(w) > 0).filter(w => {
+      const r = ctx.readiness && ctx.readiness(w); if (r && r.k !== "now" && r.k !== "past") return false;
+      if (sc.region && w.region !== sc.region) return false; if (sc.country && w.country !== sc.country) return false;
+      if (sc.col && PICK_STYLE[sc.col] && w.style !== PICK_STYLE[sc.col]) return false;
+      if (sc.grape && !(norm(w.grape).includes(norm(sc.grape.n)) || sc.grape.syn.some(x => norm(w.grape).includes(norm(x))))) return false;
+      if (budget && (w.value || w.price) && (w.value || w.price) > budget * EUR_DKK) return false;
+      return true; }).sort((a, b) => (b.value || b.price || 0) - (a.value || a.price || 0)).slice(0, 3);
+    if (ready.length) html += p(say(lang, "recCellar")) + ul(ready.map(w => wineLine(lang, w)));
+  }
+  // wines to buy
+  let picks = D.picks.filter(pk => pickFits(pk, sc));
+  if (!sc.region && !sc.country && !sc.grape) { const t = tasteOf(ctx); if (t.length) { taste = t[0]; const mine = picks.filter(pk => pk.region === taste); if (mine.length >= 2) picks = mine; else taste = null; } }
+  if (!picks.length) return html || p(say(lang, "recNone"));
+  let chosen;
+  if (budget) {
+    const under = picks.filter(pk => pk.eur <= budget * 1.05).sort((a, b) => b.eur - a.eur);
+    chosen = (under.length ? under : picks.sort((a, b) => a.eur - b.eur)).slice(0, 3);
+  } else {
+    // one from each price band, cheapest first: an everyday bottle up to a special one
+    const bands = [[0, 30], [30, 70], [70, 200], [200, 600], [600, 1e9]], out = [];
+    bands.forEach(([lo, hi]) => { const b = picks.filter(pk => pk.eur >= lo && pk.eur < hi); if (b.length) out.push(b[Math.floor(b.length / 2)]); });
+    chosen = out.slice(0, 4);
+  }
+  const line = pk => `<b>${esc(pk.wine)}</b> <span class="sm-m">· ${esc(regionName(lang, pk.region))} · ${esc(pk.grape)} · ${esc(eur(lang, pk.eur))}</span>`;
+  if (taste) html += p(say(lang, "recTaste", esc(regionName(lang, taste))));
+  if (budget && budget >= 150 && buying) {
+    html += p(say(lang, "recOne", esc(eur(lang, budget)))) + ul(chosen.map(line));
+    const share = budget / 6, near = picks.filter(pk => pk.eur <= share * 1.1 && pk.eur >= share * 0.35);
+    const six = (near.length ? near : picks.filter(pk => pk.eur <= share * 1.1)).sort((a, b) => b.eur - a.eur).slice(0, 3);
+    if (six.length) html += p(say(lang, "recSix", esc(eur(lang, budget / 6)))) + ul(six.map(line));
+  } else html += p(say(lang, "recBuy", budget ? say(lang, "recUpTo", esc(eur(lang, budget))) : "")) + ul(chosen.map(line));
+  return html + p(`<span class="sm-m">${esc(say(lang, "recPrices"))}</span>`);
+}
+// ── "do you prefer white Burgundy or Danish white?": pick one, and say why ──
+function profileOf(lang, e, col, ctx) {
+  if (e.type === "app" && KB.regions.some(r => r.n === e.ref.n)) e = { type: "region", ref: KB.regions.find(r => r.n === e.ref.n) };
+  const app = e.type === "app" ? e.ref : null;
+  const region = e.type === "region" ? e.ref.n : e.type === "app" ? e.ref.region : e.type === "country" ? e.ref.n : e.type === "climat" || e.type === "village" ? "Bourgogne" : null;
+  const base = e.type === "region" || e.type === "country" ? (e.ref.names[lang] || e.ref.n) : (e.ref.n || "");
+  const name = (col === "w" || col === "r") && e.type !== "grape" && e.type !== "country" ? cap(colourWord(lang, col)) + " " + base : base; // "White Burgundy"
+  const sc = { region: e.type === "country" ? null : region, country: e.type === "country" ? e.ref.n : null, col, grape: e.type === "grape" ? e.ref : null };
+  const pk = D.picks.filter(x => pickFits(x, sc) && (!app || norm(x.wine).includes(norm(app.n)))).map(x => x.eur);
+  // a region or a country keeps as long as its appellations do, from the simplest to the greatest
+  let keeps = null;
+  if (e.type === "region" || e.type === "country") {
+    const regs = e.type === "region" ? [e.ref.n] : KB.regions.filter(r => r.country === e.ref.n).map(r => r.n);
+    const rows = KB.apps.filter(a => regs.includes(a.region) && (!col || a.wines.some(w => w.cols.includes(col)))).map(a => ageRow(a.n)).filter(Boolean);
+    if (regs.includes("Bourgogne")) rows.push(...["REG", "V", "1er", "GC"].map(t => ageRow(`@${t}-${col === "w" ? "W" : "R"}`)).filter(Boolean));
+    if (rows.length) keeps = [Math.min(...rows.map(r => r.lo)), Math.max(...rows.map(r => r.hi))];
+  }
+  if (!keeps) { const ag = ageOf([e], col === "w" ? "white" : col === "r" ? "red" : "", ctx); keeps = ag && !ag.tiers ? [ag.lo, ag.hi] : null; }
+  const note = e.type === "country" && D.countryNotes[e.ref.n] ? D.countryNotes[e.ref.n][lang] : "";
+  const lo = pk.length ? Math.min(...pk) : 0, hi = pk.length ? Math.max(...pk) : 0;
+  const range = lang === "da" ? [kr(lo * EUR_DKK).replace(/ kr\.$/, ""), kr(hi * EUR_DKK)] : [eur(lang, lo), eur(lang, hi)];
+  const bits = [keeps ? say(lang, "prefKeeps", Math.max(1, keeps[0]), keeps[1]) : "", pk.length ? say(lang, "prefPrice", range[0], range[1]) : ""].filter(Boolean);
+  const colOk = w => !col || !PICK_STYLE[col] || w.style === PICK_STYLE[col];
+  const inCellar = (ctx.wines || []).filter(w => colOk(w) && (app ? norm(w.commune) === norm(app.n) || norm(w.name).includes(norm(app.n))
+      : (region && (w.region === region || w.country === region)) || (sc.grape && norm(w.grape).includes(norm(sc.grape.n)))))
+    .reduce((s, w) => s + ((Number(w.qty) || 0) || 1), 0);
+  // how far it goes with age counts most; a typical (median) price says something about depth, the top price little
+  const mid = pk.length ? [...pk].sort((x, y) => x - y)[Math.floor(pk.length / 2)] : 20;
+  const score = (keeps ? keeps[1] : 5) + Math.log10(mid) * 5;
+  return { e, name, bits, note, inCellar, score, keepsHi: keeps ? keeps[1] : 5 };
+}
+function prefer(lang, named, text, ctx) {
+  const two = []; named.forEach(e => { if (two.length < 2 && !two.some(x => x.ref === e.ref) && e.type !== "term") two.push(e); });
+  if (two.length < 2) return two.length ? null : p(say(lang, "prefOne"));
+  const col = colourOfText(text);
+  let [a, b] = two.map(e => profileOf(lang, e, col, ctx)).sort((x, y) => y.score - x.score);
+  // two greats (both keep 25 years and more) or nearly the same: what you drink decides
+  const close = (a.keepsHi >= 25 && b.keepsHi >= 25) || a.score - b.score < 3;
+  if (close && b.inCellar > a.inCellar) [a, b] = [b, a];
+  const describe = x => x.note || cap(listJoin(lang, x.bits)) + ".";
+  let html = p(say(lang, "prefPick", esc(a.name)));
+  html += close ? p(esc(say(lang, a.inCellar > b.inCellar ? "prefClose" : "prefCloseNo")) + " " + esc(describe(a)))
+    : p(esc(describe(a)) + (a.keepsHi - b.keepsHi >= 8 ? " " + esc(say(lang, "prefDeeper")) : ""));
+  html += p(say(lang, "prefOther", esc(b.name), esc(describe(b))));
+  const have = [a, b].filter(x => x.inCellar);
+  if (have.length) html += p(say(lang, "prefYours", esc(have.map(x => `${x.name} ${bottlesTxt(lang, x.inCellar)}`).join(", "))));
+  return html + p(`<span class="sm-m">${esc(say(lang, "prefTaste"))}</span>`);
 }
 
 // a short card for one named thing (comparisons, "where is …")
@@ -648,10 +805,10 @@ const styleOk = (s, w) => ({ R: "Rød", W: "Hvid", S: "Bobler", P: "Rosé" })[s]
 function examples(lang, ctx) {
   const prod = ((ctx.wines || []).find(w => left(w) > 0 && w.producer) || {}).producer;
   const E = {
-    en: ["What grape is Sancerre?", "Is 2005 a good year for red Côte de Nuits?", "What should I drink now?", "What goes with lamb?", prod ? `Where is my ${prod}?` : "Who owns Musigny?", "What is a monopole?", "How cold should I serve Chablis?", "Should I decant Barolo?", "How long can I keep Barolo?"],
-    da: ["Hvilken drue er Sancerre?", "Er 2005 en god årgang for rød Côte de Nuits?", "Hvad skal jeg drikke nu?", "Hvad passer til lam?", prod ? `Hvor er min ${prod}?` : "Hvem ejer Musigny?", "Hvad er en monopole?", "Hvor kold skal Chablis serveres?", "Skal Barolo dekanteres?", "Hvor længe kan jeg lagre Barolo?"],
-    fr: ["Quel cépage pour le Sancerre ?", "2005 est-il un bon millésime pour la Côte de Nuits rouge ?", "Que boire maintenant ?", "Quel vin avec l'agneau ?", prod ? `Où est mon ${prod} ?` : "Qui possède le Musigny ?", "Qu'est-ce qu'un monopole ?", "À quelle température servir un Chablis ?", "Faut-il carafer un Barolo ?", "Combien de temps garder un Barolo ?"],
-    de: ["Welche Rebsorte ist Sancerre?", "Ist 2005 ein guter Jahrgang für rote Côte de Nuits?", "Was soll ich jetzt trinken?", "Was passt zu Lamm?", prod ? `Wo ist mein ${prod}?` : "Wem gehört Musigny?", "Was ist ein Monopol?", "Wie kalt serviert man Chablis?", "Soll ich Barolo dekantieren?", "Wie lange kann ich Barolo lagern?"],
+    en: ["What grape is Sancerre?", "Is 2005 a good year for red Côte de Nuits?", "What should I drink now?", "What goes with lamb?", prod ? `Where is my ${prod}?` : "Who owns Musigny?", "What is a monopole?", "How cold should I serve Chablis?", "Should I decant Barolo?", "How long can I keep Barolo?", "Recommend a Barolo under 100 €", "Barolo or Barbaresco?"],
+    da: ["Hvilken drue er Sancerre?", "Er 2005 en god årgang for rød Côte de Nuits?", "Hvad skal jeg drikke nu?", "Hvad passer til lam?", prod ? `Hvor er min ${prod}?` : "Hvem ejer Musigny?", "Hvad er en monopole?", "Hvor kold skal Chablis serveres?", "Skal Barolo dekanteres?", "Hvor længe kan jeg lagre Barolo?", "Anbefal en Barolo under 800 kr", "Barolo eller Barbaresco?"],
+    fr: ["Quel cépage pour le Sancerre ?", "2005 est-il un bon millésime pour la Côte de Nuits rouge ?", "Que boire maintenant ?", "Quel vin avec l'agneau ?", prod ? `Où est mon ${prod} ?` : "Qui possède le Musigny ?", "Qu'est-ce qu'un monopole ?", "À quelle température servir un Chablis ?", "Faut-il carafer un Barolo ?", "Combien de temps garder un Barolo ?", "Conseille-moi un Barolo à moins de 100 €", "Barolo ou Barbaresco ?"],
+    de: ["Welche Rebsorte ist Sancerre?", "Ist 2005 ein guter Jahrgang für rote Côte de Nuits?", "Was soll ich jetzt trinken?", "Was passt zu Lamm?", prod ? `Wo ist mein ${prod}?` : "Wem gehört Musigny?", "Was ist ein Monopol?", "Wie kalt serviert man Chablis?", "Soll ich Barolo dekantieren?", "Wie lange kann ich Barolo lagern?", "Empfiehl einen Barolo unter 100 €", "Barolo oder Barbaresco?"],
   };
   return E[lang] || E.en;
 }

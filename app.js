@@ -1525,8 +1525,8 @@ function sommLoad(){
   if(SOMM.ready && SOMM.lang === lang) return SOMM.ready;
   const need = [];
   if(!window.WINE_KB) need.push("wine-kb.js?v=2");
-  if(!window.SOMM_DATA) need.push("sommelier-data.js?v=2");
-  if(!window.SOMMELIER) need.push("sommelier.js?v=2");
+  if(!window.SOMM_DATA) need.push("sommelier-data.js?v=3");
+  if(!window.SOMMELIER) need.push("sommelier.js?v=3");
   if(!window.BURG_VINTAGES) need.push("burgundy-vintages.js?v=5");
   if(["da","fr","de"].includes(lang) && !(window.BURG_I18N && BURG_I18N[lang])) need.push(`burgundy-i18n-${lang}.js?v=${lang==="de"?1:5}`);
   SOMM.lang = lang;
