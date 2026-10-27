@@ -702,6 +702,82 @@ OVERVIEWS.forEach(([id, redraw]) => $(id).addEventListener("toggle", ()=>{
 (WIDE.addEventListener ? WIDE.addEventListener("change", syncOverview) : WIDE.addListener(syncOverview));
 syncOverview();
 
+/* The overview's panels: which show, and in what order. A calm default of a few; "Customise" moves, removes and adds
+   them. Saved per account on this device and, for an encrypted account, in its vault (encrypted), so the layout follows
+   to the phone. Only what shows changes: the wines don't. */
+const PANEL_DEFAULT = { overview: ["insights","press","regions","vintages","worth"], eOverview: ["estyles","eproducers","etime"] };
+let LAYOUT = {}, layoutT = null;
+const layoutKey = () => "vinLayout:" + String(cfg.user||"").toLowerCase();
+const panelEls = id => [...$(id).querySelectorAll(".side-body > [data-panel]")];
+function layoutOf(id){
+  const keys = panelEls(id).map(e=>e.dataset.panel), L = LAYOUT[id];
+  return Array.isArray(L) ? L.filter((k,i)=>keys.includes(k) && L.indexOf(k)===i) : PANEL_DEFAULT[id].slice();
+}
+function loadLayout(){
+  if(layoutT) return; // a change of ours is still on its way to the vault: keep it
+  // the vault's copy or this device's, whichever was changed last (a reload can beat the save to the vault)
+  let v = null, d = null;
+  try{ const x = window.VAULT && VAULT.active() && VAULT.prefs(); if(x && x.layout && typeof x.layout==="object") v = x.layout; }catch(e){}
+  try{ const x = JSON.parse(localStorage.getItem(layoutKey()) || "null"); if(x && typeof x==="object") d = x; }catch(e){}
+  const L = v && d ? ((d.at||0) > (v.at||0) ? d : v) : (v || d);
+  LAYOUT = L || {};
+  if(L && L===d && v!==d && window.VAULT && VAULT.active()) VAULT.setPrefs({layout: LAYOUT}).catch(()=>{});
+  Object.keys(PANEL_DEFAULT).forEach(applyLayout);
+}
+function applyLayout(id){
+  const body = $(id).querySelector(".side-body"), on = layoutOf(id), els = panelEls(id);
+  const at = Object.fromEntries(els.map(e=>[e.dataset.panel, e]));
+  on.forEach(k=>body.appendChild(at[k]));
+  els.filter(e=>!on.includes(e.dataset.panel)).forEach(e=>body.appendChild(e));
+  els.forEach(e=>e.classList.toggle("off", !on.includes(e.dataset.panel)));
+  renderCustom(id);
+}
+function setLayout(id, list){
+  if(list) LAYOUT[id] = list; else delete LAYOUT[id];
+  LAYOUT.at = Date.now();
+  applyLayout(id);
+  if(WINES.length) (id==="overview" ? renderOverview : renderEnjoyed)(); // a panel coming back is drawn for its width
+  try{ localStorage.setItem(layoutKey(), JSON.stringify(LAYOUT)); }catch(e){}
+  clearTimeout(layoutT); layoutT = setTimeout(saveLayout, 1200);
+}
+function saveLayout(){
+  clearTimeout(layoutT); layoutT = null;
+  if(window.VAULT && VAULT.active()) VAULT.setPrefs({layout: LAYOUT}).catch(()=>{});
+}
+// leaving the page before the save: send it now
+document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="hidden" && layoutT) saveLayout(); });
+function renderCustom(id){
+  const ed = $(id).querySelector(".custed"); if(ed.hidden) return;
+  const on = layoutOf(id), rest = panelEls(id).map(e=>e.dataset.panel).filter(k=>!on.includes(k));
+  const el = k => $(id).querySelector(`.side-body > [data-panel="${k}"]`);
+  const name = k => { const h = el(k).querySelector("h2"); return h ? h.textContent.trim() : k; };
+  const label = k => `<span>${esc(name(k))}${el(k).hidden ? ` <span class="ph">· ${esc(tr("nothing to show yet"))}</span>` : ""}</span>`;
+  const b = (act, k, sym, aria, off) => `<button type="button" class="ibtn" data-act="${act}" data-k="${k}" aria-label="${esc(aria)}" title="${esc(aria)}"${off?" disabled":""}>${sym}</button>`;
+  ed.innerHTML = `<h3>${esc(tr("Shown, in this order"))}</h3><ul class="custlist">` + (on.length ? on.map((k,i)=>`<li>${label(k)}${
+      b("up", k, "↑", tr("Move {0} up", name(k)), i===0)}${b("down", k, "↓", tr("Move {0} down", name(k)), i===on.length-1)}${b("off", k, "✕", tr("Remove {0}", name(k)))}</li>`).join("")
+      : `<li><span class="ph">${esc(tr("Nothing shown — add a chart below"))}</span></li>`) + `</ul>` +
+    (rest.length ? `<h3>${esc(tr("＋ Add a chart"))}</h3><ul class="custlist">` + rest.map(k=>`<li>${label(k)}${b("on", k, "＋", tr("Add {0}", name(k)))}</li>`).join("") + `</ul>` : "") +
+    `<div class="custact"><button type="button" class="btn quiet" data-act="reset">${esc(tr("Reset to default"))}</button><button type="button" class="btn primary" data-act="done">${esc(tr("Done"))}</button></div>`;
+}
+Object.keys(PANEL_DEFAULT).forEach(id=>{
+  const btn = $(id).querySelector(".custbtn"), ed = $(id).querySelector(".custed");
+  const open = show => { ed.hidden = !show; btn.setAttribute("aria-expanded", String(show)); btn.hidden = show; renderCustom(id); };
+  btn.addEventListener("click", ()=>{ open(true); const f = ed.querySelector("button:not(:disabled)"); if(f) f.focus(); });
+  ed.addEventListener("click", e=>{
+    const t = e.target.closest("button[data-act]"); if(!t) return;
+    const act = t.dataset.act, k = t.dataset.k, on = layoutOf(id), i = on.indexOf(k);
+    if(act==="done"){ open(false); btn.focus(); return; }
+    if(act==="reset") setLayout(id, null);
+    else if(act==="off") setLayout(id, on.filter(x=>x!==k));
+    else if(act==="on") setLayout(id, on.concat(k));
+    else if(act==="up" && i>0){ on.splice(i-1, 0, on.splice(i,1)[0]); setLayout(id, on); }
+    else if(act==="down" && i>=0 && i<on.length-1){ on.splice(i+1, 0, on.splice(i,1)[0]); setLayout(id, on); }
+    // keep the keyboard where it was: the same button on the same panel, or the next one that's there
+    const same = ed.querySelector(`button[data-act="${act}"][data-k="${k}"]:not(:disabled)`) || ed.querySelector(`button[data-k="${k}"]:not(:disabled)`) || ed.querySelector("button:not(:disabled)");
+    if(same) same.focus();
+  });
+});
+
 /* ---------- when-to-drink timeline (respects the current table filters) ---------- */
 function drawDrinkTimeline(list){
   const el=$("dwtl"), panel=$("dwPanel"); if(!el) return;
@@ -926,10 +1002,18 @@ function bindWineRows(scope){
     const row=document.querySelector(`${scope} tr.main[data-row="${KEEP_OPEN}"]`);
     if(row && row.nextElementSibling){ fillDetail(row.nextElementSibling, row); row.nextElementSibling.hidden=false; row.setAttribute("aria-expanded","true"); }
   }
-  document.querySelectorAll(`${scope} tr.morerow button`).forEach(b=>b.addEventListener("click",()=>{
-    PAGE_SIZE[b.dataset.tbl].n = b.dataset.all ? Infinity : PAGE_SIZE[b.dataset.tbl].n + PAGE_STEP;
-    b.dataset.tbl==="cellar" ? renderTable() : renderEnjoyed();
-  }));
+  const more = (tbl, all) => { PAGE_SIZE[tbl].n = all ? Infinity : PAGE_SIZE[tbl].n + PAGE_STEP; tbl==="cellar" ? renderTable() : renderEnjoyed(); };
+  document.querySelectorAll(`${scope} tr.morerow button`).forEach(b=>b.addEventListener("click",()=>more(b.dataset.tbl, b.dataset.all)));
+  // the next rows come by themselves as the end of the list scrolls near (the buttons stay, for keyboards and old browsers)
+  const mr = document.querySelector(`${scope} tr.morerow`), tbl = mr && mr.querySelector("button").dataset.tbl;
+  if(tbl && window.IntersectionObserver){
+    if(PAGE_OBS[tbl]) PAGE_OBS[tbl].disconnect();
+    // a short wait, so a tap on the row's own buttons (or a quick scroll past) isn't overtaken by a redraw
+    let near = false, t = null;
+    PAGE_OBS[tbl] = new IntersectionObserver(es=>{ near = es[es.length-1].isIntersecting; clearTimeout(t);
+      if(near) t = setTimeout(()=>{ if(near && mr.isConnected){ PAGE_OBS[tbl].disconnect(); more(tbl); } }, 250); }, {rootMargin:"0px 0px 600px 0px"});
+    PAGE_OBS[tbl].observe(mr);
+  }
 }
 // A wine's details are built when its row is first opened: a big cellar would otherwise build thousands of them on
 // every render (and every keystroke in the search).
@@ -938,9 +1022,9 @@ function fillDetail(d, row){
   const w = WINES.find(x=>x.row===Number(row.dataset.row)); if(!w) return;
   td.innerHTML = detailHTML(w); bindDetail(td);
 }
-// The tables show a page at a time, and "Show more" adds the next; changing the search, a filter or the sort starts again
-// from the top.
-const PAGE_STEP = 200, PAGE_SIZE = {cellar:{n:PAGE_STEP, key:""}, enjoyed:{n:PAGE_STEP, key:""}};
+// The tables show a page at a time, and scrolling to the end (or "Show more") adds the next; changing the search, a
+// filter or the sort starts again from the top.
+const PAGE_STEP = 100, PAGE_SIZE = {cellar:{n:PAGE_STEP, key:""}, enjoyed:{n:PAGE_STEP, key:""}}, PAGE_OBS = {};
 function pageOf(list, tbl){
   const ps = PAGE_SIZE[tbl], key = JSON.stringify(tbl==="cellar" ? state : eState);
   if(key!==ps.key){ ps.key = key; ps.n = PAGE_STEP; }
@@ -998,6 +1082,7 @@ async function loadData(quiet){
   try{
     const res = await api({action:"data"});
     WINES = normalize(res.wines);
+    loadLayout();
     $("priceBtn").textContent = SHOW_PRICES ? tr("Hide prices") : tr("Show prices");
     renderOverview(); renderTable(); renderEnjoyed();
     LOADED_AT = new Date(); stampText();

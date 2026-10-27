@@ -55,7 +55,7 @@ async function importBig(p, merge) {
     check("plain: all of it is in the sheet", gas.rows("Ark1").length === 10001, String(gas.rows("Ark1").length));
     console.log("      import", (took / 1000).toFixed(1), "s");
     const shown = await p.$$eval("#rows tr.main", r => r.length);
-    check("plain: the table shows a page, with Show more", shown <= 201 && /Showing 200 of/.test(await p.textContent("#rows tr.morerow")), String(shown));
+    check("plain: the table shows a page, with Show more", shown <= 101 && /Showing 100 of/.test(await p.textContent("#rows tr.morerow")), String(shown));
     let t = Date.now(); await p.click("#rows tr.morerow button[data-all]"); await p.waitForTimeout(100);
     const all = await p.$$eval("#rows tr.main", r => r.length);
     console.log("      show all", ms(t), all, "rows");

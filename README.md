@@ -530,6 +530,23 @@ Four panels in the overview, each shown once there's something in it. Money only
 
 Tested in `tools/layout-ui-test.js`: every bottle is counted once, and the value panel waits for a value.
 
+## Your own overview
+
+The overview starts with five panels: **Cellar insights**, **When they need drinking**, **Regions**, **Vintages** and
+**Value against what you paid**. **✎ Customise** at its top lists them with ↑ ↓ to move and ✕ to remove, and
+the rest under **＋ Add a chart**. **Reset to default** puts the five back. Enjoyed has its own (all three to start).
+The layout is kept on the device and, for an encrypted account, as one small encrypted record in the vault
+(`meta:prefs`), so it follows to other devices. When the two differ, the one changed last wins. It holds panel names
+only, never wines.
+
+## Big cellars
+
+The wine list and Enjoyed show 100 wines at first. The next 100 come by themselves as the end of the list scrolls near,
+and **Show all** shows the rest. Search, filters and sort always cover the whole cellar, and a wine's details are
+built only when it's opened.
+
+Tested in `tools/customise-ui-test.js` (and the layout in `tools/vault-test.js`).
+
 ## Sommelier (offline questions)
 
 The 🍷 button at the bottom right of the cellar opens a small chat that answers wine questions **without a server
