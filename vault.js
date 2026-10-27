@@ -69,7 +69,7 @@ let SRC = null;
 async function codeSource(url) {
   if (SRC) return SRC;
   if (node) SRC = require("fs").readFileSync(require("path").join(__dirname, "apps-script", "Code.gs"), "utf8");
-  else { const res = await fetch(url || "apps-script/Code.gs?v=39"); if (!res.ok) throw new Error("engine-load " + res.status); SRC = await res.text(); }
+  else { const res = await fetch(url || "apps-script/Code.gs?v=40"); if (!res.ok) throw new Error("engine-load " + res.status); SRC = await res.text(); }
   return SRC;
 }
 const keepTabs = (all, sheetName) => Object.fromEntries(Object.entries(all).filter(([n]) => n === sheetName || SHARED_TABS.includes(n)));
@@ -116,7 +116,7 @@ function openWith(o, v, src) {
   // a brand-new vault has no wine tab yet: start it with the column headers the server would give a new sheet
   if (!v.tabs[v.sheetName]) v.tabs[v.sheetName] = [];
   S = { post: o.post, user: o.user, token: o.token, dek: o.dek, sheetName: v.sheetName, vers: v.vers, src, photoCache: {},
-        recs: Object.assign({}, v.records), prefs: v.prefs || null, busy: 0, writes: 0, onRefresh: o.onRefresh, onLost: o.onLost,
+        recs: Object.assign({}, v.records), prefs: v.prefs || null, busy: 0, writes: 0, onRefresh: o.onRefresh, onLost: o.onLost, today: o.today,
         engine: VE.create(src, v.tabs, { sheetName: v.sheetName, today: o.today }) };
   if (!v.tabs[v.sheetName].length) { // seed the headers the way createUserSpreadsheet did
     const H = ["Producent", "Land", "Område", "Kommune", "Mark/Navn", "Klassifikation", "Type", "Drue", "Årgang", "Antal", "Pris kr (WS)", "Drukket", "Kilde", "Note"];
@@ -187,13 +187,13 @@ async function runPrivate(params, retried) {
     const up = await srv(S.post, { user: S.user, token: S.token, action: "vphotoput", data });
     S.photoCache[up.id] = e.photo; e.photo = "vault:" + up.id;
   }
-  const before = keepTabs(S.engine.tabs(), S.sheetName);
+  const snap = S.engine.tabs(), before = keepTabs(snap, S.sheetName), saved = new Set();
   const { res, trashed } = S.engine.run(p);
   if (!res.ok) { const err = new Error(res.error || "unknown-error"); err.data = res; throw err; }
   const after = keepTabs(S.engine.tabs(), S.sheetName);
   try {
     for (const [name, rows] of Object.entries(after))
-      if (JSON.stringify(rows) !== JSON.stringify(before[name])) { S.writes++; await put(S.post, S.user, S.token, S.dek, S.vers, "tab:" + name, rows); }
+      if (JSON.stringify(rows) !== JSON.stringify(before[name])) { S.writes++; await put(S.post, S.user, S.token, S.dek, S.vers, "tab:" + name, rows); saved.add(name); }
   } catch (err) {
     // another device changed the vault since we read it: reload and do the action again on the fresh copy, once
     if (err.message === "stale" && !retried) {
@@ -202,6 +202,10 @@ async function runPrivate(params, retried) {
       if (S.onRefresh) try { S.onRefresh(); } catch (e) {} // the screen shows the older copy: redraw from the fresh one
       return res;
     }
+    // it never reached the server (no connection, say): the working copy goes back to what the server has, so the
+    // change isn't kept here unsaved — and done twice when it's tried again
+    const back = Object.assign({}, snap); for (const n of saved) back[n] = after[n];
+    S.engine = VE.create(S.src, back, { sheetName: S.sheetName, today: S.today });
     throw err;
   }
   for (const id of trashed) { delete S.photoCache[id]; srv(S.post, { user: S.user, token: S.token, action: "vphotodel", id }).catch(() => {}); }
