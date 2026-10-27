@@ -32,7 +32,15 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   };
   const A = await device(), p = A.p;
   const wines = pg => pg.$$eval("#tbl tr.main", rows => rows.map(r => r.textContent));
-  const login = async (pg, pass) => { await pg.fill("#gateUser", "anna"); await pg.fill("#gatePass", pass); await pg.click("#gateSubmit"); };
+  // type, and see it stayed typed before pressing Log in: on a slow machine the page can still be settling right
+  // after it shows the login (it failed once on GitHub with both fields empty at submit)
+  const login = async (pg, pass) => {
+    for (let i = 0; i < 3; i++) {
+      await pg.fill("#gateUser", "anna"); await pg.fill("#gatePass", pass); await pg.waitForTimeout(150);
+      if (await pg.inputValue("#gateUser") === "anna" && await pg.inputValue("#gatePass") === pass) break;
+    }
+    await pg.click("#gateSubmit");
+  };
 
   await p.goto(BASE); await p.waitForTimeout(300);
   check("'Stay signed in' is offered, ticked", await p.isVisible("#gateStay") && await p.isChecked("#gateStay"));
