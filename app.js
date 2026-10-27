@@ -1756,12 +1756,25 @@ async function impRun(){
 }
 $("impBtn").addEventListener("click", ()=>{ impReset(); $("impModal").classList.add("open"); });
 /* ---------- several wines in a table: typed or pasted, then the import's own check (spellings, duplicates) ---------- */
-const GRID_COLS = [["producer","p"],["name","p"],["vintage","n"],["qty","n"],["price","n"],["location","p"]];
-const GRID_HEAD = ["Producer","Wine","Vintage","Bottles","Price","Location"]; // the import reads these headings
+// the same fields as adding one wine, in the same order: [field, width, heading, suggestions, placeholder]
+const GRID_COLS = [["producer","p","Producer *","jProducers"], ["name","p","Vineyard / cuvée","jWines"], ["commune","m","Commune","communesList"],
+  ["country","m","Country","countries"], ["region","m","Region","regionsList"], ["classification","m","Classification"],
+  ["type","m","Type","gridTypes"], ["grape","m","Grape","grapes"], ["vintage","n","Vintage",null,"2022"], ["qty","n","Bottles",null,"1"],
+  ["size","m","Format","gridSizes"], ["price","n","Price per bottle (kr.)"], ["source","m","Source / bought at"],
+  ["acquired","m","Acquired",null,"2026-10-27"], ["location","m","Location","locList"], ["note","p","Note"]];
+const GRID_TYPES = [["Rød","Red"],["Hvid","White"],["Rose","Rosé"],["Bobler","Sparkling"]];
+const GRID_SIZES = [["","Bottle · 75 cl"],["Piccolo"],["Half","Half"],["Magnum"],["Jeroboam"],["Rehoboam"],["Methuselah"],["Salmanazar"],["Balthazar"],["Nebuchadnezzar"]];
+// what's typed back to what's stored: "Rot"/"Red" → Rød, "Bottle · 75 cl" → "" (the import reads the rest itself)
+const gridWord = (list, v) => { const t = v.toLowerCase(), hit = list.find(([code, label]) => [code, label, label && tr(label)].some(x => x && x.toLowerCase() === t)); return hit ? hit[0] : v; };
+function gridHead(){
+  $("wGrid").tHead.rows[0].innerHTML = GRID_COLS.map(c=>`<th>${esc(tr(c[2]))}</th>`).join("") + "<th></th>";
+  $("gridTypes").innerHTML = GRID_TYPES.map(([,l])=>`<option value="${esc(tr(l))}">`).join("");
+  $("gridSizes").innerHTML = GRID_SIZES.map(([c,l])=>`<option value="${esc(l ? tr(l) : c)}">`).join("");
+}
 function gridRow(vals){
   const tr_ = document.createElement("tr");
-  tr_.innerHTML = GRID_COLS.map(([k,c],i)=>`<td class="${c}"><input data-c="${i}" ${k==="producer"?'list="jProducers"':k==="location"?'list="locList"':""}
-      ${c==="n"?'inputmode="decimal"':""} autocomplete="off" aria-label="${esc(tr(["Producer","Wine / cuvée","Vintage","Bottles","Price per bottle (kr.)","Location"][i]))}"></td>`).join("")
+  tr_.innerHTML = GRID_COLS.map(([k,c,label,list,ph],i)=>`<td class="${c}"><input data-c="${i}" ${list?`list="${list}"`:""} ${ph?`placeholder="${esc(k==="acquired"?todayStr():ph)}"`:""}
+      ${c==="n"?'inputmode="decimal"':""} autocomplete="off" aria-label="${esc(tr(label))}"></td>`).join("")
     + `<td><button type="button" class="gdel" aria-label="${esc(tr("Remove the row"))}" title="${esc(tr("Remove the row"))}">✕</button></td>`;
   (vals||[]).forEach((v,i)=>{ const inp = tr_.querySelector(`input[data-c="${i}"]`); if(inp) inp.value = v; });
   $("wGrid").tBodies[0].appendChild(tr_);
@@ -1774,7 +1787,7 @@ function gridCount(){
 }
 function gridOpen(){
   impReset();
-  const body = $("wGrid").tBodies[0]; body.innerHTML = ""; for(let i=0; i<5; i++) gridRow();
+  gridHead(); const body = $("wGrid").tBodies[0]; body.innerHTML = ""; for(let i=0; i<5; i++) gridRow();
   $("impPick").hidden = true; $("impGrid").hidden = false; $("impBack").hidden = false;
   IMP.fromGrid = true; trSet("Add several wines", $("impTitle")); trSet("Choose a file instead", $("impBack"));
   $("impModal").classList.add("open"); gridCount();
@@ -1806,11 +1819,18 @@ $("wGrid").addEventListener("paste", e=>{
   gridCount();
 });
 $("gridGo").addEventListener("click", ()=>{
-  const rows = [...$("wGrid").tBodies[0].rows].map(r=>GRID_COLS.map((_,i)=>r.querySelector(`input[data-c="${i}"]`).value.trim())).filter(v=>v[0]);
+  const iT = GRID_COLS.findIndex(c=>c[0]==="type"), iS = GRID_COLS.findIndex(c=>c[0]==="size");
+  const rows = [...$("wGrid").tBodies[0].rows].map(r=>GRID_COLS.map((_,i)=>r.querySelector(`input[data-c="${i}"]`).value.trim())).filter(v=>v[0])
+    .map(v=>{ v[iT] = gridWord(GRID_TYPES, v[iT]); v[iS] = gridWord(GRID_SIZES, v[iS]); return v; });
   if(!rows.length){ $("impErr").textContent = tr("Type at least one producer."); return; }
-  IMP.book = {sheets:[{name:tr("Table"), rows:[GRID_HEAD, ...rows]}]}; IMP.name = tr("Typed in the table"); IMP.sheet = 0;
+  // the headings are only there so the import sees a header row; which column is which is known, so it's set, not guessed
+  IMP.book = {sheets:[{name:tr("Table"), rows:[GRID_COLS.map(c=>c[0]), ...rows]}]}; IMP.name = tr("Typed in the table"); IMP.sheet = 0;
   $("impSheet").innerHTML = ""; $("impSheet").hidden = true; $("impName").textContent = IMP.name;
   impSheet();
+  if(IMP.t.header !== 0) IMP.t = IMPORT.table([GRID_COLS.map(c=>c[0]), ...rows]); // (it always finds them; belt and braces)
+  IMP.fields = GRID_COLS.map(c=>c[0]); IMP.t.header = 0;
+  $("impCols").querySelectorAll("select").forEach(s=>{ s.value = IMP.fields[Number(s.dataset.col)] || ""; s.classList.toggle("on", !!s.value); });
+  impBuild();
   $("impGrid").hidden = true; $("impMap").hidden = false; $("impBack").hidden = false; $("impGo").hidden = false;
   trSet("Back to the table", $("impBack"));
 });
@@ -3653,6 +3673,7 @@ function renderAdmin(){
   const A = ADMIN || {users:[], invites:[]};
   $("adminCount").textContent = tr("{0} of at most {1}", fmt(A.users.length), fmt(A.max || 50));
   $("adminUsers").innerHTML = A.users.map(u=>`<li><span class="a1"><b>${esc(u.user)}</b> · ${u.email ? `<a href="mailto:${esc(u.email)}">${esc(u.email)}</a>` : "—"}</span>
+      ${u.owner ? `<span class="ph adrm">${esc(tr("you (owner)"))}</span>` : `<button type="button" class="adrm" data-remove="${esc(u.user)}">${esc(tr("Remove"))}</button>`}
       <span class="a2">${esc(tr("Signed up"))} ${esc(u.created || "—")} · ${esc(tr("Last seen"))} ${esc(u.lastSeen || "—")}</span></li>`).join("");
   const open = A.invites.filter(i=>!i.usedBy), done = A.invites.filter(i=>i.usedBy);
   $("adminInvites").innerHTML =
@@ -3669,6 +3690,18 @@ $("adminNew").addEventListener("submit", async e=>{
   e.preventDefault(); $("adminErr").textContent = tr("Making…");
   try{ ADMIN = await api({action:"admininvites", n:Number($("adminN").value), note:$("adminNote").value.trim()}); $("adminNote").value = ""; $("adminErr").textContent = ""; renderAdmin(); }
   catch(err){ $("adminErr").textContent = tr("Could not reach the cellar API ({0}).", errText(err)); }
+});
+// removing a member: as permanent as them deleting their own account, so the name is typed to confirm it
+$("adminUsers").addEventListener("click", async e=>{
+  const b = e.target.closest("button[data-remove]"); if(!b) return;
+  const who = b.dataset.remove;
+  const typed = window.prompt(tr("Remove {0} and everything in their account — cellar, journal, wishlist and photos? It can't be undone, and nobody (you included) can read or restore the cellar afterwards. Type the username to confirm:", who));
+  if(typed === null) return;
+  if(typed.trim().toLowerCase() !== who.toLowerCase()){ $("adminErr").textContent = tr("The name didn't match, so nothing was removed."); return; }
+  $("adminErr").textContent = tr("Removing…");
+  try{ ADMIN = await api({action:"admindelete", member:who}); $("adminErr").textContent = ""; renderAdmin(); toast(tr("{0} was removed", who)); }
+  catch(err){ $("adminErr").textContent = /owner-account/.test(errText(err)) ? tr("The owner's account can't be removed.")
+    : /no-user/.test(errText(err)) ? tr("There's no member called {0} any more.", who) : tr("Could not reach the cellar API ({0}).", errText(err)); }
 });
 $("adminInvites").addEventListener("click", async e=>{
   const c = e.target.closest("button[data-copy]"), r = e.target.closest("button[data-revoke]");

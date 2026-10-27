@@ -42,7 +42,7 @@ function setting(key) {
 // The legacy code only works once you've set a real one: the placeholder from the template is public.
 function accessCode() { const c = setting('ACCESS_CODE'); return c === 'CHANGE-ME' ? '' : c; }
 
-const API_VERSION = 38; // returned in every response; used to verify deployments
+const API_VERSION = 39; // returned in every response; used to verify deployments
 
 // Per-request spreadsheet for the authenticated user. Set in handle(); every
 // sheet helper reads it via ss(). Falls back to the bound (owner's) spreadsheet.
@@ -239,10 +239,16 @@ function handle(p) {
       case 'me':
         return json({ ok: true, user: CTX_USER, owner: isOwnerAccount(CTX_ACCOUNT) });
       // the owner's admin page: the members and the invite codes, never anything from a cellar
-      case 'admin': case 'admininvites': case 'adminrevoke':
+      case 'admin': case 'admininvites': case 'adminrevoke': case 'admindelete':
         if (!isOwnerAccount(CTX_ACCOUNT)) return json({ ok: false, error: 'not-owner' });
         if (p.action === 'admininvites') addInvites(Number(p.n) || 1, String(p.note || ''));
         if (p.action === 'adminrevoke') revokeInvite(String(p.code || ''));
+        if (p.action === 'admindelete') { // the same clean-up as deleting your own account; never the owner's
+          const t = findUser(String(p.member || ''));
+          if (!t) return json({ ok: false, error: 'no-user' });
+          if (isOwnerAccount(t)) return json({ ok: false, error: 'owner-account' });
+          removeAccount(t);
+        }
         return json(adminView());
       // the feed and follows only with SOCIAL: 'on' — off, nobody sees posts, follows or who else has an account
       case 'feed': case 'feedpost': case 'feeddelete': case 'feedcheer': case 'feedcomment': case 'follow': case 'unfollow':
@@ -609,7 +615,8 @@ function adminView() {
   const c = (r, k) => r[UCOL[k] - 1];
   const used = {}; inviteRows().forEach(x => { if (x.usedBy) used[normUser(x.usedBy)] = x.code; });
   const users = rows.filter(r => String(r[0]).trim()).map(r => ({ user: String(r[0]), email: String(c(r, 'Email') || ''), created: fmtDay(c(r, 'Created')),
-    lastSeen: fmtDay(c(r, 'LastSeen')), encrypted: String(c(r, 'State')) === 'done', invite: used[normUser(r[0])] || '' }));
+    lastSeen: fmtDay(c(r, 'LastSeen')), encrypted: String(c(r, 'State')) === 'done', invite: used[normUser(r[0])] || '',
+    owner: isOwnerAccount({ spreadsheetId: String(c(r, 'SpreadsheetId')), oldSheet: String(c(r, 'OldSheet') || '') }) }));
   const ish = invitesSheet(false), ilast = ish ? ish.getLastRow() : 0;
   const invites = ilast >= 2 ? ish.getRange(2, 1, ilast - 1, INVITE_COLS.length).getValues().filter(r => String(r[0]).trim())
     .map(r => ({ code: String(r[0]), note: String(r[1] || ''), created: fmtDay(r[2]), usedBy: String(r[3] || ''), usedAt: fmtDay(r[4]) })) : [];
@@ -739,6 +746,13 @@ function doDeleteAccount(p) {
   if (lockedOut(u.username)) return json({ ok: false, error: 'locked' });
   const ok = u.kdf ? p.auth && safeEqual(hashPass(u.salt, p.auth), u.hash) : p.pass !== undefined && safeEqual(hashPass(u.salt, p.pass || ''), u.hash);
   if (!ok) return failed(u.username, 'bad-login');
+  removeAccount(u);
+  return json({ ok: true });
+}
+// An account and everything it left behind: its Drive files (trashed, so 30 days in the bin), its feed posts and
+// follows, and its name on its invite code and in the atlas. The Users row goes last.
+function removeAccount(u) {
+  const masterId = SpreadsheetApp.getActiveSpreadsheet().getId();
   const lock = typeof LockService !== 'undefined' ? LockService.getScriptLock() : null;
   if (lock) lock.waitLock(20000);
   try {
@@ -763,9 +777,9 @@ function doDeleteAccount(p) {
     dropRows(followsSheet(), r => normUser(r[0]) === who || normUser(r[1]) === who);
     const inv = invitesSheet(false); if (inv) relabel(inv, INVITE_COLS.indexOf('UsedBy'), who);
     relabel(atlasSheet(), ATLAS_COLS.indexOf('User'), who);
-    usersSheet().deleteRow(u.row);
+    const now = findUser(u.username); // the row may have moved while we waited for the lock
+    if (now) usersSheet().deleteRow(now.row);
   } finally { if (lock) lock.releaseLock(); }
-  return json({ ok: true });
 }
 
 // Forgotten password: the recovery code unwraps the data key in the browser (the server hands out the wrapped key

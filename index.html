@@ -513,12 +513,14 @@ body:not(.social) .fshare{display:none!important}
 .gridcta{margin:14px 0 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap;color:var(--muted)}
 .addmany{margin:-4px 0 6px} .linkbtn{border:0;background:none;color:var(--accent);font:inherit;font-size:13px;font-weight:600;padding:2px 0;cursor:pointer}
 .gridwrap{overflow-x:auto;margin:8px 0;border:1px solid var(--line);border-radius:var(--r)}
-.wgrid{border-collapse:collapse;width:100%;min-width:640px;font-size:13.5px}
+.wgrid{border-collapse:collapse;width:100%;min-width:1500px;font-size:13.5px}
+.wgrid th:first-child,.wgrid td:first-child{position:sticky;left:0;z-index:1;background:var(--card);box-shadow:1px 0 0 var(--line)} .wgrid th:first-child{background:var(--card2)}
 .wgrid th{font-size:10px;padding:6px 6px;text-align:left;border-bottom:1px solid var(--line);background:var(--card2)}
 .wgrid td{padding:0;border-bottom:1px solid var(--line);border-right:1px solid var(--line)} .wgrid td:last-child{border-right:0;width:28px;text-align:center}
 .wgrid input{width:100%;border:0!important;border-radius:0!important;background:transparent!important;padding:7px 8px!important;font:inherit;min-width:70px}
 .wgrid input:focus{outline:2px solid var(--accent);outline-offset:-2px;background:var(--card)!important}
-.wgrid td.n input{text-align:right;min-width:56px} .wgrid td.p input{min-width:150px}
+.wgrid td.n input{text-align:right;min-width:56px} .wgrid td.p input{min-width:150px} .wgrid td.m input{min-width:100px}
+.adlist .adrm{margin-left:auto}
 .wgrid .gdel{border:0;background:none;color:var(--muted);cursor:pointer;font-size:15px;padding:4px}
 .gridact{display:flex;align-items:center;gap:10px;flex-wrap:wrap} .gridact #gridGo{margin-left:auto}
 .appfoot{text-align:center;margin:28px 0 0;font-size:12.5px} .appfoot a{color:var(--muted)}
@@ -1254,9 +1256,10 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
     <div id="impGrid" hidden>
       <p class="ph" data-i18n>One wine per row; only the producer is needed. Tab and Enter move between the cells, and rows copied from Excel or Numbers can be pasted straight in. Then check them, and add them all at once.</p>
       <div class="gridwrap"><table class="wgrid" id="wGrid">
-        <thead><tr><th data-i18n>Producer *</th><th data-i18n>Wine / cuvée</th><th data-i18n>Vintage</th><th data-i18n>Bottles</th><th data-i18n>Price per bottle (kr.)</th><th data-i18n>Location</th><th></th></tr></thead>
+        <thead><tr></tr></thead>
         <tbody></tbody>
       </table></div>
+      <datalist id="gridTypes"></datalist><datalist id="gridSizes"></datalist>
       <div class="gridact"><button type="button" class="btn" id="gridRow" data-i18n>＋ Row</button>
         <span class="ph" id="gridCount"></span>
         <button type="button" class="btn primary" id="gridGo" data-i18n>Check the wines</button></div>
@@ -1501,7 +1504,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
 
 <!-- Pages serves these with max-age=600 and no revalidation, so a merged change can
      sit invisible behind a stale app.js for ten minutes. Bump v on every deploy. -->
-<script src="i18n.js?v=42"></script>
+<script src="i18n.js?v=43"></script>
 <script src="notes.js?v=4"></script>
 <script src="notes-i18n.js?v=1"></script>
 <script src="burgundy-data.js?v=13"></script>
@@ -1511,11 +1514,11 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
 <script src="gas-fake.js?v=5"></script>
 <script src="vault-crypto.js?v=2"></script>
 <script src="vault-engine.js?v=1"></script>
-<script src="vault.js?v=15"></script>
+<script src="vault.js?v=16"></script>
 <script src="wine-kb.js?v=2"></script>
 <script src="tidy.js?v=3"></script>
 <script src="import.js?v=5"></script>
 <script src="export.js?v=2"></script>
-<script src="app.js?v=39"></script>
+<script src="app.js?v=40"></script>
 </body>
 </html>
