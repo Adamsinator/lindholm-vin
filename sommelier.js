@@ -499,8 +499,8 @@ function answer(q, ctx) {
     if (e.type === "climat" && ctx.burg) e.__cote = villageCote(ctx.burg, e.ref.v); if (e.type === "village" && ctx.burg) e.__cote = villageCote(ctx.burg, e.ref.id); });
   const years = yearsOf(q);
   const wines = ctx.wines || null;
-  const res = html => ({ html, chips: chips(lang, ctx) });
-  if (!text) return res(help(lang, ctx));
+  const res = (html, kind) => ({ html, kind: kind || "about", chips: chips(lang, ctx) });
+  if (!text) return res(help(lang, ctx), "help");
   // a Burgundy appellation that is also a grand cru (Musigny, Chambertin) is the vineyard
   if (ctx.burg) ents.forEach(e => { if (e.type !== "app" || e.ref.region !== "Bourgogne") return;
     const k = norm(e.ref.n), c = ctx.burg.climats.find(x => norm(x.n) === k || norm(x.n.replace(/^(Les|La|Le|L'|Aux|Au|En) /, "")) === k);
@@ -508,36 +508,36 @@ function answer(q, ctx) {
   const named = ents.filter(e => ["climat", "app", "producer", "wproducer", "nproducer", "grape", "region", "term", "village", "country"].includes(e.type));
   // a dish named with the question (and no budget): the pairing, with your bottles that suit it — before "tonight" or "recommend"
   const food0 = foodOf(text);
-  if (food0 && !budgetOf(q) && !hasW(text, "decant") && !(hasW(text, "temp") && !hasW(text, "pair"))) return res(pairing(lang, food0, ctx));
+  if (food0 && !budgetOf(q) && !hasW(text, "decant") && !(hasW(text, "temp") && !hasW(text, "pair"))) return res(pairing(lang, food0, ctx), "food");
   // "a good-value Burgundy", "billig Bordeaux"
-  if (hasW(text, "value") && !hasW(text, "worth") && !/\b(my|min|mine|mon|ma|mes|mein|meine)\b/.test(text)) { const v = valueAnswer(lang, ents, text, ctx); if (v) return res(v); }
+  if (hasW(text, "value") && !hasW(text, "worth") && !/\b(my|min|mine|mon|ma|mes|mein|meine)\b/.test(text)) { const v = valueAnswer(lang, ents, text, ctx); if (v) return res(v, "recommend"); }
   // "what is the Bordeaux 1855 classification": the term, not the place
   const termC = ents.find(e => e.type === "term" && e.exact);
-  if (termC && hasW(text, "classif")) return res(p(esc(termC.ref.text[lang] || termC.ref.text.en)));
+  if (termC && hasW(text, "classif")) return res(p(esc(termC.ref.text[lang] || termC.ref.text.en)), "term");
   // "is 2019 Barolo ready?" about a wine in general, not one of yours
   const mineQ0 = / (my|mine|min|mit|mon|ma|mes|mein|meine|meinen) /.test(" " + text + " ");
   if (hasW(text, "drinkNow") && years.length && !mineQ0 && named.some(e => ["app", "climat", "region", "grape", "village"].includes(e.type))) {
-    const m = maturity(lang, [...ents].sort((x, y) => (y.exact ? 1 : 0) - (x.exact ? 1 : 0)), text, years[0], ctx); if (m) return res(m); }
+    const m = maturity(lang, [...ents].sort((x, y) => (y.exact ? 1 : 0) - (x.exact ? 1 : 0)), text, years[0], ctx); if (m) return res(m, "age"); }
 
   // "do you prefer white Burgundy or Danish white?" — an opinion, with reasons
   const either = named.length >= 2 && / (or|eller|ou|oder) /.test(" " + text + " ") && text.split(" ").length <= 9; // "Barolo or Barbaresco?"
   // two producers: what each is, side by side (a taste is the drinker's to choose)
   const PROD = ["wproducer", "nproducer"], prods = named.filter(e => PROD.includes(e.type));
   if ((hasW(text, "prefer") || either || hasW(text, "compare")) && prods.length >= 2)
-    return res(prods.slice(0, 2).map(e => e.type === "wproducer" ? aboutWorldProducer(lang, e.ref, ctx) : aboutNoteProducer(lang, e.ref, ctx)).join(""));
-  if ((hasW(text, "prefer") || either) && named.length >= 2 && !named.some(e => PROD.includes(e.type))) { const pr = prefer(lang, named, text, ctx); if (pr) return res(pr); }
+    return res(prods.slice(0, 2).map(e => e.type === "wproducer" ? aboutWorldProducer(lang, e.ref, ctx) : aboutNoteProducer(lang, e.ref, ctx)).join(""), "about");
+  if ((hasW(text, "prefer") || either) && named.length >= 2 && !named.some(e => PROD.includes(e.type))) { const pr = prefer(lang, named, text, ctx); if (pr) return res(pr, "opinion"); }
   // "recommend a wine from Piemonte", "a white Burgundy under 50 €", "what would you buy for 1000 euros?"
-  if (hasW(text, "recommend") || (budgetOf(q) && /wine|vin|wein|bottle|flaske|bouteille|flasche/.test(text))) return res(recommend(lang, ents, text, q, ctx));
+  if (hasW(text, "recommend") || (budgetOf(q) && /wine|vin|wein|bottle|flaske|bouteille|flasche/.test(text))) return res(recommend(lang, ents, text, q, ctx), "recommend");
   // "what's the difference between premier cru and grand cru" — both, one after the other
   if (hasW(text, "compare")) { const two = [];
     named.forEach(e => { if (two.length < 2 && !two.some(x => x.ref === e.ref)) two.push(e); });
-    if (two.length === 2) return res(two.map(e => short(lang, e, ctx)).join("")); }
+    if (two.length === 2) return res(two.map(e => short(lang, e, ctx)).join(""), "about"); }
   // the best years for a place
-  if (!years.length && (hasW(text, "best") || (hasW(text, "vintage") && named.length))) { const b = bestVintages(lang, ents, text, ctx); if (b) return res(b); }
+  if (!years.length && (hasW(text, "best") || (hasW(text, "vintage") && named.length))) { const b = bestVintages(lang, ents, text, ctx); if (b) return res(b, "vintage"); }
   // how long it keeps
   // "how long can I keep Barolo", and "how long does Meursault keep" — a named wine and no opened bottle
   if ((hasW(text, "age") || (hasW(text, "opened") && named.some(e => e.type !== "term"))) && !hasW(text, "openedStrong")) {
-    const a = ageAnswer(lang, [...ents].sort((x, y) => (y.exact ? 1 : 0) - (x.exact ? 1 : 0)), text, years, ctx); if (a) return res(a); }
+    const a = ageAnswer(lang, [...ents].sort((x, y) => (y.exact ? 1 : 0) - (x.exact ? 1 : 0)), text, years, ctx); if (a) return res(a, "age"); }
   // "how many glasses in a bottle", "what is a magnum": a term asked about, not the cellar
   const term0 = ents.find(e => e.type === "term");
   const mineQ = hasW(text, "have") || / (my|mine|min|mit|mon|ma|mes|mein|meine|meinen) /.test(" " + text + " ");
@@ -545,78 +545,136 @@ function answer(q, ctx) {
   // about your cellar
   const cellarQ = hasW(text, "drinkNow") || hasW(text, "howMany") || hasW(text, "where") || hasW(text, "have") || hasW(text, "pricey") || hasW(text, "oldest") || (hasW(text, "worth") && hasW(text, "my"))
     || hasW(text, "valuable") || (hasW(text, "urgent") && !named.some(e => e.type !== "term")) || (hasW(text, "mostOf") && (hasW(text, "my") || hasW(text, "have")));
-  if (cellarQ && term0 && !mineQ) return res(p(esc(term0.ref.text[lang] || term0.ref.text.en)));
+  if (cellarQ && term0 && !mineQ) return res(p(esc(term0.ref.text[lang] || term0.ref.text.en)), "term");
   const geo = named.find(e => ["app", "region", "climat", "village", "country"].includes(e.type));
   if (cellarQ && !(hasW(text, "pair") && foodOf(text))) {
-    if (!wines) return res(p(say(lang, "noCellar")));
+    if (!wines) return res(p(say(lang, "noCellar")), "cellar");
     const inCellar = wines.filter(w => left(w) > 0);
-    if (!inCellar.length) return res(p(say(lang, "emptyCellar")));
-    if (hasW(text, "urgent")) return res(urgentList(lang, ctx, inCellar, text));
-    if (hasW(text, "mostOf")) return res(mostOf(lang, text, inCellar));
+    if (!inCellar.length) return res(p(say(lang, "emptyCellar")), "cellar");
+    if (hasW(text, "urgent")) return res(urgentList(lang, ctx, inCellar, text), "cellar");
+    if (hasW(text, "mostOf")) return res(mostOf(lang, text, inCellar), "cellar");
     if (hasW(text, "valuable")) return res(p(say(lang, "valuable")) + ul(inCellar.filter(w => w.value || w.price).sort((a, b) => (b.value || b.price) - (a.value || a.price)).slice(0, 5)
-      .map(w => wineLine(lang, w) + ` <span class="sm-m">· ${kr(w.value || w.price)}</span>`)));
-    if (hasW(text, "drinkNow")) return res(drinkNow(lang, ctx, inCellar));
-    if (hasW(text, "pricey")) return res(p(say(lang, "priciest")) + ul(inCellar.filter(w => w.price).sort((a, b) => b.price - a.price).slice(0, 5).map(w => wineLine(lang, w) + ` <span class="sm-m">· ${kr(w.price)}</span>`)));
-    if (hasW(text, "oldest")) return res(p(say(lang, "oldest")) + ul(inCellar.filter(w => typeof w.vintage === "number").sort((a, b) => a.vintage - b.vintage).slice(0, 5).map(w => wineLine(lang, w))));
+      .map(w => wineLine(lang, w) + ` <span class="sm-m">· ${kr(w.value || w.price)}</span>`)), "cellar");
+    if (hasW(text, "drinkNow")) return res(drinkNow(lang, ctx, inCellar), "cellar");
+    if (hasW(text, "pricey")) return res(p(say(lang, "priciest")) + ul(inCellar.filter(w => w.price).sort((a, b) => b.price - a.price).slice(0, 5).map(w => wineLine(lang, w) + ` <span class="sm-m">· ${kr(w.price)}</span>`)), "cellar");
+    if (hasW(text, "oldest")) return res(p(say(lang, "oldest")) + ul(inCellar.filter(w => typeof w.vintage === "number").sort((a, b) => a.vintage - b.vintage).slice(0, 5).map(w => wineLine(lang, w))), "cellar");
     if (hasW(text, "worth")) { const b = inCellar.reduce((s, w) => s + left(w), 0), paid = inCellar.reduce((s, w) => s + (w.price || 0) * left(w), 0), val = inCellar.reduce((s, w) => s + (w.value || w.price || 0) * left(w), 0);
-      return res(p(say(lang, "worth", b, kr(paid), inCellar.some(w => w.value) ? say(lang, "worthNow", kr(val)) : ""))); }
+      return res(p(say(lang, "worth", b, kr(paid), inCellar.some(w => w.value) ? say(lang, "worthNow", kr(val)) : "")), "cellar"); }
     const sel = selectWines(text, ents, years, inCellar, lang);
     if (hasW(text, "howMany")) {
       const b = sel.list.reduce((s, w) => s + left(w), 0);
       let html = p(say(lang, "count", esc(bottlesTxt(lang, b)), esc(winesTxt(lang, sel.list.length)), sel.label ? say(lang, "countOf", esc(sel.label)) : ""));
       if (!sel.label) { const by = {}; sel.list.forEach(w => { const k = w.style || "?"; by[k] = (by[k] || 0) + left(w); });
         html += p(say(lang, "byStyle", esc(Object.entries(by).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${styleWord(lang, k)} ${n}`).join(", ")))); }
-      return res(html);
+      return res(html, "cellar");
     }
     // "where is Chablis" with no Chablis in the cellar: where the place is
-    if (!sel.list.length && hasW(text, "where") && !mineQ && geo) return res(short(lang, geo, ctx));
-    if (!sel.label) return res(p(say(lang, "haveNo", esc(q.replace(/^.*?\b(my|min|mine|mon|ma|mes|mein|meine)\b\s*/i, "").replace(/[?!.]+$/, "") || "…"))));
-    if (!sel.list.length) return res(p(say(lang, "haveNo", esc(sel.label))));
-    return res(p(hasW(text, "where") ? say(lang, "where") : say(lang, "haveYes", esc(winesTxt(lang, sel.list.length)))) + ul(sel.list.slice(0, 10).map(w => wineLine(lang, w, true))));
+    if (!sel.list.length && hasW(text, "where") && !mineQ && geo) return res(short(lang, geo, ctx), "about");
+    if (!sel.label) return res(p(say(lang, "haveNo", esc(q.replace(/^.*?\b(my|min|mine|mon|ma|mes|mein|meine)\b\s*/i, "").replace(/[?!.]+$/, "") || "…"))), "cellar");
+    if (!sel.list.length) return res(p(say(lang, "haveNo", esc(sel.label))), "cellar");
+    return res(p(hasW(text, "where") ? say(lang, "where") : say(lang, "haveYes", esc(winesTxt(lang, sel.list.length)))) + ul(sel.list.slice(0, 10).map(w => wineLine(lang, w, true))), "cellar");
   }
 
   // vintages
   if (years.length && (hasW(text, "vintage") || ents.some(e => ["app", "region", "climat", "village", "country"].includes(e.type)) || /nuits|beaune|bordeaux|burgund|bourgogne|barolo|rioja/.test(text))) {
-    if (years.length >= 2 && years[0] !== years[1]) { const c = compareVintages(lang, years, ents, text, ctx); if (c) return res(c); }
+    if (years.length >= 2 && years[0] !== years[1]) { const c = compareVintages(lang, years, ents, text, ctx); if (c) return res(c, "vintage"); }
     const y = years[0], bc = burgundyCats(ents, text);
     if (bc) { const note = bc.includes("__nuits_white") ? p(say(lang, "nuitsWhiteNote")) : "";
       const cats = bc.filter(c => !c.startsWith("__")); const r = burgundyVintage(lang, y, cats.length ? cats : ["beaune_white"], ctx);
-      if (r) return res(note + r + yourVintage(lang, ctx, y, w => w.region === "Bourgogne", regionName(lang, "Bourgogne"))); }
+      if (r) return res(note + r + yourVintage(lang, ctx, y, w => w.region === "Bourgogne", regionName(lang, "Bourgogne")), "vintage"); }
     const ch = chartsFor(ents, text);
-    if (ch) return res(chartVintage(lang, y, ch));
-    return res(yearSummary(lang, y, ctx));
+    if (ch) return res(chartVintage(lang, y, ch), "vintage");
+    return res(yearSummary(lang, y, ctx), "vintage");
   }
 
-  if (hasW(text, "decant")) return res(decant(lang, ents, text, years));
-  if (hasW(text, "temp") && !hasW(text, "storage")) return res(serve(lang, ents, text));
-  if (hasW(text, "opened")) return res(p(say(lang, "opened")));
-  if (hasW(text, "storage")) return res(p(say(lang, "storage")));
+  if (hasW(text, "decant")) return res(decant(lang, ents, text, years), "serve");
+  if (hasW(text, "temp") && !hasW(text, "storage")) return res(serve(lang, ents, text), "serve");
+  if (hasW(text, "opened")) return res(p(say(lang, "opened")), "serve");
+  if (hasW(text, "storage")) return res(p(say(lang, "storage")), "serve");
   const food = foodOf(text);
-  if (food || hasW(text, "pair")) return res(pairing(lang, food, ctx));
+  if (food || hasW(text, "pair")) return res(pairing(lang, food, ctx), "food");
 
   // something named
   const pick = t => ents.filter(e => e.type === t);
   // the soil of a place
-  if (hasW(text, "soil")) { const a = pick("app")[0]; const nt = a && D.appNotes[a.ref.n]; if (nt) return res(p(`<b>${esc(a.ref.n)}</b>`) + p(esc(nt[lang] || nt.en))); }
+  if (hasW(text, "soil")) { const a = pick("app")[0]; const nt = a && D.appNotes[a.ref.n]; if (nt) return res(p(`<b>${esc(a.ref.n)}</b>`) + p(esc(nt[lang] || nt.en)), "about"); }
   // "what glass for Burgundy", "kimmeridgian soil in Chablis": a term named before anything else is the question
-  if (term0 && named.every(e => e === term0 || e.at > term0.at)) return res(p(esc(term0.ref.text[lang] || term0.ref.text.en)));
+  if (term0 && named.every(e => e === term0 || e.at > term0.at)) return res(p(esc(term0.ref.text[lang] || term0.ref.text.en)), "term");
   const climats = pick("climat").map(e => e.ref);
   if (climats.length && ctx.burg) { const name = norm(climats[0].n.replace(/^(Les|La|Le|L'|Aux|Au|En) /, ""));
     const same = ctx.burg.climats.filter(c => norm(c.n.replace(/^(Les|La|Le|L'|Aux|Au|En) /, "")) === name);
     const inVillage = same.filter(c => ents.some(e => (e.type === "village" && e.ref.id === c.v) || (e.type === "app" && e.__vid === c.v)));
-    return res(aboutClimat(lang, inVillage.length ? inVillage : same, ctx)); }
-  const wprod = pick("wproducer")[0]; if (wprod) return res(aboutWorldProducer(lang, wprod.ref, ctx));
-  const app = pick("app")[0]; if (app) return res(aboutApp(lang, app.ref, ctx));
-  const prod = pick("producer")[0]; if (prod && ctx.burg) return res(aboutProducer(lang, prod.ref, ctx));
-  const nprod = pick("nproducer")[0]; if (nprod) return res(aboutNoteProducer(lang, nprod.ref, ctx));
-  const grape = pick("grape")[0]; if (grape) return res(aboutGrape(lang, grape.ref, ctx));
-  const region = pick("region")[0]; if (region) return res(aboutRegion(lang, region.ref, ctx));
-  const term = pick("term")[0]; if (term) return res(p(esc(term.ref.text[lang] || term.ref.text.en)));
+    return res(aboutClimat(lang, inVillage.length ? inVillage : same, ctx), "about"); }
+  const wprod = pick("wproducer")[0]; if (wprod) return res(aboutWorldProducer(lang, wprod.ref, ctx), "about");
+  const app = pick("app")[0]; if (app) return res(aboutApp(lang, app.ref, ctx), "about");
+  const prod = pick("producer")[0]; if (prod && ctx.burg) return res(aboutProducer(lang, prod.ref, ctx), "about");
+  const nprod = pick("nproducer")[0]; if (nprod) return res(aboutNoteProducer(lang, nprod.ref, ctx), "about");
+  const grape = pick("grape")[0]; if (grape) return res(aboutGrape(lang, grape.ref, ctx), "about");
+  const region = pick("region")[0]; if (region) return res(aboutRegion(lang, region.ref, ctx), "about");
+  const term = pick("term")[0]; if (term) return res(p(esc(term.ref.text[lang] || term.ref.text.en)), "term");
   const village = pick("village")[0];
   if (village && ctx.burg) { const v = village.ref, tx = (ctx.burgI18n && ctx.burgI18n.villages && ctx.burgI18n.villages[v.id]) || {};
-    return res(p(`<b>${esc(v.n)}</b>`) + p(esc(tx.note || v.note || "")) + p(`<span class="sm-m">${esc(tx.aoc || v.aoc || "")}</span> <a href="burgundy.html#v=${esc(v.id)}" target="_blank" rel="noopener">${esc(say(lang, "openAtlas"))}</a>`)); }
-  if (hasW(text, "help")) return res(help(lang, ctx));
-  return res(p(say(lang, "unknown")) + p(say(lang, "tryAsk")) + ul(examples(lang, ctx).map(esc)));
+    return res(p(`<b>${esc(v.n)}</b>`) + p(esc(tx.note || v.note || "")) + p(`<span class="sm-m">${esc(tx.aoc || v.aoc || "")}</span> <a href="burgundy.html#v=${esc(v.id)}" target="_blank" rel="noopener">${esc(say(lang, "openAtlas"))}</a>`), "about"); }
+  if (hasW(text, "help")) return res(help(lang, ctx), "help");
+  return res(p(say(lang, "unknown")) + p(say(lang, "tryAsk")) + ul(examples(lang, ctx).map(esc)), "unknown");
+}
+
+// ── the way it talks: a short opening for the kind of answer, and now and then a hint at what to ask next. Which
+// one is picked follows the question (and how many answers came before), so the same chat reads the same way. ──
+const LEAD = {
+  cellar: [["Let me look in your cellar…", "I've had a look along your racks.", "Here's what your cellar says."],
+    ["Lad mig kigge i din kælder…", "Jeg har kigget dine reoler igennem.", "Her er, hvad din kælder siger."],
+    ["Je jette un œil à votre cave…", "J'ai fait le tour de vos casiers.", "Voici ce que dit votre cave."],
+    ["Ich schaue kurz in Ihren Keller…", "Ich habe Ihre Regale durchgesehen.", "Das sagt Ihr Keller."]],
+  food: [["Ooh, nice dinner.", "That's a fun one to match.", "Here's what I'd pour."],
+    ["Uh, lækker middag.", "Den er sjov at matche.", "Her er, hvad jeg ville skænke."],
+    ["Oh, joli dîner.", "Voilà un accord amusant à trouver.", "Voici ce que je servirais."],
+    ["Oh, ein schönes Essen.", "Eine schöne Kombination zum Tüfteln.", "Das würde ich einschenken."]],
+  vintage: [["Let me check the charts…", "Ah, vintages — my favourite subject.", "Here's how that year turned out."],
+    ["Lad mig se i årgangstabellerne…", "Ah, årgange — mit yndlingsemne.", "Sådan blev det år."],
+    ["Je regarde les tableaux…", "Ah, les millésimes — mon sujet préféré.", "Voici ce qu'a donné cette année."],
+    ["Ich schaue in die Tabellen…", "Ah, Jahrgänge — mein Lieblingsthema.", "So ist dieses Jahr ausgefallen."]],
+  age: [["Timing is half the pleasure.", "Good question — patience pays, but not forever.", "Let me think about how it ages…"],
+    ["Timing er halvdelen af fornøjelsen.", "Godt spørgsmål — tålmodighed betaler sig, men ikke for evigt.", "Lad mig tænke over, hvordan den udvikler sig…"],
+    ["Le bon moment, c'est la moitié du plaisir.", "Bonne question — la patience paie, mais pas éternellement.", "Voyons comment il évolue…"],
+    ["Der richtige Zeitpunkt ist die halbe Freude.", "Gute Frage — Geduld zahlt sich aus, aber nicht ewig.", "Mal sehen, wie er reift…"]],
+  recommend: [["Happy to help you shop.", "Here's what I'd put in the basket.", "A few ideas:"],
+    ["Jeg hjælper gerne med indkøbet.", "Her er, hvad jeg ville lægge i kurven.", "Et par idéer:"],
+    ["Avec plaisir pour vos achats.", "Voici ce que je mettrais dans le panier.", "Quelques idées :"],
+    ["Gern helfe ich beim Einkauf.", "Das käme bei mir in den Korb.", "Ein paar Ideen:"]],
+  about: [["Gladly.", "Ah, a good one.", "Here's the short version."],
+    ["Med glæde.", "Ah, god en.", "Her er den korte version."],
+    ["Avec plaisir.", "Ah, une belle question.", "Voici la version courte."],
+    ["Gern.", "Ah, eine gute Frage.", "Hier die Kurzfassung."]],
+  term: [["Good question — it's simpler than it sounds.", "Here's the short answer.", "Wine words, decoded:"],
+    ["Godt spørgsmål — det er enklere, end det lyder.", "Her er det korte svar.", "Vinord, oversat:"],
+    ["Bonne question — c'est plus simple qu'il n'y paraît.", "Voici la réponse courte.", "Le vocabulaire du vin, décodé :"],
+    ["Gute Frage — einfacher, als es klingt.", "Die kurze Antwort:", "Weinwörter, übersetzt:"]],
+  serve: [["A small thing that makes a big difference.", "Good thinking.", "Here's how I'd do it."],
+    ["En lille ting, der gør en stor forskel.", "Godt tænkt.", "Sådan ville jeg gøre."],
+    ["Un détail qui change tout.", "Bonne idée.", "Voici comment je ferais."],
+    ["Eine Kleinigkeit mit großer Wirkung.", "Gut mitgedacht.", "So würde ich es machen."]],
+  unknown: [["Hmm…"], ["Hmm…"], ["Hmm…"], ["Hmm…"]],
+};
+const HINT = {
+  cellar: ["Want me to suggest what to open tonight?", "Skal jeg foreslå, hvad du skal åbne i aften?", "Voulez-vous que je vous propose quoi ouvrir ce soir ?", "Soll ich vorschlagen, was Sie heute Abend öffnen?"],
+  food: ["Ask me how cold to serve it, or whether to decant.", "Spørg mig, hvor kold den skal serveres, eller om den skal dekanteres.", "Demandez-moi à quelle température la servir, ou s'il faut la carafer.", "Fragen Sie mich, wie kühl man ihn serviert oder ob man ihn dekantieren sollte."],
+  vintage: ["Ask \u201cand 2013?\u201d to compare another year.", "Spørg \u201cog 2013?\u201d for at sammenligne med et andet år.", "Demandez « et 2013 ? » pour comparer une autre année.", "Fragen Sie \u201eund 2013?\u201c, um ein anderes Jahr zu vergleichen."],
+  age: ["I can also tell you which of yours are ready now.", "Jeg kan også fortælle, hvilke af dine der er klar nu.", "Je peux aussi vous dire lesquels des vôtres sont prêts.", "Ich kann Ihnen auch sagen, welche Ihrer Weine jetzt trinkreif sind."],
+  recommend: ["Give me a budget and I'll be more precise.", "Giv mig et budget, så bliver jeg mere præcis.", "Donnez-moi un budget et je serai plus précis.", "Nennen Sie mir ein Budget, dann werde ich genauer."],
+  about: ["Ask \u201cwhat about …?\u201d and I'll do another.", "Spørg \u201chvad med …?\u201d, så tager jeg en til.", "Demandez « et … ? » et j'en présente un autre.", "Fragen Sie \u201eund …?\u201c, dann nehme ich den nächsten."],
+};
+function hash(str) { let h = 2166136261; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+// the answer as the chat shows it: { html, chips, kind, asked } with the opening and hint added
+function chat(q, ctx) {
+  ctx = ctx || {};
+  const r = answerWithFollowUp(q, ctx), lang = L.includes(ctx.lang) ? ctx.lang : "en", i = Math.max(0, L.indexOf(lang));
+  if (!String(q || "").trim()) return r; // the greeting is already a greeting
+  const h = hash(norm(q) + "|" + (ctx.turn || 0)), leads = LEAD[r.kind] && LEAD[r.kind][i];
+  const t = norm(r.asked || q), repeats = r.kind === "cellar" && (hasW(t, "drinkNow") || hasW(t, "urgent"));
+  const lead = leads && h % 10 < 7 ? leads[(h >> 4) % leads.length] : "", hint = HINT[r.kind] && !repeats && (h >> 8) % 10 < 4 ? HINT[r.kind][i] : "";
+  r.html = (lead ? `<p class="sm-lead">${esc(lead)}</p>` : "") + r.html + (hint ? `<p class="sm-hint">${esc(hint)}</p>` : "");
+  return r;
 }
 
 // ── a follow-up: "and 2013?", "hvad med Barbaresco?" — the previous question with the year or the place swapped ──
@@ -1023,7 +1081,7 @@ function examples(lang, ctx) {
 function help(lang, ctx) { return p(say(lang, "hello")) + p(say(lang, "tryAsk")) + ul(examples(lang, ctx).map(esc)); }
 function chips(lang, ctx) { return examples(lang, ctx).slice(0, 4); }
 
-const api = { answer: answerWithFollowUp, findEntities: (q, burg) => findEntities(norm(q), buildIndex(burg)), SAY, examples };
+const api = { answer: answerWithFollowUp, chat, findEntities: (q, burg) => findEntities(norm(q), buildIndex(burg)), SAY, examples };
 if (node) module.exports = api;
 else root.SOMMELIER = api;
 })(typeof window !== "undefined" ? window : globalThis);

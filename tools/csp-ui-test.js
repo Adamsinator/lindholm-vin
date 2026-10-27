@@ -66,7 +66,7 @@ const BLANK = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQ
   await p.waitForFunction(() => document.querySelector("#tbl").textContent.includes("Roulot"), null, { timeout: 10000 }).catch(() => {});
   check("…a wine can be added", (await p.textContent("#tbl")).includes("Roulot"));
   await p.click("#sommBtn"); await p.waitForSelector("#sommLog .sm-a", { timeout: 10000 });
-  await p.fill("#sommQ", "who owns musigny"); await p.press("#sommQ", "Enter"); await p.waitForTimeout(600);
+  await p.fill("#sommQ", "who owns musigny"); await p.press("#sommQ", "Enter"); await p.waitForFunction(() => /Musigny/.test(document.getElementById("sommLog").textContent) && !document.querySelector("#sommLog .sm-think"), null, { timeout: 8000 }).catch(() => {});
   check("…the sommelier loads and answers", /Musigny/i.test(await p.textContent("#sommLog")));
   check("…with no violation on the cellar page", !(await violations(p)).length, JSON.stringify(await violations(p)));
 

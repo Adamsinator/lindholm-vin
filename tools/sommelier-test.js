@@ -235,6 +235,16 @@ check(`world data: ${WD.producers.length} producers, ${WD.terms.length} terms, $
 const unreached = WD.producers.filter(pr => !S.findEntities(pr.n, window.BURG).some(e => e.type === "wproducer" && e.ref === pr)).map(pr => pr.n);
 check("…and every producer is found by its own name", !unreached.length, unreached.join(", "));
 
+// ── how it talks (chat): an opening fitting the answer, in the asked language; hints that don't repeat the question ──
+const chats = l => Array.from({ length: 30 }, (_, i) => S.chat(["what goes with lamb", "is 2015 good for red cote de nuits", "what should I drink now", "what is a monopole"][i % 4], ctx(l, { turn: i })));
+const en = chats("en"), da = chats("da");
+check("chat tags each answer with its kind", en.map(r => r.kind).slice(0, 4).join() === "food,vintage,cellar,term", en.map(r => r.kind).slice(0, 4).join());
+check("…opens many answers with a line, not all", en.filter(r => /sm-lead/.test(r.html)).length > 8 && en.filter(r => /sm-lead/.test(r.html)).length < 30);
+check("…in the asked language", da.filter(r => /sm-lead/.test(r.html)).every(r => /Lad mig|Jeg har|Her er|Uh|Den er|Ah|Sådan|Med glæde|Godt|Vinord|En lille/.test(r.html.match(/sm-lead">([^<]*)/)[1])), da.map(r => (r.html.match(/sm-lead">([^<]*)/) || [])[1]).filter(Boolean).slice(0, 5).join(" | "));
+check("…never hints 'what to open tonight?' after 'what should I drink now'", en.filter((r, i) => i % 4 === 2).every(r => !/sm-hint/.test(r.html)));
+check("…and the knowledge is the same as answer() gives", text(S.chat("what grape is sancerre", ctx("en", { turn: 3 })).html).includes(text(ask("en", "what grape is sancerre"))));
+check("…while the greeting stays a greeting", !/sm-lead|sm-hint/.test(S.chat("", ctx("en")).html));
+
 const n = results.filter(Boolean).length;
 console.log(`\n${n}/${results.length} passed`);
 process.exit(n === results.length ? 0 : 1);

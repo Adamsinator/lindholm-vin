@@ -1724,7 +1724,7 @@ function sommLoad(){
   if(!window.WINE_KB) need.push("wine-kb.js?v=2");
   if(!window.SOMM_DATA) need.push("sommelier-data.js?v=4");
   if(!window.SOMM_WORLD) need.push("sommelier-world.js?v=1");
-  if(!window.SOMMELIER) need.push("sommelier.js?v=4");
+  if(!window.SOMMELIER) need.push("sommelier.js?v=5");
   if(!window.BURG_VINTAGES) need.push("burgundy-vintages.js?v=5");
   if(["da","fr","de"].includes(lang) && !(window.BURG_I18N && BURG_I18N[lang])) need.push(`burgundy-i18n-${lang}.js?v=${lang==="de"?1:5}`);
   SOMM.lang = lang;
@@ -1738,16 +1738,40 @@ function sommCtx(){
 function sommSay(html, who){
   const d = document.createElement("div"); d.className = who === "q" ? "sm-q" : "sm-a";
   if(who === "q") d.textContent = html; else d.innerHTML = html; // the answer is built escaped by sommelier.js
-  $("sommLog").appendChild(d); $("sommLog").scrollTop = $("sommLog").scrollHeight;
+  $("sommLog").appendChild(d); sommShow(d);
+  return d;
+}
+// bring a message into view: a long one from its top (read from its first line, not scrolled past), a short one whole
+function sommShow(el){
+  const log = $("sommLog"), top = el.offsetTop - 10;
+  log.scrollTop = el.offsetHeight > log.clientHeight - 20 ? top : Math.max(log.scrollTop, el.offsetTop + el.offsetHeight - log.clientHeight + 10);
 }
 function sommChips(list){
   $("sommChips").innerHTML = (list || []).map(c => `<button type="button">${esc(c)}</button>`).join("");
 }
+// The sommelier takes a moment, as a person would: "Thinking…" for about two seconds (a little longer for a long
+// answer), then the answer, shown from the question down. One question at a time.
+const SOMM_THINK = [1500, 2300];
 async function sommAsk(q){
-  q = String(q || "").trim(); if(!q) return;
-  sommSay(q, "q"); $("sommQ").value = "";
-  try{ await sommLoad(); const r = SOMMELIER.answer(q, sommCtx()); SOMM.prev = r.asked || q; sommSay(r.html); sommChips(r.chips); }
-  catch(err){ sommSay(esc(tr("The sommelier couldn't load ({0}). Check your connection and try again.", errText(err)))); }
+  q = String(q || "").trim(); if(!q || SOMM.busy) return;
+  SOMM.busy = true; const asked = sommSay(q, "q"); $("sommQ").value = "";
+  const think = document.createElement("div"); think.className = "sm-a sm-think";
+  think.innerHTML = `<span>${esc(tr("Thinking"))}</span><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>`;
+  $("sommLog").appendChild(think); sommShow(think);
+  const t0 = Date.now();
+  try{
+    await sommLoad();
+    SOMM.turn = (SOMM.turn || 0) + 1;
+    const r = SOMMELIER.chat ? SOMMELIER.chat(q, Object.assign(sommCtx(), {turn:SOMM.turn})) : SOMMELIER.answer(q, sommCtx());
+    const wait = Math.min(SOMM_THINK[1], SOMM_THINK[0] + r.html.length / 4) - (Date.now() - t0);
+    if(wait > 0) await new Promise(res => setTimeout(res, wait));
+    SOMM.prev = r.asked || q; think.remove();
+    const ans = sommSay(r.html); sommChips(r.chips);
+    // question and answer together if they fit; otherwise from the question down
+    const log = $("sommLog"), span = ans.offsetTop + ans.offsetHeight - asked.offsetTop;
+    log.scrollTop = span > log.clientHeight - 20 ? asked.offsetTop - 10 : ans.offsetTop + ans.offsetHeight - log.clientHeight + 12;
+  }catch(err){ think.remove(); sommSay(esc(tr("The sommelier couldn't load ({0}). Check your connection and try again.", errText(err)))); }
+  finally{ SOMM.busy = false; }
 }
 async function sommOpen(){
   $("sommPanel").hidden = false; $("sommBtn").hidden = true;
