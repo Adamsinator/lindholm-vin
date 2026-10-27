@@ -277,6 +277,59 @@ function errText(err){
 function toast(msg){ msg = limitText(msg); const t=$("toast"); t.textContent=msg; t.style.opacity=1;
   clearTimeout(toastT); toastT=setTimeout(()=>t.style.opacity=0, 2600); }
 
+/* ---------- four more views of the cellar: when it needs drinking, value against price, buying and drinking by
+   year, price bands. Each panel shows only once there's something to show (and money only with Show prices). ---------- */
+function kbar(label, n, max, txt, cls){
+  return `<div class="kbar${cls?" "+cls:""}"><span class="rb-name">${esc(label)}</span><span class="rb-track"><span class="rb-fill" style="width:${max?Math.max(1.5,n/max*100):0}%"></span></span><span class="rb-n">${esc(txt)}</span></div>`;
+}
+function renderMore(cellar){
+  const Y = new Date().getFullYear();
+  // 1. drinking pressure: the year each bottle's window closes (past ones first, then this year and the next ten)
+  const by = new Map(); let past = 0, later = 0;
+  cellar.forEach(w=>{ const win = drinkWindow(w); if(!win || win.to==null) return;
+    if(win.to < Y) past += w.left; else if(win.to > Y+10) later += w.left; else by.set(win.to, (by.get(win.to)||0) + w.left); });
+  const rows = []; if(past) rows.push([tr("Past"), past, "warn"]);
+  for(let y = Y; y <= Y+10; y++) if(by.get(y)) rows.push([String(y), by.get(y), y <= Y+1 ? "warn" : ""]);
+  if(later) rows.push([tr("Later"), later, ""]);
+  $("pressPanel").hidden = rows.length < 2;
+  const pm = Math.max(1, ...rows.map(r=>r[1]));
+  $("press").innerHTML = rows.map(([l,n,c])=>kbar(l, n, pm, btl(n), c)).join("");
+  // 2. value against price: only bottles with both, so the two sums compare like with like
+  const both = cellar.filter(w=>w.value!=null && w.price);
+  $("worthPanel").hidden = !both.length;
+  if(both.length){
+    if(!SHOW_PRICES) $("worth").innerHTML = `<p class="ph">🔒 ${esc(tr("press Show prices"))}</p>`;
+    else {
+      const paid = both.reduce((s,w)=>s+w.price*w.left,0), now = both.reduce((s,w)=>s+w.value*w.left,0), d = now - paid;
+      const pct = paid ? Math.round(d / paid * 100) : 0;
+      const gain = both.map(w=>({w, g:(w.value - w.price) * w.left})).sort((a,b)=>b.g-a.g);
+      const line = x => `<li><span>${esc(x.w.producer)} ${esc([x.w.name, x.w.vintage].filter(Boolean).join(" "))}</span><span class="${x.g>=0?"up":"down"}">${x.g>=0?"+":"−"}${kr(Math.abs(x.g))}</span></li>`;
+      $("worth").innerHTML = `<div class="wsum"><div><b>${kr(paid)}</b><span>${esc(tr("paid"))}</span></div><div><b>${kr(now)}</b><span>${esc(tr("worth now"))}</span></div>
+        <div><b class="${d>=0?"up":"down"}">${d>=0?"+":"−"}${kr(Math.abs(d))}</b><span>${d>=0?"+":""}${pct} %</span></div></div>
+        <p class="ph">${esc(tr("{0} of {1} bottles have a value", fmt(both.reduce((s,w)=>s+w.left,0)), fmt(cellar.reduce((s,w)=>s+w.left,0))))}</p>
+        ${gain.length > 1 ? `<p class="ph">${esc(tr("Biggest gains"))}</p><ul class="wlist">${gain.slice(0,5).filter(x=>x.g>0).map(line).join("")}</ul>` : ""}`;
+    }
+  }
+  // 3. bought and drunk by year: bottles in (acquired) and out (drunk date), the last ten years with any
+  const inY = new Map(), outY = new Map(), spent = new Map();
+  WINES.forEach(w=>{ const a = parseInt(String(w.acquired||"").slice(0,4),10), d = parseInt(String(w.drunkDate||"").slice(0,4),10);
+    if(a){ inY.set(a, (inY.get(a)||0) + (w.qty||0)); spent.set(a, (spent.get(a)||0) + (w.price||0) * (w.qty||0)); }
+    if(d) outY.set(d, (outY.get(d)||0) + (w.drunk||0)); });
+  const years = [...new Set([...inY.keys(), ...outY.keys()])].sort((a,b)=>b-a).slice(0, 10);
+  $("buyPanel").hidden = !inY.size;
+  const bm = Math.max(1, ...years.map(y=>Math.max(inY.get(y)||0, outY.get(y)||0)));
+  $("buy").innerHTML = years.map(y=>{ const i = inY.get(y)||0, o = outY.get(y)||0;
+    return `<div class="kbar kbar2"><span class="rb-name">${y}</span><span class="rb-track"><span class="rb-fill" style="width:${i?Math.max(1.5,i/bm*100):0}%"></span><span class="rb-fill out" style="width:${o?Math.max(1.5,o/bm*100):0}%"></span></span>
+      <span class="rb-n">+${fmt(i)} / −${fmt(o)}${SHOW_PRICES && spent.get(y) ? `<br>${esc(kr(spent.get(y)))}` : ""}</span></div>`; }).join("");
+  // 4. price bands (in kroner, what one bottle cost)
+  const B = [[0,200,"< 200"],[200,500,"200–500"],[500,1500,"500–1.500"],[1500,5000,"1.500–5.000"],[5000,1e12,"5.000 +"]];
+  const priced = cellar.filter(w=>w.price>0);
+  $("bandPanel").hidden = priced.length < 3;
+  if(!SHOW_PRICES) $("bands").innerHTML = `<p class="ph">🔒 ${esc(tr("press Show prices"))}</p>`;
+  else { const cnt = B.map(([lo,hi])=>priced.filter(w=>w.price>=lo && w.price<hi).reduce((s,w)=>s+w.left,0)), mx = Math.max(1, ...cnt);
+    $("bands").innerHTML = B.map(([,,l],i)=>cnt[i] ? kbar(l + " kr", cnt[i], mx, btl(cnt[i]), "wide") : "").join(""); }
+}
+
 /* ---------- overview (rebuilt on every data load) ---------- */
 function renderOverview(){
   const cellar = WINES.filter(w=>w.left>0);
@@ -348,6 +401,8 @@ function renderOverview(){
       state.region = state.region===name ? "" : name;
       $("fRegion").value = state.region; renderTable(); });
   });
+
+  renderMore(cellar);
 
   /* styles */
   const styAgg = {};
