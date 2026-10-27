@@ -186,6 +186,55 @@ const t0 = Date.now(); for (let i = 0; i < 50; i++) S.answer(["what grape is san
 const ms = (Date.now() - t0) / 50;
 check(`answers are instant (${ms.toFixed(1)} ms each)`, ms < 50);
 
+// ── smarter: the dish over "tonight", the year against how long a wine keeps, the cellar's top and its due bottles ──
+t("a dish beats 'tonight'", "en", "what should I drink tonight with steak", /With beef or steak: Cabernet.*From your cellar, ready now: Château Lynch-Bages/);
+t("…with sushi", "en", "what is a good wine with sushi", /With sushi: Riesling Kabinett/);
+t("a young vintage of a named wine", "en", "is 2019 Barolo ready", /Barolo 2019 is probably still too young: it should be at its best about 2027–2049.*2019: ★★★★★/);
+t("…a ready one", "en", "is 2005 Barolo ready?", /Barolo 2005 should be in its window now, about 2013–2035/);
+t("…in Danish", "da", "er 2019 Barolo klar?", /Barolo 2019 er nok stadig for ung/);
+t("what you have most of", "en", "which producer do I have most of", /Most of your cellar, by producer: Château Lynch-Bages · 6 bottles/);
+t("…by region, in Danish", "da", "hvilken region har jeg flest af", /Det meste i din kælder, efter område: Bordeaux · 6 flasker/);
+t("the most valuable bottle", "en", "what is my most valuable bottle", /most valuable bottles.*Armand Rousseau Clos St-Jacques 2016.*4\.500 kr/);
+const Y = new Date().getFullYear(), soonWin = w => w.producer === "Château Lynch-Bages" ? { from: 2013, to: Y } : w.producer === "Domaine Leflaive" ? { from: 2018, to: Y - 2 } : { from: 2030, to: 2045 };
+t("what must be drunk this year", "da", "hvilke vine skal drikkes i år", new RegExp(`Disse bør drikkes inden udgangen af ${Y} \\(8 flasker\\).*Domaine Leflaive Les Pucelles 2014.*forbi vinduet siden ${Y - 2}.*Lynch-Bages 2005.*vinduet lukker ${Y}`), { window: soonWin });
+t("what is past its peak", "en", "which of my wines are past their peak", /Past their drink window \(2 bottles\) — open these first: Domaine Leflaive Les Pucelles 2014/);
+t("…in German, with the window", "de", "Welche Weine sind über dem Höhepunkt?", new RegExp(`Domaine Leflaive Les Pucelles 2014.*Fenster seit ${Y - 2} vorbei`), { window: soonWin });
+t("…and nothing due says what's next", "en", "which of my wines need drinking soon", new RegExp(`Nothing in your cellar closes its window before the end of ${Y + 1}`));
+// producers beyond Burgundy, in every language
+t("a Mosel producer", "en", "tell me about Egon Müller", /Egon Müller · Mosel.*Scharzhofberger/);
+t("…a Piedmont producer you own", "en", "tell me about Giacomo Conterno", /Monfortino.*In your cellar: 3 bottles · 1 wine/);
+t("…Champagne, in Danish", "da", "fortæl om Krug", /Krug · Champagne Huset, hvor al vin gæres/);
+t("…in French", "fr", "Parlez-moi de Gaja", /Gaja · Piémont Angelo Gaja a mis le Barbaresco/);
+t("…two side by side", "en", "Krug or Bollinger?", /Krug · Champagne.*Bollinger · Champagne/);
+t("…and in the cellar", "en", "do I have any Lynch-Bages", /Yes — 1 wine: Château Lynch-Bages 2005/);
+const noKeller = text(ask("de", "Was soll ich heute Abend aus meinem Keller trinken?")), noWeil = text(ask("de", "Ich frage, weil ich Gäste habe: was passt zu Lamm?"));
+check("German 'Keller' (cellar) isn't the producer Keller", !/Rheinhessen|G-Max/.test(noKeller), noKeller.slice(0, 160));
+check("…nor 'weil' (because) Robert Weil", !/Kiedrich/.test(noWeil) && /Lamm/.test(noWeil), noWeil.slice(0, 160));
+// more terms
+t("Chablis's grands crus", "en", "what are the grand crus of Chablis", /seven climats — Blanchot, Bougros, Les Clos, Grenouilles, Les Preuses, Valmur and Vaudésir/);
+t("a classification named with its place", "en", "what is the Bordeaux 1855 classification", /1855 classification ranked the Médoc/);
+t("why Burgundy costs so much", "da", "hvorfor er bourgogne så dyr", /Lidt vin, og hele verden vil have den/);
+t("the Beaujolais crus", "en", "what are the beaujolais crus", /Saint-Amour, Juliénas, Chénas, Moulin-à-Vent/);
+t("Wachau's categories", "de", "Was ist Smaragd?", /Steinfeder.*Federspiel.*Smaragd/);
+t("an everyday short name is the appellation", "en", "what is Brunello", /Brunello di Montalcino is an appellation in Tuscany/);
+// value
+t("a good-value Burgundy", "en", "what is a good value Burgundy", /Marsannay, Fixin.*Good-value bottles worth looking for: .*Bourgogne/);
+t("…cheap Bordeaux in Danish", "da", "billig Bordeaux", /Médocs crus bourgeois.*Gode køb/);
+// follow-ups: the previous question with the year or the wine swapped
+const S2 = S, fu = (lang, a, b) => { const r1 = S2.answer(a, ctx(lang)); const r2 = S2.answer(b, ctx(lang, { prev: r1.asked })); return [r2.asked, text(r2.html)]; };
+let [asked, ans] = fu("en", "is 2015 a good year for red cote de nuits", "and 2013?");
+check("a follow-up swaps the year: 'and 2013?'", /2013/.test(asked) && /Red Côte de Nuits 2013: \d+\/100/.test(ans), asked + " → " + ans.slice(0, 120));
+[asked, ans] = fu("da", "hvor længe kan jeg lagre Barolo", "hvad med Barbaresco?");
+check("…or the wine: 'hvad med Barbaresco?'", /barbaresco/.test(asked) && /^Barbaresco: typisk bedst/.test(ans), asked + " → " + ans.slice(0, 120));
+[asked, ans] = fu("en", "is 2015 a good year for red cote de nuits", "what goes with lamb?");
+check("…but a new question stays a new question", asked === "what goes with lamb?" && /With lamb/.test(ans), asked);
+// the data: every producer, term and value tip in all four languages, every alias reachable
+const WD = require("../sommelier-world.js");
+check(`world data: ${WD.producers.length} producers, ${WD.terms.length} terms, ${Object.keys(WD.value).length} value tips, all in four languages`,
+  [...WD.producers, ...WD.terms, ...Object.values(WD.value).map(text => ({ text }))].every(x => ["en", "da", "fr", "de"].every(l => String(x.text[l] || "").length > 20)));
+const unreached = WD.producers.filter(pr => !S.findEntities(pr.n, window.BURG).some(e => e.type === "wproducer" && e.ref === pr)).map(pr => pr.n);
+check("…and every producer is found by its own name", !unreached.length, unreached.join(", "));
+
 const n = results.filter(Boolean).length;
 console.log(`\n${n}/${results.length} passed`);
 process.exit(n === results.length ? 0 : 1);

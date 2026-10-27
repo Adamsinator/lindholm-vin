@@ -60,23 +60,23 @@ const act = (p, id, a, k) => p.click(`#${id} .custed button[data-act="${a}"]${k 
   check("…and clearing it shows 100 again", (await rows(p)) === 100, String(await rows(p)));
 
   // the calm default
-  const DEF = ["insights", "press", "regions", "vintages", "worth"];
-  check("the overview starts with five panels", JSON.stringify(await shown(p, "overview")) === JSON.stringify(DEF), (await shown(p, "overview")).join());
+  const DEF = ["insights", "press", "regions", "map", "vintages", "worth"];
+  check("the overview starts with six panels, the map among them", JSON.stringify(await shown(p, "overview")) === JSON.stringify(DEF), (await shown(p, "overview")).join());
   check("…and only those are on screen", JSON.stringify(await visible(p, "overview")) === JSON.stringify(DEF), (await visible(p, "overview")).join());
   check("the editor is closed until Customise", await p.isHidden("#overview .custed") && await p.isVisible("#overview .custbtn"));
 
   await p.click("#overview .custbtn");
   check("Customise opens the editor, with the panels to add", await p.isVisible("#overview .custed") &&
-    (await p.$$eval("#overview .custed button[data-act=on]", bs => bs.map(x => x.dataset.k))).join() === "producers,styles,buy,bands,map,hist");
+    (await p.$$eval("#overview .custed button[data-act=on]", bs => bs.map(x => x.dataset.k))).join() === "producers,styles,buy,bands,hist");
   check("…where the first can't move up nor the last down",
     await p.isDisabled('#overview .custed button[data-act="up"][data-k="insights"]') && await p.isDisabled('#overview .custed button[data-act="down"][data-k="worth"]'));
   await act(p, "overview", "on", "producers"); await p.waitForTimeout(150);
   check("＋ adds a panel at the end, drawn", (await shown(p, "overview")).slice(-1)[0] === "producers" && (await p.$$eval("#producers > *", e => e.length)) > 0);
   await act(p, "overview", "up", "producers"); await act(p, "overview", "up", "producers"); await p.waitForTimeout(150);
-  check("↑ moves it up", JSON.stringify(await shown(p, "overview")) === JSON.stringify(["insights", "press", "regions", "producers", "vintages", "worth"]), (await shown(p, "overview")).join());
+  check("↑ moves it up", JSON.stringify(await shown(p, "overview")) === JSON.stringify(["insights", "press", "regions", "map", "producers", "vintages", "worth"]), (await shown(p, "overview")).join());
   check("…and the keyboard stays on the same button", await p.evaluate(() => document.activeElement.dataset.k === "producers" && document.activeElement.dataset.act === "up"));
   await act(p, "overview", "off", "regions"); await act(p, "overview", "down", "insights"); await p.waitForTimeout(150);
-  const MINE = ["press", "insights", "producers", "vintages", "worth"];
+  const MINE = ["press", "insights", "map", "producers", "vintages", "worth"];
   check("✕ removes one, ↓ moves one down", JSON.stringify(await shown(p, "overview")) === JSON.stringify(MINE), (await shown(p, "overview")).join());
   check("…and the page shows them in that order", JSON.stringify(await visible(p, "overview")) === JSON.stringify(MINE), (await visible(p, "overview")).join());
   await act(p, "overview", "done");
@@ -100,7 +100,7 @@ const act = (p, id, a, k) => p.click(`#${id} .custed button[data-act="${a}"]${k 
   check("…kept encrypted (no panel names in the stored record)", rec.records && rec.records["meta:prefs"] && /^v1\./.test(rec.records["meta:prefs"].data) &&
     !/producers|insights/.test(JSON.stringify(rec.records)), Object.keys(rec.records || {}).join());
   await q.click("#overview .custbtn"); await act(q, "overview", "reset"); await q.waitForTimeout(150);
-  check("Reset to default puts the five back", JSON.stringify(await shown(q, "overview")) === JSON.stringify(DEF), (await shown(q, "overview")).join());
+  check("Reset to default puts the six back", JSON.stringify(await shown(q, "overview")) === JSON.stringify(DEF), (await shown(q, "overview")).join());
   await q.reload(); await q.waitForSelector("#app:not([hidden])", { timeout: 20000 }); await q.waitForTimeout(600);
   check("…and stays so after a reload", JSON.stringify(await shown(q, "overview")) === JSON.stringify(DEF), (await shown(q, "overview")).join());
   check("the cellar is untouched by all of it", (await q.evaluate(() => WINES.length)) === 250);

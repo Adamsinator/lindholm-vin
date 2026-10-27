@@ -14,6 +14,8 @@
 const node = typeof module !== "undefined" && module.exports;
 const KB = node ? require("./wine-kb.js") : root.WINE_KB;
 const D = node ? require("./sommelier-data.js") : root.SOMM_DATA;
+// producers beyond Burgundy, more terms, where the value is (sommelier-world.js)
+const WD = (node ? require("./sommelier-world.js") : root.SOMM_WORLD) || { producers: [], terms: [], value: {} };
 const norm = KB.norm;
 const L = ["en", "da", "fr", "de"];
 const esc = s => String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -46,6 +48,20 @@ const SAY = {
   regionIs: ["<b>{0}</b> is a wine region in {1}.", "<b>{0}</b> er et vinområde i {1}.", "<b>{0}</b> est une région viticole de {1}.", "<b>{0}</b> ist ein Weinbaugebiet in {1}."],
   mainApps: ["Main appellations: {0}.", "Vigtigste appellationer: {0}.", "Principales appellations : {0}.", "Wichtigste Appellationen: {0}."],
   mainGrapes: ["Main grapes: {0}.", "Vigtigste druer: {0}.", "Principaux cépages : {0}.", "Wichtigste Rebsorten: {0}."],
+  urgent: ["These should be drunk by the end of {0} ({1}):", "Disse bør drikkes inden udgangen af {0} ({1}):", "À boire d'ici la fin de {0} ({1}) :", "Diese sollten bis Ende {0} getrunken werden ({1}):"],
+  urgentNone: ["Nothing in your cellar closes its window before the end of {0}. Next up: {1}.", "Intet i din kælder lukker sit vindue før udgangen af {0}. De næste: {1}.", "Rien dans votre cave ne ferme sa fenêtre avant la fin de {0}. Ensuite : {1}.", "Nichts in Ihrem Keller schließt sein Fenster vor Ende {0}. Als Nächstes: {1}."],
+  pastList: ["Past their drink window ({0}) — open these first:", "Forbi deres drikkevindue ({0}) — åbn dem først:", "Après leur fenêtre ({0}) — à ouvrir en premier :", "Über ihrem Trinkfenster ({0}) — diese zuerst öffnen:"],
+  pastNone: ["Nothing in your cellar is past its drink window. The first to close: {0}.", "Intet i din kælder er forbi sit drikkevindue. De første, der lukker: {0}.", "Rien dans votre cave n'a dépassé sa fenêtre. Les premiers à fermer : {0}.", "Nichts in Ihrem Keller ist über seinem Trinkfenster. Als Erste schließen: {0}."],
+  closes: ["window closes {0}", "vinduet lukker {0}", "fenêtre jusqu'en {0}", "Fenster bis {0}"],
+  pastSince: ["past its window since {0}", "forbi vinduet siden {0}", "fenêtre passée depuis {0}", "Fenster seit {0} vorbei"],
+  mostOf: ["Most of your cellar, by {0}:", "Det meste i din kælder, efter {0}:", "Le plus représenté dans votre cave, par {0} :", "Am meisten in Ihrem Keller, nach {0}:"],
+  dimProducer: ["producer", "producent", "producteur", "Erzeuger"], dimRegion: ["region", "område", "région", "Region"], dimGrape: ["grape", "drue", "cépage", "Rebsorte"],
+  dimCountry: ["country", "land", "pays", "Land"], dimVintage: ["vintage", "årgang", "millésime", "Jahrgang"],
+  valuable: ["Your most valuable bottles (by value, else by what you paid):", "Dine mest værdifulde flasker (efter værdi, ellers købspris):", "Vos bouteilles les plus précieuses (selon la valeur, sinon le prix payé) :", "Ihre wertvollsten Flaschen (nach Wert, sonst nach Kaufpreis):"],
+  valuePicks: ["Good-value bottles worth looking for:", "Gode køb, der er værd at kigge efter:", "Bonnes affaires à chercher :", "Preiswerte Flaschen, nach denen sich die Suche lohnt:"],
+  matYoung: ["{0} is probably still too young: it should be at its best about <b>{1}–{2}</b>.", "{0} er nok stadig for ung: den bør være bedst omkring <b>{1}–{2}</b>.", "{0} est sans doute encore trop jeune : il devrait être à son meilleur vers <b>{1}–{2}</b>.", "{0} ist wohl noch zu jung: am besten etwa <b>{1}–{2}</b>."],
+  matNow: ["{0} should be in its window now, about <b>{1}–{2}</b>.", "{0} bør være i sit vindue nu, omkring <b>{1}–{2}</b>.", "{0} devrait être dans sa fenêtre maintenant, vers <b>{1}–{2}</b>.", "{0} dürfte jetzt im Trinkfenster sein, etwa <b>{1}–{2}</b>."],
+  matPast: ["{0} is probably past its best: its window was about <b>{1}–{2}</b>. A great bottle, well stored, can still surprise.", "{0} er nok forbi sit bedste: vinduet var omkring <b>{1}–{2}</b>. En stor flaske, godt opbevaret, kan stadig overraske.", "{0} a sans doute passé son apogée : sa fenêtre était vers <b>{1}–{2}</b>. Une grande bouteille bien conservée peut encore surprendre.", "{0} hat seinen Höhepunkt wohl überschritten: das Fenster lag etwa bei <b>{1}–{2}</b>. Eine große, gut gelagerte Flasche kann noch überraschen."],
   inCellar: ["In your cellar: {0}.", "I din kælder: {0}.", "Dans votre cave : {0}.", "In Ihrem Keller: {0}."],
   bottles: ["{0} bottles", "{0} flasker", "{0} bouteilles", "{0} Flaschen"], bottle1: ["1 bottle", "1 flaske", "1 bouteille", "1 Flasche"],
   wines: ["{0} wines", "{0} vine", "{0} vins", "{0} Weine"], wine1: ["1 wine", "1 vin", "1 vin", "1 Wein"],
@@ -156,7 +172,7 @@ const W = {
   storage: ["store", "storing", "storage", "cellar temperature", "opbevar", "opbevare", "opbevaring", "conserver", "conservation", "stocker", "lagern", "lagerung", "aufbewahren", "humidity", "luftfugtighed", "humidite", "luftfeuchtigkeit"],
   opened: ["opened", "open bottle", "after opening", "keep after", "abnet", "abnede", "efter abning", "ouverte", "ouvert", "entamee", "geoffnet", "angebrochen", "nach dem offnen", "how long does", "how long will", "hvor laenge", "combien de temps", "wie lange"],
   pair: ["goes with", "go with", "goes well", "go well", "well with", "what wine with", "wine with", "vin til", "vin avec", "wein zu", "pair", "pairing", "match with", "with dinner", "eat with", "drink with", "serve with", "passer til", "passer med", "til maden", "drikke til", "avec", "accord", "accorder", "accompagner", "passt zu", "passen zu", "dazu", "zum essen", "trinken zu"],
-  drinkNow: ["drink now", "tonight", "this evening", "ce soir", "ready", "drinkable", "ready to drink", "open tonight", "should i open", "should i drink", "what to drink", "what to open", "drikke nu", "drikkeklar", "drikkeklare", "klar til", "skal jeg abne", "skal jeg drikke", "i aften", "a boire", "pret a boire", "que boire", "quoi ouvrir", "ouvrir ce soir", "trinkreif", "jetzt trinken", "soll ich offnen", "soll ich trinken", "heute abend"],
+  drinkNow: ["drink now", "tonight", "this evening", "ce soir", "ready", "drinkable", "ready to drink", "open tonight", "should i open", "should i drink", "what to drink", "what to open", "drikke nu", "drikkeklar", "drikkeklare", "klar til", "klar", "parat", "skal jeg abne", "skal jeg drikke", "i aften", "a boire", "pret a boire", "pret", "prete", "que boire", "quoi ouvrir", "ouvrir ce soir", "trinkreif", "trinkbereit", "jetzt trinken", "soll ich offnen", "soll ich trinken", "heute abend"],
   howMany: ["how many", "how much", "hvor mange", "hvor meget", "combien", "wie viele", "wie viel", "number of", "antal", "count"],
   where: ["where is", "where are", "where s", "wheres", "hvor er", "hvor star", "hvor ligger", "ou est", "ou sont", "wo ist", "wo sind", "wo liegt", "wo liegen", "wo steht", "find my", "find min", "find mine"],
   have: ["do i have", "have i got", "have i", "har jeg", "ai je", "est ce que j ai", "habe ich", "hab ich"],
@@ -188,12 +204,21 @@ const W = {
     "welchen wein", "einen guten wein"],
   prefer: ["prefer", "do you like", "which is better", "what is better", "whats better", "better", "favourite", "favorite", "which one would you", "would you rather", "foretraekker", "kan du bedst lide",
     "hvad er bedst", "hvilken er bedst", "bedre", "yndlings", "prefere", "preferes", "preferez", "prefereriez", "mieux", "lequel", "laquelle", "lieber", "bevorzugst", "bevorzugen", "besser", "liebsten", "welcher ist"],
+  urgent: ["past their peak", "past its peak", "past peak", "past their best", "over the hill", "too old", "forbi deres bedste", "forbi sit bedste", "for gamle", "for gammel", "passe", "trop vieux", "trop vieilles", "apogee passee", "uber dem hohepunkt", "zu alt",
+    "this year", "next year", "before the end of the year", "need drinking", "needs drinking", "must be drunk", "should be drunk", "have to drink", "need to drink", "drink soon", "drink up", "drink first",
+    "running out of time", "before it s too late", "too late", "i ar", "naeste ar", "inden nytar", "skal drikkes", "bor drikkes", "skal drikkes forst", "drikkes snart", "drikke forst", "for sent", "inden det er for sent",
+    "cette annee", "l annee prochaine", "a boire vite", "a boire en premier", "avant qu il soit trop tard", "trop tard", "dieses jahr", "nachstes jahr", "bald trinken", "zuerst trinken", "zu spat", "bevor es zu spat ist"],
+  mostOf: ["most of", "the most of", "most bottles of", "most common", "flest", "flest af", "mest af", "mest af hvilken", "le plus de", "le plus souvent", "am meisten", "die meisten", "am haufigsten"],
+  valuable: ["most valuable", "valuable", "worth the most", "mest vaerdifulde", "mest vaerdifuld", "mest vaerd", "vaerdifulde", "plus de valeur", "plus precieuse", "plus precieuses", "plus precieux", "wertvollste", "wertvollsten", "am meisten wert"],
+  value: ["good value", "value for money", "best value", "bargain", "bargains", "cheap", "cheaper", "affordable", "inexpensive", "budget", "prisvenlig", "prisvenlige", "billig", "billige", "billigere", "godt kob", "gode kob", "rovkob",
+    "bon rapport qualite prix", "bonne affaire", "bonnes affaires", "pas cher", "abordable", "preiswert", "preiswerte", "gunstig", "gunstige", "schnappchen", "preis leistung", "preiswerter"],
+  classif: ["classification", "classified", "classement", "klassifikation", "klassifizierung", "klassificering", "classified growth"],
   soil: ["soil", "soils", "geology", "jord", "jordbund", "jordbunden", "jordtype", "jordtyper", "sol", "sols", "geologie", "terre", "terres", "boden", "boeden", "untergrund"],
 };
 const hasW = (t, key) => W[key].some(p => (" " + t + " ").includes(" " + p + " "));
 
 // ── an index of everything that can be named ──
-let IDX = null, IDX_FOR = null;
+let IDX = null, IDX_FOR = null, IDX_NOTES = -1;
 const NOMATCH = new Set(["langhe", "rolle", "steen", "melon", "breton", "bouchet", "cot", "morillon", "favorita", "pigato", "listan", "mansois", "jaen", "calabrese", "auxerrois", "naturé", "nature", "meunier", "macabeu", "malvoisie", "sercial", "boal", "bual",
   "port", "porto", "sherry", "asti", "toro", "etna", "cava", "nahe", "ahr", "wien", "graves", "baden", "franken", "jura", "corse", "marche", "puglia", "vaud", "washington", "oregon", "santorini", "madeira", "navarra", "alsace", "loire", "champagne", "beaujolais", "bordeaux", "bourgogne", "chablis", "rioja", "mosel", "douro", "barolo", "napa"]);
 // "Danish white", "dansk hvidvin", "vin danois": a country by its adjective
@@ -205,15 +230,22 @@ const ADJ = { Danmark: ["danish", "dansk", "danske", "danois", "danoise", "danis
   Portugal: ["portuguese", "portugisisk", "portugisiske", "portugais", "portugaise", "portugiesisch", "portugiesischer"],
   "Østrig": ["austrian", "ostrigsk", "ostrigske", "autrichien", "autrichienne", "osterreichisch", "osterreichischer"],
   England: ["english", "engelsk", "engelske", "anglais", "anglaise", "englisch", "englischer"] };
-function buildIndex(burg) {
+function buildIndex(burg, notes) {
   const entries = [];
   const add = (name, type, ref, opts) => { const k = norm(name); if (!k || k.length < 3) return; entries.push({ k, n: k.split(" ").length, type, ref, fuzzy: !(opts && opts.exact) && !NOMATCH.has(k) && k.length >= 6 }); };
   KB.apps.forEach(a => add(a.n, "app", a));
+  // everyday short names for appellations: "Brunello", "Amarone", "Vino Nobile"
+  [["brunello", "Brunello di Montalcino"], ["amarone", "Amarone della Valpolicella"], ["vino nobile", "Vino Nobile di Montepulciano"], ["chateauneuf", "Châteauneuf-du-Pape"]]
+    .forEach(([al, n]) => { const a = KB.apps.find(x => x.n === n); if (a) add(al, "app", a, { exact: true }); });
   KB.grapes.forEach(g => { add(g.n, "grape", g); g.syn.forEach(s => add(s, "grape", g, { exact: NOMATCH.has(norm(s)) })); });
   KB.regions.forEach(r => { add(r.n, "region", r); Object.values(r.names).forEach(x => add(x, "region", r)); r.alias.forEach(x => add(x, "region", r)); });
   KB.countries.forEach(c => { Object.values(c.names).forEach(x => add(x, "country", c, { exact: true })); c.alias.forEach(x => add(x, "country", c, { exact: true }));
     (ADJ[c.n] || []).forEach(x => add(x, "country", c, { exact: true })); });
   D.glossary.forEach(g => g.alias.forEach(a => add(a, "term", g, { exact: a.length < 6 })));
+  WD.terms.forEach(g => g.alias.forEach(a => add(a, "term", g, { exact: a.length < 6 })));
+  WD.producers.forEach(pr => { add(pr.n, "wproducer", pr); pr.alias.forEach(a => add(a, "wproducer", pr, { exact: a.length < 8 })); });
+  const known = new Set(WD.producers.flatMap(pr => [norm(pr.n), ...pr.alias.map(norm)]));
+  Object.keys(notes || {}).forEach(k => { const kk = norm(k); if (kk.length >= 5 && !known.has(kk)) add(k, "nproducer", { n: k, note: notes[k][1] }, { exact: true }); });
   if (burg) {
     (burg.climats || []).forEach(c => { add(c.n, "climat", c); const bare = c.n.replace(/^(Les|La|Le|L'|Aux|Au|En) /, ""); if (bare !== c.n && norm(bare).length >= 5) add(bare, "climat", c); });
     (burg.villages || []).forEach(v => String(v.n).split(" · ").forEach(n => add(n, "village", v)));
@@ -238,7 +270,7 @@ function osa(a, b, max) {
 // every named thing in the question: exact matches first (longest wins), then near misses for what's left
 function findEntities(text, idx) {
   const words = text.split(" ").filter(Boolean), used = new Array(words.length).fill(false), out = [];
-  const take = (i, n, e, exact) => { for (let j = i; j < i + n; j++) used[j] = true; out.push({ type: e.type, ref: e.ref, at: i, exact }); };
+  const take = (i, n, e, exact) => { for (let j = i; j < i + n; j++) used[j] = true; out.push({ type: e.type, ref: e.ref, at: i, n, exact }); };
   for (const e of idx) for (let i = 0; i + e.n <= words.length; i++) {
     if (used.slice(i, i + e.n).some(Boolean)) continue;
     if (words.slice(i, i + e.n).join(" ") === e.k) { take(i, e.n, e, true); }
@@ -460,7 +492,8 @@ function answer(q, ctx) {
   ctx = ctx || {};
   const lang = L.includes(ctx.lang) ? ctx.lang : "en";
   const text = norm(q).replace(/\b(st|ste)\b/g, "saint");
-  if (IDX_FOR !== ctx.burg || !IDX) { IDX = buildIndex(ctx.burg); IDX_FOR = ctx.burg; }
+  const nKey = Object.keys(ctx.notes || {}).length;
+  if (IDX_FOR !== ctx.burg || IDX_NOTES !== nKey || !IDX) { IDX = buildIndex(ctx.burg, ctx.notes); IDX_FOR = ctx.burg; IDX_NOTES = nKey; }
   const ents = findEntities(text, IDX);
   ents.forEach(e => { if (e.type === "app" && ctx.burg) { e.__vid = appVillage(ctx.burg, e.ref.n); e.__cote = e.__vid && villageCote(ctx.burg, e.__vid); }
     if (e.type === "climat" && ctx.burg) e.__cote = villageCote(ctx.burg, e.ref.v); if (e.type === "village" && ctx.burg) e.__cote = villageCote(ctx.burg, e.ref.id); });
@@ -472,11 +505,27 @@ function answer(q, ctx) {
   if (ctx.burg) ents.forEach(e => { if (e.type !== "app" || e.ref.region !== "Bourgogne") return;
     const k = norm(e.ref.n), c = ctx.burg.climats.find(x => norm(x.n) === k || norm(x.n.replace(/^(Les|La|Le|L'|Aux|Au|En) /, "")) === k);
     if (c && c.c === "GC") { e.type = "climat"; e.ref = c; } });
-  const named = ents.filter(e => ["climat", "app", "producer", "grape", "region", "term", "village", "country"].includes(e.type));
+  const named = ents.filter(e => ["climat", "app", "producer", "wproducer", "nproducer", "grape", "region", "term", "village", "country"].includes(e.type));
+  // a dish named with the question (and no budget): the pairing, with your bottles that suit it — before "tonight" or "recommend"
+  const food0 = foodOf(text);
+  if (food0 && !budgetOf(q) && !hasW(text, "decant") && !(hasW(text, "temp") && !hasW(text, "pair"))) return res(pairing(lang, food0, ctx));
+  // "a good-value Burgundy", "billig Bordeaux"
+  if (hasW(text, "value") && !hasW(text, "worth") && !/\b(my|min|mine|mon|ma|mes|mein|meine)\b/.test(text)) { const v = valueAnswer(lang, ents, text, ctx); if (v) return res(v); }
+  // "what is the Bordeaux 1855 classification": the term, not the place
+  const termC = ents.find(e => e.type === "term" && e.exact);
+  if (termC && hasW(text, "classif")) return res(p(esc(termC.ref.text[lang] || termC.ref.text.en)));
+  // "is 2019 Barolo ready?" about a wine in general, not one of yours
+  const mineQ0 = / (my|mine|min|mit|mon|ma|mes|mein|meine|meinen) /.test(" " + text + " ");
+  if (hasW(text, "drinkNow") && years.length && !mineQ0 && named.some(e => ["app", "climat", "region", "grape", "village"].includes(e.type))) {
+    const m = maturity(lang, [...ents].sort((x, y) => (y.exact ? 1 : 0) - (x.exact ? 1 : 0)), text, years[0], ctx); if (m) return res(m); }
 
   // "do you prefer white Burgundy or Danish white?" — an opinion, with reasons
   const either = named.length >= 2 && / (or|eller|ou|oder) /.test(" " + text + " ") && text.split(" ").length <= 9; // "Barolo or Barbaresco?"
-  if ((hasW(text, "prefer") || either) && named.length >= 2) { const pr = prefer(lang, named, text, ctx); if (pr) return res(pr); }
+  // two producers: what each is, side by side (a taste is the drinker's to choose)
+  const PROD = ["wproducer", "nproducer"], prods = named.filter(e => PROD.includes(e.type));
+  if ((hasW(text, "prefer") || either || hasW(text, "compare")) && prods.length >= 2)
+    return res(prods.slice(0, 2).map(e => e.type === "wproducer" ? aboutWorldProducer(lang, e.ref, ctx) : aboutNoteProducer(lang, e.ref, ctx)).join(""));
+  if ((hasW(text, "prefer") || either) && named.length >= 2 && !named.some(e => PROD.includes(e.type))) { const pr = prefer(lang, named, text, ctx); if (pr) return res(pr); }
   // "recommend a wine from Piemonte", "a white Burgundy under 50 €", "what would you buy for 1000 euros?"
   if (hasW(text, "recommend") || (budgetOf(q) && /wine|vin|wein|bottle|flaske|bouteille|flasche/.test(text))) return res(recommend(lang, ents, text, q, ctx));
   // "what's the difference between premier cru and grand cru" — both, one after the other
@@ -494,13 +543,18 @@ function answer(q, ctx) {
   const mineQ = hasW(text, "have") || / (my|mine|min|mit|mon|ma|mes|mein|meine|meinen) /.test(" " + text + " ");
 
   // about your cellar
-  const cellarQ = hasW(text, "drinkNow") || hasW(text, "howMany") || hasW(text, "where") || hasW(text, "have") || hasW(text, "pricey") || hasW(text, "oldest") || (hasW(text, "worth") && hasW(text, "my"));
+  const cellarQ = hasW(text, "drinkNow") || hasW(text, "howMany") || hasW(text, "where") || hasW(text, "have") || hasW(text, "pricey") || hasW(text, "oldest") || (hasW(text, "worth") && hasW(text, "my"))
+    || hasW(text, "valuable") || (hasW(text, "urgent") && !named.some(e => e.type !== "term")) || (hasW(text, "mostOf") && (hasW(text, "my") || hasW(text, "have")));
   if (cellarQ && term0 && !mineQ) return res(p(esc(term0.ref.text[lang] || term0.ref.text.en)));
   const geo = named.find(e => ["app", "region", "climat", "village", "country"].includes(e.type));
   if (cellarQ && !(hasW(text, "pair") && foodOf(text))) {
     if (!wines) return res(p(say(lang, "noCellar")));
     const inCellar = wines.filter(w => left(w) > 0);
     if (!inCellar.length) return res(p(say(lang, "emptyCellar")));
+    if (hasW(text, "urgent")) return res(urgentList(lang, ctx, inCellar, text));
+    if (hasW(text, "mostOf")) return res(mostOf(lang, text, inCellar));
+    if (hasW(text, "valuable")) return res(p(say(lang, "valuable")) + ul(inCellar.filter(w => w.value || w.price).sort((a, b) => (b.value || b.price) - (a.value || a.price)).slice(0, 5)
+      .map(w => wineLine(lang, w) + ` <span class="sm-m">· ${kr(w.value || w.price)}</span>`)));
     if (hasW(text, "drinkNow")) return res(drinkNow(lang, ctx, inCellar));
     if (hasW(text, "pricey")) return res(p(say(lang, "priciest")) + ul(inCellar.filter(w => w.price).sort((a, b) => b.price - a.price).slice(0, 5).map(w => wineLine(lang, w) + ` <span class="sm-m">· ${kr(w.price)}</span>`)));
     if (hasW(text, "oldest")) return res(p(say(lang, "oldest")) + ul(inCellar.filter(w => typeof w.vintage === "number").sort((a, b) => a.vintage - b.vintage).slice(0, 5).map(w => wineLine(lang, w))));
@@ -551,8 +605,10 @@ function answer(q, ctx) {
     const same = ctx.burg.climats.filter(c => norm(c.n.replace(/^(Les|La|Le|L'|Aux|Au|En) /, "")) === name);
     const inVillage = same.filter(c => ents.some(e => (e.type === "village" && e.ref.id === c.v) || (e.type === "app" && e.__vid === c.v)));
     return res(aboutClimat(lang, inVillage.length ? inVillage : same, ctx)); }
+  const wprod = pick("wproducer")[0]; if (wprod) return res(aboutWorldProducer(lang, wprod.ref, ctx));
   const app = pick("app")[0]; if (app) return res(aboutApp(lang, app.ref, ctx));
   const prod = pick("producer")[0]; if (prod && ctx.burg) return res(aboutProducer(lang, prod.ref, ctx));
+  const nprod = pick("nproducer")[0]; if (nprod) return res(aboutNoteProducer(lang, nprod.ref, ctx));
   const grape = pick("grape")[0]; if (grape) return res(aboutGrape(lang, grape.ref, ctx));
   const region = pick("region")[0]; if (region) return res(aboutRegion(lang, region.ref, ctx));
   const term = pick("term")[0]; if (term) return res(p(esc(term.ref.text[lang] || term.ref.text.en)));
@@ -561,6 +617,100 @@ function answer(q, ctx) {
     return res(p(`<b>${esc(v.n)}</b>`) + p(esc(tx.note || v.note || "")) + p(`<span class="sm-m">${esc(tx.aoc || v.aoc || "")}</span> <a href="burgundy.html#v=${esc(v.id)}" target="_blank" rel="noopener">${esc(say(lang, "openAtlas"))}</a>`)); }
   if (hasW(text, "help")) return res(help(lang, ctx));
   return res(p(say(lang, "unknown")) + p(say(lang, "tryAsk")) + ul(examples(lang, ctx).map(esc)));
+}
+
+// ── a follow-up: "and 2013?", "hvad med Barbaresco?" — the previous question with the year or the place swapped ──
+const FOLLOW = /^(and|what about|how about|and what about|same for|og|og hvad med|hvad med|hvad sa med|samme for|et|et pour|et le|et la|et les|et en|und|und was ist mit|und wie ist|was ist mit|wie ist es mit|und bei)\b/;
+function answerWithFollowUp(q, ctx) {
+  ctx = ctx || {};
+  const prev = ctx.prev && String(ctx.prev), t = norm(q);
+  if (prev && t && t.split(" ").length <= 6 && (FOLLOW.test(t) || t.split(" ").length <= 2)) {
+    const merged = followUp(prev, q, ctx);
+    if (merged) { const r = answer(merged, ctx); r.asked = merged; return r; }
+  }
+  const r = answer(q, ctx); r.asked = q; return r;
+}
+function followUp(prev, q, ctx) {
+  const t = norm(q).replace(FOLLOW, "").trim(), pt = norm(prev).replace(/\b(st|ste)\b/g, "saint");
+  if (!t) return null;
+  const ys = yearsOf(q), pys = yearsOf(prev);
+  // a year for a year: "is 2015 good for red Côte de Nuits?" → "and 2013?"
+  if (ys.length && pys.length && !findEntities(t, IDX || []).some(e => e.type !== "term")) {
+    let out = pt; const tok = y => new RegExp("\\b(" + y + "|" + String(y).slice(2) + ")\\b");
+    pys.forEach((y, i) => { out = out.replace(tok(y), String(ys[Math.min(i, ys.length - 1)])); });
+    return out !== pt ? out : null;
+  }
+  // a place or a wine for another: "how long can I keep Barolo?" → "what about Barbaresco?"
+  if (!IDX) return null;
+  const ne = findEntities(t, IDX).filter(e => e.type !== "term"), pe = findEntities(pt, IDX).filter(e => e.type !== "term");
+  if (ne.length !== 1 || !pe.length) return null;
+  const pw = pt.split(" "), nw = t.split(" "), a = pe[0];
+  return [...pw.slice(0, a.at), ...nw.slice(ne[0].at, ne[0].at + ne[0].n), ...pw.slice(a.at + a.n)].join(" ")
+    + (ys.length && !pys.length ? " " + ys[0] : "");
+}
+// ── producers beyond Burgundy (sommelier-world.js), and the cellar's own producer notes ──
+function aboutWorldProducer(lang, pr, ctx) {
+  const html = p(`<b>${esc(pr.n)}</b> <span class="sm-m">· ${esc(regionName(lang, pr.region))}</span>`) + p(esc(pr.text[lang] || pr.text.en));
+  return html + producerCellar(lang, ctx, [pr.n, ...pr.alias]);
+}
+function aboutNoteProducer(lang, pr, ctx) { return p(`<b>${esc(pr.n)}</b>`) + p(esc(pr.note || "")) + producerCellar(lang, ctx, [pr.n]); }
+function producerCellar(lang, ctx, names) {
+  const keys = names.map(n => norm(n).replace(/^(domaine|maison|chateau|weingut|tenuta) /, "")).filter(k => k.length >= 4);
+  return cellarLine(lang, ctx, w => { const pw = norm(w.producer); return keys.some(k => pw.includes(k) || (pw.length >= 5 && k.includes(pw))); }, true);
+}
+// ── your cellar: what must be drunk soon, what you have most of, what's worth most ──
+function urgentList(lang, ctx, list, text) {
+  // "this year" means this year; "soon", "first", "before it's too late" the end of next year
+  const Y = new Date().getFullYear(), by = / (this year|i ar|dette ar|cette annee|dieses jahr) /.test(" " + text + " ") ? Y : Y + 1;
+  const all = list.map(w => ({ w, win: ctx.window ? ctx.window(w) : null })).filter(x => x.win && x.win.to != null).sort((a, b) => a.win.to - b.win.to);
+  // "past their peak": only those whose window has closed (or that the cellar marks as past)
+  if (/ (past|over the hill|too old|forbi|for gamle|for gammel|passe|trop vieux|trop vieilles|apogee|hohepunkt|zu alt) /.test(" " + text + " ")) {
+    const gone = list.map(w => ({ w, win: ctx.window ? ctx.window(w) : null, r: ctx.readiness ? ctx.readiness(w) : null }))
+      .filter(x => (x.win && x.win.to != null && x.win.to < Y) || (x.r && x.r.k === "past"));
+    if (!gone.length) return p(say(lang, "pastNone", esc(all.slice(0, 3).map(x => `${x.w.producer} ${x.w.vintage || ""} (${x.win.to})`).join("; ") || "—")));
+    return p(say(lang, "pastList", esc(bottlesTxt(lang, gone.reduce((s, x) => s + left(x.w), 0))))) + ul(gone.slice(0, 12).map(x => wineLine(lang, x.w)
+      + (x.win && x.win.to != null && x.win.to < Y ? ` <span class="sm-warn">· ${esc(say(lang, "pastSince", x.win.to))}</span>` : "")));
+  }
+  const due = all.filter(x => x.win.to <= by);
+  const tag = x => ` <span class="sm-warn">· ${esc(x.win.to < Y ? say(lang, "pastSince", x.win.to) : say(lang, "closes", x.win.to))}</span>`;
+  if (!due.length) return p(say(lang, "urgentNone", by, esc(all.slice(0, 3).map(x => `${x.w.producer} ${x.w.vintage || ""} (${x.win.to})`).join("; ") || "—")));
+  const b = due.reduce((s, x) => s + left(x.w), 0);
+  return p(say(lang, "urgent", by, esc(bottlesTxt(lang, b)))) + ul(due.slice(0, 12).map(x => wineLine(lang, x.w) + tag(x))) + (due.length > 12 ? p(`<span class="sm-m">+ ${due.length - 12}</span>`) : "");
+}
+function mostOf(lang, text, list) {
+  const dims = [["producer", /produc|producent|erzeuger|winzer|domaine|house|hus\b/, w => w.producer], ["grape", /grape|drue|druer|cepage|rebsorte/, w => String(w.grape || "").split(/,\s*/)[0]],
+    ["country", /country|land\b|pays|lander/, w => w.country], ["vintage", /vintage|argang|millesime|jahrgang|year\b/, w => w.vintage], ["region", /region|omrade|område/, w => w.region]];
+  const d = dims.find(x => x[1].test(text)) || dims[4];
+  const by = new Map(); list.forEach(w => { const k = d[2](w); if (k == null || k === "") return; by.set(k, (by.get(k) || 0) + left(w)); });
+  const top = [...by.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const name = { producer: "dimProducer", grape: "dimGrape", country: "dimCountry", vintage: "dimVintage", region: "dimRegion" }[d[0]];
+  const label = k => d[0] === "region" || d[0] === "country" ? regionName(lang, k) : String(k);
+  return p(say(lang, "mostOf", esc(say(lang, name)))) + ul(top.map(([k, n]) => `<b>${esc(label(k))}</b> <span class="sm-m">· ${esc(bottlesTxt(lang, n))}</span>`));
+}
+// ── "is 2019 Barolo ready?": the year against how long the wine keeps ──
+function maturity(lang, ents, text, y, ctx) {
+  const ag = ageOf(ents, text, ctx); if (!ag || ag.tiers) return null;
+  const Y = new Date().getFullYear(), from = y + ag.lo, to = y + ag.hi, label = `${ag.label} ${y}`;
+  let html = p(Y < from ? say(lang, "matYoung", esc(label), from, to) : Y > to ? say(lang, "matPast", esc(label), from, to) : say(lang, "matNow", esc(label), from, to));
+  const bc = burgundyCats(ents, text), ch = chartsFor(ents, text);
+  if (bc) { const cats = bc.filter(c => !c.startsWith("__")); const r = burgundyVintage(lang, y, cats.length ? cats : ["beaune_white"], ctx); if (r) html += r; }
+  else if (ch) html += chartVintage(lang, y, ch);
+  const sel = selectWines(text, ents, [y], (ctx.wines || []).filter(w => left(w) > 0), lang);
+  if (sel.label && sel.list.length) html += p(say(lang, "ageYours")) + ul(sel.list.slice(0, 6).map(w => { const win = ctx.window && ctx.window(w);
+    return wineLine(lang, w) + (win && win.from ? ` <span class="sm-m">· ${esc(say(lang, "windowTo", win.from, win.to || "?"))}</span>` : ""); }));
+  return html;
+}
+// ── "a good-value Burgundy": where to look, and a few to buy ──
+const VALUE_OF = { Spanien: "Rioja", Tyskland: "Mosel", Rheingau: "Mosel", Nahe: "Mosel", Rheinhessen: "Mosel", Pfalz: "Mosel", Italien: "Piemonte" };
+function valueAnswer(lang, ents, text, ctx) {
+  const sc = scopeOf(ents, text), key = sc.region || sc.country || "";
+  const tip = WD.value[key] || WD.value[VALUE_OF[key]] || WD.value["*"];
+  let html = tip ? p(esc(tip[lang] || tip.en)) : "";
+  const picks = D.picks.filter(pk => pickFits(pk, sc)).sort((a, b) => a.eur - b.eur);
+  const cheap = picks.filter(pk => pk.eur <= Math.max(35, (picks[Math.floor(picks.length / 3)] || {}).eur || 0)).slice(0, 4);
+  if (cheap.length) html += p(say(lang, "valuePicks")) + ul(cheap.map(pk => `<b>${esc(pk.wine)}</b> <span class="sm-m">· ${esc(regionName(lang, pk.region))} · ${esc(pk.grape)} · ${esc(eur(lang, pk.eur))}</span>`))
+    + p(`<span class="sm-m">${esc(say(lang, "recPrices"))}</span>`);
+  return html;
 }
 
 // ── recommendations: from your cellar first, then wines worth buying (sommelier-data.js PICKS) ──
@@ -751,13 +901,15 @@ function selectWines(text, ents, years, list, lang) {
   const styleF = hasW(text, "red") ? "Rød" : hasW(text, "white") ? "Hvid" : hasW(text, "sparkling") ? "Bobler" : hasW(text, "rose") ? "Rosé" : null;
   if (styleF) { out = out.filter(w => w.style === styleF); label.push(styleWord(lang, styleF)); }
   if (years.length) { out = out.filter(w => w.vintage === years[0]); label.push(String(years[0])); }
-  const named = ents.filter(e => ["app", "region", "country", "grape", "climat", "village", "producer"].includes(e.type));
+  const named = ents.filter(e => ["app", "region", "country", "grape", "climat", "village", "producer", "wproducer", "nproducer"].includes(e.type));
   if (named.length) {
     named.forEach(e => {
-      const f = { app: w => norm(w.commune) === norm(e.ref.n) || norm(w.name).includes(norm(e.ref.n)), region: w => w.region === e.ref.n, country: w => w.country === e.ref.n,
+      const f = { app: w => norm(w.commune) === norm(e.ref.n) || norm(w.name).includes(norm(e.ref.n)) || (KB.regions.some(r => r.n === e.ref.n) && w.region === e.ref.n), region: w => w.region === e.ref.n, country: w => w.country === e.ref.n,
         grape: w => norm(w.grape).includes(norm(e.ref.n)) || e.ref.syn.some(s => norm(w.grape).includes(norm(s))),
         climat: w => norm(w.name).includes(norm(e.ref.n.replace(/^(Les|La|Le|L'|Aux|Au|En) /, ""))), village: w => norm(w.commune) === norm(e.ref.n) || norm(w.name).includes(norm(e.ref.n)),
-        producer: w => norm(w.producer).includes(norm(e.ref.n).replace(/^(domaine|maison|chateau) /, "")) }[e.type];
+        producer: w => norm(w.producer).includes(norm(e.ref.n).replace(/^(domaine|maison|chateau) /, "")),
+        wproducer: w => [e.ref.n, ...e.ref.alias].some(n => { const k = norm(n).replace(/^(domaine|maison|chateau|weingut|tenuta) /, ""); return k.length >= 4 && norm(w.producer).includes(k); }),
+        nproducer: w => norm(w.producer).includes(norm(e.ref.n)) }[e.type];
       const before = out; out = out.filter(f); if (!out.length && e.type === "producer") out = before.filter(w => norm(w.producer).split(" ").some(t => t.length > 3 && norm(e.ref.n).includes(t)));
       label.push(e.type === "region" || e.type === "country" ? regionName(lang, e.ref.n) : e.ref.n);
     });
@@ -871,7 +1023,7 @@ function examples(lang, ctx) {
 function help(lang, ctx) { return p(say(lang, "hello")) + p(say(lang, "tryAsk")) + ul(examples(lang, ctx).map(esc)); }
 function chips(lang, ctx) { return examples(lang, ctx).slice(0, 4); }
 
-const api = { answer, findEntities: (q, burg) => findEntities(norm(q), buildIndex(burg)), SAY, examples };
+const api = { answer: answerWithFollowUp, findEntities: (q, burg) => findEntities(norm(q), buildIndex(burg)), SAY, examples };
 if (node) module.exports = api;
 else root.SOMMELIER = api;
 })(typeof window !== "undefined" ? window : globalThis);

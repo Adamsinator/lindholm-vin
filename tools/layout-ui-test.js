@@ -47,9 +47,7 @@ const wines = Array.from({ length: 120 }, (_, i) => { const p = P[i % P.length];
   const height = await p.evaluate(() => document.documentElement.scrollHeight);
   check(`the page is far shorter than before (${height} px for 120 wines, was ~11 000)`, height < 6500, String(height));
   check("'Collection over time' is hidden while no wine has an acquired date", await p.$eval("#histPanel", e => e.hidden));
-  check("the map is folded until asked for", !(await p.$eval("#mapFold", e => e.open)));
-  await p.click("#mapFold summary"); await p.waitForTimeout(200);
-  check("…and opens on a click", await p.$eval("#mapFold", e => e.open) && await p.isVisible("#map"));
+  check("the map shows, open, without a click", await p.isVisible("#map") && (await p.$$("#map *")).length > 3);
   check("the drink-window chips sit above the list", await p.isVisible("#prioPanel") && (await box("#prioPanel")).y < list.y);
 
   // ── the columns: producer, wine, commune, vintage, region, bottles, price ──
@@ -79,6 +77,19 @@ const wines = Array.from({ length: 120 }, (_, i) => { const p = P[i % P.length];
   });
   check("'When they need drinking' counts every bottle with a window, once", sums.pressShown && sums.press === sums.pressWant && sums.press > 0, JSON.stringify(sums));
   check("…and 'Value against what you paid' stays away while no wine has a value", !sums.worthShown);
+  // a bar filters the list to the bottles whose window closes then, like the other charts
+  const bar = await p.$("#press .kbar[data-closes]:not([data-closes=past]):not([data-closes=later])");
+  const want = await bar.evaluate(el => { const k = el.dataset.closes; return { k, n: parseInt(el.querySelector(".rb-n").textContent, 10) }; });
+  await bar.click(); await p.waitForTimeout(200);
+  const got = await p.evaluate(k => ({ rows: [...document.querySelectorAll("#tbl tr.main")].length, all: WINES.filter(w => w.left > 0 && closesIn(w, k)),
+    shown: [...document.querySelectorAll("#tbl tr.main")].map(r => Number(r.dataset.row)), count: document.getElementById("count").textContent,
+    active: document.querySelector("#press .kbar.active") && document.querySelector("#press .kbar.active").dataset.closes }), want.k);
+  check("a click on 'When they need drinking' filters the list to that year", got.rows === got.all.length && got.all.reduce((s, w) => s + w.left, 0) === want.n &&
+    got.all.every(w => got.shown.includes(w.row)) && got.active === want.k && got.count.includes(want.k), JSON.stringify({ want, rows: got.rows, count: got.count, active: got.active }));
+  await bar.click(); await p.waitForTimeout(200);
+  check("…and a second click takes the filter off", !(await p.$("#press .kbar.active")) && (await p.$$("#tbl tr.main")).length > got.rows);
+  await bar.click(); await p.click("#clear"); await p.waitForTimeout(200);
+  check("…as does Clear filters", !(await p.$("#press .kbar.active")) && (await p.evaluate(() => state.closes)) === "");
   if (!(await p.evaluate(() => SHOW_PRICES))) await p.click("#priceBtn");
   const band = await p.evaluate(() => ({ shown: !document.getElementById("bandPanel").hidden,
     sum: [...document.querySelectorAll("#bands .rb-n")].reduce((s, e) => s + parseInt(e.textContent, 10), 0),
