@@ -16,6 +16,10 @@ var SETTINGS = {
   // (they go in the sheet's "Invites" tab). With neither, sign-up is off.
   SIGNUP_CODE: '',
 
+  // The shared feed and follows: 'on' turns them on. Off (''), every cellar is private: no feed, no sharing, and
+  // nobody sees who else has an account.
+  SOCIAL: '',
+
   // The most accounts there can be, and how many days a login lasts without being used.
   MAX_USERS: 50,
   SESSION_DAYS: 30,

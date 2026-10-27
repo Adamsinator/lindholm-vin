@@ -10,13 +10,13 @@ const HEAD = ["Producent", "Land", "Område", "Kommune", "Mark/Navn", "Klassifik
 const quiet = f => { const log = console.log; console.log = () => {}; try { return f(); } finally { console.log = log; } }; // told() prints
 
 (async () => {
-  const gas = H({ Ark1: [HEAD] }, { settings: { SIGNUP_CODE: "", OWNER_USER: "adam", OWNER_PASSWORD: "owner-pass-1" } });
+  const gas = H({ Ark1: [HEAD] }, { settings: { SIGNUP_CODE: "", OWNER_USER: "adam", OWNER_PASSWORD: "owner-pass-1", SOCIAL: "on" } });
   const post = async p => gas.call(p);
   const codes = quiet(() => gas.run("makeInvites()")).match(/AW-[A-Z0-9]{4}-[A-Z0-9]{4}/g);
   const accounts = {};
   for (const [user, pass] of [["anna", "anna-pass-1"], ["bodil", "bodil-pass-12"]]) {
     const k = await VAULT.newKeys(pass);
-    const r = await post({ action: "signup", user, code: codes.shift(), ...k.fields });
+    const r = await post({ action: "signup", email: "someone@example.com", user, code: codes.shift(), ...k.fields });
     accounts[user] = { token: r.token, pass };
   }
   const as = (user, p) => post({ user, token: accounts[user].token, ...p });

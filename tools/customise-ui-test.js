@@ -38,7 +38,7 @@ const act = (p, id, a, k) => p.click(`#${id} .custed button[data-act="${a}"]${k 
   // ── device one: sign up, fill the cellar ──
   const one = await device(b, gas), p = one.p;
   await p.goto(BASE); await p.waitForTimeout(400);
-  await p.click("#gateToggle"); await p.fill("#gateUser", "hanne"); await p.fill("#gatePass", "hanne-pass-1"); await p.fill("#gateInvite", "invite"); await p.click("#gateSubmit");
+  await p.click("#gateToggle"); await p.fill("#gateUser", "hanne"); await p.fill("#gatePass", "hanne-pass-1"); await p.fill("#gateInvite", "invite"); await p.fill("#gatePass2", "hanne-pass-1"); await p.fill("#gateEmail", "someone@example.com"); await p.click("#gateSubmit");
   await p.waitForSelector("#recModal.open", { timeout: 20000 }); await p.check("#recOk"); await p.click("#recDone");
   await p.waitForSelector("#app:not([hidden])", { timeout: 20000 });
   await p.evaluate(async w => { await api({ action: "addmany", wines: w, bumps: [] }); await loadData(); }, WINES);

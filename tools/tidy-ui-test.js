@@ -23,7 +23,7 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   const closed = id => p.waitForFunction(i => !document.getElementById(i).classList.contains("open"), id, { timeout: 15000 });
   await p.goto(BASE); await p.waitForTimeout(400);
   await p.click("#gateToggle");
-  await p.fill("#gateUser", "erik"); await p.fill("#gatePass", "erik-pass-1"); await p.fill("#gateInvite", "invite");
+  await p.fill("#gateUser", "erik"); await p.fill("#gatePass", "erik-pass-1"); await p.fill("#gateInvite", "invite"); await p.fill("#gatePass2", "erik-pass-1"); await p.fill("#gateEmail", "someone@example.com");
   await p.click("#gateSubmit");
   await p.waitForSelector("#recModal.open", { timeout: 20000 }); await p.check("#recOk"); await p.click("#recDone");
   await p.waitForSelector("#app:not([hidden])", { timeout: 20000 });

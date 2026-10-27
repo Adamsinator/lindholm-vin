@@ -118,7 +118,7 @@ const J = x => JSON.stringify(x);
   const g2 = H({ Ark1: [HEAD] }, { settings: { SIGNUP_CODE: "invite" } });
   const post = async p => g2.call(p);
   const keys = await VAULT.newKeys("pass-1234");
-  const su = await post({ action: "signup", user: "bodil", code: "invite", ...keys.fields });
+  const su = await post({ action: "signup", email: "someone@example.com", user: "bodil", code: "invite", ...keys.fields });
   await VAULT.start({ post, user: "bodil", token: su.token, dek: keys.dek });
   res = await VAULT.call({ action: "addmany", wines: own, bumps: [] });
   check("encrypted cellar: addmany runs in the browser engine", res.ok && res.wines.length === 3, J(res).slice(0, 200));

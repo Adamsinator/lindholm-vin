@@ -29,7 +29,7 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
 
   // sign up
   await p.click("#gateToggle");
-  await p.fill("#gateUser", "anna"); await p.fill("#gatePass", "anna-pass-1"); await p.fill("#gateInvite", "invite");
+  await p.fill("#gateUser", "anna"); await p.fill("#gatePass", "anna-pass-1"); await p.fill("#gateInvite", "invite"); await p.fill("#gatePass2", "anna-pass-1"); await p.fill("#gateEmail", "someone@example.com");
   await p.click("#gateSubmit");
   await p.waitForSelector("#recModal.open", { timeout: 20000 });
   const code = (await p.textContent("#recCode")).trim();
@@ -81,7 +81,7 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   await p.goto(BASE); await p.waitForTimeout(2500);
 
   // change password
-  await p.click("#acctBtn"); await p.fill("#acctPass", "anna-pass-1"); await p.fill("#acctNew", "anna-pass-2");
+  await p.click("#acctBtn"); await p.fill("#acctPass", "anna-pass-1"); await p.fill("#acctNew", "anna-pass-2"); await p.fill("#acctNew2", "anna-pass-2");
   await p.click("#acctSave"); await p.waitForTimeout(3500);
   check("password change closes the dialog", !(await p.isVisible("#acctModal")), await p.textContent("#acctErr"));
 
@@ -98,7 +98,7 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
 
   // forgot password: recovery code + new password
   await p.click("#gateForgot");
-  await p.fill("#gateUser", "anna"); await p.fill("#gateRec", code.toLowerCase()); await p.fill("#gatePass", "anna-pass-3");
+  await p.fill("#gateUser", "anna"); await p.fill("#gateRec", code.toLowerCase()); await p.fill("#gatePass", "anna-pass-3"); await p.fill("#gatePass2", "anna-pass-3");
   await p.click("#gateSubmit");
   await p.waitForSelector("#app:not([hidden])", { timeout: 20000 }); await p.waitForTimeout(1500);
   check("recovery opens the same cellar", (await p.textContent("#tbl")).includes("Domaine Roulot"));

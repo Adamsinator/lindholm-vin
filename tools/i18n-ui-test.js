@@ -10,7 +10,7 @@ const HEAD = ["Producent", "Land", "Område", "Kommune", "Mark/Navn", "Klassifik
 const gas = H({ Ark1: [HEAD,
   ["Domaine Leflaive", "Frankrig", "Bourgogne", "Puligny-Montrachet", "Les Pucelles", "1. cru", "Hvid", "Chardonnay", 2014, 2, 1900, 1, "", ""],
   ["Giacomo Conterno", "Italien", "Piemonte", "", "Barolo Francia", "", "Rød", "Nebbiolo", 2017, 4, 950, "", "", ""],
-  ["Château Lynch-Bages", "Frankrig", "Bordeaux", "Pauillac", "", "", "Rød", "Cabernet Sauvignon", 2005, 6, 1200, "", "", ""]] });
+  ["Château Lynch-Bages", "Frankrig", "Bordeaux", "Pauillac", "", "", "Rød", "Cabernet Sauvignon", 2005, 6, 1200, "", "", ""]] }, { settings: { SOCIAL: "on" } });
 const results = []; const check = (name, ok, extra = "") => { results.push(ok); console.log((ok ? "PASS " : "FAIL ") + name + (ok ? "" : "  " + extra)); };
 // words that only English uses, to find text the sweep missed (names of wines and places are left out of the scan)
 const EN = /\b(the|and|your|you|with|from|click|bottles?|wines|enjoyed|cellar|(?<!-)value|price|search|filter|show|hide|edit|delete|save|cancel|more|not|yet|this|that|is|are|by|per|month|any|add|drink|drunk|ready|young|past|peak|soon|estimated|window|bought|drank|everyone|nothing|could|account|place|photo|remove|what|where|when|how|average|scores?|ratings?)\b/i;

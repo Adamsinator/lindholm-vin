@@ -103,8 +103,15 @@ function baseWindow(w){
   if(has(reg,["rhone","rhône","cornas","hermitage","cote rotie","côte rôtie","gigondas","chateauneuf","châteauneuf"]) || grape.includes("syrah"))
     return has(reg,["hermitage","cornas","cote rotie","côte rôtie"]) ? span(5,28) : span(4,20);
   // Riesling — Mosel/Saar & German/Alsace whites age superbly, often 20–40 yrs
-  if(grape.includes("riesling") || has(reg,["mosel","saar","ruwer","rheingau","nahe","pfalz","rheinhessen","alsace"]))
+  if(grape.includes("riesling") || has(reg,["mosel","saar","ruwer","rheingau","nahe","pfalz","rheinhessen","alsace"])){
+    // the German ripeness level says much about how long it keeps: a Kabinett is lighter, a TBA nearly immortal
+    if(has(cls,["beerenauslese","eiswein","tba"]) || /\bba\b/.test(cls)) return span(8,50);
+    if(cls.includes("auslese")) return span(5,30);
+    if(cls.includes("spatlese")) return span(3,25);
+    if(cls.includes("kabinett")) return span(2,15);
+    if(has(cls,["grosses gewachs","gg","grosse lage"])) return span(3,20);
     return grand?span(3,35):span(3,25);
+  }
   return style==="Hvid" ? span(1,6) : span(2,10);         // generic white / red
 }
 
@@ -373,7 +380,10 @@ function renderOverview(){
   if(SHOW_PRICES){
     const valueLeft = cellar.reduce((s,w)=>s+(w.price||0)*w.left,0);
     kpis.push([tr("Cellar value"), kr(valueLeft), tr("at purchase price"), ""]);
-    kpis.push([tr("Avg. bottle"), kr(bottlesLeft?valueLeft/bottlesLeft:0), tr("cellar average"), ""]);
+    // the average over the bottles that have a price: one at 150 and one with none averages 150, not 75
+    const pricedLeft = cellar.reduce((s,w)=>s+(w.price>0?w.left:0),0);
+    kpis.push([tr("Avg. bottle"), kr(pricedLeft?valueLeft/pricedLeft:0),
+      pricedLeft < bottlesLeft ? tr("over {0} with a price", btl(fmt(pricedLeft))) : tr("cellar average"), ""]);
     const valued = cellar.filter(w=>w.value!=null);
     if(valued.length){
       const market = valued.reduce((s,w)=>s+w.value*w.left,0);
@@ -523,6 +533,7 @@ function renderOverview(){
   $("regionsList").innerHTML = [...new Set(WINES.map(w=>w.region).filter(Boolean))].sort().map(r=>`<option>${esc(r)}</option>`).join("");
   $("countries").innerHTML = [...new Set(WINES.map(w=>w.country).filter(Boolean))].sort().map(r=>`<option>${esc(r)}</option>`).join("");
   $("grapes").innerHTML = [...new Set(WINES.map(w=>w.grape).filter(Boolean))].sort().map(r=>`<option>${esc(r)}</option>`).join("");
+  renderQuickPicks();
 }
 
 /* ---------- style pie ---------- */
@@ -1239,7 +1250,7 @@ async function addWine(e){
   const v = id => $(id).value.trim();
   const wine = {
     producer:v("aProducer"), name:v("aName"), commune:v("aCommune"),
-    country:v("aCountry"), region:v("aRegion"), classification:v("aClass"),
+    country:v("aCountry"), region:v("aRegion"), classification:clsValue("aClass"),
     type:v("aType"), grape:v("aGrape"), size:$("aSize").value,
     vintage: /^\d{4}$/.test(v("aVintage")) ? Number(v("aVintage")) : v("aVintage"),
     qty: Number(v("aQty"))||1,
@@ -1280,6 +1291,10 @@ function setGateMode(mode){
   trSet(signup ? "Create account" : recover ? "Set new password" : "Log in", $("gateSubmit"));
   trSet(signup || recover ? "Have an account? Log in" : "Need an account? Sign up", $("gateToggle"));
   $("gatePass").setAttribute("autocomplete", signup || recover ? "new-password" : "current-password");
+  // a new password is typed twice and has to pass the rule; sign-up also asks for an email
+  $("gateEmailWrap").hidden = !signup; $("gateUserHint").hidden = !signup;
+  $("gatePass2Wrap").hidden = !(signup || recover); $("gatePassHint").hidden = !(signup || recover);
+  $("gatePass2").value = ""; $("gateMatch").textContent = "";
   trSet(recover ? "New password" : "Password", document.querySelector('label[for="gatePass"]'));
   $("gateErr").textContent = "";
   humanShow(signup || recover);
@@ -1296,12 +1311,42 @@ function humanShow(on){
 }
 function humanToken(){ try{ return HUMAN.id!==null ? (window.turnstile.getResponse(HUMAN.id) || "") : ""; }catch(e){ return ""; } }
 function humanReset(){ try{ if(HUMAN.id!==null) window.turnstile.reset(HUMAN.id); }catch(e){} } // a token works once
+// The rules for a new account, checked in the page (the server checks the username and email again; it never sees
+// the password). A password: at least 10 characters, not the username, not one of the passwords everyone tries.
+const USERNAME_RE = /^[a-zA-Z0-9_.-]{3,24}$/, EMAIL_RE = /^[^\s@]{1,64}@[^\s@]+\.[^\s@]{2,}$/;
+const COMMON_PASS = new Set(("password password1 password12 password123 password1234 passw0rd 1234567890 0123456789 123456789a 1q2w3e4r5t "
+  + "qwertyuiop qwerty1234 qwerty12345 asdfghjkl1 zxcvbnm123 iloveyou12 letmein123 welcome123 abcdefghij abc1234567 "
+  + "football12 baseball12 sunshine12 princess12 dragon1234 monkey1234 master1234 trustno1234 superman12 starwars12 "
+  + "adgangskode kodeord123 kodeordet1 hemmelig12 sommer2024 sommer2025 sommer2026 vinter2025 vinter2026 danmark123 "
+  + "allwine123 allwinevin wine123456 winewinewine vinvinvin1 champagne1 bourgogne1 burgundy12 bordeaux12").split(" "));
+function passProblem(pass, user){
+  const p = String(pass || ""), low = p.toLowerCase();
+  if(p.length < 10) return tr("Use a password of at least 10 characters.");
+  if(user && low === String(user).trim().toLowerCase()) return tr("Don't use your username as the password.");
+  if(COMMON_PASS.has(low) || /^(.)\1+$/.test(p) || "01234567890123456789".includes(p) || "abcdefghijklmnopqrstuvwxyz".includes(low))
+    return tr("That password is too easy to guess — pick another.");
+  return "";
+}
+// the eye shows both password fields as text, and says when the two match
+$("gateEye").addEventListener("click", ()=>{ const show = $("gatePass").type === "password";
+  ["gatePass","gatePass2"].forEach(id=>{ $(id).type = show ? "text" : "password"; });
+  $("gateEye").setAttribute("aria-pressed", String(show)); const k = show ? "Hide password" : "Show password"; $("gateEye").setAttribute("aria-label", tr(k)); $("gateEye").title = tr(k); });
+function gateMatch(){
+  const a = $("gatePass").value, b = $("gatePass2").value, m = $("gateMatch");
+  if(!b){ m.textContent = ""; m.className = "fhint"; return; }
+  const same = a === b; m.textContent = same ? "✓ " + tr("The passwords match") : tr("The two passwords aren't the same.");
+  m.className = "fhint " + (same ? "ok" : "bad");
+}
+$("gatePass").addEventListener("input", gateMatch); $("gatePass2").addEventListener("input", gateMatch);
+$("gateUser").addEventListener("blur", ()=>{ if(GATE_MODE!=="signup") return; const u = $("gateUser").value.trim(), h = $("gateUserHint");
+  h.classList.toggle("bad", !!u && !USERNAME_RE.test(u)); });
+
 // Friendly text for the error codes the API returns.
 const AUTH_MSG = {
   "bad-login":"Wrong username or password.", "bad-invite":"That invite code isn't right, or it has already been used.",
   "locked":"Too many wrong tries — wait 15 minutes and try again.", "signup-full":"There's no room for new accounts right now. Ask the owner.",
   "signup-busy":"Too many sign-ups just now — try again in an hour.",
-  "signup-disabled":"Signups are closed right now.", "user-taken":"That username is taken.",
+  "signup-disabled":"Signups are closed right now.", "user-taken":"That username is taken — choose another.", "bad-email":"Enter your email address.",
   "bad-username":"Username: 3–24 letters, numbers, . _ or -.", "weak-pass":"Use a password of at least 6 characters.",
   "no-cellar":"Your cellar couldn't be opened. Contact the owner.",
   "human-check":"The \"are you human\" check didn't go through. Wait for it to finish and try again.",
@@ -1373,7 +1418,7 @@ async function gateEncrypted(mode, user, pass){
     if(!pre.ok || (pre.v||0) < 28) return false; // an older Apps Script: the plain sign-up below
     $("gateErr").textContent = tr("Creating your keys…");
     const k = await VAULT.newKeys(pass);
-    const data = await post({action:"signup", user, code:$("gateInvite").value.trim(), turnstile:humanToken(), ...k.fields});
+    const data = await post({action:"signup", user, email:$("gateEmail").value.trim(), code:$("gateInvite").value.trim(), turnstile:humanToken(), ...k.fields});
     if(!data.ok) throw new Error(data.error);
     cfg.user = data.user; VAULT.rememberSalt(data.user, k.fields);
     // the account exists from here: if the phone reloads the page while the code is on screen (a trip to the
@@ -1423,7 +1468,13 @@ $("gateForm").addEventListener("submit", async e=>{
   if(!cfg.api){ $("gateErr").textContent = tr("The API URL is missing."); return; }
   const user = $("gateUser").value.trim(), pass = $("gatePass").value;
   if(!user || !pass){ $("gateErr").textContent = tr("Enter your username and password."); return; }
-  if(GATE_MODE!=="login" && pass.length < 8){ $("gateErr").textContent = tr("Use a password of at least 8 characters."); return; }
+  // everything that can be checked here is, before the "are you human" check is spent on a doomed request
+  if(GATE_MODE==="signup" && !USERNAME_RE.test(user)){ $("gateErr").textContent = authMsg("bad-username"); $("gateUser").focus(); return; }
+  if(GATE_MODE==="signup" && !EMAIL_RE.test($("gateEmail").value.trim())){ $("gateErr").textContent = tr("Enter your email address."); $("gateEmail").focus(); return; }
+  if(GATE_MODE!=="login"){
+    const bad = passProblem(pass, user); if(bad){ $("gateErr").textContent = bad; $("gatePass").focus(); return; }
+    if($("gatePass2").value !== pass){ $("gateErr").textContent = tr("The two passwords aren't the same."); $("gatePass2").focus(); return; }
+  }
   if(GATE_MODE!=="login" && HUMAN.key && !humanToken()){ $("gateErr").textContent = tr("Wait for the \"are you human\" check to finish."); return; }
   const signup = GATE_MODE==="signup";
   localStorage.setItem("vinStay", $("gateStay").checked ? "1" : "0");
@@ -1435,7 +1486,7 @@ $("gateForm").addEventListener("submit", async e=>{
     }
     if(GATE_MODE==="recover"){ $("gateErr").textContent = tr("Recovery needs the updated Apps Script (version 28)."); return; }
     const params = signup
-      ? {action:"signup", user, pass, code:$("gateInvite").value.trim(), turnstile:humanToken()}
+      ? {action:"signup", user, pass, email:$("gateEmail").value.trim(), code:$("gateInvite").value.trim(), turnstile:humanToken()}
       : {action:"login", user, pass};
     const data = await post(params);
     if(!data.ok){ $("gateErr").textContent = authMsg(data.error); return; }
@@ -1453,12 +1504,14 @@ $("gateForm").addEventListener("submit", async e=>{
 });
 
 /* ---------- account: change password, new recovery code ---------- */
-$("acctBtn").addEventListener("click", ()=>{ $("acctErr").textContent=""; $("acctPass").value=""; $("acctNew").value=""; $("acctModal").classList.add("open"); $("acctPass").focus(); });
+$("acctBtn").addEventListener("click", ()=>{ $("acctErr").textContent=""; $("acctPass").value=""; $("acctNew").value=""; $("acctNew2").value=""; $("acctModal").classList.add("open"); $("acctPass").focus(); });
 $("acctCancel").addEventListener("click", ()=>$("acctModal").classList.remove("open"));
 $("acctForm").addEventListener("submit", async e=>{
   e.preventDefault();
   const oldPass = $("acctPass").value, newPass = $("acctNew").value;
-  if(!oldPass || newPass.length < 8){ $("acctErr").textContent = tr("Enter your current password and a new one of at least 8 characters."); return; }
+  if(!oldPass || !newPass){ $("acctErr").textContent = tr("Enter your current password and a new one."); return; }
+  const bad = passProblem(newPass, cfg.user); if(bad){ $("acctErr").textContent = bad; return; }
+  if($("acctNew2").value !== newPass){ $("acctErr").textContent = tr("The two passwords aren't the same."); return; }
   $("acctErr").textContent = tr("Changing…");
   try{ await VAULT.changePassword({post, user:cfg.user, token:cfg.token, oldPass, newPass});
     $("acctModal").classList.remove("open"); toast(tr("Password changed. Other devices are signed out."));
@@ -2716,9 +2769,70 @@ function autofill(ids){
   if(nt){ nt.hidden = !filled.length; nt.textContent = filled.length ? tr("Filled in {0} from {1}.", filled.join(", "), k.from) : ""; }
   classHint(ids);
 }
+// The classification list for a country: France's AOC / Premier cru / Grand cru (and Bordeaux's crus), Germany's
+// Prädikat and VDP levels, Italy's and Spain's own; "Other…" takes anything else as text. A value a wine already has
+// stays selectable (Special club, Cru classé…).
+function classOptions(country, region){
+  const c = normName(country||""), r = normName(region||"");
+  if(/^(tyskland|germany|allemagne|deutschland)$/.test(c) || /mosel|rheingau|nahe|pfalz|rheinhessen|franken|baden/.test(r))
+    return ["Kabinett","Spätlese","Auslese","Beerenauslese","Trockenbeerenauslese","Eiswein","Grosses Gewächs","Erste Lage"];
+  if(/^(ostrig|austria|autriche|osterreich)$/.test(c) || /wachau|kamptal|kremstal|burgenland/.test(r))
+    return ["Smaragd","Federspiel","Steinfeder","Erste Lage","Grosse Lage","Kabinett","Spätlese","Auslese","Beerenauslese","Trockenbeerenauslese","Eiswein"];
+  if(/^(italien|italy|italie)$/.test(c) || /piemonte|toscana|veneto|sicilia/.test(r)) return ["DOCG","DOC","Riserva","IGT"];
+  if(/^(spanien|spain|espagne)$/.test(c) || /rioja|ribera|priorat/.test(r)) return ["DOCa","DO","Crianza","Reserva","Gran Reserva"];
+  if(/^(portugal)$/.test(c) || /douro|porto/.test(r)) return ["DOC","Reserva","Vintage","LBV"];
+  const fr = ["AOC","1. cru","Grand cru"];
+  return /bordeaux/.test(r) ? fr.concat(["Cru classé","Cru bourgeois"]) : fr;
+}
+const CLS_LABEL = {"1. cru": "Premier cru"};
+function fillClassSelect(sel){
+  const keep = sel.value === "__other" ? "" : sel.value, country = $(sel.dataset.country), region = $(sel.dataset.region);
+  const opts = classOptions(country && country.value, region && region.value);
+  sel.innerHTML = `<option value="">—</option>` + opts.map(o=>`<option value="${esc(o)}">${esc(CLS_LABEL[o] ? tr(CLS_LABEL[o]) : o)}</option>`).join("")
+    + `<option value="__other">${esc(tr("Other…"))}</option>`;
+  if(keep) sel.value = matchOpt(sel, keep, true);
+  otherBox(sel, true);
+}
+// the text field for "Other…", right under the list
+function otherBox(sel, quiet){
+  let box = sel.parentNode.querySelector(".clsother");
+  if(sel.value !== "__other"){ if(box) box.hidden = true; return; }
+  if(!box){ box = document.createElement("input"); box.className = "clsother"; box.setAttribute("aria-label", tr("Classification"));
+    box.placeholder = tr("Type the classification"); sel.after(box); }
+  box.hidden = false; if(!quiet) box.focus();
+}
+// what a classification list holds: the option, or the text typed under "Other…"
+function clsValue(id){
+  const sel = $(id); if(sel.value !== "__other") return sel.value;
+  const box = sel.parentNode.querySelector(".clsother"); return box ? box.value.trim() : "";
+}
+document.querySelectorAll("select[data-country]").forEach(sel=>{
+  fillClassSelect(sel);
+  sel.addEventListener("change", ()=>{ sel.dataset.auto = ""; otherBox(sel); });
+  [sel.dataset.country, sel.dataset.region].forEach(id=>{ const el = $(id); if(el) el.addEventListener("change", ()=>fillClassSelect(sel)); });
+});
+// Quick picks under Country and Location: the usual countries and your own, the places you use most
+const QP_COUNTRIES = ["Frankrig","Italien","Spanien","Tyskland","Østrig","Portugal"];
+function renderQuickPicks(){
+  const byCount = key => { const m = new Map(); WINES.forEach(w=>{ const v = String(w[key]||"").trim(); if(v) m.set(v, (m.get(v)||0) + 1); });
+    return [...m.entries()].sort((a,b)=>b[1]-a[1]).map(x=>x[0]); };
+  const countries = [...new Set([...QP_COUNTRIES, ...byCount("country")])].slice(0, 8), places = byCount("location").slice(0, 6);
+  document.querySelectorAll(".qpick").forEach(box=>{
+    const list = box.dataset.kind === "country" ? countries : places, inp = $(box.dataset.for);
+    box.innerHTML = list.map(v=>`<button type="button">${esc(v)}</button>`).join("");
+    const mark = ()=>box.querySelectorAll("button").forEach(b=>b.classList.toggle("on", b.textContent===inp.value.trim()));
+    box.querySelectorAll("button").forEach(b=>b.addEventListener("click", ()=>{
+      inp.value = b.textContent; inp.dispatchEvent(new Event("input", {bubbles:true})); inp.dispatchEvent(new Event("change", {bubbles:true})); mark(); }));
+    if(!inp.dataset.qp){ inp.dataset.qp = "1"; inp.addEventListener("input", ()=>{ const q = inp.parentNode.querySelector(".qpick"); if(q) q.querySelectorAll("button").forEach(b=>b.classList.toggle("on", b.textContent===inp.value.trim())); }); }
+    mark();
+  });
+}
+
 // pick the select option that means the same classification ("1er Cru" in a sheet → "1. cru")
-function matchOpt(sel, val){
-  const k = clsKey(val), o = [...sel.options].find(o=>o.value && clsKey(o.value)===k);
+function matchOpt(sel, val, filled){
+  // a classification list redraws for the form's country first (it may have been filled in just now)
+  if(!filled && sel.dataset.country){ sel.value = ""; fillClassSelect(sel); }
+  const k = clsKey(val), o = [...sel.options].find(o=>o.value && o.value !== "__other" && clsKey(o.value)===k);
   if(o) return o.value;
   const extra = document.createElement("option"); extra.value = extra.textContent = String(val).trim(); sel.appendChild(extra); return extra.value;
 }
@@ -2894,7 +3008,7 @@ $("jForm").addEventListener("submit", async e=>{
     date: v("jDate"), producer: v("jProducer"), wine: v("jWine"),
     vintage: /^\d{4}$/.test(v("jVintage")) ? Number(v("jVintage")) : v("jVintage"),
     country: v("jCountry"), region: v("jRegion"), grape: v("jGrape"),
-    commune: v("jCommune"), classification: $("jClass").value,
+    commune: v("jCommune"), classification: clsValue("jClass"),
     place: v("jPlace"), rating: v("jRating") ? Number(v("jRating")) : "",
     price: v("jPrice") === "" ? "" : Math.max(0, Number(v("jPrice")) || 0), note: v("jNote"),
   };
@@ -3236,7 +3350,7 @@ $("eaForm").addEventListener("submit", async e=>{
   const entry={ producer:v("eaProducer"), wine:v("eaWine"),
     vintage: /^\d{4}$/.test(v("eaVintage"))?Number(v("eaVintage")):v("eaVintage"),
     type:$("eaType").value, size:$("eaSize").value,
-    region:v("eaRegion"), country:v("eaCountry"), commune:v("eaCommune"), classification:$("eaClass").value,
+    region:v("eaRegion"), country:v("eaCountry"), commune:v("eaCommune"), classification:clsValue("eaClass"),
     grape:v("eaGrape"), place:v("eaPlace"),
     drunkDate:v("eaDate"), rating: v("eaRating")?Number(v("eaRating")):"",
     price: v("eaPrice")==="" ? "" : Math.max(0, Number(v("eaPrice"))||0), note:v("eaNote") };
@@ -3282,7 +3396,7 @@ $("iForm").addEventListener("submit", async e=>{
   const w = I_WINE; if(!w) return;
   const v = id => $(id).value.trim();
   const vint = /^\d{4}$/.test(v("iVintage")) ? Number(v("iVintage")) : v("iVintage");
-  const next = {producer:v("iProducer"), name:v("iName"), vintage:vint, commune:v("iCommune"), classification:$("iClass").value,
+  const next = {producer:v("iProducer"), name:v("iName"), vintage:vint, commune:v("iCommune"), classification:clsValue("iClass"),
     country:v("iCountry"), region:v("iRegion"), grape:v("iGrape"), type:$("iType").value,
     location:v("iLocation"), source:v("iSource"), note:v("iNote")};
   const was = {producer:w.producer, name:w.name, vintage:w.vintage??"", commune:w.commune, classification:w.classification,
@@ -3453,11 +3567,19 @@ function feedRecall(){
     if(c && Array.isArray(c.feed)){ FEED=c.feed; FEED_ME=c.me||""; FEED_USERS=c.users||[]; FEED_FOLLOWS=c.follows||[]; } }catch(e){}
 }
 function feedForgetAll(){ try{ Object.keys(localStorage).filter(k => k.startsWith("vinFeed:")).forEach(k => localStorage.removeItem(k)); }catch(e){} }
+// The feed is there only when the server says so (its SOCIAL setting): off, the tab, the Share buttons and the list of
+// other members never show, and nothing is kept on the device.
+function setSocial(on){
+  document.body.classList.toggle("social", !!on);
+  const t = document.querySelector('.tab[data-page="feed"]'); if(t) t.hidden = !on;
+  if(!on){ feedForgetAll(); FEED = null; FEED_USERS = []; if(location.hash==="#feed") location.hash = ""; }
+}
 async function loadFeedSilently(){
-  feedRecall(); if(FEED && location.hash==="#feed") renderFeed();
-  try{ const r=await api({action:"feed"}); FEED=r.feed||[]; FEED_ME=r.me||""; FEED_USERS=r.users||[]; FEED_FOLLOWS=r.follows||[]; feedKeep();
+  if(!document.body.classList.contains("social")) FEED = null;
+  else { feedRecall(); if(FEED && location.hash==="#feed") renderFeed(); }
+  try{ const r=await api({action:"feed"}); setSocial(r.social === true); if(r.social !== true) return; FEED=r.feed||[]; FEED_ME=r.me||""; FEED_USERS=r.users||[]; FEED_FOLLOWS=r.follows||[]; feedKeep();
     if(location.hash==="#feed"){ renderFeed(); markFeedSeen(); } else updateFeedBadge();
-  }catch(e){ /* feed is optional; older API may not have it */ }
+  }catch(e){ setSocial(false); /* off (social-off), or an older API */ }
 }
 async function loadFeed(force){
   if(!force) feedRecall();
@@ -3604,7 +3726,7 @@ async function toggleFollow(user, follow){
 function route(){
   const h = location.hash;
   const page = h==="#journal" ? "journal" : h==="#enjoyed" ? "enjoyed" : h==="#wishlist" ? "wishlist"
-             : h==="#feed" ? "feed" : "cellar";
+             : h==="#feed" && document.body.classList.contains("social") ? "feed" : "cellar";
   $("pageCellar").hidden = page!=="cellar";
   $("pageEnjoyed").hidden = page!=="enjoyed";
   $("pageWishlist").hidden = page!=="wishlist";

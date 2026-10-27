@@ -11,15 +11,15 @@ const plainWine = ["Armand Rousseau", "Frankrig", "Bourgogne", "Gevrey-Chamberti
 
 (async () => {
   const gas = H({ Ark1: [HEAD, plainWine], Journal: [["Dato", "Producent", "Vin", "Foto"], ["2025-12-24", "Armand Rousseau", "Clos St-Jacques", "phOLD"]] },
-                { settings: { SIGNUP_CODE: "invite", OWNER_USER: "adam", OWNER_PASSWORD: "owner-pass-1" } });
+                { settings: { SIGNUP_CODE: "invite", OWNER_USER: "adam", OWNER_PASSWORD: "owner-pass-1", SOCIAL: "on" } });
   const post = async p => gas.call(p);
   const everything = () => JSON.stringify(Object.values(gas.rt.books).filter(b => !b.trashed).map(b => Object.values(b.sheets).map(s => s._cells)));
 
   // ── a friend signs up: nothing readable ever reaches the server ──
   const keys = await VAULT.newKeys("friend-pass");
-  let r = await post({ action: "signup", user: "anna", code: "invite", ...keys.fields });
+  let r = await post({ action: "signup", email: "someone@example.com", user: "anna", code: "invite", ...keys.fields });
   check("signup with derived keys", r.ok && r.state === "done", JSON.stringify(r));
-  check("signup refuses a plain password (old page)", (await post({ action: "signup", user: "bo", code: "invite", pass: "x123456" })).error === "update-site");
+  check("signup refuses a plain password (old page)", (await post({ action: "signup", email: "someone@example.com", user: "bo", code: "invite", pass: "x123456" })).error === "update-site");
   await VAULT.start({ post, user: "anna", token: r.token, dek: keys.dek });
   r = await VAULT.call({ action: "add", wine: { producer: "Domaine Leflaive", name: "Les Pucelles", vintage: 2019, qty: 2, price: 1900, region: "Bourgogne", country: "Frankrig", note: "anna-private" } });
   check("add a wine in the vault", r.ok && r.wines.length === 1 && r.wines[0].producer === "Domaine Leflaive");

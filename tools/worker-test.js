@@ -108,20 +108,20 @@ const HEAD = ["Producent", "Land", "Område", "Kommune", "Mark/Navn", "Klassifik
   // ── Turnstile on sign-up and recovery ──
   const envT = { ...envBase, TURNSTILE_SECRET: PASS_KEY };
   const before = sent.length;
-  r = await call({ action: "signup", user: "bodil", pass: "bodil-pass-1", code: "invite" }, { ip: "7.7.7.7", env: envT });
+  r = await call({ action: "signup", email: "someone@example.com", user: "bodil", pass: "bodil-pass-1", code: "invite" }, { ip: "7.7.7.7", env: envT });
   check("sign-up without the human check is refused before Apps Script", r.json.error === "human-check" && sent.length === before);
   const k = await VAULT.newKeys("bodil-pass-1");
-  r = await call({ action: "signup", user: "bodil", code: "invite", turnstile: "XXXX.DUMMY.TOKEN.XXXX", ...k.fields }, { ip: "7.7.7.7", env: envT });
+  r = await call({ action: "signup", email: "someone@example.com", user: "bodil", code: "invite", turnstile: "XXXX.DUMMY.TOKEN.XXXX", ...k.fields }, { ip: "7.7.7.7", env: envT });
   check("…and with it the account is made", r.json.ok === true && !!r.json.token, r.text.slice(0, 160));
   check("…with the token kept from Apps Script", !("turnstile" in sent[sent.length - 1]));
-  r = await call({ action: "signup", user: "carl", code: "invite", turnstile: "XXXX.DUMMY.TOKEN.XXXX", ...k.fields }, { ip: "7.7.7.7", env: { ...envBase, TURNSTILE_SECRET: FAIL_KEY } });
+  r = await call({ action: "signup", email: "someone@example.com", user: "carl", code: "invite", turnstile: "XXXX.DUMMY.TOKEN.XXXX", ...k.fields }, { ip: "7.7.7.7", env: { ...envBase, TURNSTILE_SECRET: FAIL_KEY } });
   check("a token Turnstile rejects is refused", r.json.error === "human-check");
   r = await call({ action: "recover", user: "bodil" }, { ip: "7.7.7.7", env: envT });
   check("recovery needs the check too", r.json.error === "human-check");
   const v0 = verifies;
   r = await call({ action: "login", user: "bodil", auth: "z" }, { ip: "7.7.7.7", env: envT });
   check("logging in doesn't (it stays one quick request)", verifies === v0 && r.json.error === "bad-login");
-  r = await call({ action: "signup", user: "dora", code: "invite", ...k.fields }, { ip: "7.7.7.8" });
+  r = await call({ action: "signup", email: "someone@example.com", user: "dora", code: "invite", ...k.fields }, { ip: "7.7.7.8" });
   check("without TURNSTILE_SECRET there's no check", r.json.ok === true);
 
   // ── a broken upstream ──

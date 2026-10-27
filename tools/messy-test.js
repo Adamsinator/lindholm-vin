@@ -94,7 +94,7 @@ const file = name => { const b = fs.readFileSync(path.join(__dirname, "fixtures"
   const g3 = H({ Ark1: [HEAD] }, { settings: { SIGNUP_CODE: "invite" } });
   const post = async p => g3.call(p);
   const keys = await VAULT.newKeys("pass-1234");
-  const su = await post({ action: "signup", user: "tidyuser", code: "invite", ...keys.fields });
+  const su = await post({ action: "signup", email: "someone@example.com", user: "tidyuser", code: "invite", ...keys.fields });
   await VAULT.start({ post, user: "tidyuser", token: su.token, dek: keys.dek });
   await VAULT.call({ action: "addmany", wines: [{ producer: "Roulot", name: "Meursault", vintage: 2019, qty: 2, price: 400 }, { producer: "roulot", name: "Meursault", vintage: 2019, qty: 1, price: 500 }], bumps: [] });
   let rv = await VAULT.call({ action: "setinfomany", edits: [{ row: 3, fields: { producer: "Roulot" } }] });

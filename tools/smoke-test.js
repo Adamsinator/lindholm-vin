@@ -36,7 +36,7 @@ function backend(){
       case 'journal': case 'jadd': case 'jedit': case 'jdelete': r.entries=S.journal; break;
       case 'wish': case 'wadd': case 'wedit': case 'wdelete': r.items=S.wish; break;
       case 'wtocellar': r.items=S.wish; Object.assign(r,W2()); break;
-      case 'feed': case 'feedpost': case 'feeddelete': case 'feedcheer': case 'feedcomment': Object.assign(r,{feed:S.feed,me:'adam',users:['adam','anna'],follows:['anna']}); break;
+      case 'feed': case 'feedpost': case 'feeddelete': case 'feedcheer': case 'feedcomment': Object.assign(r,{social:true,feed:S.feed,me:'adam',users:['adam','anna'],follows:['anna']}); break;
       case 'follow': case 'unfollow': r.follows=['anna']; break;
       case 'photo': r.photo=''; break;
       case 'atlas': r.edits=S.edits; break;

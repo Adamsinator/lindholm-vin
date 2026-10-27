@@ -25,7 +25,7 @@ const HEAD = ["Producent", "Land", "Område", "Kommune", "Mark/Navn", "Klassifik
   };
   for (const [user, pass, wine] of [["anna", "anna-pass-1", "Les Pucelles"], ["bodil", "bodil-pass-12", "Barolo Francia"]]) {
     const k = await VAULT.newKeys(pass);
-    const s = await post({ action: "signup", user, code: "invite", ...k.fields });
+    const s = await post({ action: "signup", email: "someone@example.com", user, code: "invite", ...k.fields });
     await VAULT.start({ post, user, token: s.token, dek: k.dek });
     await VAULT.call({ action: "add", wine: { producer: user === "anna" ? "Domaine Leflaive" : "Giacomo Conterno", name: wine, vintage: 2019, qty: 2 } });
   }

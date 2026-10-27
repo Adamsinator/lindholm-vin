@@ -84,7 +84,7 @@ async function importBig(p, merge) {
     const gas = H({ Ark1: [HEAD] }, { settings: { SIGNUP_CODE: "invite" } });
     const { ctx, p, calls, errs } = await session(b, gas, false);
     await p.click("#gateToggle");
-    await p.fill("#gateUser", "vera"); await p.fill("#gatePass", "vera-pass-1"); await p.fill("#gateInvite", "invite");
+    await p.fill("#gateUser", "vera"); await p.fill("#gatePass", "vera-pass-1"); await p.fill("#gateInvite", "invite"); await p.fill("#gatePass2", "vera-pass-1"); await p.fill("#gateEmail", "someone@example.com");
     await p.click("#gateSubmit");
     await p.waitForSelector("#recModal.open", { timeout: 20000 }); await p.check("#recOk"); await p.click("#recDone");
     await p.waitForSelector("#app:not([hidden])", { timeout: 20000 });
