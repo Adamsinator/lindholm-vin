@@ -1621,7 +1621,8 @@ const FIX_FIELD = {producer:"Producer", name:"Vineyard / cuvée", commune:"Commu
 function impReset(){
   Object.assign(IMP, {book:null, sheet:0, t:null, fields:[], built:null, d:null, name:"", off:new Set(), merge:true});
   TIDIER = null; $("impMerge").checked = true;
-  $("impPick").hidden = false; $("impMap").hidden = true; $("impBack").hidden = true; $("impGo").hidden = true;
+  $("impPick").hidden = false; $("impMap").hidden = true; $("impBack").hidden = true; $("impGo").hidden = true; $("impGrid").hidden = true;
+  IMP.fromGrid = false; trSet("Import wines", $("impTitle")); trSet("Choose another file", $("impBack"));
   $("impErr").textContent = ""; $("impFile").value = "";
   $("impLock").textContent = (window.VAULT && VAULT.active())
     ? tr("🔒 The file is read in this browser and never uploaded. The wines are encrypted here before they're saved, like the rest of your cellar.")
@@ -1754,8 +1755,72 @@ async function impRun(){
   }
 }
 $("impBtn").addEventListener("click", ()=>{ impReset(); $("impModal").classList.add("open"); });
+/* ---------- several wines in a table: typed or pasted, then the import's own check (spellings, duplicates) ---------- */
+const GRID_COLS = [["producer","p"],["name","p"],["vintage","n"],["qty","n"],["price","n"],["location","p"]];
+const GRID_HEAD = ["Producer","Wine","Vintage","Bottles","Price","Location"]; // the import reads these headings
+function gridRow(vals){
+  const tr_ = document.createElement("tr");
+  tr_.innerHTML = GRID_COLS.map(([k,c],i)=>`<td class="${c}"><input data-c="${i}" ${k==="producer"?'list="jProducers"':k==="location"?'list="locList"':""}
+      ${c==="n"?'inputmode="decimal"':""} autocomplete="off" aria-label="${esc(tr(["Producer","Wine / cuvée","Vintage","Bottles","Price per bottle (kr.)","Location"][i]))}"></td>`).join("")
+    + `<td><button type="button" class="gdel" aria-label="${esc(tr("Remove the row"))}" title="${esc(tr("Remove the row"))}">✕</button></td>`;
+  (vals||[]).forEach((v,i)=>{ const inp = tr_.querySelector(`input[data-c="${i}"]`); if(inp) inp.value = v; });
+  $("wGrid").tBodies[0].appendChild(tr_);
+  return tr_;
+}
+function gridCount(){
+  const n = [...$("wGrid").tBodies[0].rows].filter(r=>r.querySelector('input[data-c="0"]').value.trim()).length;
+  $("gridCount").textContent = n ? (n===1 ? tr("1 wine") : tr("{0} wines", n)) : "";
+  $("gridGo").disabled = !n;
+}
+function gridOpen(){
+  impReset();
+  const body = $("wGrid").tBodies[0]; body.innerHTML = ""; for(let i=0; i<5; i++) gridRow();
+  $("impPick").hidden = true; $("impGrid").hidden = false; $("impBack").hidden = false;
+  IMP.fromGrid = true; trSet("Add several wines", $("impTitle")); trSet("Choose a file instead", $("impBack"));
+  $("impModal").classList.add("open"); gridCount();
+  setTimeout(()=>body.querySelector("input").focus(), 30);
+}
+$("gridOpen").addEventListener("click", gridOpen);
+$("addMany").addEventListener("click", ()=>{ $("addModal").classList.remove("open"); gridOpen(); });
+$("gridRow").addEventListener("click", ()=>{ gridRow().querySelector("input").focus(); });
+$("wGrid").addEventListener("input", gridCount);
+$("wGrid").addEventListener("click", e=>{ const b = e.target.closest(".gdel"); if(!b) return;
+  const body = $("wGrid").tBodies[0]; b.closest("tr").remove(); if(!body.rows.length) gridRow(); gridCount(); });
+// Enter goes down a row (a new one at the end), as in a spreadsheet
+$("wGrid").addEventListener("keydown", e=>{
+  if(e.key !== "Enter" || !e.target.matches("input")) return;
+  e.preventDefault();
+  const tr_ = e.target.closest("tr"), c = e.target.dataset.c, next = tr_.nextElementSibling || gridRow();
+  next.querySelector(`input[data-c="${c}"]`).focus();
+});
+// rows pasted from a spreadsheet (tabs between cells, a line per row) fill the table from the cell pasted into
+$("wGrid").addEventListener("paste", e=>{
+  const text = (e.clipboardData || window.clipboardData).getData("text"); if(!/[\t\n]/.test(text)) return;
+  e.preventDefault();
+  const lines = text.replace(/\r/g, "").split("\n").filter((l,i,a)=>l.length || i < a.length - 1);
+  let tr_ = e.target.closest("tr"); const c0 = Number(e.target.dataset.c);
+  lines.forEach((line, i)=>{
+    if(i) tr_ = tr_.nextElementSibling || gridRow();
+    line.split("\t").forEach((v, j)=>{ const inp = tr_.querySelector(`input[data-c="${c0 + j}"]`); if(inp) inp.value = v.trim(); });
+  });
+  gridCount();
+});
+$("gridGo").addEventListener("click", ()=>{
+  const rows = [...$("wGrid").tBodies[0].rows].map(r=>GRID_COLS.map((_,i)=>r.querySelector(`input[data-c="${i}"]`).value.trim())).filter(v=>v[0]);
+  if(!rows.length){ $("impErr").textContent = tr("Type at least one producer."); return; }
+  IMP.book = {sheets:[{name:tr("Table"), rows:[GRID_HEAD, ...rows]}]}; IMP.name = tr("Typed in the table"); IMP.sheet = 0;
+  $("impSheet").innerHTML = ""; $("impSheet").hidden = true; $("impName").textContent = IMP.name;
+  impSheet();
+  $("impGrid").hidden = true; $("impMap").hidden = false; $("impBack").hidden = false; $("impGo").hidden = false;
+  trSet("Back to the table", $("impBack"));
+});
 $("impCancel").addEventListener("click", ()=>$("impModal").classList.remove("open"));
-$("impBack").addEventListener("click", impReset);
+// back: to the table it came from (with its rows), or to choosing a file
+$("impBack").addEventListener("click", ()=>{
+  if(IMP.fromGrid && !$("impMap").hidden){ $("impMap").hidden = true; $("impGo").hidden = true; $("impGrid").hidden = false; $("impErr").textContent = "";
+    trSet("Choose a file instead", $("impBack")); return; }
+  impReset();
+});
 $("impModal").addEventListener("click", e=>{ if(e.target===$("impModal")) $("impModal").classList.remove("open"); });
 $("impFile").addEventListener("change", e=>{ const f = e.target.files && e.target.files[0]; if(f) impOpen(f); });
 ["dragenter","dragover"].forEach(ev => $("impDrop").addEventListener(ev, e=>{ e.preventDefault(); $("impDrop").classList.add("over"); }));

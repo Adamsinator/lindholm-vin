@@ -568,6 +568,11 @@ only, never wines.
 - **Quick picks** under Country (the usual six and your own) and Location (the places you use most): one tap
   fills the field; typing still works.
 - The **average bottle** counts only bottles with a price.
+- **Several at once:** "Several at once? Type them in a table" in Add wine (or "Type them in a table" in Import)
+  opens a small sheet: producer, wine, vintage, bottles, price, location. Tab and Enter move between cells (Enter
+  adds a row at the end), and rows copied from Excel or Numbers paste straight in. "Check the wines" runs them
+  through the import's own check (one spelling per thing, wines already in the cellar get their bottles added),
+  "Back to the table" keeps what was typed.
 
 ## Big cellars
 
