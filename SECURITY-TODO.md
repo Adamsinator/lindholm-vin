@@ -17,12 +17,13 @@ are done (see "Limits against abuse" in the README). Tick a box when an item shi
         add-suggest-ui, i18n-ui, cellar-flow (plain and vault), big-import-ui, fast-login-ui, csp-ui, smoke.
   - [x] Make "tests green" required before merging to `main`: GitHub → Settings → Branches (or Rules) → add a
         rule for `main` → require the "Tests / test" status check. Only the repository owner can do this.
-- [x] **Backups** — `backupNow`, `installWeeklyBackup`, `restoreFromBackup` in `Code.gs`.
+- [x] **Backups** — `backupNow`, `installDailyBackup`, `restoreFromBackup` in `Code.gs`; daily since API 37, kept 8 weeks.
   - [x] A weekly time-driven trigger in Apps Script that copies the master spreadsheet (Users, Invites, Feed,
         Follows, atlas corrections) and each account's vault spreadsheet into a dated `Backups` folder, keeping the
         last 8.
   - [x] Restore tested: `tools/backup-test.js` restores an encrypted cellar and opens it with its password.
-  - [x] After deploying: run `installWeeklyBackup` once in the editor.
+  - [x] After deploying: run `installWeeklyBackup` once in the editor. (Since API 37 the daily check backs up every day by itself; `installDailyBackup` also moves the schedule to every night.)
+  - [x] Deleted wines are kept 30 days under Recently deleted (API 37).
   - [ ] Check that the first Sunday's folder (1 November) appears in `Backups`.
   - [ ] Remind users that their recovery code is the only way back into an encrypted cellar. Nobody, the owner
         included, can reset it.

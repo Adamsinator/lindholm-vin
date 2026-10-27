@@ -2,7 +2,7 @@
  * AllWine — your settings. Keep this as a second file (Settings.gs) next to Code.gs in the Apps Script project.
  * Updating the API means replacing Code.gs only; this file is never overwritten, so set these once.
  * After changing a setting, redeploy (Deploy → Manage deployments → ✏️ → New version → Deploy): the web app runs the
- * files as they were when deployed. Functions run from the editor, and the weekly backup, use what's saved now.
+ * files as they were when deployed. Functions run from the editor, and the daily backup, use what's saved now.
  */
 var SETTINGS = {
   // Legacy single-user access code for the bound sheet. Leave '' to turn it off — logging in with a username and
@@ -20,7 +20,7 @@ var SETTINGS = {
   MAX_USERS: 50,
   SESSION_DAYS: 30,
 
-  // Backups: how many weekly backups to keep (run installWeeklyBackup once to start them). To put one account back as
+  // Backups: how many weeks of daily backups to keep (run installDailyBackup once to start them). To put one account back as
   // it was in a backup, fill in its username and the backup folder's name (e.g. '2026-11-01T04:00'), run
   // restoreFromBackup, then blank both again.
   BACKUP_KEEP: 8,

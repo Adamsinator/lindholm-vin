@@ -41,7 +41,7 @@ Deploy → Manage deployments → ✏️ → Version: **New version** → Deploy
 **When a change needs a redeploy:** the web app runs a frozen copy of *every* file in the project, made when you
 deployed, so a change to `Settings.gs` (e.g. blanking `SIGNUP_CODE`) only reaches the site after another
 Manage deployments → ✏️ → New version → Deploy. Functions you run from the editor (`makeInvites`,
-`installWeeklyBackup`, `restoreFromBackup`, …) and the weekly backup trigger always use the code as last saved, so
+`installDailyBackup`, `restoreFromBackup`, …) and the daily backup trigger always use the code as last saved, so
 they need no redeploy. Those editor functions print what they did in the execution log at the bottom of the editor.
 
 ### 2. The site
@@ -763,14 +763,19 @@ script cache, which forgets on its own:
 
 The site says each limit in words (in all four languages). Test: `node tools/abuse-test.js` (43 checks).
 
-### Backups (API 34)
+### Backups (daily since API 37)
 
-Run `installWeeklyBackup` once from the Apps Script editor (Google asks you to allow scheduled runs). Every Sunday
+Run `installDailyBackup` once from the Apps Script editor (Google asks you to allow scheduled runs). Every night
 at about 04:00, `backupNow` then copies, into a dated folder under `Backups` next to the master sheet:
 - the master spreadsheet: accounts, invites, feed, follows, atlas corrections and your own cellar;
 - every account's own spreadsheet: its encrypted vault, or a plain cellar from before encryption.
 
-Each backup has a `manifest.txt` of what went where, and the newest `BACKUP_KEEP` (8) are kept.
+Each backup has a `manifest.txt` of what went where. They are kept for `BACKUP_KEEP` weeks (8, so about 56
+backups), and the newest 7 always stay. Without running anything new, a weekly schedule from before becomes daily
+too: the daily check (`dailyReport`) makes a backup whenever the newest is more than a day old.
+- **Recently deleted:** a wine deleted in the site isn't gone at once. Its row goes to a `Slettet` tab (in an
+  encrypted cellar, one more encrypted tab of the vault) for 30 days, and **↩ Recently deleted** in the cellar puts
+  it back exactly as it was. Tested in `tools/backup-test.js` and `tools/cellar-flow-test.js`.
 - **Encrypted cellars stay encrypted in the copies.** Only their owners' passwords or recovery codes open them, so
   a backup can't leak them, and can't help someone who has lost both.
 - **Journal photos aren't copied.** They stay as files in Drive, and Drive keeps deleted files in its bin for 30 days.
@@ -886,7 +891,7 @@ It is linked from the login form and the Account dialog. Update it if what the s
 - **The Users row:** removed, so every session ends.
 - **The browser:** the device's copies are wiped.
 
-Weekly backups keep a copy until they rotate out (`BACKUP_KEEP` weeks). The owner's own account, whose cellar is the
+Daily backups keep a copy until they rotate out (`BACKUP_KEEP` weeks). The owner's own account, whose cellar is the
 master sheet, can't be deleted this way. Tested in `tools/account-test.js` and `tools/account-ui-test.js`.
 
 ### Watching it run (API 36)
@@ -902,7 +907,7 @@ writes.
 `dailyReport()` emails you when the last 24 hours pass a threshold:
 - 3 sign-ups, 3 lockouts, 5 errors, 20 rate-limit refusals or 10 gateway refusals;
 - or the accounts reach 90 % of `MAX_USERS`;
-- or the newest weekly backup is more than 8 days old.
+- or there's no backup from the last 2 days (it first makes one if the newest is over a day old).
 
 On a quiet day it sends nothing. **Run `installDailyReport` once** from the editor: it schedules the check for about
 07:00 every day and sends a test email straight away. The first run asks to allow sending email. Alerts go to the

@@ -25,7 +25,7 @@
  *                  makeInvites() from the editor). With neither, signups are off
  *   MAX_USERS      the most accounts there can be (default 50)
  *   SESSION_DAYS   a login lasts this many days without use (default 30)
- *   BACKUP_KEEP    how many weekly backups to keep (default 8); RESTORE_USER / RESTORE_FROM for restoreFromBackup()
+ *   BACKUP_KEEP    how many weeks of daily backups to keep (default 8); RESTORE_USER / RESTORE_FROM for restoreFromBackup()
  *   ATLAS_EDITORS  who may correct vineyard holdings in the Burgundy atlas: '' = anyone signed in,
  *                  or a comma-separated list of usernames, e.g. 'adam,anna'
  *   OWNER_USER / OWNER_PASSWORD   only for the one-time makeOwner() setup of your own account (see below)
@@ -42,7 +42,7 @@ function setting(key) {
 // The legacy code only works once you've set a real one: the placeholder from the template is public.
 function accessCode() { const c = setting('ACCESS_CODE'); return c === 'CHANGE-ME' ? '' : c; }
 
-const API_VERSION = 36; // returned in every response; used to verify deployments
+const API_VERSION = 37; // returned in every response; used to verify deployments
 
 // Per-request spreadsheet for the authenticated user. Set in handle(); every
 // sheet helper reads it via ss(). Falls back to the bound (owner's) spreadsheet.
@@ -190,6 +190,11 @@ function handle(p) {
       case 'delete':
         deleteWine(Number(p.row));
         return json({ ok: true, wines: readAll() });
+      case 'deleted':
+        return json({ ok: true, deleted: listDeleted() });
+      case 'undelete':
+        undeleteWine(String(p.id || ''));
+        return json({ ok: true, wines: readAll(), deleted: listDeleted() });
       case 'rate':
         rateWine(Number(p.row), p.rating);
         return json({ ok: true, wines: readAll() });
@@ -360,8 +365,13 @@ function dailyReport() {
   const it = backupsFolder().getFolders(), dirs = [];
   while (it.hasNext()) dirs.push(it.next().getName());
   const hasSchedule = ScriptApp.getProjectTriggers().some(t => t.getHandlerFunction() === 'backupNow');
-  const newest = dirs.sort().pop(), age = newest ? (now - Date.parse(newest)) / 864e5 : null;
-  if (hasSchedule && (age === null || age > 8)) why.push('backups: ' + (newest ? 'newest is ' + newest : 'none yet'));
+  let newest = dirs.sort().pop(), age = newest ? (now - Date.parse(newest)) / 864e5 : null;
+  // backups are daily: with a schedule (even the old weekly one) the check makes one when the newest is over a day old
+  if (hasSchedule && (age === null || age > 1)) {
+    try { backupNow(); const it2 = backupsFolder().getFolders(), d2 = []; while (it2.hasNext()) d2.push(it2.next().getName());
+      newest = d2.sort().pop(); age = newest ? (now - Date.parse(newest)) / 864e5 : null; } catch (err) { logEvent('error', '', 'backup: ' + err); }
+  }
+  if (hasSchedule && (age === null || age > 2)) why.push('backups: ' + (newest ? 'newest is ' + newest : 'none yet'));
   const summary = Object.keys(counts).sort().map(k => k + ' ' + counts[k]).join(', ') || 'no events';
   if (!why.length) return told('All quiet: ' + summary + '; ' + users + ' accounts.');
   const lines = ['AllWine noticed something in the last 24 hours:', ''].concat(why.map(w => '• ' + w), ['', 'Latest events:'],
@@ -659,7 +669,7 @@ function doNewRecovery(p) {
 // Delete my account (API 36), with the password once more. Its files go to the owner's Drive trash (which empties itself
 // after 30 days): the account's own folder (its vault or cellar spreadsheet, journal and vault photos), or the files
 // one by one if they sit elsewhere. Its feed posts, comments and follows (both ways) are removed and its cheers taken
-// back; invites it used and atlas corrections it made stay, signed "(deleted account)". Weekly backups keep a copy
+// back; invites it used and atlas corrections it made stay, signed "(deleted account)". Daily backups keep a copy
 // until they rotate out (BACKUP_KEEP weeks). The owner's own account, whose cellar is the master sheet, can't be
 // deleted this way.
 const GONE = '(deleted account)';
@@ -767,7 +777,7 @@ function makeOwner() {
 // split over rows of at most 40 000 characters. The browser decrypts them, runs this same file's cellar logic on the
 // plain copy (vault-engine.js), and writes back the records that changed. Ver makes a write from a stale copy fail
 // instead of overwriting another device's change. Journal photos are encrypted files in a "Vault" folder.
-const PRIVATE_ACTIONS = { data: 1, add: 1, drink: 1, undrink: 1, delete: 1, rate: 1, setvalue: 1, setprice: 1, setdate: 1,
+const PRIVATE_ACTIONS = { data: 1, add: 1, drink: 1, undrink: 1, delete: 1, deleted: 1, undelete: 1, rate: 1, setvalue: 1, setprice: 1, setdate: 1,
   setsize: 1, setwindow: 1, setinfo: 1, enjoysync: 1, classfill: 1, enjoyadd: 1, addmany: 1, setinfomany: 1, mergerows: 1, journal: 1, jadd: 1, jedit: 1,
   jdelete: 1, wish: 1, wadd: 1, wedit: 1, wdelete: 1, wtocellar: 1, photo: 1 };
 const VAULT_TAB = 'Vault';
@@ -1413,10 +1423,52 @@ function rateWine(rowNum, rating) {
   sh.getRange(rowNum, i + 1).setValue(v || '');
 }
 
+// A deleted wine isn't gone at once: the row goes to a "Slettet" tab, with its headings, for DELETED_DAYS days, and
+// "Recently deleted" in the cellar puts it back (the same columns, matched by heading). In an encrypted cellar the
+// tab is one more encrypted tab of the vault.
+const DELETED_SHEET = 'Slettet', DELETED_DAYS = 30;
+function deletedSheet(create) {
+  const book = ss(); let sh = book.getSheetByName(DELETED_SHEET);
+  if (!sh && create) { sh = book.insertSheet(DELETED_SHEET); sh.appendRow(['Slettet', 'Id', 'Overskrifter', 'Række']); }
+  return sh;
+}
 function deleteWine(rowNum) {
   const sh = sheet();
   if (!rowNum || rowNum < 2 || rowNum > sh.getLastRow()) throw new Error('Bad row');
+  const cols = sh.getLastColumn();
+  const head = sh.getRange(1, 1, 1, cols).getValues()[0], row = sh.getRange(rowNum, 1, 1, cols).getValues()[0];
+  const plain = v => v instanceof Date ? ymd(v) : v;
+  deletedSheet(true).appendRow([new Date().toISOString(), Utilities.getUuid(), JSON.stringify(head.map(plain)), JSON.stringify(row.map(plain))]);
   sh.deleteRow(rowNum);
+  purgeDeleted();
+}
+// the kept rows, newest first, as wines (what the list shows)
+function deletedRows() {
+  const sh = deletedSheet(false); if (!sh || sh.getLastRow() < 2) return [];
+  return sh.getRange(2, 1, sh.getLastRow() - 1, 4).getValues().map((r, i) => {
+    let head = [], row = []; try { head = JSON.parse(r[2]); row = JSON.parse(r[3]); } catch (e) {}
+    return { at: String(r[0] instanceof Date ? r[0].toISOString() : r[0]), id: String(r[1]), head, row, sheetRow: i + 2 };
+  });
+}
+function listDeleted() {
+  const pick = (d, h) => { const i = d.head.indexOf(h); return i >= 0 ? d.row[i] : ''; };
+  return deletedRows().map(d => ({ id: d.id, at: d.at, producer: pick(d, HEADERS.producer), name: pick(d, HEADERS.name), vintage: pick(d, HEADERS.vintage),
+    qty: pick(d, HEADERS.qty), drunk: pick(d, HEADERS.drunk) })).reverse();
+}
+function purgeDeleted() {
+  const sh = deletedSheet(false); if (!sh) return;
+  const old = Date.now() - DELETED_DAYS * 864e5;
+  deletedRows().filter(d => !(Date.parse(d.at) >= old)).reverse().forEach(d => sh.deleteRow(d.sheetRow)); // bottom up
+}
+function undeleteWine(id) {
+  const d = deletedRows().find(x => x.id === id);
+  if (!d) throw new Error('not-found');
+  const sh = sheet();
+  // every heading the row had, in today's columns (a column it had that the sheet has lost comes back)
+  d.head.forEach(h => { if (String(h).trim()) ensureCol(sh, String(h)); });
+  const now = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
+  sh.appendRow(now.map(h => { const i = d.head.indexOf(h); return i >= 0 ? d.row[i] : ''; }));
+  deletedSheet(false).deleteRow(d.sheetRow);
 }
 
 // ── Current value (your own per-bottle figure) ───────────────────────────────
@@ -1757,7 +1809,8 @@ function addAtlasEdit(e) {
 // backupNow() copies the master spreadsheet (accounts, invites, feed, follows, atlas corrections, your own cellar) and
 // every account's spreadsheet — its encrypted vault, or a plain cellar from before encryption — into a dated folder
 // under "Backups" next to the master sheet, with a manifest of what is where, and keeps the newest BACKUP_KEEP.
-// installWeeklyBackup() runs it every Sunday at about 04:00. Encrypted cellars stay encrypted in the copies: only
+// installDailyBackup() runs it every night at about 04:00, and the daily check makes one if the newest is more than a
+// day old. Backups are kept for BACKUP_KEEP weeks. Encrypted cellars stay encrypted in the copies: only
 // their owners' passwords or recovery codes open them. Journal photos are files in Drive and aren't copied.
 function backupsFolder() {
   const root = masterFolder(), it = root.getFoldersByName('Backups');
@@ -1780,18 +1833,20 @@ function backupNow() {
     });
   });
   dir.createFile('manifest.txt', lines.join('\n'), MimeType.PLAIN_TEXT);
-  // keep the newest BACKUP_KEEP (the folder names sort by date)
-  const keep = Math.max(1, Number(setting('BACKUP_KEEP')) || 8), all = [], it = backupsFolder().getFolders();
+  // keep BACKUP_KEEP weeks of them (the folder names sort by date), and always the newest 7
+  const weeks = Math.max(1, Number(setting('BACKUP_KEEP')) || 8), cutoff = Date.now() - weeks * 7 * 864e5, all = [], it = backupsFolder().getFolders();
   while (it.hasNext()) all.push(it.next());
-  all.sort((a, b) => b.getName() < a.getName() ? -1 : 1).slice(keep).forEach(f => f.setTrashed(true));
+  all.sort((a, b) => b.getName() < a.getName() ? -1 : 1).slice(7).filter(f => !(Date.parse(f.getName()) >= cutoff)).forEach(f => f.setTrashed(true));
   return told('Backup ' + stamp + ': the master sheet and ' + n + ' account spreadsheet(s)' + (failed ? ', ' + failed + ' could not be copied (see manifest.txt)' : '') + '.');
 }
-// Run once from the editor: back up every Sunday at about 04:00 (running it again doesn't add a second schedule).
-function installWeeklyBackup() {
+// Run once from the editor: back up every night at about 04:00 (running it again doesn't add a second schedule).
+function installDailyBackup() {
   ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'backupNow').forEach(t => ScriptApp.deleteTrigger(t));
-  ScriptApp.newTrigger('backupNow').timeBased().onWeekDay(ScriptApp.WeekDay.SUNDAY).atHour(4).create();
-  return told('Weekly backup scheduled (Sundays ~04:00). ' + backupNow());
+  ScriptApp.newTrigger('backupNow').timeBased().everyDays(1).atHour(4).create();
+  return told('Daily backup scheduled (every night ~04:00). ' + backupNow());
 }
+// the old weekly schedule, now daily
+function installWeeklyBackup() { return installDailyBackup(); }
 // Put one account back as it was in a backup: set RESTORE_USER and RESTORE_FROM (the backup folder's name, e.g.
 // 2026-11-01T04:00) in Settings.gs, run this, then blank them again. The account then uses a copy of the backed-up
 // spreadsheet (its current one is kept, renamed "replaced"), and its devices are signed out so they reload.

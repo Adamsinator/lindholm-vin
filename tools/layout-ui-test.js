@@ -46,6 +46,24 @@ const wines = Array.from({ length: 120 }, (_, i) => { const p = P[i % P.length];
   check("…and opens on a click", await p.$eval("#mapFold", e => e.open) && await p.isVisible("#map"));
   check("the drink-window chips sit above the list", await p.isVisible("#prioPanel") && (await box("#prioPanel")).y < list.y);
 
+  // ── the columns: producer, wine, commune, vintage, region, bottles, price ──
+  const heads = await p.$$eval("#tbl thead th", ts => ts.filter(t => t.offsetWidth > 0).map(t => t.dataset.k));
+  check("the list has its own columns for producer, wine, commune, vintage and region", JSON.stringify(heads) === JSON.stringify(["producer", "name", "commune", "vintage", "region", "left", "price"]), JSON.stringify(heads));
+  const first = await p.$eval("#tbl tr.main", r => ({ prod: r.querySelector(".c-prod").innerText.trim(), wine: r.querySelector(".c-wine").innerText.trim(), comm: r.querySelector(".c-comm").innerText.trim(), reg: r.querySelector(".c-reg").innerText.trim() }));
+  check("…each in its own cell", first.prod && !first.prod.includes(first.wine.split(" ")[0] + " " + (first.wine.split(" ")[1] || "")) && first.comm && /Frankrig|Bourgogne|Champagne|Piemonte/.test(first.reg), JSON.stringify(first));
+  await p.click('#tbl th[data-k="commune"]'); await p.waitForTimeout(200);
+  const comms = await p.$$eval("#tbl tr.main .c-comm", cs => cs.slice(0, 40).map(c => c.textContent.trim()));
+  check("sorting by commune puts the communes in order", comms.every((c, i) => !i || comms[i - 1].localeCompare(c) <= 0), comms.slice(0, 8).join(" | "));
+  await p.click('#tbl th[data-k="price"]'); await p.click('#tbl th[data-k="price"]'); await p.waitForTimeout(150);
+  await p.evaluate(async () => { await api({ action: "add", wine: { producer: "Skærsøgaard", name: "Solaris", country: "Danmark", region: "", type: "Hvid", qty: 1 } }).catch(() => {}); await loadData(); });
+  await p.waitForTimeout(400);
+  const opts = await p.$$eval("#fCountry option", os => os.map(o => o.value));
+  check("a country filter lists the cellar's countries", !(await p.$eval("#fCountry", e => e.hidden)) && opts.includes("Frankrig") && opts.includes("Danmark"), JSON.stringify(opts));
+  await p.selectOption("#fCountry", "Danmark"); await p.waitForTimeout(200);
+  const dk = await p.$$eval("#tbl tr.main .c-prod", cs => cs.map(c => c.textContent));
+  check("…and filters by it", dk.length === 1 && /Skærsøgaard/.test(dk[0]), JSON.stringify(dk));
+  await p.selectOption("#fCountry", ""); await p.waitForTimeout(200);
+
   // ── list / timeline ──
   await p.click("#viewTl"); await p.waitForTimeout(300);
   check("Timeline shows the drink windows instead of the table", await p.isVisible("#dwPanel") && !(await p.isVisible("#pageCellar .tablewrap")));
@@ -65,7 +83,7 @@ const wines = Array.from({ length: 120 }, (_, i) => { const p = P[i % P.length];
   // ── phone ──
   await p.setViewportSize({ width: 390, height: 844 }); await p.waitForTimeout(400);
   check("no sideways scroll on a phone", await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
-  const card = await p.$eval("#tbl tr.main", r => { const c = [...r.children].map(td => td.getBoundingClientRect()); return { h: r.getBoundingClientRect().height, nameW: c[0].width, rowW: r.getBoundingClientRect().width, vintY: c[1].y, nameY: c[0].y }; });
+  const card = await p.$eval("#tbl tr.main", r => { const b = sel => r.querySelector(sel).getBoundingClientRect(); return { h: r.getBoundingClientRect().height, nameW: b(".c-prod").width, rowW: r.getBoundingClientRect().width, vintY: b(".c-vint").y, nameY: b(".c-prod").y }; });
   check("phone rows are two-line cards: the wine across the full width, numbers below", card.nameW > card.rowW * 0.9 && card.vintY > card.nameY && card.h < 110, JSON.stringify(card));
   check("the filters scroll away on a phone", await p.$eval("#pageCellar .filters", e => getComputedStyle(e).position) === "static");
 
