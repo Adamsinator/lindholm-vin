@@ -913,7 +913,11 @@ posts, follows and atlas corrections stay readable, because sharing them is the 
 - **Recovery code.** At sign-up, and at each existing user's first login on the new version, the site shows a
   recovery code once. It wraps the same data key, so a forgotten password can be reset from the login screen
   (**Forgot password?**). Without the password *and* the code, the cellar is gone — nobody can open it, you
-  included. **Account** (top bar) changes the password or issues a new code.
+  included. **Account** (top bar) changes the password or issues a new code. The account exists as soon as the
+  code shows: if a phone reloads the page while it's on screen (a trip to the password manager), the login says
+  the account was made, with the username filled in. Safari can leave IndexedDB hanging after the browser was in
+  the background, so the device's copy and the kept key give up after 4 seconds and the cellar comes from the
+  server instead. Tested in `tools/signup-resume-ui-test.js`.
 - **Where it lives.** Each account has an *AllWine vault — name* spreadsheet with one `Vault` tab of encrypted
   chunks, plus a `Vault` folder of encrypted journal photos. `vault-engine.js` runs `Code.gs` itself in the browser
   over the decrypted copy, so the cellar logic is the same code as the server's. `vault.js` then writes back only

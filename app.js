@@ -1198,7 +1198,11 @@ async function gateEncrypted(mode, user, pass){
     const data = await post({action:"signup", user, code:$("gateInvite").value.trim(), turnstile:humanToken(), ...k.fields});
     if(!data.ok) throw new Error(data.error);
     cfg.user = data.user; VAULT.rememberSalt(data.user, k.fields);
+    // the account exists from here: if the phone reloads the page while the code is on screen (a trip to the
+    // password manager), the login says so instead of looking like nothing happened
+    try{ sessionStorage.setItem("vinNewAccount", data.user); }catch(e){}
     await showRecoveryCode(k.recoveryCode);
+    try{ sessionStorage.removeItem("vinNewAccount"); }catch(e){}
     await openVault(data.user, data.token, k.dek);
     return true;
   }
@@ -3442,5 +3446,8 @@ if(cfg.api && cfg.user && cfg.token && sessionFresh && localStorage.getItem("vin
   if(staleDrop) forgetAuth();                     // (e.g. overnight) — drop it
   localStorage.removeItem("vinActive");
   setGateMode("login");
-  showGate(staleDrop ? tr("Your session expired after inactivity — log in again.") : "");
+  let made = ""; try{ made = sessionStorage.getItem("vinNewAccount") || ""; sessionStorage.removeItem("vinNewAccount"); }catch(e){}
+  if(made){ $("gateUser").value = made;
+    showGate(tr("Your account {0} is created. Log in with your password. If you didn't save the recovery code, make a new one under Account.", made)); }
+  else showGate(staleDrop ? tr("Your session expired after inactivity — log in again.") : "");
 }

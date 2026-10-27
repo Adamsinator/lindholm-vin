@@ -67,16 +67,21 @@ async function decrypt(dek, s, aad) {
 // The session's data key, kept in IndexedDB (non-extractable) so a reload doesn't ask for the password again;
 // cleared on sign-out and after the 60-minute idle sign-out.
 const DB = "allwine-vault", STORE = "keys";
+// Safari on a phone can leave IndexedDB hanging after the browser was in the background (a trip to the password
+// manager): every use gives up after a few seconds, so the page carries on without the kept key instead of waiting
+const IDB_WAIT = 4000;
+const idbWait = p => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error("idb-timeout")), IDB_WAIT))]);
 function idb() {
-  return new Promise((res, rej) => { const r = indexedDB.open(DB, 1);
-    r.onupgradeneeded = () => r.result.createObjectStore(STORE); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+  return idbWait(new Promise((res, rej) => { const r = indexedDB.open(DB, 1);
+    r.onupgradeneeded = () => r.result.createObjectStore(STORE); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); r.onblocked = () => rej(new Error("idb-blocked")); }));
 }
-async function keep(user, dek) { if (typeof indexedDB === "undefined") return; const db = await idb();
-  await new Promise((res, rej) => { const t = db.transaction(STORE, "readwrite"); t.objectStore(STORE).put(dek, String(user).toLowerCase()); t.oncomplete = res; t.onerror = () => rej(t.error); }); }
+// keeping the key is a convenience (no password after a reload): when it can't be kept, sign-in goes on without it
+async function keep(user, dek) { if (typeof indexedDB === "undefined") return; try { const db = await idb();
+  await idbWait(new Promise((res, rej) => { const t = db.transaction(STORE, "readwrite"); t.objectStore(STORE).put(dek, String(user).toLowerCase()); t.oncomplete = res; t.onerror = () => rej(t.error); })); } catch (e) {} }
 async function recall(user) { if (typeof indexedDB === "undefined") return null; try { const db = await idb();
-  return await new Promise(res => { const r = db.transaction(STORE).objectStore(STORE).get(String(user).toLowerCase()); r.onsuccess = () => res(r.result || null); r.onerror = () => res(null); }); } catch (e) { return null; } }
+  return await idbWait(new Promise(res => { const r = db.transaction(STORE).objectStore(STORE).get(String(user).toLowerCase()); r.onsuccess = () => res(r.result || null); r.onerror = () => res(null); })); } catch (e) { return null; } }
 async function forget(user) { if (typeof indexedDB === "undefined") return; try { const db = await idb();
-  await new Promise(res => { const t = db.transaction(STORE, "readwrite"); const s = t.objectStore(STORE); user ? s.delete(String(user).toLowerCase()) : s.clear(); t.oncomplete = res; t.onerror = res; }); } catch (e) {} }
+  await idbWait(new Promise(res => { const t = db.transaction(STORE, "readwrite"); const s = t.objectStore(STORE); user ? s.delete(String(user).toLowerCase()) : s.clear(); t.oncomplete = res; t.onerror = res; })); } catch (e) {} }
 
 const api = { KDF, ITER, newSalt, fromPassword, recoveryCode, normCode, fromRecovery, newDataKey, wrap, unwrap, encrypt, decrypt, keep, recall, forget, b64, unb64 };
 if (typeof module !== "undefined" && module.exports) module.exports = api;
