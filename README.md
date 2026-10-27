@@ -554,6 +554,13 @@ only, never wines.
   the site; invite codes made 1–10 at a time with a note, a ready invitation to copy (link and code), and a way
   to withdraw an unused code. What's in a cellar is never there: it's encrypted. `makeInvites()` in the Apps
   Script editor still works too.
+- **Remove a member** (Admin → Remove, then type their username): the same clean-up as the member deleting
+  their own account. Their Drive folder goes to the bin (30 days), their name comes off their invite code, their
+  row leaves `Users`, and every device they're logged in on is signed out. The owner's own account can't be
+  removed this way.
+- **A forgotten password and a lost recovery code** can't be rescued, by the owner or anyone: the cellar is
+  encrypted with a key only the password or the recovery code opens, and the server never has either. What the
+  owner can do is give them a fresh start: Remove, then a new invite code.
 
 ## Adding a wine: the lists
 
@@ -819,8 +826,8 @@ Others can keep their own cellar behind a username + password:
   existing account, yours included. There is no separate admin role: the owner is simply the account whose
   cellar is the master spreadsheet. To restrict atlas corrections to yourself, set `ATLAS_EDITORS` to your
   username.
-- Remove someone: delete their row from the `Users` tab (and their folder from
-  your Drive). Their vault can't be read without their password or recovery code anyway.
+- Remove someone: Admin → Remove on the site (it cleans up after them). Deleting their row from the `Users` tab
+  by hand also locks them out, but leaves their folder in your Drive.
 - **Signed in on several devices at once** is fine: the `Token` cell keeps the
   five most recent sessions, so logging in on a phone no longer signs out the
   laptop. To force every device of an account to sign in again, clear that
