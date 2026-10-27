@@ -17,10 +17,10 @@ const node = typeof module !== "undefined" && module.exports;
 const VC = node ? require("./vault-crypto.js") : root.VCRYPTO;
 const VE = node ? require("./vault-engine.js") : root.VAULT_ENGINE;
 
-const PRIVATE = new Set(["data", "add", "drink", "undrink", "delete", "rate", "setvalue", "setprice", "setdate", "setsize",
+const PRIVATE = new Set(["data", "add", "drink", "undrink", "delete", "deleted", "undelete", "rate", "setvalue", "setprice", "setdate", "setsize",
   "setwindow", "setinfo", "enjoysync", "classfill", "enjoyadd", "addmany", "setinfomany", "mergerows", "journal", "jadd", "jedit", "jdelete",
   "wish", "wadd", "wedit", "wdelete", "wtocellar"]);
-const SHARED_TABS = ["Journal", "Ønskeliste"]; // plus the wine tab (meta.sheetName); nothing else is ever stored
+const SHARED_TABS = ["Journal", "Ønskeliste", "Slettet"]; // plus the wine tab (meta.sheetName); nothing else is ever stored
 let S = null; // { post, user, token, dek, engine, sheetName, vers: {key: ver}, src, photoCache, recs, busy, writes }
 
 // ── The device's copy of the vault: the server's records as they are, encrypted (useless without the password) ──
@@ -69,7 +69,7 @@ let SRC = null;
 async function codeSource(url) {
   if (SRC) return SRC;
   if (node) SRC = require("fs").readFileSync(require("path").join(__dirname, "apps-script", "Code.gs"), "utf8");
-  else { const res = await fetch(url || "apps-script/Code.gs?v=36"); if (!res.ok) throw new Error("engine-load " + res.status); SRC = await res.text(); }
+  else { const res = await fetch(url || "apps-script/Code.gs?v=37"); if (!res.ok) throw new Error("engine-load " + res.status); SRC = await res.text(); }
   return SRC;
 }
 const keepTabs = (all, sheetName) => Object.fromEntries(Object.entries(all).filter(([n]) => n === sheetName || SHARED_TABS.includes(n)));

@@ -947,7 +947,7 @@ async function loadData(quiet){
     renderOverview(); renderTable(); renderEnjoyed();
     LOADED_AT = new Date(); stampText();
     $("spin").hidden = true; $("content").hidden = false;
-    loadJournalSilently(); loadFeedSilently();
+    loadJournalSilently(); loadFeedSilently(); refreshDeleted();
   }catch(err){
     if(AUTH_ERRORS.has(err.message)){ forgetAuth(); setGateMode("login"); showGate(tr("Your session expired — log in again.")); }
     else { $("spin").textContent = tr("Could not reach the cellar API ({0}). Check your connection and refresh.", errText(err)); }
@@ -1040,7 +1040,7 @@ async function rowAction(act, row, btn){
   const w = WINES.find(x=>x.row===row);
   if(act==="delete"){
     const name = w ? `${w.producer} ${w.name} ${w.vintage||""}`.trim() : tr("this wine");
-    if(!confirm(w && isElsewhere(w) ? tr("Remove {0} from Enjoyed?\nYour journal entries for it stay.", name) : tr("Delete {0} from the cellar?\nThis removes the whole row from the sheet.", name))) return;
+    if(!confirm(w && isElsewhere(w) ? tr("Remove {0} from Enjoyed?\nYour journal entries for it stay.", name) : tr("Delete {0} from the cellar?\nYou can bring it back from Recently deleted for 30 days.", name))) return;
   }
   const wasLast = act==="drink" && w && w.left===1;
   const label = btn.textContent;
@@ -1054,7 +1054,8 @@ async function rowAction(act, row, btn){
     renderOverview(); renderTable(); renderEnjoyed();
     toast(act==="drink" ? tr("Skål! Bottle marked as drunk 🍷")
         : act==="undrink" ? tr("Bottle back in the cellar 🍾")
-        : tr("Wine deleted from the sheet"));
+        : tr("Deleted — it's in Recently deleted for 30 days"));
+    if(act==="delete") refreshDeleted();
     if(wasLast){
       const nw = WINES.find(x=>x.row===row) || w;
       setTimeout(()=>{
@@ -1336,6 +1337,34 @@ $("addBtn").addEventListener("click", ()=>{
   $("addModal").classList.add("open"); $("aProducer").focus();
 });
 $("addCancel").addEventListener("click", ()=>$("addModal").classList.remove("open"));
+
+/* ---------- recently deleted: a deleted wine is kept 30 days (Code.gs, the "Slettet" tab) and can be put back ---------- */
+let DELETED = [];
+async function refreshDeleted(){
+  try{ const r = await api({action:"deleted"}); DELETED = r.deleted || []; }
+  catch(e){ DELETED = []; } // a server from before this keeps nothing: no button
+  const b = $("delBtn"); b.hidden = !DELETED.length; b.textContent = "↩ " + tr("Recently deleted ({0})", DELETED.length);
+  if($("delModal").classList.contains("open")) renderDeleted();
+}
+function renderDeleted(){
+  const fmtAt = at => { const d = new Date(at); return isNaN(d) ? "" : d.toLocaleDateString(I18N.lang==="en"?"en-GB":I18N.lang, {day:"numeric", month:"short"}); };
+  $("delList").innerHTML = DELETED.length ? DELETED.map(d => `<div class="jcheck"><span><b>${esc(d.producer)}</b> ${esc([d.name, d.vintage].filter(Boolean).join(" "))}
+      <span class="aimeta">${esc(tr("deleted {0}", fmtAt(d.at)))}${Number(d.qty) ? " · " + esc(btl(fmt(Math.max(0, Number(d.qty) - (Number(d.drunk) || 0))))) : ""}</span></span>
+      <button class="btn" type="button" data-undel="${esc(d.id)}">${esc(tr("Restore"))}</button></div>`).join("")
+    : `<p class="imphint">${esc(tr("Nothing deleted in the last 30 days."))}</p>`;
+}
+$("delBtn").addEventListener("click", ()=>{ $("delErr").textContent = ""; renderDeleted(); $("delModal").classList.add("open"); });
+$("delClose").addEventListener("click", ()=>$("delModal").classList.remove("open"));
+$("delModal").addEventListener("click", async e=>{
+  if(e.target===$("delModal")) return $("delModal").classList.remove("open");
+  const b = e.target.closest("[data-undel]"); if(!b) return;
+  b.disabled = true; $("delErr").textContent = "";
+  try{ const r = await api({action:"undelete", id:b.dataset.undel});
+    WINES = normalize(r.wines); DELETED = r.deleted || [];
+    renderOverview(); renderTable(); renderEnjoyed(); renderDeleted(); toast(tr("Restored to your cellar"));
+    $("delBtn").hidden = !DELETED.length; $("delBtn").textContent = "↩ " + tr("Recently deleted ({0})", DELETED.length);
+  }catch(err){ $("delErr").textContent = tr("Could not restore: {0}", errText(err)); b.disabled = false; }
+});
 // Escape closes the photo lightbox or the topmost open dialog, like their Cancel / backdrop clicks.
 document.addEventListener("keydown", e=>{
   if(e.key!=="Escape") return;

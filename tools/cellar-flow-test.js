@@ -162,6 +162,24 @@ const W = async (prod, name) => (await (await wines())).find(w => w.producer ===
   check("…saved with classification, marked elsewhere", lf && lf.classification === "Grand cru" && lf.elsewhere === true);
 
   check("no console errors", !errs.length, errs.join(" | "));
+  // 8. delete a cellar wine, and bring it back from Recently deleted
+  await p.keyboard.press("Escape"); await go("cellar");
+  const rsBefore = await W("Armand Rousseau");
+  const nDel = () => p.evaluate(() => api({ action: "deleted" }).then(r => r.deleted.length)), del0 = await nDel(); // step 6 removed the Bizot Enjoyed row: it's kept too
+  await openRow("#tbl", "Armand Rousseau"); dialogs.length = 0;
+  await detail("#tbl", "Armand Rousseau").locator('button[data-act="delete"]').click(); await p.waitForTimeout(1200);
+  check("deleting asks first, and says it can be brought back", dialogs.some(d => /Recently deleted for 30 days/.test(d)), dialogs.join(" | "));
+  check("…the wine is gone from the cellar", !(await W("Armand Rousseau")));
+  await p.waitForSelector("#delBtn:not([hidden])", { timeout: 5000 }).catch(() => {});
+  check("…and it's under 'Recently deleted'", (await nDel()) === del0 + 1 && new RegExp("Recently deleted \\(" + (del0 + 1) + "\\)").test(await p.textContent("#delBtn")) && await p.isVisible("#delBtn"), await p.textContent("#delBtn"));
+  await p.click("#delBtn"); await p.waitForTimeout(200);
+  check("…listing it", /Armand Rousseau/.test(await p.textContent("#delList")));
+  await p.click('#delList .jcheck:has-text("Armand Rousseau") [data-undel]'); await p.waitForTimeout(1200);
+  const rsBack = await W("Armand Rousseau");
+  check("Restore puts it back as it was", rsBack && rsBack.qty === rsBefore.qty && rsBack.price === rsBefore.price && rsBack.name === rsBefore.name && rsBack.vintage === rsBefore.vintage, JSON.stringify([rsBefore, rsBack]));
+  check("…and leaves the list", (await nDel()) === del0 && !/Armand Rousseau/.test(await p.textContent("#delList")));
+  await p.click("#delClose");
+
   if (VAULT_MODE) {
     const stored = JSON.stringify(Object.values(gas.rt.books).filter(b => !b.trashed).map(b => Object.entries(b.sheets).filter(([n]) => !["Users", "Feed", "Follows", "FeedComments", "AtlasEdits"].includes(n)).map(([, sh]) => sh._cells)));
     check("vault: the server holds no wine, note or name in the clear", !/Rousseau|Cathiard|Ponsot|Conterno|Lovely|Échezeaux|Bizot/.test(stored), stored.slice(0, 200));

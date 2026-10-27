@@ -62,6 +62,9 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   await p.click('#tbl tr.main:has-text("Domaine Roulot")'); await p.waitForTimeout(150);
   if (!(await p.isVisible("#tbl button.winfo"))) { await p.click('#tbl tr.main:has-text("Domaine Roulot")'); await p.waitForTimeout(150); }
   await p.click("#tbl button.winfo");
+  // the dialog puts the cursor in the name 40 ms after it opens: wait for that, or typing the note can land in the
+  // name on a busy machine (it did once in the full suite: "Meursault Perrièrestil nytår")
+  await p.waitForFunction(() => document.activeElement && document.activeElement.id === "iName", null, { timeout: 3000 }).catch(() => {});
   check("the edit dialog shows the location", (await p.inputValue("#iLocation")) === "Kælder, reol 3, hylde 2");
   await p.fill("#iLocation", "Køleskab, række 4"); await p.fill("#iNote", "til nytår"); await p.selectOption("#iType", "Bobler");
   await p.click("#iSave"); await p.waitForTimeout(1500);

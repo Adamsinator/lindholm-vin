@@ -1,4 +1,4 @@
-// Tests of "Delete my account" and of the event log with its daily report (apps-script/Code.gs, API 36), in Node
+// Tests of "Delete my account" and of the event log with its daily report (apps-script/Code.gs, API 37), in Node
 // against the real Code.gs (gas-harness.js), with the browser's own vault code as the client.
 //   node tools/account-test.js
 "use strict";
