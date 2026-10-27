@@ -152,7 +152,7 @@ const nWines = n => n===1 ? tr("1 wine") : tr("{0} wines", n);
 let WINES = [];          // normalized
 let KEEP_OPEN = null;    // row number of the expanded detail, kept open across re-renders
 let SHOW_PRICES = localStorage.getItem("vinHidePrices") !== "1"; // prices shown by default
-const state = {q:"", region:"", style:"", status:"cellar", ready:"", loc:"", sortK:"price", sortDir:-1};
+const state = {q:"", country:"", region:"", style:"", status:"cellar", ready:"", loc:"", sortK:"price", sortDir:-1};
 // a location's first part ("Kælder" of "Kælder, reol 3, hylde 2") is the place the filter offers
 const locPlace = l => String(l||"").split(/[,;/·|]/)[0].trim();
 
@@ -422,6 +422,10 @@ function renderOverview(){
   });
 
   /* filter dropdown options (preserve selection) */
+  const ctrys = [...new Set(WINES.filter(w=>w.left>0||state.status!=="cellar").map(w=>w.country).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  const selC = $("fCountry");
+  selC.hidden = ctrys.length < 2 && !state.country; // one country is no choice
+  selC.innerHTML = `<option value="">${esc(tr("All countries"))}</option>` + ctrys.map(c=>`<option${state.country===c?" selected":""}>${esc(c)}</option>`).join("");
   const selR = $("fRegion");
   selR.innerHTML = `<option value="">${esc(tr("All regions"))}</option>` +
     regs.map(([name])=>`<option${state.region===name?" selected":""}>${esc(name)}</option>`).join("");
@@ -779,6 +783,7 @@ function renderTable(){
   let list = WINES.filter(w=>{
     if(state.status==="cellar" && w.left===0) return false;
     if(state.status==="drunk" && w.drunk===0) return false;
+    if(state.country && w.country!==state.country) return false;
     if(state.region && w.region!==state.region) return false;
     if(state.style && w.style!==state.style) return false;
     if(state.loc && (state.loc==="-" ? w.location : locPlace(w.location)!==state.loc)) return false;
@@ -810,7 +815,7 @@ function renderTable(){
     countTxt += ` · ${kr(vl)}`;
   }
   $("count").textContent = countTxt;
-  $("clear").classList.toggle("show", !!(q||state.region||state.style||state.ready||state.loc||state.status!=="cellar"));
+  $("clear").classList.toggle("show", !!(q||state.country||state.region||state.style||state.ready||state.loc||state.status!=="cellar"));
   drawDrinkTimeline(list);
 
   document.querySelectorAll(".rbar").forEach(el=>el.classList.toggle("active", el.dataset.region===state.region && !!state.region));
@@ -827,21 +832,27 @@ function renderTable(){
     const rwin = rd ? drinkWindow(w) : null;
     const rbadge = rd?`<span class="rbadge ${rd.k}${rd.est?" est":""}" title="${esc(rd.est ? tr("Estimated drink window {0} — set your own in the wine", `${rwin.from??"?"}–${rwin.to??"?"}`) : tr("Your drink window {0}", `${rwin.from??"?"}–${rwin.to??"?"}`))}">${esc(rd.label)}</span>`:"";
     const nm = [w.name, w.commune && w.commune!==w.name ? w.commune : ""].filter(Boolean).join(" · ");
+    // the colour as a dot before the wine (the style has its filter and its chart)
+    const dot = `<span class="sdot" title="${esc(tr(STYLE_EN[w.style])||w.style||"")}" style="background:var(${STYLE_VAR[w.style]||"--muted"})"></span>`;
+    const wine = `${fmtChip(w)}${esc(w.name)}${classChip(w)}${w.rating?` · <span class="myscore">${w.rating}/10</span>`:""}`;
+    const loc = w.location ? `<span class="wloc">📍 ${esc(w.location)}</span>` : "";
+    const where = w.region ? esc(w.region) + (w.country ? `<span class="ctry"> · ${esc(w.country)}</span>` : "") : esc(w.country);
     return `<tr class="main${w.left===0?" gone":""}" data-i="${i}" data-row="${w.row}" tabindex="0" aria-expanded="false">
-      <td><span class="prod">${esc(w.producer)}</span>${badge}${rbadge}<br><span class="wname">${fmtChip(w)}${esc(nm)}${classChip(w)}${w.rating?` · <span class="myscore">${w.rating}/10</span>`:""}</span>${w.location?`<br><span class="wloc">📍 ${esc(w.location)}</span>`:""}</td>
-      <td class="num">${esc(w.vintage||"—")}</td>
-      <td>${esc(w.region)}</td>
-      <td><span class="sdot" style="background:var(${STYLE_VAR[w.style]||"--muted"})"></span>${tr(STYLE_EN[w.style])||esc(w.style)}</td>
-      <td class="num">${state.status==="drunk"?w.drunk:w.left}</td>
-      <td class="num">${SHOW_PRICES ? (w.price?kr(w.price):"—") : "···"}</td>
+      <td class="c-prod"><span class="prod">${esc(w.producer)}</span>${badge}${rbadge}<br class="ponly"><span class="wname ponly">${dot}${fmtChip(w)}${esc(nm)}${classChip(w)}${w.rating?` · <span class="myscore">${w.rating}/10</span>`:""}</span>${loc?`<br class="ponly"><span class="ponly">${loc}</span>`:""}</td>
+      <td class="c-wine"><span class="wname">${dot}${wine}</span>${loc}</td>
+      <td class="c-comm">${esc(w.commune && w.commune!==w.name ? w.commune : "")}</td>
+      <td class="num c-vint">${esc(w.vintage||"—")}</td>
+      <td class="c-reg">${where}</td>
+      <td class="num c-qty">${state.status==="drunk"?w.drunk:w.left}</td>
+      <td class="num c-price">${SHOW_PRICES ? (w.price?kr(w.price):"—") : "···"}</td>
     </tr>
-    <tr class="detail" hidden><td colspan="6"></td></tr>`;
-  }).join("") + moreRow(list.length, shown.length, 6, "cellar");
+    <tr class="detail" hidden><td colspan="7"></td></tr>`;
+  }).join("") + moreRow(list.length, shown.length, 7, "cellar");
   if(!list.length){
     const anyWines = WINES.some(w=>w.left>0);
     const msg = !anyWines ? esc(tr("Your cellar is empty — press ＋ Add wine to start building it."))
               : esc(tr("No wines match these filters."));
-    $("rows").innerHTML = `<tr><td colspan="6" class="emptyrow">${msg}</td></tr>`;
+    $("rows").innerHTML = `<tr><td colspan="7" class="emptyrow">${msg}</td></tr>`;
   }
 
   bindWineRows("#rows");
@@ -1681,14 +1692,15 @@ $("expModal").addEventListener("click", e=>{ if(e.target===$("expModal")) $("exp
 let Q_T = null;
 $("q").addEventListener("input",e=>{ state.q=e.target.value; clearTimeout(Q_T);
   if(WINES.length > 2000) Q_T = setTimeout(renderTable, 160); else renderTable(); });
+$("fCountry").addEventListener("change",e=>{ state.country=e.target.value; renderTable(); });
 $("fRegion").addEventListener("change",e=>{ state.region=e.target.value; renderTable(); });
 $("fLoc").addEventListener("change",e=>{ state.loc=e.target.value; renderTable(); });
 $("fStyle").addEventListener("change",e=>{ state.style=e.target.value; renderTable(); });
 $("fStatus").addEventListener("change",e=>{ state.status=e.target.value; renderTable(); });
 $("fReady").addEventListener("change",e=>{ state.ready=e.target.value; renderTable(); });
 $("clear").addEventListener("click",()=>{
-  state.q=state.region=state.style=state.ready=state.loc=""; state.status="cellar";
-  $("q").value=""; $("fRegion").value=""; $("fStyle").value=""; $("fStatus").value="cellar"; $("fReady").value=""; $("fLoc").value=""; renderTable(); });
+  state.q=state.country=state.region=state.style=state.ready=state.loc=""; state.status="cellar";
+  $("q").value=""; $("fCountry").value=""; $("fRegion").value=""; $("fStyle").value=""; $("fStatus").value="cellar"; $("fReady").value=""; $("fLoc").value=""; renderTable(); });
 document.querySelectorAll("th[data-k]").forEach(th=>th.addEventListener("click",()=>{
   const k=th.dataset.k;
   if(state.sortK===k) state.sortDir*=-1; else { state.sortK=k; state.sortDir = (k==="price"||k==="left") ? -1 : 1; }

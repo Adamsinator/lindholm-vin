@@ -546,21 +546,32 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
 .mapfold[open] summary{margin-bottom:6px}
 /* one line per wine: the name gives way (…) before anything wraps; the whole wine shows when it's opened */
 #tbl td,#eTbl td{padding:7px 10px}
-#tbl td:nth-child(3),#tbl td:nth-child(4),#eTbl td:nth-child(3),#eTbl td:nth-child(4),#eTbl td:nth-child(6){white-space:nowrap}
+#tbl td.c-vint,#tbl td.c-qty,#tbl td.c-price,#eTbl td:nth-child(3),#eTbl td:nth-child(4),#eTbl td:nth-child(6){white-space:nowrap}
+#tbl .ponly{display:none}
+#tbl .ctry{color:var(--muted)}
 @media (min-width:701px){
-  #tbl tr.main td:first-child,#eTbl tr.main td:first-child{max-width:0;width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* the cellar: producer, wine, commune, vintage, region · country, bottles, price — one line each, the same widths
+     in every browser; producer and wine share what's left, and anything too long ends in … */
+  #tbl{table-layout:fixed}
+  #tbl thead th{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #tbl th.c-comm{width:130px} #tbl th.c-vint{width:62px} #tbl th.c-reg{width:130px} #tbl th.c-qty{width:64px} #tbl th.c-price{width:104px}
+  #tbl tr.main td{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #eTbl tr.main td:first-child{max-width:0;width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   /* Enjoyed: fixed widths, so the same in every browser; the wine has the rest */
   #eTbl{table-layout:fixed}
   #eTbl thead th{overflow:hidden;text-overflow:ellipsis}
   #eTbl thead th:nth-child(2){width:72px} #eTbl thead th:nth-child(3){width:118px} #eTbl thead th:nth-child(4){width:142px}
   #eTbl thead th:nth-child(5){width:54px} #eTbl thead th:nth-child(6){width:124px} #eTbl thead th:nth-child(7){width:126px}
   #eTbl tr.main td:nth-child(3),#eTbl tr.main td:nth-child(4){overflow:hidden;text-overflow:ellipsis}
-  #tbl td:first-child br,#eTbl td:first-child br{display:none}
-  #tbl td:first-child .wname,#tbl td:first-child .wloc,#eTbl td:first-child .wname{margin-left:8px}
+  #eTbl td:first-child br{display:none}
+  #tbl td.c-wine .wloc,#eTbl td:first-child .wname{margin-left:8px}
 }
 /* with the overview in its column beside the list there's less room: the region (it's in the overview) gives way */
 @media (min-width:1181px) and (max-width:1499px){
   #eTbl thead th:nth-child(3),#eTbl tr.main td:nth-child(3){display:none}
+  /* the cellar keeps its region, without the country (there's a country filter), to give the wine more room */
+  #tbl .ctry{display:none}
+  #tbl th.c-reg{width:104px} #tbl th.c-comm{width:118px} #tbl th.c-qty{width:56px} #tbl th.c-price{width:96px}
 }
 /* the header: the page tabs share a row with Refresh, Account and Log out */
 .gbar{flex-wrap:wrap;row-gap:6px;margin:-4px 0 14px}
@@ -591,13 +602,15 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
   #tbl tbody tr:not(.main):not([hidden]){display:block} #tbl tbody tr:not(.main) > td{display:block}
   #tbl tr.main > td{border-bottom:0;padding:2px 10px}
   #tbl tr.main{border-bottom:1px solid var(--line);padding:8px 0 6px}
-  #tbl tr.main > td:nth-child(1){grid-row:1;grid-column:1/-1;padding-bottom:3px}
-  #tbl tr.main > td:nth-child(3){grid-row:2;grid-column:1;color:var(--muted);font-size:13px;overflow:hidden;text-overflow:ellipsis}
-  #tbl tr.main > td:nth-child(2){grid-row:2;grid-column:2}
-  #tbl tr.main > td:nth-child(5){grid-row:2;grid-column:3}
-  #tbl tr.main > td:nth-child(6){grid-row:2;grid-column:4}
-  #tbl tr.main > td:nth-child(4),#tbl thead th:nth-child(3),#tbl thead th:nth-child(4){display:none}
-  #tbl thead th:nth-child(2){grid-column:2} #tbl thead th:nth-child(5){grid-column:3} #tbl thead th:nth-child(6){grid-column:4}
+  /* a phone: the wine on its first line (producer, name, commune), then region, vintage, bottles and price */
+  #tbl .ponly{display:inline} #tbl br.ponly{display:block}
+  #tbl tr.main > td.c-prod{grid-row:1;grid-column:1/-1;padding-bottom:3px}
+  #tbl tr.main > td.c-reg{grid-row:2;grid-column:1;color:var(--muted);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #tbl tr.main > td.c-vint{grid-row:2;grid-column:2}
+  #tbl tr.main > td.c-qty{grid-row:2;grid-column:3}
+  #tbl tr.main > td.c-price{grid-row:2;grid-column:4}
+  #tbl tr.main > td.c-wine,#tbl tr.main > td.c-comm,#tbl thead th.c-wine,#tbl thead th.c-comm,#tbl thead th.c-reg{display:none}
+  #tbl thead th.c-prod{grid-column:1} #tbl thead th.c-vint{grid-column:2} #tbl thead th.c-qty{grid-column:3} #tbl thead th.c-price{grid-column:4}
   #tbl thead th{padding:8px 6px;font-size:10px;letter-spacing:.05em}
   .cellar-main .filters{position:static}
   #eTbl{min-width:0;display:block} #eTbl thead,#eTbl tbody{display:block}
@@ -757,6 +770,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
 <div class="cellar-main">
 <div class="filters">
   <input type="search" id="q" placeholder="Search producer, wine, commune, grape…" aria-label="Search wines" data-i18n-ph data-i18n-aria>
+  <select id="fCountry" aria-label="Filter by country" data-i18n-aria></select>
   <select id="fRegion" aria-label="Filter by region" data-i18n-aria></select>
   <select id="fLoc" aria-label="Filter by location" hidden data-i18n-aria></select>
   <select id="fStyle" aria-label="Filter by style" data-i18n-aria></select>
@@ -796,12 +810,13 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
 <div class="tablewrap">
 <table id="tbl">
   <thead><tr>
-    <th data-k="producer"><span data-i18n>Producer</span> <span class="arr"></span></th>
-    <th data-k="vintage" class="num"><span data-i18n>Vintage</span> <span class="arr"></span></th>
-    <th data-k="region"><span data-i18n>Region</span> <span class="arr"></span></th>
-    <th data-k="style"><span data-i18n>Style</span> <span class="arr"></span></th>
-    <th data-k="left" class="num"><span data-i18n>Bottles</span> <span class="arr"></span></th>
-    <th data-k="price" class="num"><span data-i18n>Price</span> <span class="arr"></span></th>
+    <th data-k="producer" class="c-prod"><span data-i18n>Producer</span> <span class="arr"></span></th>
+    <th data-k="name" class="c-wine"><span data-i18n>Wine</span> <span class="arr"></span></th>
+    <th data-k="commune" class="c-comm"><span data-i18n>Commune</span> <span class="arr"></span></th>
+    <th data-k="vintage" class="num c-vint"><span data-i18n>Vintage</span> <span class="arr"></span></th>
+    <th data-k="region" class="c-reg"><span data-i18n>Region</span> <span class="arr"></span></th>
+    <th data-k="left" class="num c-qty"><span data-i18n>Bottles</span> <span class="arr"></span></th>
+    <th data-k="price" class="num c-price"><span data-i18n>Price</span> <span class="arr"></span></th>
   </tr></thead>
   <tbody id="rows"></tbody>
 </table>
@@ -1293,7 +1308,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
 
 <!-- Pages serves these with max-age=600 and no revalidation, so a merged change can
      sit invisible behind a stale app.js for ten minutes. Bump v on every deploy. -->
-<script src="i18n.js?v=30"></script>
+<script src="i18n.js?v=31"></script>
 <script src="notes.js?v=4"></script>
 <script src="notes-i18n.js?v=1"></script>
 <script src="burgundy-data.js?v=13"></script>
@@ -1308,6 +1323,6 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
 <script src="tidy.js?v=3"></script>
 <script src="import.js?v=5"></script>
 <script src="export.js?v=2"></script>
-<script src="app.js?v=27"></script>
+<script src="app.js?v=28"></script>
 </body>
 </html>
