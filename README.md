@@ -542,6 +542,19 @@ The layout is kept on the device and, for an encrypted account, as one small enc
 (`meta:prefs`), so it follows to other devices. When the two differ, the one changed last wins. It holds panel names
 only, never wines.
 
+## Members, sign-up and the owner's admin page
+
+- **Private for now:** with `SOCIAL` off (the default in `Settings.gs`) there is no feed, no sharing and no
+  follows, and no answer from the server names another account. `SOCIAL: 'on'` brings the feed back.
+- **Sign-up** asks for a username (3–24 letters, numbers, `.` `_` `-`), an email (required; only the owner sees
+  it), the invite code and the password twice. An eye shows the password. The password needs at least 10
+  characters, may not be the username, and may not be a common password. All of this is checked in the page
+  before anything is sent; the server checks the username and email again and refuses a taken name.
+- **Admin** (only for the owner, by Account): the members with email, sign-up date and the day they last used
+  the site; invite codes made 1–10 at a time with a note, a ready invitation to copy (link and code), and a way
+  to withdraw an unused code. What's in a cellar is never there: it's encrypted. `makeInvites()` in the Apps
+  Script editor still works too.
+
 ## Adding a wine: the lists
 
 - **Classification** follows the country:
@@ -555,6 +568,11 @@ only, never wines.
 - **Quick picks** under Country (the usual six and your own) and Location (the places you use most): one tap
   fills the field; typing still works.
 - The **average bottle** counts only bottles with a price.
+- **Several at once:** "Several at once? Type them in a table" in Add wine (or "Type them in a table" in Import)
+  opens a small sheet: producer, wine, vintage, bottles, price, location. Tab and Enter move between cells (Enter
+  adds a row at the end), and rows copied from Excel or Numbers paste straight in. "Check the wines" runs them
+  through the import's own check (one spelling per thing, wines already in the cellar get their bottles added),
+  "Back to the table" keeps what was typed.
 
 ## Big cellars
 

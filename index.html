@@ -497,6 +497,30 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
 .clsother{margin-top:6px}
 /* private for now: the feed and sharing show only when the server has SOCIAL on */
 body:not(.social) .fshare{display:none!important}
+/* the owner's admin page */
+.modal .card.admincard{max-width:680px}
+.adh{font-family:var(--serif);font-size:16px;margin:18px 0 6px;display:flex;gap:8px;align-items:baseline}
+/* members and codes as two-line rows: they fit a phone as well as a screen */
+.adlist{list-style:none;margin:0;padding:0;font-size:13.5px}
+.adlist li{display:flex;flex-wrap:wrap;align-items:center;gap:2px 10px;padding:8px 0;border-top:1px solid var(--line)}
+.adlist .a1{flex:1 1 220px;min-width:0;overflow-wrap:anywhere} .adlist .a2{color:var(--muted);font-size:12px;width:100%}
+.adlist a{color:var(--accent)} .adlist .code{font-family:ui-monospace,Menlo,monospace;letter-spacing:.03em;font-weight:600}
+.adlist li.used{color:var(--muted)} .adlist li.used .code{font-weight:400}
+.adlist button{border:1px solid var(--line);background:none;color:var(--ink);border-radius:999px;padding:3px 10px;font:inherit;font-size:12px;cursor:pointer}
+.adnew{display:flex;gap:8px;align-items:center;margin:0 0 6px}
+.adnew select{width:auto;flex:none} .adnew input{flex:1;min-width:0}
+/* several wines in a table: inputs in a grid, the whole thing scrolls sideways on a phone */
+.gridcta{margin:14px 0 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap;color:var(--muted)}
+.addmany{margin:-4px 0 6px} .linkbtn{border:0;background:none;color:var(--accent);font:inherit;font-size:13px;font-weight:600;padding:2px 0;cursor:pointer}
+.gridwrap{overflow-x:auto;margin:8px 0;border:1px solid var(--line);border-radius:var(--r)}
+.wgrid{border-collapse:collapse;width:100%;min-width:640px;font-size:13.5px}
+.wgrid th{font-size:10px;padding:6px 6px;text-align:left;border-bottom:1px solid var(--line);background:var(--card2)}
+.wgrid td{padding:0;border-bottom:1px solid var(--line);border-right:1px solid var(--line)} .wgrid td:last-child{border-right:0;width:28px;text-align:center}
+.wgrid input{width:100%;border:0!important;border-radius:0!important;background:transparent!important;padding:7px 8px!important;font:inherit;min-width:70px}
+.wgrid input:focus{outline:2px solid var(--accent);outline-offset:-2px;background:var(--card)!important}
+.wgrid td.n input{text-align:right;min-width:56px} .wgrid td.p input{min-width:150px}
+.wgrid .gdel{border:0;background:none;color:var(--muted);cursor:pointer;font-size:15px;padding:4px}
+.gridact{display:flex;align-items:center;gap:10px;flex-wrap:wrap} .gridact #gridGo{margin-left:auto}
 .appfoot{text-align:center;margin:28px 0 0;font-size:12.5px} .appfoot a{color:var(--muted)}
 .jcheck .lopt{font-size:12.5px;color:var(--muted)}
 .jdone{margin-top:12px;font-size:13px;color:var(--muted);background:var(--chip);border-radius:var(--r);padding:8px 10px}
@@ -828,6 +852,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
   </div>
   <div class="topright"><span class="sub" data-i18n>Cellar overview</span><span data-langpick></span>
     <span class="acct">
+      <button class="btn quiet" id="adminBtn" hidden data-i18n>Admin</button>
       <button class="btn quiet" id="acctBtn" title="Password and recovery code" hidden data-i18n data-i18n-title>Account</button>
       <button class="btn quiet" id="lockBtn" title="Sign out on this device" aria-label="Log out" data-i18n-title data-i18n-aria><span aria-hidden="true">🔒</span> <span class="lbl" data-i18n>Log out</span></button>
     </span></div>
@@ -1104,9 +1129,28 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
 <p class="appfoot"><a href="privacy.html" target="_blank" rel="noopener" data-i18n>Privacy: what's stored and where</a></p>
 </div><!-- /app -->
 
+<div class="modal" id="adminModal" role="dialog" aria-modal="true" aria-labelledby="adminTitle">
+  <div class="card admincard">
+    <h2 id="adminTitle" data-i18n>Admin</h2>
+    <p class="ph" data-i18n>Who has an account, and the invite codes. What's in a cellar isn't here — it's encrypted, and only its owner can read it.</p>
+    <h3 class="adh"><span data-i18n>Members</span> <span class="ph" id="adminCount"></span></h3>
+    <ul class="adlist" id="adminUsers"></ul>
+    <h3 class="adh" data-i18n>Invite codes</h3>
+    <form class="adnew" id="adminNew">
+      <select id="adminN" aria-label="How many" data-i18n-aria><option>1</option><option>2</option><option>3</option><option>5</option><option>10</option></select>
+      <input id="adminNote" maxlength="60" aria-label="For whom (a note)" data-i18n-aria data-i18n-ph placeholder="For whom?">
+      <button class="btn primary" type="submit" data-i18n>Make codes</button>
+    </form>
+    <ul class="adlist" id="adminInvites"></ul>
+    <div class="err" id="adminErr" role="status" aria-live="polite"></div>
+    <div class="mact"><button class="btn" type="button" id="adminClose" data-i18n>Close</button></div>
+  </div>
+</div>
+
 <div class="modal" id="addModal" role="dialog" aria-modal="true" aria-labelledby="addTitle">
   <form class="card" id="addForm">
     <h2 id="addTitle" data-i18n>Add wine</h2>
+    <p class="addmany"><button type="button" class="linkbtn" id="addMany" data-i18n>Several at once? Type them in a table →</button></p>
     <label for="aProducer" data-i18n>Producer *</label><input id="aProducer" required list="jProducers" autocomplete="off">
     <div class="row2">
       <div><label for="aName" data-i18n>Vineyard / cuvée</label><input id="aName" list="jWines" autocomplete="off"></div>
@@ -1205,6 +1249,17 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
         <input type="file" id="impFile" accept=".xlsx,.xlsm,.csv,.tsv,.txt,text/csv,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
       </label>
       <p class="lockline" id="impLock"></p>
+      <p class="gridcta"><span data-i18n>No file?</span> <button type="button" class="btn" id="gridOpen" data-i18n>Type them in a table</button></p>
+    </div>
+    <div id="impGrid" hidden>
+      <p class="ph" data-i18n>One wine per row; only the producer is needed. Tab and Enter move between the cells, and rows copied from Excel or Numbers can be pasted straight in. Then check them, and add them all at once.</p>
+      <div class="gridwrap"><table class="wgrid" id="wGrid">
+        <thead><tr><th data-i18n>Producer *</th><th data-i18n>Wine / cuvée</th><th data-i18n>Vintage</th><th data-i18n>Bottles</th><th data-i18n>Price per bottle (kr.)</th><th data-i18n>Location</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+      <div class="gridact"><button type="button" class="btn" id="gridRow" data-i18n>＋ Row</button>
+        <span class="ph" id="gridCount"></span>
+        <button type="button" class="btn primary" id="gridGo" data-i18n>Check the wines</button></div>
     </div>
     <div id="impMap" hidden>
       <div class="impfile"><b id="impName"></b><select id="impSheet" aria-label="Sheet" hidden data-i18n-aria></select></div>
@@ -1446,14 +1501,14 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
 
 <!-- Pages serves these with max-age=600 and no revalidation, so a merged change can
      sit invisible behind a stale app.js for ten minutes. Bump v on every deploy. -->
-<script src="i18n.js?v=40"></script>
+<script src="i18n.js?v=42"></script>
 <script src="notes.js?v=4"></script>
 <script src="notes-i18n.js?v=1"></script>
 <script src="burgundy-data.js?v=13"></script>
 <script src="burgundy-data-beaune.js?v=12"></script>
 <script src="burgundy-names.js?v=1"></script>
 <script src="burgundy-match.js?v=2"></script>
-<script src="gas-fake.js?v=4"></script>
+<script src="gas-fake.js?v=5"></script>
 <script src="vault-crypto.js?v=2"></script>
 <script src="vault-engine.js?v=1"></script>
 <script src="vault.js?v=15"></script>
@@ -1461,6 +1516,6 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
 <script src="tidy.js?v=3"></script>
 <script src="import.js?v=5"></script>
 <script src="export.js?v=2"></script>
-<script src="app.js?v=37"></script>
+<script src="app.js?v=39"></script>
 </body>
 </html>

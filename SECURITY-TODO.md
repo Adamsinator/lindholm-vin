@@ -5,8 +5,11 @@ are done (see "Limits against abuse" in the README). Tick a box when an item shi
 
 ## Do soon
 
-- [ ] **Deploy `Code.gs` API 36** (Delete my account, the event log, the daily check): paste it, Manage deployments →
-      ✏️ on the Worker's deployment → New version. Then run `installDailyReport` once.
+- [ ] **Deploy `Code.gs` API 38** (private mode, email at sign-up, the admin page): paste it, Manage deployments →
+      ✏️ on the Worker's deployment → New version. Add `SOCIAL: ''` to `Settings.gs` (or leave it out: off is the
+      default). The site's footer or a fresh login then reports v:38.
+- [x] **Deploy `Code.gs` API 36/37** (Delete my account, the event log, daily backups, Recently deleted): done
+      27 October 2026, with `installDailyBackup` run.
 - [x] **Redeploy `Code.gs` (API 34)** in Apps Script, then run `makeInvites` once and blank `SIGNUP_CODE` in
       `Settings.gs`. The new limits and backups only work once the new version is deployed. Add the new settings
       (`MAX_USERS`, `SESSION_DAYS`, `BACKUP_KEEP`, `RESTORE_USER`, `RESTORE_FROM`) to your `Settings.gs` from

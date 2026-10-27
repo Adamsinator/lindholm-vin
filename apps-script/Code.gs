@@ -235,6 +235,15 @@ function handle(p) {
       case 'mergerows':
         mergeRows(p.groups || []);
         return json({ ok: true, wines: readAll() });
+      // who you are: the page shows the admin page only to the owner
+      case 'me':
+        return json({ ok: true, user: CTX_USER, owner: isOwnerAccount(CTX_ACCOUNT) });
+      // the owner's admin page: the members and the invite codes, never anything from a cellar
+      case 'admin': case 'admininvites': case 'adminrevoke':
+        if (!isOwnerAccount(CTX_ACCOUNT)) return json({ ok: false, error: 'not-owner' });
+        if (p.action === 'admininvites') addInvites(Number(p.n) || 1, String(p.note || ''));
+        if (p.action === 'adminrevoke') revokeInvite(String(p.code || ''));
+        return json(adminView());
       // the feed and follows only with SOCIAL: 'on' — off, nobody sees posts, follows or who else has an account
       case 'feed': case 'feedpost': case 'feeddelete': case 'feedcheer': case 'feedcomment': case 'follow': case 'unfollow':
         if (setting('SOCIAL') !== 'on') return json({ ok: false, error: 'social-off' });
@@ -388,7 +397,7 @@ const USERS_SHEET = 'Users';
 // wrapped by the password and by the recovery code (useless without them), the recovery code's salt and its login key
 // hashed, the vault spreadsheet, and the migration state ('' plain, 'migrating', 'done') with the plain sheet it left.
 const USER_COLS = ['Username', 'Salt', 'Hash', 'SpreadsheetId', 'Token', 'Created',
-                   'Kdf', 'KdfSalt', 'WrapKey', 'WrapRec', 'RecSalt', 'RecHash', 'VaultId', 'State', 'OldSheet', 'Email'];
+                   'Kdf', 'KdfSalt', 'WrapKey', 'WrapRec', 'RecSalt', 'RecHash', 'VaultId', 'State', 'OldSheet', 'Email', 'LastSeen'];
 const UCOL = {}; USER_COLS.forEach((c, i) => { UCOL[c] = i + 1; });
 
 function usersSheet() {
@@ -419,7 +428,7 @@ function findUser(username) {
                hash: String(rows[i][2]), spreadsheetId: String(rows[i][3]),
                token: String(rows[i][4]), kdf: c('Kdf'), kdfSalt: c('KdfSalt'), wrapKey: c('WrapKey'),
                wrapRec: c('WrapRec'), recSalt: c('RecSalt'), recHash: c('RecHash'), vaultId: c('VaultId'),
-               state: c('State'), oldSheet: c('OldSheet') };
+               state: c('State'), oldSheet: c('OldSheet'), email: c('Email'), lastSeen: c('LastSeen') };
     }
   }
   return null;
@@ -575,13 +584,36 @@ function findInvite(code) {
 }
 function useInvite(inv, username) { invitesSheet(false).getRange(inv.row, 4, 1, 2).setValues([[username, new Date()]]); }
 // Run from the editor: five new codes in the Invites tab, returned to the log so you can send one to each friend.
-function makeInvites() {
-  const sh = invitesSheet(true), A = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789', codes = [];
-  for (let n = 0; n < 5; n++) {
-    let c = 'AW-'; for (let i = 0; i < 8; i++) { if (i === 4) c += '-'; c += A.charAt(Math.floor(Math.random() * A.length)); }
-    codes.push(c); sh.appendRow([c, '', new Date(), '', '']);
-  }
-  return told('New invite codes (each works once): ' + codes.join(', '));
+function newInviteCode() {
+  const A = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  let c = 'AW-'; for (let i = 0; i < 8; i++) { if (i === 4) c += '-'; c += A.charAt(Math.floor(Math.random() * A.length)); }
+  return c;
+}
+// n new single-use codes (1–10 at a time), with a note of who they're for → the codes
+function addInvites(n, note) {
+  const sh = invitesSheet(true), codes = [], k = Math.max(1, Math.min(10, Math.floor(n) || 1));
+  for (let i = 0; i < k; i++) { const c = newInviteCode(); codes.push(c); sh.appendRow([c, String(note || '').slice(0, 60), new Date(), '', '']); }
+  return codes;
+}
+function makeInvites() { return told('New invite codes (each works once): ' + addInvites(5, '').join(', ')); }
+// an unused code stops working (it stays in the tab, marked)
+function revokeInvite(code) {
+  const k = inviteKey(code), r = inviteRows().find(x => inviteKey(x.code) === k && !x.usedBy);
+  if (r) invitesSheet(false).getRange(r.row, 4, 1, 2).setValues([['(revoked)', new Date()]]);
+}
+// What the owner's admin page shows. Dates as yyyy-MM-dd; a cellar's contents are not here (and couldn't be: encrypted).
+function adminView() {
+  const fmtDay = v => v instanceof Date ? Utilities.formatDate(v, Session.getScriptTimeZone(), 'yyyy-MM-dd') : String(v || '').slice(0, 10);
+  const sh = usersSheet(), last = sh.getLastRow();
+  const rows = last >= 2 ? sh.getRange(2, 1, last - 1, USER_COLS.length).getValues() : [];
+  const c = (r, k) => r[UCOL[k] - 1];
+  const used = {}; inviteRows().forEach(x => { if (x.usedBy) used[normUser(x.usedBy)] = x.code; });
+  const users = rows.filter(r => String(r[0]).trim()).map(r => ({ user: String(r[0]), email: String(c(r, 'Email') || ''), created: fmtDay(c(r, 'Created')),
+    lastSeen: fmtDay(c(r, 'LastSeen')), encrypted: String(c(r, 'State')) === 'done', invite: used[normUser(r[0])] || '' }));
+  const ish = invitesSheet(false), ilast = ish ? ish.getLastRow() : 0;
+  const invites = ilast >= 2 ? ish.getRange(2, 1, ilast - 1, INVITE_COLS.length).getValues().filter(r => String(r[0]).trim())
+    .map(r => ({ code: String(r[0]), note: String(r[1] || ''), created: fmtDay(r[2]), usedBy: String(r[3] || ''), usedAt: fmtDay(r[4]) })) : [];
+  return { ok: true, users, invites, max: Math.max(1, Number(setting('MAX_USERS')) || 50) };
 }
 function validKeys(p) {
   const b64ish = v => /^[A-Za-z0-9+/=]{16,200}$/.test(String(v || ''));
@@ -767,7 +799,15 @@ function authToken(p) {
   const now = Date.now(), live = liveTokens(list);
   if (live.indexOf(hit) < 0) { usersSheet().getRange(u.row, UCOL.Token).setValue(tokenCell(live)); return null; } // lapsed
   if (!hit.at || now - hit.at > SESSION_REFRESH_MS) { hit.at = now; usersSheet().getRange(u.row, UCOL.Token).setValue(tokenCell(live)); }
+  // the day an account was last used, for the owner's admin page: written at most once a day, as text
+  const day = today();
+  if (u.lastSeen !== day) { try { usersSheet().getRange(u.row, UCOL.LastSeen).setNumberFormat('@').setValue(day); u.lastSeen = day; } catch (err) {} }
   return u;
+}
+// The owner: the account whose cellar is (or was, before encryption) this bound spreadsheet
+function isOwnerAccount(u) {
+  const master = SpreadsheetApp.getActiveSpreadsheet().getId();
+  return !!u && (u.spreadsheetId === master || u.oldSheet === master);
 }
 
 // Run ONCE from the editor to give yourself an account whose cellar is THIS (the bound) spreadsheet, so your

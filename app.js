@@ -1124,7 +1124,7 @@ async function loadData(quiet){
     renderOverview(); renderTable(); renderEnjoyed();
     LOADED_AT = new Date(); stampText();
     $("spin").hidden = true; $("content").hidden = false;
-    loadJournalSilently(); loadFeedSilently(); refreshDeleted();
+    loadJournalSilently(); loadFeedSilently(); refreshDeleted(); checkOwner();
   }catch(err){
     if(AUTH_ERRORS.has(err.message)){ forgetAuth(); setGateMode("login"); showGate(tr("Your session expired — log in again.")); }
     else { $("spin").textContent = tr("Could not reach the cellar API ({0}). Check your connection and refresh.", errText(err)); }
@@ -1621,7 +1621,8 @@ const FIX_FIELD = {producer:"Producer", name:"Vineyard / cuvée", commune:"Commu
 function impReset(){
   Object.assign(IMP, {book:null, sheet:0, t:null, fields:[], built:null, d:null, name:"", off:new Set(), merge:true});
   TIDIER = null; $("impMerge").checked = true;
-  $("impPick").hidden = false; $("impMap").hidden = true; $("impBack").hidden = true; $("impGo").hidden = true;
+  $("impPick").hidden = false; $("impMap").hidden = true; $("impBack").hidden = true; $("impGo").hidden = true; $("impGrid").hidden = true;
+  IMP.fromGrid = false; trSet("Import wines", $("impTitle")); trSet("Choose another file", $("impBack"));
   $("impErr").textContent = ""; $("impFile").value = "";
   $("impLock").textContent = (window.VAULT && VAULT.active())
     ? tr("🔒 The file is read in this browser and never uploaded. The wines are encrypted here before they're saved, like the rest of your cellar.")
@@ -1754,8 +1755,72 @@ async function impRun(){
   }
 }
 $("impBtn").addEventListener("click", ()=>{ impReset(); $("impModal").classList.add("open"); });
+/* ---------- several wines in a table: typed or pasted, then the import's own check (spellings, duplicates) ---------- */
+const GRID_COLS = [["producer","p"],["name","p"],["vintage","n"],["qty","n"],["price","n"],["location","p"]];
+const GRID_HEAD = ["Producer","Wine","Vintage","Bottles","Price","Location"]; // the import reads these headings
+function gridRow(vals){
+  const tr_ = document.createElement("tr");
+  tr_.innerHTML = GRID_COLS.map(([k,c],i)=>`<td class="${c}"><input data-c="${i}" ${k==="producer"?'list="jProducers"':k==="location"?'list="locList"':""}
+      ${c==="n"?'inputmode="decimal"':""} autocomplete="off" aria-label="${esc(tr(["Producer","Wine / cuvée","Vintage","Bottles","Price per bottle (kr.)","Location"][i]))}"></td>`).join("")
+    + `<td><button type="button" class="gdel" aria-label="${esc(tr("Remove the row"))}" title="${esc(tr("Remove the row"))}">✕</button></td>`;
+  (vals||[]).forEach((v,i)=>{ const inp = tr_.querySelector(`input[data-c="${i}"]`); if(inp) inp.value = v; });
+  $("wGrid").tBodies[0].appendChild(tr_);
+  return tr_;
+}
+function gridCount(){
+  const n = [...$("wGrid").tBodies[0].rows].filter(r=>r.querySelector('input[data-c="0"]').value.trim()).length;
+  $("gridCount").textContent = n ? (n===1 ? tr("1 wine") : tr("{0} wines", n)) : "";
+  $("gridGo").disabled = !n;
+}
+function gridOpen(){
+  impReset();
+  const body = $("wGrid").tBodies[0]; body.innerHTML = ""; for(let i=0; i<5; i++) gridRow();
+  $("impPick").hidden = true; $("impGrid").hidden = false; $("impBack").hidden = false;
+  IMP.fromGrid = true; trSet("Add several wines", $("impTitle")); trSet("Choose a file instead", $("impBack"));
+  $("impModal").classList.add("open"); gridCount();
+  setTimeout(()=>body.querySelector("input").focus(), 30);
+}
+$("gridOpen").addEventListener("click", gridOpen);
+$("addMany").addEventListener("click", ()=>{ $("addModal").classList.remove("open"); gridOpen(); });
+$("gridRow").addEventListener("click", ()=>{ gridRow().querySelector("input").focus(); });
+$("wGrid").addEventListener("input", gridCount);
+$("wGrid").addEventListener("click", e=>{ const b = e.target.closest(".gdel"); if(!b) return;
+  const body = $("wGrid").tBodies[0]; b.closest("tr").remove(); if(!body.rows.length) gridRow(); gridCount(); });
+// Enter goes down a row (a new one at the end), as in a spreadsheet
+$("wGrid").addEventListener("keydown", e=>{
+  if(e.key !== "Enter" || !e.target.matches("input")) return;
+  e.preventDefault();
+  const tr_ = e.target.closest("tr"), c = e.target.dataset.c, next = tr_.nextElementSibling || gridRow();
+  next.querySelector(`input[data-c="${c}"]`).focus();
+});
+// rows pasted from a spreadsheet (tabs between cells, a line per row) fill the table from the cell pasted into
+$("wGrid").addEventListener("paste", e=>{
+  const text = (e.clipboardData || window.clipboardData).getData("text"); if(!/[\t\n]/.test(text)) return;
+  e.preventDefault();
+  const lines = text.replace(/\r/g, "").split("\n").filter((l,i,a)=>l.length || i < a.length - 1);
+  let tr_ = e.target.closest("tr"); const c0 = Number(e.target.dataset.c);
+  lines.forEach((line, i)=>{
+    if(i) tr_ = tr_.nextElementSibling || gridRow();
+    line.split("\t").forEach((v, j)=>{ const inp = tr_.querySelector(`input[data-c="${c0 + j}"]`); if(inp) inp.value = v.trim(); });
+  });
+  gridCount();
+});
+$("gridGo").addEventListener("click", ()=>{
+  const rows = [...$("wGrid").tBodies[0].rows].map(r=>GRID_COLS.map((_,i)=>r.querySelector(`input[data-c="${i}"]`).value.trim())).filter(v=>v[0]);
+  if(!rows.length){ $("impErr").textContent = tr("Type at least one producer."); return; }
+  IMP.book = {sheets:[{name:tr("Table"), rows:[GRID_HEAD, ...rows]}]}; IMP.name = tr("Typed in the table"); IMP.sheet = 0;
+  $("impSheet").innerHTML = ""; $("impSheet").hidden = true; $("impName").textContent = IMP.name;
+  impSheet();
+  $("impGrid").hidden = true; $("impMap").hidden = false; $("impBack").hidden = false; $("impGo").hidden = false;
+  trSet("Back to the table", $("impBack"));
+});
 $("impCancel").addEventListener("click", ()=>$("impModal").classList.remove("open"));
-$("impBack").addEventListener("click", impReset);
+// back: to the table it came from (with its rows), or to choosing a file
+$("impBack").addEventListener("click", ()=>{
+  if(IMP.fromGrid && !$("impMap").hidden){ $("impMap").hidden = true; $("impGo").hidden = true; $("impGrid").hidden = false; $("impErr").textContent = "";
+    trSet("Choose a file instead", $("impBack")); return; }
+  impReset();
+});
 $("impModal").addEventListener("click", e=>{ if(e.target===$("impModal")) $("impModal").classList.remove("open"); });
 $("impFile").addEventListener("change", e=>{ const f = e.target.files && e.target.files[0]; if(f) impOpen(f); });
 ["dragenter","dragover"].forEach(ev => $("impDrop").addEventListener(ev, e=>{ e.preventDefault(); $("impDrop").classList.add("over"); }));
@@ -3574,6 +3639,50 @@ function setSocial(on){
   const t = document.querySelector('.tab[data-page="feed"]'); if(t) t.hidden = !on;
   if(!on){ feedForgetAll(); FEED = null; FEED_USERS = []; if(location.hash==="#feed") location.hash = ""; }
 }
+// The owner gets an Admin button: who has an account (name, email, signed up, last seen) and the invite codes
+async function checkOwner(){
+  try{ const r = await api({action:"me"}); $("adminBtn").hidden = !(r && r.owner === true); }catch(e){ $("adminBtn").hidden = true; }
+}
+let ADMIN = null;
+async function openAdmin(){
+  $("adminErr").textContent = tr("Fetching…"); $("adminModal").classList.add("open");
+  try{ ADMIN = await api({action:"admin"}); $("adminErr").textContent = ""; renderAdmin(); }
+  catch(err){ $("adminErr").textContent = err.message === "not-owner" ? tr("Only the owner can open this.") : tr("Could not reach the cellar API ({0}).", errText(err)); }
+}
+function renderAdmin(){
+  const A = ADMIN || {users:[], invites:[]};
+  $("adminCount").textContent = tr("{0} of at most {1}", fmt(A.users.length), fmt(A.max || 50));
+  $("adminUsers").innerHTML = A.users.map(u=>`<li><span class="a1"><b>${esc(u.user)}</b> · ${u.email ? `<a href="mailto:${esc(u.email)}">${esc(u.email)}</a>` : "—"}</span>
+      <span class="a2">${esc(tr("Signed up"))} ${esc(u.created || "—")} · ${esc(tr("Last seen"))} ${esc(u.lastSeen || "—")}</span></li>`).join("");
+  const open = A.invites.filter(i=>!i.usedBy), done = A.invites.filter(i=>i.usedBy);
+  $("adminInvites").innerHTML =
+    open.map(i=>`<li><span class="a1"><span class="code">${esc(i.code)}</span>${i.note ? " · " + esc(i.note) : ""}</span>
+      <span><button type="button" data-copy="${esc(i.code)}">${esc(tr("Copy invitation"))}</button> <button type="button" data-revoke="${esc(i.code)}">${esc(tr("Withdraw"))}</button></span>
+      <span class="a2">${esc(tr("Made"))} ${esc(i.created)}</span></li>`).join("") +
+    done.slice().reverse().map(i=>`<li class="used"><span class="a1"><span class="code">${esc(i.code)}</span>${i.note ? " · " + esc(i.note) : ""}</span>
+      <span class="a2">${esc(i.usedBy==="(revoked)" ? tr("withdrawn {0}", i.usedAt) : tr("used by {0}, {1}", i.usedBy, i.usedAt))}</span></li>`).join("") +
+    (A.invites.length ? "" : `<li class="used">${esc(tr("No codes yet — make some above."))}</li>`);
+}
+$("adminBtn").addEventListener("click", openAdmin);
+$("adminClose").addEventListener("click", ()=>$("adminModal").classList.remove("open"));
+$("adminNew").addEventListener("submit", async e=>{
+  e.preventDefault(); $("adminErr").textContent = tr("Making…");
+  try{ ADMIN = await api({action:"admininvites", n:Number($("adminN").value), note:$("adminNote").value.trim()}); $("adminNote").value = ""; $("adminErr").textContent = ""; renderAdmin(); }
+  catch(err){ $("adminErr").textContent = tr("Could not reach the cellar API ({0}).", errText(err)); }
+});
+$("adminInvites").addEventListener("click", async e=>{
+  const c = e.target.closest("button[data-copy]"), r = e.target.closest("button[data-revoke]");
+  if(c){ // a ready-made message: where to sign up, and the code
+    const msg = tr("You're invited to AllWine, a private wine cellar. Sign up at {0} with the invite code {1} (it works once).", location.origin + location.pathname, c.dataset.copy);
+    try{ await navigator.clipboard.writeText(msg); toast(tr("Invitation copied")); }catch(err){ window.prompt(tr("Copy the invitation"), msg); }
+  }
+  if(r){
+    if(!confirm(tr("Withdraw the code {0}? It stops working.", r.dataset.revoke))) return;
+    try{ ADMIN = await api({action:"adminrevoke", code:r.dataset.revoke}); renderAdmin(); }
+    catch(err){ $("adminErr").textContent = tr("Could not reach the cellar API ({0}).", errText(err)); }
+  }
+});
+
 async function loadFeedSilently(){
   if(!document.body.classList.contains("social")) FEED = null;
   else { feedRecall(); if(FEED && location.hash==="#feed") renderFeed(); }
