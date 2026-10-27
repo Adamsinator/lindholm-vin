@@ -576,6 +576,10 @@ It understands typos and English, Danish, German and French, and answers in the 
   super seconds, crus bourgeois, Saint-Émilion's classification, Barolo's MGAs, Gran Selezione, Port styles,
   Wachau's Smaragd, Charmat, pét-nat, why Burgundy costs so much, opening an old bottle.
 - **Value:** "a good-value Burgundy", "billig Bordeaux": where to look in the region, and the cheapest picks.
+- **How it talks:** it thinks for about two seconds ("Thinking…" with three dots) before answering. Many answers
+  open with a short line that fits the question ("Let me look in your cellar…", "Ah, vintages — my favourite
+  subject."), and some end with a hint at what else to ask. A long answer is shown from the question down.
+  `SOMMELIER.chat()` adds this; `SOMMELIER.answer()` is the plain knowledge.
 - **Follow-ups:** "and 2013?" or "hvad med Barbaresco?" re-asks the last question with the year or the wine
   swapped.
 - **How long it keeps:** "How long can I keep Barolo?" (8–30 years) or "…a 2010 Bonnes-Mares?" (2020–2040).
