@@ -42,7 +42,7 @@ function setting(key) {
 // The legacy code only works once you've set a real one: the placeholder from the template is public.
 function accessCode() { const c = setting('ACCESS_CODE'); return c === 'CHANGE-ME' ? '' : c; }
 
-const API_VERSION = 39; // returned in every response; used to verify deployments
+const API_VERSION = 40; // returned in every response; used to verify deployments
 
 // Per-request spreadsheet for the authenticated user. Set in handle(); every
 // sheet helper reads it via ss(). Falls back to the bound (owner's) spreadsheet.
@@ -1220,6 +1220,11 @@ function addWine(wine) {
     }
   }
   if (!String(row[idx.producer]).trim()) throw new Error('Producer is required');
+  // the form only sends sensible numbers, but the server doesn't count on it: 1–9999 bottles, a price of 0 or more
+  row[idx.qty] = Math.min(MAX_BOTTLES, Math.max(1, Math.round(Number(wine.qty) || 1)));
+  const pr = Number(wine.price);
+  row[idx.price] = wine.price === '' || wine.price == null || !isFinite(pr) || pr < 0 ? '' : pr;
+  for (const f of Object.keys(HEADERS)) if (typeof row[idx[f]] === 'string') row[idx[f]] = plainText(row[idx[f]]);
   row[idx.acquired] = ymd(wine.acquired) || today();
   if (idx.size >= 0 && String(wine.size || '').trim()) row[idx.size] = String(wine.size).trim();
   if (idx.location >= 0 && String(wine.location || '').trim()) row[idx.location] = String(wine.location).trim();
@@ -1258,6 +1263,9 @@ function enjoyAdd(e) {
 // Bulk import (the site's Import dialog reads the file in the browser): appends the new wines in one write, and adds
 // bottles to rows already in the cellar ("bumps": {row, qty, drunk}). The optional columns are created as needed.
 const IMPORT_MAX = 5000;
+const MAX_BOTTLES = 9999; // of one wine: more is a typo
+// text is kept as text: Sheets would run "=IMPORTXML(…)" as a formula (the encrypted vault has no formulas to run)
+function plainText(v) { v = String(v).trim(); return !inEngine() && /^[=+@]/.test(v) ? "'" + v : v; }
 const IMPORT_COLS = { rating: RATING_HEADER, value: VALUE_HEADER, drunkDate: DRUNK_DATE_HEADER, size: SIZE_HEADER, drinkFrom: DRINK_FROM_HEADER, drinkTo: DRINK_TO_HEADER, elsewhere: ELSEWHERE_HEADER, location: LOCATION_HEADER };
 function addMany(wines, bumps) {
   if (!Array.isArray(wines) || !Array.isArray(bumps)) throw new Error('Bad import');
@@ -1268,7 +1276,7 @@ function addMany(wines, bumps) {
   ensureCol(sh, ACQUIRED_HEADER);
   Object.keys(IMPORT_COLS).forEach(f => { if (wines.some(w => !blank(w[f]))) ensureCol(sh, IMPORT_COLS[f]); });
   const idx = colIndexes(sh), width = sh.getLastColumn(), last = sh.getLastRow();
-  const count = v => Math.max(0, Math.round(Number(v) || 0));
+  const count = v => Math.min(MAX_BOTTLES, Math.max(0, Math.round(Number(v) || 0)));
   bumps.forEach(b => { const r = Number(b.row); if (!r || r < 2 || r > last) throw new Error('Bad row'); });
   // the bottle columns are read once, then only written (one read per bump would flush every write)
   const qtys = bumps.length ? sh.getRange(2, idx.qty + 1, last - 1, 1).getValues() : [];
@@ -1283,9 +1291,8 @@ function addMany(wines, bumps) {
     if (d || String(d0raw).trim().toLowerCase() === 'x') { dc.setValue(d0 + d); drunks[r - 2][0] = d0 + d; }
   });
   if (!wines.length) return;
-  const num = v => { const n = Number(v); return isFinite(n) ? n : ''; };
-  // text from someone else's file is kept as text: Sheets would run "=IMPORTXML(…)" as a formula
-  const text = v => { v = v.trim(); return !inEngine() && /^[=+@]/.test(v) ? "'" + v : v; };
+  const num = v => { const n = Number(v); return isFinite(n) && n >= 0 ? n : ''; };
+  const text = plainText;
   const rows = wines.map(w => {
     const row = new Array(width).fill('');
     for (const f of Object.keys(HEADERS)) if (!blank(w[f])) row[idx[f]] = typeof w[f] === 'string' ? text(w[f]) : w[f];

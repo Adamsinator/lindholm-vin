@@ -169,6 +169,8 @@ header.top h1 em{font-style:italic;color:var(--accent)}
   background:var(--card);border:1px solid var(--line);color:var(--ink);border-radius:var(--r);
   padding:8px 10px;font-size:14px;font-family:inherit}
 .filters input[type=search]{flex:1;min-width:180px}
+/* a select is as wide as its longest option: a long region or country typed by hand mustn't widen the page */
+.filters select{max-width:100%;min-width:0;text-overflow:ellipsis} .modal select{max-width:100%}
 input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible,textarea:focus-visible{
   outline:2px solid var(--accent);outline-offset:1px}
 .count{font-size:12px;color:var(--muted);margin-left:auto;white-space:nowrap}
@@ -1514,7 +1516,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
 <script src="gas-fake.js?v=5"></script>
 <script src="vault-crypto.js?v=2"></script>
 <script src="vault-engine.js?v=1"></script>
-<script src="vault.js?v=16"></script>
+<script src="vault.js?v=17"></script>
 <script src="wine-kb.js?v=2"></script>
 <script src="tidy.js?v=3"></script>
 <script src="import.js?v=5"></script>
