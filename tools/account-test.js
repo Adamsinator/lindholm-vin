@@ -92,7 +92,10 @@ const quiet = f => { const log = console.log; console.log = () => {}; try { retu
   // a backup schedule without a recent backup
   gas.run(`ScriptApp.newTrigger('backupNow').timeBased().onWeekDay(ScriptApp.WeekDay.SUNDAY).atHour(4).create(); backupsFolder().createFolder('2020-01-05T04:00')`);
   out = quiet(() => gas.run("dailyReport()"));
-  check("a backup older than 8 days is reported", /backups: newest is 2020-01-05/.test(out) && gas.rt.mails.length === 3, out);
+  const dirs = gas.run("(() => { const o = [], it = backupsFolder().getFolders(); while (it.hasNext()) o.push(it.next().getName()); return o.sort(); })()");
+  check("an old backup (2020) makes the daily check back up now", dirs.length === 2 && dirs[0] === "2020-01-05T04:00" && dirs[1] > "2026", JSON.stringify(dirs));
+  // (this harness dates its files 2026-10-16, days before the real clock, so the fresh backup still counts as old)
+  check("…and it reports when the newest is still not from the last 2 days", /backups: newest is 2026/.test(out) && gas.rt.mails.length === 3, out);
   // the schedule
   out = quiet(() => gas.run("installDailyReport()"));
   quiet(() => gas.run("installDailyReport()"));
