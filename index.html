@@ -579,8 +579,10 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
   /* the cellar: producer, wine, commune, vintage, region · country, bottles, price — one line each, the same widths
      in every browser; producer and wine share what's left, and anything too long ends in … */
   #tbl{table-layout:fixed}
-  #tbl thead th{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  #tbl th.c-comm{width:130px} #tbl th.c-vint{width:62px} #tbl th.c-reg{width:130px} #tbl th.c-qty{width:64px} #tbl th.c-price{width:104px}
+  #tbl thead th{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:10px 10px;letter-spacing:.08em}
+  /* widths from what the cells hold: "Morey-Saint-Denis", "Bourgogne · Frankrig", 13.136 kr., and headers like
+     ÅRGANG / FLASCHEN in full; the producer (with its badges) gets a bit more than the wine's share */
+  #tbl th.c-prod{width:25%} #tbl th.c-comm{width:166px} #tbl th.c-vint{width:76px} #tbl th.c-reg{width:170px} #tbl th.c-qty{width:78px} #tbl th.c-price{width:104px}
   #tbl tr.main td{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   #eTbl tr.main td:first-child{max-width:0;width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   /* Enjoyed: fixed widths, so the same in every browser; the wine has the rest */
@@ -593,12 +595,15 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
   #tbl td.c-wine .wloc,#eTbl td:first-child .wname{margin-left:8px}
 }
 /* with the overview in its column beside the list there's less room: the region (it's in the overview) gives way */
-@media (min-width:1181px) and (max-width:1499px){
+@media (min-width:1181px) and (max-width:1599px){
   #eTbl thead th:nth-child(3),#eTbl tr.main td:nth-child(3){display:none}
   /* the cellar keeps its region, without the country (there's a country filter), to give the wine more room */
   #tbl .ctry{display:none}
-  #tbl th.c-reg{width:104px} #tbl th.c-comm{width:118px} #tbl th.c-qty{width:56px} #tbl th.c-price{width:96px}
+  #tbl th.c-reg{width:108px} #tbl th.c-comm{width:150px} #tbl th.c-vint{width:72px} #tbl th.c-qty{width:76px} #tbl th.c-price{width:98px}
 }
+@media (min-width:1181px) and (max-width:1399px){ #tbl th.c-comm{width:124px} #tbl th.c-price{width:94px} }
+/* a small laptop beside the overview: the commune gives way too (it shows when the wine is opened, and search finds it) */
+@media (min-width:1181px) and (max-width:1299px){ #tbl th.c-comm,#tbl tr.main td.c-comm{display:none} }
 /* the header: the page tabs share a row with Refresh, Account and Log out */
 .gbar{flex-wrap:wrap;row-gap:6px;margin:-4px 0 14px}
 .gbar .tabs{margin:0 auto 0 0;flex:1 1 auto}
