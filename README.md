@@ -517,6 +517,19 @@ As soon as the name, commune or region says where a wine is from, the empty fiel
 - **A wine you already have** still fills in from the cellar first.
 - Test: `node tools/add-suggest-ui-test.js` (23 checks, including what is saved and the wider page).
 
+## More views of the cellar
+
+Four panels in the overview, each shown once there's something in it. Money only shows with **Show prices**.
+- **When they need drinking:** bottles by the year their drink window closes. Past windows come first, then this
+  year and the next ten, then later. The coming two years are marked. It uses your own windows, or estimates.
+- **Value against what you paid:** for bottles with both a price and a value: what you paid, what they're worth,
+  the difference in kr and %, and the biggest gains.
+- **Bought and drunk by year:** bottles in by acquired date and out by drunk date, for the last ten years, with
+  what was spent.
+- **Price bands:** bottles by what one cost: under 200, 200–500, 500–1.500, 1.500–5.000 and 5.000+ kr.
+
+Tested in `tools/layout-ui-test.js`: every bottle is counted once, and the value panel waits for a value.
+
 ## Sommelier (offline questions)
 
 The 🍷 button at the bottom right of the cellar opens a small chat that answers wine questions **without a server

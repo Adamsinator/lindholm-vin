@@ -64,6 +64,26 @@ const wines = Array.from({ length: 120 }, (_, i) => { const p = P[i % P.length];
   check("…and filters by it", dk.length === 1 && /Skærsøgaard/.test(dk[0]), JSON.stringify(dk));
   await p.selectOption("#fCountry", ""); await p.waitForTimeout(200);
 
+  // ── the four extra views in the overview ──
+  const sums = await p.evaluate(() => {
+    const n = id => [...document.querySelectorAll("#" + id + " .rb-n")].reduce((s, e) => s + (parseInt(e.textContent.replace(/\D+/g, " ").trim().split(" ")[0], 10) || 0), 0);
+    const cellar = WINES.filter(w => w.left > 0);
+    return { press: n("press"), pressWant: cellar.filter(w => { const d = drinkWindow(w); return d && d.to != null; }).reduce((s, w) => s + w.left, 0),
+      pressShown: !document.getElementById("pressPanel").hidden, worthShown: !document.getElementById("worthPanel").hidden };
+  });
+  check("'When they need drinking' counts every bottle with a window, once", sums.pressShown && sums.press === sums.pressWant && sums.press > 0, JSON.stringify(sums));
+  check("…and 'Value against what you paid' stays away while no wine has a value", !sums.worthShown);
+  if (!(await p.evaluate(() => SHOW_PRICES))) await p.click("#priceBtn");
+  const band = await p.evaluate(() => ({ shown: !document.getElementById("bandPanel").hidden,
+    sum: [...document.querySelectorAll("#bands .rb-n")].reduce((s, e) => s + parseInt(e.textContent, 10), 0),
+    want: WINES.filter(w => w.left > 0 && w.price > 0).reduce((s, w) => s + w.left, 0) }));
+  check("'Price bands' puts every priced bottle in one band", band.shown && band.sum === band.want, JSON.stringify(band));
+  await p.evaluate(async () => { const w = WINES.find(x => x.left > 0 && x.price); await api({ action: "setvalue", row: w.row, value: w.price * 2 }); await loadData(true); });
+  await p.waitForTimeout(400);
+  const worth = await p.evaluate(() => ({ shown: !document.getElementById("worthPanel").hidden, txt: document.getElementById("worth").textContent }));
+  check("…and a value set (twice the price) brings 'Value against what you paid': +100 %", worth.shown && /\+100 %/.test(worth.txt), worth.txt.slice(0, 200));
+  await p.click("#priceBtn");
+
   // ── list / timeline ──
   await p.click("#viewTl"); await p.waitForTimeout(300);
   check("Timeline shows the drink windows instead of the table", await p.isVisible("#dwPanel") && !(await p.isVisible("#pageCellar .tablewrap")));
