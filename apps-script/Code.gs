@@ -388,7 +388,7 @@ const USERS_SHEET = 'Users';
 // wrapped by the password and by the recovery code (useless without them), the recovery code's salt and its login key
 // hashed, the vault spreadsheet, and the migration state ('' plain, 'migrating', 'done') with the plain sheet it left.
 const USER_COLS = ['Username', 'Salt', 'Hash', 'SpreadsheetId', 'Token', 'Created',
-                   'Kdf', 'KdfSalt', 'WrapKey', 'WrapRec', 'RecSalt', 'RecHash', 'VaultId', 'State', 'OldSheet'];
+                   'Kdf', 'KdfSalt', 'WrapKey', 'WrapRec', 'RecSalt', 'RecHash', 'VaultId', 'State', 'OldSheet', 'Email'];
 const UCOL = {}; USER_COLS.forEach((c, i) => { UCOL[c] = i + 1; });
 
 function usersSheet() {
@@ -505,6 +505,10 @@ function signupLocked(p) {
   if (p.pass !== undefined || !p.auth) return json({ ok: false, error: 'update-site' }); // a page from before encryption
   const username = String(p.user || '').trim();
   if (!/^[a-zA-Z0-9_.-]{3,24}$/.test(username)) return json({ ok: false, error: 'bad-username' });
+  // the email is for the owner, to know who signed up (the Users tab and the admin page); nobody else sees it
+  if (p.email === undefined) return json({ ok: false, error: 'update-site' }); // a page from before the email field
+  const email = String(p.email || '').trim();
+  if (email.length > 120 || !/^[^\s@]{1,64}@[^\s@]+\.[^\s@]{2,}$/.test(email)) return json({ ok: false, error: 'bad-email' });
   if (!validKeys(p)) return json({ ok: false, error: 'bad-keys' });
   if (findUser(username)) return json({ ok: false, error: 'user-taken' });
   if (listUsers().length >= Math.max(1, Number(setting('MAX_USERS')) || 50)) return json({ ok: false, error: 'signup-full' });
@@ -518,7 +522,7 @@ function signupLocked(p) {
   put('Username', username); put('Salt', salt); put('Hash', hashPass(salt, p.auth)); put('SpreadsheetId', vaultId);
   put('Token', token + '@' + Date.now()); put('Created', today()); put('Kdf', String(p.kdf)); put('KdfSalt', String(p.kdfSalt));
   put('WrapKey', String(p.wrapKey)); put('WrapRec', String(p.wrapRec)); put('RecSalt', String(p.recSalt));
-  put('RecHash', hashPass(salt, p.recAuth)); put('VaultId', vaultId); put('State', 'done');
+  put('RecHash', hashPass(salt, p.recAuth)); put('VaultId', vaultId); put('State', 'done'); put('Email', email);
   usersSheet().appendRow(row);
   if (invite) useInvite(invite, username);
   logEvent('signup', username, invite ? 'invite' : 'shared code');

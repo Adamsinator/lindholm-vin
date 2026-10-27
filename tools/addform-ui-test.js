@@ -24,7 +24,7 @@ const HEAD = ["Producent", "Land", "Område", "Kommune", "Mark/Navn", "Klassifik
   const p = await ctx.newPage(); const errs = [];
   p.on("pageerror", e => errs.push(e.message)); p.on("console", m => m.type() === "error" && errs.push(m.text()));
   await p.goto(BASE); await p.waitForTimeout(400);
-  await p.click("#gateToggle"); await p.fill("#gateUser", "greta"); await p.fill("#gatePass", "greta-pass-1"); await p.fill("#gateInvite", "invite"); await p.click("#gateSubmit");
+  await p.click("#gateToggle"); await p.fill("#gateUser", "greta"); await p.fill("#gatePass", "greta-pass-1"); await p.fill("#gateInvite", "invite"); await p.fill("#gatePass2", "greta-pass-1"); await p.fill("#gateEmail", "someone@example.com"); await p.click("#gateSubmit");
   await p.waitForSelector("#recModal.open", { timeout: 20000 }); await p.check("#recOk"); await p.click("#recDone");
   await p.waitForSelector("#app:not([hidden])", { timeout: 20000 });
   await p.evaluate(async () => { await api({ action: "addmany", bumps: [], wines: [

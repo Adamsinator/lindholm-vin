@@ -1291,6 +1291,10 @@ function setGateMode(mode){
   trSet(signup ? "Create account" : recover ? "Set new password" : "Log in", $("gateSubmit"));
   trSet(signup || recover ? "Have an account? Log in" : "Need an account? Sign up", $("gateToggle"));
   $("gatePass").setAttribute("autocomplete", signup || recover ? "new-password" : "current-password");
+  // a new password is typed twice and has to pass the rule; sign-up also asks for an email
+  $("gateEmailWrap").hidden = !signup; $("gateUserHint").hidden = !signup;
+  $("gatePass2Wrap").hidden = !(signup || recover); $("gatePassHint").hidden = !(signup || recover);
+  $("gatePass2").value = ""; $("gateMatch").textContent = "";
   trSet(recover ? "New password" : "Password", document.querySelector('label[for="gatePass"]'));
   $("gateErr").textContent = "";
   humanShow(signup || recover);
@@ -1307,12 +1311,42 @@ function humanShow(on){
 }
 function humanToken(){ try{ return HUMAN.id!==null ? (window.turnstile.getResponse(HUMAN.id) || "") : ""; }catch(e){ return ""; } }
 function humanReset(){ try{ if(HUMAN.id!==null) window.turnstile.reset(HUMAN.id); }catch(e){} } // a token works once
+// The rules for a new account, checked in the page (the server checks the username and email again; it never sees
+// the password). A password: at least 10 characters, not the username, not one of the passwords everyone tries.
+const USERNAME_RE = /^[a-zA-Z0-9_.-]{3,24}$/, EMAIL_RE = /^[^\s@]{1,64}@[^\s@]+\.[^\s@]{2,}$/;
+const COMMON_PASS = new Set(("password password1 password12 password123 password1234 passw0rd 1234567890 0123456789 123456789a 1q2w3e4r5t "
+  + "qwertyuiop qwerty1234 qwerty12345 asdfghjkl1 zxcvbnm123 iloveyou12 letmein123 welcome123 abcdefghij abc1234567 "
+  + "football12 baseball12 sunshine12 princess12 dragon1234 monkey1234 master1234 trustno1234 superman12 starwars12 "
+  + "adgangskode kodeord123 kodeordet1 hemmelig12 sommer2024 sommer2025 sommer2026 vinter2025 vinter2026 danmark123 "
+  + "allwine123 allwinevin wine123456 winewinewine vinvinvin1 champagne1 bourgogne1 burgundy12 bordeaux12").split(" "));
+function passProblem(pass, user){
+  const p = String(pass || ""), low = p.toLowerCase();
+  if(p.length < 10) return tr("Use a password of at least 10 characters.");
+  if(user && low === String(user).trim().toLowerCase()) return tr("Don't use your username as the password.");
+  if(COMMON_PASS.has(low) || /^(.)\1+$/.test(p) || "01234567890123456789".includes(p) || "abcdefghijklmnopqrstuvwxyz".includes(low))
+    return tr("That password is too easy to guess — pick another.");
+  return "";
+}
+// the eye shows both password fields as text, and says when the two match
+$("gateEye").addEventListener("click", ()=>{ const show = $("gatePass").type === "password";
+  ["gatePass","gatePass2"].forEach(id=>{ $(id).type = show ? "text" : "password"; });
+  $("gateEye").setAttribute("aria-pressed", String(show)); const k = show ? "Hide password" : "Show password"; $("gateEye").setAttribute("aria-label", tr(k)); $("gateEye").title = tr(k); });
+function gateMatch(){
+  const a = $("gatePass").value, b = $("gatePass2").value, m = $("gateMatch");
+  if(!b){ m.textContent = ""; m.className = "fhint"; return; }
+  const same = a === b; m.textContent = same ? "✓ " + tr("The passwords match") : tr("The two passwords aren't the same.");
+  m.className = "fhint " + (same ? "ok" : "bad");
+}
+$("gatePass").addEventListener("input", gateMatch); $("gatePass2").addEventListener("input", gateMatch);
+$("gateUser").addEventListener("blur", ()=>{ if(GATE_MODE!=="signup") return; const u = $("gateUser").value.trim(), h = $("gateUserHint");
+  h.classList.toggle("bad", !!u && !USERNAME_RE.test(u)); });
+
 // Friendly text for the error codes the API returns.
 const AUTH_MSG = {
   "bad-login":"Wrong username or password.", "bad-invite":"That invite code isn't right, or it has already been used.",
   "locked":"Too many wrong tries — wait 15 minutes and try again.", "signup-full":"There's no room for new accounts right now. Ask the owner.",
   "signup-busy":"Too many sign-ups just now — try again in an hour.",
-  "signup-disabled":"Signups are closed right now.", "user-taken":"That username is taken.",
+  "signup-disabled":"Signups are closed right now.", "user-taken":"That username is taken — choose another.", "bad-email":"Enter your email address.",
   "bad-username":"Username: 3–24 letters, numbers, . _ or -.", "weak-pass":"Use a password of at least 6 characters.",
   "no-cellar":"Your cellar couldn't be opened. Contact the owner.",
   "human-check":"The \"are you human\" check didn't go through. Wait for it to finish and try again.",
@@ -1384,7 +1418,7 @@ async function gateEncrypted(mode, user, pass){
     if(!pre.ok || (pre.v||0) < 28) return false; // an older Apps Script: the plain sign-up below
     $("gateErr").textContent = tr("Creating your keys…");
     const k = await VAULT.newKeys(pass);
-    const data = await post({action:"signup", user, code:$("gateInvite").value.trim(), turnstile:humanToken(), ...k.fields});
+    const data = await post({action:"signup", user, email:$("gateEmail").value.trim(), code:$("gateInvite").value.trim(), turnstile:humanToken(), ...k.fields});
     if(!data.ok) throw new Error(data.error);
     cfg.user = data.user; VAULT.rememberSalt(data.user, k.fields);
     // the account exists from here: if the phone reloads the page while the code is on screen (a trip to the
@@ -1434,7 +1468,13 @@ $("gateForm").addEventListener("submit", async e=>{
   if(!cfg.api){ $("gateErr").textContent = tr("The API URL is missing."); return; }
   const user = $("gateUser").value.trim(), pass = $("gatePass").value;
   if(!user || !pass){ $("gateErr").textContent = tr("Enter your username and password."); return; }
-  if(GATE_MODE!=="login" && pass.length < 8){ $("gateErr").textContent = tr("Use a password of at least 8 characters."); return; }
+  // everything that can be checked here is, before the "are you human" check is spent on a doomed request
+  if(GATE_MODE==="signup" && !USERNAME_RE.test(user)){ $("gateErr").textContent = authMsg("bad-username"); $("gateUser").focus(); return; }
+  if(GATE_MODE==="signup" && !EMAIL_RE.test($("gateEmail").value.trim())){ $("gateErr").textContent = tr("Enter your email address."); $("gateEmail").focus(); return; }
+  if(GATE_MODE!=="login"){
+    const bad = passProblem(pass, user); if(bad){ $("gateErr").textContent = bad; $("gatePass").focus(); return; }
+    if($("gatePass2").value !== pass){ $("gateErr").textContent = tr("The two passwords aren't the same."); $("gatePass2").focus(); return; }
+  }
   if(GATE_MODE!=="login" && HUMAN.key && !humanToken()){ $("gateErr").textContent = tr("Wait for the \"are you human\" check to finish."); return; }
   const signup = GATE_MODE==="signup";
   localStorage.setItem("vinStay", $("gateStay").checked ? "1" : "0");
@@ -1446,7 +1486,7 @@ $("gateForm").addEventListener("submit", async e=>{
     }
     if(GATE_MODE==="recover"){ $("gateErr").textContent = tr("Recovery needs the updated Apps Script (version 28)."); return; }
     const params = signup
-      ? {action:"signup", user, pass, code:$("gateInvite").value.trim(), turnstile:humanToken()}
+      ? {action:"signup", user, pass, email:$("gateEmail").value.trim(), code:$("gateInvite").value.trim(), turnstile:humanToken()}
       : {action:"login", user, pass};
     const data = await post(params);
     if(!data.ok){ $("gateErr").textContent = authMsg(data.error); return; }
@@ -1464,12 +1504,14 @@ $("gateForm").addEventListener("submit", async e=>{
 });
 
 /* ---------- account: change password, new recovery code ---------- */
-$("acctBtn").addEventListener("click", ()=>{ $("acctErr").textContent=""; $("acctPass").value=""; $("acctNew").value=""; $("acctModal").classList.add("open"); $("acctPass").focus(); });
+$("acctBtn").addEventListener("click", ()=>{ $("acctErr").textContent=""; $("acctPass").value=""; $("acctNew").value=""; $("acctNew2").value=""; $("acctModal").classList.add("open"); $("acctPass").focus(); });
 $("acctCancel").addEventListener("click", ()=>$("acctModal").classList.remove("open"));
 $("acctForm").addEventListener("submit", async e=>{
   e.preventDefault();
   const oldPass = $("acctPass").value, newPass = $("acctNew").value;
-  if(!oldPass || newPass.length < 8){ $("acctErr").textContent = tr("Enter your current password and a new one of at least 8 characters."); return; }
+  if(!oldPass || !newPass){ $("acctErr").textContent = tr("Enter your current password and a new one."); return; }
+  const bad = passProblem(newPass, cfg.user); if(bad){ $("acctErr").textContent = bad; return; }
+  if($("acctNew2").value !== newPass){ $("acctErr").textContent = tr("The two passwords aren't the same."); return; }
   $("acctErr").textContent = tr("Changing…");
   try{ await VAULT.changePassword({post, user:cfg.user, token:cfg.token, oldPass, newPass});
     $("acctModal").classList.remove("open"); toast(tr("Password changed. Other devices are signed out."));

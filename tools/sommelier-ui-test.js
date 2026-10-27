@@ -21,7 +21,7 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   await p.goto(BASE); await p.waitForTimeout(400);
   check("no sommelier button on the login screen", !(await p.isVisible("#sommBtn")));
   await p.click("#gateToggle");
-  await p.fill("#gateUser", "fiona"); await p.fill("#gatePass", "fiona-pass-1"); await p.fill("#gateInvite", "invite");
+  await p.fill("#gateUser", "fiona"); await p.fill("#gatePass", "fiona-pass-1"); await p.fill("#gateInvite", "invite"); await p.fill("#gatePass2", "fiona-pass-1"); await p.fill("#gateEmail", "someone@example.com");
   await p.click("#gateSubmit");
   await p.waitForSelector("#recModal.open", { timeout: 20000 }); await p.check("#recOk"); await p.click("#recDone");
   await p.waitForSelector("#app:not([hidden])", { timeout: 20000 });

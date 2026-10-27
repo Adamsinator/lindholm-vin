@@ -39,6 +39,8 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
       await pg.fill("#gateUser", "anna"); await pg.fill("#gatePass", pass); await pg.waitForTimeout(150);
       if (await pg.inputValue("#gateUser") === "anna" && await pg.inputValue("#gatePass") === pass) break;
     }
+    // sign-up also wants the password again and an email (hidden, and so skipped, when logging in)
+    if (await pg.isVisible("#gatePass2")) { await pg.fill("#gatePass2", pass); await pg.fill("#gateEmail", "anna@example.com"); }
     await pg.click("#gateSubmit");
   };
 
@@ -99,7 +101,7 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   check(`a login on this device needs one request before the cellar shows (${loginMs} ms, ${LAG} a request)`, before[0] === "login" && !before.includes("prelogin"), JSON.stringify(before) + " " + loginMs + " ms");
 
   // ── the password changed on the other device: the remembered salt is stale, the login still works ──
-  await B.p.click("#acctBtn"); await B.p.fill("#acctPass", "anna-pass-1"); await B.p.fill("#acctNew", "anna-pass-2");
+  await B.p.click("#acctBtn"); await B.p.fill("#acctPass", "anna-pass-1"); await B.p.fill("#acctNew", "anna-pass-2"); await B.p.fill("#acctNew2", "anna-pass-2");
   await B.p.click('#acctForm button[type="submit"]'); await B.p.waitForTimeout(6 * LAG + 1500);
   await p.click("#lockBtn").catch(() => {}); // sign-out here forgets the copy; put the old salt back to test the stale case
   await p.evaluate(() => localStorage.setItem("vinKdf:anna", JSON.stringify({ kdf: "pbkdf2-sha256-600000", kdfSalt: "AAAAAAAAAAAAAAAAAAAAAA==" })));

@@ -23,7 +23,7 @@ const wines = Array.from({ length: 120 }, (_, i) => { const p = P[i % P.length];
   const p = await ctx.newPage(); const errs = [];
   p.on("pageerror", e => errs.push(e.message)); p.on("console", m => m.type() === "error" && errs.push(m.text()));
   await p.goto(BASE); await p.waitForTimeout(400);
-  await p.click("#gateToggle"); await p.fill("#gateUser", "dora"); await p.fill("#gatePass", "dora-pass-1"); await p.fill("#gateInvite", "invite"); await p.click("#gateSubmit");
+  await p.click("#gateToggle"); await p.fill("#gateUser", "dora"); await p.fill("#gatePass", "dora-pass-1"); await p.fill("#gateInvite", "invite"); await p.fill("#gatePass2", "dora-pass-1"); await p.fill("#gateEmail", "someone@example.com"); await p.click("#gateSubmit");
   await p.waitForSelector("#recModal.open", { timeout: 20000 }); await p.check("#recOk"); await p.click("#recDone");
   await p.waitForSelector("#app:not([hidden])", { timeout: 20000 });
   await p.evaluate(async w => { await api({ action: "addmany", wines: w, bumps: [] }); await loadData(); }, wines);

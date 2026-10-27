@@ -11,7 +11,7 @@ const B64 = s => Buffer.from(String(s).padEnd(24, "x")).toString("base64");
 // what the site sends for a new encrypted account (only the shapes matter to the server)
 const keys = (user, pass) => ({ kdf: "pbkdf2-sha256-600000", kdfSalt: B64("salt" + user), auth: B64("auth" + user + pass), wrapKey: B64("wrap" + user),
   wrapRec: B64("wraprec" + user), recSalt: B64("recsalt" + user), recAuth: B64("rec" + user) });
-const signup = (gas, user, code, pass = "pw") => gas.call({ action: "signup", user, code, ...keys(user, pass) });
+const signup = (gas, user, code, pass = "pw") => gas.call({ action: "signup", email: "someone@example.com", user, code, ...keys(user, pass) });
 const login = (gas, user, pass = "pw") => gas.call({ action: "login", user, auth: keys(user, pass).auth });
 const MIN = 60000, HOUR = 60 * MIN, DAY = 24 * HOUR;
 
@@ -120,6 +120,20 @@ const MIN = 60000, HOUR = 60 * MIN, DAY = 24 * HOUR;
   const gas = H({ Ark1: [HEAD] }, { settings: { SOCIAL: "on", SIGNUP_CODE: "c" } });
   const out = JSON.parse(gas.run(`doPost({ postData: { contents: "x".repeat(12000001) } }).getContent()`));
   check("a request over 12 MB is refused before it's read", out.error === "too-big", JSON.stringify(out));
+}
+
+// ── sign-up asks for an email, for the owner only ──
+{
+  const gas = H({ Ark1: [HEAD] }, { settings: { SIGNUP_CODE: "c" } });
+  const noMail = gas.call({ action: "signup", user: "olga", code: "c", ...keys("olga", "pw") });
+  check("a sign-up without an email (an old page) is asked to reload", noMail.error === "update-site", JSON.stringify(noMail));
+  const badMail = gas.call({ action: "signup", user: "olga", code: "c", email: "not-an-email", ...keys("olga", "pw") });
+  check("…a wrong email is refused", badMail.error === "bad-email", JSON.stringify(badMail));
+  const ok = gas.call({ action: "signup", user: "olga", code: "c", email: "olga@example.dk", ...keys("olga", "pw") });
+  const users = gas.rows("Users"), col = users[0].indexOf("Email");
+  check("…a good one is kept in the Users tab", ok.ok && col >= 0 && users.some(r => r[0] === "olga" && r[col] === "olga@example.dk"), JSON.stringify(users[0]));
+  const t = login(gas, "olga").token, seen = ["data", "status", "prelogin"].map(a => JSON.stringify(gas.call({ user: "olga", token: t, action: a })));
+  check("…and no answer sends it back", seen.every(x => !/olga@example/.test(x)), seen.find(x => /olga@example/.test(x)) || "");
 }
 
 // ── private by default: no feed, no follows, and nobody learns who else has an account ──

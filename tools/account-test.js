@@ -16,7 +16,7 @@ const quiet = f => { const log = console.log; console.log = () => {}; try { retu
   const accounts = {};
   for (const [user, pass] of [["anna", "anna-pass-1"], ["bodil", "bodil-pass-12"]]) {
     const k = await VAULT.newKeys(pass);
-    const r = await post({ action: "signup", user, code: codes.shift(), ...k.fields });
+    const r = await post({ action: "signup", email: "someone@example.com", user, code: codes.shift(), ...k.fields });
     accounts[user] = { token: r.token, pass };
   }
   const as = (user, p) => post({ user, token: accounts[user].token, ...p });

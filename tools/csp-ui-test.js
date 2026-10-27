@@ -55,7 +55,7 @@ const BLANK = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQ
   check("no human check on the login form", !(await p.isVisible("#gateHuman")));
   await p.click("#gateToggle"); await p.waitForTimeout(400);
   check("sign-up shows the human check, with the site key", await p.isVisible("#gateHuman") && SITE_KEY && (await p.evaluate(() => window.__ts && window.__ts.key)) === SITE_KEY);
-  await p.fill("#gateUser", "anna"); await p.fill("#gatePass", "anna-pass-1"); await p.fill("#gateInvite", "invite"); await p.click("#gateSubmit");
+  await p.fill("#gateUser", "anna"); await p.fill("#gatePass", "anna-pass-1"); await p.fill("#gateInvite", "invite"); await p.fill("#gatePass2", "anna-pass-1"); await p.fill("#gateEmail", "someone@example.com"); await p.click("#gateSubmit");
   await p.waitForSelector("#recModal.open", { timeout: 20000 }); await p.check("#recOk"); await p.click("#recDone");
   await p.waitForSelector("#app:not([hidden])", { timeout: 20000 });
   const su = sent.find(x => x.action === "signup");

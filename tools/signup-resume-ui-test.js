@@ -25,7 +25,7 @@ async function phone(b, gas, hangIDB) {
 }
 async function signUp(p, user, pass) {
   await p.goto(BASE); await p.waitForTimeout(400);
-  await p.click("#gateToggle"); await p.fill("#gateUser", user); await p.fill("#gatePass", pass); await p.fill("#gateInvite", "invite"); await p.click("#gateSubmit");
+  await p.click("#gateToggle"); await p.fill("#gateUser", user); await p.fill("#gatePass", pass); await p.fill("#gateInvite", "invite"); await p.fill("#gatePass2", pass); await p.fill("#gateEmail", "someone@example.com"); await p.click("#gateSubmit");
   await p.waitForSelector("#recModal.open", { timeout: 20000 });
 }
 const shown = p => p.evaluate(() => ({ gate: !document.getElementById("gate").hidden, app: !document.getElementById("app").hidden }));
