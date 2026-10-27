@@ -34,6 +34,7 @@ function makeSheet(name, rows, onRename, sheetsText) {
         getValues: () => Array.from({ length: nr }, (_, i) => Array.from({ length: nc }, (_, j) => { const row = cells[r - 1 + i] || []; const v = row[c - 1 + j]; return v === undefined ? "" : v; })),
         getValue: () => { const row = cells[r - 1] || []; const v = row[c - 1]; return v === undefined ? "" : v; },
         setValue(v) { at(r, c)[c - 1] = put(v); return this; },
+        setNumberFormat() { return this; }, // formats don't matter here
         setValues(vs) {
           if (vs.length > 1 && r + vs.length - 1 > Math.max(cells.length, 1)) throw new Error("Those rows are out of bounds."); // as Sheets does
           vs.forEach((row, i) => row.forEach((v, j) => { at(r + i, c + j)[c + j - 1] = put(v); })); return this; },

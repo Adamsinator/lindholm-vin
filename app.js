@@ -1124,7 +1124,7 @@ async function loadData(quiet){
     renderOverview(); renderTable(); renderEnjoyed();
     LOADED_AT = new Date(); stampText();
     $("spin").hidden = true; $("content").hidden = false;
-    loadJournalSilently(); loadFeedSilently(); refreshDeleted();
+    loadJournalSilently(); loadFeedSilently(); refreshDeleted(); checkOwner();
   }catch(err){
     if(AUTH_ERRORS.has(err.message)){ forgetAuth(); setGateMode("login"); showGate(tr("Your session expired — log in again.")); }
     else { $("spin").textContent = tr("Could not reach the cellar API ({0}). Check your connection and refresh.", errText(err)); }
@@ -3574,6 +3574,50 @@ function setSocial(on){
   const t = document.querySelector('.tab[data-page="feed"]'); if(t) t.hidden = !on;
   if(!on){ feedForgetAll(); FEED = null; FEED_USERS = []; if(location.hash==="#feed") location.hash = ""; }
 }
+// The owner gets an Admin button: who has an account (name, email, signed up, last seen) and the invite codes
+async function checkOwner(){
+  try{ const r = await api({action:"me"}); $("adminBtn").hidden = !(r && r.owner === true); }catch(e){ $("adminBtn").hidden = true; }
+}
+let ADMIN = null;
+async function openAdmin(){
+  $("adminErr").textContent = tr("Fetching…"); $("adminModal").classList.add("open");
+  try{ ADMIN = await api({action:"admin"}); $("adminErr").textContent = ""; renderAdmin(); }
+  catch(err){ $("adminErr").textContent = err.message === "not-owner" ? tr("Only the owner can open this.") : tr("Could not reach the cellar API ({0}).", errText(err)); }
+}
+function renderAdmin(){
+  const A = ADMIN || {users:[], invites:[]};
+  $("adminCount").textContent = tr("{0} of at most {1}", fmt(A.users.length), fmt(A.max || 50));
+  $("adminUsers").innerHTML = A.users.map(u=>`<li><span class="a1"><b>${esc(u.user)}</b> · ${u.email ? `<a href="mailto:${esc(u.email)}">${esc(u.email)}</a>` : "—"}</span>
+      <span class="a2">${esc(tr("Signed up"))} ${esc(u.created || "—")} · ${esc(tr("Last seen"))} ${esc(u.lastSeen || "—")}</span></li>`).join("");
+  const open = A.invites.filter(i=>!i.usedBy), done = A.invites.filter(i=>i.usedBy);
+  $("adminInvites").innerHTML =
+    open.map(i=>`<li><span class="a1"><span class="code">${esc(i.code)}</span>${i.note ? " · " + esc(i.note) : ""}</span>
+      <span><button type="button" data-copy="${esc(i.code)}">${esc(tr("Copy invitation"))}</button> <button type="button" data-revoke="${esc(i.code)}">${esc(tr("Withdraw"))}</button></span>
+      <span class="a2">${esc(tr("Made"))} ${esc(i.created)}</span></li>`).join("") +
+    done.slice().reverse().map(i=>`<li class="used"><span class="a1"><span class="code">${esc(i.code)}</span>${i.note ? " · " + esc(i.note) : ""}</span>
+      <span class="a2">${esc(i.usedBy==="(revoked)" ? tr("withdrawn {0}", i.usedAt) : tr("used by {0}, {1}", i.usedBy, i.usedAt))}</span></li>`).join("") +
+    (A.invites.length ? "" : `<li class="used">${esc(tr("No codes yet — make some above."))}</li>`);
+}
+$("adminBtn").addEventListener("click", openAdmin);
+$("adminClose").addEventListener("click", ()=>$("adminModal").classList.remove("open"));
+$("adminNew").addEventListener("submit", async e=>{
+  e.preventDefault(); $("adminErr").textContent = tr("Making…");
+  try{ ADMIN = await api({action:"admininvites", n:Number($("adminN").value), note:$("adminNote").value.trim()}); $("adminNote").value = ""; $("adminErr").textContent = ""; renderAdmin(); }
+  catch(err){ $("adminErr").textContent = tr("Could not reach the cellar API ({0}).", errText(err)); }
+});
+$("adminInvites").addEventListener("click", async e=>{
+  const c = e.target.closest("button[data-copy]"), r = e.target.closest("button[data-revoke]");
+  if(c){ // a ready-made message: where to sign up, and the code
+    const msg = tr("You're invited to AllWine, a private wine cellar. Sign up at {0} with the invite code {1} (it works once).", location.origin + location.pathname, c.dataset.copy);
+    try{ await navigator.clipboard.writeText(msg); toast(tr("Invitation copied")); }catch(err){ window.prompt(tr("Copy the invitation"), msg); }
+  }
+  if(r){
+    if(!confirm(tr("Withdraw the code {0}? It stops working.", r.dataset.revoke))) return;
+    try{ ADMIN = await api({action:"adminrevoke", code:r.dataset.revoke}); renderAdmin(); }
+    catch(err){ $("adminErr").textContent = tr("Could not reach the cellar API ({0}).", errText(err)); }
+  }
+});
+
 async function loadFeedSilently(){
   if(!document.body.classList.contains("social")) FEED = null;
   else { feedRecall(); if(FEED && location.hash==="#feed") renderFeed(); }

@@ -136,6 +136,30 @@ const MIN = 60000, HOUR = 60 * MIN, DAY = 24 * HOUR;
   check("…and no answer sends it back", seen.every(x => !/olga@example/.test(x)), seen.find(x => /olga@example/.test(x)) || "");
 }
 
+// ── the owner's admin page: members and invite codes, for the owner only ──
+{
+  const gas = H({ Ark1: [HEAD] }, { settings: { SIGNUP_CODE: "c" } });
+  gas.call({ action: "signup", user: "ole", code: "c", email: "ole@example.dk", ...keys("ole", "pw") });
+  gas.call({ action: "signup", user: "pia", code: "c", email: "pia@example.dk", ...keys("pia", "pw") });
+  gas.run(`setUser(findUser('ole'), 'OldSheet', SpreadsheetApp.getActiveSpreadsheet().getId())`); // ole's cellar was the master sheet: the owner
+  const ole = login(gas, "ole").token, pia = login(gas, "pia").token;
+  const asOle = p => gas.call({ user: "ole", token: ole, ...p }), asPia = p => gas.call({ user: "pia", token: pia, ...p });
+  check("'me' tells the owner apart", asOle({ action: "me" }).owner === true && asPia({ action: "me" }).owner === false);
+  const pa = ["admin", "admininvites", "adminrevoke"].map(a => asPia({ action: a, n: 3, code: "x" }));
+  check("…and nobody else gets the admin page or its actions", pa.every(r => r.error === "not-owner"), JSON.stringify(pa));
+  const v = asOle({ action: "admin" }), ub = Object.fromEntries(v.users.map(u => [u.user, u]));
+  check("the admin page lists the members with email, sign-up date and last seen", v.ok && ub.pia && ub.pia.email === "pia@example.dk" && /^\d{4}-\d{2}-\d{2}$/.test(ub.pia.created) && /^\d{4}-\d{2}-\d{2}$/.test(ub.pia.lastSeen), JSON.stringify(v.users));
+  check("…and nothing from a cellar", !/"(wines|tabs|records|wrapKey|salt|hash|token)"/i.test(JSON.stringify(v)), Object.keys(ub.pia).join());
+  const made = asOle({ action: "admininvites", n: 3, note: "Peter and Anne" }), codes = made.invites.filter(i => !i.usedBy);
+  check("it makes invite codes with a note", codes.length === 3 && codes.every(i => /^AW-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(i.code) && i.note === "Peter and Anne"), JSON.stringify(made.invites));
+  check("…at most 10 at a time", asOle({ action: "admininvites", n: 500 }).invites.length === 13);
+  const rv = asOle({ action: "adminrevoke", code: codes[0].code }), gone = rv.invites.find(i => i.code === codes[0].code);
+  check("a withdrawn code is marked, and no longer signs anyone up", gone.usedBy === "(revoked)" &&
+    gas.call({ action: "signup", user: "quinn", code: codes[0].code, email: "q@example.dk", ...keys("quinn", "pw") }).ok !== true && !!gas.call({ action: "signup", user: "quinn", code: codes[1].code, email: "q@example.dk", ...keys("quinn", "pw") }).ok);
+  const used = asOle({ action: "admin" }).invites.find(i => i.code === codes[1].code);
+  check("…a used code says who used it", used.usedBy === "quinn", JSON.stringify(used));
+}
+
 // ── private by default: no feed, no follows, and nobody learns who else has an account ──
 {
   const gas = H({ Ark1: [HEAD] }, { settings: { SIGNUP_CODE: "c" } });
