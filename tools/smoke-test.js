@@ -57,6 +57,8 @@ async function watch(p,where){
 }
 const overflow=async(p,where)=>{ const o=await p.evaluate(()=>document.documentElement.scrollWidth-innerWidth); if(o>1) note(where,'horizontal overflow '+o+'px'); };
 (async()=>{
+ // the atlas builds its map in the browser from the vineyard data: over the internet that takes seconds, not a fixed wait
+ const mapReady=p=>p.waitForFunction(()=>document.querySelectorAll('#map path').length>100,null,{timeout:60000});
  const b=await chromium.launch();
  for(const [tag,vp,scheme] of [['desk',{width:1366,height:900},'light'],['mob',{width:390,height:844},'light'],['dark',{width:1366,height:900},'dark']]){
   const ctx=await b.newContext({viewport:vp,colorScheme:scheme,isMobile:tag==='mob',hasTouch:tag==='mob'});
@@ -67,7 +69,8 @@ const overflow=async(p,where)=>{ const o=await p.evaluate(()=>document.documentE
   await p.goto(BASE); await p.waitForTimeout(600); await overflow(p,tag+' front'); await p.screenshot({path:OUT+tag+'_front.png'});
   await p.click('#gateToggle'); await p.waitForTimeout(100); await p.click('#gateToggle');
   // login
-  await p.fill('#gateUser','adam'); await p.fill('#gatePass','pw'); await p.click('#gateSubmit'); await p.waitForTimeout(1500);
+  await p.fill('#gateUser','adam'); await p.fill('#gatePass','pw'); await p.click('#gateSubmit');
+  await p.waitForSelector('#app:not([hidden])',{timeout:20000}).catch(()=>{}); await p.waitForTimeout(500);
   if(!(await p.isVisible('#app'))) note(tag,'app not visible after login');
   await overflow(p,tag+' cellar'); await p.screenshot({path:OUT+tag+'_cellar.png',fullPage:true});
   // cellar interactions
@@ -85,7 +88,7 @@ const overflow=async(p,where)=>{ const o=await p.evaluate(()=>document.documentE
     catch(e){ note(tag,'tab '+pg+' '+e.message); }
   }
   // atlas link from app
-  try{ await p.click('.tablink'); await p.waitForTimeout(1200); if(!p.url().includes('burgundy')) note(tag,'tablink did not navigate'); }catch(e){note(tag,'tablink '+e.message)}
+  try{ await p.click('.tablink'); await p.waitForURL(/burgundy/,{timeout:15000}).catch(()=>note(tag,'tablink did not navigate')); await mapReady(p); }catch(e){note(tag,'tablink '+e.message)}
   await overflow(p,tag+' atlas');
   // atlas: every colour mode, chips, search, sorting, compare, cote buttons
   // phones fold the filters behind a button: open them first
@@ -148,16 +151,16 @@ const overflow=async(p,where)=>{ const o=await p.evaluate(()=>document.documentE
   for(const k of ids.p.slice(0, tag==='desk'?999:30)){ await p.evaluate(k=>{ location.hash='p='+k; }, k); }
   // edit flow
   await p.evaluate(()=>window.__atlas.CL.latache.el.dispatchEvent(new MouseEvent('click',{bubbles:true}))); await p.waitForTimeout(200);
-  if(await p.$('#edOpen')){ await p.click('#edOpen'); await p.fill('#edP','Domaine Leroy'); await p.fill('#edHa','0.1'); await p.fill('#edN','smoke'); await p.click('#edForm button[type=submit]'); await p.waitForTimeout(400);
-    if(!/Domaine Leroy/.test(await p.textContent('#side'))) note(tag,'edit did not apply'); }
+  if(await p.$('#edOpen')){ await p.click('#edOpen'); await p.fill('#edP','Domaine Leroy'); await p.fill('#edHa','0.1'); await p.fill('#edN','smoke'); await p.click('#edForm button[type=submit]');
+    await p.waitForFunction(()=>/Domaine Leroy/.test(document.getElementById('side').textContent),null,{timeout:10000}).catch(()=>note(tag,'edit did not apply')); }
   else note(tag,'no edit button while logged in');
   // logout returns to the front page
-  await p.goto(BASE); await p.waitForTimeout(800);
+  await p.goto(BASE); await p.waitForSelector('#app:not([hidden])',{timeout:20000}).catch(()=>{}); await p.waitForTimeout(300);
   try{ await p.click('#lockBtn'); await p.waitForTimeout(400); if(!(await p.isVisible('#gate'))) note(tag,'gate not shown after logout'); if(!(await p.isVisible('.atlascard'))) note(tag,'atlas card missing after logout'); }catch(e){note(tag,'logout '+e.message)}
   await ctx.close();
  }
  // atlas DOM size and timing
- const p=await b.newPage(); const t0=Date.now(); await p.goto(BASE+'burgundy.html'); await p.waitForLoadState('load');
+ const p=await b.newPage(); const t0=Date.now(); await p.goto(BASE+'burgundy.html'); await p.waitForLoadState('load'); await mapReady(p);
  const stats=await p.evaluate(()=>({nodes:document.getElementsByTagName('*').length, svg:document.querySelectorAll('#map *').length, labels:document.querySelectorAll('.lab').length}));
  const t=await p.evaluate(()=>{ const t0=performance.now(); for(let i=0;i<20;i++){ document.getElementById('zIn').click(); } return performance.now()-t0; });
  console.log('atlas load ms', Date.now()-t0, JSON.stringify(stats), '20 zoom clicks ms', Math.round(t));
