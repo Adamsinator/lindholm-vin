@@ -535,6 +535,9 @@ It understands typos and English, Danish, German and French, and answers in the 
   - Typical spans for about 100 appellations, Burgundy by level (regional, village, premier cru, grand cru) and
     grapes as a fallback.
   - With "my", the drink windows of your own bottles.
+- **Two years against each other:** "red Côte de Nuits, 15 or 13?" → "2015, by far: 98/100 against 90/100", what
+  each year was like and when to drink it. For a hard year: if a producer made a fine one, hats off to them.
+  Short years in pairs ("15 or 13", "'15 vs '13") are understood.
 - **The best years:** "best vintages for red Côte de Nuits" (95+ from the atlas chart), "a good Champagne vintage"
   (★★★★★ from the charts).
 - **Comparisons and places:**
@@ -556,7 +559,7 @@ It understands typos and English, Danish, German and French, and answers in the 
 - **70 terms:** brett, Kimmeridgian, the 1855 classification, left and right bank, dosage, bottle sizes, glasses,
   glasses per bottle, calories and units, reduction, VA, solera, puttonyos…
 - **Files:** `sommelier.js` (the engine) and `sommelier-data.js` (its knowledge) load only when the panel is first
-  opened. Tests: `node tools/sommelier-test.js` (111 checks on the engine) and `node tools/sommelier-ui-test.js`
+  opened. Tests: `node tools/sommelier-test.js` (116 checks on the engine) and `node tools/sommelier-ui-test.js`
   (16 checks in the browser, including that asking sends nothing to the server).
 
 ## Surveyed vineyard outlines (INAO)

@@ -125,6 +125,14 @@ const SAY = {
   recPrices: ["Rough shop prices for a recent vintage; older vintages and magnums cost more, and prices move.", "Cirka butikspriser for en nyere årgang; ældre årgange og magnummer koster mere, og priserne flytter sig.", "Prix indicatifs en boutique pour un millésime récent ; les vieux millésimes et les magnums coûtent plus, et les prix bougent.", "Ungefähre Ladenpreise für einen jüngeren Jahrgang; ältere Jahrgänge und Magnums kosten mehr, und Preise ändern sich."],
   prefPick: ["If I had to choose: <b>{0}</b>.", "Hvis jeg skulle vælge: <b>{0}</b>.", "S'il fallait choisir : <b>{0}</b>.", "Wenn ich wählen müsste: <b>{0}</b>."],
   prefDeeper: ["It has more depth, and it keeps far longer.", "Den har mere dybde, og den holder meget længere.", "Il a plus de profondeur et se garde bien plus longtemps.", "Er hat mehr Tiefe und hält viel länger."],
+  vsFar: ["<b>{0}</b>, by far: {1} against {2}.", "<b>{0}</b>, med længder: {1} mod {2}.", "<b>{0}</b>, de loin : {1} contre {2}.", "<b>{0}</b>, mit Abstand: {1} gegen {2}."],
+  vsClear: ["<b>{0}</b>, clearly: {1} against {2}.", "<b>{0}</b>, tydeligt: {1} mod {2}.", "<b>{0}</b>, nettement : {1} contre {2}.", "<b>{0}</b>, deutlich: {1} gegen {2}."],
+  vsClose: ["A close call: {0} and {1} are both {2} — choose by style.", "Tæt løb: {0} og {1} er begge {2} — vælg efter stil.", "Très proches : {0} et {1} sont tous deux {2} — choisissez selon le style.", "Knapp: {0} und {1} sind beide {2} – wählen Sie nach Stil."],
+  vsHats: ["{0} is the harder year, and in a year like that the producer matters more than the vintage: if someone made a fine {0}, hats off to them. Those wines are often ready sooner, too.",
+    "{0} er det sværere år, og i et år som det betyder producenten mere end årgangen: hvis nogen har lavet en fin {0}, så hatten af for dem. De vine er også ofte klar tidligere.",
+    "{0} est l'année la plus difficile, et dans une telle année le producteur compte plus que le millésime : si quelqu'un a réussi un beau {0}, chapeau. Ces vins sont souvent prêts plus tôt.",
+    "{0} ist das schwierigere Jahr, und in so einem Jahr zählt der Erzeuger mehr als der Jahrgang: Wer einen feinen {0}er gemacht hat, Hut ab. Solche Weine sind oft auch früher trinkreif."],
+  vsYours: ["Your bottles from these years:", "Dine flasker fra de år:", "Vos bouteilles de ces millésimes :", "Ihre Flaschen aus diesen Jahren:"],
   prefClose: ["A close call: both are among the world's great wines. Your cellar tips it.", "Tæt løb: begge hører til verdens store vine. Din kælder afgør det.", "Match serré : tous deux comptent parmi les grands vins du monde. Votre cave fait pencher la balance.", "Knappe Sache: beide gehören zu den großen Weinen der Welt. Ihr Keller gibt den Ausschlag."],
   prefCloseNo: ["A close call: both are among the world's great wines.", "Tæt løb: begge hører til verdens store vine.", "Match serré : tous deux comptent parmi les grands vins du monde.", "Knappe Sache: beide gehören zu den großen Weinen der Welt."],
   prefOther: ["{0} has its moments too: {1}", "{0} har også sine øjeblikke: {1}", "{0} a aussi ses moments : {1}", "Auch {0} hat seine Momente: {1}"],
@@ -400,6 +408,53 @@ function burgundyCats(ents, text) {
   return cats;
 }
 
+// the years asked about: 2015, and in pairs also the short way, "15 or 13", "'15 vs '13" (not "under 50 euros")
+function yearsOf(q) {
+  const t = String(q), out = [...t.matchAll(/\b(19[4-9]\d|20[0-3]\d)\b/g)].map(m => Number(m[1]));
+  const full = n => { n = Number(n); return n <= 40 ? 2000 + n : 1900 + n; };
+  const pair = t.match(/(?:^|[\s(])'?(\d{2})\s*(?:or|vs\.?|versus|eller|ou|oder|and|og|et|und|,|\/|-|–)\s*'?(\d{2})(?![\d.,]*\s*(?:€|eur|kr|dkk|\$|%|cl|ml))\b/i);
+  if (pair && out.length < 2) { [pair[1], pair[2]].map(full).forEach(y => { if (!out.includes(y)) out.push(y); }); }
+  t.replace(/(?:^|\s)'(\d{2})\b/g, (m, n) => { const y = full(n); if (!out.includes(y)) out.push(y); return m; });
+  return out;
+}
+// "red Côte de Nuits, 2015 or 2013?": which year, by how much, and what each is like
+function compareVintages(lang, ys, ents, text, ctx) {
+  const [y1, y2] = ys, bc = burgundyCats(ents, text), V = ctx.vint && ctx.vint.years;
+  const tx = s => ((ctx.vint && ctx.vint.i18n || {})[lang] || {})[s] || s;
+  const verdict = (a, b, sa, sb, unit, far, hard, word) => {
+    const [hi, lo, shi, slo] = sa >= sb ? [a, b, sa, sb] : [b, a, sb, sa], gap = shi - slo;
+    if (gap >= far) return { html: p(say(lang, "vsFar", hi, unit(shi), unit(slo))), hats: slo <= hard ? lo : null };
+    if (gap >= far / 2) return { html: p(say(lang, "vsClear", hi, unit(shi), unit(slo))), hats: slo <= hard ? lo : null };
+    return { html: p(say(lang, "vsClose", Math.max(a, b), Math.min(a, b), esc(word(shi)))), hats: null };
+  };
+  let html = "";
+  if (bc && V) {
+    const name = { nuits_red: "nuitsRed", beaune_red: "beauneRed", beaune_white: "beauneWhite" };
+    const cats = bc.filter(c => !c.startsWith("__")); if (!cats.length) cats.push("beaune_white");
+    cats.forEach(cat => {
+      const r1 = V[y1] && V[y1][cat], r2 = V[y2] && V[y2][cat];
+      if (cats.length > 1) html += p(`<b>${esc(cap(say(lang, name[cat])))}</b>`);
+      if (!r1 || !r2) { html += p(say(lang, "notRated", esc(say(lang, name[cat])), !r1 ? y1 : y2)); return; }
+      const v = verdict(y1, y2, r1[0], r2[0], n => n + "/100", 6, 91, n => bWord(lang, n));
+      const [first, second] = r1[0] >= r2[0] ? [[y1, r1], [y2, r2]] : [[y2, r2], [y1, r1]];
+      html += v.html + ul([first, second].map(([y, r]) => `<b>${y}</b>: ${esc(tx(r[2]))} <span class="sm-m">· ${esc(say(lang, "drinking", tx(r[3])).replace(/\.$/, ""))}</span>`));
+      if (v.hats) html += p(esc(say(lang, "vsHats", v.hats)));
+    });
+    return html + yourYears(lang, ctx, ys, w => w.region === "Bourgogne");
+  }
+  const ch = chartsFor(ents, text); if (!ch) return null;
+  ch.forEach(id => { const c = D.charts.find(x => x.id === id), a = c.years[y1], b = c.years[y2];
+    if (ch.length > 1) html += p(`<b>${esc(cap(c.names[lang]))}</b>`);
+    if (!a || !b) { html += p(say(lang, "notRated", esc(c.names[lang]), !a ? y1 : y2)); return; }
+    const v = verdict(y1, y2, a, b, n => `<span class="sm-st">${stars(n)}</span>`, 2, 3, n => qWord(lang, n));
+    html += v.html + (v.hats ? p(esc(say(lang, "vsHats", v.hats))) : ""); });
+  return html + p(`<span class="sm-m">${esc(say(lang, "roughChart"))}</span>`) + yourYears(lang, ctx, ys, () => true);
+}
+function yourYears(lang, ctx, ys, test) {
+  const ws = (ctx.wines || []).filter(w => left(w) > 0 && ys.includes(w.vintage) && test(w));
+  return ws.length ? p(say(lang, "vsYours")) + ul(ws.slice(0, 6).map(w => wineLine(lang, w))) : "";
+}
+
 // ── the question → an answer ──
 function answer(q, ctx) {
   ctx = ctx || {};
@@ -409,7 +464,7 @@ function answer(q, ctx) {
   const ents = findEntities(text, IDX);
   ents.forEach(e => { if (e.type === "app" && ctx.burg) { e.__vid = appVillage(ctx.burg, e.ref.n); e.__cote = e.__vid && villageCote(ctx.burg, e.__vid); }
     if (e.type === "climat" && ctx.burg) e.__cote = villageCote(ctx.burg, e.ref.v); if (e.type === "village" && ctx.burg) e.__cote = villageCote(ctx.burg, e.ref.id); });
-  const years = [...String(q).matchAll(/\b(19[4-9]\d|20[0-3]\d)\b/g)].map(m => Number(m[1]));
+  const years = yearsOf(q);
   const wines = ctx.wines || null;
   const res = html => ({ html, chips: chips(lang, ctx) });
   if (!text) return res(help(lang, ctx));
@@ -468,6 +523,7 @@ function answer(q, ctx) {
 
   // vintages
   if (years.length && (hasW(text, "vintage") || ents.some(e => ["app", "region", "climat", "village", "country"].includes(e.type)) || /nuits|beaune|bordeaux|burgund|bourgogne|barolo|rioja/.test(text))) {
+    if (years.length >= 2 && years[0] !== years[1]) { const c = compareVintages(lang, years, ents, text, ctx); if (c) return res(c); }
     const y = years[0], bc = burgundyCats(ents, text);
     if (bc) { const note = bc.includes("__nuits_white") ? p(say(lang, "nuitsWhiteNote")) : "";
       const cats = bc.filter(c => !c.startsWith("__")); const r = burgundyVintage(lang, y, cats.length ? cats : ["beaune_white"], ctx);

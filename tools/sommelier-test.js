@@ -166,6 +166,15 @@ check("…nor in the unknown answer", !/<script/i.test(h2));
   check("…two great regions: a close call that your cellar tips", ok, h);
   [ok, h] = has("en", "red or white tonight?", /Ready to drink from your cellar/);
   check("'red or white tonight?' goes to what's ready in the cellar", ok, h); }
+{ let [ok, h] = has("en", "is red cote de nuits from 15 or 13 best", /2015, by far: 98\/100 against 90\/100[\s\S]*2013[\s\S]*hats off/);
+  check("'red Côte de Nuits 15 or 13': 2015 by far, what each year was like, and hats off to a fine 2013", ok && !/2013, by far/.test(h), h);
+  [ok, h] = has("en", "2010 or 2005 for red Côte de Nuits?", /2005, clearly: 98\/100 against 95\/100/);
+  check("…a smaller gap says 'clearly', with no hat-tip for a great year", ok && !/hats off/.test(h), h);
+  [ok, h] = has("da", "er rød côte de nuits fra 15 eller 13 bedst?", /2015, med længder[\s\S]*hatten af/);
+  check("…in Danish", ok, h);
+  [ok, h] = has("en", "Barolo 2010 vs 2014", /2010, by far: ★★★★★/);
+  check("…other regions from the star charts", ok, h);
+  check("'under 50 euros' is not read as the years 2050", !/2050/.test(text(ask("en", "recommend a champagne under 50 euros")))); }
 check("every pick names a region the site knows", (() => { const KB = require("../wine-kb.js"); const ok = new Set([...KB.regions.map(r => r.n), ...KB.countries.map(c => c.n)]); return D.picks.every(pk => ok.has(pk.region) && pk.eur > 0 && "rwsdf".includes(pk.col)); })());
 
 // every phrase in all four languages
