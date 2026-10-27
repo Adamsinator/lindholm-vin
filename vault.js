@@ -25,21 +25,25 @@ let S = null; // { post, user, token, dek, engine, sheetName, vers: {key: ver}, 
 
 // ── The device's copy of the vault: the server's records as they are, encrypted (useless without the password) ──
 const CDB = "allwine-cache", CSTORE = "vault";
+// like the key store (vault-crypto.js), it gives up after a few seconds rather than hang the page: without it the
+// cellar comes from the server, only slower
+const CDB_WAIT = 4000;
+const cdbWait = p => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error("idb-timeout")), CDB_WAIT))]);
 function cdb() {
-  return new Promise((res, rej) => { const r = indexedDB.open(CDB, 1);
-    r.onupgradeneeded = () => r.result.createObjectStore(CSTORE); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+  return cdbWait(new Promise((res, rej) => { const r = indexedDB.open(CDB, 1);
+    r.onupgradeneeded = () => r.result.createObjectStore(CSTORE); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); r.onblocked = () => rej(new Error("idb-blocked")); }));
 }
 async function cacheGet(user) {
   if (node || typeof indexedDB === "undefined") return null;
-  try { const db = await cdb(); return await new Promise(res => { const r = db.transaction(CSTORE).objectStore(CSTORE).get(String(user).toLowerCase());
-    r.onsuccess = () => res(r.result || null); r.onerror = () => res(null); }); } catch (e) { return null; }
+  try { const db = await cdb(); return await cdbWait(new Promise(res => { const r = db.transaction(CSTORE).objectStore(CSTORE).get(String(user).toLowerCase());
+    r.onsuccess = () => res(r.result || null); r.onerror = () => res(null); })); } catch (e) { return null; }
 }
 // writes to the copy go one after another, in the order they were asked for, so an older copy never lands last
 let cacheQ = Promise.resolve();
 function cacheWrite(fn) {
   if (node || typeof indexedDB === "undefined") return Promise.resolve();
-  return (cacheQ = cacheQ.then(async () => { try { const db = await cdb(); await new Promise(res => {
-    const t = db.transaction(CSTORE, "readwrite"); fn(t.objectStore(CSTORE)); t.oncomplete = res; t.onerror = res; t.onabort = res; }); } catch (e) {} }));
+  return (cacheQ = cacheQ.then(async () => { try { const db = await cdb(); await cdbWait(new Promise(res => {
+    const t = db.transaction(CSTORE, "readwrite"); fn(t.objectStore(CSTORE)); t.oncomplete = res; t.onerror = res; t.onabort = res; })); } catch (e) {} }));
 }
 function cachePut(user, records) {
   const snap = JSON.parse(JSON.stringify(records)); // as it is now: later saves queue their own

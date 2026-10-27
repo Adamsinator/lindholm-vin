@@ -416,6 +416,124 @@ leroy,domaine leroy|Domaine Leroy
 `;
 
 const LANGS = ["en", "da", "fr", "de"];
+// Wines worth buying, for "recommend a Barolo", "a white Burgundy under 50 €", "what would you buy for 1000 euros":
+// region (the site's name, or a country) | colour (r w s d f) | rough shop price in € for a recent vintage | grape | wine.
+// A guide to where to look, from well-known producers; prices move, older vintages and magnums cost more.
+const PICKS = `
+Bourgogne|r|18|Pinot Noir|Louis Jadot Bourgogne Pinot Noir
+Bourgogne|r|40|Pinot Noir|Bruno Clair Marsannay
+Bourgogne|r|45|Pinot Noir|Sylvain Pataille Marsannay
+Bourgogne|r|75|Pinot Noir|Faiveley Gevrey-Chambertin
+Bourgogne|r|85|Pinot Noir|Michel Lafarge Volnay Vendanges Sélectionnées
+Bourgogne|r|160|Pinot Noir|De Montille Volnay 1er Cru Les Taillepieds
+Bourgogne|r|250|Pinot Noir|Sylvie Esmonin Gevrey-Chambertin 1er Cru Clos Saint-Jacques
+Bourgogne|r|1000|Pinot Noir|Armand Rousseau Gevrey-Chambertin 1er Cru Clos Saint-Jacques
+Bourgogne|r|2200|Pinot Noir|Georges Roumier Bonnes-Mares
+Bourgogne|r|6000|Pinot Noir|Comte Liger-Belair La Romanée
+Bourgogne|w|25|Chardonnay|William Fèvre Chablis
+Bourgogne|w|40|Chardonnay|Leflaive Mâcon-Verzé
+Bourgogne|w|65|Chardonnay|William Fèvre Chablis 1er Cru Montée de Tonnerre
+Bourgogne|w|95|Chardonnay|Pierre-Yves Colin-Morey Saint-Aubin 1er Cru
+Bourgogne|w|250|Chardonnay|Roulot Meursault
+Bourgogne|w|320|Chardonnay|Leflaive Puligny-Montrachet 1er Cru Les Pucelles
+Bourgogne|w|900|Chardonnay|Coche-Dury Meursault
+Bourgogne|w|1100|Chardonnay|Leflaive Chevalier-Montrachet
+Champagne|s|45|Chardonnay|Charles Heidsieck Brut Réserve
+Champagne|s|55|Chardonnay|Pierre Péters Cuvée de Réserve Blanc de Blancs
+Champagne|s|95|Pinot Noir|Pol Roger Vintage
+Champagne|s|160|Pinot Noir|Bollinger La Grande Année
+Champagne|s|220|Chardonnay|Charles Heidsieck Blanc des Millénaires
+Champagne|s|260|Pinot Noir|Krug Grande Cuvée
+Champagne|s|1200|Chardonnay|Salon Le Mesnil
+Bordeaux|r|25|Merlot|Château Cambon La Pelouse
+Bordeaux|r|45|Cabernet Sauvignon|Château Sociando-Mallet
+Bordeaux|r|110|Cabernet Sauvignon|Château Léoville-Barton
+Bordeaux|r|220|Cabernet Sauvignon|Château Montrose
+Bordeaux|r|320|Cabernet Sauvignon|Château Léoville Las Cases
+Bordeaux|r|750|Cabernet Sauvignon|Château Lafite Rothschild
+Bordeaux|r|4000|Merlot|Pétrus
+Bordeaux|d|50|Sémillon|Château Suduiraut
+Bordeaux|d|420|Sémillon|Château d'Yquem
+Rhône|r|15|Grenache|E. Guigal Côtes du Rhône
+Rhône|r|35|Syrah|Alain Graillot Crozes-Hermitage
+Rhône|r|85|Grenache|Château de Beaucastel Châteauneuf-du-Pape
+Rhône|r|130|Syrah|Jamet Côte-Rôtie
+Rhône|r|380|Syrah|Jean-Louis Chave Hermitage
+Rhône|r|1300|Grenache|Château Rayas Châteauneuf-du-Pape
+Rhône|w|70|Viognier|Georges Vernay Condrieu Coteau de Vernon
+Loire|w|15|Melon de Bourgogne|Domaine de la Pépière Muscadet
+Loire|w|35|Sauvignon Blanc|Vacheron Sancerre
+Loire|w|40|Chenin Blanc|Huet Vouvray Le Haut-Lieu Sec
+Loire|w|95|Sauvignon Blanc|François Cotat Sancerre Les Monts Damnés
+Loire|w|260|Sauvignon Blanc|Didier Dagueneau Silex
+Loire|w|400|Sauvignon Blanc|Edmond Vatan Sancerre Clos la Néore
+Loire|r|25|Cabernet Franc|Charles Joguet Chinon
+Loire|r|300|Cabernet Franc|Clos Rougeard Saumur-Champigny Le Clos
+Alsace|w|22|Riesling|Trimbach Riesling
+Alsace|w|38|Riesling|Zind-Humbrecht Riesling
+Alsace|w|85|Riesling|Trimbach Riesling Cuvée Frédéric Émile
+Alsace|w|320|Riesling|Trimbach Clos Sainte Hune
+Beaujolais|r|18|Gamay|Jean-Paul Brun Terres Dorées Beaujolais L'Ancien
+Beaujolais|r|32|Gamay|Marcel Lapierre Morgon
+Beaujolais|r|45|Gamay|Jean Foillard Morgon Côte du Py
+Jura|w|32|Chardonnay|Tissot Arbois Chardonnay
+Jura|w|85|Savagnin|Jean Macle Château-Chalon
+Piemonte|r|22|Nebbiolo|Produttori del Barbaresco Langhe Nebbiolo
+Piemonte|r|45|Nebbiolo|Produttori del Barbaresco Barbaresco
+Piemonte|r|50|Nebbiolo|G.D. Vajra Barolo Albe
+Piemonte|r|95|Nebbiolo|Brovia Barolo Rocche di Castiglione
+Piemonte|r|320|Nebbiolo|Bartolo Mascarello Barolo
+Piemonte|r|380|Nebbiolo|Giacomo Conterno Barolo Cascina Francia
+Piemonte|r|1600|Nebbiolo|Giacomo Conterno Barolo Riserva Monfortino
+Piemonte|r|20|Barbera|G.D. Vajra Barbera d'Alba
+Piemonte|w|25|Arneis|Bruno Giacosa Roero Arneis
+Toscana|r|22|Sangiovese|Fèlsina Chianti Classico
+Toscana|r|38|Sangiovese|Fontodi Chianti Classico
+Toscana|r|65|Sangiovese|Il Poggione Brunello di Montalcino
+Toscana|r|110|Sangiovese|Fontodi Flaccianello della Pieve
+Toscana|r|160|Sangiovese|Antinori Tignanello
+Toscana|r|320|Cabernet Sauvignon|Tenuta San Guido Sassicaia
+Toscana|r|1000|Merlot|Masseto
+Veneto|w|16|Garganega|Pieropan Soave Classico
+Veneto|r|550|Corvina|Giuseppe Quintarelli Amarone della Valpolicella
+Sicilia|r|25|Nerello Mascalese|Benanti Etna Rosso
+Rioja|r|22|Tempranillo|Muga Reserva
+Rioja|r|50|Tempranillo|La Rioja Alta Gran Reserva 904
+Rioja|r|85|Tempranillo|CVNE Imperial Gran Reserva
+Rioja|r|160|Tempranillo|López de Heredia Viña Tondonia Gran Reserva
+Rioja|w|60|Viura|López de Heredia Viña Tondonia Reserva Blanco
+Ribera del Duero|r|28|Tempranillo|Pesquera Crianza
+Ribera del Duero|r|480|Tempranillo|Vega Sicilia Único
+Priorat|r|38|Garnacha|Álvaro Palacios Les Terrasses
+Douro|f|30|Touriga Nacional|Graham's 10 Year Old Tawny Port
+Douro|f|95|Touriga Nacional|Taylor's Vintage Port
+Mosel|w|20|Riesling|Dr. Loosen Wehlener Sonnenuhr Riesling Kabinett
+Mosel|w|38|Riesling|Joh. Jos. Prüm Wehlener Sonnenuhr Riesling Kabinett
+Mosel|w|75|Riesling|Fritz Haag Brauneberger Juffer Sonnenuhr Riesling Auslese
+Mosel|w|160|Riesling|Egon Müller Scharzhofberger Riesling Kabinett
+Mosel|w|900|Riesling|Egon Müller Scharzhofberger Riesling Auslese
+Rheinhessen|w|110|Riesling|Keller Kirchspiel Riesling GG
+Wachau|w|55|Grüner Veltliner|F.X. Pichler Grüner Veltliner Smaragd
+Kamptal|w|18|Grüner Veltliner|Hiedler Grüner Veltliner Löss
+Sonoma|r|45|Zinfandel|Ridge Geyserville
+Californien|r|260|Cabernet Sauvignon|Ridge Monte Bello
+Napa Valley|r|4000|Cabernet Sauvignon|Screaming Eagle
+Barossa|r|75|Shiraz|Penfolds Bin 389
+Barossa|r|850|Shiraz|Penfolds Grange
+Marlborough|w|30|Sauvignon Blanc|Cloudy Bay Sauvignon Blanc
+Central Otago|r|65|Pinot Noir|Felton Road Bannockburn Pinot Noir
+Swartland|r|38|Syrah|Mullineux Syrah
+Swartland|r|130|Syrah|Sadie Family Columella
+Danmark|w|25|Solaris|Skærsøgaard Solaris
+Danmark|w|32|Solaris|Dyrehøj Vingaard Solaris
+`;
+// a few words on countries the grape tables don't describe
+const COUNTRY_NOTES = {
+  Danmark: ["Danish wine is young and small: mostly crisp, light whites from the hardy Solaris grape, some sparkling and rosé. Fresh, fun and best drunk young.",
+    "Dansk vin er ung og lille: mest sprøde, lette hvidvine på den hårdføre drue Solaris, lidt mousserende og rosé. Frisk, sjov og bedst drukket ung.",
+    "Le vin danois est jeune et rare : surtout des blancs vifs et légers du cépage rustique Solaris, un peu d'effervescent et de rosé. Frais, amusant, à boire jeune.",
+    "Dänischer Wein ist jung und klein: vor allem frische, leichte Weiße aus der robusten Solaris-Traube, etwas Schaumwein und Rosé. Frisch, unterhaltsam und jung zu trinken."],
+};
 const tr4 = a => ({ en: a[0], da: a[1], fr: a[2], de: a[3] });
 const api = {
   AROMA: Object.fromEntries(Object.entries(AROMA).map(([k, v]) => [k, tr4(v)])),
@@ -426,6 +544,8 @@ const api = {
   ageing: AGEING.trim().split("\n").map(l => { const [keys, lo, hi, en, da, fr, de] = l.split("|"); return { keys: keys.split(","), lo: +lo, hi: +hi, note: en ? { en, da, fr, de } : null }; }),
   appNotes: Object.fromEntries(APPNOTES.trim().split("\n").flatMap(l => { const [ns, en, da, fr, de] = l.split("|"); return ns.split(",").map(n => [n, { en, da, fr, de }]); })),
   producerAlias: PRODUCER_ALIAS.trim().split("\n").map(l => { const [al, n] = l.split("|"); return { alias: al.split(","), n }; }),
+  picks: PICKS.trim().split("\n").map(l => { const [region, col, eur, grape, wine] = l.split("|"); return { region, col, eur: +eur, grape, wine }; }),
+  countryNotes: Object.fromEntries(Object.entries(COUNTRY_NOTES).map(([k, v]) => [k, tr4(v)])),
   charts, LANGS,
 };
 if (typeof module !== "undefined" && module.exports) module.exports = api;

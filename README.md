@@ -535,16 +535,31 @@ It understands typos and English, Danish, German and French, and answers in the 
   - Typical spans for about 100 appellations, Burgundy by level (regional, village, premier cru, grand cru) and
     grapes as a fallback.
   - With "my", the drink windows of your own bottles.
+- **Two years against each other:** "red Côte de Nuits, 15 or 13?" → "2015, by far: 98/100 against 90/100", what
+  each year was like and when to drink it. For a hard year: if a producer made a fine one, hats off to them.
+  Short years in pairs ("15 or 13", "'15 vs '13") are understood.
 - **The best years:** "best vintages for red Côte de Nuits" (95+ from the atlas chart), "a good Champagne vintage"
   (★★★★★ from the charts).
 - **Comparisons and places:**
   - "difference between premier cru and grand cru", "Barolo vs Barbaresco";
   - "where is Chablis" (when it isn't in your cellar);
   - "what soil is in Chablis". Style and soil notes for 45 key appellations also appear on their cards.
+- **Recommendations:** "recommend a wine from Piemonte", "a white Burgundy under 60 €", "anbefal en champagne
+  under 500 kr", "what Riesling should I buy". First your own bottles that fit and are ready, then wines worth
+  buying, one per price band from everyday to special. Prices are in € (with kroner in Danish), and a budget
+  in €, kr or $ is read.
+  - The wines come from ~100 picks from well-known producers in `sommelier-data.js` (`PICKS`), with rough shop
+    prices for a recent vintage.
+  - With no place named, it starts from the region you drink most.
+  - "If I gave you 1000 euros, which wine would you buy?" gives one great bottle, or six at about a sixth each.
+- **Opinions:** "Do you prefer white Burgundy or Danish white?", "Barolo or Barbaresco?". It picks one and says
+  why: how long each keeps, the price range, and how many bottles of each are in your cellar. Between two
+  greats, it calls it a close call and lets your cellar decide. Country adjectives (dansk, Italian, französisch…)
+  are understood.
 - **70 terms:** brett, Kimmeridgian, the 1855 classification, left and right bank, dosage, bottle sizes, glasses,
   glasses per bottle, calories and units, reduction, VA, solera, puttonyos…
 - **Files:** `sommelier.js` (the engine) and `sommelier-data.js` (its knowledge) load only when the panel is first
-  opened. Tests: `node tools/sommelier-test.js` (97 checks on the engine) and `node tools/sommelier-ui-test.js`
+  opened. Tests: `node tools/sommelier-test.js` (116 checks on the engine) and `node tools/sommelier-ui-test.js`
   (16 checks in the browser, including that asking sends nothing to the server).
 
 ## Surveyed vineyard outlines (INAO)
@@ -913,7 +928,11 @@ posts, follows and atlas corrections stay readable, because sharing them is the 
 - **Recovery code.** At sign-up, and at each existing user's first login on the new version, the site shows a
   recovery code once. It wraps the same data key, so a forgotten password can be reset from the login screen
   (**Forgot password?**). Without the password *and* the code, the cellar is gone — nobody can open it, you
-  included. **Account** (top bar) changes the password or issues a new code.
+  included. **Account** (top bar) changes the password or issues a new code. The account exists as soon as the
+  code shows: if a phone reloads the page while it's on screen (a trip to the password manager), the login says
+  the account was made, with the username filled in. Safari can leave IndexedDB hanging after the browser was in
+  the background, so the device's copy and the kept key give up after 4 seconds and the cellar comes from the
+  server instead. Tested in `tools/signup-resume-ui-test.js`.
 - **Where it lives.** Each account has an *AllWine vault — name* spreadsheet with one `Vault` tab of encrypted
   chunks, plus a `Vault` folder of encrypted journal photos. `vault-engine.js` runs `Code.gs` itself in the browser
   over the decrypted copy, so the cellar logic is the same code as the server's. `vault.js` then writes back only

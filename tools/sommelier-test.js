@@ -139,6 +139,44 @@ const h = ask("en", '<img src=x onerror=alert(1)> where is my <b>rousseau</b>');
 check("typed HTML is never echoed as HTML", !/<img|<b>rousseau/i.test(h), h);
 const h2 = S.answer("qwerty <script>x</script>", ctx("en")).html;
 check("…nor in the unknown answer", !/<script/i.test(h2));
+// ── recommendations, budgets and opinions ──
+{ let [ok, h] = has("en", "Can you recommend a wine from piemonte", /Worth buying[\s\S]*Barolo/);
+  check("'recommend a wine from Piemonte': Piemonte wines to buy (your Barolo 2017 isn't ready, so it isn't offered)", ok && !/Burgundy ·|From your own cellar/.test(h), h);
+  [ok, h] = has("en", "recommend a Bordeaux", /From your own cellar[\s\S]*Lynch-Bages[\s\S]*Worth buying[\s\S]*Bordeaux/);
+  check("…your own ready bottles come first", ok, h);
+  [ok, h] = has("en", "recommend a white burgundy under 60 euros", /Worth buying for up to €60/);
+  const prices = [...h.matchAll(/€(\d+)/g)].map(m => +m[1]).slice(1);
+  check("…a white Burgundy under 60 €: only white Burgundy at or under the budget", ok && prices.length && prices.every(x => x <= 63) && /Chablis|Mâcon/.test(h), h);
+  [ok, h] = has("en", "If i gave you 1000 euros which wine would you buy", /For €1,000 I'd buy one great bottle[\s\S]*Or make it six bottles/);
+  check("…'1000 euros, which wine would you buy': one great bottle, or six", ok && !/From your own cellar/.test(h), h);
+  check("…starting from what you drink most (Bordeaux in this cellar)", /You drink a lot of Bordeaux[\s\S]*Lafite/.test(h), h);
+  [ok, h] = has("da", "anbefal en champagne under 500 kr", /højst €67 \(≈ 500 kr\.\)/);
+  check("…in Danish, a budget in kroner is read and shown in both currencies", ok && /Champagne/.test(h), h);
+  [ok, h] = has("en", "what Riesling should I buy", /Worth buying[\s\S]*Riesling/);
+  check("…by grape", ok && !/Chardonnay ·|Pinot Noir ·/.test(h), h);
+  [ok, h] = has("de", "Empfiehl einen Barolo unter 100 €", /Kaufenswert bis €100/);
+  check("…in German", ok, h); }
+{ let [ok, h] = has("en", "Do you prefer white burgundy or white wine from denmark", /If I had to choose: White Burgundy/);
+  check("'white Burgundy or Danish white?': an opinion, with reasons", ok && /Solaris/.test(h) && /keeps/i.test(h), h);
+  [ok, h] = has("da", "Foretrækker du hvid bourgogne eller dansk hvidvin?", /Hvis jeg skulle vælge: Hvid Bourgogne[\s\S]*Danmark har også/);
+  check("…in Danish, 'dansk' is Denmark", ok, h);
+  [ok, h] = has("en", "Barolo or Barbaresco?", /If I had to choose: Barolo[\s\S]*Barbaresco has its moments/);
+  check("'Barolo or Barbaresco?' without 'prefer' is a choice too", ok, h);
+  [ok, h] = has("en", "Bordeaux or Burgundy?", /If I had to choose: Bordeaux[\s\S]*close call[\s\S]*cellar tips it/);
+  check("…two great regions: a close call that your cellar tips", ok, h);
+  [ok, h] = has("en", "red or white tonight?", /Ready to drink from your cellar/);
+  check("'red or white tonight?' goes to what's ready in the cellar", ok, h); }
+{ let [ok, h] = has("en", "is red cote de nuits from 15 or 13 best", /2015, by far: 98\/100 against 90\/100[\s\S]*2013[\s\S]*hats off/);
+  check("'red Côte de Nuits 15 or 13': 2015 by far, what each year was like, and hats off to a fine 2013", ok && !/2013, by far/.test(h), h);
+  [ok, h] = has("en", "2010 or 2005 for red Côte de Nuits?", /2005, clearly: 98\/100 against 95\/100/);
+  check("…a smaller gap says 'clearly', with no hat-tip for a great year", ok && !/hats off/.test(h), h);
+  [ok, h] = has("da", "er rød côte de nuits fra 15 eller 13 bedst?", /2015, med længder[\s\S]*hatten af/);
+  check("…in Danish", ok, h);
+  [ok, h] = has("en", "Barolo 2010 vs 2014", /2010, by far: ★★★★★/);
+  check("…other regions from the star charts", ok, h);
+  check("'under 50 euros' is not read as the years 2050", !/2050/.test(text(ask("en", "recommend a champagne under 50 euros")))); }
+check("every pick names a region the site knows", (() => { const KB = require("../wine-kb.js"); const ok = new Set([...KB.regions.map(r => r.n), ...KB.countries.map(c => c.n)]); return D.picks.every(pk => ok.has(pk.region) && pk.eur > 0 && "rwsdf".includes(pk.col)); })());
+
 // every phrase in all four languages
 const missing = Object.entries(S.SAY).filter(([k, v]) => !Array.isArray(v) || v.length !== 4 || v.some(x => x === "" && !["tannin"].includes(k)));
 check("every phrase has four languages", !missing.length, missing.map(m => m[0]).join());

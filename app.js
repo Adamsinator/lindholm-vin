@@ -1198,7 +1198,11 @@ async function gateEncrypted(mode, user, pass){
     const data = await post({action:"signup", user, code:$("gateInvite").value.trim(), turnstile:humanToken(), ...k.fields});
     if(!data.ok) throw new Error(data.error);
     cfg.user = data.user; VAULT.rememberSalt(data.user, k.fields);
+    // the account exists from here: if the phone reloads the page while the code is on screen (a trip to the
+    // password manager), the login says so instead of looking like nothing happened
+    try{ sessionStorage.setItem("vinNewAccount", data.user); }catch(e){}
     await showRecoveryCode(k.recoveryCode);
+    try{ sessionStorage.removeItem("vinNewAccount"); }catch(e){}
     await openVault(data.user, data.token, k.dek);
     return true;
   }
@@ -1521,8 +1525,8 @@ function sommLoad(){
   if(SOMM.ready && SOMM.lang === lang) return SOMM.ready;
   const need = [];
   if(!window.WINE_KB) need.push("wine-kb.js?v=2");
-  if(!window.SOMM_DATA) need.push("sommelier-data.js?v=2");
-  if(!window.SOMMELIER) need.push("sommelier.js?v=2");
+  if(!window.SOMM_DATA) need.push("sommelier-data.js?v=3");
+  if(!window.SOMMELIER) need.push("sommelier.js?v=3");
   if(!window.BURG_VINTAGES) need.push("burgundy-vintages.js?v=5");
   if(["da","fr","de"].includes(lang) && !(window.BURG_I18N && BURG_I18N[lang])) need.push(`burgundy-i18n-${lang}.js?v=${lang==="de"?1:5}`);
   SOMM.lang = lang;
@@ -3442,5 +3446,8 @@ if(cfg.api && cfg.user && cfg.token && sessionFresh && localStorage.getItem("vin
   if(staleDrop) forgetAuth();                     // (e.g. overnight) — drop it
   localStorage.removeItem("vinActive");
   setGateMode("login");
-  showGate(staleDrop ? tr("Your session expired after inactivity — log in again.") : "");
+  let made = ""; try{ made = sessionStorage.getItem("vinNewAccount") || ""; sessionStorage.removeItem("vinNewAccount"); }catch(e){}
+  if(made){ $("gateUser").value = made;
+    showGate(tr("Your account {0} is created. Log in with your password. If you didn't save the recovery code, make a new one under Account.", made)); }
+  else showGate(staleDrop ? tr("Your session expired after inactivity — log in again.") : "");
 }
