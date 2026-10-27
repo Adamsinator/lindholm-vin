@@ -3525,11 +3525,19 @@ function feedRecall(){
     if(c && Array.isArray(c.feed)){ FEED=c.feed; FEED_ME=c.me||""; FEED_USERS=c.users||[]; FEED_FOLLOWS=c.follows||[]; } }catch(e){}
 }
 function feedForgetAll(){ try{ Object.keys(localStorage).filter(k => k.startsWith("vinFeed:")).forEach(k => localStorage.removeItem(k)); }catch(e){} }
+// The feed is there only when the server says so (its SOCIAL setting): off, the tab, the Share buttons and the list of
+// other members never show, and nothing is kept on the device.
+function setSocial(on){
+  document.body.classList.toggle("social", !!on);
+  const t = document.querySelector('.tab[data-page="feed"]'); if(t) t.hidden = !on;
+  if(!on){ feedForgetAll(); FEED = null; FEED_USERS = []; if(location.hash==="#feed") location.hash = ""; }
+}
 async function loadFeedSilently(){
-  feedRecall(); if(FEED && location.hash==="#feed") renderFeed();
-  try{ const r=await api({action:"feed"}); FEED=r.feed||[]; FEED_ME=r.me||""; FEED_USERS=r.users||[]; FEED_FOLLOWS=r.follows||[]; feedKeep();
+  if(!document.body.classList.contains("social")) FEED = null;
+  else { feedRecall(); if(FEED && location.hash==="#feed") renderFeed(); }
+  try{ const r=await api({action:"feed"}); setSocial(r.social === true); if(r.social !== true) return; FEED=r.feed||[]; FEED_ME=r.me||""; FEED_USERS=r.users||[]; FEED_FOLLOWS=r.follows||[]; feedKeep();
     if(location.hash==="#feed"){ renderFeed(); markFeedSeen(); } else updateFeedBadge();
-  }catch(e){ /* feed is optional; older API may not have it */ }
+  }catch(e){ setSocial(false); /* off (social-off), or an older API */ }
 }
 async function loadFeed(force){
   if(!force) feedRecall();
@@ -3676,7 +3684,7 @@ async function toggleFollow(user, follow){
 function route(){
   const h = location.hash;
   const page = h==="#journal" ? "journal" : h==="#enjoyed" ? "enjoyed" : h==="#wishlist" ? "wishlist"
-             : h==="#feed" ? "feed" : "cellar";
+             : h==="#feed" && document.body.classList.contains("social") ? "feed" : "cellar";
   $("pageCellar").hidden = page!=="cellar";
   $("pageEnjoyed").hidden = page!=="enjoyed";
   $("pageWishlist").hidden = page!=="wishlist";

@@ -5,6 +5,7 @@
 //   • quick picks fill Country and Location with one tap
 //   • the average bottle counts only bottles with a price
 //   • the privacy page is linked from the cellar when logged in
+//   • private for now: no Feed tab, no Share button, #feed shows the cellar
 //   (cd .. && python3 -m http.server 8765) & node tools/addform-ui-test.js
 "use strict";
 const { chromium } = require("./pw");
@@ -73,6 +74,13 @@ const HEAD = ["Producent", "Land", "Område", "Kommune", "Mark/Navn", "Klassifik
   check("a value a wine already has stays (Special club)", ic === "Special club", ic);
   await p.keyboard.press("Escape");
 
+  // private for now: no feed, no sharing, no list of other members
+  check("no Feed tab while the feed is off", await p.isHidden('.tab[data-page="feed"]'));
+  await p.click("#tbl tr.main >> nth=0"); await p.waitForTimeout(300);
+  check("…no Share button on a wine", (await p.$$eval("button.fshare", bs => bs.filter(b => b.offsetParent !== null).length)) === 0);
+  await p.goto(BASE + "#feed"); await p.waitForSelector("#app:not([hidden])", { timeout: 20000 }); await p.waitForTimeout(800);
+  check("…and #feed shows the cellar instead", await p.isVisible("#pageCellar") && await p.isHidden("#pageFeed"));
+  check("…with nothing of the feed kept on the device", await p.evaluate(() => !Object.keys(localStorage).some(k => k.startsWith("vinFeed:"))));
   // the privacy page from inside the cellar
   check("the privacy page is linked from the cellar when logged in", await p.isVisible('.appfoot a[href="privacy.html"]'));
   check("no console errors", !errs.length, errs.join(" | "));

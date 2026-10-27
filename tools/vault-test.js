@@ -11,7 +11,7 @@ const plainWine = ["Armand Rousseau", "Frankrig", "Bourgogne", "Gevrey-Chamberti
 
 (async () => {
   const gas = H({ Ark1: [HEAD, plainWine], Journal: [["Dato", "Producent", "Vin", "Foto"], ["2025-12-24", "Armand Rousseau", "Clos St-Jacques", "phOLD"]] },
-                { settings: { SIGNUP_CODE: "invite", OWNER_USER: "adam", OWNER_PASSWORD: "owner-pass-1" } });
+                { settings: { SIGNUP_CODE: "invite", OWNER_USER: "adam", OWNER_PASSWORD: "owner-pass-1", SOCIAL: "on" } });
   const post = async p => gas.call(p);
   const everything = () => JSON.stringify(Object.values(gas.rt.books).filter(b => !b.trashed).map(b => Object.values(b.sheets).map(s => s._cells)));
 

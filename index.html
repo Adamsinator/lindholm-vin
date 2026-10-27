@@ -490,6 +490,8 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
 .qpick button:hover,.qpick button.on{border-color:var(--accent);color:var(--accent)}
 /* "Other…" classification: a text field under the list */
 .clsother{margin-top:6px}
+/* private for now: the feed and sharing show only when the server has SOCIAL on */
+body:not(.social) .fshare{display:none!important}
 .appfoot{text-align:center;margin:28px 0 0;font-size:12.5px} .appfoot a{color:var(--muted)}
 .jcheck .lopt{font-size:12.5px;color:var(--muted)}
 .jdone{margin-top:12px;font-size:13px;color:var(--muted);background:var(--chip);border-radius:var(--r);padding:8px 10px}
@@ -817,7 +819,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
   <button class="tab" data-page="enjoyed" data-i18n>Enjoyed</button>
   <button class="tab" data-page="wishlist" data-i18n>Wishlist</button>
   <button class="tab" data-page="journal" data-i18n>Journal</button>
-  <button class="tab" data-page="feed"><span data-i18n>Feed</span> <span class="tabbadge" id="feedBadge" hidden></span></button>
+  <button class="tab" data-page="feed" hidden><span data-i18n>Feed</span> <span class="tabbadge" id="feedBadge" hidden></span></button>
 </nav>
 <div class="gstat">
   <span class="stamp" id="stamp"></span>
@@ -1424,7 +1426,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
 
 <!-- Pages serves these with max-age=600 and no revalidation, so a merged change can
      sit invisible behind a stale app.js for ten minutes. Bump v on every deploy. -->
-<script src="i18n.js?v=38"></script>
+<script src="i18n.js?v=39"></script>
 <script src="notes.js?v=4"></script>
 <script src="notes-i18n.js?v=1"></script>
 <script src="burgundy-data.js?v=13"></script>
@@ -1434,11 +1436,11 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
 <script src="gas-fake.js?v=4"></script>
 <script src="vault-crypto.js?v=2"></script>
 <script src="vault-engine.js?v=1"></script>
-<script src="vault.js?v=14"></script>
+<script src="vault.js?v=15"></script>
 <script src="wine-kb.js?v=2"></script>
 <script src="tidy.js?v=3"></script>
 <script src="import.js?v=5"></script>
 <script src="export.js?v=2"></script>
-<script src="app.js?v=35"></script>
+<script src="app.js?v=36"></script>
 </body>
 </html>

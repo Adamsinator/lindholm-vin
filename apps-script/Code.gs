@@ -32,7 +32,7 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 const DEFAULT_SETTINGS = { ACCESS_CODE: '', SHEET_NAME: 'Ark1', SIGNUP_CODE: '', ATLAS_EDITORS: '', OWNER_USER: '', OWNER_PASSWORD: '',
-  MAX_USERS: '50', SESSION_DAYS: '30', BACKUP_KEEP: '8', RESTORE_USER: '', RESTORE_FROM: '', GATEWAY_SECRET: '', REPORT_EMAIL: '' };
+  MAX_USERS: '50', SESSION_DAYS: '30', SOCIAL: '', BACKUP_KEEP: '8', RESTORE_USER: '', RESTORE_FROM: '', GATEWAY_SECRET: '', REPORT_EMAIL: '' };
 // Read at call time (not load time), so it doesn't matter in which order Apps Script loads the two files.
 function setting(key) {
   const s = (typeof SETTINGS === 'object' && SETTINGS) || {};
@@ -42,7 +42,7 @@ function setting(key) {
 // The legacy code only works once you've set a real one: the placeholder from the template is public.
 function accessCode() { const c = setting('ACCESS_CODE'); return c === 'CHANGE-ME' ? '' : c; }
 
-const API_VERSION = 37; // returned in every response; used to verify deployments
+const API_VERSION = 38; // returned in every response; used to verify deployments
 
 // Per-request spreadsheet for the authenticated user. Set in handle(); every
 // sheet helper reads it via ss(). Falls back to the bound (owner's) spreadsheet.
@@ -235,26 +235,11 @@ function handle(p) {
       case 'mergerows':
         mergeRows(p.groups || []);
         return json({ ok: true, wines: readAll() });
-      case 'feed':
-        return json({ ok: true, feed: readFeed(200), me: CTX_USER, users: listUsers(), follows: myFollows() });
-      case 'feedpost':
-        addFeed(p.entry || {});
-        return json({ ok: true, feed: readFeed(200), me: CTX_USER, follows: myFollows() });
-      case 'feeddelete':
-        deleteFeed(Number(p.row));
-        return json({ ok: true, feed: readFeed(200), me: CTX_USER, follows: myFollows() });
-      case 'feedcheer':
-        feedCheer(String(p.id || ''));
-        return json({ ok: true, feed: readFeed(200), me: CTX_USER, follows: myFollows() });
-      case 'feedcomment':
-        addFeedComment(String(p.id || ''), p.text || '');
-        return json({ ok: true, feed: readFeed(200), me: CTX_USER, follows: myFollows() });
-      case 'follow':
-        setFollow(String(p.target || ''), true); // not p.user: that's the signed-in account
-        return json({ ok: true, follows: myFollows() });
-      case 'unfollow':
-        setFollow(String(p.target || ''), false);
-        return json({ ok: true, follows: myFollows() });
+      // the feed and follows only with SOCIAL: 'on' — off, nobody sees posts, follows or who else has an account
+      case 'feed': case 'feedpost': case 'feeddelete': case 'feedcheer': case 'feedcomment': case 'follow': case 'unfollow':
+        if (setting('SOCIAL') !== 'on') return json({ ok: false, error: 'social-off' });
+        return social(p);
+
       case 'journal':
         return json({ ok: true, entries: readJournal() });
       case 'jadd':
@@ -540,6 +525,31 @@ function signupLocked(p) {
   return json({ ok: true, user: username, token: token, state: 'done' });
 }
 
+// The feed and follows (only with the SOCIAL setting on)
+function social(p) {
+  switch (p.action) {
+      case 'feed':
+        return json({ ok: true, social: true, feed: readFeed(200), me: CTX_USER, users: listUsers(), follows: myFollows() });
+      case 'feedpost':
+        addFeed(p.entry || {});
+        return json({ ok: true, feed: readFeed(200), me: CTX_USER, follows: myFollows() });
+      case 'feeddelete':
+        deleteFeed(Number(p.row));
+        return json({ ok: true, feed: readFeed(200), me: CTX_USER, follows: myFollows() });
+      case 'feedcheer':
+        feedCheer(String(p.id || ''));
+        return json({ ok: true, feed: readFeed(200), me: CTX_USER, follows: myFollows() });
+      case 'feedcomment':
+        addFeedComment(String(p.id || ''), p.text || '');
+        return json({ ok: true, feed: readFeed(200), me: CTX_USER, follows: myFollows() });
+      case 'follow':
+        setFollow(String(p.target || ''), true); // not p.user: that's the signed-in account
+        return json({ ok: true, follows: myFollows() });
+      case 'unfollow':
+        setFollow(String(p.target || ''), false);
+        return json({ ok: true, follows: myFollows() });
+  }
+}
 // Personal invites: a tab of codes in the bound sheet. A code works once; its row then records who used it and when.
 // Make some with makeInvites() from the editor, or type your own codes into the Code column.
 const INVITES_SHEET = 'Invites', INVITE_COLS = ['Code', 'Note', 'Created', 'UsedBy', 'UsedAt'];

@@ -17,7 +17,7 @@ const MIN = 60000, HOUR = 60 * MIN, DAY = 24 * HOUR;
 
 // ── invites ──
 {
-  const gas = H({ Ark1: [HEAD] }, { settings: { SIGNUP_CODE: "" } });
+  const gas = H({ Ark1: [HEAD] }, { settings: { SOCIAL: "on", SIGNUP_CODE: "" } });
   check("no shared code and no invites: sign-up is off", signup(gas, "anna", "whatever").error === "signup-disabled");
   const made = gas.run("makeInvites()"), codes = made.match(/AW-[A-Z2-9]{4}-[A-Z2-9]{4}/g) || [];
   check("makeInvites() makes five codes in an Invites tab", codes.length === 5 && gas.rows("Invites").length === 6, made);
@@ -29,12 +29,12 @@ const MIN = 60000, HOUR = 60 * MIN, DAY = 24 * HOUR;
   check("the other codes still work", signup(gas, "bob", codes[1]).ok);
 }
 {
-  const gas = H({ Ark1: [HEAD] }, { settings: { SIGNUP_CODE: "shared-code", MAX_USERS: "3" } });
+  const gas = H({ Ark1: [HEAD] }, { settings: { SOCIAL: "on", SIGNUP_CODE: "shared-code", MAX_USERS: "3" } });
   check("the shared SIGNUP_CODE still works", signup(gas, "user1", "shared-code").ok && signup(gas, "user2", "shared-code").ok);
   check("…up to MAX_USERS accounts", signup(gas, "user3", "shared-code").ok && signup(gas, "user4", "shared-code").error === "signup-full");
 }
 {
-  const gas = H({ Ark1: [HEAD] }, { settings: { SIGNUP_CODE: "shared-code", MAX_USERS: "100" } });
+  const gas = H({ Ark1: [HEAD] }, { settings: { SOCIAL: "on", SIGNUP_CODE: "shared-code", MAX_USERS: "100" } });
   const ok = [1, 2, 3, 4, 5].map(i => signup(gas, "sign" + i, "shared-code").ok);
   check("five sign-ups in an hour go through", ok.every(Boolean));
   check("…the sixth waits", signup(gas, "sign6", "shared-code").error === "signup-busy");
@@ -48,7 +48,7 @@ const MIN = 60000, HOUR = 60 * MIN, DAY = 24 * HOUR;
 
 // ── guessing passwords ──
 {
-  const gas = H({ Ark1: [HEAD] }, { settings: { SIGNUP_CODE: "c" } });
+  const gas = H({ Ark1: [HEAD] }, { settings: { SOCIAL: "on", SIGNUP_CODE: "c" } });
   signup(gas, "vera", "c", "right");
   check("the right password logs in", login(gas, "vera", "right").ok);
   for (let i = 0; i < 4; i++) login(gas, "vera", "wrong" + i);
@@ -69,7 +69,7 @@ const MIN = 60000, HOUR = 60 * MIN, DAY = 24 * HOUR;
 
 // ── sessions ──
 {
-  const gas = H({ Ark1: [HEAD] }, { settings: { SIGNUP_CODE: "c", SESSION_DAYS: "30" } });
+  const gas = H({ Ark1: [HEAD] }, { settings: { SOCIAL: "on", SIGNUP_CODE: "c", SESSION_DAYS: "30" } });
   const s = signup(gas, "tom", "c");
   const cell = () => String(gas.rows("Users")[1][4]);
   check("a session is stored with its time", new RegExp("^" + s.token + "@\\d{13}$").test(cell()), cell());
@@ -90,7 +90,7 @@ const MIN = 60000, HOUR = 60 * MIN, DAY = 24 * HOUR;
 
 // ── what an account can store ──
 {
-  const gas = H({ Ark1: [HEAD] }, { settings: { SIGNUP_CODE: "c" } });
+  const gas = H({ Ark1: [HEAD] }, { settings: { SOCIAL: "on", SIGNUP_CODE: "c" } });
   const a = signup(gas, "amy", "c"), b = signup(gas, "ben", "c");
   const as = p => gas.call({ user: "amy", token: a.token, ...p });
   const r = as({ action: "feedpost", entry: { producer: "x".repeat(500), note: "n".repeat(5000), type: "drank", rating: 99 } });
@@ -117,9 +117,24 @@ const MIN = 60000, HOUR = 60 * MIN, DAY = 24 * HOUR;
 }
 {
   // a request bigger than 12 MB never reaches the code
-  const gas = H({ Ark1: [HEAD] }, { settings: { SIGNUP_CODE: "c" } });
+  const gas = H({ Ark1: [HEAD] }, { settings: { SOCIAL: "on", SIGNUP_CODE: "c" } });
   const out = JSON.parse(gas.run(`doPost({ postData: { contents: "x".repeat(12000001) } }).getContent()`));
   check("a request over 12 MB is refused before it's read", out.error === "too-big", JSON.stringify(out));
+}
+
+// ── private by default: no feed, no follows, and nobody learns who else has an account ──
+{
+  const gas = H({ Ark1: [HEAD] }, { settings: { SIGNUP_CODE: "c" } });
+  signup(gas, "anna", "c"); signup(gas, "bodil", "c");
+  const t = login(gas, "anna").token, as = p => gas.call({ user: "anna", token: t, ...p });
+  const off = ["feed", "feedpost", "feeddelete", "feedcheer", "feedcomment", "follow", "unfollow"].map(a => [a, as({ action: a, entry: { type: "drank", producer: "X" }, target: "bodil", id: "x", row: 2 })]);
+  check("with SOCIAL off, every feed and follow action is refused", off.every(([, r]) => r.ok === false && r.error === "social-off"), JSON.stringify(off.filter(([, r]) => r.error !== "social-off")));
+  const seen = ["data", "journal", "wish", "deleted", "status"].map(a => JSON.stringify(as({ action: a })));
+  check("…and no answer anna gets names bodil", seen.every(x => !/bodil/.test(x)), seen.find(x => /bodil/.test(x)) || "");
+  const on = H({ Ark1: [HEAD] }, { settings: { SIGNUP_CODE: "c", SOCIAL: "on" } });
+  signup(on, "anna", "c"); const t2 = login(on, "anna").token;
+  const f = on.call({ user: "anna", token: t2, action: "feed" });
+  check("with SOCIAL 'on' the feed answers, and says so", f.ok && f.social === true, JSON.stringify(f).slice(0, 120));
 }
 
 const n = results.filter(Boolean).length; console.log(`\n${n}/${results.length} passed`); process.exit(n === results.length ? 0 : 1);
