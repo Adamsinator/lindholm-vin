@@ -521,7 +521,9 @@ As soon as the name, commune or region says where a wine is from, the empty fiel
 
 Four panels in the overview, each shown once there's something in it. Money only shows with **Show prices**.
 - **When they need drinking:** bottles by the year their drink window closes. Past windows come first, then this
-  year and the next ten, then later. The coming two years are marked. It uses your own windows, or estimates.
+  year and next, then two years at a time, then five (to 25 years out), then later. The coming two years are
+  marked. It uses your own windows, or estimates. For top producers the estimate is stretched in proportion to
+  the wine's own span (icon +35 %, top +20 %, well regarded +15 %), not by a fixed number of years.
   A click on a bar shows those bottles in the list (again, or Clear filters, takes it off).
 - **Value against what you paid:** for bottles with both a price and a value: what you paid, what they're worth,
   the difference in kr and %, and the biggest gains.

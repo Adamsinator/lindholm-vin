@@ -110,15 +110,16 @@ function baseWindow(w){
 
 // Icon/top producers make wines that outlive the generic region+cru estimate —
 // a Lafon village Meursault or a Roumier village Chambolle ages far longer than
-// the appellation average — so push the drink-window's close out for them.
-const TIER_LONGEVITY = {legend:14, top:7, solid:6};
+// the appellation average — so push the drink-window's close out for them, in proportion to the wine's own span
+// (a share, not a fixed number of years: +14 years made a village wine from an icon last 36 years)
+const TIER_STRETCH = {legend:0.35, top:0.2, solid:0.15};
 function defaultWindow(w){
   const d = baseWindow(w);
   if(!d || d.to==null) return d;
   // No bonus where a great address doesn't add years: rosé, and non-vintage bubbles.
   const noBonus = w.style==="Rosé" || (w.style==="Bobler" && typeof w.vintage!=="number");
   const tier = (typeof PRODUCER_NOTES!=="undefined" && PRODUCER_NOTES[w.producer]) ? PRODUCER_NOTES[w.producer][0] : null;
-  const bonus = noBonus ? 0 : (TIER_LONGEVITY[tier] || 0);
+  const bonus = noBonus || d.from==null ? 0 : Math.round((d.to - d.from) * (TIER_STRETCH[tier] || 0));
   if(bonus){ d.to += bonus; if(d.from!=null && d.to - d.from > 45) d.to = d.from + 45; } // sane ceiling
   return d;
 }
@@ -284,20 +285,27 @@ function kbar(label, n, max, txt, cls, closes){
   return `<div class="kbar${cls?" "+cls:""}"${k}><span class="rb-name">${esc(label)}</span><span class="rb-track"><span class="rb-fill" style="width:${max?Math.max(1.5,n/max*100):0}%"></span></span><span class="rb-n">${esc(txt)}</span></div>`;
 }
 // the drinking-pressure chart's filter: the year a wine's drink window closes ("past", "later", or a year)
+function closeBuckets(Y){
+  const out = [{k:"past", lo:-Infinity, hi:Y-1, label:tr("Past")}, {k:String(Y), lo:Y, hi:Y, label:String(Y)}, {k:String(Y+1), lo:Y+1, hi:Y+1, label:String(Y+1)}];
+  for(let a = Y+2; a <= Y+5; a += 2) out.push({k:a+"-"+(a+1), lo:a, hi:a+1, label:a+"–"+String(a+1).slice(2)});
+  for(let a = Y+6; a <= Y+21; a += 5) out.push({k:a+"-"+(a+4), lo:a, hi:a+4, label:a+"–"+String(a+4).slice(2)});
+  out.push({k:"later", lo:Y+26, hi:Infinity, label:tr("Later")});
+  return out;
+}
 function closesIn(w, k){
   const win = drinkWindow(w); if(!win || win.to==null) return false;
-  const Y = new Date().getFullYear();
-  return k==="past" ? win.to < Y : k==="later" ? win.to > Y+10 : win.to===Number(k);
+  const b = closeBuckets(new Date().getFullYear()).find(x=>x.k===k);
+  return !!b && win.to >= b.lo && win.to <= b.hi;
 }
 function renderMore(cellar){
   const Y = new Date().getFullYear();
   // 1. drinking pressure: the year each bottle's window closes (past ones first, then this year and the next ten)
-  const by = new Map(); let past = 0, later = 0;
+  // this year and next one by one, then two years at a time, then five: long-lived wines spread out instead of
+  // all landing in "Later"
+  const CB = closeBuckets(Y), cnt = new Map();
   cellar.forEach(w=>{ const win = drinkWindow(w); if(!win || win.to==null) return;
-    if(win.to < Y) past += w.left; else if(win.to > Y+10) later += w.left; else by.set(win.to, (by.get(win.to)||0) + w.left); });
-  const rows = []; if(past) rows.push([tr("Past"), past, "warn", "past"]);
-  for(let y = Y; y <= Y+10; y++) if(by.get(y)) rows.push([String(y), by.get(y), y <= Y+1 ? "warn" : "", String(y)]);
-  if(later) rows.push([tr("Later"), later, "", "later"]);
+    const b = CB.find(x=>win.to >= x.lo && win.to <= x.hi); if(b) cnt.set(b.k, (cnt.get(b.k)||0) + w.left); });
+  const rows = CB.filter(b=>cnt.get(b.k)).map(b=>[b.label, cnt.get(b.k), b.hi <= Y+1 ? "warn" : "", b.k]);
   $("pressPanel").hidden = rows.length < 2;
   const pm = Math.max(1, ...rows.map(r=>r[1]));
   $("press").innerHTML = rows.map(([l,n,c,k])=>kbar(l, n, pm, btl(n), c, k)).join("");
@@ -960,7 +968,8 @@ function renderTable(){
     const vl = list.reduce((s,w)=>s+(w.price||0)*(state.status==="drunk"?w.drunk:w.left),0);
     countTxt += ` · ${kr(vl)}`;
   }
-  if(state.closes) countTxt += " · " + tr("window closes {0}", state.closes==="past" ? tr("Past").toLowerCase() : state.closes==="later" ? tr("Later").toLowerCase() : state.closes);
+  if(state.closes){ const b = closeBuckets(new Date().getFullYear()).find(x=>x.k===state.closes);
+    countTxt += " · " + tr("window closes {0}", b ? (/^\d/.test(b.label) ? b.label : b.label.toLowerCase()) : state.closes); }
   $("count").textContent = countTxt;
   $("clear").classList.toggle("show", !!(q||state.country||state.region||state.style||state.ready||state.loc||state.closes||state.status!=="cellar"));
   document.querySelectorAll("#press .kbar[data-closes]").forEach(el=>el.classList.toggle("active", el.dataset.closes===state.closes));
