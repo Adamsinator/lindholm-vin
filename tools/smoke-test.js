@@ -9,6 +9,7 @@
 let chromium; try{ ({chromium}=require('playwright')); }catch(e){ ({chromium}=require('/opt/node22/lib/node_modules/playwright')); }
 const OUT=require('os').tmpdir()+'/allwine-smoke/'; require('fs').mkdirSync(OUT,{recursive:true});
 const BASE=process.env.BASE||'http://localhost:8765/';
+const BLANK_TILE = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==", "base64");
 const W=(o)=>Object.assign({country:'Frankrig',region:'Bourgogne',commune:'',classification:'',type:'Rød',grape:'Pinot Noir',vintage:2018,qty:1,drunk:0,price:'',rating:'',value:'',acquired:'2024-01-10',drunkDate:'',drinkFrom:'',drinkTo:'',size:'',source:'',note:''},o);
 function backend(){
   const S={wines:[
@@ -64,6 +65,9 @@ const overflow=async(p,where)=>{ const o=await p.evaluate(()=>document.documentE
   const ctx=await b.newContext({viewport:vp,colorScheme:scheme,isMobile:tag==='mob',hasTouch:tag==='mob'});
   await require("./turnstile-fake")(ctx);
   await ctx.route(require("./api-route"), backend());
+  // IGN's relief tiles are decoration under the atlas, from France's map server: serve a blank tile here, so a busy
+  // IGN (it refused streams once on GitHub: ERR_HTTP2_SERVER_REFUSED_STREAM) can't fail a test of this site
+  await ctx.route(/data\.geopf\.fr\/wmts/, r => r.fulfill({ contentType: "image/png", body: BLANK_TILE }));
   const p=await ctx.newPage(); const W_=tag; await watch(p,W_);
   // front page, logged out
   await p.goto(BASE); await p.waitForTimeout(600); await overflow(p,tag+' front'); await p.screenshot({path:OUT+tag+'_front.png'});
