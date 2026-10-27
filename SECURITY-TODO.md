@@ -5,9 +5,8 @@ are done (see "Limits against abuse" in the README). Tick a box when an item shi
 
 ## Do soon
 
-- [ ] **Deploy `Code.gs` API 40** (the server keeps bottle counts at 1–9999 and prices at 0 or more): paste it,
-      Manage deployments → ✏️ → New version. Encrypted cellars get it at once (the browser runs the site's copy);
-      the deploy is for anything still kept in a plain sheet.
+- [x] **Deploy `Code.gs` API 40** (bottle counts 1–9999, prices 0 or more): done 27 October 2026; the Worker
+      reports v:40.
 - [x] **Deploy `Code.gs` API 38 and 39** (private mode, email at sign-up, the admin page, Remove a member): done
       27 October 2026; the Worker reports v:39.
 - [x] **Deploy `Code.gs` API 36/37** (Delete my account, the event log, daily backups, Recently deleted): done
@@ -58,7 +57,7 @@ are done (see "Limits against abuse" in the README). Tick a box when an item shi
   - [x] Narrowed to the Worker's own address.
   - [ ] `'unsafe-eval'` stays while the encrypted cellar runs `Code.gs` through `new Function`. Removing it would
         mean running the engine in a Web Worker from a `.js` copy of `Code.gs`.
-- [ ] Confirm **Enforce HTTPS** is ticked under the repository's Settings → Pages.
+- [x] Confirm **Enforce HTTPS** is ticked under the repository's Settings → Pages: done 27 October 2026.
 - [x] `rel="noopener"` on every `target="_blank"` link (all of them had it).
 - [x] `<meta name="referrer" content="strict-origin-when-cross-origin">`.
 
