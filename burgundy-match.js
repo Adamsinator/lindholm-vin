@@ -98,5 +98,13 @@ function place(w){
   const vil = (window.BURG.villages.find(v => v.id===m.c.v) || {}).n;
   return {climat:m.c.n, cls:CLS[m.c.c] || CLS.V, commune: vil ? vil.split(" · ")[0] : "", col:m.c.col || ""};
 }
-window.BURG_MATCH = {make, norm, classify, classKey, CLS, place};
+// Where a cellar wine is on the atlas: its climat, or failing that its village → {c:id} or {v:id} or null. Only for a
+// Burgundy (or a wine with no region given), like classify.
+function where(w){
+  const M = defaultMatcher(); if(!M) return null;
+  if(!(/bourgogne|burgund|cote d.?or|chablis/i.test(String(w.region||"")) || !w.region)) return null;
+  const m = M.match({name:String(w.name||w.wine||""), commune:String(w.commune||"")}, true);
+  return m.c ? {c:m.c.id} : m.vil ? {v:m.vil} : null;
+}
+window.BURG_MATCH = {make, norm, classify, classKey, CLS, place, where};
 })();

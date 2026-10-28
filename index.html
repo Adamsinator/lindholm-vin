@@ -687,8 +687,9 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
   header.top .topright > [data-langpick]{grid-row:2;grid-column:2;justify-self:end}
   .acct #lockBtn .lbl{display:none}
   .acct #lockBtn{font-size:17px}
-  .gstat{width:100%;flex-wrap:nowrap} .gstat .refresh .lbl{display:none} .gstat .refresh{font-size:16px;padding:2px 6px}
-  .gstat .tablink{margin-left:auto}
+  .gstat{width:100%;flex-wrap:wrap;row-gap:0} .gstat .refresh .lbl{display:none} .gstat .refresh{font-size:16px;padding:2px 6px}
+  /* the two atlas links share the right of the line, and drop under the time together when it's too narrow */
+  .gstat .tablink{margin-left:auto;white-space:nowrap} .gstat .tablink + .tablink{margin-left:0}
 }
 /* the journal and the wishlist as a grid of cards; the feed as one reading column */
 #jList,#wList{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px;align-items:start}
@@ -891,6 +892,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
   <span class="stamp" id="stamp"></span>
   <button class="refresh" id="refreshBtn" title="Fetch the cellar again" aria-label="Refresh" data-i18n-title data-i18n-aria><span aria-hidden="true">↻</span> <span class="lbl" data-i18n>Refresh</span></button>
   <a class="tablink" href="burgundy.html" title="Côte de Nuits climat map" data-i18n data-i18n-title>Burgundy atlas ↗</a>
+  <a class="tablink" href="atlas.html" data-i18n>More regions ↗</a>
 </div>
 </div>
 
@@ -1033,6 +1035,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
   <div id="mapbar" hidden>
     <button class="btn" id="mapBack">← All regions</button>
     <span id="mapTitle"></span>
+    <a class="btn quiet" id="mapAtlas" href="burgundy.html" hidden data-i18n>Open the Burgundy atlas ↗</a>
   </div>
   <svg id="map" role="img" aria-label="Stylized map of the wine regions in the cellar" data-i18n-aria></svg>
 </div>
@@ -1527,13 +1530,13 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
 
 <!-- Pages serves these with max-age=600 and no revalidation, so a merged change can
      sit invisible behind a stale app.js for ten minutes. Bump v on every deploy. -->
-<script src="i18n.js?v=45"></script>
+<script src="i18n.js?v=48"></script>
 <script src="notes.js?v=4"></script>
 <script src="notes-i18n.js?v=1"></script>
 <script src="burgundy-data.js?v=13"></script>
 <script src="burgundy-data-beaune.js?v=12"></script>
 <script src="burgundy-names.js?v=1"></script>
-<script src="burgundy-match.js?v=2"></script>
+<script src="burgundy-match.js?v=3"></script>
 <script src="gas-fake.js?v=6"></script>
 <script src="vault-crypto.js?v=3"></script>
 <script src="vault-engine.js?v=1"></script>
@@ -1542,6 +1545,6 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
 <script src="tidy.js?v=3"></script>
 <script src="import.js?v=5"></script>
 <script src="export.js?v=2"></script>
-<script src="app.js?v=43"></script>
+<script src="app.js?v=46"></script>
 </body>
 </html>

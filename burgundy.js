@@ -1287,6 +1287,7 @@ function renderSide(){
       ${ownersHtml(c)}
       ${removedHtml(c)}
       ${cellarHtml(CELLAR.by[c.id]?.wines)}
+      <p><button class="btn quiet" id="addHere">＋ ${t("Add a bottle from here")}${st.prod && P[st.prod] ? " · " + esc(P[st.prod]) : ""}</button></p>
       ${detailHtml(c)}
       ${VT ? vintageYearHtml(catOf(c), c.v) + vintageChart(catOf(c), c.v) + ((c.col||"")==="RW" && catOf(c)!=="beaune_white" ? vintageChart("beaune_white", c.v) : "") : ""}
       ${histHtml(c)}
@@ -1354,6 +1355,7 @@ function renderSide(){
   const cp = $("clearProd"); if(cp) cp.onclick = () => setProducer(null);
   if(st.sel) wireEdit(CL[st.sel]);
   const cw = $("cmpWith"); if(cw) cw.onclick = () => compareWith(st.sel);
+  const ah = $("addHere"); if(ah) ah.onclick = () => addFromAtlas(CL[st.sel]);
   side.insertAdjacentHTML("afterbegin", `<button type="button" class="grip" id="grip" aria-label="${t(side.classList.contains("full") ? "Show less" : "Show more")}"></button>`);
   wireGrip();
   // a new selection starts at the top of the sheet; a re-render of the same one keeps your place
@@ -2206,6 +2208,15 @@ if(window.I18N) window.I18N.onChange(() => {
   fillSearchList(); csel.options[0].textContent = t("Commune…"); syncMode(); renderProdChip(); terrSync();
   renderSide(); paint(); orient();
 });
+
+/* ---------- "Add a bottle from here": the cellar's add form, filled in with this vineyard ---------- */
+// handed over in localStorage (same site), read once by the cellar page within ten minutes
+function addFromAtlas(c){
+  const pre = {name:c.n, commune:(c.vil && c.vil.n || "").split(" · ")[0], classification:{GC:"Grand cru","1er":"1. cru",V:"AOC"}[c.c] || "",
+    region:"Bourgogne", country:"Frankrig", type:c.col==="W" ? "Hvid" : "Rød", producer:st.prod && P[st.prod] ? P[st.prod] : "", at:Date.now()};
+  try{ localStorage.setItem("vinAddPrefill", JSON.stringify(pre)); }catch(e){}
+  location.href = "index.html#add";
+}
 
 /* ---------- hash (shareable state) ---------- */
 let lastHash = location.hash;
