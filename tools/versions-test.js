@@ -10,10 +10,10 @@ const read = f => fs.readFileSync(path.join(R, f), "utf8");
 
 const seen = {}; // file → { version: [where] }
 const note = (file, v, where) => { ((seen[file] ??= {})[v] ??= []).push(where); };
-for (const page of ["index.html", "burgundy.html", "domaine.html", "privacy.html"]) {
+for (const page of ["index.html", "burgundy.html", "domaine.html", "privacy.html", "atlas.html"]) {
   for (const m of read(page).matchAll(/<script src="([\w./-]+\.js)\?v=(\d+)"/g)) note(m[1], m[2], page);
 }
-for (const m of read("burgundy.js").matchAll(/"([\w.-]+\.js)\?v=(\d+)"/g)) note(m[1], m[2], "burgundy.js");
+for (const js of ["burgundy.js", "atlas.js"]) for (const m of read(js).matchAll(/"([\w.-]+\.js)\?v=(\d+)"/g)) note(m[1], m[2], js);
 for (const [file, vs] of Object.entries(seen)) {
   const keys = Object.keys(vs);
   check(`${file} is asked for at one version everywhere`, keys.length === 1, keys.map(k => `v${k} in ${vs[k].join(", ")}`).join(" · "));

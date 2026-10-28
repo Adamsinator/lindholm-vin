@@ -370,6 +370,33 @@ that climat; a third element `"f"` marks a lease, `"s"` bought grapes. Domaine
 profiles and their sources are in `PROFILES`. When you change the JS, bump the
 `?v=` on the `<script>` tags in `burgundy.html`.
 
+## Region atlas (Chablis, Côte Chalonnaise, Mâconnais)
+
+**More regions ↗** (tab bar, and in the Burgundy atlas) opens `atlas.html`: one wine region at a time, from INAO's own
+vineyard outlines. The Côte d'Or keeps its richer atlas (`burgundy.html`); the region atlas is lighter and generic, so a
+new region is a data file, not new code.
+
+- **On the map:** grands crus, premiers crus, the village appellations and the regional land; pan, zoom (wheel, pinch,
+  ＋ − ⌂), click a vineyard for its classification, appellation and INAO area. Filters for grand / premier cru and
+  "Only my bottles"; a search box; the address keeps the region and vineyard (`#r=chablis&c=les_clos`).
+- **Your bottles** (logged in on the Cellar page in this browser, encrypted cellars decrypted here): matched by the
+  region's names on the label, then the longest vineyard name; a vineyard whose appellation is on the label too wins
+  over a namesake. The cellar's **🗺 On the map** sends a Chablis, Mercurey, Pouilly-Fuissé… bottle here
+  (`#w=<its name>`), and **＋ Add a bottle from here** fills in the cellar's add form, as in the Burgundy atlas.
+- **The data:** `node tools/region-build.js <chablis|chalonnaise|maconnais>` → `atlas-<id>.js`. It reads INAO's
+  *Délimitation parcellaire des AOC viticoles* from IGN's Géoplateforme (WFS `AOC-VITICOLES:aire_parcellaire`, Lambert-93,
+  Licence Ouverte) and IGN BD TOPO's place names; each piece of land goes to its highest appellation (named grand cru,
+  named premier cru, unnamed premier cru, village, regional); pieces are merged per climat and simplified (3 m for crus,
+  coarser for the background). Downloads are cached in `tools/.region-cache`. Checked against published figures:
+  Chablis grands crus 108 ha (Les Clos 27), Pouilly-Fuissé's 22 premiers crus 194 ha, Clos des Myglands 6.3 ha.
+- **Chablis's unnamed premiers crus:** INAO's map names only 10 of Chablis's premiers crus. The rest of the premier
+  cru land takes the climat whose name lies inside it or within 600 m on IGN's map, using the official list of the 17
+  premiers crus and the 23 names sold under them (Chapelot → Montée de Tonnerre, Forêts → Montmains…); those are marked
+  "inferred" (*) and say which place name did it. What no name ties to a climat stays "unnamed by INAO".
+- **A new region:** add it to `REGIONS` in `tools/region-build.js` (its box, village appellations and regional
+  appellations), build it, then list it in `atlas.js` (`REGIONS`) and in `app.js` (`ATLAS_REGIONS`) for "On the map".
+  Tested in `tools/region-atlas-ui-test.js`.
+
 ## Changing a wine's details
 
 Add and "mark as drunk" happen in the site, along with score, current value, acquired/drunk dates, drink window
