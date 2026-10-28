@@ -42,7 +42,7 @@ function setting(key) {
 // The legacy code only works once you've set a real one: the placeholder from the template is public.
 function accessCode() { const c = setting('ACCESS_CODE'); return c === 'CHANGE-ME' ? '' : c; }
 
-const API_VERSION = 40; // returned in every response; used to verify deployments
+const API_VERSION = 41; // returned in every response; used to verify deployments
 
 // Per-request spreadsheet for the authenticated user. Set in handle(); every
 // sheet helper reads it via ss(). Falls back to the bound (owner's) spreadsheet.
@@ -149,9 +149,11 @@ function handle(p) {
 
   // Account actions need no session.
   const open = { signup: doSignup, login: doLogin, prelogin: doPrelogin, recoverstart: doRecoverStart, recover: doRecover };
+  // counts from the page (which pages, how often): no session needed, nothing that names anyone
+  if (p.action === 'hits') { countStats(pageHits(p.ev)); return json({ ok: true }); }
   if (open[p.action]) { try { return open[p.action](p); } catch (err) { return json({ ok: false, error: String(err) }); } }
   // The Burgundy atlas is public reference data, so its corrections can be read without a session.
-  if (p.action === 'atlas')  { try { return json({ ok: true, edits: readAtlas(false) }); } catch (err) { return json({ ok: false, error: String(err) }); } }
+  if (p.action === 'atlas')  { countStats({ atlas: 1 }); try { return json({ ok: true, edits: readAtlas(false) }); } catch (err) { return json({ ok: false, error: String(err) }); } }
 
   // Authenticate: a multi-user token scopes to that user's own spreadsheet;
   // otherwise fall back to the legacy single access code + the bound spreadsheet.
@@ -291,7 +293,7 @@ function handle(p) {
       case 'deleteaccount': return doDeleteAccount(p);
       case 'vexport':   return json({ ok: true, ...vaultExport() });
       case 'vget':      return json({ ok: true, records: readVault(vaultBook()), state: CTX_ACCOUNT.state });
-      case 'vput':      return json({ ok: true, ver: writeVault(vaultBook(), String(p.key || ''), Number(p.ver) || 0, String(p.data || '')) });
+      case 'vput':      { const ver = writeVault(vaultBook(), String(p.key || ''), Number(p.ver) || 0, String(p.data || '')); countStats({ save: 1 }); return json({ ok: true, ver: ver }); }
       case 'vphotoput': return json({ ok: true, id: vaultPhotoPut(String(p.data || '')) });
       case 'vphotoget': return json({ ok: true, data: vaultPhotoGet(String(p.id || '')) });
       case 'vphotodel': vaultPhotoDel(String(p.id || '')); return json({ ok: true });
@@ -509,8 +511,12 @@ function createUserSpreadsheet(username) {
 function doSignup(p) {
   const lock = typeof LockService !== 'undefined' ? LockService.getScriptLock() : null;
   if (lock) lock.waitLock(20000);
-  try { return signupLocked(p); } finally { if (lock) lock.releaseLock(); }
+  let out; SIGNED_UP = false;
+  try { out = signupLocked(p); } finally { if (lock) lock.releaseLock(); }
+  if (SIGNED_UP) countStats({ signup: 1 }); // counted once the lock is free
+  return out;
 }
+let SIGNED_UP = false;
 function signupLocked(p) {
   const shared = setting('SIGNUP_CODE'), code = String(p.code || '').trim();
   const invite = findInvite(code);
@@ -539,6 +545,7 @@ function signupLocked(p) {
   put('WrapKey', String(p.wrapKey)); put('WrapRec', String(p.wrapRec)); put('RecSalt', String(p.recSalt));
   put('RecHash', hashPass(salt, p.recAuth)); put('VaultId', vaultId); put('State', 'done'); put('Email', email);
   usersSheet().appendRow(row);
+  SIGNED_UP = true;
   if (invite) useInvite(invite, username);
   logEvent('signup', username, invite ? 'invite' : 'shared code');
   return json({ ok: true, user: username, token: token, state: 'done' });
@@ -620,7 +627,7 @@ function adminView() {
   const ish = invitesSheet(false), ilast = ish ? ish.getLastRow() : 0;
   const invites = ilast >= 2 ? ish.getRange(2, 1, ilast - 1, INVITE_COLS.length).getValues().filter(r => String(r[0]).trim())
     .map(r => ({ code: String(r[0]), note: String(r[1] || ''), created: fmtDay(r[2]), usedBy: String(r[3] || ''), usedAt: fmtDay(r[4]) })) : [];
-  return { ok: true, users, invites, max: Math.max(1, Number(setting('MAX_USERS')) || 50) };
+  return { ok: true, users, invites, max: Math.max(1, Number(setting('MAX_USERS')) || 50), stats: readStats(30) };
 }
 function validKeys(p) {
   const b64ish = v => /^[A-Za-z0-9+/=]{16,200}$/.test(String(v || ''));
@@ -667,6 +674,7 @@ function doLogin(p) {
     const ok = p.auth && safeEqual(hashPass(salt, p.auth), u.hash);
     if (!ok) return failed(p.user, 'bad-login');
     cleared(p.user);
+    countStats({ login: 1 });
     return json({ ok: true, user: u.username, token: addSession(u), wrapKey: u.wrapKey, state: u.state || 'done' });
   }
   const ok = u && p.pass !== undefined && safeEqual(hashPass(salt, p.pass || ''), u.hash);
@@ -804,6 +812,59 @@ function doRecover(p) {
   return json({ ok: true, user: u.username, token: addSession(findUser(u.username)), wrapKey: String(p.wrapKey), state: u.state });
 }
 
+// Usage numbers for the owner's admin page: a row a day in the "Stats" tab, a column per event. Only counts — never
+// a name, an address or anything from a cellar (it's encrypted anyway). The server counts logins, members active
+// that day, sign-ups, cellar saves and atlas visits; the page adds which pages it showed and how often.
+const STATS_SHEET = 'Stats', STATS_KEEP = 400;
+const STATS_COLS = { active: 'Active members', login: 'Logins', signup: 'Sign-ups', save: 'Cellar saves', atlas: 'Atlas visits',
+  cellar: 'Cellar page', enjoyed: 'Enjoyed page', wishlist: 'Wishlist page', journal: 'Journal page', import: 'Imports',
+  sommelier: 'Sommelier questions', export: 'Exports' };
+const STATS_FROM_PAGE = ['cellar', 'enjoyed', 'wishlist', 'journal', 'import', 'sommelier', 'export'];
+// what a page may report, at most 50 of each per call: a page can't inflate the server's own counts
+function pageHits(ev) {
+  const out = {};
+  if (ev && typeof ev === 'object') STATS_FROM_PAGE.forEach(k => { const n = Math.round(Number(ev[k])); if (n > 0) out[k] = Math.min(50, n); });
+  return out;
+}
+function countStats(ev) {
+  if (inEngine()) return;
+  const keys = Object.keys(ev || {}).filter(k => STATS_COLS[k] && Number(ev[k]) > 0);
+  if (!keys.length) return;
+  const lock = typeof LockService !== 'undefined' ? LockService.getScriptLock() : null;
+  if (lock && !lock.tryLock(3000)) return; // a count is never worth holding a request up
+  try {
+    const book = SpreadsheetApp.getActiveSpreadsheet();
+    let sh = book.getSheetByName(STATS_SHEET);
+    const want = ['Date'].concat(Object.keys(STATS_COLS).map(k => STATS_COLS[k]));
+    if (!sh) { sh = book.insertSheet(STATS_SHEET); sh.appendRow(want); }
+    const head = sh.getRange(1, 1, 1, Math.max(1, sh.getLastColumn())).getValues()[0].map(String);
+    want.forEach(c => { if (head.indexOf(c) < 0) { head.push(c); sh.getRange(1, head.length).setValue(c); } });
+    const day = today(), last = sh.getLastRow();
+    let row = last;
+    if (last < 2 || ymd(sh.getRange(last, 1).getValue()) !== day) { row = last + 1; sh.getRange(row, 1).setNumberFormat('@').setValue(day); }
+    const vals = sh.getRange(row, 1, 1, head.length).getValues()[0];
+    keys.forEach(k => { const i = head.indexOf(STATS_COLS[k]); vals[i] = (Number(vals[i]) || 0) + Math.round(Number(ev[k])); });
+    sh.getRange(row, 2, 1, head.length - 1).setValues([vals.slice(1)]);
+    if (sh.getLastRow() - 1 > STATS_KEEP + 30) sh.deleteRows(2, sh.getLastRow() - 1 - STATS_KEEP);
+  } catch (err) { /* a count never breaks a request */ } finally { if (lock) lock.releaseLock(); }
+}
+// The last n days for the admin page, oldest first, every day present (0 where nothing was counted)
+function readStats(n) {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(STATS_SHEET), by = {};
+  if (sh && sh.getLastRow() >= 2) {
+    const all = sh.getRange(1, 1, sh.getLastRow(), sh.getLastColumn()).getValues(), head = all[0].map(String);
+    all.slice(1).forEach(r => { const o = {}; Object.keys(STATS_COLS).forEach(k => { const i = head.indexOf(STATS_COLS[k]); o[k] = i >= 0 ? Number(r[i]) || 0 : 0; }); by[ymd(r[0])] = o; });
+  }
+  // calendar days back from today, counted at noon UTC: steps of 24 hours would skip or repeat a day around a
+  // change to or from summer time
+  const days = [], t = today().split('-').map(Number);
+  for (let d = n - 1; d >= 0; d--) {
+    const day = Utilities.formatDate(new Date(Date.UTC(t[0], t[1] - 1, t[2] - d, 12)), 'UTC', 'yyyy-MM-dd');
+    days.push(Object.assign({ day: day }, Object.keys(STATS_COLS).reduce((o, k) => (o[k] = (by[day] || {})[k] || 0, o), {})));
+  }
+  return days;
+}
+
 // Validate {user, token}; returns the user record or null.
 function authToken(p) {
   const u = findUser(p.user);
@@ -815,7 +876,7 @@ function authToken(p) {
   if (!hit.at || now - hit.at > SESSION_REFRESH_MS) { hit.at = now; usersSheet().getRange(u.row, UCOL.Token).setValue(tokenCell(live)); }
   // the day an account was last used, for the owner's admin page: written at most once a day, as text
   const day = today();
-  if (u.lastSeen !== day) { try { usersSheet().getRange(u.row, UCOL.LastSeen).setNumberFormat('@').setValue(day); u.lastSeen = day; } catch (err) {} }
+  if (u.lastSeen !== day) { try { usersSheet().getRange(u.row, UCOL.LastSeen).setNumberFormat('@').setValue(day); u.lastSeen = day; } catch (err) {} countStats({ active: 1 }); }
   return u;
 }
 // The owner: the account whose cellar is (or was, before encryption) this bound spreadsheet

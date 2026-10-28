@@ -184,6 +184,18 @@ async function post(params){
   return res.json();
 }
 
+// Usage numbers for the owner's admin page: which pages were shown, imports, sommelier questions, exports — counts
+// only, sent in a batch now and then (and when the page is left), never with a name or anything from the cellar
+const HITS = {};
+function hit(k){ if(!cfg.token) return; HITS[k] = (HITS[k]||0) + 1; if(Object.values(HITS).reduce((a,b)=>a+b, 0) >= 20) flushHits(); }
+function flushHits(leaving){
+  const ev = Object.assign({}, HITS); if(!Object.keys(ev).length || !cfg.api) return;
+  for(const k in HITS) delete HITS[k];
+  try{ fetch(cfg.api, {method:"POST", body:JSON.stringify({action:"hits", ev}), keepalive:!!leaving}).catch(()=>{}); }catch(e){}
+}
+addEventListener("pagehide", ()=>flushHits(true));
+document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState === "hidden") flushHits(true); });
+
 async function api(params){
   // an encrypted account: the cellar's own actions run here on the decrypted copy (vault.js); shared ones go out
   if(window.VAULT && VAULT.active()) return VAULT.call(params);
@@ -1741,7 +1753,7 @@ async function impRun(){
     }
     renderOverview(); renderTable(); renderEnjoyed();
     $("impModal").classList.remove("open");
-    toast(tr("{0} wines imported 🍷", done));
+    toast(tr("{0} wines imported 🍷", done)); hit("import");
   }catch(err){
     const m = String(err && err.message || err);
     if(done){ renderOverview(); renderTable(); renderEnjoyed(); }
@@ -1901,7 +1913,7 @@ function sommChips(list){
 const SOMM_THINK = [1500, 2300];
 async function sommAsk(q){
   q = String(q || "").trim(); if(!q || SOMM.busy) return;
-  SOMM.busy = true; const asked = sommSay(q, "q"); $("sommQ").value = "";
+  SOMM.busy = true; const asked = sommSay(q, "q"); $("sommQ").value = ""; hit("sommelier");
   const think = document.createElement("div"); think.className = "sm-a sm-think";
   think.innerHTML = `<span>${esc(tr("Thinking"))}</span><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>`;
   $("sommLog").appendChild(think); sommShow(think);
@@ -2025,7 +2037,7 @@ async function expRun(kind){
     document.body.appendChild(a); a.click();
     setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 2000);
     $("expModal").classList.remove("open");
-    toast(tr("Saved {0}", a.download));
+    toast(tr("Saved {0}", a.download)); hit("export");
   }catch(err){
     const m = String(err && err.message || err);
     $("expErr").textContent = tr("Could not export: {0}", m);
@@ -3669,8 +3681,22 @@ async function openAdmin(){
   try{ ADMIN = await api({action:"admin"}); $("adminErr").textContent = ""; renderAdmin(); }
   catch(err){ $("adminErr").textContent = err.message === "not-owner" ? tr("Only the owner can open this.") : tr("Could not reach the cellar API ({0}).", errText(err)); }
 }
+// the last 30 days: active members a day as bars, and each count's total
+const USAGE_LABEL = {active:"Active members", login:"Logins", signup:"Sign-ups", save:"Cellar saves", atlas:"Atlas visits",
+  cellar:"Cellar page", enjoyed:"Enjoyed page", wishlist:"Wishlist page", journal:"Journal page", import:"Imports",
+  sommelier:"Sommelier questions", export:"Exports"};
+function renderUsage(days){
+  if(!days || !days.length){ $("adminUsage").innerHTML = `<p class="ph">${esc(tr("No usage counted yet."))}</p>`; return; }
+  const max = Math.max(1, ...days.map(d=>d.active)), W = 300, H = 60, bw = W / days.length;
+  const bars = days.map((d,i)=>{ const h = Math.round(d.active / max * (H - 4)); return `<rect x="${(i*bw+1).toFixed(1)}" y="${H-h}" width="${(bw-2).toFixed(1)}" height="${h}" rx="1.5"><title>${esc(d.day)}: ${d.active}</title></rect>`; }).join("");
+  const sum = k => days.reduce((s,d)=>s + (d[k]||0), 0);
+  $("adminUsage").innerHTML = `<div class="ususp"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(tr("Active members a day, last 30 days"))}">${bars}</svg>
+      <span class="ph">${esc(tr("Active members a day, last 30 days"))} · ${esc(tr("most {0}", max))}</span></div>
+    <dl class="usgrid">${Object.keys(USAGE_LABEL).map(k=>`<div><dt>${esc(tr(USAGE_LABEL[k]))}</dt><dd>${fmt(sum(k))}</dd></div>`).join("")}</dl>`;
+}
 function renderAdmin(){
   const A = ADMIN || {users:[], invites:[]};
+  renderUsage(A.stats);
   $("adminCount").textContent = tr("{0} of at most {1}", fmt(A.users.length), fmt(A.max || 50));
   $("adminUsers").innerHTML = A.users.map(u=>`<li><span class="a1"><b>${esc(u.user)}</b> · ${u.email ? `<a href="mailto:${esc(u.email)}">${esc(u.email)}</a>` : "—"}</span>
       ${u.owner ? `<span class="ph adrm">${esc(tr("you (owner)"))}</span>` : `<button type="button" class="adrm" data-remove="${esc(u.user)}">${esc(tr("Remove"))}</button>`}
@@ -3880,6 +3906,7 @@ function route(){
   if(page==="wishlist" && cfg.token) loadWishlist();
   if(page==="feed" && cfg.token) loadFeed();
   if(page==="enjoyed") renderEnjoyed();
+  hit(page);
 }
 document.querySelectorAll(".tab").forEach(t=>
   t.addEventListener("click", ()=>{ location.hash = t.dataset.page==="cellar" ? "" : t.dataset.page; }));

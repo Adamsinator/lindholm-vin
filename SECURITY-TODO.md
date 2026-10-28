@@ -5,6 +5,8 @@ are done (see "Limits against abuse" in the README). Tick a box when an item shi
 
 ## Do soon
 
+- [ ] **Deploy `Code.gs` API 41** (usage numbers on the admin page): paste it, Manage deployments → ✏️ → New
+      version. The Stats tab appears in the master sheet with the first count.
 - [x] **Deploy `Code.gs` API 40** (bottle counts 1–9999, prices 0 or more): done 27 October 2026; the Worker
       reports v:40.
 - [x] **Deploy `Code.gs` API 38 and 39** (private mode, email at sign-up, the admin page, Remove a member): done

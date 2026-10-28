@@ -554,6 +554,10 @@ only, never wines.
   the site; invite codes made 1–10 at a time with a note, a ready invitation to copy (link and code), and a way
   to withdraw an unused code. What's in a cellar is never there: it's encrypted. `makeInvites()` in the Apps
   Script editor still works too.
+- **Usage** (Admin, last 30 days): members active each day as bars, and totals of logins, sign-ups, cellar saves,
+  atlas visits, the pages opened, imports, exports and sommelier questions. They come from a `Stats` tab in the master
+  sheet, a row a day and a column per count, kept about 400 days. The server counts its own events; a page may only
+  add page counts (at most 50 of each per call) and never a name, an address or anything from a cellar.
 - **Remove a member** (Admin → Remove, then type their username): the same clean-up as the member deleting
   their own account. Their Drive folder goes to the bin (30 days), their name comes off their invite code, their
   row leaves `Users`, and every device they're logged in on is signed out. The owner's own account can't be
