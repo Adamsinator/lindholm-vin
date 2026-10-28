@@ -45,8 +45,11 @@ const HEAD = ["Producent", "Land", "Område", "Kommune", "Mark/Navn", "Klassifik
   check("…and says how many there are of the most", /2 of at most 50/.test(await p.textContent("#adminCount")), await p.textContent("#adminCount"));
   // usage: pia's page reports which pages she opened (counts only), and the owner sees the 30 days
   await B.p.click('.tab[data-page="journal"]'); await B.p.click('.tab[data-page="enjoyed"]'); await B.p.waitForTimeout(200);
-  await B.p.evaluate(() => flushHits()); await B.p.waitForTimeout(300);
-  await p.click("#adminClose"); await p.click("#adminBtn"); await p.waitForFunction(() => document.querySelectorAll("#adminUsage dd").length > 5, null, { timeout: 10000 });
+  await B.p.evaluate(() => flushHits());
+  const statCol = name => { const r = gas.rows("Stats") || [[]]; const i = r[0].indexOf(name); return r.length > 1 && i >= 0 ? Number(r[r.length - 1][i]) || 0 : 0; };
+  for (let i = 0; i < 50 && !(statCol("Journal page") && statCol("Enjoyed page")); i++) await B.p.waitForTimeout(100); // the count travels on its own
+  await p.click("#adminClose"); await p.evaluate(() => { document.getElementById("adminUsage").innerHTML = ""; }); // what's shown must be the new fetch
+  await p.click("#adminBtn"); await p.waitForFunction(() => document.querySelectorAll("#adminUsage dd").length > 5, null, { timeout: 10000 });
   const usage = await p.$$eval("#adminUsage dl div", ds => Object.fromEntries(ds.map(d => [d.querySelector("dt").textContent, Number(d.querySelector("dd").textContent.replace(/\D/g, ""))])));
   check("Usage shows the server's counts: sign-ups, logins, members active", usage["Sign-ups"] === 2 && usage["Active members"] === 2 && usage["Cellar saves"] > 0, JSON.stringify(usage));
   check("…and the pages members opened", usage["Journal page"] >= 1 && usage["Enjoyed page"] >= 1, JSON.stringify(usage));
