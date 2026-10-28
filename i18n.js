@@ -566,7 +566,8 @@ const DA = {
   "New password": "Ny adgangskode",
   "Forgot password?": "Glemt adgangskode?",
   "Recovery code": "Gendannelseskode",
-  "🔒 Your cellar is encrypted on this device with a key from your password. The site's owner can't read it.": "🔒 Din kælder krypteres på denne enhed med en nøgle fra din adgangskode. Sidens ejer kan ikke læse den.",
+  "🔒 Your cellar is encrypted on this device before it's saved; the server only ever holds the locked copy.": "🔒 Din kælder krypteres på denne enhed, før den gemmes; serveren har kun den låste kopi.",
+  "Vineyard atlas: every grand cru and premier cru": "Vinmarksatlas: alle grands crus og premiers crus",
   "That recovery code doesn't match this account.": "Gendannelseskoden passer ikke til denne konto.",
   "Reload the page — the site has been updated.": "Genindlæs siden — siden er blevet opdateret.",
   "This cellar is encrypted: log in with your username and password.": "Denne kælder er krypteret: log ind med brugernavn og adgangskode.",
@@ -1298,7 +1299,8 @@ const FR = {
   "New password": "Nouveau mot de passe",
   "Forgot password?": "Mot de passe oublié ?",
   "Recovery code": "Code de récupération",
-  "🔒 Your cellar is encrypted on this device with a key from your password. The site's owner can't read it.": "🔒 Votre cave est chiffrée sur cet appareil avec une clé tirée de votre mot de passe. Le propriétaire du site ne peut pas la lire.",
+  "🔒 Your cellar is encrypted on this device before it's saved; the server only ever holds the locked copy.": "🔒 Votre cave est chiffrée sur cet appareil avant d'être enregistrée ; le serveur n'en garde que la copie verrouillée.",
+  "Vineyard atlas: every grand cru and premier cru": "Atlas des climats : tous les grands crus et premiers crus",
   "That recovery code doesn't match this account.": "Ce code de récupération ne correspond pas à ce compte.",
   "Reload the page — the site has been updated.": "Rechargez la page — le site a été mis à jour.",
   "This cellar is encrypted: log in with your username and password.": "Cette cave est chiffrée : connectez-vous avec votre identifiant et votre mot de passe.",
@@ -2015,7 +2017,8 @@ const DE = {
   "New password": "Neues Passwort",
   "Forgot password?": "Passwort vergessen?",
   "Recovery code": "Wiederherstellungscode",
-  "🔒 Your cellar is encrypted on this device with a key from your password. The site's owner can't read it.": "🔒 Ihr Keller wird auf diesem Gerät mit einem Schlüssel aus Ihrem Passwort verschlüsselt. Der Betreiber der Seite kann ihn nicht lesen.",
+  "🔒 Your cellar is encrypted on this device before it's saved; the server only ever holds the locked copy.": "🔒 Ihr Keller wird auf diesem Gerät verschlüsselt, bevor er gespeichert wird; der Server hat nur die verschlüsselte Kopie.",
+  "Vineyard atlas: every grand cru and premier cru": "Lagenatlas: alle Grands Crus und Premiers Crus",
   "That recovery code doesn't match this account.": "Dieser Wiederherstellungscode passt nicht zu diesem Konto.",
   "Reload the page — the site has been updated.": "Laden Sie die Seite neu – die Seite wurde aktualisiert.",
   "This cellar is encrypted: log in with your username and password.": "Dieser Keller ist verschlüsselt: Melden Sie sich mit Benutzername und Passwort an.",
@@ -2425,6 +2428,8 @@ const DE = {
 const DICT = {da: DA, fr: FR, de: DE};
 
 let lang = (() => {
+  const q = new URLSearchParams(location.search).get("lang"); // a link that says which language (the vineyard pages)
+  if(q==="en" || DICT[q]){ try{ localStorage.setItem("lang", q); }catch(e){} return q; }
   try{ const s = localStorage.getItem("lang"); if(s && (s==="en" || DICT[s])) return s; }catch(e){}
   const n = (navigator.language || "en").slice(0,2).toLowerCase();
   return DICT[n] ? n : "en";

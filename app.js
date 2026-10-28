@@ -1308,6 +1308,9 @@ async function addWine(e){
 /* ---------- gate ---------- */
 let GATE_MODE = "login"; // or "signup"
 if(window.I18N) window.I18N.onChange(() => setGateMode(GATE_MODE));
+// the static vineyard pages come in each language (tools/pages-build.js)
+const vineyardsLink = () => { const el = $("gateVineyards"); if(el && window.I18N) el.href = `v/${window.I18N.lang}/index.html`; };
+vineyardsLink(); if(window.I18N) window.I18N.onChange(vineyardsLink);
 function showGate(msg){
   $("app").hidden = true; $("gate").hidden = false;
   $("who").hidden = true; $("who").textContent = "";

@@ -1,0 +1,67 @@
+// The static vineyard pages (tools/pages-build.js) against the data they come from, and as a search engine reads them:
+//   • the pages on disk are exactly what the data gives (nobody forgot to rebuild them), and every language has every word
+//   • each page has a title, a description, its canonical URL, an hreflang link to each language, valid schema.org data
+//     with coordinates in its region, and no "undefined" or "NaN"
+//   • every link between the pages, and into the atlases, points at a file that exists
+//   • sitemap.xml lists every page, robots.txt points at it, and no public page says noindex
+//   • spot checks: Romanée-Conti where IGN puts it, with its owner, in Danish; Les Clos into the Chablis atlas
+//   node tools/pages-test.js
+"use strict";
+const fs = require("fs"), path = require("path");
+const R = path.join(__dirname, "..");
+const results = []; const check = (name, ok, extra = "") => { results.push(ok); console.log((ok ? "PASS " : "FAIL ") + name + (ok ? "" : "  " + extra)); };
+const { build, ALL, LANGS, OUT, SITE, T } = require("./pages-build");
+const files = build();
+
+const stale = Object.keys(files).filter(f => { const p = path.join(R, f); return !fs.existsSync(p) || fs.readFileSync(p, "utf8") !== files[f]; });
+const extra = LANGS.flatMap(L => fs.readdirSync(path.join(R, OUT, L)).map(f => `${OUT}/${L}/${f}`)).filter(f => !(f in files));
+check("the pages on disk are what the data gives (else: node tools/pages-build.js)", !stale.length && !extra.length, [...stale, ...extra].slice(0, 5).join(", "));
+const keys = Object.keys(T.en).sort().join();
+check("every language has every word", LANGS.every(L => Object.keys(T[L]).sort().join() === keys && T[L].dirs.length === 8), LANGS.filter(L => Object.keys(T[L]).sort().join() !== keys).join());
+check("every vineyard has its own address", new Set(ALL.map(v => v.slug)).size === ALL.length);
+check("about 700 vineyards across four regions", ALL.length > 650 && new Set(ALL.map(v => v.set)).size === 4, ALL.length);
+
+const pages = Object.keys(files).filter(f => f.endsWith(".html"));
+const bad = { head: [], ld: [], geo: [], junk: [], links: [] };
+const exists = rel => fs.existsSync(path.join(R, rel));
+for (const f of pages) {
+  const s = files[f], L = f.split("/")[1], file = f.split("/")[2];
+  const alts = [...s.matchAll(/<link rel="alternate" hreflang="([\w-]+)" href="([^"]+)">/g)];
+  if (!/<title>[^<]{10,}<\/title>/.test(s) || !/<meta name="description" content="[^"]{40,}">/.test(s) || !s.includes(`<link rel="canonical" href="${SITE}${f}">`) || !s.startsWith(`<!doctype html>\n<html lang="${L}">`)
+      || alts.length !== 5 || !LANGS.every(l => alts.some(a => a[1] === l && a[2] === `${SITE}${OUT}/${l}/${file}`))) bad.head.push(f);
+  let ld; try { ld = JSON.parse(s.match(/<script type="application\/ld\+json">(.*?)<\/script>/)[1]); } catch (e) { bad.ld.push(f); }
+  const place = ld && (ld["@graph"] || []).find(x => x["@type"] === "Place");
+  if (file !== "index.html" && (!place || !(place.geo.latitude > 46.2 && place.geo.latitude < 47.9 && place.geo.longitude > 3.7 && place.geo.longitude < 5.05))) bad.geo.push(f);
+  if (/undefined|NaN|\{\d\}|\[object/.test(s.replace(/<svg class="map".*?<\/svg>/s, ""))) bad.junk.push(f);
+  for (const [, h] of s.matchAll(/href="([^"#?]+)[^"]*"/g)) {
+    if (/^(https?:|data:)/.test(h)) continue;
+    const rel = path.posix.normalize(path.posix.join(path.posix.dirname(f), h)).replace(/\/$/, "/index.html").replace(/^\.\.?\/?$/, "index.html");
+    if (!exists(rel) && !(rel in files)) bad.links.push(f + " → " + h);
+  }
+}
+check(`each of ${pages.length} pages has its title, description, canonical and hreflang links`, !bad.head.length, bad.head.slice(0, 3).join(", "));
+check("each page's schema.org data parses", !bad.ld.length, bad.ld.slice(0, 3).join(", "));
+check("each vineyard's coordinates lie in Burgundy", !bad.geo.length, bad.geo.slice(0, 3).join(", "));
+check("no page says undefined, NaN or {0}", !bad.junk.length, bad.junk.slice(0, 3).join(", "));
+check("every link points at a file that exists", !bad.links.length, bad.links.slice(0, 3).join(", "));
+
+const sm = files["sitemap.xml"], locs = new Set([...sm.matchAll(/<loc>([^<]+)<\/loc>/g)].map(m => m[1]));
+check("the sitemap lists every page and the atlases", pages.every(f => locs.has(SITE + f)) && locs.has(SITE) && locs.has(SITE + "burgundy.html") && locs.has(SITE + "atlas.html"), locs.size);
+check("the sitemap stays under Google's 50 000 URLs and 50 MB", locs.size < 50000 && Buffer.byteLength(sm) < 50e6);
+check("robots.txt allows the site and points at the sitemap", /User-agent: \*/.test(files["robots.txt"]) && !/Disallow: \/\s*$/m.test(files["robots.txt"]) && files["robots.txt"].includes(`Sitemap: ${SITE}sitemap.xml`));
+const pub = ["index.html", "burgundy.html", "atlas.html", "domaine.html", "privacy.html"];
+check("no public page tells search engines to stay away", pub.every(f => !/noindex/.test(fs.readFileSync(path.join(R, f), "utf8"))), pub.filter(f => /noindex/.test(fs.readFileSync(path.join(R, f), "utf8"))).join());
+
+// spot checks
+const rc = files[`${OUT}/da/romanee-conti.html`] || "";
+const rcLd = JSON.parse((rc.match(/ld\+json">(.*?)<\/script>/) || [, "{}"])[1]), rcGeo = ((rcLd["@graph"] || [])[0] || {}).geo || {};
+check("Romanée-Conti sits where IGN's map puts it (47.1616 N, 4.9497 E, within 150 m)", Math.abs(rcGeo.latitude - 47.1616) < .0014 && Math.abs(rcGeo.longitude - 4.9497) < .002, JSON.stringify(rcGeo));
+check("Romanée-Conti in Danish: grand cru, 1,81 ha, owned by the DRC, and a link to it on the map", rc.includes("<h1>Romanée-Conti</h1>") && rc.includes("1,81 ha") && rc.includes("Domaine de la Romanée-Conti") && rc.includes('href="../../burgundy.html?lang=da#c=romaneeconti"') && rc.includes('<html lang="da">'));
+const lc = files[`${OUT}/fr/les-clos.html`] || "";
+check("Les Clos in French: Chablis Grand Cru, 27,1 ha, into the Chablis atlas, with Blanchot as a neighbour", lc.includes("Chablis Grand Cru Les Clos") && lc.includes("27,1 ha") && lc.includes('href="../../atlas.html?lang=fr#r=chablis&c=les_clos"') && /<a href="blanchot\.html"><path class="nb"/.test(lc), (lc.match(/\d+,\d ha/) || [])[0]);
+const inferred = ALL.find(v => v.inferred);
+check("a name INAO's map leaves out says it's inferred", inferred && files[`${OUT}/en/${inferred.slug}.html`].includes("INAO&#39;s map leaves this parcel unnamed"), inferred && inferred.slug);
+const hub = files[`${OUT}/en/index.html`];
+check("the vineyard index links every vineyard, by region", ALL.every(v => hub.includes(`href="${v.slug}.html"`)) && ["burgundy", "chablis", "chalonnaise", "maconnais"].every(r => hub.includes(`id="${r}"`)));
+
+const n = results.filter(Boolean).length; console.log(`\n${n}/${results.length} passed`); process.exit(n === results.length ? 0 : 1);
