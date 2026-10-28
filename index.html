@@ -630,7 +630,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
 /* one line per wine: the name gives way (…) before anything wraps; the whole wine shows when it's opened */
 #tbl td,#eTbl td{padding:7px 10px}
 #tbl td.c-vint,#tbl td.c-qty,#tbl td.c-price,#eTbl td:nth-child(3),#eTbl td:nth-child(4),#eTbl td:nth-child(6){white-space:nowrap}
-#tbl .ponly{display:none}
+#tbl .ponly,#eTbl .ponly{display:none}
 #tbl .ctry{color:var(--muted)}
 @media (min-width:701px){
   /* the cellar: producer, wine, commune, vintage, region · country, bottles, price — one line each, the same widths
@@ -728,10 +728,12 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
   #eTbl tr.main > td:nth-child(1){grid-row:1;grid-column:1/-1;padding-bottom:3px}
   #eTbl tr.main > td:nth-child(3){grid-row:2;grid-column:1;color:var(--muted);font-size:13px;overflow:hidden;text-overflow:ellipsis}
   #eTbl tr.main > td:nth-child(2){grid-row:2;grid-column:2}
+  /* like the cellar's card: region · vintage · bottles · price; the day it was drunk goes up beside the wine */
   #eTbl tr.main > td:nth-child(5){grid-row:2;grid-column:3}
-  #eTbl tr.main > td:nth-child(6){grid-row:2;grid-column:4}
-  #eTbl tr.main > td:nth-child(4),#eTbl tr.main > td:nth-child(7),#eTbl thead th:nth-child(3),#eTbl thead th:nth-child(4),#eTbl thead th:nth-child(7){display:none}
-  #eTbl thead th:nth-child(2){grid-column:2} #eTbl thead th:nth-child(5){grid-column:3} #eTbl thead th:nth-child(6){grid-column:4}
+  #eTbl tr.main > td:nth-child(7){grid-row:2;grid-column:4;white-space:nowrap}
+  #eTbl tr.main > td:nth-child(4),#eTbl tr.main > td:nth-child(6),#eTbl thead th:nth-child(3),#eTbl thead th:nth-child(4),#eTbl thead th:nth-child(6){display:none}
+  #eTbl thead th:nth-child(2){grid-column:2} #eTbl thead th:nth-child(5){grid-column:3} #eTbl thead th:nth-child(7){grid-column:4}
+  #eTbl .ponly{display:inline}
   #eTbl thead th{padding:8px 6px;font-size:10px;letter-spacing:.05em}
   #jList,#wList{grid-template-columns:minmax(0,1fr)}
   .kpis{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--line)}
@@ -1521,6 +1523,6 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
 <script src="tidy.js?v=3"></script>
 <script src="import.js?v=5"></script>
 <script src="export.js?v=2"></script>
-<script src="app.js?v=40"></script>
+<script src="app.js?v=41"></script>
 </body>
 </html>
