@@ -17,13 +17,13 @@ const HEAD = ["Producent", "Land", "Område", "Kommune", "Mark/Navn", "Klassifik
   await require("./turnstile-fake")(ctx);
   await ctx.route(require("./api-route"), async route => { const q = JSON.parse(route.request().postData() || "{}");
     await route.fulfill({ contentType: "application/json", body: JSON.stringify(gas.call(q)) }); });
-  const p = await ctx.newPage(); const errs = [];
+  const p = await ctx.newPage(); const errs = []; const waitApp = require("./wait-app")(p); // logs from the start
   p.on("pageerror", e => errs.push(e.message)); p.on("console", m => m.type() === "error" && errs.push(m.text()));
   await p.goto(BASE); await p.waitForTimeout(400);
   await p.click("#gateToggle"); await p.fill("#gateUser", "ida"); await p.fill("#gateEmail", "ida@example.dk"); await p.fill("#gatePass", "ida-secret-1"); await p.fill("#gatePass2", "ida-secret-1");
   await p.fill("#gateInvite", "invite"); await p.click("#gateSubmit");
   await p.waitForSelector("#recModal.open", { timeout: 20000 }); await p.check("#recOk"); await p.click("#recDone");
-  await p.waitForSelector("#app:not([hidden])", { timeout: 20000 });
+  await waitApp();
   await p.evaluate(async () => { await api({ action: "addmany", bumps: [], wines: [{ producer: "Armand Rousseau", name: "Clos St-Jacques", vintage: 2016, qty: 1, region: "Bourgogne", country: "Frankrig", type: "Rød" }] }); await loadData(); });
 
   // from the add-a-wine dialog

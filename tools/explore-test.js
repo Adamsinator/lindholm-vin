@@ -24,7 +24,7 @@ const X = n => `<img src=x onerror="window.__xss='${n}'"><script>window.__xss='$
       if (offline) return route.abort("internetdisconnected");
       await route.fulfill({ contentType: "application/json", body: JSON.stringify(gas.call(q)) });
     });
-    const p = await ctx.newPage(), errs = [], dialogs = [];
+    const p = await ctx.newPage(), errs = [], dialogs = []; p._waitApp = require("./wait-app")(p); // logs from the start
     p.on("pageerror", e => errs.push(e.message)); p.on("console", m => m.type() === "error" && !/Failed to load resource|internetdisconnected/.test(m.text()) && errs.push(m.text()));
     p.on("dialog", d => { dialogs.push(d.message()); d.type() === "prompt" ? d.dismiss() : d.accept(); });
     return { ctx, p, errs, dialogs };
@@ -36,7 +36,7 @@ const X = n => `<img src=x onerror="window.__xss='${n}'"><script>window.__xss='$
     await p.waitForSelector("#recModal.open", { timeout: 20000 });
     const code = await p.textContent("#recCode");
     await p.check("#recOk"); await p.click("#recDone");
-    await p.waitForSelector("#app:not([hidden])", { timeout: 20000 }); await p.waitForTimeout(600);
+    await p._waitApp(); await p.waitForTimeout(600);
     return code;
   };
   // against the device width: a phone browser widens innerWidth itself when the page is too wide
