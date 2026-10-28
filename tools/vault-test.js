@@ -124,6 +124,16 @@ const plainWine = ["Armand Rousseau", "Frankrig", "Bourgogne", "Gevrey-Chamberti
   check("…every entry keeps its own photo, the shared one on both", JSON.stringify(pics) === JSON.stringify(["QUJD", "QkJD", "Q0JD", "REJD", "QUJD"].map(x => "data:image/jpeg;base64," + x)), JSON.stringify(pics));
   check("…and the shared feed still works", (await VAULT.call({ action: "feed" })).ok);
 
+  // account help: a member's data key wrapped to the admin's public key opens with the private half, and only with it
+  {
+    const C = require("../vault-crypto.js");
+    const adm = await C.newAdminKeys(), other = await C.newAdminKeys(), dek = await C.newDataKey();
+    const w = await C.wrapForAdmin(dek, adm.pub), box = await C.encrypt(dek, "Clos de Bèze 2015", "anna|tab:Ark1");
+    check("admin keys: a fingerprint of 32 hex characters, the same for the same key", /^[0-9a-f]{32}$/.test(adm.kid) && adm.kid === await C.keyId(adm.pub) && adm.kid !== other.kid);
+    check("…a key wrapped to the admin opens with the admin's private half", await C.decrypt(await C.unwrapAsAdmin(w, adm.priv), box, "anna|tab:Ark1") === "Clos de Bèze 2015");
+    check("…and not with another", await C.unwrapAsAdmin(w, other.priv).then(() => false, () => true));
+  }
+
   const n = results.filter(Boolean).length;
   console.log(`\n${n}/${results.length} passed`);
   process.exit(n === results.length ? 0 : 1);

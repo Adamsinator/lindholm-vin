@@ -42,7 +42,7 @@ function setting(key) {
 // The legacy code only works once you've set a real one: the placeholder from the template is public.
 function accessCode() { const c = setting('ACCESS_CODE'); return c === 'CHANGE-ME' ? '' : c; }
 
-const API_VERSION = 41; // returned in every response; used to verify deployments
+const API_VERSION = 42; // returned in every response; used to verify deployments
 
 // Per-request spreadsheet for the authenticated user. Set in handle(); every
 // sheet helper reads it via ss(). Falls back to the bound (owner's) spreadsheet.
@@ -151,6 +151,8 @@ function handle(p) {
   const open = { signup: doSignup, login: doLogin, prelogin: doPrelogin, recoverstart: doRecoverStart, recover: doRecover };
   // counts from the page (which pages, how often): no session needed, nothing that names anyone
   if (p.action === 'hits') { countStats(pageHits(p.ev)); return json({ ok: true }); }
+  // the admin's public key (public by nature), for a browser to wrap a new or recovered account's key to it
+  if (p.action === 'adminkey') { const h = adminHelpKey(); return json(Object.assign({ ok: true }, h || {})); }
   if (open[p.action]) { try { return open[p.action](p); } catch (err) { return json({ ok: false, error: String(err) }); } }
   // The Burgundy atlas is public reference data, so its corrections can be read without a session.
   if (p.action === 'atlas')  { countStats({ atlas: 1 }); try { return json({ ok: true, edits: readAtlas(false) }); } catch (err) { return json({ ok: false, error: String(err) }); } }
@@ -239,10 +241,29 @@ function handle(p) {
         return json({ ok: true, wines: readAll() });
       // who you are: the page shows the admin page only to the owner
       case 'me':
-        return json({ ok: true, user: CTX_USER, owner: isOwnerAccount(CTX_ACCOUNT) });
+        return json({ ok: true, user: CTX_USER, owner: isOwnerAccount(CTX_ACCOUNT), help: helpFor(CTX_ACCOUNT) });
+      // this account's data key wrapped to the admin's public key (done in the browser): the admin can help it back in
+      case 'escrow': {
+        const u = CTX_ACCOUNT, h = adminHelpKey();
+        if (!u || !u.kdf || isOwnerAccount(u)) return json({ ok: false, error: 'no-account' });
+        if (!h || String(p.adminKid || '') !== h.kid) return json({ ok: false, error: 'stale-admin-key' });
+        if (!/^[A-Za-z0-9+/=]{300,1200}$/.test(String(p.wrapAdmin || ''))) return json({ ok: false, error: 'bad-keys' });
+        setUser(u, 'WrapAdmin', String(p.wrapAdmin)); setUser(u, 'AdminKid', h.kid);
+        return json({ ok: true });
+      }
       // the owner's admin page: the members and the invite codes, never anything from a cellar
       case 'admin': case 'admininvites': case 'adminrevoke': case 'admindelete':
+      case 'adminkeyset': case 'adminkeyget': case 'adminescrow': case 'adminrecovery':
         if (!isOwnerAccount(CTX_ACCOUNT)) return json({ ok: false, error: 'not-owner' });
+        if (p.action === 'adminkeyset') return adminKeySet(p);
+        if (p.action === 'adminkeyget') return json({ ok: true, pub: CTX_ACCOUNT.adminPub || '', key: CTX_ACCOUNT.adminKey || '', kid: CTX_ACCOUNT.adminKid || '' });
+        if (p.action === 'adminescrow') {
+          const t = findUser(String(p.member || ''));
+          if (!t || isOwnerAccount(t)) return json({ ok: false, error: 'no-user' });
+          if (!t.wrapAdmin || t.adminKid !== CTX_ACCOUNT.adminKid) return json({ ok: false, error: 'no-help-yet' });
+          return json({ ok: true, wrapAdmin: t.wrapAdmin, kid: t.adminKid });
+        }
+        if (p.action === 'adminrecovery') return adminRecovery(p);
         if (p.action === 'admininvites') addInvites(Number(p.n) || 1, String(p.note || ''));
         if (p.action === 'adminrevoke') revokeInvite(String(p.code || ''));
         if (p.action === 'admindelete') { // the same clean-up as deleting your own account; never the owner's
@@ -405,7 +426,8 @@ const USERS_SHEET = 'Users';
 // wrapped by the password and by the recovery code (useless without them), the recovery code's salt and its login key
 // hashed, the vault spreadsheet, and the migration state ('' plain, 'migrating', 'done') with the plain sheet it left.
 const USER_COLS = ['Username', 'Salt', 'Hash', 'SpreadsheetId', 'Token', 'Created',
-                   'Kdf', 'KdfSalt', 'WrapKey', 'WrapRec', 'RecSalt', 'RecHash', 'VaultId', 'State', 'OldSheet', 'Email', 'LastSeen'];
+                   'Kdf', 'KdfSalt', 'WrapKey', 'WrapRec', 'RecSalt', 'RecHash', 'VaultId', 'State', 'OldSheet', 'Email', 'LastSeen',
+                   'WrapAdmin', 'AdminKid', 'AdminPub', 'AdminKey'];
 const UCOL = {}; USER_COLS.forEach((c, i) => { UCOL[c] = i + 1; });
 
 function usersSheet() {
@@ -436,7 +458,8 @@ function findUser(username) {
                hash: String(rows[i][2]), spreadsheetId: String(rows[i][3]),
                token: String(rows[i][4]), kdf: c('Kdf'), kdfSalt: c('KdfSalt'), wrapKey: c('WrapKey'),
                wrapRec: c('WrapRec'), recSalt: c('RecSalt'), recHash: c('RecHash'), vaultId: c('VaultId'),
-               state: c('State'), oldSheet: c('OldSheet'), email: c('Email'), lastSeen: c('LastSeen') };
+               state: c('State'), oldSheet: c('OldSheet'), email: c('Email'), lastSeen: c('LastSeen'),
+               wrapAdmin: c('WrapAdmin'), adminKid: c('AdminKid'), adminPub: c('AdminPub'), adminKey: c('AdminKey') };
     }
   }
   return null;
@@ -621,14 +644,58 @@ function adminView() {
   const rows = last >= 2 ? sh.getRange(2, 1, last - 1, USER_COLS.length).getValues() : [];
   const c = (r, k) => r[UCOL[k] - 1];
   const used = {}; inviteRows().forEach(x => { if (x.usedBy) used[normUser(x.usedBy)] = x.code; });
+  const h = adminHelpKey(), adminKid = h ? h.kid : '';
   const users = rows.filter(r => String(r[0]).trim()).map(r => ({ user: String(r[0]), email: String(c(r, 'Email') || ''), created: fmtDay(c(r, 'Created')),
     lastSeen: fmtDay(c(r, 'LastSeen')), encrypted: String(c(r, 'State')) === 'done', invite: used[normUser(r[0])] || '',
-    owner: isOwnerAccount({ spreadsheetId: String(c(r, 'SpreadsheetId')), oldSheet: String(c(r, 'OldSheet') || '') }) }));
+    owner: isOwnerAccount({ spreadsheetId: String(c(r, 'SpreadsheetId')), oldSheet: String(c(r, 'OldSheet') || '') }),
+    helpReady: !!adminKid && String(c(r, 'AdminKid') || '') === adminKid && !!String(c(r, 'WrapAdmin') || '') }));
   const ish = invitesSheet(false), ilast = ish ? ish.getLastRow() : 0;
   const invites = ilast >= 2 ? ish.getRange(2, 1, ilast - 1, INVITE_COLS.length).getValues().filter(r => String(r[0]).trim())
     .map(r => ({ code: String(r[0]), note: String(r[1] || ''), created: fmtDay(r[2]), usedBy: String(r[3] || ''), usedAt: fmtDay(r[4]) })) : [];
-  return { ok: true, users, invites, max: Math.max(1, Number(setting('MAX_USERS')) || 50), stats: readStats(30) };
+  return { ok: true, users, invites, max: Math.max(1, Number(setting('MAX_USERS')) || 50), stats: readStats(30), adminKid: adminKid };
 }
+// ---------- account help from the admin ----------
+// The owner's browser makes a key pair once (Admin → Account help). Its public half and fingerprint sit in the owner's
+// row; the private half too, but encrypted with the owner's own data key, so the server can't use it. Each member's
+// browser wraps the member's data key to the public half (WrapAdmin) at sign-up, at a password login or recovery, or
+// when asked for the password once. To help a member back in, the owner's browser unwraps that, makes a fresh recovery
+// code and sends only the new wrapped copy (adminrecovery); the member then uses "Forgot password?" with the code.
+// the owner's row, found in one read of the Users tab (this runs on every login)
+function ownerRow() {
+  const sh = usersSheet(), last = sh.getLastRow(), master = SpreadsheetApp.getActiveSpreadsheet().getId();
+  if (last < 2) return null;
+  const rows = sh.getRange(2, 1, last - 1, USER_COLS.length).getValues();
+  const i = rows.findIndex(r => String(r[UCOL.SpreadsheetId - 1]) === master || String(r[UCOL.OldSheet - 1] || '') === master);
+  return i < 0 ? null : findUser(rows[i][0]);
+}
+function adminHelpKey() { const o = ownerRow(); return o && o.adminPub && o.adminKid ? { pub: o.adminPub, kid: o.adminKid } : null; }
+// what a member's browser needs to (re)wrap its key: nothing for the owner, nor once it's wrapped to the current key
+function helpFor(u) {
+  if (!u || !u.kdf || isOwnerAccount(u)) return undefined;
+  const h = adminHelpKey();
+  return h && u.adminKid !== h.kid ? h : undefined;
+}
+function adminKeySet(p) {
+  const o = CTX_ACCOUNT;
+  if (o.adminKid && !p.replace) return json({ ok: false, error: 'admin-key-exists' });
+  const pub = String(p.pub || ''), key = String(p.key || ''), kid = String(p.kid || '');
+  if (!/^[A-Za-z0-9+/=]{300,1200}$/.test(pub) || !/^v1\.[A-Za-z0-9+/=]{1000,8000}$/.test(key) || !/^[0-9a-f]{32}$/.test(kid)) return json({ ok: false, error: 'bad-keys' });
+  setUser(o, 'AdminPub', pub); setUser(o, 'AdminKey', key); setUser(o, 'AdminKid', kid);
+  logEvent('admin-key', o.username, 'account help turned on, key ' + kid.slice(0, 8));
+  return json({ ok: true, kid: kid });
+}
+// a fresh recovery code for a member, made in the owner's browser: the member's own old code stops working
+function adminRecovery(p) {
+  const t = findUser(String(p.member || ''));
+  if (!t || isOwnerAccount(t) || !t.kdf) return json({ ok: false, error: 'no-user' });
+  const b64ish = v => /^[A-Za-z0-9+/=]{16,200}$/.test(String(v || ''));
+  if (!b64ish(p.wrapRec) || !b64ish(p.recSalt) || !b64ish(p.recAuth)) return json({ ok: false, error: 'bad-keys' });
+  setUser(t, 'WrapRec', String(p.wrapRec)); setUser(t, 'RecSalt', String(p.recSalt)); setUser(t, 'RecHash', hashPass(t.salt, p.recAuth));
+  cleared(t.username); // a member locked out by wrong codes can try the new one at once
+  logEvent('admin-recovery', t.username, 'a recovery code made by the admin');
+  return json(adminView());
+}
+
 function validKeys(p) {
   const b64ish = v => /^[A-Za-z0-9+/=]{16,200}$/.test(String(v || ''));
   return /^pbkdf2-sha256-\d{6,7}$/.test(String(p.kdf || '')) && b64ish(p.kdfSalt) && b64ish(p.auth) && b64ish(p.wrapKey)
@@ -675,7 +742,7 @@ function doLogin(p) {
     if (!ok) return failed(p.user, 'bad-login');
     cleared(p.user);
     countStats({ login: 1 });
-    return json({ ok: true, user: u.username, token: addSession(u), wrapKey: u.wrapKey, state: u.state || 'done' });
+    return json({ ok: true, user: u.username, token: addSession(u), wrapKey: u.wrapKey, state: u.state || 'done', help: helpFor(u) });
   }
   const ok = u && p.pass !== undefined && safeEqual(hashPass(salt, p.pass || ''), u.hash);
   hashPass(salt, String(p.auth || ''));
@@ -809,7 +876,7 @@ function doRecover(p) {
       || !/^[A-Za-z0-9+/=]{16,200}$/.test(String(p.kdfSalt || ''))) return json({ ok: false, error: 'bad-keys' });
   setUser(u, 'KdfSalt', String(p.kdfSalt)); setUser(u, 'WrapKey', String(p.wrapKey)); setUser(u, 'Hash', hashPass(u.salt, p.auth));
   usersSheet().getRange(u.row, UCOL.Token).setValue('');
-  return json({ ok: true, user: u.username, token: addSession(findUser(u.username)), wrapKey: String(p.wrapKey), state: u.state });
+  return json({ ok: true, user: u.username, token: addSession(findUser(u.username)), wrapKey: String(p.wrapKey), state: u.state, help: helpFor(u) });
 }
 
 // Usage numbers for the owner's admin page: a row a day in the "Stats" tab, a column per event. Only counts — never

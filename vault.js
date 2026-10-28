@@ -69,7 +69,7 @@ let SRC = null;
 async function codeSource(url) {
   if (SRC) return SRC;
   if (node) SRC = require("fs").readFileSync(require("path").join(__dirname, "apps-script", "Code.gs"), "utf8");
-  else { const res = await fetch(url || "apps-script/Code.gs?v=41"); if (!res.ok) throw new Error("engine-load " + res.status); SRC = await res.text(); }
+  else { const res = await fetch(url || "apps-script/Code.gs?v=42"); if (!res.ok) throw new Error("engine-load " + res.status); SRC = await res.text(); }
   return SRC;
 }
 const keepTabs = (all, sheetName) => Object.fromEntries(Object.entries(all).filter(([n]) => n === sheetName || SHARED_TABS.includes(n)));
@@ -231,7 +231,8 @@ async function newKeys(pass) {
   const [pk, rk, dekX] = await Promise.all([VC.fromPassword(pass, kdfSalt), VC.fromRecovery(code, recSalt), VC.newDataKey()]);
   const wrapKey = await VC.wrap(dekX, pk.kek), wrapRec = await VC.wrap(dekX, rk.kek);
   const dek = await VC.unwrap(wrapKey, pk.kek, false); // the session copy can't be read out
-  return { fields: { kdf: VC.KDF, kdfSalt, auth: pk.auth, wrapKey, wrapRec, recSalt, recAuth: rk.auth }, recoveryCode: code, dek };
+  // dekX only to wrap it to the admin's key once the account exists (escrow below); not kept
+  return { fields: { kdf: VC.KDF, kdfSalt, auth: pk.auth, wrapKey, wrapRec, recSalt, recAuth: rk.auth }, recoveryCode: code, dek, dekX };
 }
 
 // ── Account changes, with the current password (the session key itself can't be read out) ──
@@ -274,6 +275,7 @@ async function recover(o) {
   const wrapKey = await VC.wrap(dekX, nk.kek);
   const r = await srv(post, { action: "recover", user, recAuth: rk.auth, auth: nk.auth, kdfSalt, wrapKey, turnstile: o.turnstile || "" });
   saltPut(user, { kdf: VC.KDF, kdfSalt });
+  if (r.help) await escrow({ post, user: r.user, token: r.token, dekX, help: r.help });
   return { token: r.token, user: r.user, state: r.state, dek: await VC.unwrap(wrapKey, nk.kek, false) };
 }
 // Sign in to an encrypted account → {token, user, state, dek}; or {legacy:true} for an account still to upgrade
@@ -292,6 +294,7 @@ async function login(o) {
     const pk = await VC.fromPassword(pass, p.kdfSalt, p.kdf);
     const r = await srv(post, { action: "login", user, auth: pk.auth });
     saltPut(user, p);
+    if (r.help) await escrow({ post, user: r.user, token: r.token, dekX: await VC.unwrap(r.wrapKey, pk.kek, true), help: r.help });
     return { token: r.token, user: r.user, state: r.state, dek: await VC.unwrap(r.wrapKey, pk.kek, false) };
   };
   try { return await attempt(pre); }
@@ -356,7 +359,58 @@ async function migrate(o) {
 
 const rememberSalt = (user, fields) => saltPut(user, fields);
 const synced = () => (S && S.synced) || Promise.resolve(false);
+// ── Account help from the admin ──
+// Only to the admin key this site trusts: the fingerprint pinned in config.js, or with no pin, the first one this
+// browser saw. A server that tried to slip in a key of its own gets nothing wrapped to it.
+async function trustedHelp(help) {
+  if (!help || !help.pub || !/^[0-9a-f]{32}$/.test(String(help.kid || ""))) return null;
+  if (await VC.keyId(help.pub) !== help.kid) return null;
+  const pin = (root.WINE_CONFIG && root.WINE_CONFIG.ADMIN_KID) || "";
+  if (pin) return pin === help.kid ? help : null;
+  let seen = ""; try { seen = root.localStorage.getItem("vinAdminKid") || ""; } catch (e) {}
+  if (seen && seen !== help.kid) return null;
+  try { root.localStorage.setItem("vinAdminKid", help.kid); } catch (e) {}
+  return help;
+}
+// wrap this account's (extractable) data key to the admin's public key → true when done; never fails a sign-in
+async function escrow(o) {
+  try {
+    const help = await trustedHelp(o.help || await o.post({ action: "adminkey" }));
+    if (!help) return false;
+    await srv(o.post, { user: o.user, token: o.token, action: "escrow", wrapAdmin: await VC.wrapForAdmin(o.dekX, help.pub), adminKid: help.kid });
+    return true;
+  } catch (e) { return false; }
+}
+// a session that came back without the password (kept key): the password once, to do the same
+async function escrowWithPassword(o) {
+  const { dekX, token } = await unlockFor(o.post, o.user, o.pass);
+  if (S && S.user === o.user) S.token = token;
+  return { ok: await escrow({ post: o.post, user: o.user, token, dekX, help: o.help }), token };
+}
+// the owner, in the vault: turn account help on (a key pair; the private half encrypted with the owner's data key)
+async function adminSetup() {
+  if (!S) throw new Error("vault-closed");
+  const k = await VC.newAdminKeys();
+  const key = await VC.encrypt(S.dek, k.priv, aad(S.user, "adminkey"));
+  await srv(S.post, { user: S.user, token: S.token, action: "adminkeyset", pub: k.pub, key, kid: k.kid });
+  try { root.localStorage.setItem("vinAdminKid", k.kid); } catch (e) {}
+  return k.kid;
+}
+// the owner helps a member back in: a fresh recovery code for them, made here → the code (shown once)
+async function adminHelp(member) {
+  if (!S) throw new Error("vault-closed");
+  const g = await srv(S.post, { user: S.user, token: S.token, action: "adminkeyget" });
+  if (!g.key) throw new Error("no-admin-key");
+  const priv = await VC.decrypt(S.dek, g.key, aad(S.user, "adminkey"));
+  const e = await srv(S.post, { user: S.user, token: S.token, action: "adminescrow", member });
+  const dekX = await VC.unwrapAsAdmin(e.wrapAdmin, priv);
+  const code = VC.recoveryCode(), recSalt = VC.newSalt(), rk = await VC.fromRecovery(code, recSalt);
+  const r = await srv(S.post, { user: S.user, token: S.token, action: "adminrecovery", member, wrapRec: await VC.wrap(dekX, rk.kek), recSalt, recAuth: rk.auth });
+  return { code, admin: r };
+}
+
 const api = { start, stop, active, prefs, setPrefs, call, newKeys, migrate, login, recover, changePassword, newRecovery, forgetCache, rememberSalt, deleteAccount, synced, PRIVATE,
+  escrow, escrowWithPassword, adminSetup, adminHelp, trustedHelp,
   user: () => S && S.user };
 if (node) module.exports = api;
 else root.VAULT = api;
