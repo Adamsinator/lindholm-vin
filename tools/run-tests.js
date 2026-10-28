@@ -53,7 +53,8 @@ function run(suite) {
     const r = await run(s); results.push(r);
     console.log(`${r.ok ? "✓" : "✗"} ${s.padEnd(24)} ${r.tally.padEnd(14)} ${r.secs}s`);
     if (!r.ok) {
-      const lines = r.out.split("\n"), hits = lines.filter(l => /FAIL|Error|error|timed out/.test(l)).slice(0, 15);
+      // the failures, and for a crash its message and the line of the test it stopped at
+      const lines = r.out.split("\n"), hits = lines.filter(l => /FAIL|Error|error|timed out|Timeout \d+ms|at .*tools[\\/][\w-]+-test\.js:\d+/.test(l)).slice(0, 15);
       console.log((hits.length ? hits : lines.filter(l => l.trim()).slice(-15)).map(l => "    " + l).join("\n")); // else its last lines
     }
   }
