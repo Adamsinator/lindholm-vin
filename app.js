@@ -948,10 +948,30 @@ function detailHTML(w){
         ${r&&r.est?`<span class="est-note">${esc(tr("estimated · type to set your own"))}</span>`:""}</span>`;})()}
       <button class="jlog" data-row="${w.row}">📓 ${esc(tr("Log in journal"))}</button>
       <button class="fshare" data-row="${w.row}">📣 ${esc(tr("Share"))}</button>
+      ${atlasLink(w)}
       ${searchLinks(w)}
       <button class="winfo" data-row="${w.row}">✏️ ${esc(tr("Edit details"))}</button>
       <button class="drink del" data-act="delete" data-row="${w.row}">${isElsewhere(w) ? "🗑 "+esc(tr("Remove from Enjoyed")) : "🗑 "+esc(tr("Delete wine"))}</button>
     </div>`;
+}
+
+// a Burgundy the atlas knows: straight to its vineyard (or village) on the map
+function atlasLink(w){
+  const at = window.BURG_MATCH && BURG_MATCH.where ? BURG_MATCH.where(w) : null;
+  return at ? `<a class="atlaslink" href="burgundy.html#${at.c ? "c="+encodeURIComponent(at.c) : "v="+encodeURIComponent(at.v)}">🗺 ${esc(tr("On the map"))}</a>` : "";
+}
+// the atlas's "Add a bottle from here": open the add form filled in (once, and only if it's fresh)
+function takePrefill(){
+  let pre = null;
+  try{ pre = JSON.parse(localStorage.getItem("vinAddPrefill") || "null"); localStorage.removeItem("vinAddPrefill"); }catch(e){}
+  if(location.hash === "#add") history.replaceState(null, "", location.pathname + location.search);
+  if(!pre || !(Date.now() - (pre.at||0) < 600000)) return;
+  $("addBtn").click();
+  const set = (id, v) => { if(v){ const el = $(id); el.value = v; el.dispatchEvent(new Event("input", {bubbles:true})); el.dispatchEvent(new Event("change", {bubbles:true})); } };
+  set("aCountry", pre.country); set("aRegion", pre.region); set("aCommune", pre.commune); set("aName", pre.name); set("aProducer", pre.producer);
+  if(pre.type) $("aType").value = pre.type;
+  if(pre.classification){ $("aClass").value = matchOpt($("aClass"), pre.classification); $("aClass").dataset.auto = ""; }
+  (pre.producer ? $("aVintage") : $("aProducer")).focus();
 }
 
 function renderTable(){
@@ -1136,7 +1156,7 @@ async function loadData(quiet){
     renderOverview(); renderTable(); renderEnjoyed();
     LOADED_AT = new Date(); stampText();
     $("spin").hidden = true; $("content").hidden = false;
-    loadJournalSilently(); loadFeedSilently(); refreshDeleted(); checkOwner();
+    loadJournalSilently(); loadFeedSilently(); refreshDeleted(); checkOwner(); takePrefill();
   }catch(err){
     if(AUTH_ERRORS.has(err.message)){ forgetAuth(); setGateMode("login"); showGate(tr("Your session expired — log in again.")); }
     else { $("spin").textContent = tr("Could not reach the cellar API ({0}). Check your connection and refresh.", errText(err)); }
@@ -2298,6 +2318,7 @@ function renderMap(){
   const svg=$("map"); if(!svg) return;
   hideTip(); // re-rendering replaces the dots; any hover tip would otherwise be orphaned
   $("mapbar").hidden = MAP_VIEW==="europe";
+  $("mapAtlas").hidden = MAP_VIEW!=="Bourgogne";
   if(MAP_VIEW!=="europe"){
     $("mapBack").textContent = MAP_VIEW.startsWith("country:") ? "← "+tr("Europe")
       : REGION_COUNTRY[MAP_VIEW] ? "← "+countryLabel(REGION_COUNTRY[MAP_VIEW]) : "← "+tr("Europe");

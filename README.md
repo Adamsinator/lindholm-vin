@@ -259,6 +259,11 @@ grand cru, around a hundred premiers crus and the notable village climats.
 
 - **Click a vineyard** to see its classification, area, monopole status, a short
   note, and its owners with their hectares and share of the climat.
+- **Cellar and atlas, both ways:** a Burgundy bottle in the cellar has **🗺 On the map** (to its vineyard, or its
+  village when the label names no climat; `BURG_MATCH.where`); the overview's Burgundy map has **Open the Burgundy
+  atlas ↗**; and a vineyard in the atlas has **＋ Add a bottle from here**, which opens the cellar's add form filled in
+  with the vineyard, its commune, classification and colour, and the producer being mapped, if any (handed over in
+  `localStorage`, used once, within ten minutes). Tested in `tools/atlas-link-ui-test.js`.
 - **Filters:** grand cru / premier cru / village, monopoles only, a climat search
   and a producer box. Picking a producer, or clicking a name in a vineyard's
   holdings, highlights everything they own, coloured by their share.
