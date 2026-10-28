@@ -395,7 +395,28 @@ new region is a data file, not new code.
   "inferred" (*) and say which place name did it. What no name ties to a climat stays "unnamed by INAO".
 - **A new region:** add it to `REGIONS` in `tools/region-build.js` (its box, village appellations and regional
   appellations), build it, then list it in `atlas.js` (`REGIONS`) and in `app.js` (`ATLAS_REGIONS`) for "On the map".
-  Tested in `tools/region-atlas-ui-test.js`.
+  Tested in `tools/region-atlas-ui-test.js`. Then rebuild the vineyard pages (next section).
+
+## Vineyard pages for search engines
+
+`v/<lang>/<vineyard>.html` holds one plain page per named vineyard on the atlases (about 700: the Côte d'Or's
+climats and INAO's other premiers crus, plus the region packs), in English, French, German and Danish, with
+`v/<lang>/index.html` listing them all. A page shows the vineyard's outline from INAO's map among its neighbours
+(each a link), its appellation, commune, area, colour, altitude, slope and aspect, the atlas note and soil, the
+owners on file, its nearest neighbours, and a button into the interactive map in the same language
+(`burgundy.html?lang=fr#c=…`, `atlas.html?lang=fr#r=…&c=…`; `?lang=` sets the language on any page).
+
+They carry no scripts: a strict CSP of their own, one shared `v/page.css`, a canonical link, hreflang links to the
+other three languages, and schema.org `Place` data with the coordinates (Lambert-93 or the atlas's metres turned
+back into latitude and longitude; checked against IGN). `sitemap.xml` lists every page with its languages, and
+`robots.txt` points at it. The front page, the atlases, the domaine pages and the privacy page are open to search
+engines too; the cellar itself is behind the login, so nothing private is indexed.
+
+- **After changing the atlas data or a region pack:** `node tools/pages-build.js` (it rewrites what changed and
+  removes pages that no longer exist). `tools/pages-test.js` fails when the pages on disk don't match the data,
+  and checks every page's head, links, coordinates and the sitemap; `tools/pages-ui-test.js` opens them.
+- **Search Console:** add `allwine.dk` in Google Search Console (a DNS TXT record at the domain's registrar),
+  then submit `https://allwine.dk/sitemap.xml`. Bing Webmaster Tools can import it from there.
 
 ## Changing a wine's details
 
