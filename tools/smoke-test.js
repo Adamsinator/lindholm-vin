@@ -53,7 +53,9 @@ async function watch(p,where){
   const edgeTile = u => /data\.geopf\.fr\/wmts/.test(u||'');
   p.on('console',m=>{ if(m.type()==='error' && !edgeTile(m.location()?.url)) note(where,'console '+m.text()); });
   // relief tiles are cancelled on purpose when the view moves on before they arrive
-  p.on('requestfailed',q=>{ if(!q.url().includes('script.google') && !(q.url().includes('data.geopf.fr/wmts') && /ERR_ABORTED|ERR_BLOCKED_BY_ORB/.test(q.failure()?.errorText||''))) note(where,'requestfailed '+q.url()+' '+(q.failure()?.errorText||'')); });
+  // the usage counts a page sends as it closes ('hits', keepalive) are cut off when the test closes the browser
+  const leavingHits=q=>/ERR_ABORTED/.test(q.failure()?.errorText||'') && /"action":"hits"/.test(q.postData()||'');
+  p.on('requestfailed',q=>{ if(!q.url().includes('script.google') && !leavingHits(q) && !(q.url().includes('data.geopf.fr/wmts') && /ERR_ABORTED|ERR_BLOCKED_BY_ORB/.test(q.failure()?.errorText||''))) note(where,'requestfailed '+q.url()+' '+(q.failure()?.errorText||'')); });
   p.on('response',s=>{ if(s.status()>=400 && !(s.status()<500 && edgeTile(s.url()))) note(where,'HTTP '+s.status()+' '+s.url()); });
 }
 const overflow=async(p,where)=>{ const o=await p.evaluate(()=>document.documentElement.scrollWidth-innerWidth); if(o>1) note(where,'horizontal overflow '+o+'px'); };

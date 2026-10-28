@@ -43,6 +43,18 @@ const HEAD = ["Producent", "Land", "Område", "Kommune", "Mark/Navn", "Klassifik
   const rows = await p.$$eval("#adminUsers li", rs => rs.map(r => r.textContent.replace(/\s+/g, " ").trim()));
   check("it lists the members with email, signed up and last seen", rows.some(r => /^pia · pia@example\.dk Remove Signed up \d{4}-\d{2}-\d{2} · Last seen \d{4}-\d{2}-\d{2}$/.test(r)) && rows.some(r => /^ole · ole@example\.dk/.test(r)), rows.join(" | "));
   check("…and says how many there are of the most", /2 of at most 50/.test(await p.textContent("#adminCount")), await p.textContent("#adminCount"));
+  // usage: pia's page reports which pages she opened (counts only), and the owner sees the 30 days
+  await B.p.click('.tab[data-page="journal"]'); await B.p.click('.tab[data-page="enjoyed"]'); await B.p.waitForTimeout(200);
+  await B.p.evaluate(() => flushHits());
+  const statCol = name => { const r = gas.rows("Stats") || [[]]; const i = r[0].indexOf(name); return r.length > 1 && i >= 0 ? Number(r[r.length - 1][i]) || 0 : 0; };
+  for (let i = 0; i < 50 && !(statCol("Journal page") && statCol("Enjoyed page")); i++) await B.p.waitForTimeout(100); // the count travels on its own
+  await p.click("#adminClose"); await p.evaluate(() => { document.getElementById("adminUsage").innerHTML = ""; }); // what's shown must be the new fetch
+  await p.click("#adminBtn"); await p.waitForFunction(() => document.querySelectorAll("#adminUsage dd").length > 5, null, { timeout: 10000 });
+  const usage = await p.$$eval("#adminUsage dl div", ds => Object.fromEntries(ds.map(d => [d.querySelector("dt").textContent, Number(d.querySelector("dd").textContent.replace(/\D/g, ""))])));
+  check("Usage shows the server's counts: sign-ups, logins, members active", usage["Sign-ups"] === 2 && usage["Active members"] === 2 && usage["Cellar saves"] > 0, JSON.stringify(usage));
+  check("…and the pages members opened", usage["Journal page"] >= 1 && usage["Enjoyed page"] >= 1, JSON.stringify(usage));
+  check("…with a bar a day for 30 days", (await p.$$("#adminUsage svg rect")).length === 30);
+  check("the Stats tab holds counts only", !/pia|ole|example\.dk/.test(JSON.stringify(gas.rows("Stats"))), JSON.stringify(gas.rows("Stats")));
 
   await p.selectOption("#adminN", "2"); await p.fill("#adminNote", "Peter and Anne"); await p.click('#adminNew button[type="submit"]');
   await p.waitForFunction(() => document.querySelectorAll("#adminInvites .code").length >= 2, null, { timeout: 10000 });

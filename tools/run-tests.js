@@ -7,9 +7,9 @@
 "use strict";
 const http = require("http"), fs = require("fs"), path = require("path"), { spawn } = require("child_process");
 const ROOT = path.join(__dirname, ".."), PORT = 8765;
-const NODE = ["i18n-test", "import-test", "export-test", "messy-test", "vault-test", "sommelier-test", "big-import-test", "abuse-test", "backup-test", "worker-test", "account-test"];
+const NODE = ["i18n-test", "import-test", "export-test", "messy-test", "vault-test", "sommelier-test", "big-import-test", "abuse-test", "backup-test", "worker-test", "account-test", "stats-test", "versions-test"];
 const BROWSER = ["import-ui-test", "tidy-ui-test", "vault-ui-test", "sommelier-ui-test", "add-suggest-ui-test", "i18n-ui-test",
-  "cellar-flow-test", "cellar-flow-test:vault", "big-import-ui-test", "fast-login-ui-test", "csp-ui-test", "account-ui-test", "signup-resume-ui-test", "customise-ui-test", "addform-ui-test", "signup-ui-test", "admin-ui-test", "grid-ui-test", "explore-test", "layout-ui-test", "smoke-test"];
+  "cellar-flow-test", "cellar-flow-test:vault", "big-import-ui-test", "fast-login-ui-test", "csp-ui-test", "account-ui-test", "signup-resume-ui-test", "customise-ui-test", "addform-ui-test", "signup-ui-test", "admin-ui-test", "help-ui-test", "grid-ui-test", "explore-test", "layout-ui-test", "smoke-test"];
 const args = process.argv.slice(2);
 let suites = args.includes("--node") ? NODE : NODE.concat(BROWSER);
 const named = args.filter(a => !a.startsWith("--"));
@@ -53,7 +53,8 @@ function run(suite) {
     const r = await run(s); results.push(r);
     console.log(`${r.ok ? "✓" : "✗"} ${s.padEnd(24)} ${r.tally.padEnd(14)} ${r.secs}s`);
     if (!r.ok) {
-      const lines = r.out.split("\n"), hits = lines.filter(l => /FAIL|Error|error|timed out/.test(l)).slice(0, 15);
+      // the failures, and for a crash its message and the line of the test it stopped at
+      const lines = r.out.split("\n"), hits = lines.filter(l => /FAIL|Error|error|timed out|Timeout \d+ms|at .*tools[\\/][\w-]+-test\.js:\d+/.test(l)).slice(0, 15);
       console.log((hits.length ? hits : lines.filter(l => l.trim()).slice(-15)).map(l => "    " + l).join("\n")); // else its last lines
     }
   }

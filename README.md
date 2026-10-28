@@ -554,13 +554,25 @@ only, never wines.
   the site; invite codes made 1–10 at a time with a note, a ready invitation to copy (link and code), and a way
   to withdraw an unused code. What's in a cellar is never there: it's encrypted. `makeInvites()` in the Apps
   Script editor still works too.
+- **Usage** (Admin, last 30 days): members active each day as bars, and totals of logins, sign-ups, cellar saves,
+  atlas visits, the pages opened, imports, exports and sommelier questions. They come from a `Stats` tab in the master
+  sheet, a row a day and a column per count, kept about 400 days. The server counts its own events; a page may only
+  add page counts (at most 50 of each per call) and never a name, an address or anything from a cellar.
 - **Remove a member** (Admin → Remove, then type their username): the same clean-up as the member deleting
   their own account. Their Drive folder goes to the bin (30 days), their name comes off their invite code, their
   row leaves `Users`, and every device they're logged in on is signed out. The owner's own account can't be
   removed this way.
-- **A forgotten password and a lost recovery code** can't be rescued, by the owner or anyone: the cellar is
-  encrypted with a key only the password or the recovery code opens, and the server never has either. What the
-  owner can do is give them a fresh start: Remove, then a new invite code.
+- **Account help** (Admin → Account help → Turn on, once): for a member who has lost both their password and their
+  recovery code. The owner's browser makes an RSA-OAEP key pair; the public half and its fingerprint go in the owner's
+  `Users` row, the private half too but encrypted with the owner's own data key (so it follows the owner's login to
+  any device, and the owner's own recovery code covers it). Each member's browser wraps the member's data key to the
+  public half (`WrapAdmin`): at sign-up, at a login with the password, after a recovery, or, for a session that came
+  back without the password, by asking for it once. **Help back in** (on a ready member) unwraps that in the owner's
+  browser, makes a fresh recovery code and sends the server only the new wrapped copy; the member's old code stops
+  working, and the member uses "Forgot password?" with the new one. It's logged (`admin-recovery`). The server never
+  holds anything that opens a cellar. Browsers wrap only to the key whose fingerprint is pinned as `ADMIN_KID` in
+  `config.js` (until it is pinned: the first one each browser saw), so a tampered server can't slip in its own key.
+  The owner can, technically, open any member's cellar this way; the privacy page says so.
 
 ## Adding a wine: the lists
 
@@ -868,8 +880,8 @@ too: the daily check (`dailyReport`) makes a backup whenever the newest is more 
 - **Recently deleted:** a wine deleted in the site isn't gone at once. Its row goes to a `Slettet` tab (in an
   encrypted cellar, one more encrypted tab of the vault) for 30 days, and **↩ Recently deleted** in the cellar puts
   it back exactly as it was. Tested in `tools/backup-test.js` and `tools/cellar-flow-test.js`.
-- **Encrypted cellars stay encrypted in the copies.** Only their owners' passwords or recovery codes open them, so
-  a backup can't leak them, and can't help someone who has lost both.
+- **Encrypted cellars stay encrypted in the copies.** Only their owners' passwords or recovery codes (or the
+  owner's account help) open them, so a backup can't leak them.
 - **Journal photos aren't copied.** They stay as files in Drive, and Drive keeps deleted files in its bin for 30 days.
 - **Restore one account:**
   1. Put its username in `RESTORE_USER` and the backup folder's name (e.g. `2026-11-01T04:00`) in `RESTORE_FROM`

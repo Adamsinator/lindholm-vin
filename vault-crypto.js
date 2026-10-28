@@ -64,6 +64,24 @@ async function decrypt(dek, s, aad) {
   return dec.decode(pt);
 }
 
+// Account help from the admin: the owner's browser makes an RSA-OAEP key pair once. The public half is on the server
+// (and its fingerprint pinned in config.js); every member's data key is also wrapped to it, so the owner can make a
+// lost member a fresh recovery code. The private half never leaves the owner's browser in the clear: it's stored
+// encrypted with the owner's own data key, like the rest of the owner's cellar.
+const RSA = { name: "RSA-OAEP", modulusLength: 3072, publicExponent: new Uint8Array([1, 0, 1]), hash: "SHA-256" };
+async function newAdminKeys() {
+  const kp = await S.generateKey(RSA, true, ["wrapKey", "unwrapKey"]);
+  const pub = b64(await S.exportKey("spki", kp.publicKey));
+  return { pub, priv: b64(await S.exportKey("pkcs8", kp.privateKey)), kid: await keyId(pub) };
+}
+// a short fingerprint of a public key: the first 16 bytes of its SHA-256, in hex
+async function keyId(pubB64) { return [...new Uint8Array(await S.digest("SHA-256", unb64(pubB64)))].slice(0, 16).map(x => x.toString(16).padStart(2, "0")).join(""); }
+const importAdminPub = pubB64 => S.importKey("spki", unb64(pubB64), { name: "RSA-OAEP", hash: "SHA-256" }, false, ["wrapKey"]);
+const importAdminPriv = privB64 => S.importKey("pkcs8", unb64(privB64), { name: "RSA-OAEP", hash: "SHA-256" }, false, ["unwrapKey"]);
+// dek must be extractable (as at sign-up, login with the password, or recovery)
+const wrapForAdmin = async (dek, pubB64) => b64(await S.wrapKey("raw", dek, await importAdminPub(pubB64), { name: "RSA-OAEP" }));
+const unwrapAsAdmin = async (w, privB64) => S.unwrapKey("raw", unb64(w), await importAdminPriv(privB64), { name: "RSA-OAEP" }, { name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]);
+
 // The session's data key, kept in IndexedDB (non-extractable) so a reload doesn't ask for the password again;
 // cleared on sign-out and after the 60-minute idle sign-out.
 const DB = "allwine-vault", STORE = "keys";
@@ -83,7 +101,8 @@ async function recall(user) { if (typeof indexedDB === "undefined") return null;
 async function forget(user) { if (typeof indexedDB === "undefined") return; try { const db = await idb();
   await idbWait(new Promise(res => { const t = db.transaction(STORE, "readwrite"); const s = t.objectStore(STORE); user ? s.delete(String(user).toLowerCase()) : s.clear(); t.oncomplete = res; t.onerror = res; })); } catch (e) {} }
 
-const api = { KDF, ITER, newSalt, fromPassword, recoveryCode, normCode, fromRecovery, newDataKey, wrap, unwrap, encrypt, decrypt, keep, recall, forget, b64, unb64 };
+const api = { KDF, ITER, newSalt, fromPassword, recoveryCode, normCode, fromRecovery, newDataKey, wrap, unwrap, encrypt, decrypt, keep, recall, forget, b64, unb64,
+  newAdminKeys, keyId, wrapForAdmin, unwrapAsAdmin };
 if (typeof module !== "undefined" && module.exports) module.exports = api;
 else root.VCRYPTO = api;
 })(typeof window !== "undefined" ? window : globalThis);

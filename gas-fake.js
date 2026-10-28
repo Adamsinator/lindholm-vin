@@ -153,7 +153,7 @@ function runtime(tabs, opts) {
   const mails = [];
   const MailApp = { sendEmail: (to, subject, body) => { mails.push({ to, subject, body }); } };
   const MimeType = { PLAIN_TEXT: "text/plain" };
-  const LockService = { getScriptLock: () => ({ waitLock() {}, releaseLock() {} }) };
+  const LockService = { getScriptLock: () => ({ waitLock() {}, tryLock() { return true; }, releaseLock() {} }) };
   // CacheService: values that expire after their time-to-live (opts.now lets a test move the clock)
   const cacheStore = new Map(), now = () => (opts.now ? opts.now() : Date.now());
   const scriptCache = {

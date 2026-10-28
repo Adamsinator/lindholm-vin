@@ -42,7 +42,7 @@ function setting(key) {
 // The legacy code only works once you've set a real one: the placeholder from the template is public.
 function accessCode() { const c = setting('ACCESS_CODE'); return c === 'CHANGE-ME' ? '' : c; }
 
-const API_VERSION = 40; // returned in every response; used to verify deployments
+const API_VERSION = 42; // returned in every response; used to verify deployments
 
 // Per-request spreadsheet for the authenticated user. Set in handle(); every
 // sheet helper reads it via ss(). Falls back to the bound (owner's) spreadsheet.
@@ -149,9 +149,13 @@ function handle(p) {
 
   // Account actions need no session.
   const open = { signup: doSignup, login: doLogin, prelogin: doPrelogin, recoverstart: doRecoverStart, recover: doRecover };
+  // counts from the page (which pages, how often): no session needed, nothing that names anyone
+  if (p.action === 'hits') { countStats(pageHits(p.ev)); return json({ ok: true }); }
+  // the admin's public key (public by nature), for a browser to wrap a new or recovered account's key to it
+  if (p.action === 'adminkey') { const h = adminHelpKey(); return json(Object.assign({ ok: true }, h || {})); }
   if (open[p.action]) { try { return open[p.action](p); } catch (err) { return json({ ok: false, error: String(err) }); } }
   // The Burgundy atlas is public reference data, so its corrections can be read without a session.
-  if (p.action === 'atlas')  { try { return json({ ok: true, edits: readAtlas(false) }); } catch (err) { return json({ ok: false, error: String(err) }); } }
+  if (p.action === 'atlas')  { countStats({ atlas: 1 }); try { return json({ ok: true, edits: readAtlas(false) }); } catch (err) { return json({ ok: false, error: String(err) }); } }
 
   // Authenticate: a multi-user token scopes to that user's own spreadsheet;
   // otherwise fall back to the legacy single access code + the bound spreadsheet.
@@ -237,10 +241,29 @@ function handle(p) {
         return json({ ok: true, wines: readAll() });
       // who you are: the page shows the admin page only to the owner
       case 'me':
-        return json({ ok: true, user: CTX_USER, owner: isOwnerAccount(CTX_ACCOUNT) });
+        return json({ ok: true, user: CTX_USER, owner: isOwnerAccount(CTX_ACCOUNT), help: helpFor(CTX_ACCOUNT) });
+      // this account's data key wrapped to the admin's public key (done in the browser): the admin can help it back in
+      case 'escrow': {
+        const u = CTX_ACCOUNT, h = adminHelpKey();
+        if (!u || !u.kdf || isOwnerAccount(u)) return json({ ok: false, error: 'no-account' });
+        if (!h || String(p.adminKid || '') !== h.kid) return json({ ok: false, error: 'stale-admin-key' });
+        if (!/^[A-Za-z0-9+/=]{300,1200}$/.test(String(p.wrapAdmin || ''))) return json({ ok: false, error: 'bad-keys' });
+        setUser(u, 'WrapAdmin', String(p.wrapAdmin)); setUser(u, 'AdminKid', h.kid);
+        return json({ ok: true });
+      }
       // the owner's admin page: the members and the invite codes, never anything from a cellar
       case 'admin': case 'admininvites': case 'adminrevoke': case 'admindelete':
+      case 'adminkeyset': case 'adminkeyget': case 'adminescrow': case 'adminrecovery':
         if (!isOwnerAccount(CTX_ACCOUNT)) return json({ ok: false, error: 'not-owner' });
+        if (p.action === 'adminkeyset') return adminKeySet(p);
+        if (p.action === 'adminkeyget') return json({ ok: true, pub: CTX_ACCOUNT.adminPub || '', key: CTX_ACCOUNT.adminKey || '', kid: CTX_ACCOUNT.adminKid || '' });
+        if (p.action === 'adminescrow') {
+          const t = findUser(String(p.member || ''));
+          if (!t || isOwnerAccount(t)) return json({ ok: false, error: 'no-user' });
+          if (!t.wrapAdmin || t.adminKid !== CTX_ACCOUNT.adminKid) return json({ ok: false, error: 'no-help-yet' });
+          return json({ ok: true, wrapAdmin: t.wrapAdmin, kid: t.adminKid });
+        }
+        if (p.action === 'adminrecovery') return adminRecovery(p);
         if (p.action === 'admininvites') addInvites(Number(p.n) || 1, String(p.note || ''));
         if (p.action === 'adminrevoke') revokeInvite(String(p.code || ''));
         if (p.action === 'admindelete') { // the same clean-up as deleting your own account; never the owner's
@@ -291,7 +314,7 @@ function handle(p) {
       case 'deleteaccount': return doDeleteAccount(p);
       case 'vexport':   return json({ ok: true, ...vaultExport() });
       case 'vget':      return json({ ok: true, records: readVault(vaultBook()), state: CTX_ACCOUNT.state });
-      case 'vput':      return json({ ok: true, ver: writeVault(vaultBook(), String(p.key || ''), Number(p.ver) || 0, String(p.data || '')) });
+      case 'vput':      { const ver = writeVault(vaultBook(), String(p.key || ''), Number(p.ver) || 0, String(p.data || '')); countStats({ save: 1 }); return json({ ok: true, ver: ver }); }
       case 'vphotoput': return json({ ok: true, id: vaultPhotoPut(String(p.data || '')) });
       case 'vphotoget': return json({ ok: true, data: vaultPhotoGet(String(p.id || '')) });
       case 'vphotodel': vaultPhotoDel(String(p.id || '')); return json({ ok: true });
@@ -403,7 +426,8 @@ const USERS_SHEET = 'Users';
 // wrapped by the password and by the recovery code (useless without them), the recovery code's salt and its login key
 // hashed, the vault spreadsheet, and the migration state ('' plain, 'migrating', 'done') with the plain sheet it left.
 const USER_COLS = ['Username', 'Salt', 'Hash', 'SpreadsheetId', 'Token', 'Created',
-                   'Kdf', 'KdfSalt', 'WrapKey', 'WrapRec', 'RecSalt', 'RecHash', 'VaultId', 'State', 'OldSheet', 'Email', 'LastSeen'];
+                   'Kdf', 'KdfSalt', 'WrapKey', 'WrapRec', 'RecSalt', 'RecHash', 'VaultId', 'State', 'OldSheet', 'Email', 'LastSeen',
+                   'WrapAdmin', 'AdminKid', 'AdminPub', 'AdminKey'];
 const UCOL = {}; USER_COLS.forEach((c, i) => { UCOL[c] = i + 1; });
 
 function usersSheet() {
@@ -434,7 +458,8 @@ function findUser(username) {
                hash: String(rows[i][2]), spreadsheetId: String(rows[i][3]),
                token: String(rows[i][4]), kdf: c('Kdf'), kdfSalt: c('KdfSalt'), wrapKey: c('WrapKey'),
                wrapRec: c('WrapRec'), recSalt: c('RecSalt'), recHash: c('RecHash'), vaultId: c('VaultId'),
-               state: c('State'), oldSheet: c('OldSheet'), email: c('Email'), lastSeen: c('LastSeen') };
+               state: c('State'), oldSheet: c('OldSheet'), email: c('Email'), lastSeen: c('LastSeen'),
+               wrapAdmin: c('WrapAdmin'), adminKid: c('AdminKid'), adminPub: c('AdminPub'), adminKey: c('AdminKey') };
     }
   }
   return null;
@@ -509,8 +534,12 @@ function createUserSpreadsheet(username) {
 function doSignup(p) {
   const lock = typeof LockService !== 'undefined' ? LockService.getScriptLock() : null;
   if (lock) lock.waitLock(20000);
-  try { return signupLocked(p); } finally { if (lock) lock.releaseLock(); }
+  let out; SIGNED_UP = false;
+  try { out = signupLocked(p); } finally { if (lock) lock.releaseLock(); }
+  if (SIGNED_UP) countStats({ signup: 1 }); // counted once the lock is free
+  return out;
 }
+let SIGNED_UP = false;
 function signupLocked(p) {
   const shared = setting('SIGNUP_CODE'), code = String(p.code || '').trim();
   const invite = findInvite(code);
@@ -539,6 +568,7 @@ function signupLocked(p) {
   put('WrapKey', String(p.wrapKey)); put('WrapRec', String(p.wrapRec)); put('RecSalt', String(p.recSalt));
   put('RecHash', hashPass(salt, p.recAuth)); put('VaultId', vaultId); put('State', 'done'); put('Email', email);
   usersSheet().appendRow(row);
+  SIGNED_UP = true;
   if (invite) useInvite(invite, username);
   logEvent('signup', username, invite ? 'invite' : 'shared code');
   return json({ ok: true, user: username, token: token, state: 'done' });
@@ -614,14 +644,58 @@ function adminView() {
   const rows = last >= 2 ? sh.getRange(2, 1, last - 1, USER_COLS.length).getValues() : [];
   const c = (r, k) => r[UCOL[k] - 1];
   const used = {}; inviteRows().forEach(x => { if (x.usedBy) used[normUser(x.usedBy)] = x.code; });
+  const h = adminHelpKey(), adminKid = h ? h.kid : '';
   const users = rows.filter(r => String(r[0]).trim()).map(r => ({ user: String(r[0]), email: String(c(r, 'Email') || ''), created: fmtDay(c(r, 'Created')),
     lastSeen: fmtDay(c(r, 'LastSeen')), encrypted: String(c(r, 'State')) === 'done', invite: used[normUser(r[0])] || '',
-    owner: isOwnerAccount({ spreadsheetId: String(c(r, 'SpreadsheetId')), oldSheet: String(c(r, 'OldSheet') || '') }) }));
+    owner: isOwnerAccount({ spreadsheetId: String(c(r, 'SpreadsheetId')), oldSheet: String(c(r, 'OldSheet') || '') }),
+    helpReady: !!adminKid && String(c(r, 'AdminKid') || '') === adminKid && !!String(c(r, 'WrapAdmin') || '') }));
   const ish = invitesSheet(false), ilast = ish ? ish.getLastRow() : 0;
   const invites = ilast >= 2 ? ish.getRange(2, 1, ilast - 1, INVITE_COLS.length).getValues().filter(r => String(r[0]).trim())
     .map(r => ({ code: String(r[0]), note: String(r[1] || ''), created: fmtDay(r[2]), usedBy: String(r[3] || ''), usedAt: fmtDay(r[4]) })) : [];
-  return { ok: true, users, invites, max: Math.max(1, Number(setting('MAX_USERS')) || 50) };
+  return { ok: true, users, invites, max: Math.max(1, Number(setting('MAX_USERS')) || 50), stats: readStats(30), adminKid: adminKid };
 }
+// ---------- account help from the admin ----------
+// The owner's browser makes a key pair once (Admin → Account help). Its public half and fingerprint sit in the owner's
+// row; the private half too, but encrypted with the owner's own data key, so the server can't use it. Each member's
+// browser wraps the member's data key to the public half (WrapAdmin) at sign-up, at a password login or recovery, or
+// when asked for the password once. To help a member back in, the owner's browser unwraps that, makes a fresh recovery
+// code and sends only the new wrapped copy (adminrecovery); the member then uses "Forgot password?" with the code.
+// the owner's row, found in one read of the Users tab (this runs on every login)
+function ownerRow() {
+  const sh = usersSheet(), last = sh.getLastRow(), master = SpreadsheetApp.getActiveSpreadsheet().getId();
+  if (last < 2) return null;
+  const rows = sh.getRange(2, 1, last - 1, USER_COLS.length).getValues();
+  const i = rows.findIndex(r => String(r[UCOL.SpreadsheetId - 1]) === master || String(r[UCOL.OldSheet - 1] || '') === master);
+  return i < 0 ? null : findUser(rows[i][0]);
+}
+function adminHelpKey() { const o = ownerRow(); return o && o.adminPub && o.adminKid ? { pub: o.adminPub, kid: o.adminKid } : null; }
+// what a member's browser needs to (re)wrap its key: nothing for the owner, nor once it's wrapped to the current key
+function helpFor(u) {
+  if (!u || !u.kdf || isOwnerAccount(u)) return undefined;
+  const h = adminHelpKey();
+  return h && u.adminKid !== h.kid ? h : undefined;
+}
+function adminKeySet(p) {
+  const o = CTX_ACCOUNT;
+  if (o.adminKid && !p.replace) return json({ ok: false, error: 'admin-key-exists' });
+  const pub = String(p.pub || ''), key = String(p.key || ''), kid = String(p.kid || '');
+  if (!/^[A-Za-z0-9+/=]{300,1200}$/.test(pub) || !/^v1\.[A-Za-z0-9+/=]{1000,8000}$/.test(key) || !/^[0-9a-f]{32}$/.test(kid)) return json({ ok: false, error: 'bad-keys' });
+  setUser(o, 'AdminPub', pub); setUser(o, 'AdminKey', key); setUser(o, 'AdminKid', kid);
+  logEvent('admin-key', o.username, 'account help turned on, key ' + kid.slice(0, 8));
+  return json({ ok: true, kid: kid });
+}
+// a fresh recovery code for a member, made in the owner's browser: the member's own old code stops working
+function adminRecovery(p) {
+  const t = findUser(String(p.member || ''));
+  if (!t || isOwnerAccount(t) || !t.kdf) return json({ ok: false, error: 'no-user' });
+  const b64ish = v => /^[A-Za-z0-9+/=]{16,200}$/.test(String(v || ''));
+  if (!b64ish(p.wrapRec) || !b64ish(p.recSalt) || !b64ish(p.recAuth)) return json({ ok: false, error: 'bad-keys' });
+  setUser(t, 'WrapRec', String(p.wrapRec)); setUser(t, 'RecSalt', String(p.recSalt)); setUser(t, 'RecHash', hashPass(t.salt, p.recAuth));
+  cleared(t.username); // a member locked out by wrong codes can try the new one at once
+  logEvent('admin-recovery', t.username, 'a recovery code made by the admin');
+  return json(adminView());
+}
+
 function validKeys(p) {
   const b64ish = v => /^[A-Za-z0-9+/=]{16,200}$/.test(String(v || ''));
   return /^pbkdf2-sha256-\d{6,7}$/.test(String(p.kdf || '')) && b64ish(p.kdfSalt) && b64ish(p.auth) && b64ish(p.wrapKey)
@@ -667,7 +741,8 @@ function doLogin(p) {
     const ok = p.auth && safeEqual(hashPass(salt, p.auth), u.hash);
     if (!ok) return failed(p.user, 'bad-login');
     cleared(p.user);
-    return json({ ok: true, user: u.username, token: addSession(u), wrapKey: u.wrapKey, state: u.state || 'done' });
+    countStats({ login: 1 });
+    return json({ ok: true, user: u.username, token: addSession(u), wrapKey: u.wrapKey, state: u.state || 'done', help: helpFor(u) });
   }
   const ok = u && p.pass !== undefined && safeEqual(hashPass(salt, p.pass || ''), u.hash);
   hashPass(salt, String(p.auth || ''));
@@ -801,7 +876,60 @@ function doRecover(p) {
       || !/^[A-Za-z0-9+/=]{16,200}$/.test(String(p.kdfSalt || ''))) return json({ ok: false, error: 'bad-keys' });
   setUser(u, 'KdfSalt', String(p.kdfSalt)); setUser(u, 'WrapKey', String(p.wrapKey)); setUser(u, 'Hash', hashPass(u.salt, p.auth));
   usersSheet().getRange(u.row, UCOL.Token).setValue('');
-  return json({ ok: true, user: u.username, token: addSession(findUser(u.username)), wrapKey: String(p.wrapKey), state: u.state });
+  return json({ ok: true, user: u.username, token: addSession(findUser(u.username)), wrapKey: String(p.wrapKey), state: u.state, help: helpFor(u) });
+}
+
+// Usage numbers for the owner's admin page: a row a day in the "Stats" tab, a column per event. Only counts — never
+// a name, an address or anything from a cellar (it's encrypted anyway). The server counts logins, members active
+// that day, sign-ups, cellar saves and atlas visits; the page adds which pages it showed and how often.
+const STATS_SHEET = 'Stats', STATS_KEEP = 400;
+const STATS_COLS = { active: 'Active members', login: 'Logins', signup: 'Sign-ups', save: 'Cellar saves', atlas: 'Atlas visits',
+  cellar: 'Cellar page', enjoyed: 'Enjoyed page', wishlist: 'Wishlist page', journal: 'Journal page', import: 'Imports',
+  sommelier: 'Sommelier questions', export: 'Exports' };
+const STATS_FROM_PAGE = ['cellar', 'enjoyed', 'wishlist', 'journal', 'import', 'sommelier', 'export'];
+// what a page may report, at most 50 of each per call: a page can't inflate the server's own counts
+function pageHits(ev) {
+  const out = {};
+  if (ev && typeof ev === 'object') STATS_FROM_PAGE.forEach(k => { const n = Math.round(Number(ev[k])); if (n > 0) out[k] = Math.min(50, n); });
+  return out;
+}
+function countStats(ev) {
+  if (inEngine()) return;
+  const keys = Object.keys(ev || {}).filter(k => STATS_COLS[k] && Number(ev[k]) > 0);
+  if (!keys.length) return;
+  const lock = typeof LockService !== 'undefined' ? LockService.getScriptLock() : null;
+  if (lock && !lock.tryLock(3000)) return; // a count is never worth holding a request up
+  try {
+    const book = SpreadsheetApp.getActiveSpreadsheet();
+    let sh = book.getSheetByName(STATS_SHEET);
+    const want = ['Date'].concat(Object.keys(STATS_COLS).map(k => STATS_COLS[k]));
+    if (!sh) { sh = book.insertSheet(STATS_SHEET); sh.appendRow(want); }
+    const head = sh.getRange(1, 1, 1, Math.max(1, sh.getLastColumn())).getValues()[0].map(String);
+    want.forEach(c => { if (head.indexOf(c) < 0) { head.push(c); sh.getRange(1, head.length).setValue(c); } });
+    const day = today(), last = sh.getLastRow();
+    let row = last;
+    if (last < 2 || ymd(sh.getRange(last, 1).getValue()) !== day) { row = last + 1; sh.getRange(row, 1).setNumberFormat('@').setValue(day); }
+    const vals = sh.getRange(row, 1, 1, head.length).getValues()[0];
+    keys.forEach(k => { const i = head.indexOf(STATS_COLS[k]); vals[i] = (Number(vals[i]) || 0) + Math.round(Number(ev[k])); });
+    sh.getRange(row, 2, 1, head.length - 1).setValues([vals.slice(1)]);
+    if (sh.getLastRow() - 1 > STATS_KEEP + 30) sh.deleteRows(2, sh.getLastRow() - 1 - STATS_KEEP);
+  } catch (err) { /* a count never breaks a request */ } finally { if (lock) lock.releaseLock(); }
+}
+// The last n days for the admin page, oldest first, every day present (0 where nothing was counted)
+function readStats(n) {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(STATS_SHEET), by = {};
+  if (sh && sh.getLastRow() >= 2) {
+    const all = sh.getRange(1, 1, sh.getLastRow(), sh.getLastColumn()).getValues(), head = all[0].map(String);
+    all.slice(1).forEach(r => { const o = {}; Object.keys(STATS_COLS).forEach(k => { const i = head.indexOf(STATS_COLS[k]); o[k] = i >= 0 ? Number(r[i]) || 0 : 0; }); by[ymd(r[0])] = o; });
+  }
+  // calendar days back from today, counted at noon UTC: steps of 24 hours would skip or repeat a day around a
+  // change to or from summer time
+  const days = [], t = today().split('-').map(Number);
+  for (let d = n - 1; d >= 0; d--) {
+    const day = Utilities.formatDate(new Date(Date.UTC(t[0], t[1] - 1, t[2] - d, 12)), 'UTC', 'yyyy-MM-dd');
+    days.push(Object.assign({ day: day }, Object.keys(STATS_COLS).reduce((o, k) => (o[k] = (by[day] || {})[k] || 0, o), {})));
+  }
+  return days;
 }
 
 // Validate {user, token}; returns the user record or null.
@@ -815,7 +943,7 @@ function authToken(p) {
   if (!hit.at || now - hit.at > SESSION_REFRESH_MS) { hit.at = now; usersSheet().getRange(u.row, UCOL.Token).setValue(tokenCell(live)); }
   // the day an account was last used, for the owner's admin page: written at most once a day, as text
   const day = today();
-  if (u.lastSeen !== day) { try { usersSheet().getRange(u.row, UCOL.LastSeen).setNumberFormat('@').setValue(day); u.lastSeen = day; } catch (err) {} }
+  if (u.lastSeen !== day) { try { usersSheet().getRange(u.row, UCOL.LastSeen).setNumberFormat('@').setValue(day); u.lastSeen = day; } catch (err) {} countStats({ active: 1 }); }
   return u;
 }
 // The owner: the account whose cellar is (or was, before encryption) this bound spreadsheet

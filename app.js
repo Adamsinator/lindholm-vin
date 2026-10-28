@@ -184,6 +184,18 @@ async function post(params){
   return res.json();
 }
 
+// Usage numbers for the owner's admin page: which pages were shown, imports, sommelier questions, exports — counts
+// only, sent in a batch now and then (and when the page is left), never with a name or anything from the cellar
+const HITS = {};
+function hit(k){ if(!cfg.token) return; HITS[k] = (HITS[k]||0) + 1; if(Object.values(HITS).reduce((a,b)=>a+b, 0) >= 20) flushHits(); }
+function flushHits(leaving){
+  const ev = Object.assign({}, HITS); if(!Object.keys(ev).length || !cfg.api) return;
+  for(const k in HITS) delete HITS[k];
+  try{ fetch(cfg.api, {method:"POST", body:JSON.stringify({action:"hits", ev}), keepalive:!!leaving}).catch(()=>{}); }catch(e){}
+}
+addEventListener("pagehide", ()=>flushHits(true));
+document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState === "hidden") flushHits(true); });
+
 async function api(params){
   // an encrypted account: the cellar's own actions run here on the decrypted copy (vault.js); shared ones go out
   if(window.VAULT && VAULT.active()) return VAULT.call(params);
@@ -1421,6 +1433,7 @@ async function gateEncrypted(mode, user, pass){
     const data = await post({action:"signup", user, email:$("gateEmail").value.trim(), code:$("gateInvite").value.trim(), turnstile:humanToken(), ...k.fields});
     if(!data.ok) throw new Error(data.error);
     cfg.user = data.user; VAULT.rememberSalt(data.user, k.fields);
+    await VAULT.escrow({post, user:data.user, token:data.token, dekX:k.dekX}); // account help, when the owner has it on
     // the account exists from here: if the phone reloads the page while the code is on screen (a trip to the
     // password manager), the login says so instead of looking like nothing happened
     try{ sessionStorage.setItem("vinNewAccount", data.user); }catch(e){}
@@ -1451,6 +1464,7 @@ async function gateEncrypted(mode, user, pass){
     const up = await post({user:data.user, token:data.token, action:"upgrade", ...k.fields});
     if(!up.ok) throw new Error(up.error);
     VAULT.rememberSalt(data.user, k.fields);
+    await VAULT.escrow({post, user:data.user, token:data.token, dekX:k.dekX});
     await showRecoveryCode(k.recoveryCode);
     await migrateNow(data.user, data.token, k.dek);
     await openVault(data.user, data.token, k.dek);
@@ -1741,7 +1755,7 @@ async function impRun(){
     }
     renderOverview(); renderTable(); renderEnjoyed();
     $("impModal").classList.remove("open");
-    toast(tr("{0} wines imported 🍷", done));
+    toast(tr("{0} wines imported 🍷", done)); hit("import");
   }catch(err){
     const m = String(err && err.message || err);
     if(done){ renderOverview(); renderTable(); renderEnjoyed(); }
@@ -1901,7 +1915,7 @@ function sommChips(list){
 const SOMM_THINK = [1500, 2300];
 async function sommAsk(q){
   q = String(q || "").trim(); if(!q || SOMM.busy) return;
-  SOMM.busy = true; const asked = sommSay(q, "q"); $("sommQ").value = "";
+  SOMM.busy = true; const asked = sommSay(q, "q"); $("sommQ").value = ""; hit("sommelier");
   const think = document.createElement("div"); think.className = "sm-a sm-think";
   think.innerHTML = `<span>${esc(tr("Thinking"))}</span><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>`;
   $("sommLog").appendChild(think); sommShow(think);
@@ -2025,7 +2039,7 @@ async function expRun(kind){
     document.body.appendChild(a); a.click();
     setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 2000);
     $("expModal").classList.remove("open");
-    toast(tr("Saved {0}", a.download));
+    toast(tr("Saved {0}", a.download)); hit("export");
   }catch(err){
     const m = String(err && err.message || err);
     $("expErr").textContent = tr("Could not export: {0}", m);
@@ -3661,19 +3675,63 @@ function setSocial(on){
 }
 // The owner gets an Admin button: who has an account (name, email, signed up, last seen) and the invite codes
 async function checkOwner(){
-  try{ const r = await api({action:"me"}); $("adminBtn").hidden = !(r && r.owner === true); }catch(e){ $("adminBtn").hidden = true; }
+  try{ const r = await api({action:"me"}); $("adminBtn").hidden = !(r && r.owner === true); askForHelp(r && r.help); }catch(e){ $("adminBtn").hidden = true; }
 }
+// account help: a member whose session came back without the password (a kept key) types it once, so the key can be
+// wrapped to the owner's; asked once a visit, "Later" until the next
+let HELP = null;
+async function askForHelp(help){
+  if(!help || !window.VAULT || !VAULT.active()) return;
+  try{ if(sessionStorage.getItem("vinHelpAsked")) return; }catch(e){}
+  if(!(await VAULT.trustedHelp(help))) return;
+  HELP = help; $("helpErr").textContent = ""; $("helpPass").value = ""; $("helpModal").classList.add("open");
+}
+$("helpLater").addEventListener("click", ()=>{ try{ sessionStorage.setItem("vinHelpAsked", "1"); }catch(e){} $("helpModal").classList.remove("open"); });
+$("helpForm").addEventListener("submit", async e=>{
+  e.preventDefault(); $("helpGo").disabled = true; $("helpErr").textContent = tr("Unlocking your cellar…");
+  try{
+    const r = await VAULT.escrowWithPassword({post, user:cfg.user, pass:$("helpPass").value, help:HELP});
+    cfg.token = r.token; localStorage.setItem("vinToken", r.token);
+    if(!r.ok) throw new Error("not-done");
+    $("helpModal").classList.remove("open"); toast(tr("Account help is set up"));
+  }catch(err){ $("helpErr").textContent = /bad-login|locked/.test(errText(err)) ? tr("That password didn't match.") : tr("Could not set it up just now ({0}).", errText(err)); }
+  finally{ $("helpGo").disabled = false; $("helpPass").value = ""; }
+});
 let ADMIN = null;
 async function openAdmin(){
   $("adminErr").textContent = tr("Fetching…"); $("adminModal").classList.add("open");
   try{ ADMIN = await api({action:"admin"}); $("adminErr").textContent = ""; renderAdmin(); }
   catch(err){ $("adminErr").textContent = err.message === "not-owner" ? tr("Only the owner can open this.") : tr("Could not reach the cellar API ({0}).", errText(err)); }
 }
+// the last 30 days: active members a day as bars, and each count's total
+const USAGE_LABEL = {active:"Active members", login:"Logins", signup:"Sign-ups", save:"Cellar saves", atlas:"Atlas visits",
+  cellar:"Cellar page", enjoyed:"Enjoyed page", wishlist:"Wishlist page", journal:"Journal page", import:"Imports",
+  sommelier:"Sommelier questions", export:"Exports"};
+function renderUsage(days){
+  if(!days || !days.length){ $("adminUsage").innerHTML = `<p class="ph">${esc(tr("No usage counted yet."))}</p>`; return; }
+  const max = Math.max(1, ...days.map(d=>d.active)), W = 300, H = 60, bw = W / days.length;
+  const bars = days.map((d,i)=>{ const h = Math.round(d.active / max * (H - 4)); return `<rect x="${(i*bw+1).toFixed(1)}" y="${H-h}" width="${(bw-2).toFixed(1)}" height="${h}" rx="1.5"><title>${esc(d.day)}: ${d.active}</title></rect>`; }).join("");
+  const sum = k => days.reduce((s,d)=>s + (d[k]||0), 0);
+  $("adminUsage").innerHTML = `<div class="ususp"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(tr("Active members a day, last 30 days"))}">${bars}</svg>
+      <span class="ph">${esc(tr("Active members a day, last 30 days"))} · ${esc(tr("most {0}", max))}</span></div>
+    <dl class="usgrid">${Object.keys(USAGE_LABEL).map(k=>`<div><dt>${esc(tr(USAGE_LABEL[k]))}</dt><dd>${fmt(sum(k))}</dd></div>`).join("")}</dl>`;
+}
+function renderHelp(A){
+  const members = A.users.filter(u=>!u.owner), ready = members.filter(u=>u.helpReady).length;
+  $("adminHelp").innerHTML = !A.adminKid
+    ? `<div class="adhelp"><p class="ph">${esc(tr("Turn this on to be able to help a member who has lost both their password and their recovery code. Each member's key is then also locked to a key only you hold: the private half stays in your browser, encrypted with your own cellar key. The server still can't read any cellar."))}</p>
+        <p><button type="button" class="btn primary" id="helpSetup">${esc(tr("Turn on account help"))}</button></p></div>`
+    : `<div class="adhelp"><p>${esc(tr("On. {0} of {1} members are ready; the others are ready after their next login.", fmt(ready), fmt(members.length)))}</p>
+        <p class="ph">${esc(tr("Key fingerprint"))}: <span class="code" style="font-size:12px;padding:2px 6px">${esc(A.adminKid)}</span></p>
+        <div id="helpOut"></div></div>`;
+}
 function renderAdmin(){
   const A = ADMIN || {users:[], invites:[]};
+  renderUsage(A.stats); renderHelp(A);
   $("adminCount").textContent = tr("{0} of at most {1}", fmt(A.users.length), fmt(A.max || 50));
   $("adminUsers").innerHTML = A.users.map(u=>`<li><span class="a1"><b>${esc(u.user)}</b> · ${u.email ? `<a href="mailto:${esc(u.email)}">${esc(u.email)}</a>` : "—"}</span>
-      ${u.owner ? `<span class="ph adrm">${esc(tr("you (owner)"))}</span>` : `<button type="button" class="adrm" data-remove="${esc(u.user)}">${esc(tr("Remove"))}</button>`}
+      ${u.owner ? `<span class="ph adrm">${esc(tr("you (owner)"))}</span>` : `${A.adminKid ? (u.helpReady ? `<button type="button" data-help="${esc(u.user)}">${esc(tr("Help back in"))}</button>` : `<span class="hwait">${esc(tr("help: after next login"))}</span>`) : ""}
+        <button type="button" class="adrm" data-remove="${esc(u.user)}">${esc(tr("Remove"))}</button>`}
       <span class="a2">${esc(tr("Signed up"))} ${esc(u.created || "—")} · ${esc(tr("Last seen"))} ${esc(u.lastSeen || "—")}</span></li>`).join("");
   const open = A.invites.filter(i=>!i.usedBy), done = A.invites.filter(i=>i.usedBy);
   $("adminInvites").innerHTML =
@@ -3690,6 +3748,26 @@ $("adminNew").addEventListener("submit", async e=>{
   e.preventDefault(); $("adminErr").textContent = tr("Making…");
   try{ ADMIN = await api({action:"admininvites", n:Number($("adminN").value), note:$("adminNote").value.trim()}); $("adminNote").value = ""; $("adminErr").textContent = ""; renderAdmin(); }
   catch(err){ $("adminErr").textContent = tr("Could not reach the cellar API ({0}).", errText(err)); }
+});
+$("adminHelp").addEventListener("click", async e=>{
+  if(!e.target.closest("#helpSetup")) return;
+  $("adminErr").textContent = tr("Making the key…");
+  try{ await VAULT.adminSetup(); ADMIN = await api({action:"admin"}); $("adminErr").textContent = ""; renderAdmin(); toast(tr("Account help is on")); }
+  catch(err){ $("adminErr").textContent = tr("Could not reach the cellar API ({0}).", errText(err)); }
+});
+// helping a member back in: a fresh recovery code, made here, shown once; their own old code stops working
+$("adminUsers").addEventListener("click", async e=>{
+  const b = e.target.closest("button[data-help]"); if(!b) return;
+  const who = b.dataset.help;
+  if(!confirm(tr("Make a new recovery code for {0}? Their old recovery code stops working. Only do this when they've asked you to.", who))) return;
+  $("adminErr").textContent = tr("Unlocking…");
+  try{
+    const r = await VAULT.adminHelp(who); ADMIN = r.admin; $("adminErr").textContent = ""; renderAdmin();
+    const msg = tr("Your new AllWine recovery code: {0} — on the login page choose 'Forgot password?', type your username, this code and a new password.", r.code);
+    $("helpOut").innerHTML = `<p>${esc(tr("New recovery code for {0} (shown only now):", who))}</p><p class="code" id="helpCode">${esc(r.code)}</p>
+      <p><button type="button" class="btn" id="helpCopy">${esc(tr("Copy a message for {0}", who))}</button></p>`;
+    $("helpCopy").onclick = async ()=>{ try{ await navigator.clipboard.writeText(msg); toast(tr("Copied")); }catch(err){ window.prompt(tr("Copy"), msg); } };
+  }catch(err){ $("adminErr").textContent = /no-help-yet/.test(errText(err)) ? tr("{0} isn't ready yet: it happens at their next login.", who) : tr("Could not reach the cellar API ({0}).", errText(err)); }
 });
 // removing a member: as permanent as them deleting their own account, so the name is typed to confirm it
 $("adminUsers").addEventListener("click", async e=>{
@@ -3880,6 +3958,7 @@ function route(){
   if(page==="wishlist" && cfg.token) loadWishlist();
   if(page==="feed" && cfg.token) loadFeed();
   if(page==="enjoyed") renderEnjoyed();
+  hit(page);
 }
 document.querySelectorAll(".tab").forEach(t=>
   t.addEventListener("click", ()=>{ location.hash = t.dataset.page==="cellar" ? "" : t.dataset.page; }));
