@@ -12,6 +12,8 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
 (async () => {
   const b = await chromium.launch();
   const ctx = await b.newContext({ viewport: { width: 1200, height: 900 } });
+  // the sign-in page talks to the API at once (usage counts, the account-help key): answer it here, never the real one
+  await ctx.route(require("./api-route"), route => route.fulfill({ contentType: "application/json", body: JSON.stringify({ ok: false, error: "test", v: 42 }) }));
   const p = await ctx.newPage(), errs = [];
   p.on("pageerror", e => errs.push(e.message)); p.on("console", m => m.type() === "error" && errs.push(m.text()));
 
