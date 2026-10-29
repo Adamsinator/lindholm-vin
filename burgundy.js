@@ -264,7 +264,10 @@ function shadeUpdate(){
     shadeTiles.set(k, img);
   }
   // drop tiles of other zoom levels once this level has had a moment to load, and far-off tiles of this one
-  setTimeout(() => shadeTiles.forEach((img, k) => { if(!want.has(k) && (!k.startsWith(z+"/") || shadeTiles.size > 260)){ img.remove(); shadeTiles.delete(k); } }), 700);
+  // (against the latest view's tiles: a quick second zoom mustn't have its new tiles swept away by this timer)
+  shadeUpdate.want = want; shadeUpdate.z = z;
+  setTimeout(() => { const W = shadeUpdate.want, Z = shadeUpdate.z + "/";
+    shadeTiles.forEach((img, k) => { if(!W.has(k) && (!k.startsWith(Z) || shadeTiles.size > 260)){ img.remove(); shadeTiles.delete(k); } }); }, 700);
 }
 
 /* ---------- historic rankings (burgundy-history.js): Lavalle 1855, the Beaune committee 1860, Rodier 1920 ---------- */

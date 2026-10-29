@@ -12,12 +12,12 @@ const norm = s => " " + String(s || "").toLowerCase().normalize("NFD").replace(/
 // the regions there are packs for; the Côte d'Or links to its own atlas
 // kw: words on a label that put a bottle in the region; regional: what the pack's "regional" land is
 const REGIONS = [
-  { id: "chablis", name: "Chablis", file: "atlas-chablis.js?v=1", ll: [47.811, 3.796], country: "fr", kind: "Grand cru · premier cru", kw: ["chablis"], regional: "Regional (Petit Chablis…)" },
-  { id: "chalonnaise", name: "Côte Chalonnaise", file: "atlas-chalonnaise.js?v=1", ll: [46.782, 4.711], country: "fr", kind: "Premier cru", kw: ["mercurey", "givry", "rully", "montagny", "bouzeron", "chalonnaise"], regional: "Regional (Bourgogne Côte Chalonnaise)" },
-  { id: "maconnais", name: "Mâconnais", file: "atlas-maconnais.js?v=1", ll: [46.288, 4.739], country: "fr", kind: "Premier cru", kw: ["pouilly fuisse", "pouilly vinzelles", "pouilly loche", "saint veran", "st veran", "vire clesse", "macon"], regional: "Regional (Mâcon…)" },
-  { id: "champagne", name: "Champagne", file: "atlas-champagne.js?v=1", ll: [49.096, 4.035], country: "fr", kind: "Grand and premier cru villages", kw: ["champagne"], village: "Other villages' vines" },
-  { id: "alsace", name: "Alsace", file: "atlas-alsace.js?v=1", ll: [48.174, 7.329], country: "fr", kind: "Grand cru", kw: ["alsace", "elsass"], village: "Alsace (the rest of the AOC)" },
-  { id: "bordeaux", name: "Bordeaux", file: "atlas-bordeaux.js?v=1", ll: [44.953, -0.587], country: "fr", kind: "Appellations · the 1855 châteaux", kw: ["bordeaux", "pauillac", "margaux", "medoc", "saint julien", "st julien", "saint estephe", "st estephe",
+  { id: "chablis", name: "Chablis", file: "atlas-chablis.js?v=1", topo: "atlas-chablis-topo.js?v=1", ll: [47.811, 3.796], country: "fr", kind: "Grand cru · premier cru", kw: ["chablis"], regional: "Regional (Petit Chablis…)" },
+  { id: "chalonnaise", name: "Côte Chalonnaise", file: "atlas-chalonnaise.js?v=1", topo: "atlas-chalonnaise-topo.js?v=1", ll: [46.782, 4.711], country: "fr", kind: "Premier cru", kw: ["mercurey", "givry", "rully", "montagny", "bouzeron", "chalonnaise"], regional: "Regional (Bourgogne Côte Chalonnaise)" },
+  { id: "maconnais", name: "Mâconnais", file: "atlas-maconnais.js?v=1", topo: "atlas-maconnais-topo.js?v=1", ll: [46.288, 4.739], country: "fr", kind: "Premier cru", kw: ["pouilly fuisse", "pouilly vinzelles", "pouilly loche", "saint veran", "st veran", "vire clesse", "macon"], regional: "Regional (Mâcon…)" },
+  { id: "champagne", name: "Champagne", file: "atlas-champagne.js?v=1", topo: "atlas-champagne-topo.js?v=1", ll: [49.096, 4.035], country: "fr", kind: "Grand and premier cru villages", kw: ["champagne"], village: "Other villages' vines" },
+  { id: "alsace", name: "Alsace", file: "atlas-alsace.js?v=1", topo: "atlas-alsace-topo.js?v=1", ll: [48.174, 7.329], country: "fr", kind: "Grand cru", kw: ["alsace", "elsass"], village: "Alsace (the rest of the AOC)" },
+  { id: "bordeaux", name: "Bordeaux", file: "atlas-bordeaux.js?v=1", topo: "atlas-bordeaux-topo.js?v=1", ll: [44.953, -0.587], country: "fr", kind: "Appellations · the 1855 châteaux", kw: ["bordeaux", "pauillac", "margaux", "medoc", "saint julien", "st julien", "saint estephe", "st estephe",
     "pessac", "graves", "sauternes", "barsac", "saint emilion", "st emilion", "pomerol", "fronsac", "listrac", "moulis"], village: "Haut-Médoc, Médoc, Graves" },
   { id: "mosel", name: "Mosel", file: "atlas-mosel.js?v=1", ll: [49.925, 6.968], country: "de", kind: "Einzellagen", kw: ["mosel", "saar", "ruwer"] },
   { id: "nahe", name: "Nahe", file: "atlas-nahe.js?v=1", ll: [49.84, 7.786], country: "de", kind: "Einzellagen", kw: ["nahe"] },
@@ -25,7 +25,7 @@ const REGIONS = [
   { id: "rheinhessen", name: "Rheinhessen", file: "atlas-rheinhessen.js?v=1", ll: [49.826, 8.16], country: "de", kind: "Einzellagen", kw: ["rheinhessen"] },
   { id: "mittelrhein", name: "Mittelrhein", file: "atlas-mittelrhein.js?v=1", ll: [50.183, 7.671], country: "de", kind: "Einzellagen", kw: ["mittelrhein"] },
   { id: "ahr", name: "Ahr", file: "atlas-ahr.js?v=1", ll: [50.536, 7.079], country: "de", kind: "Einzellagen", kw: ["ahr"] },
-  { id: "rhone", name: "Rhône (north)", file: "atlas-rhone.js?v=1", ll: [45.201, 4.809], country: "fr", kind: "Cru appellations", kw: ["cote rotie", "condrieu", "chateau grillet", "hermitage", "ermitage", "crozes", "saint joseph", "st joseph", "cornas", "saint peray", "st peray"],
+  { id: "rhone", name: "Rhône (north)", file: "atlas-rhone.js?v=1", topo: "atlas-rhone-topo.js?v=1", ll: [45.201, 4.809], country: "fr", kind: "Cru appellations", kw: ["cote rotie", "condrieu", "chateau grillet", "hermitage", "ermitage", "crozes", "saint joseph", "st joseph", "cornas", "saint peray", "st peray"],
     regional: "Regional (Côtes du Rhône)" },
 ];
 // the start page's other places: the Côte d'Or's own, richer atlas, and Piedmont, whose MGA have pages but no map
@@ -59,17 +59,22 @@ const el = (name, attrs, parent) => { const e = document.createElementNS(NS, nam
 const pathOf = mp => mp.map(p => p.map(r => "M" + r.map(([x, y]) => x + " " + y).join("L") + "Z").join("")).join("");
 let gLabels = null;
 function draw() {
-  const P = st.pack; svg.innerHTML = "";
+  const P = st.pack; svg.innerHTML = ""; shadeTiles.clear();
+  // under the vineyards: woods, lakes, built-up areas; over them, faint relief, then rivers, roads and railways
+  TG.under = el("g", { class: "topo", "pointer-events": "none" }, svg);
   const g = el("g", {}, svg);
   el("path", { class: "rg", d: pathOf(P.regional.g) }, g);
   P.villages.forEach(v => el("path", { class: "vl", d: pathOf(v.g) }, g));
   P.climats.forEach(c => { c.el = el("path", { class: "cl " + cls(c), d: pathOf(c.g), "data-id": c.id }, g);
     el("title", {}, c.el).textContent = c.n; });
+  gShade = el("g", { class: "shade", "pointer-events": "none" }, svg);
+  TG.over = el("g", { class: "topo", "pointer-events": "none" }, svg); TG.names = el("g", { class: "topo", "pointer-events": "none" }, svg);
   const gd = el("g", {}, svg), gp = el("g", {}, svg); gLabels = el("g", {}, svg); // château dots under the labels
   P.climats.forEach(c => { if (!c.unnamed) c.lb = el("text", { class: "lb " + c.c, x: c.lp[0], y: c.lp[1] }, gLabels); if (c.lb) c.lb.textContent = c.n;
     c.dot = el("circle", { class: "dot", cx: c.lp[0], cy: c.lp[1], r: 0 }, gd); });
   pts().forEach(q => { if (!q.p) return; q.el = el("circle", { class: "pt", cx: q.p[0], cy: q.p[1], r: 0, "data-pt": q.id }, gp); el("title", {}, q.el).textContent = q.n;
     q.lb = el("text", { class: "lb pl", x: q.p[0], y: q.p[1] }, gLabels); q.lb.textContent = short(q.n); });
+  if (topoOf()) drawTopo();
   paint();
 }
 function paint() {
@@ -104,7 +109,91 @@ function layoutLabels() {
     q.lb.style.display = hide ? "none" : ""; if (!hide) taken.push(box);
   });
 }
-function setView(v) { st.view = v; svg.setAttribute("viewBox", v.map(x => Math.round(x)).join(" ")); layoutLabels(); }
+function setView(v) { st.view = v; svg.setAttribute("viewBox", v.map(x => Math.round(x)).join(" ")); layoutLabels(); topoLod(); shadeSoon(); }
+
+/* ---------- the ground around the vineyards (French regions): IGN's relief shading as tiles, and BD TOPO's roads,
+   rivers, woods and villages from atlas-<id>-topo.js (tools/region-topo.js), both in the pack's Lambert-93 metres ---------- */
+const TG = {}; let gShade = null; const shadeTiles = new Map();
+const pref = (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : v === "1"; } catch (e) { return d; } };
+st.relief = pref("atlasRelief", true); st.topo = pref("atlasTopo", true);
+const topoOf = () => st.region && window.ATLAS_TOPO && ATLAS_TOPO[st.region.id];
+// Lambert-93 (EPSG:2154): conformal conic on GRS80, standard parallels 44° and 49°, origin 46.5° N 3° E (700 000, 6 600 000)
+const L93 = (() => { const a = 6378137, e = 0.0818191910428158, d = Math.PI / 180;
+  const m = p => Math.cos(p) / Math.sqrt(1 - e * e * Math.sin(p) ** 2), tt = p => Math.tan(Math.PI / 4 - p / 2) / ((1 - e * Math.sin(p)) / (1 + e * Math.sin(p))) ** (e / 2);
+  const n = (Math.log(m(44 * d)) - Math.log(m(49 * d))) / (Math.log(tt(44 * d)) - Math.log(tt(49 * d))), F = m(44 * d) / (n * tt(44 * d) ** n), r0 = a * F * tt(46.5 * d) ** n;
+  return (lon, lat) => { const r = a * F * tt(lat * d) ** n, th = n * (lon - 3) * d; return [700000 + r * Math.sin(th), 6600000 + r0 - r * Math.cos(th)]; }; })();
+const SHADE_URL = (z, x, y) => `https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ELEVATION.ELEVATIONGRIDCOVERAGE.SHADOW&STYLE=estompage_grayscale&TILEMATRIXSET=PM&TILEMATRIX=${z}&TILEROW=${y}&TILECOL=${x}&FORMAT=image/png`;
+let shadeT = 0; const shadeSoon = () => { clearTimeout(shadeT); shadeT = setTimeout(shadeUpdate, 250); };
+function shadeUpdate() {
+  if (!gShade || !st.pack || !st.view) return;
+  const l93 = st.pack.meta.l93, on = st.relief && !!l93; gShade.style.display = on ? "" : "none"; if (!on) return;
+  const [E0, N0] = l93, d2r = Math.PI / 180, toP = (lon, lat) => { const [E, N] = L93(lon, lat); return [E - E0, N0 - N]; };
+  // the view's corners back to longitude and latitude (Lambert-93 is near enough a plane over a view: two points fix it)
+  const [vx, vy, vw, vh] = st.view, [lo0, la0] = st.pack.meta.origin, p0 = toP(lo0, la0), p1 = toP(lo0 + .1, la0 + .1);
+  const ax = .1 / (p1[0] - p0[0]), ay = .1 / (p1[1] - p0[1]), toLL = (x, y) => [lo0 + (x - p0[0]) * ax, la0 + (y - p0[1]) * ay];
+  const [w, n] = toLL(vx - vw * .1, vy - vh * .1), [e, s] = toLL(vx + vw * 1.1, vy + vh * 1.1), lat = (n + s) / 2;
+  const mpp = vw / (svg.clientWidth || 800);
+  const z = Math.max(8, Math.min(15, Math.round(Math.log2(156543.03 * Math.cos(lat * d2r) / mpp)))); // IGN serves it to level 15
+  const N = 2 ** z, tx = lon => Math.floor((lon + 180) / 360 * N), ty = la => Math.floor((1 - Math.log(Math.tan(la * d2r) + 1 / Math.cos(la * d2r)) / Math.PI) / 2 * N);
+  const lonOf = x => x / N * 360 - 180, latOf = y => Math.atan(Math.sinh(Math.PI * (1 - 2 * y / N))) / d2r;
+  const x0 = tx(Math.min(w, e)), x1 = tx(Math.max(w, e)), y0 = ty(Math.max(n, s)), y1 = ty(Math.min(n, s));
+  if ((x1 - x0 + 1) * (y1 - y0 + 1) > 140) return;
+  const want = new Set();
+  for (let x = x0; x <= x1; x++) for (let y = y0; y <= y1; y++) {
+    const k = `${z}/${x}/${y}`; want.add(k); if (shadeTiles.has(k)) continue;
+    const TL = toP(lonOf(x), latOf(y)), TR = toP(lonOf(x + 1), latOf(y)), BL = toP(lonOf(x), latOf(y + 1));
+    const img = el("image", { href: SHADE_URL(z, x, y), width: 256, height: 256, preserveAspectRatio: "none",
+      transform: `matrix(${((TR[0] - TL[0]) / 256).toFixed(5)} ${((TR[1] - TL[1]) / 256).toFixed(5)} ${((BL[0] - TL[0]) / 256).toFixed(5)} ${((BL[1] - TL[1]) / 256).toFixed(5)} ${TL[0].toFixed(1)} ${TL[1].toFixed(1)})` }, gShade);
+    img.addEventListener("error", () => img.remove());
+    shadeTiles.set(k, img);
+  }
+  // other zoom levels go once this one has had a moment to load (checked against the latest view's tiles, not this
+  // call's: a quick second zoom mustn't have its new tiles swept away by the first one's timer)
+  shadeUpdate.want = want; shadeUpdate.z = z;
+  setTimeout(() => { const W = shadeUpdate.want, Z = shadeUpdate.z + "/";
+    shadeTiles.forEach((img, k) => { if (!W.has(k) && (!k.startsWith(Z) || shadeTiles.size > 240)) { img.remove(); shadeTiles.delete(k); } }); }, 900);
+}
+// a delta-encoded coordinate list (first point absolute, then steps) → path data
+const topoD = (f, close) => { let x = 0, y = 0, d = ""; for (let i = 0; i < f.length; i += 2) { x += f[i]; y += f[i + 1]; d += (i ? "L" : "M") + x + " " + y; } return close ? d + "Z" : d; };
+function drawTopo() {
+  const T = topoOf(); if (!T || !TG.under) return;
+  [TG.under, TG.over, TG.names].forEach(g => g.innerHTML = "");
+  // big layers in tiles of a few km, one path each, so the browser can skip what's off-screen
+  const tiled = (list, close, cls, g, size = 3000) => { const tiles = new Map();
+    list.forEach(f => { const k = Math.floor(f[0] / size) + "," + Math.floor(f[1] / size); tiles.set(k, (tiles.get(k) || "") + topoD(f, close)); });
+    tiles.forEach(d => el("path", { class: cls, d, "fill-rule": "evenodd" }, g)); };
+  tiled(T.woods, true, "t-wood", TG.under); tiled(T.towns, true, "t-town", TG.under); tiled(T.lakes, true, "t-lake", TG.under);
+  tiled(T.water.filter(w => w[0] === 2).map(w => w[1]), false, "t-water t-w2", TG.over);
+  tiled(T.water.filter(w => w[0] === 1).map(w => w[1]), false, "t-water t-w1", TG.over);
+  const rd = k => T.roads.filter(r => r[0] === k).map(r => r[1]);
+  [3, 2, 1].forEach(k => tiled(rd(k), false, "t-case t-r" + k, TG.over)); [3, 2, 1].forEach(k => tiled(rd(k), false, "t-fill t-r" + k, TG.over));
+  const rail = T.rail.map(f => topoD(f)).join(""); if (rail) { el("path", { class: "t-rail", d: rail }, TG.over); el("path", { class: "t-rail2", d: rail }, TG.over); }
+  // names: towns (1) and villages (2) always, hamlets (3) and farms (4) closer in, rivers in italic
+  // a name already on the map nearby — a cru village's own label (Champagne), or IGN naming a town twice — isn't repeated
+  const placed = st.pack.climats.filter(c => c.lb).map(c => [norm(c.n), c.lp[0], c.lp[1]]);
+  T.names.slice().sort((a, b) => (a[0] === "w" ? 5 : a[0]) - (b[0] === "w" ? 5 : b[0])).forEach(([k, n, x, y]) => {
+    const nn = norm(n); if (placed.some(([m, px, py]) => m === nn && Math.hypot(px - x, py - y) < 3000)) return; placed.push([nn, x, y]);
+    const e = el("text", { class: "tn tn-" + k, x, y }, TG.names); e.textContent = n; e._k = k; });
+  topoLod();
+}
+// what shows at this zoom: lanes and hamlets close in; names kept clear of the vineyards' own labels and each other
+function topoLod() {
+  if (!TG.names || !st.view) return;
+  const on = st.topo && !!topoOf(), wk = st.view[2] / 1000; // view width, km
+  [TG.under, TG.over, TG.names].forEach(g => g.style.display = on ? "" : "none"); if (!on) return;
+  svg.classList.toggle("lod-mid", wk < 14); svg.classList.toggle("lod-near", wk < 6);
+  const k = st.view[2] / (svg.clientWidth || 800), taken = [];
+  if (gLabels) gLabels.querySelectorAll("text").forEach(t => { if (t.style.display === "none") return; const b = t.getBBox && t.getBBox(); if (b && b.width) taken.push([b.x, b.y, b.x + b.width, b.y + b.height]); });
+  for (const t of TG.names.children) {
+    const kind = t._k, show = kind === 1 || kind === 2 ? wk < (kind === 1 ? 200 : 40) : kind === 3 ? wk < 14 : kind === 4 ? wk < 6 : wk < 8; // streams: close in (the Rhône's side valleys are full of them)
+    if (!show) { t.style.display = "none"; continue; }
+    const fs = (kind === 1 ? 14 : kind === 2 ? 12.5 : kind === "w" ? 11.5 : 11) * k, x = +t.getAttribute("x"), y = +t.getAttribute("y"), w = t.textContent.length * fs * .55;
+    const box = [x - w / 2, y - fs * .6, x + w / 2, y + fs * .6];
+    const hide = taken.some(o => !(box[2] < o[0] || box[0] > o[2] || box[3] < o[1] || box[1] > o[3]));
+    t.style.display = hide ? "none" : ""; if (hide) continue;
+    taken.push(box); t.style.fontSize = fs + "px"; t.style.strokeWidth = 3 * k + "px";
+  }
+}
 function fit(bb, pad) {
   const W = svg.clientWidth || 800, H = svg.clientHeight || 600, bw = bb[2] - bb[0], bh = bb[3] - bb[1], m = pad ?? .06;
   const s = Math.max(bw / W, bh / H) * (1 + 2 * m);
@@ -173,7 +262,7 @@ function renderSide() {
       ${Object.keys(PTCLASS).filter(k => pts().some(q => q.cls === k)).map(k => `<h3>${esc(t(PTCLASS[k]))}</h3><ul class="list">${pts().filter(q => q.cls === k).map(q => ptRow(q)).join("")}</ul>`).join("")}
       ${pts().some(q => !q.p) ? `<p class="note">° ${esc(t("Not on IGN's map under its own name, so not drawn."))}</p>` : ""}
       ${pc.some(x => x.inferred) ? `<p class="note">* ${esc(t("INAO's map doesn't name this land; the name comes from IGN's place names inside or next to it."))}</p>` : ""}
-      <p class="src">${esc(P.meta.source)}. ${esc(t("Built {0}.", P.meta.built))}</p>`;
+      <p class="src">${esc(P.meta.source)}. ${esc(t("Built {0}.", P.meta.built))}${P.meta.l93 ? " " + esc(t("Relief shading and roads, rivers, woods and villages: IGN (Géoplateforme, Licence Ouverte).")) : ""}</p>`;
   } else if (!c.g) { // a classified château
     const bottles = CELLAR.by[c.id];
     side.innerHTML = `<p><button class="btn" id="back">← ${esc(P.meta.name)}</button></p>
@@ -341,6 +430,8 @@ async function openRegion(id, sel) {
   for (const [f, k] of [["fGC", "GC"], ["f1er", "1er"], ["fAOC", "AOC"], ["fEL", "EL"]]) $(f).parentNode.hidden = !st.pack.climats.some(c => c.c === k);
   $("fPts").parentNode.hidden = !pts().length;
   place(); draw(); fit(st.home); renderLegend();
+  $("fRelief").parentNode.hidden = !st.pack.meta.l93; $("fTopo").parentNode.hidden = !R.topo;
+  if (R.topo && !topoOf()) loadScript(R.topo).then(() => { if (st.region === R) drawTopo(); }).catch(() => {});
   if (sel && byId(sel)) select(sel, true); else { renderSide(); syncHash(); }
 }
 function renderLegend() {
@@ -360,6 +451,9 @@ $("fAOC").onchange = e => { st.show.AOC = e.target.checked; paint(); };
 $("fEL").onchange = e => { st.show.EL = e.target.checked; paint(); };
 $("fPts").onchange = e => { st.show.PT = e.target.checked; paint(); };
 $("fMine").onchange = e => { st.mine = e.target.checked; paint(); };
+const keep = (k, v) => { try { localStorage.setItem(k, v ? "1" : "0"); } catch (e) {} };
+$("fRelief").checked = st.relief; $("fRelief").onchange = e => { st.relief = e.target.checked; keep("atlasRelief", st.relief); shadeUpdate(); };
+$("fTopo").checked = st.topo; $("fTopo").onchange = e => { st.topo = e.target.checked; keep("atlasTopo", st.topo); topoLod(); };
 $("fSearch").addEventListener("change", e => { const q = norm(e.target.value); const all = st.pack.climats.concat(pts()), c = all.find(x => norm(shown(x)) === q) || all.find(x => norm(x.n) === q) || all.find(x => !x.unnamed && norm(shown(x)).includes(q.trim())); if (c) { select(c.id, true); e.target.value = ""; } });
 if (window.I18N) { I18N.picker && document.querySelectorAll("[data-langpick]").forEach(I18N.picker); I18N.onChange(() => { renderSide(); renderLegend(); }); }
 
