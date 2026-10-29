@@ -19,12 +19,12 @@ const REGIONS = [
   { id: "alsace", name: "Alsace", file: "atlas-alsace.js?v=1", topo: "atlas-alsace-topo.js?v=1", dem: "atlas-alsace-dem.js?v=1", ll: [48.174, 7.329], country: "fr", kind: "Grand cru", kw: ["alsace", "elsass"], village: "Alsace (the rest of the AOC)" },
   { id: "bordeaux", name: "Bordeaux", file: "atlas-bordeaux.js?v=1", topo: "atlas-bordeaux-topo.js?v=1", dem: "atlas-bordeaux-dem.js?v=1", ll: [44.953, -0.587], country: "fr", kind: "Appellations · the 1855 châteaux", kw: ["bordeaux", "pauillac", "margaux", "medoc", "saint julien", "st julien", "saint estephe", "st estephe",
     "pessac", "graves", "sauternes", "barsac", "saint emilion", "st emilion", "pomerol", "fronsac", "listrac", "moulis"], village: "Haut-Médoc, Médoc, Graves" },
-  { id: "mosel", name: "Mosel", file: "atlas-mosel.js?v=1", ll: [49.925, 6.968], country: "de", kind: "Einzellagen", kw: ["mosel", "saar", "ruwer"] },
-  { id: "nahe", name: "Nahe", file: "atlas-nahe.js?v=1", ll: [49.84, 7.786], country: "de", kind: "Einzellagen", kw: ["nahe"] },
-  { id: "pfalz", name: "Pfalz", file: "atlas-pfalz.js?v=1", ll: [49.383, 8.158], country: "de", kind: "Einzellagen", kw: ["pfalz", "palatinate"] },
-  { id: "rheinhessen", name: "Rheinhessen", file: "atlas-rheinhessen.js?v=1", ll: [49.826, 8.16], country: "de", kind: "Einzellagen", kw: ["rheinhessen"] },
-  { id: "mittelrhein", name: "Mittelrhein", file: "atlas-mittelrhein.js?v=1", ll: [50.183, 7.671], country: "de", kind: "Einzellagen", kw: ["mittelrhein"] },
-  { id: "ahr", name: "Ahr", file: "atlas-ahr.js?v=1", ll: [50.536, 7.079], country: "de", kind: "Einzellagen", kw: ["ahr"] },
+  { id: "mosel", name: "Mosel", file: "atlas-mosel.js?v=1", topo: "atlas-mosel-topo.js?v=1", ll: [49.925, 6.968], country: "de", kind: "Einzellagen", kw: ["mosel", "saar", "ruwer"] },
+  { id: "nahe", name: "Nahe", file: "atlas-nahe.js?v=1", topo: "atlas-nahe-topo.js?v=1", ll: [49.84, 7.786], country: "de", kind: "Einzellagen", kw: ["nahe"] },
+  { id: "pfalz", name: "Pfalz", file: "atlas-pfalz.js?v=1", topo: "atlas-pfalz-topo.js?v=1", ll: [49.383, 8.158], country: "de", kind: "Einzellagen", kw: ["pfalz", "palatinate"] },
+  { id: "rheinhessen", name: "Rheinhessen", file: "atlas-rheinhessen.js?v=1", topo: "atlas-rheinhessen-topo.js?v=1", ll: [49.826, 8.16], country: "de", kind: "Einzellagen", kw: ["rheinhessen"] },
+  { id: "mittelrhein", name: "Mittelrhein", file: "atlas-mittelrhein.js?v=1", topo: "atlas-mittelrhein-topo.js?v=1", ll: [50.183, 7.671], country: "de", kind: "Einzellagen", kw: ["mittelrhein"] },
+  { id: "ahr", name: "Ahr", file: "atlas-ahr.js?v=1", topo: "atlas-ahr-topo.js?v=1", ll: [50.536, 7.079], country: "de", kind: "Einzellagen", kw: ["ahr"] },
   { id: "rhone", name: "Rhône (north)", file: "atlas-rhone.js?v=1", topo: "atlas-rhone-topo.js?v=1", dem: "atlas-rhone-dem.js?v=1", ll: [45.201, 4.809], country: "fr", kind: "Cru appellations", kw: ["cote rotie", "condrieu", "chateau grillet", "hermitage", "ermitage", "crozes", "saint joseph", "st joseph", "cornas", "saint peray", "st peray"],
     regional: "Regional (Côtes du Rhône)" },
 ];
@@ -122,12 +122,16 @@ const L93 = (() => { const a = 6378137, e = 0.0818191910428158, d = Math.PI / 18
   const m = p => Math.cos(p) / Math.sqrt(1 - e * e * Math.sin(p) ** 2), tt = p => Math.tan(Math.PI / 4 - p / 2) / ((1 - e * Math.sin(p)) / (1 + e * Math.sin(p))) ** (e / 2);
   const n = (Math.log(m(44 * d)) - Math.log(m(49 * d))) / (Math.log(tt(44 * d)) - Math.log(tt(49 * d))), F = m(44 * d) / (n * tt(44 * d) ** n), r0 = a * F * tt(46.5 * d) ** n;
   return (lon, lat) => { const r = a * F * tt(lat * d) ** n, th = n * (lon - 3) * d; return [700000 + r * Math.sin(th), 6600000 + r0 - r * Math.cos(th)]; }; })();
+// Germany: basemap.de's hillshade (BKG, on the ATKIS DGM5), whose Web Mercator levels are numbered from standard zoom 5
+const SHADE_DE = (z, x, y) => `https://sgx.geodatenzentrum.de/wmts_basemapde_schummerung/tile/1.0.0/de_basemapde_web_raster_hillshade/default/DE_EPSG_3857_ADV/${String(z - 5).padStart(2, "0")}/${y}/${x}.png`;
 const SHADE_URL = (z, x, y) => `https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ELEVATION.ELEVATIONGRIDCOVERAGE.SHADOW&STYLE=estompage_grayscale&TILEMATRIXSET=PM&TILEMATRIX=${z}&TILEROW=${y}&TILECOL=${x}&FORMAT=image/png`;
 let shadeT = 0; const shadeSoon = () => { clearTimeout(shadeT); shadeT = setTimeout(shadeUpdate, 250); };
 function shadeUpdate() {
   if (!gShade || !st.pack || !st.view) return;
-  const l93 = st.pack.meta.l93, on = st.relief && !!l93; gShade.style.display = on ? "" : "none"; if (!on) return;
-  const [E0, N0] = l93, d2r = Math.PI / 180, toP = (lon, lat) => { const [E, N] = L93(lon, lat); return [E - E0, N0 - N]; };
+  const M = st.pack.meta, de = M.proj === "eq", on = st.relief && (!!M.l93 || de); gShade.style.display = on ? "" : "none"; if (!on) return;
+  const d2r = Math.PI / 180, O = M.origin, kx = d2r * 6371000 * Math.cos(O[1] * d2r), ky = d2r * 6371000;
+  // to the pack's metres: Lambert-93 in France, the local equirectangular grid round meta.origin in Germany
+  const toP = de ? (lon, lat) => [(lon - O[0]) * kx, (O[1] - lat) * ky] : (lon, lat) => { const [E, N] = L93(lon, lat); return [E - M.l93[0], M.l93[1] - N]; };
   // the view's corners back to longitude and latitude (Lambert-93 is near enough a plane over a view: two points fix it)
   const [vx, vy, vw, vh] = st.view, [lo0, la0] = st.pack.meta.origin, p0 = toP(lo0, la0), p1 = toP(lo0 + .1, la0 + .1);
   const ax = .1 / (p1[0] - p0[0]), ay = .1 / (p1[1] - p0[1]), toLL = (x, y) => [lo0 + (x - p0[0]) * ax, la0 + (y - p0[1]) * ay];
@@ -142,7 +146,7 @@ function shadeUpdate() {
   for (let x = x0; x <= x1; x++) for (let y = y0; y <= y1; y++) {
     const k = `${z}/${x}/${y}`; want.add(k); if (shadeTiles.has(k)) continue;
     const TL = toP(lonOf(x), latOf(y)), TR = toP(lonOf(x + 1), latOf(y)), BL = toP(lonOf(x), latOf(y + 1));
-    const img = el("image", { href: SHADE_URL(z, x, y), width: 256, height: 256, preserveAspectRatio: "none",
+    const img = el("image", { href: (de ? SHADE_DE : SHADE_URL)(z, x, y), width: 256, height: 256, preserveAspectRatio: "none",
       transform: `matrix(${((TR[0] - TL[0]) / 256).toFixed(5)} ${((TR[1] - TL[1]) / 256).toFixed(5)} ${((BL[0] - TL[0]) / 256).toFixed(5)} ${((BL[1] - TL[1]) / 256).toFixed(5)} ${TL[0].toFixed(1)} ${TL[1].toFixed(1)})` }, gShade);
     img.addEventListener("error", () => img.remove());
     shadeTiles.set(k, img);
@@ -262,7 +266,7 @@ function renderSide() {
       ${Object.keys(PTCLASS).filter(k => pts().some(q => q.cls === k)).map(k => `<h3>${esc(t(PTCLASS[k]))}</h3><ul class="list">${pts().filter(q => q.cls === k).map(q => ptRow(q)).join("")}</ul>`).join("")}
       ${pts().some(q => !q.p) ? `<p class="note">° ${esc(t("Not on IGN's map under its own name, so not drawn."))}</p>` : ""}
       ${pc.some(x => x.inferred) ? `<p class="note">* ${esc(t("INAO's map doesn't name this land; the name comes from IGN's place names inside or next to it."))}</p>` : ""}
-      <p class="src">${esc(P.meta.source)}. ${esc(t("Built {0}.", P.meta.built))}${P.meta.l93 ? " " + esc(t("Relief shading and roads, rivers, woods and villages: IGN (Géoplateforme, Licence Ouverte).")) : ""}</p>`;
+      <p class="src">${esc(P.meta.source)}. ${esc(t("Built {0}.", P.meta.built))}${P.meta.l93 ? " " + esc(t("Relief shading and roads, rivers, woods and villages: IGN (Géoplateforme, Licence Ouverte).")) : ""}${P.meta.proj === "eq" ? deCredit() : ""}</p>`;
   } else if (!c.g) { // a classified château
     const bottles = CELLAR.by[c.id];
     side.innerHTML = `<p><button class="btn" id="back">← ${esc(P.meta.name)}</button></p>
@@ -313,6 +317,10 @@ function terrainHtml(c) {
       <div class="fact"><div class="l">${esc(t("Mean altitude"))}</div><div class="v">${m[2]} m</div></div></div>
     <p class="note">${esc(t("Terrain: IGN RGE ALTI®, {0} points sampled inside the outline; altitude is the 5th–95th percentile.", m[6]))}${wide ? " " + esc(t("The points are {0} m apart here, so the slope is the lie of the land, not the steepness of a single vineyard.", m[7])) : ""}</p>`;
 }
+// Germany's map: basemap.de's relief (as its terms ask: BKG and the licence linked) and the Basis-DLM of Rheinland-Pfalz
+const deCredit = () => { const y = new Date().getFullYear();
+  return ` ${esc(t("Relief"))}: © GeoBasis-DE / <a href="https://www.bkg.bund.de" target="_blank" rel="noopener">BKG</a> (${y}) <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>.`
+    + ` ${esc(t("Roads, rivers, villages"))}: ©GeoBasis-DE / LVermGeoRP (${y}), <a href="https://www.govdata.de/dl-de/by-2-0" target="_blank" rel="noopener">dl-de/by-2-0</a>, <a href="https://www.lvermgeo.rlp.de" target="_blank" rel="noopener">www.lvermgeo.rlp.de</a> [${esc(t("data edited"))}].`; };
 const ptRow = q => `<li><button data-c="${esc(q.id)}">${esc(short(q.n))}${q.p ? "" : " °"}</button><span>${esc(q.ap)}${CELLAR.by[q.id] ? " · 🍷 " + CELLAR.by[q.id].left : ""}</span></li>`;
 const row = x => `<li><button data-c="${esc(x.id)}">${esc(shown(x))}${x.inferred ? " *" : ""}</button><span>${fmtHa(x.ha)} ha${CELLAR.by[x.id] ? " · 🍷 " + CELLAR.by[x.id].left : ""}</span></li>`;
 function cellarSummary() {
@@ -445,7 +453,7 @@ async function openRegion(id, sel) {
   for (const [f, k] of [["fGC", "GC"], ["f1er", "1er"], ["fAOC", "AOC"], ["fEL", "EL"]]) $(f).parentNode.hidden = !st.pack.climats.some(c => c.c === k);
   $("fPts").parentNode.hidden = !pts().length;
   place(); draw(); fit(st.home); renderLegend();
-  $("fRelief").parentNode.hidden = !st.pack.meta.l93; $("fTopo").parentNode.hidden = !R.topo;
+  $("fRelief").parentNode.hidden = !st.pack.meta.l93 && st.pack.meta.proj !== "eq"; $("fTopo").parentNode.hidden = !R.topo;
   if (R.topo && !topoOf()) loadScript(R.topo).then(() => { if (st.region === R) drawTopo(); }).catch(() => {});
   if (R.dem && !demOf(R.id)) loadScript(R.dem).then(() => { if (st.region === R && st.sel) renderSide(); }).catch(() => {});
   if (sel && byId(sel)) select(sel, true); else { renderSide(); syncHash(); }

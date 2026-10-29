@@ -1,21 +1,24 @@
 #!/usr/bin/env node
-// IGN BD TOPO → atlas-<id>-topo.js: the map furniture under a French region's vineyards in the Wine atlas — roads,
-// railways, rivers and lakes, woods, built-up areas and the names of villages, hamlets and rivers. The relief under
-// it is IGN's hillshade, fetched by the page as tiles (atlas.js); this file is only what's drawn as vectors.
+// The map furniture under a region's vineyards in the Wine atlas → atlas-<id>-topo.js: roads, railways, rivers and
+// lakes, woods, built-up areas and the names of villages, hamlets and rivers. The relief under it is hillshade the
+// page fetches as tiles (atlas.js); this file is only what's drawn as vectors.
 //
-//   node tools/region-topo.js chablis [champagne …]     (or "all"; needs atlas-<id>.js from region-build.js, and curl)
+//   node tools/region-topo.js chablis [mosel …]     (or "all"; needs atlas-<id>.js from region-build.js, and curl)
 //
-// Asked for in Lambert-93 (EPSG:2154), the pack's own grid, so nothing is reprojected here: x = E − E0, y = N0 − N.
-// Only the ground near the vineyards is fetched (cells of a few km touching an outline, plus a margin), cached in
-// tools/.topo-cache. Data: IGN, Licence Ouverte (Etalab 2.0).
+// France: IGN BD TOPO (Licence Ouverte), asked for in Lambert-93 (EPSG:2154), the pack's own grid, so nothing is
+// reprojected: x = E − E0, y = N0 − N. Germany: the Basis-DLM of Rheinland-Pfalz (©GeoBasis-DE / LVermGeoRP,
+// dl-de/by-2-0), as GeoJSON in WGS84, put on the pack's local grid (meta.proj "eq"). Only the ground near the vineyards
+// is fetched (cells of a few km touching an outline, plus a margin), cached in tools/.topo-cache.
 "use strict";
 const fs = require("fs"), path = require("path"), { execFile } = require("child_process");
 const ROOT = path.resolve(__dirname, ".."), CACHE = path.join(__dirname, ".topo-cache"); fs.mkdirSync(CACHE, { recursive: true });
 const WFS = "https://data.geopf.fr/wfs/ows?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&OUTPUTFORMAT=application/json&SRSNAME=EPSG:2154";
 const FRENCH = ["chablis", "chalonnaise", "maconnais", "champagne", "alsace", "rhone", "bordeaux"];
+const GERMAN = ["mosel", "nahe", "pfalz", "rheinhessen", "mittelrhein", "ahr"];
+const DLM = "https://geo5.service24.rlp.de/wfs/basisdlm_shape_rp.fcgi?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&OUTPUTFORMAT=application/json;%20subtype=geojson&SRSNAME=EPSG:4326";
 
 // how much to draw: the small regions get their lanes and hamlets too; Bordeaux, the size of a département, doesn't
-const DETAIL = { chablis: 2, chalonnaise: 2, maconnais: 1, rhone: 1, alsace: 1, champagne: 1, bordeaux: 0 };
+const DETAIL = { chablis: 2, chalonnaise: 2, maconnais: 1, rhone: 1, alsace: 1, champagne: 1, bordeaux: 0, mosel: 1, nahe: 1, pfalz: 1, rheinhessen: 1, mittelrhein: 2, ahr: 2 };
 
 const curl = url => new Promise((ok, fail) => execFile("curl", ["-sS", "--max-time", "240", "--retry", "8", "--retry-all-errors", "--retry-delay", "2", url],
   { maxBuffer: 1 << 30 }, (e, out) => e ? fail(e) : ok(out)));
@@ -46,12 +49,14 @@ const cap = s => s.split(" ").map((w, i) => (i && /^(de|du|des|d'.*|la|le|les|l'
 
 async function build(id) {
   global.window = {}; require(path.join(ROOT, `atlas-${id}.js`));
-  const P = window.ATLAS_PACKS[id], [E0, N0] = P.meta.l93, D = DETAIL[id] ?? 1;
-  if (!E0 || P.meta.proj) throw new Error(id + ": not a Lambert-93 pack");
-  const toM = ([e, n]) => [Math.round(e - E0), Math.round(N0 - n)];
+  const P = window.ATLAS_PACKS[id], D = DETAIL[id] ?? 1, de = P.meta.proj === "eq", [E0, N0] = P.meta.l93 || [];
+  if (!de && !E0) throw new Error(id + ": neither a Lambert-93 nor a German pack");
+  // Germany: metres east and south of meta.origin on the pack's equirectangular grid (as region-build.js makes it)
+  const O = P.meta.origin, d2r = Math.PI / 180, kx = d2r * 6371000 * Math.cos(O[1] * d2r), ky = d2r * 6371000;
+  const toM = de ? ([lon, lat]) => [Math.round((lon - O[0]) * kx), Math.round((O[1] - lat) * ky)] : ([e, n]) => [Math.round(e - E0), Math.round(N0 - n)];
 
   // the ground: cells touching a vineyard (with a margin); big regions in bigger cells
-  const MARGIN = D ? 1500 : 2500, CELL = ["chablis", "chalonnaise", "maconnais", "rhone"].includes(id) ? 3000 : 5000; // (the cache is by cell)
+  const MARGIN = D ? 1500 : 2500, CELL = ["chablis", "chalonnaise", "maconnais", "rhone"].includes(id) || de ? 3000 : 5000; // (the cache is by cell)
   const boxes = P.climats.concat(P.villages).flatMap(c => c.g).concat(P.regional.g).map(p => {
     const xs = p[0].map(q => q[0]), ys = p[0].map(q => q[1]);
     return [Math.min(...xs) - MARGIN, Math.min(...ys) - MARGIN, Math.max(...xs) + MARGIN, Math.max(...ys) + MARGIN];
@@ -65,13 +70,17 @@ async function build(id) {
   const inArea = ([x, y]) => boxes.some(b => x >= b[0] && x <= b[2] && y >= b[1] && y <= b[3]);
   console.log(`${id}: ${cells.length} cells of ${CELL / 1000} km`);
 
-  const cacheFile = (layer, c) => path.join(CACHE, `l93_${layer.replace(/\W/g, "_")}_${Math.round(E0 + c[0])}_${Math.round(N0 - c[3])}_${CELL}.json`); // absolute: the south-west corner
+  const cacheFile = (layer, c) => path.join(CACHE, de ? `dlm_${id}_${layer.replace(/\W/g, "_")}_${c[0]}_${c[1]}_${CELL}.json` // the pack's grid
+    : `l93_${layer.replace(/\W/g, "_")}_${Math.round(E0 + c[0])}_${Math.round(N0 - c[3])}_${CELL}.json`); // absolute: the south-west corner
   async function fetchCell(layer, props, c) {
     const file = cacheFile(layer, c); if (fs.existsSync(file)) return;
-    // the cell in Lambert-93: west, south, east, north (y grows southwards in the pack)
+    // the cell in Lambert-93: west, south, east, north (y grows southwards in the pack); in Germany latitude first
     const w = E0 + c[0], e = E0 + c[2], s = N0 - c[3], n = N0 - c[1], feats = [];
+    const bbox = de ? `${(O[1] - c[3] / ky).toFixed(6)},${(O[0] + c[0] / kx).toFixed(6)},${(O[1] - c[1] / ky).toFixed(6)},${(O[0] + c[2] / kx).toFixed(6)},urn:ogc:def:crs:EPSG::4326`
+      : `${w},${s},${e},${n},urn:ogc:def:crs:EPSG::2154`;
     for (let start = 0; ; start += 5000) {
-      const url = `${WFS}&TYPENAMES=${layer}&BBOX=${w},${s},${e},${n},urn:ogc:def:crs:EPSG::2154&COUNT=5000&STARTINDEX=${start}&PROPERTYNAME=${props}`;
+      const url = de ? `${DLM}&TYPENAMES=vermkv:${layer}&BBOX=${bbox}&COUNT=5000&STARTINDEX=${start}`
+        : `${WFS}&TYPENAMES=${layer}&BBOX=${bbox}&COUNT=5000&STARTINDEX=${start}&PROPERTYNAME=${props}`;
       let j = null;
       for (let tries = 0; !j; tries++) {
         try { j = JSON.parse(await curl(url)); if (!j.features) throw new Error(JSON.stringify(j).slice(0, 200)); }
@@ -82,7 +91,7 @@ async function build(id) {
     }
     fs.writeFileSync(file, JSON.stringify(feats));
   }
-  const LAYERS = [
+  const LAYERS = de ? [["Verkehr_VER01_L"], ["Verkehr_VER03_L"], ["Gewaesser_GEW01_L"], ["Gewaesser_GEW01_F"], ["Vegetation_VEG02_F"], ["Siedlungen_SIE01_F"]] : [
     ["BDTOPO_V3:troncon_de_route", "geometrie,nature,importance,cpx_numero"], ["BDTOPO_V3:troncon_de_voie_ferree", "geometrie,nature,etat_de_l_objet"],
     ["BDTOPO_V3:troncon_hydrographique", "geometrie,persistance,classe_de_largeur,position_par_rapport_au_sol"],
     ["BDTOPO_V3:surface_hydrographique", "geometrie,nature,persistance"], ["BDTOPO_V3:zone_de_vegetation", "geometrie,nature"],
@@ -105,7 +114,43 @@ async function build(id) {
     return a >= minArea && p.some(inArea) ? delta(p.slice(0, -1).flat()) : null; };
   const T = D === 2 ? 5 : D === 1 ? 7 : 10; // simplification, metres
 
-  const out = { meta: { id, source: "IGN — BD TOPO® (Géoplateforme, Licence Ouverte)", built: new Date().toISOString().slice(0, 10), delta: true } };
+  const out = { meta: { id, built: new Date().toISOString().slice(0, 10), delta: true, source: de ? `Basis-DLM: ©GeoBasis-DE / LVermGeoRP (${new Date().getFullYear()}), dl-de/by-2-0, www.lvermgeo.rlp.de [Daten bearbeitet]` : "IGN — BD TOPO® (Géoplateforme, Licence Ouverte)" } };
+  if (de) dlmLayers(); else bdTopoLayers();
+  function dlmLayers() {
+  // roads by what they're dedicated as (wdm): 1 Autobahn and Bundesstraße, 2 Landes- and Kreisstraße, 3 the village's own
+  out.roads = [];
+  all(LAYERS[0][0]).forEach(f => { const w = +f.properties.wdm, k = w === 1301 || w === 1303 ? 1 : w === 1305 || w === 1306 ? 2 : 3;
+    if (k === 3 && D < 2) return;
+    lines(f.geometry).forEach(l => runs(l, T).forEach(c => out.roads.push([k, c]))); });
+  out.rail = [];
+  all(LAYERS[1][0]).forEach(f => lines(f.geometry).forEach(l => runs(l, T).forEach(c => out.rail.push(c))));
+  // streams as their axes; the Mosel, the Rhine and the lakes as areas (whose axes would sit inside them)
+  out.water = [];
+  all(LAYERS[2][0]).forEach(f => lines(f.geometry).forEach(l => runs(l, T).forEach(c => out.water.push([2, c]))));
+  out.lakes = [];
+  const rv = {}, rname = (n, x, y) => { const L = rv[n] = rv[n] || []; if (L.some(([a, b]) => Math.hypot(a - x, b - y) < 6000)) return; L.push([x, y]); out.names.push(["w", n, x, y]); };
+  out.names = [];
+  all(LAYERS[3][0]).forEach(f => polys(f.geometry).forEach(p => { const r = ring(p[0], T, D ? 5000 : 20000); if (r) out.lakes.push(r); }));
+  out.woods = [];
+  all(LAYERS[4][0]).forEach(f => polys(f.geometry).forEach(p => { const r = ring(p[0], T * (D === 2 ? 1.5 : 2.5), [250000, 50000, 12000][D]); if (r) out.woods.push(r); }));
+  // villages: the Ortslage, the built-up area, named; ranked by its size (a town over 3 km², a hamlet under 0.15 km²)
+  out.towns = [];
+  const seen = new Set();
+  all(LAYERS[5][0]).forEach(f => { const tn = f.properties.nam, ps = polys(f.geometry), pm = ps.map(p => p[0].map(toM));
+    ps.forEach(p => { const r = ring(p[0], T, 3000); if (r) out.towns.push(r); });
+    const big = pm.sort((a, b) => b.length - a.length)[0]; if (!tn || !big) return;
+    const km2 = pm.reduce((s, r) => s + Math.abs(r.reduce((t, [x, y], k) => { const [x2, y2] = r[(k + 1) % r.length]; return t + x * y2 - x2 * y; }, 0) / 2), 0) / 1e6;
+    const imp = km2 > 3 ? 1 : km2 > .15 ? 2 : 3; if (imp === 3 && D < 2 && km2 < .05) return;
+    const x = Math.round(big.reduce((s, q) => s + q[0], 0) / big.length), y = Math.round(big.reduce((s, q) => s + q[1], 0) / big.length);
+    if (!inArea([x, y])) return; const k = tn + Math.round(x / 500) + Math.round(y / 500); if (seen.has(k)) return; seen.add(k);
+    out.names.push([imp, tn, x, y]); });
+  // river names: along the axes (a stream's middle) and on the big rivers' areas (the middle of the piece)
+  all(LAYERS[2][0]).forEach(f => { const n = f.properties.nam; if (!n || /graben$/i.test(n)) return;
+    lines(f.geometry).forEach(l => { const q = toM(l[l.length >> 1]); if (inArea(q)) rname(n, q[0], q[1]); }); });
+  all(LAYERS[3][0]).forEach(f => { const n = f.properties.nam; if (!n) return;
+    polys(f.geometry).forEach(p => { const r = p[0].map(toM), q = r[r.length >> 1]; if (inArea(q)) rname(n, q[0], q[1]); }); });
+  }
+  function bdTopoLayers() {
   // roads: 1 main (importance 1–2), 2 road (3–4), 3 lane (5); tracks only for the small regions' lanes level
   out.roads = [];
   all(LAYERS[0][0]).forEach(f => { const { nature, importance } = f.properties, imp = +importance || 6;
@@ -149,6 +194,7 @@ async function build(id) {
     const [x, y] = toM(f.geometry.coordinates); if (!inArea([x, y])) return;
     const L = rv[tn] = rv[tn] || []; if (L.some(([a, b]) => Math.hypot(a - x, b - y) < 6000)) return; L.push([x, y]);
     out.names.push(["w", cap(tn), x, y]); });
+  }
 
   const js = `// Generated by tools/region-topo.js ${id} — do not edit by hand.\nwindow.ATLAS_TOPO = window.ATLAS_TOPO || {};\nwindow.ATLAS_TOPO[${JSON.stringify(id)}] = ${JSON.stringify(out)};\n`;
   fs.writeFileSync(path.join(ROOT, `atlas-${id}-topo.js`), js);
@@ -158,5 +204,5 @@ async function build(id) {
 
 (async () => {
   const ids = process.argv.slice(2); if (!ids.length) { console.error("usage: node tools/region-topo.js <region…|all>"); process.exit(1); }
-  for (const id of ids[0] === "all" ? FRENCH : ids) await build(id);
+  for (const id of ids[0] === "all" ? FRENCH.concat(GERMAN) : ids[0] === "germany" ? GERMAN : ids) await build(id);
 })().catch(e => { console.error(e.message); process.exit(1); });
