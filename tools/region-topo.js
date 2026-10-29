@@ -15,7 +15,7 @@ const WFS = "https://data.geopf.fr/wfs/ows?SERVICE=WFS&VERSION=2.0.0&REQUEST=Get
 const FRENCH = ["chablis", "chalonnaise", "maconnais", "champagne", "alsace", "rhone", "bordeaux"];
 
 // how much to draw: the small regions get their lanes and hamlets too; Bordeaux, the size of a département, doesn't
-const DETAIL = { chablis: 2, chalonnaise: 2, maconnais: 2, rhone: 2, alsace: 1, champagne: 1, bordeaux: 0 };
+const DETAIL = { chablis: 2, chalonnaise: 2, maconnais: 1, rhone: 1, alsace: 1, champagne: 1, bordeaux: 0 };
 
 const curl = url => new Promise((ok, fail) => execFile("curl", ["-sS", "--max-time", "240", "--retry", "8", "--retry-all-errors", "--retry-delay", "2", url],
   { maxBuffer: 1 << 30 }, (e, out) => e ? fail(e) : ok(out)));
@@ -51,7 +51,7 @@ async function build(id) {
   const toM = ([e, n]) => [Math.round(e - E0), Math.round(N0 - n)];
 
   // the ground: cells touching a vineyard (with a margin); big regions in bigger cells
-  const MARGIN = D ? 1500 : 2500, CELL = D === 2 ? 3000 : 5000;
+  const MARGIN = D ? 1500 : 2500, CELL = ["chablis", "chalonnaise", "maconnais", "rhone"].includes(id) ? 3000 : 5000; // (the cache is by cell)
   const boxes = P.climats.concat(P.villages).flatMap(c => c.g).concat(P.regional.g).map(p => {
     const xs = p[0].map(q => q[0]), ys = p[0].map(q => q[1]);
     return [Math.min(...xs) - MARGIN, Math.min(...ys) - MARGIN, Math.max(...xs) + MARGIN, Math.max(...ys) + MARGIN];
