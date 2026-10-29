@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <!-- what the page may load (see README, "Content-Security-Policy"); GitHub Pages can't send it as a header -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; script-src 'self' 'unsafe-eval'; frame-src 'none'; img-src 'self' data: blob: https://data.geopf.fr https://sgx.geodatenzentrum.de; connect-src 'self' https://allwine-api.adamlenzing.workers.dev">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; script-src 'self' 'unsafe-eval'; frame-src 'none'; img-src 'self' data: blob: https://data.geopf.fr https://sgx.geodatenzentrum.de; connect-src 'self' https://allwine-api.adamlenzing.workers.dev https://data.geopf.fr">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>AllWine — Wine atlas</title>
@@ -80,6 +80,28 @@ header.top h1 em{font-style:italic;color:var(--accent)} header.top h1 a{color:in
 #map .t-rail{stroke:var(--muted);stroke-width:2.4} #map .t-rail2{stroke:var(--mapbg);stroke-width:1.2;stroke-dasharray:6 6}
 #map .tn{text-anchor:middle;dominant-baseline:central;fill:var(--muted);paint-order:stroke;stroke:var(--halo);stroke-opacity:.85;stroke-linejoin:round;font-size:12px}
 #map .tn-1,#map .tn-2{fill:var(--ink);font-weight:700;letter-spacing:.02em} #map .tn-3{fill:var(--ink)} #map .tn-w{font-style:italic;fill:var(--water)}
+/* terrain search and compare, as in the Côte d'Or atlas */
+.chip{font:inherit;font-size:13px;padding:6px 10px;border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--ink);cursor:pointer} .chip.on{border-color:var(--accent);color:var(--accent)}
+.terrbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:-2px 0 10px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--card);font-size:13px}
+.terrbar .tl{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.08em}
+.terrbar input{width:64px;background:var(--card2);border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:4px 6px;font:inherit;font-size:13px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden} .seg button{border:0;background:var(--card);color:var(--ink);padding:4px 8px;font:inherit;font-size:12px;cursor:pointer;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0} .seg button.on{background:var(--ink);color:var(--card)}
+.cmpv{width:100%;border-collapse:collapse;font-size:13px} .cmpv td,.cmpv th{padding:4px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top} .cmpv td:first-child{color:var(--muted);width:30%}
+.plink{border:0;background:none;padding:0;color:var(--accent);font:inherit;cursor:pointer;text-align:left}
+body.home .chip,body.home .terrbar{display:none !important}
+/* the slope profile, as in the Côte d'Or atlas */
+#map.profiling{cursor:crosshair} .zoom button.on{border-color:var(--accent);color:var(--accent)}
+#map .profline{stroke:var(--ink);stroke-width:2.2;stroke-dasharray:6 4;vector-effect:non-scaling-stroke}
+#map .profpt{fill:var(--card);stroke:var(--ink);stroke-width:2;vector-effect:non-scaling-stroke} #map .profdot{fill:var(--accent);stroke:var(--card);stroke-width:2;vector-effect:non-scaling-stroke}
+.profile{position:absolute;left:10px;right:56px;bottom:10px;background:color-mix(in srgb,var(--card) 95%,transparent);border:1px solid var(--line);border-radius:10px;padding:8px 10px 6px;z-index:2;font-size:13px}
+.profile .ph{margin:2px 30px 4px 0} .profile .phead{font-size:12.5px;margin-right:28px}
+.profile .close{position:absolute;top:4px;right:6px;border:0;background:none;font-size:18px;color:var(--muted);cursor:pointer}
+.pchart{width:100%;height:150px;display:block;cursor:crosshair}
+.pchart .pline{fill:none;stroke:var(--ink);stroke-width:1.6;vector-effect:non-scaling-stroke} .pchart .plab{font-size:11px;font-weight:650;fill:var(--ink)}
+.pchart .pax{font-size:9.5px;fill:var(--muted)} .pchart .pgrid{stroke:var(--line);stroke-width:.6;vector-effect:non-scaling-stroke}
+.pchart .pcur{stroke:var(--accent);stroke-width:1.4;vector-effect:non-scaling-stroke} .ptip{font-size:12px;color:var(--muted);min-height:16px}
+.mapbox:has(.profile:not([hidden])) .legend{display:none}
 body.home #fSearch,body.home .chk,body.home .zoom,body.home .legend{display:none !important} body.home #map{cursor:default}
 #map .dot{fill:var(--gold);stroke:var(--card);stroke-width:1.5;vector-effect:non-scaling-stroke;pointer-events:none}
 .zoom{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;gap:4px}
@@ -118,13 +140,25 @@ aside#side{background:var(--card);border:1px solid var(--line);border-radius:var
   <label class="chk"><input type="checkbox" id="fEL" checked><i style="background:var(--pc)"></i><span data-i18n>Einzellage</span></label>
   <label class="chk"><input type="checkbox" id="fPts" checked><i style="background:var(--ink);border-radius:50%"></i><span data-i18n>Classified châteaux</span></label>
   <label class="chk"><input type="checkbox" id="fMine"><span data-i18n>Only my bottles</span></label>
+  <button type="button" class="chip" id="terrChip" aria-expanded="false" data-i18n hidden>Terrain…</button>
   <label class="chk" hidden><input type="checkbox" id="fRelief"><span data-i18n>Relief</span></label>
   <label class="chk" hidden><input type="checkbox" id="fTopo"><span data-i18n>Roads, rivers, villages</span></label>
+</div>
+<div class="terrbar" id="terrbar" hidden>
+  <span class="tl" data-i18n>Faces</span>
+  <div class="seg" id="tAsp" role="group" aria-label="Faces" data-i18n-aria></div>
+  <label><span data-i18n>Altitude</span> <input type="number" id="tAltMin" min="0" max="900" step="10" placeholder="min"> – <input type="number" id="tAltMax" min="0" max="900" step="10" placeholder="max"> m</label>
+  <label><span data-i18n>Slope</span> ≥ <input type="number" id="tSlope" min="0" max="80" step="1" placeholder="0"> %</label>
+  <label><span data-i18n>Size</span> ≤ <input type="number" id="tSize" min="0" max="10000" step="0.5" placeholder="ha"> ha</label>
+  <span class="tl" data-i18n>Quick:</span>
+  <button type="button" class="chip" data-preset="steep" data-i18n>Steepest</button><button type="button" class="chip" data-preset="high" data-i18n>Highest</button><button type="button" class="chip" data-preset="south" data-i18n>South-facing</button><button type="button" class="chip" data-preset="small" data-i18n>Under 1 ha</button>
+  <button type="button" class="chip" id="tClear" data-i18n>Clear</button>
 </div>
 <div class="layout">
   <div class="mapbox">
     <svg id="map" role="img" aria-label="Vineyard map" data-i18n-aria></svg>
-    <div class="zoom"><button type="button" id="zIn" aria-label="Zoom in" data-i18n-aria>+</button><button type="button" id="zOut" aria-label="Zoom out" data-i18n-aria>−</button><button type="button" id="zHome" aria-label="Whole region" data-i18n-aria>⌂</button></div>
+    <div class="zoom"><button type="button" id="zIn" aria-label="Zoom in" data-i18n-aria>+</button><button type="button" id="zOut" aria-label="Zoom out" data-i18n-aria>−</button><button type="button" id="zHome" aria-label="Whole region" data-i18n-aria>⌂</button><button type="button" id="profBtn" aria-label="Slope profile" title="Slope profile" data-i18n-aria hidden>⟋</button></div>
+    <div class="profile" id="profile" hidden></div>
     <div class="legend" id="legend"></div>
   </div>
   <aside id="side" aria-live="polite"></aside>

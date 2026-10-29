@@ -70,6 +70,7 @@ function draw() {
   gShade = el("g", { class: "shade", "pointer-events": "none" }, svg);
   TG.over = el("g", { class: "topo", "pointer-events": "none" }, svg); TG.names = el("g", { class: "topo", "pointer-events": "none" }, svg);
   const gd = el("g", {}, svg), gp = el("g", {}, svg); gLabels = el("g", {}, svg); // château dots under the labels
+  TG.prof = el("g", { class: "prof", "pointer-events": "none" }, svg); PROF.a = PROF.b = null;
   P.climats.forEach(c => { if (!c.unnamed) c.lb = el("text", { class: "lb " + c.c, x: c.lp[0], y: c.lp[1] }, gLabels); if (c.lb) c.lb.textContent = c.n;
     c.dot = el("circle", { class: "dot", cx: c.lp[0], cy: c.lp[1], r: 0 }, gd); });
   pts().forEach(q => { if (!q.p) return; q.el = el("circle", { class: "pt", cx: q.p[0], cy: q.p[1], r: 0, "data-pt": q.id }, gp); el("title", {}, q.el).textContent = q.n;
@@ -80,7 +81,7 @@ function draw() {
 function paint() {
   const P = st.pack; if (!P) return;
   P.climats.forEach(c => {
-    const off = !st.show[c.c] || (st.mine && !CELLAR.by[c.id]);
+    const off = !st.show[c.c] || (st.mine && !CELLAR.by[c.id]) || !terrOk(c);
     c.el.classList.toggle("dim", off); c.el.classList.toggle("sel", st.sel === c.id);
     const b = CELLAR.by[c.id]?.left || 0; c.dot.setAttribute("r", b ? 0 : 0); c.dot.dataset.b = b;
   });
@@ -97,7 +98,7 @@ function layoutLabels() {
     if (!c.lb) return;
     c.lb.style.fontSize = (isTop(c) ? 14.5 : 13) * k + "px"; c.lb.style.strokeWidth = 3 * k + "px"; // style: it outranks the stylesheet
     const w = c.n.length * 7 * k, h = 15 * k, box = [c.lp[0] - w / 2, c.lp[1] - h, c.lp[0] + w / 2, c.lp[1]];
-    const hide = !st.show[c.c] || (st.mine && !CELLAR.by[c.id]) || taken.some(o => !(box[2] < o[0] || box[0] > o[2] || box[3] < o[1] || box[1] > o[3]));
+    const hide = !st.show[c.c] || (st.mine && !CELLAR.by[c.id]) || !terrOk(c) || taken.some(o => !(box[2] < o[0] || box[0] > o[2] || box[3] < o[1] || box[1] > o[3]));
     c.lb.style.display = hide ? "none" : ""; if (!hide) taken.push(box);
   });
   // the châteaux: a dot a little bigger for a higher rank; names once you're close enough to read them
@@ -109,7 +110,8 @@ function layoutLabels() {
     q.lb.style.display = hide ? "none" : ""; if (!hide) taken.push(box);
   });
 }
-function setView(v) { st.view = v; svg.setAttribute("viewBox", v.map(x => Math.round(x)).join(" ")); layoutLabels(); topoLod(); shadeSoon(); }
+function setView(v) { st.view = v; svg.setAttribute("viewBox", v.map(x => Math.round(x)).join(" ")); layoutLabels(); topoLod(); shadeSoon();
+  if (PROF.a && TG.prof) TG.prof.querySelectorAll("circle").forEach(c => c.setAttribute("r", 5 * v[2] / (svg.clientWidth || 800))); }
 
 /* ---------- the ground around the vineyards (French regions): IGN's relief shading as tiles, and BD TOPO's roads,
    rivers, woods and villages from atlas-<id>-topo.js (tools/region-topo.js), both in the pack's Lambert-93 metres ---------- */
@@ -224,11 +226,83 @@ svg.addEventListener("pointermove", e => {
 const up = e => { ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch = null; if (!ptrs.size) svg.classList.remove("drag"); };
 svg.addEventListener("pointerup", e => { const tgt = document.elementFromPoint(e.clientX, e.clientY); up(e);
   const hd = !st.pack && tgt && tgt.closest && tgt.closest(".hd"); if (hd) { goTo(hd.dataset.id); return; }
+  if (moved < 6 && PROF.on) { profClick(toSvg(e)); return; }
   if (moved < 6) { const q = tgt && tgt.closest && tgt.closest(".pt"), c = tgt && tgt.closest && tgt.closest(".cl"); select(q ? q.dataset.pt : c ? c.dataset.id : null); } });
 svg.addEventListener("pointercancel", up);
 $("zIn").onclick = () => { const [x, y, w, h] = st.view; zoomAt(.6, x + w / 2, y + h / 2); };
 $("zOut").onclick = () => { const [x, y, w, h] = st.view; zoomAt(1 / .6, x + w / 2, y + h / 2); };
 $("zHome").onclick = () => fit(st.home);
+$("profBtn").onclick = () => profToggle();
+
+/* ---------- slope profile (French regions): two clicks, and IGN's elevation service cuts the ground between them ---------- */
+const PROF = { on: false, a: null, b: null, data: null };
+// Lambert-93 back to longitude and latitude (the inverse of L93 above), for the points the service is asked about
+function L93inv(E, N) {
+  const a = 6378137, e = 0.0818191910428158, d = Math.PI / 180, m = p => Math.cos(p) / Math.sqrt(1 - e * e * Math.sin(p) ** 2);
+  const tt = p => Math.tan(Math.PI / 4 - p / 2) / ((1 - e * Math.sin(p)) / (1 + e * Math.sin(p))) ** (e / 2);
+  const n = (Math.log(m(44 * d)) - Math.log(m(49 * d))) / (Math.log(tt(44 * d)) - Math.log(tt(49 * d))), F = m(44 * d) / (n * tt(44 * d) ** n), r0 = a * F * tt(46.5 * d) ** n;
+  const dx = E - 700000, dy = r0 - (N - 6600000), r = Math.hypot(dx, dy), th = Math.atan2(dx, dy), t0 = (r / (a * F)) ** (1 / n);
+  let p = Math.PI / 2 - 2 * Math.atan(t0);
+  for (let i = 0; i < 8; i++) p = Math.PI / 2 - 2 * Math.atan(t0 * ((1 - e * Math.sin(p)) / (1 + e * Math.sin(p))) ** (e / 2));
+  return [th / n / d + 3, p / d];
+}
+const inRing = (x, y, r) => { let c = false; for (let i = 0, j = r.length - 1; i < r.length; j = i++) { const [xi, yi] = r[i], [xj, yj] = r[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c; } return c; };
+const climatAt = ([x, y]) => st.pack.climats.filter(c => c.g.some(p => inRing(x, y, p[0]) && !p.slice(1).some(h => inRing(x, y, h)))).sort((a, b) => a.ha - b.ha)[0] || null;
+function profDraw() {
+  if (!TG.prof) return; TG.prof.innerHTML = ""; if (!PROF.a) return;
+  const k = st.view[2] / (svg.clientWidth || 800);
+  if (PROF.b) el("line", { class: "profline", x1: PROF.a[0], y1: PROF.a[1], x2: PROF.b[0], y2: PROF.b[1] }, TG.prof);
+  [PROF.a, PROF.b].filter(Boolean).forEach(q => el("circle", { class: "profpt", cx: q[0], cy: q[1], r: 5 * k }, TG.prof));
+  PROF.dot = el("circle", { class: "profdot", cx: -1e7, cy: -1e7, r: 5 * k }, TG.prof);
+}
+function profToggle(on) {
+  PROF.on = on ?? !PROF.on; $("profBtn").classList.toggle("on", PROF.on); svg.classList.toggle("profiling", PROF.on);
+  PROF.a = PROF.b = PROF.data = null; profDraw();
+  const box = $("profile"); box.hidden = !PROF.on; if (!PROF.on) return;
+  box.innerHTML = `<div class="ph">${esc(t("Click two points on the map to cut a profile across the slope"))}</div><button class="close" id="profClose" aria-label="${esc(t("Close"))}">×</button>`;
+  $("profClose").onclick = () => profToggle(false);
+}
+function profClick(m) {
+  if (!PROF.a || PROF.b) { PROF.a = m; PROF.b = null; PROF.data = null; profDraw(); $("profile").innerHTML = `<div class="ph">${esc(t("Now the second point"))}</div><button class="close" id="profClose" aria-label="${esc(t("Close"))}">×</button>`; $("profClose").onclick = () => profToggle(false); return; }
+  PROF.b = m; profDraw(); profFetch();
+}
+async function profFetch() {
+  const [E0, N0] = st.pack.meta.l93, ll = ([x, y]) => L93inv(E0 + x, N0 - y), la = ll(PROF.a), lb = ll(PROF.b);
+  const len = Math.hypot(PROF.b[0] - PROF.a[0], PROF.b[1] - PROF.a[1]), n = Math.max(20, Math.min(200, Math.round(len / 10)));
+  $("profile").innerHTML = `<div class="ph">${esc(t("Measuring the slope…"))}</div>`;
+  try {
+    const url = `https://data.geopf.fr/altimetrie/1.0/calcul/alti/rest/elevationLine.json?lon=${la[0].toFixed(6)}|${lb[0].toFixed(6)}&lat=${la[1].toFixed(6)}|${lb[1].toFixed(6)}&resource=ign_rge_alti_wld&sampling=${n}&profile_mode=simple`;
+    const j = await (await fetch(url)).json();
+    PROF.data = (j.elevations || []).map((e, i, arr) => { const f = arr.length > 1 ? i / (arr.length - 1) : 0, m = [PROF.a[0] + (PROF.b[0] - PROF.a[0]) * f, PROF.a[1] + (PROF.b[1] - PROF.a[1]) * f];
+      return { d: len * f, z: e.z, m, c: climatAt(m) }; }).filter(q => q.z > -100);
+    profChart();
+  } catch (e) { $("profile").innerHTML = `<div class="ph">${esc(t("Couldn't reach IGN's elevation service."))}</div><button class="close" id="profClose">×</button>`; $("profClose").onclick = () => profToggle(false); }
+}
+function profChart() {
+  const P = PROF.data, box = $("profile"); if (!P || P.length < 2) return;
+  const Wc = 1000, Hc = 150, padL = 34, padB = 16, top = 22, css = getComputedStyle(document.documentElement), tok = v => css.getPropertyValue(v).trim();
+  const zs = P.map(q => q.z), z0 = Math.floor(Math.min(...zs) / 10) * 10, z1 = Math.ceil(Math.max(...zs) / 10) * 10 + 10, L = P[P.length - 1].d;
+  const X = d => padL + d / L * (Wc - padL - 6), Y = z => top + (1 - (z - z0) / (z1 - z0)) * (Hc - top - padB);
+  const col = c => !c ? tok("--rg") : tok({ GC: "--gc", "1er": "--pc", AOC: "--ac", EL: "--pc" }[c.c] || "--pc");
+  let g = "";
+  for (let i = 0; i < P.length - 1; i++) g += `<path d="M${X(P[i].d).toFixed(1)} ${Hc - padB}L${X(P[i].d).toFixed(1)} ${Y(P[i].z).toFixed(1)}L${X(P[i + 1].d).toFixed(1)} ${Y(P[i + 1].z).toFixed(1)}L${X(P[i + 1].d).toFixed(1)} ${Hc - padB}Z" fill="${col(P[i].c)}"/>`;
+  g += `<path d="${P.map((q, i) => (i ? "L" : "M") + X(q.d).toFixed(1) + " " + Y(q.z).toFixed(1)).join("")}" class="pline"/>`;
+  // names over runs of the same vineyard that are wide enough to label
+  let run = 0;
+  for (let i = 1; i <= P.length; i++) if (i === P.length || P[i].c !== P[run].c) { const c = P[run].c, w = X(P[i - 1].d) - X(P[run].d);
+    if (c && w > 46) { const mid = Math.floor((run + i - 1) / 2); g += `<text x="${X(P[mid].d).toFixed(1)}" y="${(Y(Math.max(...P.slice(run, i).map(q => q.z))) - 5).toFixed(1)}" class="plab" text-anchor="middle">${esc(shown(c))}</text>`; }
+    run = i; }
+  for (let z = z0; z <= z1; z += (z1 - z0 > 120 ? 50 : 20)) g += `<text x="${padL - 4}" y="${Y(z) + 3}" class="pax" text-anchor="end">${z}</text><line x1="${padL}" x2="${Wc - 6}" y1="${Y(z)}" y2="${Y(z)}" class="pgrid"/>`;
+  const rise = Math.max(...zs) - Math.min(...zs), avg = (100 * Math.abs(P[P.length - 1].z - P[0].z) / L).toFixed(1);
+  box.innerHTML = `<div class="phead"><b>${esc(t("Slope profile"))}</b> · ${(L / 1000).toFixed(2)} km · ${Math.round(Math.min(...zs))}–${Math.round(Math.max(...zs))} m · ${esc(t("{0} m of relief, {1} % average gradient", Math.round(rise), avg))}<button class="close" id="profClose" aria-label="${esc(t("Close"))}">×</button></div>
+    <svg viewBox="0 0 ${Wc} ${Hc}" preserveAspectRatio="none" class="pchart">${g}<line class="pcur" x1="-9" x2="-9" y1="${top}" y2="${Hc - padB}"/></svg><div class="ptip" id="ptip"></div>`;
+  $("profClose").onclick = () => profToggle(false);
+  const sv = box.querySelector(".pchart"), cur = sv.querySelector(".pcur"), near = ev => { const r = sv.getBoundingClientRect(), d = ((ev.clientX - r.left) / r.width * Wc - padL) / (Wc - padL - 6) * L; return P.reduce((a, b) => Math.abs(b.d - d) < Math.abs(a.d - d) ? b : a); };
+  sv.addEventListener("pointermove", ev => { const q = near(ev); cur.setAttribute("x1", X(q.d)); cur.setAttribute("x2", X(q.d));
+    $("ptip").textContent = `${Math.round(q.z)} m · ${q.c ? shown(q.c) + " (" + t(CLASS[q.c.c]) + ")" : t("outside the vineyards")}`;
+    if (PROF.dot) { PROF.dot.setAttribute("cx", q.m[0]); PROF.dot.setAttribute("cy", q.m[1]); } });
+  sv.addEventListener("click", ev => { const q = near(ev); if (q.c) select(q.c.id, false); });
+}
 addEventListener("resize", () => { if (st.view) layoutLabels(); });
 
 /* ---------- the side panel ---------- */
@@ -259,6 +333,7 @@ function renderSide() {
         ${P.villages.map(v => fact(P.villages.length > 1 || !R.village ? v.ap : t(R.village), fmtHa(v.ha) + " ha")).join("")}
         ${P.regional.ha ? fact(t(R.regional), fmtHa(P.regional.ha) + " ha") : ""}</div>
       ${many && pc.length ? `<p class="note">${esc(t("Village figures are the land outside the premiers crus."))}</p>` : ""}
+      ${terrNote()}
       ${cellarSummary()}
       ${gc.length ? groups(gc, "Grand cru") : ""}${pc.length ? groups(pc, "Premier cru") : ""}
       ${aoc.length ? `<h3>${esc(t("Cru appellation"))}</h3><ul class="list">${aoc.map(x => row(x)).join("")}</ul>` : ""}
@@ -290,16 +365,20 @@ function renderSide() {
         <p class="note">${esc(t("Gemarkung: {0}", c.gm.join(", ")))} · ${esc(t("Bereich {0}", c.area))}</p>`
       : `<div class="facts"><div class="fact"><div class="l">${esc(t(villagesPack() ? "Vines (IGN)" : "INAO area"))}</div><div class="v">${fmtHa(c.ha)} ha</div></div>
         <div class="fact"><div class="l">${esc(t("Acres"))}</div><div class="v">${(c.ha * 2.471).toFixed(c.ha < 4 ? 1 : 0)}</div></div></div>`}
+      ${st.cmpWith && st.cmpWith !== c.id && byId(st.cmpWith) && byId(st.cmpWith).g ? compareHtml(byId(st.cmpWith), c) : ""}
+      ${st.cmpWith === c.id ? `<p class="note">${esc(t("Now pick another vineyard to compare with."))}</p>` : ""}
       ${terrainHtml(c)}
       ${noteOf(c) ? `<p class="note">${esc(noteOf(c))}</p>` : ""}
       ${c.inferred ? `<p class="note">${esc(t("INAO's map gives this land only as premier cru; the name comes from IGN's place names inside or next to it ({0}).", (c.places || []).join(", ")))}</p>` : ""}
       ${c.partInferred ? `<p class="note">${esc(t("Part of this outline is premier cru land INAO leaves unnamed, joined to it by IGN's place names ({0}).", c.partInferred.join(", ")))}</p>` : ""}
       ${c.unnamed ? `<p class="note">${esc(t("INAO's map gives this land only as premier cru, and no place name ties it to a climat."))}</p>` : ""}
       ${bottles ? `<h3>${esc(t("In your cellar"))}</h3>` + bottles.wines.slice(0, 12).map(w => `<div class="cw"><b>${w.left}×</b> ${esc(w.producer)} · ${esc(w.name || "")} ${esc(String(w.vintage || ""))}</div>`).join("") : ""}
-      ${c.unnamed ? "" : `<p><button class="btn primary" id="addHere">＋ ${esc(t("Add a bottle from here"))}</button></p>`}
+      ${c.unnamed ? "" : `<p><button class="btn primary" id="addHere">＋ ${esc(t("Add a bottle from here"))}</button> ${st.cmpWith ? "" : `<button class="btn" id="cmpBtn">⇄ ${esc(t("Compare"))}</button>`}</p>`}
       <p class="src">${esc(P.meta.source)}.</p>`;
     $("back").onclick = () => select(null);
     const ah = $("addHere"); if (ah) ah.onclick = () => addFromAtlas(c, R);
+    const cb = $("cmpBtn"); if (cb) cb.onclick = () => { st.cmpWith = c.id; renderSide(); };
+    const ce = $("cmpEnd"); if (ce) ce.onclick = () => { st.cmpWith = null; renderSide(); };
   }
   side.querySelectorAll("button[data-c]").forEach(b => b.onclick = () => select(b.dataset.c, true));
 }
@@ -321,6 +400,52 @@ function terrainHtml(c) {
 const deCredit = () => { const y = new Date().getFullYear();
   return ` ${esc(t("Relief"))}: © GeoBasis-DE / <a href="https://www.bkg.bund.de" target="_blank" rel="noopener">BKG</a> (${y}) <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>.`
     + ` ${esc(t("Roads, rivers, villages"))}: ©GeoBasis-DE / LVermGeoRP (${y}), <a href="https://www.govdata.de/dl-de/by-2-0" target="_blank" rel="noopener">dl-de/by-2-0</a>, <a href="https://www.lvermgeo.rlp.de" target="_blank" rel="noopener">www.lvermgeo.rlp.de</a> [${esc(t("data edited"))}].`; };
+/* ---------- terrain search (French regions, from the measured terrain): faces, altitude, slope, size ---------- */
+st.terr = { asp: new Set(), altMin: null, altMax: null, slope: null, size: null };
+const terrActive = () => { const T = st.terr; return !!(T.asp.size || T.altMin != null || T.altMax != null || T.slope != null || T.size != null); };
+function terrOk(c) {
+  if (!terrActive()) return true;
+  const D = st.region && demOf(st.region.id), d = D && D.c[c.id], T = st.terr; if (!d) return false;
+  if (T.asp.size && (d[3] < 1.5 || !T.asp.has(Math.round(d[4] / 45) % 8))) return false;
+  if (T.altMin != null && d[1] < T.altMin) return false;
+  if (T.altMax != null && d[0] > T.altMax) return false;
+  if (T.slope != null && d[3] < T.slope) return false;
+  return !(T.size != null && c.ha > T.size);
+}
+const ASP8 = { en: "N NE E SE S SW W NW", da: "N NØ Ø SØ S SV V NV", fr: "N NE E SE S SO O NO", de: "N NO O SO S SW W NW" };
+function terrSync() {
+  const T = st.terr, names = (ASP8[window.I18N ? I18N.lang : "en"] || ASP8.en).split(" ");
+  $("tAsp").innerHTML = names.map((n, i) => `<button type="button" data-a="${i}" class="${T.asp.has(i) ? "on" : ""}">${n}</button>`).join("");
+  $("tAsp").querySelectorAll("[data-a]").forEach(b => b.onclick = () => { const i = +b.dataset.a; T.asp.has(i) ? T.asp.delete(i) : T.asp.add(i); terrSync(); paint(); renderSide(); });
+  $("tAltMin").value = T.altMin ?? ""; $("tAltMax").value = T.altMax ?? ""; $("tSlope").value = T.slope ?? ""; $("tSize").value = T.size ?? "";
+  $("terrChip").classList.toggle("on", terrActive() || !$("terrbar").hidden);
+}
+const terrClear = () => { const T = st.terr; T.asp.clear(); T.altMin = T.altMax = T.slope = T.size = null; };
+// the quick picks are the region's own top quarter: a steep slope in Champagne isn't one in the Côte-Rôtie
+const quart = k => { const D = demOf(st.region.id), v = Object.values(D ? D.c : {}).map(d => d[k]).sort((a, b) => a - b); return v.length ? v[Math.floor(v.length * .75)] : null; };
+$("terrChip").onclick = () => { const bar = $("terrbar"); bar.hidden = !bar.hidden; $("terrChip").setAttribute("aria-expanded", !bar.hidden); terrSync(); };
+[["tAltMin", "altMin"], ["tAltMax", "altMax"], ["tSlope", "slope"], ["tSize", "size"]].forEach(([id, k]) => $(id).addEventListener("input", ev => {
+  const v = ev.target.value; st.terr[k] = v === "" ? null : +v; terrSync(); paint(); renderSide(); }));
+document.querySelectorAll("#terrbar [data-preset]").forEach(b => b.onclick = () => { const T = st.terr; terrClear();
+  ({ steep: () => T.slope = Math.round(quart(3)), high: () => T.altMin = Math.round(quart(2)), south: () => [3, 4, 5].forEach(i => T.asp.add(i)), small: () => T.size = 1 })[b.dataset.preset]();
+  terrSync(); paint(); renderSide(); });
+$("tClear").onclick = () => { terrClear(); terrSync(); paint(); renderSide(); };
+const terrNote = () => { if (!terrActive()) return ""; const n = st.pack.climats.filter(c => !c.unnamed && terrOk(c));
+  return `<p class="note terrhit">${esc(t("{0} vineyards match the terrain search.", n.length))} ${n.slice(0, 40).map(c => `<button class="plink" data-c="${esc(c.id)}">${esc(shown(c))}</button>`).join(", ")}${n.length > 40 ? " …" : ""}</p>`; };
+
+/* ---------- compare two vineyards ---------- */
+function compareHtml(a, b) {
+  const D = demOf(st.region.id) || { c: {} }, dem = c => D.c[c.id], bot = c => CELLAR.by[c.id] ? CELLAR.by[c.id].left : 0;
+  const rows = [[t("Class"), c => esc(t(CLASS[c.c]))], [t("Appellation"), c => esc(c.c === "EL" ? (c.gl ? t("Großlage {0}", c.gl) : "—") : c.ap)],
+    [t("Area"), c => c.c === "EL" && !c.reg ? "—" : fmtHa(c.ha) + " ha"]]
+    .concat(dem(a) || dem(b) ? [[t("Altitude"), c => dem(c) ? `${dem(c)[0]}–${dem(c)[1]} m` : "—"],
+      [t("Faces"), c => dem(c) ? (dem(c)[3] < 1.5 ? t("flat") : (dem(c)[5] < 55 ? t("varied") + " · " : "") + wind(dem(c)[4])) : "—"],
+      [t("Slope"), c => dem(c) ? `${dem(c)[3]} %` : "—"], [t("Mean altitude"), c => dem(c) ? `${dem(c)[2]} m` : "—"]] : [])
+    .concat(CELLAR.loaded ? [[t("In your cellar"), c => bot(c) ? `🍷 ${bot(c)}` : "—"]] : []);
+  return `<h3>${esc(t("Compare"))}</h3><table class="own cmpv"><thead><tr><th></th>${[a, b].map(c => `<th><button class="plink" data-c="${esc(c.id)}">${esc(shown(c))}</button></th>`).join("")}</tr></thead>
+    <tbody>${rows.map(([l, f]) => `<tr><td>${esc(l)}</td><td>${f(a)}</td><td>${f(b)}</td></tr>`).join("")}</tbody></table>
+    <p><button class="btn" id="cmpEnd">${esc(t("Stop comparing"))}</button></p>`;
+}
 const ptRow = q => `<li><button data-c="${esc(q.id)}">${esc(short(q.n))}${q.p ? "" : " °"}</button><span>${esc(q.ap)}${CELLAR.by[q.id] ? " · 🍷 " + CELLAR.by[q.id].left : ""}</span></li>`;
 const row = x => `<li><button data-c="${esc(x.id)}">${esc(shown(x))}${x.inferred ? " *" : ""}</button><span>${fmtHa(x.ha)} ha${CELLAR.by[x.id] ? " · 🍷 " + CELLAR.by[x.id].left : ""}</span></li>`;
 function cellarSummary() {
@@ -453,9 +578,12 @@ async function openRegion(id, sel) {
   for (const [f, k] of [["fGC", "GC"], ["f1er", "1er"], ["fAOC", "AOC"], ["fEL", "EL"]]) $(f).parentNode.hidden = !st.pack.climats.some(c => c.c === k);
   $("fPts").parentNode.hidden = !pts().length;
   place(); draw(); fit(st.home); renderLegend();
-  $("fRelief").parentNode.hidden = !st.pack.meta.l93 && st.pack.meta.proj !== "eq"; $("fTopo").parentNode.hidden = !R.topo;
+  $("fRelief").parentNode.hidden = !st.pack.meta.l93 && st.pack.meta.proj !== "eq";
+  $("fTopo").parentNode.hidden = !R.topo;
+  st.cmpWith = null; terrClear(); $("terrbar").hidden = true; $("terrChip").hidden = !R.dem; terrSync();
+  $("profBtn").hidden = !st.pack.meta.l93; if (PROF.on) profToggle(false); // the profile needs IGN's elevation service: France only
   if (R.topo && !topoOf()) loadScript(R.topo).then(() => { if (st.region === R) drawTopo(); }).catch(() => {});
-  if (R.dem && !demOf(R.id)) loadScript(R.dem).then(() => { if (st.region === R && st.sel) renderSide(); }).catch(() => {});
+  if (R.dem && !demOf(R.id)) loadScript(R.dem).then(() => { if (st.region === R) { renderSide(); paint(); } }).catch(() => {});
   if (sel && byId(sel)) select(sel, true); else { renderSide(); syncHash(); }
 }
 function renderLegend() {
