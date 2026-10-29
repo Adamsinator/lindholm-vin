@@ -2,6 +2,8 @@
 //   • a Burgundy bottle has "On the map", straight to its vineyard; a Champagne goes to the Champagne atlas
 //   • the atlas shows the bottle under "In your cellar", and "Add a bottle from here" opens the cellar's add form
 //     filled in with the vineyard (and the producer being mapped), once
+//   • a Barolo or Barbaresco naming an MGA links to that MGA's page (the longest name wins: Cannubi, not Cannubi Boschis;
+//     Ravera di Monforte, not Ravera), and the add form says which MGA it recognised
 //   • the overview's Burgundy map links to the atlas
 //   (cd .. && python3 -m http.server 8765) & node tools/atlas-link-ui-test.js
 "use strict";
@@ -14,6 +16,9 @@ const row = o => HEAD.map(h => o[h] ?? "");
 const gas = H({ Ark1: [HEAD,
   row({ Producent: "Armand Rousseau", Land: "Frankrig", Område: "Bourgogne", Kommune: "Gevrey-Chambertin", "Mark/Navn": "Clos St-Jacques", Type: "Rød", Årgang: 2016, Antal: 2 }),
   row({ Producent: "Domaine Leflaive", Land: "Frankrig", Område: "Bourgogne", Kommune: "Puligny-Montrachet", "Mark/Navn": "Village", Type: "Hvid", Årgang: 2020, Antal: 1 }),
+  row({ Producent: "E. Pira & Figli", Land: "Italien", Område: "Piemonte", "Mark/Navn": "Barolo Cannubi", Type: "Rød", Årgang: 2016, Antal: 1 }),
+  row({ Producent: "Elvio Cogno", Land: "Italien", Område: "Piemonte", "Mark/Navn": "Barolo Ravera di Monforte", Type: "Rød", Årgang: 2017, Antal: 1 }),
+  row({ Producent: "Produttori del Barbaresco", Land: "Italien", Område: "Piemonte", "Mark/Navn": "Barbaresco Riserva Rabajà", Type: "Rød", Årgang: 2015, Antal: 2 }),
   row({ Producent: "Krug", Land: "Frankrig", Område: "Champagne", "Mark/Navn": "Grande Cuvée", Type: "Bobler", Årgang: "NV", Antal: 1 }),
 ] });
 
@@ -43,6 +48,14 @@ const gas = H({ Ark1: [HEAD,
   const krug = await open("Krug");
   const kh = await krug.locator("a.atlaslink").getAttribute("href").catch(() => null);
   check("…a Champagne goes to the Champagne atlas", /^atlas\.html#r=champagne&w=/.test(kh || ""), kh);
+
+  const hrefOf = async prod => (await open(prod)).locator("a.atlaslink").getAttribute("href").catch(() => null);
+  const mg = [await hrefOf("E. Pira"), await hrefOf("Elvio Cogno"), await hrefOf("Produttori del Barbaresco")];
+  check("a Barolo or Barbaresco links to its MGA's page: Cannubi, Ravera di Monforte (not Ravera), Rabajà", mg.join() === "v/en/barolo-cannubi.html,v/en/barolo-ravera-di-monforte.html,v/en/barbaresco-rabaja.html", mg.join());
+  await p.click("#addBtn"); await p.waitForTimeout(200); await p.fill("#aName", "Barolo Brunate"); await p.waitForTimeout(300);
+  const sgt = await p.textContent("#aSuggest");
+  check("…and the add form says which MGA it recognised", /Barolo Brunate \(an MGA\)/.test(sgt) && (await p.inputValue("#aGrape")) === "Nebbiolo", sgt + " / " + await p.inputValue("#aGrape"));
+  await p.keyboard.press("Escape"); await p.waitForTimeout(200);
 
   await p.evaluate(() => { MAP_VIEW = "Bourgogne"; renderMap(); });
   check("the overview's Burgundy map links to the atlas", await p.isVisible("#mapAtlas") && (await p.getAttribute("#mapAtlas", "href")) === "burgundy.html");
