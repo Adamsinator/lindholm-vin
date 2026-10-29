@@ -38,7 +38,7 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
 
   await p.goto(BASE + "v/da/index.html");
   const hub = await p.evaluate(() => ({ n: document.querySelectorAll("ul.links a").length, h2: [...document.querySelectorAll("h2")].map(e => e.textContent) }));
-  check("the Danish index lists the vineyards of all seven regions", hub.n > 780 && hub.h2.length === 7, JSON.stringify(hub.h2));
+  check("the Danish index lists the vineyards of all eight regions", hub.n > 880 && hub.h2.length === 8, JSON.stringify(hub.h2));
   await p.click('ul.links a[href="les-clos.html"]');
   check("…and its links open the vineyard", await p.evaluate(() => document.querySelector("h1").textContent === "Les Clos"));
 

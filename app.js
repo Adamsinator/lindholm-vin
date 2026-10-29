@@ -960,6 +960,7 @@ function detailHTML(w){
 const ATLAS_REGIONS = [{id:"chablis", re:/\bchablis\b/i}, {id:"chalonnaise", re:/\b(mercurey|givry|rully|montagny|bouzeron)\b|chalonnaise/i},
   {id:"maconnais", re:/pouilly[- ](fuiss|vinzelles|loch)|saint[- ]v[ée]ran|\bst[- ]v[ée]ran|vir[ée][- ]cless|m[aâ]con/i},
   {id:"champagne", re:/champagne/i}, {id:"alsace", re:/\balsace\b|\belsass\b/i},
+  {id:"bordeaux", re:/bordeaux|pauillac|margaux|m[ée]doc|saint[- ]julien|\bst[- ]julien|saint[- ]est[eè]phe|\bst[- ]est[eè]phe|pessac|\bgraves\b|sauternes|barsac|saint[- ][ée]milion|\bst[- ][ée]milion|pomerol|fronsac|listrac|moulis/i},
   {id:"rhone", re:/c[oô]te[- ]r[oô]tie|condrieu|ch[aâ]teau[- ]grillet|\b(crozes[- ])?(h|)ermitage\b|saint[- ]joseph|\bst[- ]joseph|\bcornas\b|saint[- ]p[ée]ray/i}];
 function atlasLink(w){
   const rg = ATLAS_REGIONS.find(r => r.re.test([w.region, w.commune, w.name].join(" ")));

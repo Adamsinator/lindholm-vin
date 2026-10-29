@@ -11,7 +11,7 @@ h1{font:600 clamp(30px,5vw,42px)/1.15 "Iowan Old Style","Palatino Linotype",Pala
 .pill{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 9px;border-radius:999px;background:var(--line);margin-right:4px}
 .pill.GC{background:var(--gc);color:var(--gc-ink)}.pill.p1{background:var(--pc);color:var(--pc-ink)}
 svg.map{width:100%;height:auto;max-height:440px;background:var(--mapbg);border:1px solid var(--line);border-radius:10px;margin:14px 0;display:block}
-svg.map path{stroke:var(--bg);stroke-width:1.2;vector-effect:non-scaling-stroke}svg.map .nb{fill:var(--nb)}svg.map a:hover .nb{fill:var(--pc)}svg.map .me{fill:var(--gc);stroke:var(--ink);stroke-width:2}
+svg.map path{stroke:var(--bg);stroke-width:1.2;vector-effect:non-scaling-stroke}svg.map .nb{fill:var(--nb)}svg.map a:hover .nb{fill:var(--pc)}svg.map .me{fill:var(--gc);stroke:var(--ink);stroke-width:2}svg.map .pt{fill:var(--ink);stroke:var(--bg);stroke-width:1.5;vector-effect:non-scaling-stroke}svg.map a:hover .pt{fill:var(--accent)}
 dl.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px 16px;margin:14px 0}
 dl.facts div{border-top:1px solid var(--line);padding-top:4px}dt{font-size:12.5px;color:var(--muted)}dd{margin:0;font:19px "Iowan Old Style",Georgia,serif}
 table{border-collapse:collapse;width:100%;font-size:15px}td{padding:5px 0;border-top:1px solid var(--line)}td.n{text-align:right;white-space:nowrap}

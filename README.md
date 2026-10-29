@@ -370,7 +370,7 @@ that climat; a third element `"f"` marks a lease, `"s"` bought grapes. Domaine
 profiles and their sources are in `PROFILES`. When you change the JS, bump the
 `?v=` on the `<script>` tags in `burgundy.html`.
 
-## Region atlas (Chablis, Côte Chalonnaise, Mâconnais, Champagne, Alsace, Northern Rhône)
+## Region atlas (Chablis, Côte Chalonnaise, Mâconnais, Champagne, Alsace, Northern Rhône, Bordeaux)
 
 **More regions ↗** (tab bar, and in the Burgundy atlas) opens `atlas.html`: one wine region at a time, from INAO's own
 vineyard outlines. The Côte d'Or keeps its richer atlas (`burgundy.html`); the region atlas is lighter and generic, so a
@@ -408,6 +408,17 @@ new region is a data file, not new code.
   Chardonnay) and Tours-sur-Marne (for Pinot Noir) carry a note. Grand cru vines come to 4 410 ha, against the
   ≈4 400 usually quoted. A bottle lands on a village from its commune field (Aÿ), and "Add a bottle from here"
   leaves the name for the cuvée.
+- **Bordeaux:** 14 cru appellations as "Cru appellation" climats (Saint-Estèphe, Pauillac, Saint-Julien, Margaux,
+  Listrac, Moulis, Pessac-Léognan, Barsac, Sauternes, Saint-Émilion Grand Cru, Pomerol, Lalande-de-Pomerol,
+  Canon-Fronsac, Fronsac) over Haut-Médoc, Médoc and Graves; the Bordeaux / Bordeaux supérieur land under the whole
+  Gironde is left out. A parcel's first appellation in the list wins (Barsac before Sauternes, Canon-Fronsac before
+  Fronsac). **The 1855 classification** (61 reds, 27 Sauternes and Barsac) is drawn as points: each château is placed on
+  IGN BD TOPO's château of that name (nature "Château", else an inhabited place "Château Rieussec"), and only inside
+  or within 1.5 km of its own appellation, so a namesake elsewhere (there are many Château Lamothe) is never taken.
+  77 of 88 are on IGN's map under their own name; the rest are listed, marked °, without a point (Pichon Comtesse,
+  Duhart-Milon, Clerc Milon, Haut-Batailley… share or lack a named building). A bottle lands on a château by its
+  producer or wine name, the longest name winning; "Add a bottle from here" fills in the château as producer and its
+  1855 rank as the classification. Each placed château has its own vineyard page.
 - **A new region:** add it to `REGIONS` in `tools/region-build.js` (its box, village appellations and regional
   appellations), build it, then list it in `atlas.js` (`REGIONS`) and in `app.js` (`ATLAS_REGIONS`) for "On the map".
   Tested in `tools/region-atlas-ui-test.js`. Then rebuild the vineyard pages (next section).

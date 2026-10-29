@@ -23,6 +23,9 @@ const gas = H({ Ark1: [HEAD,
   row({ Producent: "Jean-Louis Chave", Land: "Frankrig", Område: "Rhône", "Mark/Navn": "Hermitage", Type: "Rød", Årgang: 2016, Antal: 2 }),
   row({ Producent: "Alain Graillot", Land: "Frankrig", Område: "Rhône", "Mark/Navn": "Crozes-Hermitage", Type: "Rød", Årgang: 2020, Antal: 3 }),
   row({ Producent: "Zind-Humbrecht", Land: "Frankrig", Område: "Alsace", Kommune: "Thann", "Mark/Navn": "Riesling Grand Cru Rangen de Thann Clos Saint-Urbain", Type: "Hvid", Årgang: 2018, Antal: 1 }),
+  row({ Producent: "Château Latour", Land: "Frankrig", Område: "Bordeaux", Kommune: "Pauillac", "Mark/Navn": "Grand Vin", Type: "Rød", Årgang: 2010, Antal: 1 }),
+  row({ Producent: "Château Lamothe Guignard", Land: "Frankrig", Område: "Bordeaux", Kommune: "Sauternes", Type: "Hvid", Årgang: 2015, Antal: 2 }),
+  row({ Producent: "Pétrus", Land: "Frankrig", Område: "Bordeaux", Kommune: "Pomerol", Type: "Rød", Årgang: 2005, Antal: 1 }),
   row({ Producent: "J.-A. Ferret", Land: "Frankrig", Område: "Bourgogne", Kommune: "Pouilly-Fuissé", "Mark/Navn": "Les Crays", Klassifikation: "1. cru", Type: "Hvid", Årgang: 2021, Antal: 2 }),
 ] });
 
@@ -109,6 +112,20 @@ const gas = H({ Ark1: [HEAD,
   check("…Côte-Rôtie, Hermitage and Crozes-Hermitage each get their own bottles", /Côte-Rôtie[^\n]*🍷 1/.test(rh.side) && /Crozes-Hermitage[^\n]*🍷 3/.test(rh.side) && /(^|[^-])Hermitage[^\n]*🍷 2/.test(rh.side), rh.side.match(/[^\n]*🍷[^\n]*/g));
   await p.goto(BASE + "atlas.html#r=alsace&c=rangen"); await p.waitForTimeout(2500);
   check("Alsace: 51 grands crus; Rangen with the Zind-Humbrecht on it", await p.evaluate(() => st.pack.climats.filter(c => c.c === "GC").length) === 51 && (await p.textContent("#side h2")) === "Rangen" && /Zind-Humbrecht/.test(await p.textContent("#side")));
+
+  // Bordeaux: 14 cru appellations and the 1855 châteaux as points
+  await p.goto(BASE + "atlas.html#r=bordeaux"); await p.waitForTimeout(2500);
+  const bx = await p.evaluate(() => ({ aoc: st.pack.climats.filter(c => c.c === "AOC").length, pts: st.pack.points.length, placed: st.pack.points.filter(q => q.p).length,
+    drawn: document.querySelectorAll("#map .pt").length, firsts: st.pack.points.filter(q => q.cls === "1855-1").map(q => q.n).join(), side: document.getElementById("side").textContent }));
+  check("Bordeaux: 14 cru appellations; the 1855 classification's 88 châteaux, the ones on IGN's map drawn", bx.aoc === 14 && bx.pts === 88 && bx.placed >= 75 && bx.drawn === bx.placed
+    && bx.firsts === "Château Lafite Rothschild,Château Latour,Château Margaux,Château Haut-Brion,Château Mouton Rothschild", JSON.stringify(bx).slice(0, 300));
+  check("…the Latour on Latour, the Lamothe Guignard not on Lamothe, the Pomerol on Pomerol", /Latour[^\n]*🍷 1/.test(bx.side) && /Lamothe Guignard °[^\n]*🍷 2/.test(bx.side) && !/Lamothe[^ ][^\n]*🍷/.test(bx.side.replace(/Lamothe Guignard[^\n]*/g, ""))
+    && /Pomerol[^\n]*🍷 1/.test(bx.side), bx.side.match(/[^\n]*🍷[^\n]*/g));
+  await p.goto(BASE + "atlas.html#r=bordeaux&c=chateau_latour"); await p.waitForTimeout(2000);
+  check("…Château Latour opens as a first growth, and adds a bottle with the château as producer", (await p.textContent("#side h2")) === "Château Latour" && /First growth \(1855\)/.test(await p.textContent("#side")));
+  await p.click("#addHere"); await p.waitForSelector("#addModal.open", { timeout: 20000 });
+  const fb = await p.evaluate(() => [aProducer.value, aName.value, aCommune.value, aRegion.value, aClass.value, aType.value].join("|"));
+  check("…filled in: Château Latour, Pauillac, Bordeaux, Premier grand cru classé, red", fb === "Château Latour||Pauillac|Bordeaux|Premier grand cru classé|Rød", fb);
 
   // a phone
   const q = await (await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true })).newPage();
