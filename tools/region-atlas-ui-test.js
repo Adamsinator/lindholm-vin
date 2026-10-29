@@ -35,6 +35,10 @@ const gas = H({ Ark1: [HEAD,
   const b = await chromium.launch();
   const ctx = await b.newContext({ viewport: { width: 1300, height: 900 } });
   await require("./turnstile-fake")(ctx);
+  // IGN's relief tiles: a blank tile, so the test doesn't hang on the network (the placement is what's checked)
+  const tilesAsked = [];
+  await ctx.route("https://data.geopf.fr/**", r => { tilesAsked.push(r.request().url());
+    r.fulfill({ contentType: "image/png", body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAAAAAA6fptVAAAACklEQVR4nGP4DwABAQEAWk1v8QAAAABJRU5ErkJggg==", "base64") }); });
   await ctx.route(require("./api-route"), async route => {
     const p = JSON.parse(route.request().postData() || "{}");
     let r;
@@ -65,6 +69,25 @@ const gas = H({ Ark1: [HEAD,
   check("a grand cru opens from the list", (await p.textContent("#side h2")) === "Les Clos" && /les_clos/.test(await p.evaluate(() => location.hash)));
   await p.click("#back"); await p.fill("#fSearch", "Vaillons"); await p.dispatchEvent("#fSearch", "change"); await p.waitForTimeout(300);
   check("…a premier cru from the search, marked as named from IGN's place names", (await p.textContent("#side h2")) === "Vaillons" && /IGN's place names/.test(await p.textContent("#side")));
+  // the ground under the vineyards: IGN's relief as tiles where the view is, and the roads, rivers and villages
+  await p.click("#back"); await p.click("#zHome"); await p.waitForTimeout(900);
+  const gr = await p.evaluate(() => {
+    const vis = sel => [...document.querySelectorAll(sel)].filter(e => e.style.display !== "none" && getComputedStyle(e).display !== "none");
+    const img = document.querySelector("#map .shade image"), m = img && img.getAttribute("transform").match(/matrix\(([-\d. ]+)\)/)[1].split(" ").map(Number);
+    return { tiles: document.querySelectorAll("#map .shade image").length, m, roads: document.querySelectorAll("#map .t-fill").length,
+      rivers: document.querySelectorAll("#map .t-water").length, names: vis("#map .tn").map(t => t.textContent),
+      credit: /IGN \(Géoplateforme/.test(document.getElementById("side").textContent) };
+  });
+  // a tile at level 13–15 is 1.2–4.9 km wide here; Lambert-93 turns it a little (under 2°) but keeps it square
+  const tw = gr.m && Math.hypot(gr.m[0], gr.m[1]) * 256, rot = gr.m && Math.abs(Math.atan2(gr.m[1], gr.m[0]) * 180 / Math.PI);
+  check("relief: IGN's hillshade tiles laid under the view, about square and barely turned", gr.tiles > 0 && tilesAsked.length > 0 && tw > 1000 && tw < 5000 && rot < 2
+    && Math.abs(Math.hypot(gr.m[2], gr.m[3]) * 256 - tw) < tw * .02, JSON.stringify({ tiles: gr.tiles, asked: tilesAsked.length, tw, rot, view: await p.evaluate(() => st.view), relief: await p.evaluate(() => st.relief) }));
+  check("…the roads and rivers drawn, and the villages named — Chablis, Fleys, Chichée among them", gr.roads > 0 && gr.rivers > 0 && ["Chablis", "Fleys", "Chichée"].every(n => gr.names.includes(n)), gr.names.slice(0, 20).join());
+  check("…with IGN credited", gr.credit);
+  await p.uncheck("#fTopo"); await p.uncheck("#fRelief");
+  const off = await p.evaluate(() => [...document.querySelectorAll("#map .topo, #map .shade")].every(g => g.style.display === "none"));
+  await p.check("#fTopo"); await p.check("#fRelief");
+  check("…and both switch off", off);
   const v0 = await p.evaluate(() => st.view.slice());
   await p.click("#zIn"); const v1 = await p.evaluate(() => st.view.slice());
   await p.mouse.move(400, 400); await p.mouse.down(); await p.mouse.move(500, 450, { steps: 5 }); await p.mouse.up(); const v2 = await p.evaluate(() => st.view.slice());
