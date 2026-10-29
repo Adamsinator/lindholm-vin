@@ -144,6 +144,10 @@ const gas = H({ Ark1: [HEAD,
   check("the Northern Rhône: its eight cru appellations, with their own filter", rh.n === "Château-Grillet,Condrieu,Cornas,Côte-Rôtie,Crozes-Hermitage,Hermitage,Saint-Joseph,Saint-Péray" && rh.gcBox && rh.pcBox && rh.aoc, JSON.stringify(rh).slice(0, 300));
   check("…Hermitage 145 ha on INAO's map, Château-Grillet under 4", /Hermitage145[.,]5ha/.test(rh.side.replace(/\s+/g, "")) && /Château-Grillet3[.,]79ha/.test(rh.side.replace(/\s+/g, "")));
   check("…Côte-Rôtie, Hermitage and Crozes-Hermitage each get their own bottles", /Côte-Rôtie[^\n]*🍷 1/.test(rh.side) && /Crozes-Hermitage[^\n]*🍷 3/.test(rh.side) && /(^|[^-])Hermitage[^\n]*🍷 2/.test(rh.side), rh.side.match(/[^\n]*🍷[^\n]*/g));
+  // measured terrain: Château-Grillet's amphitheatre, steep and facing south-east; Saint-Émilion's too big for a slope
+  await p.click('#side button[data-c="chateau_grillet"]'); await p.waitForTimeout(600);
+  const gt = (await p.textContent("#side")).replace(/\s+/g, " ");
+  check("terrain: Château-Grillet 156–229 m, facing SE, slope over 40 %, from IGN RGE ALTI", /Altitude ?156–229 m/.test(gt) && /Faces ?SE/.test(gt) && /Slope ?4\d %/.test(gt) && /RGE ALTI/.test(gt), gt.slice(0, 400));
   await p.goto(BASE + "atlas.html#r=alsace&c=rangen"); await p.waitForTimeout(2500);
   check("Alsace: 51 grands crus; Rangen with the Zind-Humbrecht on it", await p.evaluate(() => st.pack.climats.filter(c => c.c === "GC").length) === 51 && (await p.textContent("#side h2")) === "Rangen" && /Zind-Humbrecht/.test(await p.textContent("#side")));
 
@@ -155,6 +159,8 @@ const gas = H({ Ark1: [HEAD,
     && bx.firsts === "Château Lafite Rothschild,Château Latour,Château Margaux,Château Haut-Brion,Château Mouton Rothschild", JSON.stringify(bx).slice(0, 300));
   check("…the Latour on Latour, the Lamothe Guignard not on Lamothe, the Pomerol on Pomerol", /Latour[^\n]*🍷 1/.test(bx.side) && /Lamothe Guignard °[^\n]*🍷 2/.test(bx.side) && !/Lamothe[^ ][^\n]*🍷/.test(bx.side.replace(/Lamothe Guignard[^\n]*/g, ""))
     && /Pomerol[^\n]*🍷 1/.test(bx.side), bx.side.match(/[^\n]*🍷[^\n]*/g));
+  await p.click('#side button[data-c="saint_emilion_grand_cru"]'); await p.waitForTimeout(600);
+  check("…and a big appellation's slope comes with a word on what it means", /lie of the land/.test(await p.textContent("#side")));
   await p.goto(BASE + "atlas.html#r=bordeaux&c=chateau_latour"); await p.waitForTimeout(2000);
   check("…Château Latour opens as a first growth, and adds a bottle with the château as producer", (await p.textContent("#side h2")) === "Château Latour" && /First growth \(1855\)/.test(await p.textContent("#side")));
   await p.click("#addHere"); await p.waitForSelector("#addModal.open", { timeout: 20000 });
