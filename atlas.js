@@ -578,6 +578,7 @@ function showHome() {
   const W = 1000, lo0 = -2.6, lo1 = 13.6, la0 = 43.3, la1 = 51.7, k = W / ((lo1 - lo0) * Math.cos(47 * Math.PI / 180)), H = Math.round((la1 - la0) * k);
   const xy = ([lo, la]) => [((lo - lo0) * Math.cos(47 * Math.PI / 180) * k).toFixed(1), ((la1 - la) * k).toFixed(1)];
   svg.innerHTML = ""; svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.setAttribute("role", "group"); svg.setAttribute("aria-label", t("Map of the wine regions")); // its dots are links: a group, not an image
   const g = el("g", {}, svg);
   for (const [n, ring] of Object.entries(window.EUROPE_LANDS || {}))
     el("path", { class: "land" + (/^(France|Germany|Italy)/.test(n) ? " on" : ""), d: "M" + ring.map(xy).map(q => q.join(" ")).join("L") + "Z" }, g);
@@ -608,7 +609,7 @@ function syncHash() {
 async function openRegion(id, sel) {
   const R = REGIONS.find(r => r.id === id) || REGIONS[0];
   if (!(window.ATLAS_PACKS && ATLAS_PACKS[R.id])) await loadScript(R.file);
-  document.body.classList.remove("home");
+  document.body.classList.remove("home"); svg.setAttribute("role", "img"); svg.setAttribute("aria-label", t("Vineyard map"));
   st.region = R; st.pack = ATLAS_PACKS[R.id]; st.sel = null; $("fRegion").value = R.id; $("regionName").textContent = " · " + st.pack.meta.name;
   document.title = "AllWine — " + st.pack.meta.name + " · " + t("Wine atlas");
   $("climatList").innerHTML = st.pack.climats.filter(c => !c.unnamed).concat(pts()).map(c => `<option value="${esc(shown(c))}">`).join("");

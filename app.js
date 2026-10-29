@@ -1062,7 +1062,7 @@ function renderTable(){
     const wine = `${fmtChip(w)}${esc(w.name)}${classChip(w)}${w.rating?` · <span class="myscore">${w.rating}/10</span>`:""}`;
     const loc = w.location ? `<span class="wloc">📍 ${esc(w.location)}</span>` : "";
     const where = w.region ? esc(w.region) + (w.country ? `<span class="ctry"> · ${esc(w.country)}</span>` : "") : esc(w.country);
-    return `<tr class="main${w.left===0?" gone":""}" data-i="${i}" data-row="${w.row}" tabindex="0" aria-expanded="false">
+    return `<tr class="main${w.left===0?" gone":""}" data-i="${i}" data-row="${w.row}" tabindex="0" aria-level="1" aria-expanded="false">
       <td class="c-prod"><span class="prod">${esc(w.producer)}</span>${badge}${rbadge}<br class="ponly"><span class="wname ponly">${dot}${fmtChip(w)}${esc(nm)}${classChip(w)}${w.rating?` · <span class="myscore">${w.rating}/10</span>`:""}</span>${loc?`<br class="ponly"><span class="ponly">${loc}</span>`:""}</td>
       <td class="c-wine"><span class="wname">${dot}${wine}</span>${loc}</td>
       <td class="c-comm">${esc(w.commune && w.commune!==w.name ? w.commune : "")}</td>
@@ -1071,7 +1071,7 @@ function renderTable(){
       <td class="num c-qty">${state.status==="drunk"?w.drunk:w.left}</td>
       <td class="num c-price">${SHOW_PRICES ? (w.price?kr(w.price):"—") : "···"}</td>
     </tr>
-    <tr class="detail" hidden><td colspan="7"></td></tr>`;
+    <tr class="detail" aria-level="2" hidden><td colspan="7"></td></tr>`;
   }).join("") + moreRow(list.length, shown.length, 7, "cellar");
   if(!list.length){
     const anyWines = WINES.some(w=>w.left>0);
@@ -3294,7 +3294,7 @@ function renderEnjoyed(){
     const pn = PRODUCER_NOTES[w.producer];
     const badge = pn?`<span class="badge ${pn[0]}">${tr(TIER_LABEL[pn[0]])}</span>`:"";
     const nm = [w.name, w.commune && w.commune!==w.name ? w.commune : ""].filter(Boolean).join(" · ");
-    return `<tr class="main" data-i="${i}" data-row="${w.row}" tabindex="0" aria-expanded="false">
+    return `<tr class="main" data-i="${i}" data-row="${w.row}" tabindex="0" aria-level="1" aria-expanded="false">
       <td><span class="prod">${esc(w.producer)}</span>${badge}<br><span class="wname">${fmtChip(w)}${esc(nm)}${classChip(w)}${w.rating?` · <span class="myscore">${w.rating}/10</span>`:""}${w.drunkDate?`<span class="ponly"> · ${esc(fmtDate(w.drunkDate))}</span>`:""}</span></td>
       <td class="num">${esc(w.vintage||"—")}</td>
       <td>${esc(w.region)}</td>
@@ -3303,7 +3303,7 @@ function renderEnjoyed(){
       <td class="num">${w.drunkDate?esc(fmtDate(w.drunkDate)):"—"}</td>
       <td class="num">${SHOW_PRICES ? (w.price ? kr(w.price) : w.value ? `<span class="est" title="${esc(tr("Value: not what you paid"))}">≈ ${kr(w.value)}</span>` : "—") : "···"}</td>
     </tr>
-    <tr class="detail" hidden><td colspan="7"></td></tr>`;
+    <tr class="detail" aria-level="2" hidden><td colspan="7"></td></tr>`;
   }).join("") + moreRow(list.length, shown.length, 7, "enjoyed");
   bindEnjoyedRows();
 }
