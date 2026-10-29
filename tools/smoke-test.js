@@ -95,7 +95,10 @@ const overflow=async(p,where)=>{ const o=await p.evaluate(()=>document.documentE
     catch(e){ note(tag,'tab '+pg+' '+e.message); }
   }
   // atlas link from app
-  try{ await p.click('.tablink'); await p.waitForURL(/burgundy/,{timeout:15000}).catch(()=>note(tag,'tablink did not navigate')); await mapReady(p); }catch(e){note(tag,'tablink '+e.message)}
+  // the tab goes to the Wine atlas's Europe page; the Côte d'Or atlas is one of its regions
+  try{ await p.click('.tablink'); await p.waitForURL(/atlas\.html/,{timeout:15000}).catch(()=>note(tag,'tablink did not navigate'));
+    if(!(await p.locator('#map .hd').count())) note(tag,'wine atlas: no regions on the Europe map');
+    await p.click('#side button[data-go="burgundy"]'); await p.waitForURL(/burgundy/,{timeout:15000}).catch(()=>note(tag,'Côte d\'Or link did not navigate')); await mapReady(p); }catch(e){note(tag,'tablink '+e.message)}
   await overflow(p,tag+' atlas');
   // atlas: every colour mode, chips, search, sorting, compare, cote buttons
   // phones fold the filters behind a button: open them first

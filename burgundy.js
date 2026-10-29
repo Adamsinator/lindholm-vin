@@ -2004,7 +2004,7 @@ async function exportPNG(){
     const img = new Image(); await new Promise((ok, fail) => { img.onload = ok; img.onerror = fail; img.src = url; });
     const band = 34, cv = document.createElement("canvas"); cv.width = w*sc; cv.height = (h + band)*sc;
     const x = cv.getContext("2d"); x.scale(sc, sc); x.drawImage(img, 0, 0, w, h); URL.revokeObjectURL(url);
-    const title = st.sel ? `${CL[st.sel].n} · ${CL[st.sel].vil.n}` : st.vsel ? VIL[st.vsel].n : st.prod ? P[st.prod] : t("Burgundy atlas");
+    const title = st.sel ? `${CL[st.sel].n} · ${CL[st.sel].vil.n}` : st.vsel ? VIL[st.vsel].n : st.prod ? P[st.prod] : "Côte d'Or · " + t("Wine atlas");
     x.fillStyle = cs.getPropertyValue("--card"); x.fillRect(0, h, w, band); x.fillStyle = cs.getPropertyValue("--ink");
     x.font = "600 14px -apple-system,Segoe UI,Roboto,sans-serif"; x.fillText(title, 12, h + 22);
     x.font = "11px -apple-system,Segoe UI,Roboto,sans-serif"; x.fillStyle = cs.getPropertyValue("--muted"); x.textAlign = "right";

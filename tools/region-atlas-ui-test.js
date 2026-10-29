@@ -47,7 +47,16 @@ const gas = H({ Ark1: [HEAD,
   p.on("pageerror", e => errs.push(e.message)); p.on("console", m => m.type() === "error" && errs.push(m.text()));
 
   // logged out first
-  await p.goto(BASE + "atlas.html"); await p.waitForTimeout(1200);
+  // the start page: every region on a map of Europe, listed by country
+  await p.goto(BASE + "atlas.html"); await p.waitForTimeout(800);
+  const h = await p.evaluate(() => ({ home: document.body.classList.contains("home"), dots: document.querySelectorAll("#map .hd").length,
+    list: document.querySelectorAll("#side button[data-go], #side a[href]").length, cl: document.querySelectorAll("#map .cl").length }));
+  check("atlas.html opens on Europe: a dot and a list entry for each region, no vineyards drawn", h.home && h.dots >= 16 && h.list >= 16 && h.cl === 0, JSON.stringify(h));
+  await p.click('#side button[data-go="mosel"]'); await p.waitForTimeout(2000);
+  check("…a region opens from the list", /r=mosel/.test(await p.evaluate(() => location.hash)) && !(await p.evaluate(() => document.body.classList.contains("home"))) && (await p.textContent("#regionName")).includes("Mosel"));
+  await p.goBack(); await p.waitForTimeout(600);
+  check("…and Back returns to Europe", await p.evaluate(() => document.body.classList.contains("home") && document.querySelectorAll("#map .hd").length > 0));
+  await p.goto(BASE + "atlas.html#r=chablis"); await p.reload(); await p.waitForTimeout(1200);
   const n = await p.evaluate(() => ({ gc: document.querySelectorAll("#map .cl.GC").length, pc: document.querySelectorAll("#map .cl.p1").length, list: [...document.querySelectorAll("#side ul.list")].map(u => u.children.length) }));
   check("Chablis draws: seven grands crus and its premiers crus", n.gc === 7 && n.pc >= 10 && n.list[0] === 7, JSON.stringify(n));
   check("…with its area totals", /107[.,]9 ha/.test(await p.textContent("#side")), (await p.textContent("#side")).slice(0, 200));
