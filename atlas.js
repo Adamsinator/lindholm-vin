@@ -12,22 +12,27 @@ const norm = s => " " + String(s || "").toLowerCase().normalize("NFD").replace(/
 // the regions there are packs for; the Côte d'Or links to its own atlas
 // kw: words on a label that put a bottle in the region; regional: what the pack's "regional" land is
 const REGIONS = [
-  { id: "chablis", name: "Chablis", file: "atlas-chablis.js?v=1", kw: ["chablis"], regional: "Regional (Petit Chablis…)" },
-  { id: "chalonnaise", name: "Côte Chalonnaise", file: "atlas-chalonnaise.js?v=1", kw: ["mercurey", "givry", "rully", "montagny", "bouzeron", "chalonnaise"], regional: "Regional (Bourgogne Côte Chalonnaise)" },
-  { id: "maconnais", name: "Mâconnais", file: "atlas-maconnais.js?v=1", kw: ["pouilly fuisse", "pouilly vinzelles", "pouilly loche", "saint veran", "st veran", "vire clesse", "macon"], regional: "Regional (Mâcon…)" },
-  { id: "champagne", name: "Champagne", file: "atlas-champagne.js?v=1", kw: ["champagne"], village: "Other villages' vines" },
-  { id: "alsace", name: "Alsace", file: "atlas-alsace.js?v=1", kw: ["alsace", "elsass"], village: "Alsace (the rest of the AOC)" },
-  { id: "bordeaux", name: "Bordeaux", file: "atlas-bordeaux.js?v=1", kw: ["bordeaux", "pauillac", "margaux", "medoc", "saint julien", "st julien", "saint estephe", "st estephe",
+  { id: "chablis", name: "Chablis", file: "atlas-chablis.js?v=1", ll: [47.811, 3.796], country: "fr", kind: "Grand cru · premier cru", kw: ["chablis"], regional: "Regional (Petit Chablis…)" },
+  { id: "chalonnaise", name: "Côte Chalonnaise", file: "atlas-chalonnaise.js?v=1", ll: [46.782, 4.711], country: "fr", kind: "Premier cru", kw: ["mercurey", "givry", "rully", "montagny", "bouzeron", "chalonnaise"], regional: "Regional (Bourgogne Côte Chalonnaise)" },
+  { id: "maconnais", name: "Mâconnais", file: "atlas-maconnais.js?v=1", ll: [46.288, 4.739], country: "fr", kind: "Premier cru", kw: ["pouilly fuisse", "pouilly vinzelles", "pouilly loche", "saint veran", "st veran", "vire clesse", "macon"], regional: "Regional (Mâcon…)" },
+  { id: "champagne", name: "Champagne", file: "atlas-champagne.js?v=1", ll: [49.096, 4.035], country: "fr", kind: "Grand and premier cru villages", kw: ["champagne"], village: "Other villages' vines" },
+  { id: "alsace", name: "Alsace", file: "atlas-alsace.js?v=1", ll: [48.174, 7.329], country: "fr", kind: "Grand cru", kw: ["alsace", "elsass"], village: "Alsace (the rest of the AOC)" },
+  { id: "bordeaux", name: "Bordeaux", file: "atlas-bordeaux.js?v=1", ll: [44.953, -0.587], country: "fr", kind: "Appellations · the 1855 châteaux", kw: ["bordeaux", "pauillac", "margaux", "medoc", "saint julien", "st julien", "saint estephe", "st estephe",
     "pessac", "graves", "sauternes", "barsac", "saint emilion", "st emilion", "pomerol", "fronsac", "listrac", "moulis"], village: "Haut-Médoc, Médoc, Graves" },
-  { id: "mosel", name: "Mosel", file: "atlas-mosel.js?v=1", kw: ["mosel", "saar", "ruwer"] },
-  { id: "nahe", name: "Nahe", file: "atlas-nahe.js?v=1", kw: ["nahe"] },
-  { id: "pfalz", name: "Pfalz", file: "atlas-pfalz.js?v=1", kw: ["pfalz", "palatinate"] },
-  { id: "rheinhessen", name: "Rheinhessen", file: "atlas-rheinhessen.js?v=1", kw: ["rheinhessen"] },
-  { id: "mittelrhein", name: "Mittelrhein", file: "atlas-mittelrhein.js?v=1", kw: ["mittelrhein"] },
-  { id: "ahr", name: "Ahr", file: "atlas-ahr.js?v=1", kw: ["ahr"] },
-  { id: "rhone", name: "Rhône (north)", file: "atlas-rhone.js?v=1", kw: ["cote rotie", "condrieu", "chateau grillet", "hermitage", "ermitage", "crozes", "saint joseph", "st joseph", "cornas", "saint peray", "st peray"],
+  { id: "mosel", name: "Mosel", file: "atlas-mosel.js?v=1", ll: [49.925, 6.968], country: "de", kind: "Einzellagen", kw: ["mosel", "saar", "ruwer"] },
+  { id: "nahe", name: "Nahe", file: "atlas-nahe.js?v=1", ll: [49.84, 7.786], country: "de", kind: "Einzellagen", kw: ["nahe"] },
+  { id: "pfalz", name: "Pfalz", file: "atlas-pfalz.js?v=1", ll: [49.383, 8.158], country: "de", kind: "Einzellagen", kw: ["pfalz", "palatinate"] },
+  { id: "rheinhessen", name: "Rheinhessen", file: "atlas-rheinhessen.js?v=1", ll: [49.826, 8.16], country: "de", kind: "Einzellagen", kw: ["rheinhessen"] },
+  { id: "mittelrhein", name: "Mittelrhein", file: "atlas-mittelrhein.js?v=1", ll: [50.183, 7.671], country: "de", kind: "Einzellagen", kw: ["mittelrhein"] },
+  { id: "ahr", name: "Ahr", file: "atlas-ahr.js?v=1", ll: [50.536, 7.079], country: "de", kind: "Einzellagen", kw: ["ahr"] },
+  { id: "rhone", name: "Rhône (north)", file: "atlas-rhone.js?v=1", ll: [45.201, 4.809], country: "fr", kind: "Cru appellations", kw: ["cote rotie", "condrieu", "chateau grillet", "hermitage", "ermitage", "crozes", "saint joseph", "st joseph", "cornas", "saint peray", "st peray"],
     regional: "Regional (Côtes du Rhône)" },
 ];
+// the start page's other places: the Côte d'Or's own, richer atlas, and Piedmont, whose MGA have pages but no map
+const ELSEWHERE = [{ id: "burgundy", name: "Côte d'Or", ll: [47.058, 4.839], country: "fr", kind: "The detailed atlas: owners, terrain, geology", href: "burgundy.html" },
+  { id: "barolo", name: "Barolo", ll: [44.61, 7.94], country: "it", kind: "MGA · no map", href: "v/{L}/index.html#barolo" },
+  { id: "barbaresco", name: "Barbaresco", ll: [44.725, 8.08], country: "it", kind: "MGA · no map", href: "v/{L}/index.html#barbaresco" }];
+const COUNTRY = { fr: "France", de: "Germany", it: "Italy" };
 const TYPE = { W: "Hvid", R: "Rød", RW: "Rød", S: "Bobler" };
 const CLASS = { GC: "Grand cru", "1er": "Premier cru", AOC: "Cru appellation", EL: "Einzellage" };
 const st = { region: null, pack: null, sel: null, view: null, show: { GC: true, "1er": true, AOC: true, EL: true, PT: true }, mine: false };
@@ -125,6 +130,7 @@ svg.addEventListener("pointermove", e => {
 });
 const up = e => { ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch = null; if (!ptrs.size) svg.classList.remove("drag"); };
 svg.addEventListener("pointerup", e => { const tgt = document.elementFromPoint(e.clientX, e.clientY); up(e);
+  const hd = !st.pack && tgt && tgt.closest && tgt.closest(".hd"); if (hd) { goTo(hd.dataset.id); return; }
   if (moved < 6) { const q = tgt && tgt.closest && tgt.closest(".pt"), c = tgt && tgt.closest && tgt.closest(".cl"); select(q ? q.dataset.pt : c ? c.dataset.id : null); } });
 svg.addEventListener("pointercancel", up);
 $("zIn").onclick = () => { const [x, y, w, h] = st.view; zoomAt(.6, x + w / 2, y + h / 2); };
@@ -140,7 +146,7 @@ function select(id, fly) {
   if (c && fly) { if (c.g) fit(bbOf(c.g), .6); else if (c.p) fit([c.p[0] - 900, c.p[1] - 900, c.p[0] + 900, c.p[1] + 900], .1); }
 }
 function renderSide() {
-  const P = st.pack, side = $("side"); if (!P) return;
+  const P = st.pack, side = $("side"); if (!P) return renderHomeSide();
   const c = st.sel && byId(st.sel), R = st.region;
   if (!c) {
     const gc = P.climats.filter(x => x.c === "GC"), pc = P.climats.filter(x => x.c === "1er" && !x.unnamed), aoc = P.climats.filter(x => x.c === "AOC"), many = P.villages.length > 1;
@@ -282,6 +288,43 @@ function place() {
 }
 
 /* ---------- region, hash, filters ---------- */
+/* ---------- the start page: Europe, a dot for every region ---------- */
+const allPlaces = () => REGIONS.concat(ELSEWHERE);
+function goTo(id) {
+  const x = allPlaces().find(r => r.id === id); if (!x) return;
+  if (x.href) location.href = x.href.replace("{L}", window.I18N ? I18N.lang : "en"); else location.hash = "#r=" + id;
+}
+function showHome() {
+  st.region = null; st.pack = null; st.sel = null; st.view = null;
+  document.title = "AllWine — " + t("Wine atlas"); $("regionName").textContent = ""; $("fRegion").value = "";
+  document.body.classList.add("home");
+  // France, Germany and the north of Italy, on a plain grid (longitude shrunk by the cosine of 47°)
+  const W = 1000, lo0 = -2.6, lo1 = 13.6, la0 = 43.3, la1 = 51.7, k = W / ((lo1 - lo0) * Math.cos(47 * Math.PI / 180)), H = Math.round((la1 - la0) * k);
+  const xy = ([lo, la]) => [((lo - lo0) * Math.cos(47 * Math.PI / 180) * k).toFixed(1), ((la1 - la) * k).toFixed(1)];
+  svg.innerHTML = ""; svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  const g = el("g", {}, svg);
+  for (const [n, ring] of Object.entries(window.EUROPE_LANDS || {}))
+    el("path", { class: "land" + (/^(France|Germany|Italy)/.test(n) ? " on" : ""), d: "M" + ring.map(xy).map(q => q.join(" ")).join("L") + "Z" }, g);
+  for (const r of allPlaces()) {
+    const [x, y] = xy([r.ll[1], r.ll[0]]), a = el("g", { class: "hd" + (r.href ? " out" : ""), "data-id": r.id, tabindex: 0, role: "link", "aria-label": r.name }, g);
+    el("circle", { cx: x, cy: y, r: r.id === "burgundy" ? 9 : 7 }, a);
+    // labels west of the dot where the Rhine regions crowd, east elsewhere
+    const west = ["nahe", "mosel", "ahr", "maconnais", "chalonnaise", "barolo"].includes(r.id);
+    const lb = el("text", { x: +x + (west ? -12 : 12), y: +y + 4, "text-anchor": west ? "end" : "start" }, a); lb.textContent = r.name;
+    a.onkeydown = e => { if (e.key === "Enter") goTo(r.id); };
+  }
+  renderLegend(); renderHomeSide();
+}
+function renderHomeSide() {
+  const by = c => allPlaces().filter(r => r.country === c);
+  $("side").innerHTML = `<h2>${esc(t("Wine atlas"))}</h2>
+    <p class="meta">${esc(t("Every region here is drawn from its official map: INAO's for France, the Weinbergsrolle for Germany. Pick one."))}</p>
+    ${Object.entries(COUNTRY).map(([c, n]) => `<h3>${esc(t(n))}</h3><ul class="list">${by(c).map(r => `<li><button data-go="${r.id}">${esc(r.name)}${r.href ? " ↗" : ""}</button><span>${esc(t(r.kind))}</span></li>`).join("")}</ul>`).join("")}
+    ${cellarSummaryHome()}`;
+  $("side").querySelectorAll("button[data-go]").forEach(b => b.onclick = () => goTo(b.dataset.go));
+}
+const cellarSummaryHome = () => CELLAR.loaded ? "" : `<p class="note">${esc(t(CELLAR.msg))}</p>`;
+
 function syncHash() {
   const h = "#r=" + st.region.id + (st.sel ? "&c=" + st.sel : "");
   if (location.hash !== h) history.replaceState(null, "", location.pathname + location.search + h);
@@ -289,8 +332,9 @@ function syncHash() {
 async function openRegion(id, sel) {
   const R = REGIONS.find(r => r.id === id) || REGIONS[0];
   if (!(window.ATLAS_PACKS && ATLAS_PACKS[R.id])) await loadScript(R.file);
-  st.region = R; st.pack = ATLAS_PACKS[R.id]; st.sel = null; $("fRegion").value = R.id; $("regionName").textContent = st.pack.meta.name;
-  document.title = "AllWine — " + st.pack.meta.name + " · " + t("Atlas");
+  document.body.classList.remove("home");
+  st.region = R; st.pack = ATLAS_PACKS[R.id]; st.sel = null; $("fRegion").value = R.id; $("regionName").textContent = " · " + st.pack.meta.name;
+  document.title = "AllWine — " + st.pack.meta.name + " · " + t("Wine atlas");
   $("climatList").innerHTML = st.pack.climats.filter(c => !c.unnamed).concat(pts()).map(c => `<option value="${esc(shown(c))}">`).join("");
   // start on the crus (the regional land around them can be far bigger, and long and thin)
   st.home = bbOf(st.pack.climats.flatMap(c => c.g));
@@ -300,7 +344,7 @@ async function openRegion(id, sel) {
   if (sel && byId(sel)) select(sel, true); else { renderSide(); syncHash(); }
 }
 function renderLegend() {
-  const P = st.pack;
+  const P = st.pack; if (!P) { $("legend").innerHTML = ""; return; }
   const has = k => P.climats.some(c => c.c === k);
   $("legend").innerHTML = [has("GC") && ["var(--gc)", "Grand cru"], has("1er") && ["var(--pc)", "Premier cru"], has("AOC") && ["var(--ac)", "Cru appellation"], has("EL") && ["var(--pc)", "Einzellage"],
     P.climats.some(c => c.unnamed) && ["var(--pcx)", "Premier cru, unnamed by INAO"],
@@ -308,8 +352,8 @@ function renderLegend() {
     pts().length && ["var(--ink)", "Classified château (1855)"]].filter(Boolean)
     .map(([c, n]) => `<span><i style="background:${c}"></i>${esc(t(n))}</span>`).join("") + (CELLAR.loaded ? `<span><i style="background:var(--gold);border-radius:50%"></i>${esc(t("Bottles in your cellar"))}</span>` : "");
 }
-$("fRegion").innerHTML = REGIONS.map(r => `<option value="${r.id}">${esc(r.name)}</option>`).join("") + `<option value="burgundy">${esc(t("Côte d'Or (Burgundy atlas) ↗"))}</option>`;
-$("fRegion").onchange = e => { if (e.target.value === "burgundy") { location.href = "burgundy.html"; return; } openRegion(e.target.value); };
+$("fRegion").innerHTML = `<option value="">${esc(t("All regions"))}</option>` + REGIONS.map(r => `<option value="${r.id}">${esc(r.name)}</option>`).join("") + `<option value="burgundy">${esc(t("Côte d'Or (Burgundy atlas) ↗"))}</option>`;
+$("fRegion").onchange = e => { const v = e.target.value; if (v === "burgundy") { location.href = "burgundy.html"; return; } location.hash = v ? "#r=" + v : ""; };
 $("fGC").onchange = e => { st.show.GC = e.target.checked; paint(); };
 $("f1er").onchange = e => { st.show["1er"] = e.target.checked; paint(); };
 $("fAOC").onchange = e => { st.show.AOC = e.target.checked; paint(); };
@@ -321,11 +365,12 @@ if (window.I18N) { I18N.picker && document.querySelectorAll("[data-langpick]").f
 
 // #r=chablis&c=les_clos, or &w=<a wine's name> from the cellar's "On the map": its vineyard if the atlas knows it
 async function fromHash() {
-  const q = new URLSearchParams(location.hash.slice(1)), r = q.get("r") || REGIONS[0].id;
+  const q = new URLSearchParams(location.hash.slice(1)), r = q.get("r");
+  if (!r || !REGIONS.some(x => x.id === r)) { if (st.region || !svg.childNodes.length) showHome(); return; } // no region: the start page
   if (!st.region || st.region.id !== r) await openRegion(r, q.get("c"));
   else if ((q.get("c") || null) !== st.sel) select(q.get("c"), true);
-  if (q.get("w")) { const m = matchWine({ region: st.region.kw[0], name: q.get("w") }); if (m.c) select(m.c.id, true); else syncHash(); }
+  if (q.get("w") && st.region) { const m = matchWine({ region: st.region.kw[0], name: q.get("w") }); if (m.c) select(m.c.id, true); else syncHash(); }
 }
 // a link or Back that only changes the hash doesn't reload the page
-addEventListener("hashchange", () => { fromHash().then(() => { place(); paint(); renderSide(); }); });
+addEventListener("hashchange", () => { fromHash().then(() => { if (st.pack) { place(); paint(); renderSide(); } }); });
 fromHash().then(loadCellar);
