@@ -15,10 +15,18 @@ const REGIONS = [
   { id: "chablis", name: "Chablis", file: "atlas-chablis.js?v=1", kw: ["chablis"], regional: "Regional (Petit Chablis…)" },
   { id: "chalonnaise", name: "Côte Chalonnaise", file: "atlas-chalonnaise.js?v=1", kw: ["mercurey", "givry", "rully", "montagny", "bouzeron", "chalonnaise"], regional: "Regional (Bourgogne Côte Chalonnaise)" },
   { id: "maconnais", name: "Mâconnais", file: "atlas-maconnais.js?v=1", kw: ["pouilly fuisse", "pouilly vinzelles", "pouilly loche", "saint veran", "st veran", "vire clesse", "macon"], regional: "Regional (Mâcon…)" },
+  { id: "champagne", name: "Champagne", file: "atlas-champagne.js?v=1", kw: ["champagne"], village: "Other villages' vines" },
+  { id: "alsace", name: "Alsace", file: "atlas-alsace.js?v=1", kw: ["alsace", "elsass"], village: "Alsace (the rest of the AOC)" },
+  { id: "rhone", name: "Rhône (north)", file: "atlas-rhone.js?v=1", kw: ["cote rotie", "condrieu", "chateau grillet", "hermitage", "ermitage", "crozes", "saint joseph", "st joseph", "cornas", "saint peray", "st peray"],
+    regional: "Regional (Côtes du Rhône)" },
 ];
-const TYPE = { W: "Hvid", R: "Rød", RW: "Rød" };
-const CLASS = { GC: "Grand cru", "1er": "Premier cru" };
-const st = { region: null, pack: null, sel: null, view: null, show: { GC: true, "1er": true }, mine: false };
+const TYPE = { W: "Hvid", R: "Rød", RW: "Rød", S: "Bobler" };
+const CLASS = { GC: "Grand cru", "1er": "Premier cru", AOC: "Cru appellation" };
+const st = { region: null, pack: null, sel: null, view: null, show: { GC: true, "1er": true, AOC: true }, mine: false };
+const cls = c => c.c === "GC" ? "GC" : c.c === "AOC" ? "AOC" : c.unnamed ? "px" : "p1";
+const isTop = c => c.c === "GC" || c.c === "AOC"; // drawn and labelled first
+const noteOf = c => c.d && (c.d[window.I18N ? I18N.lang : "en"] || c.d.en);
+const villagesPack = () => /IGN BD TOPO \(zone de végétation/.test(st.pack.meta.source); // Champagne: crus are villages
 const CELLAR = { loaded: false, by: {}, other: 0, msg: "Log in on the Cellar page to see your own bottles here." };
 
 const loadScript = src => new Promise((res, rej) => { const el = document.createElement("script"); el.src = src; el.onload = res; el.onerror = () => rej(new Error("load " + src)); document.head.appendChild(el); });
@@ -33,7 +41,7 @@ function draw() {
   const g = el("g", {}, svg);
   el("path", { class: "rg", d: pathOf(P.regional.g) }, g);
   P.villages.forEach(v => el("path", { class: "vl", d: pathOf(v.g) }, g));
-  P.climats.forEach(c => { c.el = el("path", { class: "cl " + (c.c === "GC" ? "GC" : c.unnamed ? "px" : "p1"), d: pathOf(c.g), "data-id": c.id }, g);
+  P.climats.forEach(c => { c.el = el("path", { class: "cl " + cls(c), d: pathOf(c.g), "data-id": c.id }, g);
     el("title", {}, c.el).textContent = c.n; });
   const gd = el("g", {}, svg); gLabels = el("g", {}, svg);
   P.climats.forEach(c => { if (!c.unnamed) c.lb = el("text", { class: "lb " + c.c, x: c.lp[0], y: c.lp[1] }, gLabels); if (c.lb) c.lb.textContent = c.n;
@@ -53,10 +61,10 @@ function paint() {
 function layoutLabels() {
   const P = st.pack; if (!P || !st.view) return;
   const k = st.view[2] / svg.clientWidth || 1, taken = [];
-  P.climats.slice().sort((a, b) => (a.c === "GC" ? 0 : 1) - (b.c === "GC" ? 0 : 1) || b.ha - a.ha).forEach(c => {
+  P.climats.slice().sort((a, b) => (isTop(a) ? 0 : 1) - (isTop(b) ? 0 : 1) || b.ha - a.ha).forEach(c => {
     const b = Number(c.dot.dataset.b || 0); c.dot.setAttribute("r", b ? (4 + Math.sqrt(b) * 1.6) * k : 0);
     if (!c.lb) return;
-    c.lb.style.fontSize = (c.c === "GC" ? 14.5 : 13) * k + "px"; c.lb.style.strokeWidth = 3 * k + "px"; // style: it outranks the stylesheet
+    c.lb.style.fontSize = (isTop(c) ? 14.5 : 13) * k + "px"; c.lb.style.strokeWidth = 3 * k + "px"; // style: it outranks the stylesheet
     const w = c.n.length * 7 * k, h = 15 * k, box = [c.lp[0] - w / 2, c.lp[1] - h, c.lp[0] + w / 2, c.lp[1]];
     const hide = !st.show[c.c] || (st.mine && !CELLAR.by[c.id]) || taken.some(o => !(box[2] < o[0] || box[0] > o[2] || box[3] < o[1] || box[1] > o[3]));
     c.lb.style.display = hide ? "none" : ""; if (!hide) taken.push(box);
@@ -105,27 +113,36 @@ function renderSide() {
   const P = st.pack, side = $("side"); if (!P) return;
   const c = st.sel && byId(st.sel), R = st.region;
   if (!c) {
-    const gc = P.climats.filter(x => x.c === "GC"), pc = P.climats.filter(x => x.c === "1er" && !x.unnamed), many = P.villages.length > 1;
+    const gc = P.climats.filter(x => x.c === "GC"), pc = P.climats.filter(x => x.c === "1er" && !x.unnamed), aoc = P.climats.filter(x => x.c === "AOC"), many = P.villages.length > 1;
+    const sum = list => fmtHa(list.reduce((s, x) => s + x.ha, 0)) + " ha", fact = (l, v) => `<div class="fact"><div class="l">${esc(l)}</div><div class="v">${v}</div></div>`;
+    const lead = villagesPack() ? t("{0} grand cru and {1} premier cru villages, drawn as the vines inside each village (IGN). Click a village.", gc.length, pc.length)
+      : aoc.length ? t("{0} cru appellations on INAO's own map. Click one.", aoc.length)
+      : gc.length && pc.length ? t("{0} grands crus and {1} premiers crus on INAO's own map. Click a vineyard.", gc.length, pc.length)
+      : gc.length ? t("{0} grands crus on INAO's own map. Click a vineyard.", gc.length) : t("{0} premiers crus on INAO's own map. Click a vineyard.", pc.length);
+    // the lists: Champagne's by sub-region, the premiers crus by village appellation where there are several
+    const groups = (list, label) => { const by = {}; list.forEach(x => (by[x.area || (many ? x.app : "")] ??= []).push(x));
+      return Object.entries(by).map(([k, l]) => `<h3>${esc(k ? (many && !x0(l).area ? t("{0} premier cru", k) : t(label + " · {0}", k)) : t(label))}</h3><ul class="list">${l.map(x => row(x)).join("")}</ul>`).join(""); };
+    const x0 = l => l[0];
     side.innerHTML = `<h2>${esc(P.meta.name)}</h2>
-      <p class="meta">${esc(gc.length ? t("{0} grands crus and {1} premiers crus on INAO's own map. Click a vineyard.", gc.length, pc.length) : t("{0} premiers crus on INAO's own map. Click a vineyard.", pc.length))}</p>
-      <div class="facts">${gc.length ? `<div class="fact"><div class="l">${esc(t("Grand cru"))}</div><div class="v">${fmtHa(gc.reduce((s, x) => s + x.ha, 0))} ha</div></div>` : ""}
-        <div class="fact"><div class="l">${esc(t("Premier cru"))}</div><div class="v">${fmtHa(P.climats.filter(x => x.c === "1er").reduce((s, x) => s + x.ha, 0))} ha</div></div>
-        ${P.villages.map(v => `<div class="fact"><div class="l">${esc(v.ap)}${many ? "" : ""}</div><div class="v">${fmtHa(v.ha)} ha</div></div>`).join("")}
-        <div class="fact"><div class="l">${esc(t(R.regional))}</div><div class="v">${fmtHa(P.regional.ha)} ha</div></div></div>
+      <p class="meta">${esc(lead)}</p>
+      <div class="facts">${gc.length ? fact(t("Grand cru"), sum(gc)) : ""}${P.climats.some(x => x.c === "1er") ? fact(t("Premier cru"), sum(P.climats.filter(x => x.c === "1er"))) : ""}${aoc.length ? fact(t("Cru appellation"), sum(aoc)) : ""}
+        ${P.villages.map(v => fact(R.village ? t(R.village) : v.ap, fmtHa(v.ha) + " ha")).join("")}
+        ${P.regional.ha ? fact(t(R.regional), fmtHa(P.regional.ha) + " ha") : ""}</div>
       ${many ? `<p class="note">${esc(t("Village figures are the land outside the premiers crus."))}</p>` : ""}
       ${cellarSummary()}
-      ${gc.length ? `<h3>${esc(t("Grand cru"))}</h3><ul class="list">${gc.map(x => row(x)).join("")}</ul>` : ""}
-      ${(many ? P.villages.map(v => v.ap) : [null]).map(ap => { const list = pc.filter(x => !ap || x.app === ap); return list.length ? `<h3>${esc(ap ? t("{0} premier cru", ap) : t("Premier cru"))}</h3><ul class="list">${list.map(x => row(x)).join("")}</ul>` : ""; }).join("")}
+      ${gc.length ? groups(gc, "Grand cru") : ""}${pc.length ? groups(pc, "Premier cru") : ""}
+      ${aoc.length ? `<h3>${esc(t("Cru appellation"))}</h3><ul class="list">${aoc.map(x => row(x)).join("")}</ul>` : ""}
       ${pc.some(x => x.inferred) ? `<p class="note">* ${esc(t("INAO's map doesn't name this land; the name comes from IGN's place names inside or next to it."))}</p>` : ""}
       <p class="src">${esc(P.meta.source)}. ${esc(t("Built {0}.", P.meta.built))}</p>`;
   } else {
     const parent = c.parent && byId(c.parent), bottles = CELLAR.by[c.id];
     side.innerHTML = `<p><button class="btn" id="back">← ${esc(P.meta.name)}</button></p>
-      <span class="pill ${c.c === "GC" ? "GC" : "p1"}">${esc(t(CLASS[c.c]))}</span>
+      <span class="pill ${cls(c)}">${esc(t(CLASS[c.c]))}</span>
       <h2>${esc(c.n)}</h2>
       <div class="meta">${esc(c.ap)}${parent ? " · " + esc(t("within {0}", parent.n)) : ""}</div>
-      <div class="facts"><div class="fact"><div class="l">${esc(t("INAO area"))}</div><div class="v">${fmtHa(c.ha)} ha</div></div>
+      <div class="facts"><div class="fact"><div class="l">${esc(t(villagesPack() ? "Vines (IGN)" : "INAO area"))}</div><div class="v">${fmtHa(c.ha)} ha</div></div>
         <div class="fact"><div class="l">${esc(t("Acres"))}</div><div class="v">${(c.ha * 2.471).toFixed(c.ha < 4 ? 1 : 0)}</div></div></div>
+      ${noteOf(c) ? `<p class="note">${esc(noteOf(c))}</p>` : ""}
       ${c.inferred ? `<p class="note">${esc(t("INAO's map gives this land only as premier cru; the name comes from IGN's place names inside or next to it ({0}).", (c.places || []).join(", ")))}</p>` : ""}
       ${c.partInferred ? `<p class="note">${esc(t("Part of this outline is premier cru land INAO leaves unnamed, joined to it by IGN's place names ({0}).", c.partInferred.join(", ")))}</p>` : ""}
       ${c.unnamed ? `<p class="note">${esc(t("INAO's map gives this land only as premier cru, and no place name ties it to a climat."))}</p>` : ""}
@@ -145,7 +162,8 @@ function cellarSummary() {
 }
 // "Add a bottle from here": the cellar's add form, filled in (handed over in localStorage, read once by index.html)
 function addFromAtlas(c, R) {
-  const pre = { name: c.n, commune: c.app, classification: { GC: "Grand cru", "1er": "1. cru" }[c.c] || "", region: st.pack.meta.region, country: st.pack.meta.country,
+  // a cru appellation or a Champagne village is where the wine is from, not its name
+  const pre = { name: c.c === "AOC" || villagesPack() ? "" : c.n, commune: c.app, classification: { GC: "Grand cru", "1er": "1. cru" }[c.c] || "", region: st.pack.meta.region, country: st.pack.meta.country,
     type: TYPE[c.col] || "Hvid", producer: "", at: Date.now() };
   try { localStorage.setItem("vinAddPrefill", JSON.stringify(pre)); } catch (e) {}
   location.href = "index.html#add";
@@ -171,7 +189,8 @@ function matchWine(w) {
     // a climat whose appellation is on the label too beats a namesake elsewhere (Clos du Roy, in Mercurey and Montagny)
     const own = all.includes(norm(c.app));
     for (const a of [c.n].concat(c.inferred ? c.places || [] : [])) { const k = norm(a).trim(), sc = k.length + (own ? 100 : 0);
-      if (k.length > 3 && label.includes(" " + k + " ") && (!best || sc > best.k)) best = { c, k: sc }; }
+      // short names (Aÿ, Oger) only from the commune field, where they stand alone
+      if ((k.length > 3 && label.includes(" " + k + " ") || norm(w.commune).trim() === k) && (!best || sc > best.k)) best = { c, k: sc }; }
   }
   return { region: true, c: best && best.c };
 }
@@ -211,20 +230,23 @@ async function openRegion(id, sel) {
   $("climatList").innerHTML = st.pack.climats.filter(c => !c.unnamed).map(c => `<option value="${esc(c.n)}">`).join("");
   // start on the crus (the regional land around them can be far bigger, and long and thin)
   st.home = bbOf(st.pack.climats.flatMap(c => c.g));
-  $("fGC").parentNode.hidden = !st.pack.climats.some(c => c.c === "GC");
+  for (const [f, k] of [["fGC", "GC"], ["f1er", "1er"], ["fAOC", "AOC"]]) $(f).parentNode.hidden = !st.pack.climats.some(c => c.c === k);
   place(); draw(); fit(st.home); renderLegend();
   if (sel && byId(sel)) select(sel, true); else { renderSide(); syncHash(); }
 }
 function renderLegend() {
   const P = st.pack;
-  $("legend").innerHTML = [P.climats.some(c => c.c === "GC") && ["var(--gc)", "Grand cru"], ["var(--pc)", "Premier cru"], P.climats.some(c => c.unnamed) && ["var(--pcx)", "Premier cru, unnamed by INAO"],
-    ["var(--vc)", P.villages.length > 1 ? "Village appellations" : P.villages[0].ap], ["var(--rg)", st.region.regional]].filter(Boolean)
+  const has = k => P.climats.some(c => c.c === k);
+  $("legend").innerHTML = [has("GC") && ["var(--gc)", "Grand cru"], has("1er") && ["var(--pc)", "Premier cru"], has("AOC") && ["var(--ac)", "Cru appellation"],
+    P.climats.some(c => c.unnamed) && ["var(--pcx)", "Premier cru, unnamed by INAO"],
+    P.villages.length && ["var(--vc)", P.villages.length > 1 ? "Village appellations" : st.region.village || P.villages[0].ap], P.regional.ha && ["var(--rg)", st.region.regional]].filter(Boolean)
     .map(([c, n]) => `<span><i style="background:${c}"></i>${esc(t(n))}</span>`).join("") + (CELLAR.loaded ? `<span><i style="background:var(--gold);border-radius:50%"></i>${esc(t("Bottles in your cellar"))}</span>` : "");
 }
 $("fRegion").innerHTML = REGIONS.map(r => `<option value="${r.id}">${esc(r.name)}</option>`).join("") + `<option value="burgundy">${esc(t("Côte d'Or (Burgundy atlas) ↗"))}</option>`;
 $("fRegion").onchange = e => { if (e.target.value === "burgundy") { location.href = "burgundy.html"; return; } openRegion(e.target.value); };
 $("fGC").onchange = e => { st.show.GC = e.target.checked; paint(); };
 $("f1er").onchange = e => { st.show["1er"] = e.target.checked; paint(); };
+$("fAOC").onchange = e => { st.show.AOC = e.target.checked; paint(); };
 $("fMine").onchange = e => { st.mine = e.target.checked; paint(); };
 $("fSearch").addEventListener("change", e => { const q = norm(e.target.value); const c = st.pack.climats.find(x => norm(x.n) === q) || st.pack.climats.find(x => !x.unnamed && norm(x.n).includes(q.trim())); if (c) { select(c.id, true); e.target.value = ""; } });
 if (window.I18N) { I18N.picker && document.querySelectorAll("[data-langpick]").forEach(I18N.picker); I18N.onChange(() => { renderSide(); renderLegend(); }); }

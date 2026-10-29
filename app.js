@@ -958,7 +958,9 @@ function detailHTML(w){
 // a Burgundy the atlas knows: straight to its vineyard (or village) on the map
 // the region atlas's packs (atlas.js REGIONS): a wine naming the region goes there, and the atlas finds its vineyard
 const ATLAS_REGIONS = [{id:"chablis", re:/\bchablis\b/i}, {id:"chalonnaise", re:/\b(mercurey|givry|rully|montagny|bouzeron)\b|chalonnaise/i},
-  {id:"maconnais", re:/pouilly[- ](fuiss|vinzelles|loch)|saint[- ]v[ée]ran|\bst[- ]v[ée]ran|vir[ée][- ]cless|m[aâ]con/i}];
+  {id:"maconnais", re:/pouilly[- ](fuiss|vinzelles|loch)|saint[- ]v[ée]ran|\bst[- ]v[ée]ran|vir[ée][- ]cless|m[aâ]con/i},
+  {id:"champagne", re:/champagne/i}, {id:"alsace", re:/\balsace\b|\belsass\b/i},
+  {id:"rhone", re:/c[oô]te[- ]r[oô]tie|condrieu|ch[aâ]teau[- ]grillet|\b(crozes[- ])?(h|)ermitage\b|saint[- ]joseph|\bst[- ]joseph|\bcornas\b|saint[- ]p[ée]ray/i}];
 function atlasLink(w){
   const rg = ATLAS_REGIONS.find(r => r.re.test([w.region, w.commune, w.name].join(" ")));
   if(rg) return `<a class="atlaslink" href="atlas.html#r=${rg.id}&w=${encodeURIComponent([w.name, w.commune].filter(Boolean).join(" "))}">🗺 ${esc(tr("On the map"))}</a>`;
