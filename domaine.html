@@ -66,7 +66,7 @@ header.top .ttl a{color:inherit;text-decoration:none} header.top .ttl a:hover{co
 .btn.quiet{border-color:transparent;background:none;color:var(--muted)}
 input,select{background:var(--card);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:8px 10px;font:inherit;font-size:15px;height:40px}
 :focus-visible{outline:2px solid var(--accent);outline-offset:1px}
-.listbar{display:flex;gap:8px;margin-bottom:12px} .listbar input{flex:1;max-width:420px;font-size:16px}
+.listbar{display:flex;gap:8px;margin-bottom:12px} .listbar input{flex:1;max-width:420px;font-size:16px;min-width:0} .listbar select{min-width:0;flex:0 1 auto} /* (a phone's 390 px: both may shrink) */
 .ph{color:var(--muted);font-size:13px}
 .lhead{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap} .lhead h1{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;font-weight:600;margin:4px 0 10px}
 .dlist{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px}
@@ -113,7 +113,7 @@ table.own a{color:var(--ink);font-weight:600;text-decoration:none} table.own a:h
 table.own .sub{font-size:12px;color:var(--muted)} table.own tr.buys td{color:var(--muted)}
 table.own.small td{padding:6px 10px}
 .cls{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px}
-.ktag{font-size:10.5px;font-weight:700;border-radius:10px;padding:0 6px;background:var(--chip);color:var(--muted);white-space:nowrap}
+.ktag{font-size:10.5px;font-weight:700;border-radius:10px;padding:0 6px;background:var(--chip);color:color-mix(in srgb,var(--muted) 55%,var(--ink));white-space:nowrap} /* small text on a chip: darker than --muted, for 4.5:1 */
 .ktag.s{color:color-mix(in srgb,var(--gold) 68%,var(--ink))}
 .note{font-size:13px;color:var(--muted)} .fine{margin-top:18px;max-width:80ch}
 @media print{header.top .hright,.acts,.listbar{display:none!important} body{background:#fff} .dgrid2{grid-template-columns:1fr} .dright{position:static;order:0} .dmap{height:auto;aspect-ratio:1.3;break-inside:avoid}}
@@ -134,7 +134,7 @@ table.own.small td{padding:6px 10px}
 <div id="main"></div>
 </main>
 </div>
-<script src="i18n.js?v=55"></script>
+<script src="i18n.js?v=56"></script>
 <script src="burgundy-i18n-da.js?v=5"></script>
 <script src="burgundy-i18n-fr.js?v=5"></script>
 <script src="burgundy-i18n-de.js?v=1"></script>

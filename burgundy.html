@@ -377,6 +377,8 @@ input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible,[t
 .dcard .dm{font-size:11.5px;color:var(--muted)}
 .dcard .dk{font-size:12.5px}
 .dcard .dmono{font-size:11.5px;color:var(--accent);font-weight:600}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .dcard .dmono{color:color-mix(in srgb,var(--accent) 85%,#fff)} } /* small: 4.5:1 on the dark card */
+:root[data-theme="dark"] .dcard .dmono{color:color-mix(in srgb,var(--accent) 85%,#fff)}
 .dcard .dl{font-size:12px;color:var(--muted);line-height:1.5;margin-top:3px}
 .dcard .dl i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px}
 .feedtabs{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px}
@@ -643,7 +645,7 @@ footer.fine{margin-top:14px;font-size:12px;color:var(--muted);max-width:110ch;li
 </footer>
 </div>
 <div id="tip" aria-hidden="true"></div>
-<script src="i18n.js?v=55"></script>
+<script src="i18n.js?v=56"></script>
 <script src="burgundy-i18n-da.js?v=5"></script>
 <script src="burgundy-i18n-fr.js?v=5"></script>
 <script src="burgundy-i18n-de.js?v=1"></script>

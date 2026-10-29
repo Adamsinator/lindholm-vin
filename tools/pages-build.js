@@ -268,11 +268,12 @@ for (const v of ALL) {
   v.bb = bbox(v.mp); v.cen = centroid(v.mp);
   [v.lon, v.lat] = (v.ll || burgLL)(v.cen);
 }
-// slugs: the vineyard's name; the commune in front where two share a name; the id where even that's not enough
+// slugs: the vineyard's name; the commune in front where two share a name (the region where it has none: a Rhône cru, an
+// Alsace grand cru); the id where even that's not enough
 {
   const base = v => slug(v.n), cnt = {};
   ALL.forEach(v => cnt[base(v)] = (cnt[base(v)] || 0) + 1);
-  const two = v => cnt[base(v)] > 1 ? slug(v.commune.split(" · ")[0]) + "-" + base(v) : base(v), cnt2 = {};
+  const two = v => cnt[base(v)] > 1 ? (slug(v.commune.split(" · ")[0]) || v.set) + "-" + base(v) : base(v), cnt2 = {};
   ALL.forEach(v => cnt2[two(v)] = (cnt2[two(v)] || 0) + 1);
   const CLS = { GC: "grand-cru", "1er": "premier-cru", V: "village" }, three = v => two(v) + "-" + CLS[v.c], cnt3 = {};
   ALL.forEach(v => cnt3[three(v)] = (cnt3[three(v)] || 0) + 1);
@@ -350,7 +351,7 @@ function mapSvg(v, L) {
   const pts = SET[v.set].filter(o => o !== v && o.point && o.point[0] > view[0] && o.point[0] < view[2] && o.point[1] > view[1] && o.point[1] < view[3])
     .map(o => `<a href="${o.slug}.html">${dot(o, w / 110, "pt")}</a>`);
   const me = v.point ? dot(v, w / 70, "me") : `<path class="me" d="${pathD(v.mp, tol, ox, oy)}"><title>${esc(v.n)}</title></path>`;
-  return `<svg class="map" viewBox="0 0 ${Math.round(w)} ${Math.round(h)}" role="img" aria-label="${esc(fmt(v.vines ? T[L].mapVines : T[L].map, v.n))}" xmlns="http://www.w3.org/2000/svg">${parts.join("")}${me}${pts.join("")}</svg>`;
+  return `<svg class="map" viewBox="0 0 ${Math.round(w)} ${Math.round(h)}" role="group" aria-label="${esc(fmt(v.vines ? T[L].mapVines : T[L].map, v.n))}" xmlns="http://www.w3.org/2000/svg">${parts.join("")}${me}${pts.join("")}</svg>`;
 }
 const SET = {}; ALL.forEach(v => (SET[v.set] ??= []).push(v));
 // without a map, the neighbours are the names either side in the list

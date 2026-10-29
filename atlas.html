@@ -97,6 +97,7 @@ body.home .chip,body.home .terrbar{display:none !important}
   body{background:#fff} .wrap{max-width:none;padding:0} .layout{grid-template-columns:1fr}
   .mapbox{height:auto;aspect-ratio:1.414;break-inside:avoid} #side{border:0;box-shadow:none}
 }
+#side .src a{color:var(--accent)} /* the credits' links, in the page's colours (the browser's blue is unreadable in dark mode) */
 /* the slope profile, as in the Côte d'Or atlas */
 #map.profiling{cursor:crosshair} .zoom button.on{border-color:var(--accent);color:var(--accent)}
 #map .profline{stroke:var(--ink);stroke-width:2.2;stroke-dasharray:6 4;vector-effect:non-scaling-stroke}
@@ -171,8 +172,8 @@ aside#side{background:var(--card);border:1px solid var(--line);border-radius:var
   <aside id="side" aria-live="polite"></aside>
 </div>
 </div>
-<script src="i18n.js?v=55"></script>
+<script src="i18n.js?v=56"></script>
 <script src="europe-lands.js?v=1"></script>
-<script src="atlas.js?v=8"></script>
+<script src="atlas.js?v=9"></script>
 </body>
 </html>

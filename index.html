@@ -376,7 +376,7 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
 #map .vref{fill:var(--muted);opacity:.22}
 #map .dlabel{fill:var(--ink);font-size:11px;font-weight:600;paint-order:stroke;stroke:var(--card);stroke-width:3px;stroke-linejoin:round;pointer-events:none}
 #map .dsub{fill:var(--muted);font-size:9px;paint-order:stroke;stroke:var(--card);stroke-width:3px;pointer-events:none}
-#map .cname{fill:var(--muted);font-size:8.5px;letter-spacing:.02em;opacity:.6;paint-order:stroke;stroke:var(--card);stroke-width:2.5px;pointer-events:none}
+#map .cname{fill:color-mix(in srgb,var(--muted) 70%,var(--ink));font-size:8.5px;letter-spacing:.02em;opacity:.75;paint-order:stroke;stroke:var(--card);stroke-width:2.5px;pointer-events:none}
 .morep{font-size:12px;color:var(--muted);padding:8px 0 0}
 .vnum{font-size:9.5px;fill:var(--muted);font-variant-numeric:tabular-nums}
 /* iOS zooms into any focused field with font-size < 16px — keep inputs at 16px on small screens */
@@ -539,7 +539,7 @@ body:not(.social) .fshare{display:none!important}
 .sg{border-style:dashed!important;border-color:var(--accent)!important}
 .sgnote::before{content:"✨ "}
 .jfill{margin:8px 0 0;font-size:12.5px;color:var(--muted);text-transform:none;letter-spacing:0}
-b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor:help}
+b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (no opacity: small text, it has to keep 4.5:1) */
 /* Enjoyed: fill-in bar and segmented filters */
 .fillbar{border-top:1px solid var(--accent);border-bottom:1px solid var(--line);padding:10px 14px;margin:0 0 12px;font-size:13.5px}
 .fillbar .fb-t{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px} .fillbar .fb-t .btn{margin-left:auto;padding:6px 12px}
@@ -955,7 +955,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
 </div>
 
 <div class="tablewrap">
-<table id="tbl">
+<table id="tbl" role="treegrid" aria-label="Wines" data-i18n-aria>
   <thead><tr>
     <th data-k="producer" class="c-prod"><span data-i18n>Producer</span> <span class="arr"></span></th>
     <th data-k="name" class="c-wine"><span data-i18n>Wine</span> <span class="arr"></span></th>
@@ -1079,7 +1079,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
     <span class="count" id="eCount"></span>
   </div>
   <div class="tablewrap">
-    <table id="eTbl">
+    <table id="eTbl" role="treegrid" aria-label="Enjoyed wines" data-i18n-aria>
       <thead><tr>
         <th data-k="producer"><span data-i18n>Producer</span> <span class="arr"></span></th>
         <th data-k="vintage" class="num"><span data-i18n>Vintage</span> <span class="arr"></span></th>
@@ -1530,7 +1530,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
 
 <!-- Pages serves these with max-age=600 and no revalidation, so a merged change can
      sit invisible behind a stale app.js for ten minutes. Bump v on every deploy. -->
-<script src="i18n.js?v=55"></script>
+<script src="i18n.js?v=56"></script>
 <script src="notes.js?v=4"></script>
 <script src="notes-i18n.js?v=1"></script>
 <script src="burgundy-data.js?v=13"></script>
@@ -1547,6 +1547,6 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;opacity:.8;cursor
 <script src="import.js?v=5"></script>
 <script src="export.js?v=2"></script>
 <script src="europe-lands.js?v=1"></script>
-<script src="app.js?v=53"></script>
+<script src="app.js?v=54"></script>
 </body>
 </html>

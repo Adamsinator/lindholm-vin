@@ -8,7 +8,7 @@ const handlers = {}, ctx = { self: { addEventListener: (k, f) => handlers[k] = f
 vm.runInNewContext(fs.readFileSync(path.join(__dirname, "..", "atlas-sw.js"), "utf8") + "\n;this.T = { isAtlas, isPage, isTile };", ctx);
 const { isAtlas, isPage, isTile } = ctx.T, u = s => new URL(s, "https://allwine.dk/");
 const yes = ["atlas.js?v=8", "atlas-mosel.js?v=1", "atlas-chablis-topo.js?v=1", "atlas-rhone-dem.js?v=1", "europe-lands.js?v=1", "burgundy.js?v=45", "i18n.js?v=55"];
-const no = ["app.js?v=53", "vault.js?v=9", "atlas-sw.js", "config.js", "https://allwine-api.adamlenzing.workers.dev/x"];
+const no = ["app.js?v=54", "vault.js?v=9", "atlas-sw.js", "config.js", "https://allwine-api.adamlenzing.workers.dev/x"];
 check("keeps the atlas's scripts and every region's pack, map detail and terrain", yes.every(s => isAtlas(u(s))), yes.filter(s => !isAtlas(u(s))).join());
 check("…but not the cellar app, its vault, the API or the service worker itself", no.every(s => !isAtlas(u(s))), no.filter(s => isAtlas(u(s))).join());
 check("the atlas pages, the Côte d'Or's and the regions', fresh from the network first", ["atlas.html", "burgundy.html", "domaine.html"].every(s => isPage(u(s))) && !isPage(u("index.html")));

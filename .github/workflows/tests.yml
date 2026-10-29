@@ -28,7 +28,7 @@ jobs:
       - name: Tools the tests use
         run: |
           pip install openpyxl==3.1.5
-          npm install --no-save --no-package-lock playwright@1.56.1
+          npm install --no-save --no-package-lock playwright@1.56.1 axe-core@4.10.2
           npx playwright install --with-deps chromium
       - name: Run all suites
         run: node tools/run-tests.js
