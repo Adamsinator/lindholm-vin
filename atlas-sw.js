@@ -1,11 +1,13 @@
-// Service worker for the Burgundy atlas: keeps its heavy data files and IGN's relief tiles in the browser, so a second
+// Service worker for the Wine atlas (the Côte d'Or's and the regions'): keeps the heavy data files and the relief tiles
+// (IGN's, and basemap.de's for Germany) in the browser, so a second
 // visit opens at once and works on a patchy connection. It only answers for atlas files and relief tiles; everything
 // else (the cellar app, its API) goes straight to the network as if it weren't here.
 "use strict";
 const DATA = "atlas-data-v1", TILES = "atlas-tiles-v1", MAX_TILES = 800;
-const isAtlas = u => u.origin === location.origin && /\/(burgundy[^/]*\.js|domaine\.js|i18n\.js|atlas-(preview|hero[^/]*)\.jpg)$/.test(u.pathname);
-const isPage = u => u.origin === location.origin && /\/(burgundy|domaine)\.html$/.test(u.pathname);
-const isTile = u => u.hostname === "data.geopf.fr" && u.pathname === "/wmts" && /ELEVATION\.ELEVATIONGRIDCOVERAGE\.SHADOW/.test(u.search);
+const isAtlas = u => u.origin === location.origin && /\/(burgundy[^/]*\.js|domaine\.js|i18n\.js|atlas(-(?!sw)[^/]*)?\.js|europe-lands\.js|atlas-(preview|hero[^/]*)\.jpg)$/.test(u.pathname);
+const isPage = u => u.origin === location.origin && /\/(burgundy|domaine|atlas)\.html$/.test(u.pathname);
+const isTile = u => (u.hostname === "data.geopf.fr" && u.pathname === "/wmts" && /ELEVATION\.ELEVATIONGRIDCOVERAGE\.SHADOW/.test(u.search))
+  || (u.hostname === "sgx.geodatenzentrum.de" && /^\/wmts_basemapde_schummerung\/tile\//.test(u.pathname));
 
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", ev => ev.waitUntil((async () => {

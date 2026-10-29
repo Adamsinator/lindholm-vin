@@ -104,6 +104,11 @@ const gas = H({ Ark1: [HEAD,
   await p.click('#side button[data-c="les_clos"]'); await p.click("#cmpBtn"); await p.click("#back"); await p.click('#side button[data-c="vaillons"]'); await p.waitForTimeout(300);
   const cm = await p.evaluate(() => [...document.querySelectorAll("#side table.cmpv tr")].map(r => [...r.cells].map(c => c.textContent.trim()).join(" ").trim()));
   check("compare: Les Clos beside Vaillons — class, altitude, the way each faces", cm.length >= 6 && /Les Clos.*Vaillons/.test(cm[0]) && cm.some(r => /^Class Grand cru Premier cru/.test(r)) && cm.some(r => /^Altitude \d+–\d+ m \d+–\d+ m/.test(r)), cm.join(" | "));
+  // save the view as an image: Vaillons open, a PNG named after it
+  const [dl] = await Promise.all([p.waitForEvent("download", { timeout: 20000 }), p.click("#pngBtn")]);
+  const png = require("fs").readFileSync(await dl.path());
+  check("'Save this view as an image' gives a PNG of the view, named after the vineyard", dl.suggestedFilename() === "allwine-vaillons-chablis-wine-atlas.png" && png.slice(1, 4).toString() === "PNG" && png.length > 20000,
+    dl.suggestedFilename() + " " + png.length);
   await p.click("#cmpEnd"); await p.click("#back"); await p.click("#zHome"); await p.waitForTimeout(300);
   // the slope profile: two clicks across Les Clos, the ground between them from IGN's elevation service
   await p.click("#profBtn");

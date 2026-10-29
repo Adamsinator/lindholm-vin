@@ -90,6 +90,13 @@ header.top h1 em{font-style:italic;color:var(--accent)} header.top h1 a{color:in
 .cmpv{width:100%;border-collapse:collapse;font-size:13px} .cmpv td,.cmpv th{padding:4px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top} .cmpv td:first-child{color:var(--muted);width:30%}
 .plink{border:0;background:none;padding:0;color:var(--accent);font:inherit;cursor:pointer;text-align:left}
 body.home .chip,body.home .terrbar{display:none !important}
+@media(max-width:600px){#printBtn{display:none !important}}
+/* printing (or saving as PDF): the map and the panel beside it, no controls */
+@media print{
+  header.top .hright,.toolbar,.terrbar,.zoom,.profile{display:none !important}
+  body{background:#fff} .wrap{max-width:none;padding:0} .layout{grid-template-columns:1fr}
+  .mapbox{height:auto;aspect-ratio:1.414;break-inside:avoid} #side{border:0;box-shadow:none}
+}
 /* the slope profile, as in the Côte d'Or atlas */
 #map.profiling{cursor:crosshair} .zoom button.on{border-color:var(--accent);color:var(--accent)}
 #map .profline{stroke:var(--ink);stroke-width:2.2;stroke-dasharray:6 4;vector-effect:non-scaling-stroke}
@@ -157,7 +164,7 @@ aside#side{background:var(--card);border:1px solid var(--line);border-radius:var
 <div class="layout">
   <div class="mapbox">
     <svg id="map" role="img" aria-label="Vineyard map" data-i18n-aria></svg>
-    <div class="zoom"><button type="button" id="zIn" aria-label="Zoom in" data-i18n-aria>+</button><button type="button" id="zOut" aria-label="Zoom out" data-i18n-aria>−</button><button type="button" id="zHome" aria-label="Whole region" data-i18n-aria>⌂</button><button type="button" id="profBtn" aria-label="Slope profile" title="Slope profile" data-i18n-aria hidden>⟋</button></div>
+    <div class="zoom"><button type="button" id="zIn" aria-label="Zoom in" data-i18n-aria>+</button><button type="button" id="zOut" aria-label="Zoom out" data-i18n-aria>−</button><button type="button" id="zHome" aria-label="Whole region" data-i18n-aria>⌂</button><button type="button" id="profBtn" aria-label="Slope profile" title="Slope profile" data-i18n-aria hidden>⟋</button><button type="button" id="pngBtn" title="Save this view as an image" aria-label="Save this view as an image" data-i18n-title data-i18n-aria>⤓</button><button type="button" id="printBtn" title="Print or save as PDF" aria-label="Print or save as PDF" data-i18n-title data-i18n-aria>⎙</button></div>
     <div class="profile" id="profile" hidden></div>
     <div class="legend" id="legend"></div>
   </div>

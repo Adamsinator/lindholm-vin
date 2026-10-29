@@ -233,6 +233,45 @@ $("zIn").onclick = () => { const [x, y, w, h] = st.view; zoomAt(.6, x + w / 2, y
 $("zOut").onclick = () => { const [x, y, w, h] = st.view; zoomAt(1 / .6, x + w / 2, y + h / 2); };
 $("zHome").onclick = () => fit(st.home);
 $("profBtn").onclick = () => profToggle();
+$("pngBtn").onclick = exportPNG;
+$("printBtn").onclick = () => window.print();
+// the atlas files, packs and relief tiles kept in the browser for a second visit and a patchy connection (atlas-sw.js)
+if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("atlas-sw.js").catch(() => {});
+
+/* ---------- save the view as an image: the map as drawn (the relief tiles come from another site, so they're left out:
+   a canvas that draws them can't be saved), with a band naming the view and its sources ---------- */
+async function exportPNG() {
+  const btn = $("pngBtn"); if (!st.pack) return; btn.disabled = true;
+  try {
+    const w = svg.clientWidth, h = svg.clientHeight, sc = 2, [vx, vy, vw, vh] = st.view;
+    const clone = svg.cloneNode(true); clone.querySelectorAll(".shade, .prof").forEach(e => e.remove());
+    clone.setAttribute("xmlns", NS); clone.setAttribute("width", w); clone.setAttribute("height", h);
+    // the page's styles, with the colour tokens resolved (inside a standalone svg :root is the svg itself)
+    const cs = getComputedStyle(document.documentElement), css = [...document.querySelectorAll("style")].map(x => x.textContent).join("\n");
+    const vars = [...new Set(css.match(/--[a-z0-9-]+/g) || [])].map(v => `${v}:${cs.getPropertyValue(v)}`).join(";");
+    const st0 = document.createElementNS(NS, "style"); st0.textContent = `svg{${vars};font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}` + css;
+    clone.insertBefore(st0, clone.firstChild);
+    const bg = document.createElementNS(NS, "rect"); Object.entries({ x: vx, y: vy, width: vw, height: vh, fill: cs.getPropertyValue("--mapbg") }).forEach(([k, v]) => bg.setAttribute(k, v)); clone.insertBefore(bg, st0.nextSibling);
+    const url = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(clone)], { type: "image/svg+xml" }));
+    const img = new Image(); await new Promise((ok, fail) => { img.onload = ok; img.onerror = fail; img.src = url; });
+    const band = 34, cv = document.createElement("canvas"); cv.width = w * sc; cv.height = (h + band) * sc;
+    const x = cv.getContext("2d"); x.scale(sc, sc); x.drawImage(img, 0, 0, w, h); URL.revokeObjectURL(url);
+    const c = st.sel && byId(st.sel), title = (c ? shown(c) + " · " : "") + st.pack.meta.name + " · " + t("Wine atlas");
+    x.fillStyle = cs.getPropertyValue("--card"); x.fillRect(0, h, w, band); x.fillStyle = cs.getPropertyValue("--ink");
+    x.font = "600 14px -apple-system,Segoe UI,Roboto,sans-serif"; x.fillText(title, 12, h + 22);
+    x.font = "11px -apple-system,Segoe UI,Roboto,sans-serif"; x.fillStyle = cs.getPropertyValue("--muted"); x.textAlign = "right";
+    x.fillText("allwine.dk · " + exportCredit(), w - 12, h + 22);
+    const a = document.createElement("a"); a.download = `allwine-${norm(title).trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "atlas"}.png`;
+    a.href = cv.toDataURL("image/png"); document.body.appendChild(a); a.click(); a.remove();
+  } catch (e) { console.warn("export failed", e); }
+  btn.disabled = false;
+}
+// the sources of what's in the image, short
+function exportCredit() {
+  const y = new Date().getFullYear(), M = st.pack.meta, topo = st.topo && topoOf();
+  if (M.proj === "eq") return t("Einzellagen © Landwirtschaftskammer RLP") + (topo ? ` · © GeoBasis-DE / LVermGeoRP ${y}, dl-de/by-2-0` : "");
+  return (villagesPack() ? t("Vines and boundaries © IGN, Licence Ouverte") : t(topo ? "Boundaries © INAO · map data © IGN, Licence Ouverte" : "Boundaries © INAO, Licence Ouverte"));
+}
 
 /* ---------- slope profile (French regions): two clicks, and IGN's elevation service cuts the ground between them ---------- */
 const PROF = { on: false, a: null, b: null, data: null };
