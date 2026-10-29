@@ -37,7 +37,7 @@ const gas = H({ Ark1: [HEAD,
   await require("./turnstile-fake")(ctx);
   // IGN's relief tiles: a blank tile, so the test doesn't hang on the network (the placement is what's checked)
   const tilesAsked = [];
-  await ctx.route("https://data.geopf.fr/**", r => { tilesAsked.push(r.request().url());
+  await ctx.route(/^https:\/\/(data\.geopf\.fr|sgx\.geodatenzentrum\.de)\//, r => { tilesAsked.push(r.request().url());
     r.fulfill({ contentType: "image/png", body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAAAAAA6fptVAAAACklEQVR4nGP4DwABAQEAWk1v8QAAAABJRU5ErkJggg==", "base64") }); });
   await ctx.route(require("./api-route"), async route => {
     const p = JSON.parse(route.request().postData() || "{}");
@@ -173,6 +173,15 @@ const gas = H({ Ark1: [HEAD,
     side: [...document.querySelectorAll("#side h3, #side li")].map(e => e.textContent).join("\n"), src: st.pack.meta.source }));
   check("the Mosel: its 450-odd Einzellagen by Bereich, with their own filter, credited to the Landwirtschaftskammer", mo.n > 440 && mo.n < 462 && mo.el && mo.gc && /Bereich Bernkastel/.test(mo.side)
     && /©Landwirtschaftskammer RLP \(\d{4}\), dl-de\/by-2-0/.test(mo.src), JSON.stringify({ n: mo.n, el: mo.el, src: mo.src }));
+  // Germany's ground: basemap.de's relief (in its own level numbering: standard zoom − 5) and the Basis-DLM's villages
+  await p.waitForTimeout(1200);
+  const mg = await p.evaluate(() => ({ tiles: [...document.querySelectorAll("#map .shade image")].map(i => i.getAttribute("href")),
+    names: [...document.querySelectorAll("#map .tn")].map(t => t.textContent), side: document.getElementById("side").innerHTML }));
+  const lv = mg.tiles.map(u => +(u.match(/DE_EPSG_3857_ADV\/(\d\d)\//) || [])[1]);
+  check("the Mosel's relief: basemap.de's hillshade, at its own levels (standard 8–15 → 03–10)", mg.tiles.length > 0 && lv.every(z => z >= 3 && z <= 10), mg.tiles.slice(0, 2).join(" "));
+  check("…its villages from the Basis-DLM — Bernkastel-Kues, Wehlen, Zeltingen-Rachtig", ["Bernkastel-Kues", "Wehlen", "Zeltingen-Rachtig"].every(n => mg.names.includes(n)));
+  check("…and BKG and LVermGeoRP credited, with the licences linked", /GeoBasis-DE \/ <a href="https:\/\/www\.bkg\.bund\.de"[^>]*>BKG<\/a> \(\d{4}\) <a href="https:\/\/creativecommons\.org\/licenses\/by\/4\.0\/"/.test(mg.side)
+    && /©GeoBasis-DE \/ LVermGeoRP \(\d{4}\), <a href="https:\/\/www\.govdata\.de\/dl-de\/by-2-0"/.test(mg.side));
   check("…the Loosen lands on Wehlen's Sonnenuhr, not on one of the other four", /Wehlener Sonnenuhr[^\n]*🍷 3/.test(mo.side) && !/(Zeltingen-Rachtiger|Pommerner|Neumagener|Maring-Noviander) Sonnenuhr[^\n]*🍷/.test(mo.side), mo.side.match(/[^\n]*🍷[^\n]*/g));
   await p.click('#side button[data-c="sonnenuhr_wehlen"]'); await p.waitForTimeout(300);
   const ws = await p.textContent("#side");

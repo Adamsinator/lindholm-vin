@@ -18,7 +18,7 @@ const GERMAN = ["mosel", "nahe", "pfalz", "rheinhessen", "mittelrhein", "ahr"];
 const DLM = "https://geo5.service24.rlp.de/wfs/basisdlm_shape_rp.fcgi?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&OUTPUTFORMAT=application/json;%20subtype=geojson&SRSNAME=EPSG:4326";
 
 // how much to draw: the small regions get their lanes and hamlets too; Bordeaux, the size of a département, doesn't
-const DETAIL = { chablis: 2, chalonnaise: 2, maconnais: 1, rhone: 1, alsace: 1, champagne: 1, bordeaux: 0, mosel: 1, nahe: 1, pfalz: 1, rheinhessen: 1, mittelrhein: 2, ahr: 2 };
+const DETAIL = { chablis: 2, chalonnaise: 2, maconnais: 1, rhone: 1, alsace: 1, champagne: 1, bordeaux: 0, mosel: 1, nahe: 1, pfalz: 1, rheinhessen: 1, mittelrhein: 1, ahr: 2 };
 
 const curl = url => new Promise((ok, fail) => execFile("curl", ["-sS", "--max-time", "240", "--retry", "8", "--retry-all-errors", "--retry-delay", "2", url],
   { maxBuffer: 1 << 30 }, (e, out) => e ? fail(e) : ok(out)));
@@ -126,7 +126,8 @@ async function build(id) {
   all(LAYERS[1][0]).forEach(f => lines(f.geometry).forEach(l => runs(l, T).forEach(c => out.rail.push(c))));
   // streams as their axes; the Mosel, the Rhine and the lakes as areas (whose axes would sit inside them)
   out.water = [];
-  all(LAYERS[2][0]).forEach(f => lines(f.geometry).forEach(l => runs(l, T).forEach(c => out.water.push([2, c]))));
+  // (unnamed ones — field drains, ditches — only at the finest detail: the Mosel alone has ten thousand)
+  all(LAYERS[2][0]).forEach(f => { if (!f.properties.nam && D < 2) return; lines(f.geometry).forEach(l => runs(l, T).forEach(c => out.water.push([2, c]))); });
   out.lakes = [];
   const rv = {}, rname = (n, x, y) => { const L = rv[n] = rv[n] || []; if (L.some(([a, b]) => Math.hypot(a - x, b - y) < 6000)) return; L.push([x, y]); out.names.push(["w", n, x, y]); };
   out.names = [];
