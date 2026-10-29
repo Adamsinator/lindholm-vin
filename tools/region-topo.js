@@ -127,13 +127,13 @@ async function build(id) {
     polys(f.geometry).forEach(p => { const r = ring(p[0], T, D ? 5000 : 20000); if (r) out.lakes.push(r); }); });
   out.woods = [];
   all(LAYERS[4][0]).forEach(f => { if (!/Forêt|Bois|Lande ligneuse/.test(f.properties.nature || "")) return;
-    polys(f.geometry).forEach(p => { const r = ring(p[0], T * 1.5, D === 2 ? 12000 : 25000); if (r) out.woods.push(r); }); });
+    polys(f.geometry).forEach(p => { const r = ring(p[0], T * (D === 2 ? 1.5 : 2.5), [250000, 50000, 12000][D]); if (r) out.woods.push(r); }); });
   // built-up areas (IGN's real footprints; the "fictif" ones are placeholders around a name) and their names
   out.towns = []; out.names = [];
   const seen = new Set(), maxImp = D === 2 ? 4 : 3;
   all(LAYERS[5][0]).forEach(f => { const { toponyme: tn, importance, fictif, nature } = f.properties, imp = +importance || 9;
     const ps = polys(f.geometry);
-    if (!fictif && imp <= 5) ps.forEach(p => { const r = ring(p[0], T, 3000); if (r) out.towns.push(r); });
+    if (!fictif && imp <= 5) ps.forEach(p => { const r = ring(p[0], T, D ? 3000 : 20000); if (r) out.towns.push(r); });
     if (!tn || imp > maxImp || /Ruines|Moulin/.test(nature || "") && imp > 2) return;
     // the name at the middle of the biggest piece
     const big = ps.map(p => p[0].map(toM)).sort((a, b) => b.length - a.length)[0]; if (!big) return;

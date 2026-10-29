@@ -185,7 +185,7 @@ function topoLod() {
   const k = st.view[2] / (svg.clientWidth || 800), taken = [];
   if (gLabels) gLabels.querySelectorAll("text").forEach(t => { if (t.style.display === "none") return; const b = t.getBBox && t.getBBox(); if (b && b.width) taken.push([b.x, b.y, b.x + b.width, b.y + b.height]); });
   for (const t of TG.names.children) {
-    const kind = t._k, show = kind === 1 || kind === 2 ? wk < (kind === 1 ? 200 : 40) : kind === 3 ? wk < 14 : kind === 4 ? wk < 6 : wk < 25;
+    const kind = t._k, show = kind === 1 || kind === 2 ? wk < (kind === 1 ? 200 : 40) : kind === 3 ? wk < 14 : kind === 4 ? wk < 6 : wk < 8; // streams: close in (the Rhône's side valleys are full of them)
     if (!show) { t.style.display = "none"; continue; }
     const fs = (kind === 1 ? 14 : kind === 2 ? 12.5 : kind === "w" ? 11.5 : 11) * k, x = +t.getAttribute("x"), y = +t.getAttribute("y"), w = t.textContent.length * fs * .55;
     const box = [x - w / 2, y - fs * .6, x + w / 2, y + fs * .6];
