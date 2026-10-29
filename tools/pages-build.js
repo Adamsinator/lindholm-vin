@@ -16,7 +16,8 @@ for (const f of ["burgundy-data.js", "burgundy-data-beaune.js", "burgundy-detail
 // the 1855 ranks as a label writes them (atlas.js has the same)
 const PTLABEL = { "1855-1": "Premier grand cru classé", "1855-2": "Deuxième grand cru classé", "1855-3": "Troisième grand cru classé", "1855-4": "Quatrième grand cru classé",
   "1855-5": "Cinquième grand cru classé", "sau-0": "Premier cru supérieur", "sau-1": "Premier cru classé", "sau-2": "Deuxième cru classé" };
-const PACKS = ["chablis", "chalonnaise", "maconnais", "champagne", "alsace", "rhone", "bordeaux"];
+const PACKS = ["chablis", "chalonnaise", "maconnais", "champagne", "alsace", "rhone", "bordeaux", "mosel", "nahe", "pfalz", "rheinhessen", "mittelrhein", "ahr"];
+const GERMAN = ["mosel", "nahe", "pfalz", "rheinhessen", "mittelrhein", "ahr"];
 for (const id of PACKS) require(path.join(R, `atlas-${id}.js`));
 
 // ── words ────────────────────────────────────────────────────────────────────────────────────────
@@ -29,7 +30,7 @@ const T = {
     inferred: "INAO's map leaves this parcel unnamed; the name is taken from the place names within it and around it.",
     desc: "{0}: {2}, {3} ha ({4}). Its exact outline {5}{6}.",
     descMore: ", altitude, slope and owners", descPack: ", its neighbours and the other crus of {0}",
-    hubTitle: "Vineyard atlas: every grand cru and premier cru", hubDesc: "Every grand cru and premier cru of Burgundy (the Côte d'Or, Chablis, the Côte Chalonnaise, the Mâconnais), the grands crus of Alsace, Champagne's cru villages and the Northern Rhône's crus, drawn from INAO's and IGN's maps, with altitude, slope and owners.",
+    hubTitle: "Vineyard atlas: every grand cru and premier cru", hubDesc: "Every grand cru and premier cru of Burgundy (the Côte d'Or, Chablis, the Côte Chalonnaise, the Mâconnais), the grands crus of Alsace, Champagne's cru villages, the Northern Rhône's crus, Bordeaux's appellations and 1855 châteaux, and the Einzellagen of the Mosel, Nahe, Pfalz and Rheinhessen, drawn from the official maps, with altitude, slope and owners.",
     hubLead: "Every named vineyard on AllWine's atlases, drawn from INAO's delimitation. Open any of them on the interactive map, or match your own bottles to them.",
     source: "Outlines: INAO, Délimitation parcellaire des AOC viticoles (Licence Ouverte). Altitude and slope: IGN RGE ALTI®. Owners: published sources, rounded.",
     sourcePack: "Outlines: INAO, Délimitation parcellaire des AOC viticoles, via IGN's Géoplateforme (Licence Ouverte).",
@@ -37,6 +38,7 @@ const T = {
         GCv: "grand cru villages", "1erv": "premier cru villages",
     PT: "Classified château", classification: "Classification", descPt: "{0}: {1} ({2}, {3}). Where it stands on the map, among the appellations and the other classified châteaux.", sourcePt: "The 1855 classification. Château positions: IGN BD TOPO; appellations: INAO (Licence Ouverte).",
     cls: {"1855-1": "First growths (1855)", "1855-2": "Second growths (1855)", "1855-3": "Third growths (1855)", "1855-4": "Fourth growths (1855)", "1855-5": "Fifth growths (1855)", "sau-0": "Superior first growth, Sauternes (1855)", "sau-1": "First growths, Sauternes (1855)", "sau-2": "Second growths, Sauternes (1855)"},
+    germany: "Germany", EL: "Einzellage (single vineyard)", ELp: "Einzellagen", onRolle: "in the Weinbergsrolle, the official register of German vineyard sites", gl: "Großlage", gmk: "Gemarkung", outline: "Outline on the map", regVines: "Vines (Weinbergsrolle)", oneOfEL: "One of the {0} Einzellagen of the Bereich {2}, with {3} ha of vines between them in the register.", sourceRolle: "Einzellagen: ©Landwirtschaftskammer RLP (2026), dl-de/by-2-0, weinlagen.lwk-rlp.de [Daten bearbeitet].",
     oneOfVines: "One of the {0} {1} of {2}, whose vines together cover {3} ha.",
     AOC: "Cru appellation", AOCp: "cru appellations", onInao: "on INAO's map", onIgn: "from IGN's map of the vines inside the village", mapVines: "The vines of {0} (IGN), with its neighbours",
     sourceVines: "Vines: IGN BD TOPO (vegetation « Vigne »); village boundaries: IGN ADMIN EXPRESS (Licence Ouverte). The cru villages: the échelle des crus.",
@@ -49,7 +51,7 @@ const T = {
     inferred: "La carte de l'INAO ne nomme pas cette parcelle ; le nom vient des lieux-dits qu'elle contient et qui l'entourent.",
     desc: "{0} : {2}, {3} ha ({4}). Son contour exact {5}{6}.",
     descMore: ", altitude, pente et propriétaires", descPack: ", ses voisins et les autres crus de {0}",
-    hubTitle: "Atlas des climats : tous les grands crus et premiers crus", hubDesc: "Tous les grands crus et premiers crus de Bourgogne (Côte-d'Or, Chablis, Côte chalonnaise, Mâconnais), les grands crus d'Alsace, les villages crus de Champagne et les crus du Rhône septentrional, d'après les cartes de l'INAO et de l'IGN, avec altitude, pente et propriétaires.",
+    hubTitle: "Atlas des climats : tous les grands crus et premiers crus", hubDesc: "Tous les grands crus et premiers crus de Bourgogne (Côte-d'Or, Chablis, Côte chalonnaise, Mâconnais), les grands crus d'Alsace, les villages crus de Champagne, les crus du Rhône septentrional, les appellations et châteaux classés de Bordeaux et les Einzellagen de Moselle, Nahe, Palatinat et Hesse rhénane, d'après les cartes officielles, avec altitude, pente et propriétaires.",
     hubLead: "Tous les climats nommés des atlas d'AllWine, d'après la délimitation de l'INAO. Ouvrez-les sur la carte interactive ou rattachez-y vos propres bouteilles.",
     source: "Contours : INAO, Délimitation parcellaire des AOC viticoles (Licence Ouverte). Altitude et pente : IGN RGE ALTI®. Propriétaires : sources publiées, arrondies.",
     sourcePack: "Contours : INAO, Délimitation parcellaire des AOC viticoles, via la Géoplateforme de l'IGN (Licence Ouverte).",
@@ -57,6 +59,7 @@ const T = {
         GCv: "villages grand cru", "1erv": "villages premier cru",
     PT: "Château classé", classification: "Classement", descPt: "{0} : {1} ({2}, {3}). Sa place sur la carte, parmi les appellations et les autres châteaux classés.", sourcePt: "Le classement de 1855. Emplacement des châteaux : IGN BD TOPO ; appellations : INAO (Licence Ouverte).",
     cls: {"1855-1": "Premiers grands crus classés (1855)", "1855-2": "Deuxièmes grands crus classés (1855)", "1855-3": "Troisièmes grands crus classés (1855)", "1855-4": "Quatrièmes grands crus classés (1855)", "1855-5": "Cinquièmes grands crus classés (1855)", "sau-0": "Premier cru supérieur, Sauternes (1855)", "sau-1": "Premiers crus classés, Sauternes (1855)", "sau-2": "Deuxièmes crus classés, Sauternes (1855)"},
+    germany: "Allemagne", EL: "Einzellage (lieu-dit)", ELp: "Einzellagen", onRolle: "dans la Weinbergsrolle, le registre officiel des lieux-dits allemands", gl: "Großlage", gmk: "Gemarkung (finage)", outline: "Contour sur la carte", regVines: "Vignes (Weinbergsrolle)", oneOfEL: "L'une des {0} Einzellagen du Bereich {2}, qui comptent ensemble {3} ha de vignes au registre.", sourceRolle: "Einzellagen : ©Landwirtschaftskammer RLP (2026), dl-de/by-2-0, weinlagen.lwk-rlp.de [Daten bearbeitet].",
     oneOfVines: "L'un des {0} {1} de {2}, dont les vignes couvrent ensemble {3} ha.",
     AOC: "Appellation cru", AOCp: "appellations crus", onInao: "sur la carte de l'INAO", onIgn: "d'après la carte des vignes de l'IGN", mapVines: "Les vignes de {0} (IGN), avec ses voisins",
     sourceVines: "Vignes : IGN BD TOPO (végétation « Vigne ») ; limites des villages : IGN ADMIN EXPRESS (Licence Ouverte). Les villages crus : l'échelle des crus.",
@@ -69,7 +72,7 @@ const T = {
     inferred: "Die INAO-Karte nennt diese Parzelle nicht; der Name stammt von den Flurnamen in ihr und um sie herum.",
     desc: "{0}: {2}, {3} ha ({4}). Der genaue Umriss {5}{6}.",
     descMore: ", Höhe, Hangneigung und Besitzer", descPack: ", seine Nachbarn und die anderen Crus von {0}",
-    hubTitle: "Lagenatlas: alle Grands Crus und Premiers Crus", hubDesc: "Alle Grands Crus und Premiers Crus Burgunds (Côte d'Or, Chablis, Côte Chalonnaise, Mâconnais), die Grands Crus des Elsass, die Cru-Dörfer der Champagne und die Crus der nördlichen Rhône, nach den Karten von INAO und IGN, mit Höhe, Hangneigung und Besitzern.",
+    hubTitle: "Lagenatlas: alle Grands Crus und Premiers Crus", hubDesc: "Alle Grands Crus und Premiers Crus Burgunds (Côte d'Or, Chablis, Côte Chalonnaise, Mâconnais), die Grands Crus des Elsass, die Cru-Dörfer der Champagne, die Crus der nördlichen Rhône, Bordeaux' Appellationen und Châteaux von 1855 sowie die Einzellagen von Mosel, Nahe, Pfalz und Rheinhessen, nach den amtlichen Karten, mit Höhe, Hangneigung und Besitzern.",
     hubLead: "Alle benannten Lagen der AllWine-Atlanten, nach der Abgrenzung des INAO. Öffnen Sie jede auf der interaktiven Karte oder ordnen Sie ihr Ihre eigenen Flaschen zu.",
     source: "Umrisse: INAO, Délimitation parcellaire des AOC viticoles (Licence Ouverte). Höhe und Neigung: IGN RGE ALTI®. Besitzer: veröffentlichte Quellen, gerundet.",
     sourcePack: "Umrisse: INAO, Délimitation parcellaire des AOC viticoles, über die Géoplateforme des IGN (Licence Ouverte).",
@@ -77,6 +80,7 @@ const T = {
         GCv: "Grand-Cru-Dörfer", "1erv": "Premier-Cru-Dörfer",
     PT: "Klassifiziertes Château", classification: "Klassifikation", descPt: "{0}: {1} ({2}, {3}). Seine Lage auf der Karte, zwischen den Appellationen und den anderen klassifizierten Châteaux.", sourcePt: "Die Klassifikation von 1855. Lage der Châteaux: IGN BD TOPO; Appellationen: INAO (Licence Ouverte).",
     cls: {"1855-1": "Erste Gewächse (1855)", "1855-2": "Zweite Gewächse (1855)", "1855-3": "Dritte Gewächse (1855)", "1855-4": "Vierte Gewächse (1855)", "1855-5": "Fünfte Gewächse (1855)", "sau-0": "Erstes Gewächs supérieur, Sauternes (1855)", "sau-1": "Erste Gewächse, Sauternes (1855)", "sau-2": "Zweite Gewächse, Sauternes (1855)"},
+    germany: "Deutschland", EL: "Einzellage", ELp: "Einzellagen", onRolle: "aus der Weinbergsrolle", gl: "Großlage", gmk: "Gemarkung", outline: "Umriss auf der Karte", regVines: "Rebfläche (Weinbergsrolle)", oneOfEL: "Eine von {0} Einzellagen im Bereich {2}, mit zusammen {3} ha Rebfläche laut Weinbergsrolle.", sourceRolle: "Einzellagen: ©Landwirtschaftskammer RLP (2026), dl-de/by-2-0, weinlagen.lwk-rlp.de [Daten bearbeitet].",
     oneOfVines: "Eines der {0} {1} in {2}, deren Reben zusammen {3} ha umfassen.",
     AOC: "Cru-Appellation", AOCp: "Cru-Appellationen", onInao: "auf der INAO-Karte", onIgn: "nach der IGN-Karte der Reben im Dorf", mapVines: "Die Reben von {0} (IGN), mit den Nachbarn",
     sourceVines: "Reben: IGN BD TOPO (Vegetation « Vigne »); Gemeindegrenzen: IGN ADMIN EXPRESS (Licence Ouverte). Die Cru-Dörfer: die Échelle des crus.",
@@ -89,7 +93,7 @@ const T = {
     inferred: "INAO's kort giver ikke parcellen et navn; navnet kommer fra stednavnene i og omkring den.",
     desc: "{0}: {2}, {3} ha ({4}). Det præcise omrids {5}{6}.",
     descMore: ", højde, hældning og ejere", descPack: ", naboerne og de andre crus i {0}",
-    hubTitle: "Vinmarksatlas: alle grands crus og premiers crus", hubDesc: "Alle grands crus og premiers crus i Bourgogne (Côte d'Or, Chablis, Côte Chalonnaise, Mâconnais), Alsaces grands crus, Champagnes cru-landsbyer og den nordlige Rhônes crus, tegnet efter INAO's og IGN's kort, med højde, hældning og ejere.",
+    hubTitle: "Vinmarksatlas: alle grands crus og premiers crus", hubDesc: "Alle grands crus og premiers crus i Bourgogne (Côte d'Or, Chablis, Côte Chalonnaise, Mâconnais), Alsaces grands crus, Champagnes cru-landsbyer, den nordlige Rhônes crus, Bordeaux' appellationer og 1855-slotte samt Einzellagen i Mosel, Nahe, Pfalz og Rheinhessen, tegnet efter de officielle kort, med højde, hældning og ejere.",
     hubLead: "Alle navngivne vinmarker på AllWines atlas, tegnet efter INAO's afgrænsning. Åbn dem på det interaktive kort, eller knyt dine egne flasker til dem.",
     source: "Omrids: INAO, Délimitation parcellaire des AOC viticoles (Licence Ouverte). Højde og hældning: IGN RGE ALTI®. Ejere: offentliggjorte kilder, afrundet.",
     sourcePack: "Omrids: INAO, Délimitation parcellaire des AOC viticoles, via IGN's Géoplateforme (Licence Ouverte).",
@@ -97,6 +101,7 @@ const T = {
         GCv: "grand cru-landsbyer", "1erv": "premier cru-landsbyer",
     PT: "Klassificeret slot", classification: "Klassifikation", descPt: "{0}: {1} ({2}, {3}). Hvor det ligger på kortet, mellem appellationerne og de andre klassificerede slotte.", sourcePt: "Klassifikationen fra 1855. Slottenes placering: IGN BD TOPO; appellationer: INAO (Licence Ouverte).",
     cls: {"1855-1": "Første cru (1855)", "1855-2": "Anden cru (1855)", "1855-3": "Tredje cru (1855)", "1855-4": "Fjerde cru (1855)", "1855-5": "Femte cru (1855)", "sau-0": "Første cru supérieur, Sauternes (1855)", "sau-1": "Første cru, Sauternes (1855)", "sau-2": "Anden cru, Sauternes (1855)"},
+    germany: "Tyskland", EL: "Einzellage (enkeltmark)", ELp: "Einzellagen", onRolle: "i Weinbergsrolle, det officielle register over tyske vinmarker", gl: "Großlage", gmk: "Gemarkung", outline: "Omrids på kortet", regVines: "Vinstokke (Weinbergsrolle)", oneOfEL: "En af de {0} Einzellagen i Bereich {2}, med tilsammen {3} ha vinstokke i registeret.", sourceRolle: "Einzellagen: ©Landwirtschaftskammer RLP (2026), dl-de/by-2-0, weinlagen.lwk-rlp.de [Daten bearbeitet].",
     oneOfVines: "En af de {0} {1} i {2}, hvis vinstokke tilsammen dækker {3} ha.",
     AOC: "Cru-appellation", AOCp: "cru-appellationer", onInao: "på INAO's kort", onIgn: "efter IGN's kort over vinstokkene i landsbyen", mapVines: "Vinstokkene i {0} (IGN), med naboerne",
     sourceVines: "Vinstokke: IGN BD TOPO (vegetation « Vigne »); landsbygrænser: IGN ADMIN EXPRESS (Licence Ouverte). Cru-landsbyerne: échelle des crus.",
@@ -197,14 +202,20 @@ for (const [id, x] of Object.entries(G.extra)) {
     note: { en: X.notes[id] }, soilT: {}, map: `burgundy.html?lang={L}#c=${id}` });
 }
 for (const pid of PACKS) {
-  const P = window.ATLAS_PACKS[pid], [E0, N0] = P.meta.l93;
+  const P = window.ATLAS_PACKS[pid], [E0, N0] = P.meta.l93 || [];
+  // the German packs are on a local grid round meta.origin (metres east and, in the pack, south)
+  const O = P.meta.origin, kx = D2R * RE * Math.cos(O[1] * D2R), ky = D2R * RE;
+  const toLL = P.meta.proj === "eq" ? p => [O[0] + p[0] / kx, O[1] + p[1] / ky] : p => L93([E0 + p[0], N0 + p[1]]);
   for (const c of P.climats) {
     if (c.unnamed || /small plots/.test(c.n)) continue;
     // Alsace's grands crus span communes, a Rhône cru is its own appellation and a Champagne cru is the village itself
     const commune = c.c === "AOC" || c.app === c.n || pid === "alsace" ? "" : c.app;
-    ALL.push({ set: pid, id: c.id, n: c.n, c: c.c, col: c.col, ha: c.ha, app: c.ap, commune, group: c.area || commune, vines: !!c.area,
+    // a German Einzellage is known as "Wehlener Sonnenuhr": that's its name here; its Großlage takes the appellation's place
+    const el = c.c === "EL";
+    ALL.push({ set: pid, id: c.id, n: el ? c.ap : c.n, c: c.c, col: c.col, ha: el && !c.reg ? 0 : c.ha, haMap: c.haMap, app: el ? (c.gl ? "Großlage " + c.gl : "") : c.ap,
+      commune, gm: c.gm, group: c.area || commune, vines: !!c.area && !el, rolle: el,
       mp: c.g.map(poly => poly.map(r => r.map(([x, y]) => [x, -y]))), own: true, inferred: !!c.inferred, note: c.d || {}, soilT: {}, owners: [],
-      ll: p => L93([E0 + p[0], N0 + p[1]]), map: `atlas.html?lang={L}#r=${pid}&c=${encodeURIComponent(c.id)}` });
+      ll: toLL, map: `atlas.html?lang={L}#r=${pid}&c=${encodeURIComponent(c.id)}` });
   }
   // classified châteaux (Bordeaux's 1855) that have a place on IGN's map: a page each, drawn as a point
   for (const q of P.points || []) {
@@ -212,15 +223,19 @@ for (const pid of PACKS) {
     const [x, y] = [q.p[0], -q.p[1]], d = 30;
     ALL.push({ set: pid, id: q.id, n: q.n, c: "PT", cls: q.cls, col: /^sau/.test(q.cls) ? "W" : "R", ha: 0, app: q.ap, commune: "", group: q.cls, point: [x, y],
       label: PTLABEL[q.cls], mp: [[[[x - d, y - d], [x + d, y - d], [x + d, y + d], [x - d, y + d]]]], own: false, note: {}, soilT: {}, owners: [],
-      ll: p => L93([E0 + p[0], N0 + p[1]]), map: `atlas.html?lang={L}#r=${pid}&c=${encodeURIComponent(q.id)}` });
+      ll: toLL, map: `atlas.html?lang={L}#r=${pid}&c=${encodeURIComponent(q.id)}` });
   }
 }
 // each pack's name, and the wine region it belongs to, in each language
 const NAME = { alsace: { en: "Alsace", fr: "Alsace", de: "Elsass", da: "Alsace" }, rhone: { en: "Northern Rhône", fr: "Rhône septentrional", de: "Nördliche Rhône", da: "Nordlige Rhône" } };
 const AREA = { burgundy: { en: "Burgundy", fr: "Bourgogne", de: "Burgund", da: "Bourgogne" }, champagne: { en: "Champagne", fr: "Champagne", de: "Champagne", da: "Champagne" },
+  mosel: { en: "Mosel", fr: "Moselle", de: "Mosel", da: "Mosel" }, nahe: { en: "Nahe", fr: "Nahe", de: "Nahe", da: "Nahe" }, pfalz: { en: "Pfalz", fr: "Palatinat", de: "Pfalz", da: "Pfalz" },
+  rheinhessen: { en: "Rheinhessen", fr: "Hesse rhénane", de: "Rheinhessen", da: "Rheinhessen" }, mittelrhein: { en: "Mittelrhein", fr: "Rhin moyen", de: "Mittelrhein", da: "Mittelrhein" },
+  ahr: { en: "Ahr", fr: "Ahr", de: "Ahr", da: "Ahr" },
   alsace: NAME.alsace, bordeaux: { en: "Bordeaux", fr: "Bordeaux", de: "Bordeaux", da: "Bordeaux" }, rhone: { en: "Rhône Valley", fr: "Vallée du Rhône", de: "Rhônetal", da: "Rhônedalen" } };
-const AREA_OF = { burgundy: "burgundy", chablis: "burgundy", chalonnaise: "burgundy", maconnais: "burgundy", champagne: "champagne", alsace: "alsace", rhone: "rhone", bordeaux: "bordeaux" };
-const regionName = (set, L) => set === "burgundy" ? T[L].cote : (NAME[set] || {})[L] || window.ATLAS_PACKS[set].meta.name;
+const AREA_OF = { burgundy: "burgundy", chablis: "burgundy", chalonnaise: "burgundy", maconnais: "burgundy", champagne: "champagne", alsace: "alsace", rhone: "rhone", bordeaux: "bordeaux", ...Object.fromEntries(GERMAN.map(g => [g, g])) };
+const regionName = (set, L) => set === "burgundy" ? T[L].cote : (NAME[set] || (GERMAN.includes(set) && AREA[set]) || {})[L] || window.ATLAS_PACKS[set].meta.name;
+const countryOf = (set, t) => GERMAN.includes(set) ? t.germany : t.france;
 const areaName = (set, L) => AREA[AREA_OF[set]][L];
 const groupName = (v, L) => v.set === "burgundy" ? VIL[v.group].n : v.c === "PT" ? T[L].cls[v.cls] : v.group || regionName(v.set, L);
 for (const v of ALL) {
@@ -316,17 +331,18 @@ const nearest = v => SET[v.set].filter(o => o !== v).map(o => [Math.hypot(o.cen[
 function page(v, L) {
   const t = T[L], cls = clsOf(v, t), file = v.slug + ".html", reg = regionName(v.set, L), area = areaName(v.set, L);
   const where = [v.commune, v.set === "burgundy" ? reg : area].filter((x, i, a) => x && a.indexOf(x) === i).join(", ");
-  const desc = v.c === "PT" ? fmt(t.descPt, v.n, v.label, v.app, area) : fmt(t.desc, v.app === v.n ? v.n : `${v.n} — ${v.app}`, "", cls, ha(v.ha, L), where, v.vines ? t.onIgn : t.onInao, v.set === "burgundy" ? t.descMore : fmt(t.descPack, reg));
+  const desc = v.c === "PT" ? fmt(t.descPt, v.n, v.label, v.app, area) : fmt(t.desc, v.app === v.n || !v.app ? v.n : `${v.n} — ${v.app}`, "", cls, ha(v.ha || v.haMap, L), where, v.rolle ? t.onRolle : v.vines ? t.onIgn : t.onInao, v.set === "burgundy" ? t.descMore : fmt(t.descPack, reg));
   const title = `${v.n} · ${v.c === "V" ? v.commune : v.c === "PT" ? v.label : cls} · ${reg} | AllWine`;
   const crumbs = [[t.home, "../../"], [t.vineyards, "index.html"], [reg, `index.html#${v.set}`], [v.n]];
   const ld = { "@context": "https://schema.org", "@graph": [
     { "@type": "Place", "@id": url(L, file) + "#place", name: v.n, alternateName: v.app, description: desc, url: url(L, file),
       geo: { "@type": "GeoCoordinates", latitude: +v.lat.toFixed(5), longitude: +v.lon.toFixed(5) },
-      containedInPlace: (in_ => v.commune ? { "@type": "Place", name: v.commune.split(" · ")[0], containedInPlace: in_ } : in_)({ "@type": "AdministrativeArea", name: area, containedInPlace: { "@type": "Country", name: t.france } }),
+      containedInPlace: (in_ => v.commune ? { "@type": "Place", name: v.commune.split(" · ")[0], containedInPlace: in_ } : in_)({ "@type": "AdministrativeArea", name: area, containedInPlace: { "@type": "Country", name: countryOf(v.set, t) } }),
       additionalProperty: [v.ha && { "@type": "PropertyValue", name: t.area, value: v.ha, unitCode: "HAR" }, v.label && { "@type": "PropertyValue", name: t.classification, value: v.label },
         { "@type": "PropertyValue", name: t.app, value: v.app }].filter(Boolean) },
     { "@type": "BreadcrumbList", itemListElement: crumbs.map(([n, h], i) => ({ "@type": "ListItem", position: i + 1, name: n, ...(h ? { item: new URL(h, url(L, file)).href } : {}) })) }] };
-  const facts = [v.label && [t.classification, v.label], [t.app, v.app], v.commune && [t.commune, v.commune], v.ha && [t.area, ha(v.ha, L) + " ha"]].filter(Boolean);
+  const facts = v.rolle ? [v.app && [t.gl, v.app.replace(/^Großlage /, "")], [t.gmk, v.gm.join(", ")], v.commune && [t.commune, v.commune], v.ha && [t.regVines, ha(v.ha, L) + " ha"], [t.outline, ha(v.haMap, L) + " ha"]].filter(Boolean)
+    : [v.label && [t.classification, v.label], [t.app, v.app], v.commune && [t.commune, v.commune], v.ha && [t.area, ha(v.ha, L) + " ha"]].filter(Boolean);
   if (v.col) facts.push([t.colour, t[v.col]]);
   if (v.dem) {
     const [lo, hi, , sl, asp, cons] = v.dem;
@@ -336,7 +352,7 @@ function page(v, L) {
   const note = L === "en" ? v.note.en : v.note[L], soil = L === "en" ? v.soil : v.soilT[L];
   const owners = [...v.owners].filter(([k]) => PROD[k]).sort((a, b) => (a[2] === "s") - (b[2] === "s") || (b[1] ?? -1) - (a[1] ?? -1));
   const nb = nearest(v), peers = SET[v.set].filter(o => o.group === v.group && o.c === v.c);
-  const oneOf = peers.length > 1 && v.c !== "PT" ? fmt(v.vines ? t.oneOfVines : t.oneOf, peers.length, t[v.c + (v.vines ? "v" : "p")], groupName(v, L), ha(peers.reduce((a, o) => a + o.ha, 0), L)) : "";
+  const oneOf = peers.length > 1 && v.c !== "PT" ? fmt(v.rolle ? t.oneOfEL : v.vines ? t.oneOfVines : t.oneOf, peers.length, t[v.c + (v.vines ? "v" : "p")], groupName(v, L), ha(peers.reduce((a, o) => a + o.ha, 0), L)) : "";
   return head(L, file, title, desc, ld) + `<p class="crumbs">${crumbs.map(([n, h]) => h ? `<a href="${h}">${esc(n)}</a>` : esc(n)).join(" › ")}</p>
 <h1>${esc(v.n)}</h1>
 <p class="app">${esc(v.app)}</p>
@@ -347,7 +363,7 @@ ${note ? `<p>${esc(note)}</p>\n` : ""}${oneOf ? `<p>${esc(oneOf)}</p>\n` : ""}${
 <table>${owners.map(([k, h, kind]) => `<tr><td>${esc(PROD[k])}${kind === "f" ? ` <small>(${t.leased})</small>` : ""}</td><td class="n">${h != null && kind !== "s" ? ha(h, L) + " ha" : ""}</td></tr>`).join("")}</table>\n` : ""}<p class="cta"><a class="btn primary" href="../../${v.map.replace("{L}", L)}">${t.open} →</a><a class="btn" href="../../">${t.track}</a></p>
 <h2>${t.nearby}</h2>
 <ul class="links">${nb.map(o => `<li><a href="${o.slug}.html">${esc(o.n)}</a> <small>${esc([o.label || clsOf(o, t), o.commune].filter(Boolean).join(" · "))}</small></li>`).join("")}</ul>
-` + foot(L, v.set === "burgundy" ? t.source : v.vines ? t.sourceVines : v.point ? t.sourcePt : t.sourcePack);
+` + foot(L, v.set === "burgundy" ? t.source : v.rolle ? t.sourceRolle : v.vines ? t.sourceVines : v.point ? t.sourcePt : t.sourcePack);
 }
 
 function hub(L) {

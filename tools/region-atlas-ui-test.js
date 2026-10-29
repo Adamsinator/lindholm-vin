@@ -26,6 +26,8 @@ const gas = H({ Ark1: [HEAD,
   row({ Producent: "Château Latour", Land: "Frankrig", Område: "Bordeaux", Kommune: "Pauillac", "Mark/Navn": "Grand Vin", Type: "Rød", Årgang: 2010, Antal: 1 }),
   row({ Producent: "Château Lamothe Guignard", Land: "Frankrig", Område: "Bordeaux", Kommune: "Sauternes", Type: "Hvid", Årgang: 2015, Antal: 2 }),
   row({ Producent: "Pétrus", Land: "Frankrig", Område: "Bordeaux", Kommune: "Pomerol", Type: "Rød", Årgang: 2005, Antal: 1 }),
+  row({ Producent: "Dr. Loosen", Land: "Tyskland", Område: "Mosel", "Mark/Navn": "Wehlener Sonnenuhr Riesling Spätlese", Type: "Hvid", Årgang: 2019, Antal: 3 }),
+  row({ Producent: "Dönnhoff", Land: "Tyskland", Område: "Nahe", "Mark/Navn": "Niederhäuser Hermannshöhle Riesling GG", Type: "Hvid", Årgang: 2020, Antal: 2 }),
   row({ Producent: "J.-A. Ferret", Land: "Frankrig", Område: "Bourgogne", Kommune: "Pouilly-Fuissé", "Mark/Navn": "Les Crays", Klassifikation: "1. cru", Type: "Hvid", Årgang: 2021, Antal: 2 }),
 ] });
 
@@ -126,6 +128,23 @@ const gas = H({ Ark1: [HEAD,
   await p.click("#addHere"); await p.waitForSelector("#addModal.open", { timeout: 20000 });
   const fb = await p.evaluate(() => [aProducer.value, aName.value, aCommune.value, aRegion.value, aClass.value, aType.value].join("|"));
   check("…filled in: Château Latour, Pauillac, Bordeaux, Premier grand cru classé, red", fb === "Château Latour||Pauillac|Bordeaux|Premier grand cru classé|Rød", fb);
+
+  // Germany: the Einzellagen of the Weinbergsrolle
+  await p.goto(BASE + "atlas.html#r=mosel"); await p.waitForTimeout(2500);
+  const mo = await p.evaluate(() => ({ n: st.pack.climats.filter(c => c.c === "EL").length, el: !document.getElementById("fEL").parentNode.hidden, gc: document.getElementById("fGC").parentNode.hidden,
+    side: [...document.querySelectorAll("#side h3, #side li")].map(e => e.textContent).join("\n"), src: st.pack.meta.source }));
+  check("the Mosel: its 450-odd Einzellagen by Bereich, with their own filter, credited to the Landwirtschaftskammer", mo.n > 440 && mo.n < 462 && mo.el && mo.gc && /Bereich Bernkastel/.test(mo.side)
+    && /©Landwirtschaftskammer RLP \(\d{4}\), dl-de\/by-2-0/.test(mo.src), JSON.stringify({ n: mo.n, el: mo.el, src: mo.src }));
+  check("…the Loosen lands on Wehlen's Sonnenuhr, not on one of the other four", /Wehlener Sonnenuhr[^\n]*🍷 3/.test(mo.side) && !/(Zeltingen-Rachtiger|Pommerner|Neumagener|Maring-Noviander) Sonnenuhr[^\n]*🍷/.test(mo.side), mo.side.match(/[^\n]*🍷[^\n]*/g));
+  await p.click('#side button[data-c="sonnenuhr_wehlen"]'); await p.waitForTimeout(300);
+  const ws = await p.textContent("#side");
+  check("…Wehlener Sonnenuhr: Großlage Münzlay, 42.6 ha of vines in the register, its outline beside it", /Großlage Münzlay/.test(ws) && /42[.,]6 ha/.test(ws) && /Outline on the map/.test(ws) && /Gemarkung: Wehlen/.test(ws), ws.slice(0, 300));
+  await p.click("#addHere"); await p.waitForSelector("#addModal.open", { timeout: 20000 });
+  const fw = await p.evaluate(() => [aName.value, aCommune.value, aRegion.value, aCountry.value, aType.value].join("|"));
+  check("…'Add a bottle from here' writes it as a label does: Wehlener Sonnenuhr, Mosel, Germany", fw === "Wehlener Sonnenuhr|Bernkastel-Kues|Mosel|Tyskland|Hvid", fw);
+  await p.goto(BASE + "atlas.html#r=nahe"); await p.waitForTimeout(2500);
+  const nahe = await p.evaluate(() => [...document.querySelectorAll("#side li")].map(e => e.textContent).filter(x => /🍷/.test(x)));
+  check("the Nahe: the Dönnhoff 'Niederhäuser' finds Niederhausen's Hermannshöhle", nahe.length === 1 && /Niederhausener Hermannshöhle[^\n]*🍷 2/.test(nahe[0]), JSON.stringify(nahe));
 
   // a phone
   const q = await (await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true })).newPage();

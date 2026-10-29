@@ -82,6 +82,15 @@ const REGIONS = {
         "Coutet|Barsac", "Climens|Barsac", "Guiraud|Sauternes", "Rieussec|Sauternes", "Rabaud-Promis|Sauternes", "Sigalas Rabaud|Sauternes"],
       "sau-2": ["de Myrat|Barsac|Myrat", "Doisy Daëne|Barsac", "Doisy-Dubroca|Barsac", "Doisy-Védrines|Barsac", "d'Arche|Sauternes|Arche", "Filhot|Sauternes", "Broustet|Barsac",
         "Nairac|Barsac", "Caillou|Barsac", "Suau|Barsac", "de Malle|Sauternes|Malle", "Romer|Sauternes", "Romer du Hayot|Sauternes", "Lamothe|Sauternes", "Lamothe Guignard|Sauternes|Lamothe-Guignard"] } },
+  // Germany (Rhineland-Palatinate): every Einzellage of the Weinbergsrolle, from the Landwirtschaftskammer's own
+  // download (dl-de/by-2-0, credit below), one pack per Anbaugebiet. No classification on it: the VDP's Grosse Lage
+  // is a private association's, not the law's. Rheingau is Hessen's, which hasn't published its register.
+  mosel: { name: "Mosel", country: "Tyskland", region: "Mosel", kind: "lagen", gebiet: "Mosel" },
+  nahe: { name: "Nahe", country: "Tyskland", region: "Nahe", kind: "lagen", gebiet: "Nahe" },
+  pfalz: { name: "Pfalz", country: "Tyskland", region: "Pfalz", kind: "lagen", gebiet: "Pfalz" },
+  rheinhessen: { name: "Rheinhessen", country: "Tyskland", region: "Rheinhessen", kind: "lagen", gebiet: "Rheinhessen" },
+  mittelrhein: { name: "Mittelrhein", country: "Tyskland", region: "Mittelrhein", kind: "lagen", gebiet: "Mittelrhein" },
+  ahr: { name: "Ahr", country: "Tyskland", region: "Ahr", kind: "lagen", gebiet: "Ahr" },
   // INAO's map has no Champagne: its delimitation was never published as data. Its grands and premiers crus are whole
   // villages (the échelle des crus), so a cru here is the vines (IGN BD TOPO, nature "Vigne") inside that village's
   // boundary (IGN ADMIN EXPRESS; the old commune where it has since merged: Aÿ, Oger, Vertus, Coligny…); the other
@@ -131,7 +140,7 @@ async function wfs(layer, extra, name, cql) { // cql: a filter on top of the box
 }
 
 // ── geometry: Lambert-93 (EPSG:2154, metres, asked for as such) from the region's centre; y grows southwards ───
-const lat0 = (R.bbox[0] + R.bbox[2]) / 2, lon0 = (R.bbox[1] + R.bbox[3]) / 2;
+const lat0 = R.bbox ? (R.bbox[0] + R.bbox[2]) / 2 : 0, lon0 = R.bbox ? (R.bbox[1] + R.bbox[3]) / 2 : 0; // (the German packs set their own)
 let E0 = null, N0 = null; // set from the data's own middle
 const toM = ([e, n]) => [e - E0, N0 - n];
 const polysOf = g => g.type === "Polygon" ? [g.coordinates] : g.type === "MultiPolygon" ? g.coordinates : [];
@@ -169,7 +178,7 @@ const label = mp => { // a point inside the biggest piece: its ring's centroid i
   for (let i = 0, j = r.length - 1; i < r.length; j = i++) { const [xi, yi] = r[i], [xj, yj] = r[j]; if ((yi > y) !== (yj > y)) xs.push(xi + (y - yi) * (xj - xi) / (yj - yi)); }
   xs.sort((a, b) => a - b); return [Math.round((xs[0] + xs[1]) / 2), Math.round(y)];
 };
-const RANK = { GC: 0, "1er": 1, AOC: 2 };
+const RANK = { GC: 0, "1er": 1, AOC: 2, EL: 3 };
 const slug = s => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
 const proper = s => s.replace(/^(les?|la|l')\s/i, m => m.charAt(0).toUpperCase() + m.slice(1).toLowerCase()).replace(/^./, c => c.toUpperCase());
 
@@ -210,7 +219,41 @@ async function villagesBuild() {
   return { climats, villages: [{ ap: "Champagne", ha: +polyHa(others).toFixed(1), g: tidy(others, TOL * R.bgTol).filter(p => polyHa([p]) >= R.minHa * 3) }], regionalLand: [] };
 }
 
+// ── Germany: the Einzellagen of the Weinbergsrolle (Landwirtschaftskammer Rheinland-Pfalz, GeoJSON in WGS84) ────
+// Outside France, so no Lambert-93: metres east and south of the pack's middle on a local equirectangular grid
+// (meta.proj "eq", meta.origin), good to a few metres across one Anbaugebiet
+const LAGEN_URL = "https://geodaten.lwk-rlp.de/cgi-bin/qgis_mapserv.fcgi?MAP=/home/qgis/projects/gg_wfslvermgeo_lokal.qgs&SERVICE=WFS&VERSION=1.3.0&REQUEST=GetFeature&outputFormat=geojson&typeName=weinlagen_recht";
+async function lagenBuild() {
+  const file = path.join(CACHE, "de-weinlagen.json");
+  if (!fs.existsSync(file)) fs.writeFileSync(file, await curl(LAGEN_URL));
+  // "Einzellagenfrei in GL …" is vineyard land in no Einzellage: not a site, so left out
+  const all = JSON.parse(fs.readFileSync(file, "utf8")).features.filter(f => f.properties.anbaugebiet === R.gebiet && !/^Einzellagenfrei/.test(f.properties.wlg_name || ""));
+  let lo0 = Infinity, lo1 = -Infinity, la0 = Infinity, la1 = -Infinity;
+  all.forEach(f => polysOf(f.geometry).forEach(p => p[0].forEach(([x, y]) => { lo0 = Math.min(lo0, x); lo1 = Math.max(lo1, x); la0 = Math.min(la0, y); la1 = Math.max(la1, y); })));
+  const O = [+((lo0 + lo1) / 2).toFixed(4), +((la0 + la1) / 2).toFixed(4)], d2r = Math.PI / 180, RE = 6371000, kx = d2r * RE * Math.cos(O[1] * d2r), ky = d2r * RE;
+  const m = ([x, y]) => [(x - O[0]) * kx, (O[1] - y) * ky];
+  const num = v => { const n = parseFloat(String(v || "").replace(",", ".")); return isFinite(n) ? n : null; };
+  // the name on a label: the village made an adjective (Wehlen → Wehlener Sonnenuhr); the matcher also takes the
+  // village's own name, which covers the irregular ones (Niederhausen → Niederhäuser)
+  const adj = g => g.replace(/\s*\(.*\)$/, "").replace(/^Bad /, "") + "er";
+  const climats = all.map(f => {
+    const p = f.properties, gm = String(p.gemarkungen || "").split(/,\s*/).filter(Boolean).map(x => x.charAt(0).toUpperCase() + x.slice(1)) /* "ürzig" → "Ürzig" */, mp = polysOf(f.geometry).map(q => q.map(r => r.map(m)));
+    const g = tidy(mp, 5), reg = num(p.rebflaeche); // whole hillsides: 5 m is plenty
+    return g.length && { id: slug(p.wlg_name + " " + (gm[0] || p.wlg_nr)), n: String(p.wlg_name), c: "EL", ap: gm.length === 1 ? adj(gm[0]) + " " + p.wlg_name : String(p.wlg_name),
+      app: String(p.gemeinde || "").split(/,\s*/)[0], area: String(p.bereich || "").replace(/^Ber(eich|\.) /, ""), gl: p.grosslage && p.grosslage !== "-" ? String(p.grosslage) : "",
+      gm, nr: String(p.wlg_nr), col: "W", ha: reg ?? +polyHa(mp).toFixed(1), haMap: +polyHa(mp).toFixed(1), reg: reg != null, lp: label(g), g, aka: gm.map(x => adj(x) + " " + p.wlg_name) };
+  }).filter(Boolean);
+  climats.forEach(c => { let i = 2; const base = c.id; while (climats.filter(x => x.id === c.id).length > 1) c.id = base + "_" + i++; });
+  const year = new Date().getFullYear();
+  return { climats, villages: [], regionalLand: [], meta: { proj: "eq", origin: O, l93: null,
+    source: `Einzellagen: ©Landwirtschaftskammer RLP (${year}), dl-de/by-2-0, weinlagen.lwk-rlp.de [Daten bearbeitet]` } };
+}
+
 (async () => {
+  if (R.kind === "lagen") {
+    console.error(`${R.name}: the Einzellagen of the Weinbergsrolle`);
+    return finish(await lagenBuild());
+  }
   if (R.kind === "villages") {
     console.error(`${R.name}: the cru villages' vines from IGN`);
     return finish(await villagesBuild());
@@ -314,7 +357,7 @@ async function placePoints(climats, villageLand) {
   return out;
 }
 
-function finish({ climats, villages, regionalLand, points }) {
+function finish({ climats, villages, regionalLand, points, meta }) {
   // the same name in two appellations (Clos du Roy) gets the appellation in its id
   climats.forEach(c => { if (climats.filter(x => x.id === c.id).length > 1) c.id = slug(c.app + " " + c.n); });
   climats.forEach(c => { let i = 2; const base = c.id; while (climats.filter(x => x.id === c.id).length > 1) c.id = base + "_" + i++; });
@@ -322,15 +365,17 @@ function finish({ climats, villages, regionalLand, points }) {
   const regional = tidy(union(regionalLand), TOL * Math.max(5, (R.bgTol || 2) * 2)).filter(p => polyHa([p]) > 0.5);
   const all = climats.flatMap(c => c.g).concat(...villages.map(v => v.g), regional).flatMap(p => p[0]);
   const bb = all.reduce((b, [x, y]) => [Math.min(b[0], x), Math.min(b[1], y), Math.max(b[2], x), Math.max(b[3], y)], [Infinity, Infinity, -Infinity, -Infinity]);
-  const pack = { meta: { id, name: R.name, country: R.country, region: R.region, built: new Date().toISOString().slice(0, 10), origin: [lon0, lat0], l93: [E0, N0], bb,
-      source: R.kind === "villages" ? "Vines: IGN BD TOPO (zone de végétation « Vigne »); village boundaries: IGN ADMIN EXPRESS (Licence Ouverte); crus: the échelle des crus"
-        : "INAO — Délimitation parcellaire des AOC viticoles, via IGN Géoplateforme (Licence Ouverte); place names: IGN BD TOPO (Licence Ouverte)" },
+  const pack = { meta: { id, name: R.name, country: R.country, region: R.region, built: new Date().toISOString().slice(0, 10), origin: [lon0, lat0], l93: [E0, N0], bb, ...(meta || {}),
+      ...(meta && meta.source ? {} : { source: R.kind === "villages" ? "Vines: IGN BD TOPO (zone de végétation « Vigne »); village boundaries: IGN ADMIN EXPRESS (Licence Ouverte); crus: the échelle des crus"
+        : "INAO — Délimitation parcellaire des AOC viticoles, via IGN Géoplateforme (Licence Ouverte); place names: IGN BD TOPO (Licence Ouverte)" }) },
     climats: climats.sort((a, b) => RANK[a.c] - RANK[b.c] || a.n.localeCompare(b.n, "fr")),
     villages, regional: { ha: +polyHa(union(regionalLand)).toFixed(1), g: regional }, ...(points ? { points } : {}) };
   const out = path.join(ROOT, `atlas-${id}.js`);
   fs.writeFileSync(out, `// Generated by tools/region-build.js ${id} — do not edit by hand.\nwindow.ATLAS_PACKS = window.ATLAS_PACKS || {};\nwindow.ATLAS_PACKS[${JSON.stringify(id)}] = ${JSON.stringify(pack)};\n`);
   const aocN = climats.filter(c => c.c === "AOC").length, gcN = climats.filter(c => c.c === "GC").length, pcN = climats.filter(c => c.c === "1er" && !c.unnamed && !c.inferred).length,
     infN = climats.filter(c => c.inferred).length, unN = climats.filter(c => c.unnamed).length;
+  const elN = climats.filter(c => c.c === "EL").length;
+  if (elN) { console.error(`${path.basename(out)}: ${elN} Einzellagen · ${(fs.statSync(out).size / 1024).toFixed(0)} KB`); return; }
   console.error(`${path.basename(out)}: ${aocN ? aocN + " cru appellations, " : ""}${gcN} grands crus, ${pcN} premiers crus named by INAO, ${infN} named from IGN place names, ${unN} unnamed, `
     + `villages ${villages.map(v => v.ap + " " + v.ha).join(", ")} ha, regional ${pack.regional.ha} ha · ${(fs.statSync(out).size / 1024).toFixed(0)} KB`);
 }

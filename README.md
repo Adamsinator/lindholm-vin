@@ -370,7 +370,7 @@ that climat; a third element `"f"` marks a lease, `"s"` bought grapes. Domaine
 profiles and their sources are in `PROFILES`. When you change the JS, bump the
 `?v=` on the `<script>` tags in `burgundy.html`.
 
-## Region atlas (Chablis, Côte Chalonnaise, Mâconnais, Champagne, Alsace, Northern Rhône, Bordeaux)
+## Region atlas (Burgundy beyond the Côte d'Or, Champagne, Alsace, Northern Rhône, Bordeaux, Germany)
 
 **More regions ↗** (tab bar, and in the Burgundy atlas) opens `atlas.html`: one wine region at a time, from INAO's own
 vineyard outlines. The Côte d'Or keeps its richer atlas (`burgundy.html`); the region atlas is lighter and generic, so a
@@ -419,6 +419,18 @@ new region is a data file, not new code.
   Duhart-Milon, Clerc Milon, Haut-Batailley… share or lack a named building). A bottle lands on a château by its
   producer or wine name, the longest name winning; "Add a bottle from here" fills in the château as producer and its
   1855 rank as the classification. Each placed château has its own vineyard page.
+- **Germany (Mosel, Nahe, Pfalz, Rheinhessen, Mittelrhein, Ahr):** every Einzellage of the *Weinbergsrolle*, the
+  official register, from the Landwirtschaftskammer Rheinland-Pfalz's own GeoJSON download (geodaten.lwk-rlp.de,
+  `weinlagen_recht`). Licence: Datenlizenz Deutschland – Namensnennung 2.0, which asks for the credit
+  "©Landwirtschaftskammer RLP (year), dl-de/by-2-0, weinlagen.lwk-rlp.de [Daten bearbeitet]": it is the pack's source
+  line, shown in the atlas and at the foot of every German vineyard page. Each site is shown as a label writes it
+  (Wehlen + Sonnenuhr → "Wehlener Sonnenuhr"), with its Großlage, Gemarkung(en), Bereich and the register's vine area
+  beside the outline's area (the outline also takes in unplanted land: about twice the vines, at the median).
+  "Einzellagenfrei" land is left out. No ranking: the VDP's Grosse Lage is a private association's. A bottle needs one
+  of the site's villages on it ("Wehlen", or "Niederhäuser" for Niederhausen) before its site name counts, as there
+  are five Sonnenuhrs. These packs are on a local metric grid round `meta.origin` (`meta.proj: "eq"`), not
+  Lambert-93. **Not here:** the Rheingau (Hessen hasn't published its register) and the Scharzhofberg, which is an
+  Ortsteil, not an Einzellage.
 - **A new region:** add it to `REGIONS` in `tools/region-build.js` (its box, village appellations and regional
   appellations), build it, then list it in `atlas.js` (`REGIONS`) and in `app.js` (`ATLAS_REGIONS`) for "On the map".
   Tested in `tools/region-atlas-ui-test.js`. Then rebuild the vineyard pages (next section).
