@@ -38,6 +38,7 @@ const T = {
     hubLead: "Every named vineyard on AllWine's atlases, drawn from INAO's delimitation. Open any of them on the interactive map, or match your own bottles to them.",
     source: "Outlines: INAO, Délimitation parcellaire des AOC viticoles (Licence Ouverte). Altitude and slope: IGN RGE ALTI®. Owners: published sources, rounded.",
     sourceDem: "Altitude and slope: IGN RGE ALTI® (Licence Ouverte).",
+    sourceDemDe: "Altitude and slope: DGM1, ©GeoBasis-DE / LVermGeoRP, dl-de/by-2-0 [data edited].",
     sourcePack: "Outlines: INAO, Délimitation parcellaire des AOC viticoles, via IGN's Géoplateforme (Licence Ouverte).",
     burgundy: "Burgundy", france: "France", cote: "Côte d'Or", privacy: "Privacy", lang: "Language",
         GCv: "grand cru villages", "1erv": "premier cru villages",
@@ -62,6 +63,7 @@ const T = {
     hubLead: "Tous les climats nommés des atlas d'AllWine, d'après la délimitation de l'INAO. Ouvrez-les sur la carte interactive ou rattachez-y vos propres bouteilles.",
     source: "Contours : INAO, Délimitation parcellaire des AOC viticoles (Licence Ouverte). Altitude et pente : IGN RGE ALTI®. Propriétaires : sources publiées, arrondies.",
     sourceDem: "Altitude et pente : IGN RGE ALTI® (Licence Ouverte).",
+    sourceDemDe: "Altitude et pente : DGM1, ©GeoBasis-DE / LVermGeoRP, dl-de/by-2-0 [données modifiées].",
     sourcePack: "Contours : INAO, Délimitation parcellaire des AOC viticoles, via la Géoplateforme de l'IGN (Licence Ouverte).",
     burgundy: "Bourgogne", france: "France", cote: "Côte-d'Or", privacy: "Confidentialité", lang: "Langue",
         GCv: "villages grand cru", "1erv": "villages premier cru",
@@ -86,6 +88,7 @@ const T = {
     hubLead: "Alle benannten Lagen der AllWine-Atlanten, nach der Abgrenzung des INAO. Öffnen Sie jede auf der interaktiven Karte oder ordnen Sie ihr Ihre eigenen Flaschen zu.",
     source: "Umrisse: INAO, Délimitation parcellaire des AOC viticoles (Licence Ouverte). Höhe und Neigung: IGN RGE ALTI®. Besitzer: veröffentlichte Quellen, gerundet.",
     sourceDem: "Höhe und Neigung: IGN RGE ALTI® (Licence Ouverte).",
+    sourceDemDe: "Höhe und Neigung: DGM1, ©GeoBasis-DE / LVermGeoRP, dl-de/by-2-0 [Daten bearbeitet].",
     sourcePack: "Umrisse: INAO, Délimitation parcellaire des AOC viticoles, über die Géoplateforme des IGN (Licence Ouverte).",
     burgundy: "Burgund", france: "Frankreich", cote: "Côte d'Or", privacy: "Datenschutz", lang: "Sprache",
         GCv: "Grand-Cru-Dörfer", "1erv": "Premier-Cru-Dörfer",
@@ -110,6 +113,7 @@ const T = {
     hubLead: "Alle navngivne vinmarker på AllWines atlas, tegnet efter INAO's afgrænsning. Åbn dem på det interaktive kort, eller knyt dine egne flasker til dem.",
     source: "Omrids: INAO, Délimitation parcellaire des AOC viticoles (Licence Ouverte). Højde og hældning: IGN RGE ALTI®. Ejere: offentliggjorte kilder, afrundet.",
     sourceDem: "Højde og hældning: IGN RGE ALTI® (Licence Ouverte).",
+    sourceDemDe: "Højde og hældning: DGM1, ©GeoBasis-DE / LVermGeoRP, dl-de/by-2-0 [data bearbejdet].",
     sourcePack: "Omrids: INAO, Délimitation parcellaire des AOC viticoles, via IGN's Géoplateforme (Licence Ouverte).",
     burgundy: "Bourgogne", france: "Frankrig", cote: "Côte d'Or", privacy: "Privatliv", lang: "Sprog",
         GCv: "grand cru-landsbyer", "1erv": "premier cru-landsbyer",
@@ -398,7 +402,7 @@ ${note ? `<p>${esc(note)}</p>\n` : ""}${oneOf ? `<p>${esc(oneOf)}</p>\n` : ""}${
 <h2>${v.nogeo ? fmt(t.otherMga, v.docg.name) : t.nearby}</h2>
 <ul class="links">${nb.map(o => `<li><a href="${o.slug}.html">${esc(o.n)}</a>${o.nogeo ? "" : ` <small>${esc([o.label || clsOf(o, t), o.commune].filter(Boolean).join(" · "))}</small>`}</li>`).join("")}</ul>
 ` + foot(L, (v.nogeo ? t.sourceMga : v.set === "burgundy" ? t.source : v.rolle ? t.sourceRolle : v.vines ? t.sourceVines : v.point ? t.sourcePt : t.sourcePack)
-  + (v.dem && v.set !== "burgundy" ? " " + t.sourceDem : ""));
+  + (v.dem && v.set !== "burgundy" ? " " + (v.rolle ? t.sourceDemDe : t.sourceDem) : ""));
 }
 
 function hub(L) {
