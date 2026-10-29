@@ -7,5 +7,5 @@
 window.WINE_CONFIG = {
   API_URL: "https://allwine-api.adamlenzing.workers.dev",
   TURNSTILE_SITE_KEY: "0x4AAAAAAFmp5IeCDktkq8Wg",
-  ADMIN_KID: ""
+  ADMIN_KID: "18c76ea2e6f3a82156ac41331ba5c95c"
 };
