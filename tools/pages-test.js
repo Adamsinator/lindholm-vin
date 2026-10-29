@@ -19,7 +19,7 @@ check("the pages on disk are what the data gives (else: node tools/pages-build.j
 const keys = Object.keys(T.en).sort().join();
 check("every language has every word", LANGS.every(L => Object.keys(T[L]).sort().join() === keys && T[L].dirs.length === 8), LANGS.filter(L => Object.keys(T[L]).sort().join() !== keys).join());
 check("every vineyard has its own address", new Set(ALL.map(v => v.slug)).size === ALL.length);
-check("about 2 500 vineyards, châteaux and Einzellagen across fourteen regions", ALL.length > 2400 && new Set(ALL.map(v => v.set)).size === 14, ALL.length);
+check("about 2 700 vineyards, châteaux, Einzellagen and MGA across sixteen regions", ALL.length > 2650 && new Set(ALL.map(v => v.set)).size === 16, ALL.length);
 
 const pages = Object.keys(files).filter(f => f.endsWith(".html"));
 const bad = { head: [], ld: [], geo: [], junk: [], links: [] };
@@ -31,7 +31,8 @@ for (const f of pages) {
       || alts.length !== 5 || !LANGS.every(l => alts.some(a => a[1] === l && a[2] === `${SITE}${OUT}/${l}/${file}`))) bad.head.push(f);
   let ld; try { ld = JSON.parse(s.match(/<script type="application\/ld\+json">(.*?)<\/script>/)[1]); } catch (e) { bad.ld.push(f); }
   const place = ld && (ld["@graph"] || []).find(x => x["@type"] === "Place");
-  if (file !== "index.html" && (!place || !(place.geo.latitude > 44.4 && place.geo.latitude < 50.7 && place.geo.longitude > -1.2 && place.geo.longitude < 8.5))) bad.geo.push(f);
+  const mga = /Disciplinari di produzione DOCG Barolo/.test(s); // Barolo and Barbaresco's MGA: no outlines, so no coordinates
+  if (file !== "index.html" && !mga && (!place || !(place.geo.latitude > 44.4 && place.geo.latitude < 50.7 && place.geo.longitude > -1.2 && place.geo.longitude < 8.5))) bad.geo.push(f);
   if (/undefined|NaN|\{\d\}|\[object/.test(s.replace(/<svg class="map".*?<\/svg>/s, ""))) bad.junk.push(f);
   for (const [, h] of s.matchAll(/href="([^"#?]+)[^"]*"/g)) {
     if (/^(https?:|data:)/.test(h)) continue;
@@ -62,7 +63,7 @@ check("Les Clos in French: Chablis Grand Cru, 27,1 ha, into the Chablis atlas, w
 const inferred = ALL.find(v => v.inferred);
 check("a name INAO's map leaves out says it's inferred", inferred && files[`${OUT}/en/${inferred.slug}.html`].includes("INAO&#39;s map leaves this parcel unnamed"), inferred && inferred.slug);
 const hub = files[`${OUT}/en/index.html`];
-check("the vineyard index links every vineyard, by region", ALL.every(v => hub.includes(`href="${v.slug}.html"`)) && ["burgundy", "chablis", "chalonnaise", "maconnais", "champagne", "alsace", "rhone", "bordeaux", "mosel", "nahe", "pfalz", "rheinhessen", "mittelrhein", "ahr"].every(r => hub.includes(`id="${r}"`)));
+check("the vineyard index links every vineyard, by region", ALL.every(v => hub.includes(`href="${v.slug}.html"`)) && ["burgundy", "chablis", "chalonnaise", "maconnais", "champagne", "alsace", "rhone", "bordeaux", "mosel", "nahe", "pfalz", "rheinhessen", "mittelrhein", "ahr", "barolo", "barbaresco"].every(r => hub.includes(`id="${r}"`)));
 const geoOf = f => ((JSON.parse((files[f].match(/ld\+json">(.*?)<\/script>/) || [, "{}"])[1])["@graph"] || [])[0] || {}).geo || {};
 const ch = files[`${OUT}/en/chouilly.html`] || "", chG = geoOf(`${OUT}/en/chouilly.html`);
 check("Chouilly: a Champagne grand cru village, its note on Pinot Noir, drawn from IGN's vines, east of Épernay", ch.includes("Champagne Grand Cru") && ch.includes("its Pinot Noir is rated premier cru")
@@ -78,6 +79,19 @@ check("Wehlener Sonnenuhr in German: its Großlage and Gemarkung, 42,6 ha of vin
   && ws.includes("<dd>Münzlay</dd>") && ws.includes("<dd>Wehlen</dd>") && ws.includes("42,6 ha") && JSON.stringify(wsP).includes('"Deutschland"') && ws.includes("©Landwirtschaftskammer RLP")
   && Math.abs(wsP.geo.latitude - 49.9453) < .003 && Math.abs(wsP.geo.longitude - 7.0474) < .004, JSON.stringify(wsP.geo));
 check("every German page carries the Landwirtschaftskammer's credit and licence", pages.filter(f => /Weinbergsrolle/.test(files[f])).every(f => files[f].includes("dl-de/by-2-0")));
+// Barolo and Barbaresco: the MGA from the rules, a page each, and the cellar's link lands on it
+global.window.PIEMONTE_MGA || require("../piemonte-mga.js");
+const P = global.window.PIEMONTE_MGA.docg;
+check("the rules' MGA: Barolo 170 and 11 village mentions, Barbaresco 66", P.barolo.mga.length === 170 && P.barolo.villages.length === 11 && P.barbaresco.mga.length === 66,
+  [P.barolo.mga.length, P.barolo.villages.length, P.barbaresco.mga.length].join("/"));
+check("…the text's slips put right: Gallaretto and Garretti, Monforte d'Alba, Rabajà, and Ca' Grossa kept", ["Gallaretto", "Garretti"].every(n => P.barolo.mga.some(m => m.n === n))
+  && P.barolo.villages.some(v => v.n === "Monforte d'Alba") && P.barbaresco.mga.some(m => m.n === "Rabajà" && m.official === "Rabaja'") && P.barbaresco.mga.some(m => m.n === "Ca' Grossa"));
+const cb = files[`${OUT}/de/barolo-cannubi-boschis.html`] || "";
+check("Barolo Cannubi Boschis in German: Nebbiolo 100%, 38 months (18 in wood), 8 t/ha, also labelled Barolo Cannubi, no map, in Italy", cb.includes("<h1>Barolo Cannubi Boschis</h1>")
+  && cb.includes("Nebbiolo 100%") && cb.includes("38 Monate, davon 18 im Holz") && cb.includes("8 t/ha") && cb.includes("<dd>Barolo Cannubi</dd>") && !cb.includes('<svg class="map"') && cb.includes('"Italien"'));
+const slugOf = s => String(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/œ/g, "oe").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""); // as app.js's pageSlug
+const labels = Object.values(P).flatMap(D => D.mga.map(m => `${D.name} ${m.n}`).concat(D.villages.map(v => `${D.name} ${v.official}`)));
+check(`the cellar's link (app.js pageSlug) finds the page of every one of the ${labels.length} MGA`, labels.every(l => files[`${OUT}/en/${slugOf(l)}.html`]), labels.filter(l => !files[`${OUT}/en/${slugOf(l)}.html`]).slice(0, 4).join(", "));
 const ra = files[`${OUT}/de/rangen.html`] || "";
 check("Rangen in German: one of Alsace's 51 grands crus, into the Alsace atlas", ra.includes("Teil der 51 Grands Crus in Elsass") && ra.includes('href="../../atlas.html?lang=de#r=alsace&c=rangen"'));
 

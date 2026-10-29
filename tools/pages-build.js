@@ -19,6 +19,8 @@ const PTLABEL = { "1855-1": "Premier grand cru classé", "1855-2": "Deuxième gr
 const PACKS = ["chablis", "chalonnaise", "maconnais", "champagne", "alsace", "rhone", "bordeaux", "mosel", "nahe", "pfalz", "rheinhessen", "mittelrhein", "ahr"];
 const GERMAN = ["mosel", "nahe", "pfalz", "rheinhessen", "mittelrhein", "ahr"];
 for (const id of PACKS) require(path.join(R, `atlas-${id}.js`));
+require(path.join(R, "piemonte-mga.js")); // Barolo and Barbaresco: names and rules, no outlines (tools/mga-build.js)
+const MGA = window.PIEMONTE_MGA;
 
 // ── words ────────────────────────────────────────────────────────────────────────────────────────
 const T = {
@@ -39,6 +41,8 @@ const T = {
     PT: "Classified château", classification: "Classification", descPt: "{0}: {1} ({2}, {3}). Where it stands on the map, among the appellations and the other classified châteaux.", sourcePt: "The 1855 classification. Château positions: IGN BD TOPO; appellations: INAO (Licence Ouverte).",
     cls: {"1855-1": "First growths (1855)", "1855-2": "Second growths (1855)", "1855-3": "Third growths (1855)", "1855-4": "Fourth growths (1855)", "1855-5": "Fifth growths (1855)", "sau-0": "Superior first growth, Sauternes (1855)", "sau-1": "First growths, Sauternes (1855)", "sau-2": "Second growths, Sauternes (1855)"},
     germany: "Germany", EL: "Einzellage (single vineyard)", ELp: "Einzellagen", onRolle: "in the Weinbergsrolle, the official register of German vineyard sites", gl: "Großlage", gmk: "Gemarkung", outline: "Outline on the map", regVines: "Vines (Weinbergsrolle)", oneOfEL: "One of the {0} Einzellagen of the Bereich {2}, with {3} ha of vines between them in the register.", sourceRolle: "Einzellagen: ©Landwirtschaftskammer RLP (2026), dl-de/by-2-0, weinlagen.lwk-rlp.de [Daten bearbeitet].",
+    italy: "Italy", MGA: "MGA (menzione geografica aggiuntiva)", MGAp: "Menzioni geografiche aggiuntive", MGAV: "Village mention", mgaVillages: "Village mentions", grape: "Grape", ageingF: "Minimum ageing", months: "{0} months, {1} in wood", riservaF: "Riserva", monthsR: "{0} months", yieldF: "Maximum yield", akaF: "Also on labels as", officialF: "As the rules write it", descMga: "{1} {0}: one of the MGAs of {1} DOCG, Piedmont. Nebbiolo, at least {2} months' ageing ({3} in wood), at most {4} t/ha: the rules for “{1} {0}” and the other MGAs of {1}.", descMgaV: "{1} {0}: the village mention of {1} DOCG, for a wine from anywhere in that commune. The rules and the other MGAs of {1}.", mgaWhat: "{0} is one of the {2} menzioni geografiche aggiuntive (MGA) of {1}, named areas set down in the production rules: on the label it follows the denomination, as “{1} {0}”. A vineyard's own name may follow it as “vigna …”, at a lower yield ({4} t/ha). The rules also allow {3} village mentions.", mgaVillageWhat: "“{1} {0}” is one of {1}'s {3} village mentions: for a wine from anywhere in that commune, alongside the {2} named MGAs.", mgaNoMap: "No map here: Regione Piemonte doesn't publish the MGA boundaries as open data, and the maps that exist are copyrighted.", sourceMga: "The MGA and the rules: Disciplinari di produzione DOCG Barolo (art. 8) and Barbaresco (art. 7), as republished by AIS.",
+    otherMga: "Other MGAs of {0}",
     oneOfVines: "One of the {0} {1} of {2}, whose vines together cover {3} ha.",
     AOC: "Cru appellation", AOCp: "cru appellations", onInao: "on INAO's map", onIgn: "from IGN's map of the vines inside the village", mapVines: "The vines of {0} (IGN), with its neighbours",
     sourceVines: "Vines: IGN BD TOPO (vegetation « Vigne »); village boundaries: IGN ADMIN EXPRESS (Licence Ouverte). The cru villages: the échelle des crus.",
@@ -60,6 +64,8 @@ const T = {
     PT: "Château classé", classification: "Classement", descPt: "{0} : {1} ({2}, {3}). Sa place sur la carte, parmi les appellations et les autres châteaux classés.", sourcePt: "Le classement de 1855. Emplacement des châteaux : IGN BD TOPO ; appellations : INAO (Licence Ouverte).",
     cls: {"1855-1": "Premiers grands crus classés (1855)", "1855-2": "Deuxièmes grands crus classés (1855)", "1855-3": "Troisièmes grands crus classés (1855)", "1855-4": "Quatrièmes grands crus classés (1855)", "1855-5": "Cinquièmes grands crus classés (1855)", "sau-0": "Premier cru supérieur, Sauternes (1855)", "sau-1": "Premiers crus classés, Sauternes (1855)", "sau-2": "Deuxièmes crus classés, Sauternes (1855)"},
     germany: "Allemagne", EL: "Einzellage (lieu-dit)", ELp: "Einzellagen", onRolle: "dans la Weinbergsrolle, le registre officiel des lieux-dits allemands", gl: "Großlage", gmk: "Gemarkung (finage)", outline: "Contour sur la carte", regVines: "Vignes (Weinbergsrolle)", oneOfEL: "L'une des {0} Einzellagen du Bereich {2}, qui comptent ensemble {3} ha de vignes au registre.", sourceRolle: "Einzellagen : ©Landwirtschaftskammer RLP (2026), dl-de/by-2-0, weinlagen.lwk-rlp.de [Daten bearbeitet].",
+    italy: "Italie", MGA: "MGA (mention géographique additionnelle)", MGAp: "Mentions géographiques additionnelles", MGAV: "Mention communale", mgaVillages: "Mentions communales", grape: "Cépage", ageingF: "Élevage minimum", months: "{0} mois, dont {1} en bois", riservaF: "Riserva", monthsR: "{0} mois", yieldF: "Rendement maximum", akaF: "Aussi sur l'étiquette", officialF: "Graphie du cahier des charges", descMga: "{1} {0} : une des MGA du {1} DOCG, Piémont. Nebbiolo, au moins {2} mois d'élevage (dont {3} en bois), au plus {4} t/ha : les règles du « {1} {0} » et les autres MGA du {1}.", descMgaV: "{1} {0} : la mention communale du {1} DOCG, pour un vin de toute la commune. Les règles et les autres MGA du {1}.", mgaWhat: "{0} est l'une des {2} menzioni geografiche aggiuntive (MGA) du {1}, des aires nommées par le cahier des charges : sur l'étiquette, elle suit l'appellation, « {1} {0} ». Un nom de vigne peut la suivre (« vigna … »), à un rendement moindre ({4} t/ha). Le cahier des charges prévoit aussi {3} mentions communales.", mgaVillageWhat: "« {1} {0} » est l'une des {3} mentions communales du {1}, pour un vin de toute la commune, à côté des {2} MGA nommées.", mgaNoMap: "Pas de carte ici : la Région Piémont ne publie pas les limites des MGA en données ouvertes, et les cartes existantes sont protégées.", sourceMga: "Les MGA et les règles : Disciplinari di produzione DOCG Barolo (art. 8) et Barbaresco (art. 7), republiés par l'AIS.",
+    otherMga: "Autres MGA du {0}",
     oneOfVines: "L'un des {0} {1} de {2}, dont les vignes couvrent ensemble {3} ha.",
     AOC: "Appellation cru", AOCp: "appellations crus", onInao: "sur la carte de l'INAO", onIgn: "d'après la carte des vignes de l'IGN", mapVines: "Les vignes de {0} (IGN), avec ses voisins",
     sourceVines: "Vignes : IGN BD TOPO (végétation « Vigne ») ; limites des villages : IGN ADMIN EXPRESS (Licence Ouverte). Les villages crus : l'échelle des crus.",
@@ -81,6 +87,8 @@ const T = {
     PT: "Klassifiziertes Château", classification: "Klassifikation", descPt: "{0}: {1} ({2}, {3}). Seine Lage auf der Karte, zwischen den Appellationen und den anderen klassifizierten Châteaux.", sourcePt: "Die Klassifikation von 1855. Lage der Châteaux: IGN BD TOPO; Appellationen: INAO (Licence Ouverte).",
     cls: {"1855-1": "Erste Gewächse (1855)", "1855-2": "Zweite Gewächse (1855)", "1855-3": "Dritte Gewächse (1855)", "1855-4": "Vierte Gewächse (1855)", "1855-5": "Fünfte Gewächse (1855)", "sau-0": "Erstes Gewächs supérieur, Sauternes (1855)", "sau-1": "Erste Gewächse, Sauternes (1855)", "sau-2": "Zweite Gewächse, Sauternes (1855)"},
     germany: "Deutschland", EL: "Einzellage", ELp: "Einzellagen", onRolle: "aus der Weinbergsrolle", gl: "Großlage", gmk: "Gemarkung", outline: "Umriss auf der Karte", regVines: "Rebfläche (Weinbergsrolle)", oneOfEL: "Eine von {0} Einzellagen im Bereich {2}, mit zusammen {3} ha Rebfläche laut Weinbergsrolle.", sourceRolle: "Einzellagen: ©Landwirtschaftskammer RLP (2026), dl-de/by-2-0, weinlagen.lwk-rlp.de [Daten bearbeitet].",
+    italy: "Italien", MGA: "MGA (menzione geografica aggiuntiva)", MGAp: "Menzioni geografiche aggiuntive", MGAV: "Gemeindeangabe", mgaVillages: "Gemeindeangaben", grape: "Rebsorte", ageingF: "Mindestreife", months: "{0} Monate, davon {1} im Holz", riservaF: "Riserva", monthsR: "{0} Monate", yieldF: "Höchstertrag", akaF: "Auch auf Etiketten als", officialF: "Schreibweise der Vorschrift", descMga: "{1} {0}: eine der MGA des {1} DOCG, Piemont. Nebbiolo, mindestens {2} Monate Reife (davon {3} im Holz), höchstens {4} t/ha: die Regeln für „{1} {0}“ und die anderen MGA des {1}.", descMgaV: "{1} {0}: die Gemeindeangabe des {1} DOCG, für einen Wein aus der ganzen Gemeinde. Die Regeln und die anderen MGA des {1}.", mgaWhat: "{0} ist eine der {2} menzioni geografiche aggiuntive (MGA) des {1}, in der Produktionsvorschrift benannte Gebiete: auf dem Etikett folgt sie der Bezeichnung, als „{1} {0}“. Ein Lagenname kann folgen („vigna …“), bei geringerem Ertrag ({4} t/ha). Die Vorschrift kennt außerdem {3} Gemeindeangaben.", mgaVillageWhat: "„{1} {0}“ ist eine der {3} Gemeindeangaben des {1}: für einen Wein aus der ganzen Gemeinde, neben den {2} benannten MGA.", mgaNoMap: "Keine Karte: Die Region Piemont veröffentlicht die Grenzen der MGA nicht als offene Daten, und die vorhandenen Karten sind urheberrechtlich geschützt.", sourceMga: "Die MGA und die Regeln: Disciplinari di produzione DOCG Barolo (Art. 8) und Barbaresco (Art. 7), wie von der AIS veröffentlicht.",
+    otherMga: "Weitere MGA des {0}",
     oneOfVines: "Eines der {0} {1} in {2}, deren Reben zusammen {3} ha umfassen.",
     AOC: "Cru-Appellation", AOCp: "Cru-Appellationen", onInao: "auf der INAO-Karte", onIgn: "nach der IGN-Karte der Reben im Dorf", mapVines: "Die Reben von {0} (IGN), mit den Nachbarn",
     sourceVines: "Reben: IGN BD TOPO (Vegetation « Vigne »); Gemeindegrenzen: IGN ADMIN EXPRESS (Licence Ouverte). Die Cru-Dörfer: die Échelle des crus.",
@@ -102,6 +110,8 @@ const T = {
     PT: "Klassificeret slot", classification: "Klassifikation", descPt: "{0}: {1} ({2}, {3}). Hvor det ligger på kortet, mellem appellationerne og de andre klassificerede slotte.", sourcePt: "Klassifikationen fra 1855. Slottenes placering: IGN BD TOPO; appellationer: INAO (Licence Ouverte).",
     cls: {"1855-1": "Første cru (1855)", "1855-2": "Anden cru (1855)", "1855-3": "Tredje cru (1855)", "1855-4": "Fjerde cru (1855)", "1855-5": "Femte cru (1855)", "sau-0": "Første cru supérieur, Sauternes (1855)", "sau-1": "Første cru, Sauternes (1855)", "sau-2": "Anden cru, Sauternes (1855)"},
     germany: "Tyskland", EL: "Einzellage (enkeltmark)", ELp: "Einzellagen", onRolle: "i Weinbergsrolle, det officielle register over tyske vinmarker", gl: "Großlage", gmk: "Gemarkung", outline: "Omrids på kortet", regVines: "Vinstokke (Weinbergsrolle)", oneOfEL: "En af de {0} Einzellagen i Bereich {2}, med tilsammen {3} ha vinstokke i registeret.", sourceRolle: "Einzellagen: ©Landwirtschaftskammer RLP (2026), dl-de/by-2-0, weinlagen.lwk-rlp.de [Daten bearbeitet].",
+    italy: "Italien", MGA: "MGA (menzione geografica aggiuntiva)", MGAp: "Menzioni geografiche aggiuntive", MGAV: "Kommuneangivelse", mgaVillages: "Kommuneangivelser", grape: "Drue", ageingF: "Mindste lagring", months: "{0} måneder, heraf {1} på træ", riservaF: "Riserva", monthsR: "{0} måneder", yieldF: "Største udbytte", akaF: "Også på etiketten som", officialF: "Som reglerne skriver det", descMga: "{1} {0}: en af MGA'erne i {1} DOCG, Piemonte. Nebbiolo, mindst {2} måneders lagring (heraf {3} på træ), højst {4} t/ha: reglerne for “{1} {0}” og de andre MGA'er i {1}.", descMgaV: "{1} {0}: kommuneangivelsen i {1} DOCG, for en vin fra hele kommunen. Reglerne og de andre MGA'er i {1}.", mgaWhat: "{0} er en af de {2} menzioni geografiche aggiuntive (MGA) i {1}, navngivne områder fastlagt i produktionsreglerne: på etiketten følger den betegnelsen, som “{1} {0}”. En vinmarks eget navn kan følge efter (“vigna …”), ved et lavere udbytte ({4} t/ha). Reglerne tillader også {3} kommuneangivelser.", mgaVillageWhat: "“{1} {0}” er en af {1}s {3} kommuneangivelser: for en vin fra hele kommunen, ved siden af de {2} navngivne MGA'er.", mgaNoMap: "Intet kort her: Regione Piemonte udgiver ikke MGA'ernes grænser som åbne data, og de kort, der findes, er ophavsretligt beskyttede.", sourceMga: "MGA'erne og reglerne: Disciplinari di produzione DOCG Barolo (art. 8) og Barbaresco (art. 7), som genudgivet af AIS.",
+    otherMga: "Andre MGA'er i {0}",
     oneOfVines: "En af de {0} {1} i {2}, hvis vinstokke tilsammen dækker {3} ha.",
     AOC: "Cru-appellation", AOCp: "cru-appellationer", onInao: "på INAO's kort", onIgn: "efter IGN's kort over vinstokkene i landsbyen", mapVines: "Vinstokkene i {0} (IGN), med naboerne",
     sourceVines: "Vinstokke: IGN BD TOPO (vegetation « Vigne »); landsbygrænser: IGN ADMIN EXPRESS (Licence Ouverte). Cru-landsbyerne: échelle des crus.",
@@ -110,6 +120,7 @@ const T = {
 const NAMES = { en: "English", fr: "Français", de: "Deutsch", da: "Dansk" };
 const fmt = (s, ...a) => s.replace(/\{(\d)\}/g, (m, i) => a[i] ?? "");
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const num = (v, l) => String(v).replace(".", l === "en" ? "." : ","); // a figure as the rules give it (7.2 t/ha)
 const ha = (v, l) => (v >= 10 ? v.toFixed(1) : v.toFixed(2)).replace(".", l === "en" ? "." : ",");
 const slug = s => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/œ/g, "oe").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
@@ -226,19 +237,28 @@ for (const pid of PACKS) {
       ll: toLL, map: `atlas.html?lang={L}#r=${pid}&c=${encodeURIComponent(q.id)}` });
   }
 }
+// Barolo's and Barbaresco's MGA: a page each, without a map (the outlines aren't open data); "nogeo" keeps them out of
+// everything that measures or draws
+for (const [set, D] of Object.entries(MGA.docg)) {
+  for (const m of D.mga) ALL.push({ set, id: m.id, n: `${D.name} ${m.n}`, short: m.n, c: "MGA", group: "mga", aka: (m.aka || []).map(a => `${D.name} ${a}`),
+    official: m.official, docg: D, nogeo: true, col: "R", ha: 0, app: `${D.name} DOCG`, commune: "", note: {}, soilT: {}, owners: [] });
+  for (const m of D.villages) ALL.push({ set, id: m.id, n: `${D.name} ${m.official}`, short: m.official, c: "MGAV", group: "villages", village: m.n,
+    docg: D, nogeo: true, col: "R", ha: 0, app: `${D.name} DOCG`, commune: m.n, note: {}, soilT: {}, owners: [] });
+}
 // each pack's name, and the wine region it belongs to, in each language
-const NAME = { alsace: { en: "Alsace", fr: "Alsace", de: "Elsass", da: "Alsace" }, rhone: { en: "Northern Rhône", fr: "Rhône septentrional", de: "Nördliche Rhône", da: "Nordlige Rhône" } };
+const NAME = { barolo: { en: "Barolo", fr: "Barolo", de: "Barolo", da: "Barolo" }, barbaresco: { en: "Barbaresco", fr: "Barbaresco", de: "Barbaresco", da: "Barbaresco" }, alsace: { en: "Alsace", fr: "Alsace", de: "Elsass", da: "Alsace" }, rhone: { en: "Northern Rhône", fr: "Rhône septentrional", de: "Nördliche Rhône", da: "Nordlige Rhône" } };
 const AREA = { burgundy: { en: "Burgundy", fr: "Bourgogne", de: "Burgund", da: "Bourgogne" }, champagne: { en: "Champagne", fr: "Champagne", de: "Champagne", da: "Champagne" },
   mosel: { en: "Mosel", fr: "Moselle", de: "Mosel", da: "Mosel" }, nahe: { en: "Nahe", fr: "Nahe", de: "Nahe", da: "Nahe" }, pfalz: { en: "Pfalz", fr: "Palatinat", de: "Pfalz", da: "Pfalz" },
   rheinhessen: { en: "Rheinhessen", fr: "Hesse rhénane", de: "Rheinhessen", da: "Rheinhessen" }, mittelrhein: { en: "Mittelrhein", fr: "Rhin moyen", de: "Mittelrhein", da: "Mittelrhein" },
-  ahr: { en: "Ahr", fr: "Ahr", de: "Ahr", da: "Ahr" },
+  ahr: { en: "Ahr", fr: "Ahr", de: "Ahr", da: "Ahr" }, piemonte: { en: "Piedmont", fr: "Piémont", de: "Piemont", da: "Piemonte" },
   alsace: NAME.alsace, bordeaux: { en: "Bordeaux", fr: "Bordeaux", de: "Bordeaux", da: "Bordeaux" }, rhone: { en: "Rhône Valley", fr: "Vallée du Rhône", de: "Rhônetal", da: "Rhônedalen" } };
-const AREA_OF = { burgundy: "burgundy", chablis: "burgundy", chalonnaise: "burgundy", maconnais: "burgundy", champagne: "champagne", alsace: "alsace", rhone: "rhone", bordeaux: "bordeaux", ...Object.fromEntries(GERMAN.map(g => [g, g])) };
+const AREA_OF = { burgundy: "burgundy", chablis: "burgundy", chalonnaise: "burgundy", maconnais: "burgundy", champagne: "champagne", alsace: "alsace", rhone: "rhone", bordeaux: "bordeaux", barolo: "piemonte", barbaresco: "piemonte", ...Object.fromEntries(GERMAN.map(g => [g, g])) };
 const regionName = (set, L) => set === "burgundy" ? T[L].cote : (NAME[set] || (GERMAN.includes(set) && AREA[set]) || {})[L] || window.ATLAS_PACKS[set].meta.name;
-const countryOf = (set, t) => GERMAN.includes(set) ? t.germany : t.france;
+const countryOf = (set, t) => GERMAN.includes(set) ? t.germany : MGA.docg[set] ? t.italy : t.france;
 const areaName = (set, L) => AREA[AREA_OF[set]][L];
-const groupName = (v, L) => v.set === "burgundy" ? VIL[v.group].n : v.c === "PT" ? T[L].cls[v.cls] : v.group || regionName(v.set, L);
+const groupName = (v, L) => v.set === "burgundy" ? VIL[v.group].n : v.c === "PT" ? T[L].cls[v.cls] : v.c === "MGA" ? T[L].MGAp : v.c === "MGAV" ? T[L].mgaVillages : v.group || regionName(v.set, L);
 for (const v of ALL) {
+  if (v.nogeo) continue;
   v.bb = bbox(v.mp); v.cen = centroid(v.mp);
   [v.lon, v.lat] = (v.ll || burgLL)(v.cen);
 }
@@ -252,7 +272,7 @@ for (const v of ALL) {
   ALL.forEach(v => cnt3[three(v)] = (cnt3[three(v)] || 0) + 1);
   ALL.forEach(v => v.slug = cnt2[two(v)] === 1 ? two(v) : cnt3[three(v)] === 1 ? three(v) : two(v) + "-" + slug(v.id));
 }
-const RANK = { GC: 0, "1er": 1, V: 2, AOC: 2, PT: 3 };
+const RANK = { GC: 0, "1er": 1, V: 2, AOC: 2, PT: 3, MGA: 4, MGAV: 5 };
 const order = (a, b) => (RANK[a.c] - RANK[b.c]) || a.n.localeCompare(b.n, "fr");
 
 // ── page parts ───────────────────────────────────────────────────────────────────────────────────
@@ -277,6 +297,7 @@ h3{font-size:16px;margin:16px 0 4px}
 h2{font-size:13px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:26px 0 8px}
 .cta{display:flex;flex-wrap:wrap;gap:10px;margin:22px 0}.btn{display:inline-block;padding:10px 16px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);text-decoration:none;font-weight:600}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.nomap{background:var(--mapbg);border:1px dashed var(--line);border-radius:10px;padding:14px 16px;color:var(--muted);font-size:14.5px;margin:14px 0}
 ul.links{list-style:none;padding:0;margin:0;columns:2 220px;column-gap:24px}ul.links li{padding:3px 0;break-inside:avoid}ul.links small{color:var(--muted)}
 .src{font-size:12.5px;color:var(--muted);margin-top:30px;border-top:1px solid var(--line);padding-top:10px}`;
 const url = (L, file) => `${SITE}${OUT}/${L}/${file}`;
@@ -308,7 +329,7 @@ const foot = (L, src) => `<p class="src">${esc(src)} · <a href="../../privacy.h
 `;
 const dir8 = (deg, L) => T[L].dirs[Math.round(((deg % 360) + 360) % 360 / 45) % 8];
 const pillCls = c => c === "GC" || c === "PT" ? "GC" : c === "1er" ? "p1" : "";
-const clsOf = (o, t) => o.c === "PT" ? t.PT : t[o.c] || t.V;
+const clsOf = (o, t) => o.c === "PT" ? t.PT : o.c === "MGAV" ? t.MGAV : t[o.c] || t.V;
 
 function mapSvg(v, L) {
   const [x0, y0, x1, y1] = v.bb, span = Math.max(x1 - x0, y1 - y0), pad = v.point ? 1100 : Math.max(span * .45, 160); // a château: 2 km around it
@@ -326,24 +347,28 @@ function mapSvg(v, L) {
   return `<svg class="map" viewBox="0 0 ${Math.round(w)} ${Math.round(h)}" role="img" aria-label="${esc(fmt(v.vines ? T[L].mapVines : T[L].map, v.n))}" xmlns="http://www.w3.org/2000/svg">${parts.join("")}${me}${pts.join("")}</svg>`;
 }
 const SET = {}; ALL.forEach(v => (SET[v.set] ??= []).push(v));
-const nearest = v => SET[v.set].filter(o => o !== v).map(o => [Math.hypot(o.cen[0] - v.cen[0], o.cen[1] - v.cen[1]), o]).sort((a, b) => a[0] - b[0]).slice(0, 8).map(a => a[1]);
+// without a map, the neighbours are the names either side in the list
+const nearest = v => v.nogeo ? (l => { const i = l.indexOf(v); return l.slice(Math.max(0, i - 4), i).concat(l.slice(i + 1, i + 5)); })(SET[v.set].filter(o => o.c === v.c)) : SET[v.set].filter(o => o !== v).map(o => [Math.hypot(o.cen[0] - v.cen[0], o.cen[1] - v.cen[1]), o]).sort((a, b) => a[0] - b[0]).slice(0, 8).map(a => a[1]);
 
 function page(v, L) {
   const t = T[L], cls = clsOf(v, t), file = v.slug + ".html", reg = regionName(v.set, L), area = areaName(v.set, L);
   const where = [v.commune, v.set === "burgundy" ? reg : area].filter((x, i, a) => x && a.indexOf(x) === i).join(", ");
-  const desc = v.c === "PT" ? fmt(t.descPt, v.n, v.label, v.app, area) : fmt(t.desc, v.app === v.n || !v.app ? v.n : `${v.n} — ${v.app}`, "", cls, ha(v.ha || v.haMap, L), where, v.rolle ? t.onRolle : v.vines ? t.onIgn : t.onInao, v.set === "burgundy" ? t.descMore : fmt(t.descPack, reg));
-  const title = `${v.n} · ${v.c === "V" ? v.commune : v.c === "PT" ? v.label : cls} · ${reg} | AllWine`;
+  const R_ = v.docg && v.docg.rules;
+  const desc = v.nogeo ? fmt(v.c === "MGA" ? t.descMga : t.descMgaV, v.short, v.docg.name, R_.ageing, R_.wood, num(R_.yield, L)) : v.c === "PT" ? fmt(t.descPt, v.n, v.label, v.app, area) : fmt(t.desc, v.app === v.n || !v.app ? v.n : `${v.n} — ${v.app}`, "", cls, ha(v.ha || v.haMap, L), where, v.rolle ? t.onRolle : v.vines ? t.onIgn : t.onInao, v.set === "burgundy" ? t.descMore : fmt(t.descPack, reg));
+  const title = v.nogeo ? `${v.n} · ${v.c === "MGA" ? "MGA" : t.MGAV} · ${area} | AllWine` : `${v.n} · ${v.c === "V" ? v.commune : v.c === "PT" ? v.label : cls} · ${reg} | AllWine`;
   const crumbs = [[t.home, "../../"], [t.vineyards, "index.html"], [reg, `index.html#${v.set}`], [v.n]];
   const ld = { "@context": "https://schema.org", "@graph": [
     { "@type": "Place", "@id": url(L, file) + "#place", name: v.n, alternateName: v.app, description: desc, url: url(L, file),
-      geo: { "@type": "GeoCoordinates", latitude: +v.lat.toFixed(5), longitude: +v.lon.toFixed(5) },
+      ...(v.nogeo ? {} : { geo: { "@type": "GeoCoordinates", latitude: +v.lat.toFixed(5), longitude: +v.lon.toFixed(5) } }),
       containedInPlace: (in_ => v.commune ? { "@type": "Place", name: v.commune.split(" · ")[0], containedInPlace: in_ } : in_)({ "@type": "AdministrativeArea", name: area, containedInPlace: { "@type": "Country", name: countryOf(v.set, t) } }),
       additionalProperty: [v.ha && { "@type": "PropertyValue", name: t.area, value: v.ha, unitCode: "HAR" }, v.label && { "@type": "PropertyValue", name: t.classification, value: v.label },
         { "@type": "PropertyValue", name: t.app, value: v.app }].filter(Boolean) },
     { "@type": "BreadcrumbList", itemListElement: crumbs.map(([n, h], i) => ({ "@type": "ListItem", position: i + 1, name: n, ...(h ? { item: new URL(h, url(L, file)).href } : {}) })) }] };
-  const facts = v.rolle ? [v.app && [t.gl, v.app.replace(/^Großlage /, "")], [t.gmk, v.gm.join(", ")], v.commune && [t.commune, v.commune], v.ha && [t.regVines, ha(v.ha, L) + " ha"], [t.outline, ha(v.haMap, L) + " ha"]].filter(Boolean)
+  const facts = v.nogeo ? [[t.app, v.app], [t.grape, R_.grape], [t.ageingF, fmt(t.months, R_.ageing, R_.wood)], [t.riservaF, fmt(t.monthsR, R_.riserva)],
+      [t.yieldF, `${num(R_.yield, L)} t/ha`], (v.aka || []).length && [t.akaF, v.aka.join(", ")], v.official && [t.officialF, `${v.docg.name} ${v.official}`]].filter(Boolean)
+    : v.rolle ? [v.app && [t.gl, v.app.replace(/^Großlage /, "")], [t.gmk, v.gm.join(", ")], v.commune && [t.commune, v.commune], v.ha && [t.regVines, ha(v.ha, L) + " ha"], [t.outline, ha(v.haMap, L) + " ha"]].filter(Boolean)
     : [v.label && [t.classification, v.label], [t.app, v.app], v.commune && [t.commune, v.commune], v.ha && [t.area, ha(v.ha, L) + " ha"]].filter(Boolean);
-  if (v.col) facts.push([t.colour, t[v.col]]);
+  if (v.col && !v.nogeo) facts.push([t.colour, t[v.col]]);
   if (v.dem) {
     const [lo, hi, , sl, asp, cons] = v.dem;
     facts.push([t.alt, `${Math.round(lo)}–${Math.round(hi)} m`], [t.slope, `${Math.round(sl)} %`]);
@@ -352,22 +377,23 @@ function page(v, L) {
   const note = L === "en" ? v.note.en : v.note[L], soil = L === "en" ? v.soil : v.soilT[L];
   const owners = [...v.owners].filter(([k]) => PROD[k]).sort((a, b) => (a[2] === "s") - (b[2] === "s") || (b[1] ?? -1) - (a[1] ?? -1));
   const nb = nearest(v), peers = SET[v.set].filter(o => o.group === v.group && o.c === v.c);
-  const oneOf = peers.length > 1 && v.c !== "PT" ? fmt(v.rolle ? t.oneOfEL : v.vines ? t.oneOfVines : t.oneOf, peers.length, t[v.c + (v.vines ? "v" : "p")], groupName(v, L), ha(peers.reduce((a, o) => a + o.ha, 0), L)) : "";
+  const oneOf = v.nogeo ? fmt(v.c === "MGA" ? t.mgaWhat : t.mgaVillageWhat, v.short, v.docg.name, v.docg.mga.length, v.docg.villages.length, num(R_.yieldVigna, L))
+    : peers.length > 1 && v.c !== "PT" ? fmt(v.rolle ? t.oneOfEL : v.vines ? t.oneOfVines : t.oneOf, peers.length, t[v.c + (v.vines ? "v" : "p")], groupName(v, L), ha(peers.reduce((a, o) => a + o.ha, 0), L)) : "";
   return head(L, file, title, desc, ld) + `<p class="crumbs">${crumbs.map(([n, h]) => h ? `<a href="${h}">${esc(n)}</a>` : esc(n)).join(" › ")}</p>
 <h1>${esc(v.n)}</h1>
 <p class="app">${esc(v.app)}</p>
 <p><span class="pill ${pillCls(v.c)}">${esc(cls)}</span>${v.col ? `<span class="pill">${esc(t[v.col])}</span>` : ""}</p>
-${mapSvg(v, L)}
+${v.nogeo ? `<p class="nomap">${esc(t.mgaNoMap)}</p>` : mapSvg(v, L)}
 <dl class="facts">${facts.map(([k, x]) => `<div><dt>${esc(k)}</dt><dd>${esc(x)}</dd></div>`).join("")}</dl>
 ${note ? `<p>${esc(note)}</p>\n` : ""}${oneOf ? `<p>${esc(oneOf)}</p>\n` : ""}${soil ? `<p><b>${t.soil}:</b> ${esc(soil)}</p>\n` : ""}${v.inferred ? `<p>${esc(t.inferred)}</p>\n` : ""}${owners.length ? `<h2>${t.owners}</h2>
-<table>${owners.map(([k, h, kind]) => `<tr><td>${esc(PROD[k])}${kind === "f" ? ` <small>(${t.leased})</small>` : ""}</td><td class="n">${h != null && kind !== "s" ? ha(h, L) + " ha" : ""}</td></tr>`).join("")}</table>\n` : ""}<p class="cta"><a class="btn primary" href="../../${v.map.replace("{L}", L)}">${t.open} →</a><a class="btn" href="../../">${t.track}</a></p>
-<h2>${t.nearby}</h2>
-<ul class="links">${nb.map(o => `<li><a href="${o.slug}.html">${esc(o.n)}</a> <small>${esc([o.label || clsOf(o, t), o.commune].filter(Boolean).join(" · "))}</small></li>`).join("")}</ul>
-` + foot(L, v.set === "burgundy" ? t.source : v.rolle ? t.sourceRolle : v.vines ? t.sourceVines : v.point ? t.sourcePt : t.sourcePack);
+<table>${owners.map(([k, h, kind]) => `<tr><td>${esc(PROD[k])}${kind === "f" ? ` <small>(${t.leased})</small>` : ""}</td><td class="n">${h != null && kind !== "s" ? ha(h, L) + " ha" : ""}</td></tr>`).join("")}</table>\n` : ""}<p class="cta">${v.map ? `<a class="btn primary" href="../../${v.map.replace("{L}", L)}">${t.open} →</a>` : ""}<a class="btn${v.map ? "" : " primary"}" href="../../">${t.track}</a></p>
+<h2>${v.nogeo ? fmt(t.otherMga, v.docg.name) : t.nearby}</h2>
+<ul class="links">${nb.map(o => `<li><a href="${o.slug}.html">${esc(o.n)}</a>${o.nogeo ? "" : ` <small>${esc([o.label || clsOf(o, t), o.commune].filter(Boolean).join(" · "))}</small>`}</li>`).join("")}</ul>
+` + foot(L, v.nogeo ? t.sourceMga : v.set === "burgundy" ? t.source : v.rolle ? t.sourceRolle : v.vines ? t.sourceVines : v.point ? t.sourcePt : t.sourcePack);
 }
 
 function hub(L) {
-  const t = T[L], file = "index.html", sets = ["burgundy", ...PACKS];
+  const t = T[L], file = "index.html", sets = ["burgundy", ...PACKS, ...Object.keys(MGA.docg)];
   const ld = { "@context": "https://schema.org", "@type": "CollectionPage", name: t.hubTitle, description: t.hubDesc, url: url(L, file) };
   let body = `<p class="crumbs"><a href="../../">${t.home}</a> › ${t.vineyards}</p>\n<h1>${esc(t.hubTitle)}</h1>\n<p>${esc(t.hubLead)}</p>\n`;
   for (const s of sets) {
@@ -376,7 +402,7 @@ function hub(L) {
     const one = keys.length === 1; // a region of one group (Alsace, the Rhône) needs no sub-heading
     body += `<h2 id="${s}">${esc(regionName(s, L))}</h2>\n`;
     for (const k of keys) {
-      body += `${one ? "" : `<h3>${esc(groupName(groups[k][0], L))}</h3>\n`}<ul class="links">${groups[k].sort(order).map(v => `<li><a href="${v.slug}.html">${esc(v.n)}</a> <small>${esc(v.c === "PT" ? v.label : clsOf(v, t))}</small></li>`).join("")}</ul>\n`;
+      body += `${one ? "" : `<h3>${esc(groupName(groups[k][0], L))}</h3>\n`}<ul class="links">${groups[k].sort(order).map(v => `<li><a href="${v.slug}.html">${esc(v.short || v.n)}</a>${v.nogeo ? "" : ` <small>${esc(v.c === "PT" ? v.label : clsOf(v, t))}</small>`}</li>`).join("")}</ul>\n`;
     }
   }
   return head(L, file, `${t.hubTitle} | AllWine`, t.hubDesc, ld) + body + foot(L, t.source);

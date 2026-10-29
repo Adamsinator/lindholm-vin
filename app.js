@@ -964,7 +964,22 @@ const ATLAS_REGIONS = [{id:"chablis", re:/\bchablis\b/i}, {id:"chalonnaise", re:
   {id:"mosel", re:/\bmosel\b|\bsaar\b|\bruwer\b/i}, {id:"nahe", re:/\bnahe\b/i}, {id:"pfalz", re:/\bpfalz\b|palatinate/i},
   {id:"rheinhessen", re:/rheinhessen/i}, {id:"mittelrhein", re:/mittelrhein/i}, {id:"ahr", re:/\bahr\b/i},
   {id:"rhone", re:/c[oô]te[- ]r[oô]tie|condrieu|ch[aâ]teau[- ]grillet|\b(crozes[- ])?(h|)ermitage\b|saint[- ]joseph|\bst[- ]joseph|\bcornas\b|saint[- ]p[ée]ray/i}];
+// Barolo and Barbaresco: no map (the MGA outlines aren't open data), but each MGA has its own page (piemonte-mga.js,
+// tools/pages-build.js). A bottle's MGA: the denomination on it, then the longest MGA name (or one of its other names)
+// standing as words in its name; a village mention ("del comune di La Morra") only when the label says so
+const pageSlug = s => String(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/œ/g, "oe").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+function mgaOf(w){
+  const P = window.PIEMONTE_MGA; if(!P) return null;
+  const k = s => " " + pageSlug(s).replace(/-/g, " ") + " ", all = k([w.name, w.commune, w.region, w.classification].join(" ")), name = k(w.name);
+  const id = /\sbarbaresco\s/.test(all) ? "barbaresco" : /\sbarolo\s/.test(all) ? "barolo" : null; if(!id) return null;
+  const D = P.docg[id]; let best = null;
+  for(const m of D.mga) for(const n of [m.n, ...(m.aka || [])]){ const x = k(n); if(name.includes(x) && x.trim() !== id && (!best || x.length > best.k)) best = {m, k: x.length, label: `${D.name} ${m.n}`}; }
+  for(const m of D.villages){ const x = k("comune di " + m.n); if(name.includes(x) && (!best || x.length > best.k)) best = {m, k: x.length, label: `${D.name} ${m.official}`}; }
+  return best && {docg: D.name, label: best.label, slug: pageSlug(best.label)};
+}
 function atlasLink(w){
+  const mg = mgaOf(w);
+  if(mg) return `<a class="atlaslink" href="v/${window.I18N ? I18N.lang : "en"}/${mg.slug}.html">📖 ${esc(tr("{0}: the MGA", mg.label))}</a>`;
   const rg = ATLAS_REGIONS.find(r => r.re.test([w.region, w.commune, w.name].join(" ")));
   if(rg) return `<a class="atlaslink" href="atlas.html#r=${rg.id}&w=${encodeURIComponent([w.name, w.commune].filter(Boolean).join(" "))}">🗺 ${esc(tr("On the map"))}</a>`;
   const at = window.BURG_MATCH && BURG_MATCH.where ? BURG_MATCH.where(w) : null;
@@ -3019,7 +3034,8 @@ function addSuggest(){
     ty.value = sg.type || "Rød"; ty.classList.toggle("sg", !!sg.type);
     if(sg.type) said.push("colour");
   }
-  const from = pl ? pl.climat : sg.app, nt = $("aSuggest");
+  const mg = !pl && mgaOf({name, commune, region:g("aRegion"), classification:""});
+  const from = pl ? pl.climat : mg ? tr("{0} (an MGA)", mg.label) : sg.app, nt = $("aSuggest");
   nt.hidden = !said.length || !from;
   if(!nt.hidden){
     const L = {commune:tr("commune"), region:tr("region"), country:tr("country"), grape:tr("grape"), colour:tr("colour")};

@@ -431,6 +431,16 @@ new region is a data file, not new code.
   are five Sonnenuhrs. These packs are on a local metric grid round `meta.origin` (`meta.proj: "eq"`), not
   Lambert-93. **Not here:** the Rheingau (Hessen hasn't published its register) and the Scharzhofberg, which is an
   Ortsteil, not an Einzellage.
+- **Piedmont (Barolo, Barbaresco): names, no map.** Regione Piemonte doesn't publish the MGA boundaries as open
+  data (its catalogue has no such dataset; its servers also refuse this build machine), OpenStreetMap doesn't have them,
+  and the maps that exist (the Consorzio's, Masnaghetti's) are copyrighted. So `tools/mga-build.js` reads the
+  *menzioni geografiche aggiuntive* straight from the production rules (Barolo art. 8, Barbaresco art. 7, in the AIS
+  copy) into `piemonte-mga.js`: Barolo's 170 MGA and 11 village mentions, Barbaresco's 66, with their other names
+  ("Cannubi Boschis o Cannubi") and the rules (grape, ageing, yields). The text's own slips are put right in `FIX` (a
+  missing comma between Gallaretto and Garretti, "Manforte"), and the law's "Rabaja'" is written Rabajà, but not
+  "Ca' Grossa". Not in it: which commune each MGA lies in (that's in the rules' annex, which the copy leaves out).
+  Each MGA has a vineyard page; a cellar bottle naming one ("Barolo Cannubi") links to it, and the add form says
+  which MGA it recognised. If the Consorzio ever allows its outlines, they'd go into a region pack like the others.
 - **A new region:** add it to `REGIONS` in `tools/region-build.js` (its box, village appellations and regional
   appellations), build it, then list it in `atlas.js` (`REGIONS`) and in `app.js` (`ATLAS_REGIONS`) for "On the map".
   Tested in `tools/region-atlas-ui-test.js`. Then rebuild the vineyard pages (next section).
