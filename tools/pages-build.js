@@ -13,7 +13,10 @@ const LANGS = ["en", "fr", "de", "da"];
 global.window = {};
 for (const f of ["burgundy-data.js", "burgundy-data-beaune.js", "burgundy-detail.js", "burgundy-geo.js", "burgundy-dem.js",
   "burgundy-extras.js", "burgundy-i18n-fr.js", "burgundy-i18n-de.js", "burgundy-i18n-da.js"]) require(path.join(R, f));
-const PACKS = ["chablis", "chalonnaise", "maconnais", "champagne", "alsace", "rhone"];
+// the 1855 ranks as a label writes them (atlas.js has the same)
+const PTLABEL = { "1855-1": "Premier grand cru classé", "1855-2": "Deuxième grand cru classé", "1855-3": "Troisième grand cru classé", "1855-4": "Quatrième grand cru classé",
+  "1855-5": "Cinquième grand cru classé", "sau-0": "Premier cru supérieur", "sau-1": "Premier cru classé", "sau-2": "Deuxième cru classé" };
+const PACKS = ["chablis", "chalonnaise", "maconnais", "champagne", "alsace", "rhone", "bordeaux"];
 for (const id of PACKS) require(path.join(R, `atlas-${id}.js`));
 
 // ── words ────────────────────────────────────────────────────────────────────────────────────────
@@ -32,6 +35,8 @@ const T = {
     sourcePack: "Outlines: INAO, Délimitation parcellaire des AOC viticoles, via IGN's Géoplateforme (Licence Ouverte).",
     burgundy: "Burgundy", france: "France", cote: "Côte d'Or", privacy: "Privacy", lang: "Language",
         GCv: "grand cru villages", "1erv": "premier cru villages",
+    PT: "Classified château", classification: "Classification", descPt: "{0}: {1} ({2}, {3}). Where it stands on the map, among the appellations and the other classified châteaux.", sourcePt: "The 1855 classification. Château positions: IGN BD TOPO; appellations: INAO (Licence Ouverte).",
+    cls: {"1855-1": "First growths (1855)", "1855-2": "Second growths (1855)", "1855-3": "Third growths (1855)", "1855-4": "Fourth growths (1855)", "1855-5": "Fifth growths (1855)", "sau-0": "Superior first growth, Sauternes (1855)", "sau-1": "First growths, Sauternes (1855)", "sau-2": "Second growths, Sauternes (1855)"},
     oneOfVines: "One of the {0} {1} of {2}, whose vines together cover {3} ha.",
     AOC: "Cru appellation", AOCp: "cru appellations", onInao: "on INAO's map", onIgn: "from IGN's map of the vines inside the village", mapVines: "The vines of {0} (IGN), with its neighbours",
     sourceVines: "Vines: IGN BD TOPO (vegetation « Vigne »); village boundaries: IGN ADMIN EXPRESS (Licence Ouverte). The cru villages: the échelle des crus.",
@@ -50,6 +55,8 @@ const T = {
     sourcePack: "Contours : INAO, Délimitation parcellaire des AOC viticoles, via la Géoplateforme de l'IGN (Licence Ouverte).",
     burgundy: "Bourgogne", france: "France", cote: "Côte-d'Or", privacy: "Confidentialité", lang: "Langue",
         GCv: "villages grand cru", "1erv": "villages premier cru",
+    PT: "Château classé", classification: "Classement", descPt: "{0} : {1} ({2}, {3}). Sa place sur la carte, parmi les appellations et les autres châteaux classés.", sourcePt: "Le classement de 1855. Emplacement des châteaux : IGN BD TOPO ; appellations : INAO (Licence Ouverte).",
+    cls: {"1855-1": "Premiers grands crus classés (1855)", "1855-2": "Deuxièmes grands crus classés (1855)", "1855-3": "Troisièmes grands crus classés (1855)", "1855-4": "Quatrièmes grands crus classés (1855)", "1855-5": "Cinquièmes grands crus classés (1855)", "sau-0": "Premier cru supérieur, Sauternes (1855)", "sau-1": "Premiers crus classés, Sauternes (1855)", "sau-2": "Deuxièmes crus classés, Sauternes (1855)"},
     oneOfVines: "L'un des {0} {1} de {2}, dont les vignes couvrent ensemble {3} ha.",
     AOC: "Appellation cru", AOCp: "appellations crus", onInao: "sur la carte de l'INAO", onIgn: "d'après la carte des vignes de l'IGN", mapVines: "Les vignes de {0} (IGN), avec ses voisins",
     sourceVines: "Vignes : IGN BD TOPO (végétation « Vigne ») ; limites des villages : IGN ADMIN EXPRESS (Licence Ouverte). Les villages crus : l'échelle des crus.",
@@ -68,6 +75,8 @@ const T = {
     sourcePack: "Umrisse: INAO, Délimitation parcellaire des AOC viticoles, über die Géoplateforme des IGN (Licence Ouverte).",
     burgundy: "Burgund", france: "Frankreich", cote: "Côte d'Or", privacy: "Datenschutz", lang: "Sprache",
         GCv: "Grand-Cru-Dörfer", "1erv": "Premier-Cru-Dörfer",
+    PT: "Klassifiziertes Château", classification: "Klassifikation", descPt: "{0}: {1} ({2}, {3}). Seine Lage auf der Karte, zwischen den Appellationen und den anderen klassifizierten Châteaux.", sourcePt: "Die Klassifikation von 1855. Lage der Châteaux: IGN BD TOPO; Appellationen: INAO (Licence Ouverte).",
+    cls: {"1855-1": "Erste Gewächse (1855)", "1855-2": "Zweite Gewächse (1855)", "1855-3": "Dritte Gewächse (1855)", "1855-4": "Vierte Gewächse (1855)", "1855-5": "Fünfte Gewächse (1855)", "sau-0": "Erstes Gewächs supérieur, Sauternes (1855)", "sau-1": "Erste Gewächse, Sauternes (1855)", "sau-2": "Zweite Gewächse, Sauternes (1855)"},
     oneOfVines: "Eines der {0} {1} in {2}, deren Reben zusammen {3} ha umfassen.",
     AOC: "Cru-Appellation", AOCp: "Cru-Appellationen", onInao: "auf der INAO-Karte", onIgn: "nach der IGN-Karte der Reben im Dorf", mapVines: "Die Reben von {0} (IGN), mit den Nachbarn",
     sourceVines: "Reben: IGN BD TOPO (Vegetation « Vigne »); Gemeindegrenzen: IGN ADMIN EXPRESS (Licence Ouverte). Die Cru-Dörfer: die Échelle des crus.",
@@ -86,6 +95,8 @@ const T = {
     sourcePack: "Omrids: INAO, Délimitation parcellaire des AOC viticoles, via IGN's Géoplateforme (Licence Ouverte).",
     burgundy: "Bourgogne", france: "Frankrig", cote: "Côte d'Or", privacy: "Privatliv", lang: "Sprog",
         GCv: "grand cru-landsbyer", "1erv": "premier cru-landsbyer",
+    PT: "Klassificeret slot", classification: "Klassifikation", descPt: "{0}: {1} ({2}, {3}). Hvor det ligger på kortet, mellem appellationerne og de andre klassificerede slotte.", sourcePt: "Klassifikationen fra 1855. Slottenes placering: IGN BD TOPO; appellationer: INAO (Licence Ouverte).",
+    cls: {"1855-1": "Første cru (1855)", "1855-2": "Anden cru (1855)", "1855-3": "Tredje cru (1855)", "1855-4": "Fjerde cru (1855)", "1855-5": "Femte cru (1855)", "sau-0": "Første cru supérieur, Sauternes (1855)", "sau-1": "Første cru, Sauternes (1855)", "sau-2": "Anden cru, Sauternes (1855)"},
     oneOfVines: "En af de {0} {1} i {2}, hvis vinstokke tilsammen dækker {3} ha.",
     AOC: "Cru-appellation", AOCp: "cru-appellationer", onInao: "på INAO's kort", onIgn: "efter IGN's kort over vinstokkene i landsbyen", mapVines: "Vinstokkene i {0} (IGN), med naboerne",
     sourceVines: "Vinstokke: IGN BD TOPO (vegetation « Vigne »); landsbygrænser: IGN ADMIN EXPRESS (Licence Ouverte). Cru-landsbyerne: échelle des crus.",
@@ -195,15 +206,23 @@ for (const pid of PACKS) {
       mp: c.g.map(poly => poly.map(r => r.map(([x, y]) => [x, -y]))), own: true, inferred: !!c.inferred, note: c.d || {}, soilT: {}, owners: [],
       ll: p => L93([E0 + p[0], N0 + p[1]]), map: `atlas.html?lang={L}#r=${pid}&c=${encodeURIComponent(c.id)}` });
   }
+  // classified châteaux (Bordeaux's 1855) that have a place on IGN's map: a page each, drawn as a point
+  for (const q of P.points || []) {
+    if (!q.p) continue;
+    const [x, y] = [q.p[0], -q.p[1]], d = 30;
+    ALL.push({ set: pid, id: q.id, n: q.n, c: "PT", cls: q.cls, col: /^sau/.test(q.cls) ? "W" : "R", ha: 0, app: q.ap, commune: "", group: q.cls, point: [x, y],
+      label: PTLABEL[q.cls], mp: [[[[x - d, y - d], [x + d, y - d], [x + d, y + d], [x - d, y + d]]]], own: false, note: {}, soilT: {}, owners: [],
+      ll: p => L93([E0 + p[0], N0 + p[1]]), map: `atlas.html?lang={L}#r=${pid}&c=${encodeURIComponent(q.id)}` });
+  }
 }
 // each pack's name, and the wine region it belongs to, in each language
 const NAME = { alsace: { en: "Alsace", fr: "Alsace", de: "Elsass", da: "Alsace" }, rhone: { en: "Northern Rhône", fr: "Rhône septentrional", de: "Nördliche Rhône", da: "Nordlige Rhône" } };
 const AREA = { burgundy: { en: "Burgundy", fr: "Bourgogne", de: "Burgund", da: "Bourgogne" }, champagne: { en: "Champagne", fr: "Champagne", de: "Champagne", da: "Champagne" },
-  alsace: NAME.alsace, rhone: { en: "Rhône Valley", fr: "Vallée du Rhône", de: "Rhônetal", da: "Rhônedalen" } };
-const AREA_OF = { burgundy: "burgundy", chablis: "burgundy", chalonnaise: "burgundy", maconnais: "burgundy", champagne: "champagne", alsace: "alsace", rhone: "rhone" };
+  alsace: NAME.alsace, bordeaux: { en: "Bordeaux", fr: "Bordeaux", de: "Bordeaux", da: "Bordeaux" }, rhone: { en: "Rhône Valley", fr: "Vallée du Rhône", de: "Rhônetal", da: "Rhônedalen" } };
+const AREA_OF = { burgundy: "burgundy", chablis: "burgundy", chalonnaise: "burgundy", maconnais: "burgundy", champagne: "champagne", alsace: "alsace", rhone: "rhone", bordeaux: "bordeaux" };
 const regionName = (set, L) => set === "burgundy" ? T[L].cote : (NAME[set] || {})[L] || window.ATLAS_PACKS[set].meta.name;
 const areaName = (set, L) => AREA[AREA_OF[set]][L];
-const groupName = (v, L) => v.set === "burgundy" ? VIL[v.group].n : v.group || regionName(v.set, L);
+const groupName = (v, L) => v.set === "burgundy" ? VIL[v.group].n : v.c === "PT" ? T[L].cls[v.cls] : v.group || regionName(v.set, L);
 for (const v of ALL) {
   v.bb = bbox(v.mp); v.cen = centroid(v.mp);
   [v.lon, v.lat] = (v.ll || burgLL)(v.cen);
@@ -218,7 +237,7 @@ for (const v of ALL) {
   ALL.forEach(v => cnt3[three(v)] = (cnt3[three(v)] || 0) + 1);
   ALL.forEach(v => v.slug = cnt2[two(v)] === 1 ? two(v) : cnt3[three(v)] === 1 ? three(v) : two(v) + "-" + slug(v.id));
 }
-const RANK = { GC: 0, "1er": 1, V: 2 };
+const RANK = { GC: 0, "1er": 1, V: 2, AOC: 2, PT: 3 };
 const order = (a, b) => (RANK[a.c] - RANK[b.c]) || a.n.localeCompare(b.n, "fr");
 
 // ── page parts ───────────────────────────────────────────────────────────────────────────────────
@@ -235,7 +254,7 @@ h1{font:600 clamp(30px,5vw,42px)/1.15 "Iowan Old Style","Palatino Linotype",Pala
 .pill{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 9px;border-radius:999px;background:var(--line);margin-right:4px}
 .pill.GC{background:var(--gc);color:var(--gc-ink)}.pill.p1{background:var(--pc);color:var(--pc-ink)}
 svg.map{width:100%;height:auto;max-height:440px;background:var(--mapbg);border:1px solid var(--line);border-radius:10px;margin:14px 0;display:block}
-svg.map path{stroke:var(--bg);stroke-width:1.2;vector-effect:non-scaling-stroke}svg.map .nb{fill:var(--nb)}svg.map a:hover .nb{fill:var(--pc)}svg.map .me{fill:var(--gc);stroke:var(--ink);stroke-width:2}
+svg.map path{stroke:var(--bg);stroke-width:1.2;vector-effect:non-scaling-stroke}svg.map .nb{fill:var(--nb)}svg.map a:hover .nb{fill:var(--pc)}svg.map .me{fill:var(--gc);stroke:var(--ink);stroke-width:2}svg.map .pt{fill:var(--ink);stroke:var(--bg);stroke-width:1.5;vector-effect:non-scaling-stroke}svg.map a:hover .pt{fill:var(--accent)}
 dl.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px 16px;margin:14px 0}
 dl.facts div{border-top:1px solid var(--line);padding-top:4px}dt{font-size:12.5px;color:var(--muted)}dd{margin:0;font:19px "Iowan Old Style",Georgia,serif}
 table{border-collapse:collapse;width:100%;font-size:15px}td{padding:5px 0;border-top:1px solid var(--line)}td.n{text-align:right;white-space:nowrap}
@@ -273,34 +292,41 @@ const foot = (L, src) => `<p class="src">${esc(src)} · <a href="../../privacy.h
 </html>
 `;
 const dir8 = (deg, L) => T[L].dirs[Math.round(((deg % 360) + 360) % 360 / 45) % 8];
-const pillCls = c => c === "GC" ? "GC" : c === "1er" ? "p1" : "";
+const pillCls = c => c === "GC" || c === "PT" ? "GC" : c === "1er" ? "p1" : "";
+const clsOf = (o, t) => o.c === "PT" ? t.PT : t[o.c] || t.V;
 
 function mapSvg(v, L) {
-  const [x0, y0, x1, y1] = v.bb, span = Math.max(x1 - x0, y1 - y0), pad = Math.max(span * .45, 160);
+  const [x0, y0, x1, y1] = v.bb, span = Math.max(x1 - x0, y1 - y0), pad = v.point ? 1100 : Math.max(span * .45, 160); // a château: 2 km around it
   let w = x1 - x0 + 2 * pad, h = y1 - y0 + 2 * pad;
   if (w < h * 1.25) w = h * 1.25; if (h < w * .5) h = w * .5; // never a sliver: between 2:1 and 5:4
   const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, ox = cx - w / 2, oy = cy + h / 2;
   const view = [ox, cy - h / 2, ox + w, oy], tol = Math.max(w, h) / 500;
   const nb = SET[v.set].filter(o => o !== v && o.own && o.bb[0] < view[2] && o.bb[2] > view[0] && o.bb[1] < view[3] && o.bb[3] > view[1]);
   const parts = nb.map(o => `<a href="${o.slug}.html"><path class="nb" d="${pathD(o.mp, tol * 3, ox, oy)}"><title>${esc(o.n)}</title></path></a>`);
-  return `<svg class="map" viewBox="0 0 ${Math.round(w)} ${Math.round(h)}" role="img" aria-label="${esc(fmt(v.vines ? T[L].mapVines : T[L].map, v.n))}" xmlns="http://www.w3.org/2000/svg">${parts.join("")}<path class="me" d="${pathD(v.mp, tol, ox, oy)}"><title>${esc(v.n)}</title></path></svg>`;
+  // the classified châteaux in view: dots, each a link
+  const dot = (o, r, c) => `<circle class="${c}" cx="${Math.round(o.point[0] - ox)}" cy="${Math.round(oy - o.point[1])}" r="${Math.round(r)}"><title>${esc(o.n)}</title></circle>`;
+  const pts = SET[v.set].filter(o => o !== v && o.point && o.point[0] > view[0] && o.point[0] < view[2] && o.point[1] > view[1] && o.point[1] < view[3])
+    .map(o => `<a href="${o.slug}.html">${dot(o, w / 110, "pt")}</a>`);
+  const me = v.point ? dot(v, w / 70, "me") : `<path class="me" d="${pathD(v.mp, tol, ox, oy)}"><title>${esc(v.n)}</title></path>`;
+  return `<svg class="map" viewBox="0 0 ${Math.round(w)} ${Math.round(h)}" role="img" aria-label="${esc(fmt(v.vines ? T[L].mapVines : T[L].map, v.n))}" xmlns="http://www.w3.org/2000/svg">${parts.join("")}${me}${pts.join("")}</svg>`;
 }
 const SET = {}; ALL.forEach(v => (SET[v.set] ??= []).push(v));
 const nearest = v => SET[v.set].filter(o => o !== v).map(o => [Math.hypot(o.cen[0] - v.cen[0], o.cen[1] - v.cen[1]), o]).sort((a, b) => a[0] - b[0]).slice(0, 8).map(a => a[1]);
 
 function page(v, L) {
-  const t = T[L], cls = t[v.c] || t.V, file = v.slug + ".html", reg = regionName(v.set, L), area = areaName(v.set, L);
+  const t = T[L], cls = clsOf(v, t), file = v.slug + ".html", reg = regionName(v.set, L), area = areaName(v.set, L);
   const where = [v.commune, v.set === "burgundy" ? reg : area].filter((x, i, a) => x && a.indexOf(x) === i).join(", ");
-  const desc = fmt(t.desc, v.app === v.n ? v.n : `${v.n} — ${v.app}`, "", cls, ha(v.ha, L), where, v.vines ? t.onIgn : t.onInao, v.set === "burgundy" ? t.descMore : fmt(t.descPack, reg));
-  const title = `${v.n} · ${v.c === "V" ? v.commune : cls} · ${reg} | AllWine`;
+  const desc = v.c === "PT" ? fmt(t.descPt, v.n, v.label, v.app, area) : fmt(t.desc, v.app === v.n ? v.n : `${v.n} — ${v.app}`, "", cls, ha(v.ha, L), where, v.vines ? t.onIgn : t.onInao, v.set === "burgundy" ? t.descMore : fmt(t.descPack, reg));
+  const title = `${v.n} · ${v.c === "V" ? v.commune : v.c === "PT" ? v.label : cls} · ${reg} | AllWine`;
   const crumbs = [[t.home, "../../"], [t.vineyards, "index.html"], [reg, `index.html#${v.set}`], [v.n]];
   const ld = { "@context": "https://schema.org", "@graph": [
     { "@type": "Place", "@id": url(L, file) + "#place", name: v.n, alternateName: v.app, description: desc, url: url(L, file),
       geo: { "@type": "GeoCoordinates", latitude: +v.lat.toFixed(5), longitude: +v.lon.toFixed(5) },
       containedInPlace: (in_ => v.commune ? { "@type": "Place", name: v.commune.split(" · ")[0], containedInPlace: in_ } : in_)({ "@type": "AdministrativeArea", name: area, containedInPlace: { "@type": "Country", name: t.france } }),
-      additionalProperty: [{ "@type": "PropertyValue", name: t.area, value: v.ha, unitCode: "HAR" }, { "@type": "PropertyValue", name: t.app, value: v.app }] },
+      additionalProperty: [v.ha && { "@type": "PropertyValue", name: t.area, value: v.ha, unitCode: "HAR" }, v.label && { "@type": "PropertyValue", name: t.classification, value: v.label },
+        { "@type": "PropertyValue", name: t.app, value: v.app }].filter(Boolean) },
     { "@type": "BreadcrumbList", itemListElement: crumbs.map(([n, h], i) => ({ "@type": "ListItem", position: i + 1, name: n, ...(h ? { item: new URL(h, url(L, file)).href } : {}) })) }] };
-  const facts = [[t.app, v.app], v.commune && [t.commune, v.commune], [t.area, ha(v.ha, L) + " ha"]].filter(Boolean);
+  const facts = [v.label && [t.classification, v.label], [t.app, v.app], v.commune && [t.commune, v.commune], v.ha && [t.area, ha(v.ha, L) + " ha"]].filter(Boolean);
   if (v.col) facts.push([t.colour, t[v.col]]);
   if (v.dem) {
     const [lo, hi, , sl, asp, cons] = v.dem;
@@ -310,7 +336,7 @@ function page(v, L) {
   const note = L === "en" ? v.note.en : v.note[L], soil = L === "en" ? v.soil : v.soilT[L];
   const owners = [...v.owners].filter(([k]) => PROD[k]).sort((a, b) => (a[2] === "s") - (b[2] === "s") || (b[1] ?? -1) - (a[1] ?? -1));
   const nb = nearest(v), peers = SET[v.set].filter(o => o.group === v.group && o.c === v.c);
-  const oneOf = peers.length > 1 ? fmt(v.vines ? t.oneOfVines : t.oneOf, peers.length, t[v.c + (v.vines ? "v" : "p")], groupName(v, L), ha(peers.reduce((a, o) => a + o.ha, 0), L)) : "";
+  const oneOf = peers.length > 1 && v.c !== "PT" ? fmt(v.vines ? t.oneOfVines : t.oneOf, peers.length, t[v.c + (v.vines ? "v" : "p")], groupName(v, L), ha(peers.reduce((a, o) => a + o.ha, 0), L)) : "";
   return head(L, file, title, desc, ld) + `<p class="crumbs">${crumbs.map(([n, h]) => h ? `<a href="${h}">${esc(n)}</a>` : esc(n)).join(" › ")}</p>
 <h1>${esc(v.n)}</h1>
 <p class="app">${esc(v.app)}</p>
@@ -320,8 +346,8 @@ ${mapSvg(v, L)}
 ${note ? `<p>${esc(note)}</p>\n` : ""}${oneOf ? `<p>${esc(oneOf)}</p>\n` : ""}${soil ? `<p><b>${t.soil}:</b> ${esc(soil)}</p>\n` : ""}${v.inferred ? `<p>${esc(t.inferred)}</p>\n` : ""}${owners.length ? `<h2>${t.owners}</h2>
 <table>${owners.map(([k, h, kind]) => `<tr><td>${esc(PROD[k])}${kind === "f" ? ` <small>(${t.leased})</small>` : ""}</td><td class="n">${h != null && kind !== "s" ? ha(h, L) + " ha" : ""}</td></tr>`).join("")}</table>\n` : ""}<p class="cta"><a class="btn primary" href="../../${v.map.replace("{L}", L)}">${t.open} →</a><a class="btn" href="../../">${t.track}</a></p>
 <h2>${t.nearby}</h2>
-<ul class="links">${nb.map(o => `<li><a href="${o.slug}.html">${esc(o.n)}</a> <small>${esc([t[o.c] || t.V, o.commune].filter(Boolean).join(" · "))}</small></li>`).join("")}</ul>
-` + foot(L, v.set === "burgundy" ? t.source : v.vines ? t.sourceVines : t.sourcePack);
+<ul class="links">${nb.map(o => `<li><a href="${o.slug}.html">${esc(o.n)}</a> <small>${esc([o.label || clsOf(o, t), o.commune].filter(Boolean).join(" · "))}</small></li>`).join("")}</ul>
+` + foot(L, v.set === "burgundy" ? t.source : v.vines ? t.sourceVines : v.point ? t.sourcePt : t.sourcePack);
 }
 
 function hub(L) {
@@ -334,7 +360,7 @@ function hub(L) {
     const one = keys.length === 1; // a region of one group (Alsace, the Rhône) needs no sub-heading
     body += `<h2 id="${s}">${esc(regionName(s, L))}</h2>\n`;
     for (const k of keys) {
-      body += `${one ? "" : `<h3>${esc(groupName(groups[k][0], L))}</h3>\n`}<ul class="links">${groups[k].sort(order).map(v => `<li><a href="${v.slug}.html">${esc(v.n)}</a> <small>${esc(t[v.c] || t.V)}</small></li>`).join("")}</ul>\n`;
+      body += `${one ? "" : `<h3>${esc(groupName(groups[k][0], L))}</h3>\n`}<ul class="links">${groups[k].sort(order).map(v => `<li><a href="${v.slug}.html">${esc(v.n)}</a> <small>${esc(v.c === "PT" ? v.label : clsOf(v, t))}</small></li>`).join("")}</ul>\n`;
     }
   }
   return head(L, file, `${t.hubTitle} | AllWine`, t.hubDesc, ld) + body + foot(L, t.source);

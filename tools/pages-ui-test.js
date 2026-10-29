@@ -12,6 +12,8 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
 (async () => {
   const b = await chromium.launch();
   const ctx = await b.newContext({ viewport: { width: 1200, height: 900 } });
+  // the sign-in page talks to the API at once (usage counts, the account-help key): answer it here, never the real one
+  await ctx.route(require("./api-route"), route => route.fulfill({ contentType: "application/json", body: JSON.stringify({ ok: false, error: "test", v: 42 }) }));
   const p = await ctx.newPage(), errs = [];
   p.on("pageerror", e => errs.push(e.message)); p.on("console", m => m.type() === "error" && errs.push(m.text()));
 
@@ -36,7 +38,7 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
 
   await p.goto(BASE + "v/da/index.html");
   const hub = await p.evaluate(() => ({ n: document.querySelectorAll("ul.links a").length, h2: [...document.querySelectorAll("h2")].map(e => e.textContent) }));
-  check("the Danish index lists the vineyards of all seven regions", hub.n > 780 && hub.h2.length === 7, JSON.stringify(hub.h2));
+  check("the Danish index lists the vineyards of all eight regions", hub.n > 880 && hub.h2.length === 8, JSON.stringify(hub.h2));
   await p.click('ul.links a[href="les-clos.html"]');
   check("…and its links open the vineyard", await p.evaluate(() => document.querySelector("h1").textContent === "Les Clos"));
 

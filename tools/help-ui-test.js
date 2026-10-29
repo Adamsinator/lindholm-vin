@@ -19,6 +19,10 @@ const HEAD = ["Producent", "Land", "Område", "Kommune", "Mark/Navn", "Klassifik
   const device = async () => {
     const ctx = await b.newContext({ viewport: { width: 1200, height: 900 }, permissions: ["clipboard-read", "clipboard-write"] });
     await require("./turnstile-fake")(ctx);
+    // the site pins the real owner's key (config.js ADMIN_KID); this test makes an owner key of its own, so its
+    // browsers get config.js without the pin (trust on first use), and the pin itself is checked below
+    await ctx.route(/\/config\.js(\?|$)/, async route => { const r = await route.fetch();
+      await route.fulfill({ response: r, body: (await r.text()).replace(/ADMIN_KID: "[0-9a-f]*"/, 'ADMIN_KID: ""') }); });
     await ctx.route(require("./api-route"), async route => { const q = JSON.parse(route.request().postData() || "{}");
       await route.fulfill({ contentType: "application/json", body: JSON.stringify(gas.call(q)) }); });
     const p = await ctx.newPage(), errs = [];
@@ -94,6 +98,7 @@ const HEAD = ["Producent", "Land", "Område", "Kommune", "Mark/Navn", "Klassifik
   const raw = q => gas.call(Object.assign({ user: "pia", token: piaTok }, q));
   check("a member can't fetch another's wrapped key, the owner's key, or make a code", ["adminescrow", "adminkeyget", "adminrecovery", "adminkeyset"].every(a => raw({ action: a, member: "kim" }).error === "not-owner"));
   check("a key wrapped to a stale admin key is refused", raw({ action: "escrow", wrapAdmin: "A".repeat(512), adminKid: "0".repeat(32) }).error === "stale-admin-key");
+  check("the site pins the owner's key fingerprint", /ADMIN_KID: "[0-9a-f]{32}"/.test(require("fs").readFileSync(require("path").join(__dirname, "..", "config.js"), "utf8")));
   check("a browser wraps nothing to a key other than the pinned one", await p2.evaluate(async k => { window.WINE_CONFIG.ADMIN_KID = "f".repeat(32); const r = await VAULT.trustedHelp(k); delete window.WINE_CONFIG.ADMIN_KID; return r === null; }, { pub: ole.adminPub, kid }));
   check("…nor to one whose fingerprint doesn't match it", await p2.evaluate(async k => (await VAULT.trustedHelp({ pub: k.pub, kid: "a".repeat(32) })) === null, { pub: ole.adminPub }));
 

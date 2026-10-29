@@ -52,6 +52,36 @@ const REGIONS = {
       { ap: "Crozes-Hermitage", inao: "Crozes-Hermitage ou Crozes-Ermitage", col: "RW", cru: true }, { ap: "Saint-Joseph", col: "RW", cru: true },
       { ap: "Saint-Péray", col: "W", cru: true }],
     regional: [/^Côtes du Rhône$/] },
+  // Bordeaux: the cru appellations (each its own climat, as in the Rhône) over Haut-Médoc, Médoc and Graves; the
+  // classified châteaux are points, placed on IGN's châteaux (BD TOPO, nature "Château") inside their appellation.
+  // A parcel's first appellation in this list wins (Barsac before Sauternes, Canon-Fronsac before Fronsac); the Bordeaux / Bordeaux supérieur land under everything is left out (it's most of the Gironde)
+  bordeaux: { name: "Bordeaux", country: "Frankrig", region: "Bordeaux", bbox: [44.45, -1.0, 45.55, 0.0], bgTol: 6,
+    apps: [{ ap: "Saint-Estèphe", col: "R", cru: true }, { ap: "Pauillac", col: "R", cru: true }, { ap: "Saint-Julien", col: "R", cru: true },
+      { ap: "Margaux", col: "R", cru: true }, { ap: "Listrac-Médoc", col: "R", cru: true }, { ap: "Moulis-en-Médoc", inao: "Moulis ou Moulis-en-Médoc", col: "R", cru: true },
+      { ap: "Pessac-Léognan", col: "RW", cru: true }, { ap: "Barsac", col: "W", cru: true }, { ap: "Sauternes", col: "W", cru: true },
+      { ap: "Saint-Émilion Grand Cru", inao: "Saint-Emilion grand cru", col: "R", cru: true }, { ap: "Pomerol", col: "R", cru: true },
+      { ap: "Lalande-de-Pomerol", col: "R", cru: true }, { ap: "Canon-Fronsac", inao: "Canon Fronsac", col: "R", cru: true }, { ap: "Fronsac", col: "R", cru: true },
+      { ap: "Haut-Médoc", col: "R" }, { ap: "Médoc", col: "R" }, { ap: "Graves", col: "RW" }],
+    regional: [],
+    // the 1855 classification: the red wines of the Médoc (and Haut-Brion), and the sweet wines of Sauternes and
+    // Barsac; each with its appellation (where to look for it on IGN's map) and any other name it goes by there
+    points: { "1855-1": ["Lafite Rothschild|Pauillac", "Latour|Pauillac", "Margaux|Margaux", "Haut-Brion|Pessac-Léognan", "Mouton Rothschild|Pauillac"],
+      "1855-2": ["Rauzan-Ségla|Margaux", "Rauzan-Gassies|Margaux", "Léoville Las Cases|Saint-Julien", "Léoville Poyferré|Saint-Julien", "Léoville Barton|Saint-Julien",
+        "Durfort-Vivens|Margaux", "Gruaud Larose|Saint-Julien", "Lascombes|Margaux", "Brane-Cantenac|Margaux", "Pichon Baron|Pauillac|Pichon-Longueville",
+        "Pichon Longueville Comtesse de Lalande|Pauillac|Pichon-Longueville-Comtesse-de-Lalande", "Ducru-Beaucaillou|Saint-Julien", "Cos d'Estournel|Saint-Estèphe", "Montrose|Saint-Estèphe"],
+      "1855-3": ["Kirwan|Margaux", "d'Issan|Margaux", "Lagrange|Saint-Julien", "Langoa Barton|Saint-Julien", "Giscours|Margaux", "Malescot St. Exupéry|Margaux|Malescot-Saint-Exupéry",
+        "Cantenac Brown|Margaux", "Boyd-Cantenac|Margaux", "Palmer|Margaux", "La Lagune|Haut-Médoc", "Desmirail|Margaux", "Calon-Ségur|Saint-Estèphe", "Ferrière|Margaux",
+        "Marquis d'Alesme|Margaux|Marquis d'Alesme Becker"],
+      "1855-4": ["Saint-Pierre|Saint-Julien", "Talbot|Saint-Julien", "Branaire-Ducru|Saint-Julien", "Duhart-Milon|Pauillac", "Pouget|Margaux", "La Tour Carnet|Haut-Médoc",
+        "Lafon-Rochet|Saint-Estèphe", "Beychevelle|Saint-Julien", "Prieuré-Lichine|Margaux", "Marquis de Terme|Margaux"],
+      "1855-5": ["Pontet-Canet|Pauillac", "Batailley|Pauillac", "Haut-Batailley|Pauillac", "Grand-Puy-Lacoste|Pauillac", "Grand-Puy Ducasse|Pauillac", "Lynch-Bages|Pauillac",
+        "Lynch-Moussas|Pauillac", "Dauzac|Margaux", "d'Armailhac|Pauillac|Mouton Baronne Philippe", "du Tertre|Margaux", "Haut-Bages Libéral|Pauillac", "Pédesclaux|Pauillac",
+        "Belgrave|Haut-Médoc", "Camensac|Haut-Médoc", "Cos Labory|Saint-Estèphe", "Clerc Milon|Pauillac", "Croizet-Bages|Pauillac", "Cantemerle|Haut-Médoc"],
+      "sau-0": ["d'Yquem|Sauternes|Yquem"],
+      "sau-1": ["La Tour Blanche|Sauternes", "Lafaurie-Peyraguey|Sauternes", "Clos Haut-Peyraguey|Sauternes|Haut-Peyraguey", "Rayne Vigneau|Sauternes|Rayne-Vigneau", "Suduiraut|Sauternes",
+        "Coutet|Barsac", "Climens|Barsac", "Guiraud|Sauternes", "Rieussec|Sauternes", "Rabaud-Promis|Sauternes", "Sigalas Rabaud|Sauternes"],
+      "sau-2": ["de Myrat|Barsac|Myrat", "Doisy Daëne|Barsac", "Doisy-Dubroca|Barsac", "Doisy-Védrines|Barsac", "d'Arche|Sauternes|Arche", "Filhot|Sauternes", "Broustet|Barsac",
+        "Nairac|Barsac", "Caillou|Barsac", "Suau|Barsac", "de Malle|Sauternes|Malle", "Romer|Sauternes", "Romer du Hayot|Sauternes", "Lamothe|Sauternes", "Lamothe Guignard|Sauternes|Lamothe-Guignard"] } },
   // INAO's map has no Champagne: its delimitation was never published as data. Its grands and premiers crus are whole
   // villages (the échelle des crus), so a cru here is the vines (IGN BD TOPO, nature "Vigne") inside that village's
   // boundary (IGN ADMIN EXPRESS; the old commune where it has since merged: Aÿ, Oger, Vertus, Coligny…); the other
@@ -247,11 +277,44 @@ async function villagesBuild() {
     climats.forEach(c => { if (c.app !== a.ap || c.c !== "1er" || c.unnamed) return; const g = groupOf(c.n); if (g && key(g) !== key(c.n)) c.parent = slug(g); });
     if (a.cru) add(a, a.ap, "AOC", a.ap, union(a.village), null, TOL * 3); // a cru appellation is its own climat (whole hillsides: drawn coarser)
   }
-  const villages = A.filter(a => !a.cru).map(a => ({ ap: a.ap, ha: +polyHa(union(a.village)).toFixed(1), g: tidy(union(a.village), TOL * (R.bgTol || 2)) })).filter(v => v.g.length);
-  finish({ climats, villages, regionalLand });
+  const villageLand = Object.fromEntries(A.filter(a => !a.cru).map(a => [a.ap, union(a.village)]));
+  const villages = A.filter(a => !a.cru).map(a => ({ ap: a.ap, ha: +polyHa(villageLand[a.ap]).toFixed(1), g: tidy(villageLand[a.ap], TOL * (R.bgTol || 2)) })).filter(v => v.g.length);
+  const points = R.points ? await placePoints(climats, villageLand) : null;
+  finish({ climats, villages, regionalLand, points });
 })().catch(e => { console.error(e); process.exit(1); });
 
-function finish({ climats, villages, regionalLand }) {
+// ── classified châteaux: each on IGN's château of that name (BD TOPO zone_d_habitation, nature "Château") that lies
+// in its appellation or within 1.5 km of it; one that isn't found keeps its place in the list, without a point ──
+async function placePoints(climats, villageLand) {
+  const ch = await wfs("BDTOPO_V3:zone_d_habitation", "&SORTBY=cleabs", "chateaux", "nature='Château'");
+  const pkey = t => " " + t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").replace(/\bst\b/g, "saint")
+    .split(" ").filter(w => w && !["chateau", "de", "du", "d", "la", "le", "les", "l", "des"].includes(w)).join(" ") + " ";
+  const mid = mp => { let x = 0, y = 0, n = 0; mp.forEach(p => p[0].forEach(q => { x += q[0]; y += q[1]; n++; })); return [x / n, y / n]; };
+  const cand = ch.map(f => ({ n: String(f.properties.toponyme || "").trim(), p: mid(inM(f.geometry)) })).filter(c => c.n).map(c => Object.assign(c, { k: pkey(c.n) }));
+  const near = (pt, land) => land.some(p => inPoly(pt, p)) || land.some(p => p[0].some(([x, y]) => Math.hypot(x - pt[0], y - pt[1]) < 1500));
+  const out = [], missing = [];
+  // the same name first; else IGN's name holding all of ours (and at most two words more)
+  const find = (list, keys) => list.find(c => keys.includes(c.k)) || list.find(c => keys.some(k => { const a = k.trim().split(" "), b = c.k.trim().split(" ");
+    return a.every(w => b.includes(w)) && b.length <= a.length + 2; }));
+  for (const [cls, list] of Object.entries(R.points)) for (const e of list) {
+    const [name, ap, ...alias] = e.split("|"), keys = [name, ...alias].map(pkey);
+    const land = (climats.find(c => c.c === "AOC" && c.n === ap) || {}).g || villageLand[ap] || [];
+    let hit = find(cand.filter(c => near(c.p, land)), keys);
+    // many châteaux are on IGN's map as an inhabited place ("Lieu-dit habité: Château Rieussec"): look the name up there
+    if (!hit) {
+      const word = name.split(/[^\p{L}]+/u).filter(w => w.length > 2 && !/^(Château|Clos)$/.test(w)).sort((a, b) => b.length - a.length)[0]; // as IGN writes it, accents and all
+      const more = await wfs("BDTOPO_V3:zone_d_habitation", "&SORTBY=cleabs", "place-" + word, `toponyme ILIKE '%${word.replace(/'/g, "''")}%'`);
+      hit = find(more.map(f => ({ n: String(f.properties.toponyme || "").trim(), p: mid(inM(f.geometry)) })).filter(c => c.n && near(c.p, land)).map(c => Object.assign(c, { k: pkey(c.n) })), keys);
+    }
+    const n = /^(Clos|Château) /.test(name) ? name : "Château " + name;
+    if (!hit) missing.push(n);
+    out.push(Object.assign({ id: slug(n), n, cls, ap }, hit ? { p: hit.p.map(Math.round), ign: hit.n } : {}));
+  }
+  console.error(`${out.length - missing.length} of ${out.length} classified châteaux placed${missing.length ? "; not found: " + missing.join(", ") : ""}`);
+  return out;
+}
+
+function finish({ climats, villages, regionalLand, points }) {
   // the same name in two appellations (Clos du Roy) gets the appellation in its id
   climats.forEach(c => { if (climats.filter(x => x.id === c.id).length > 1) c.id = slug(c.app + " " + c.n); });
   climats.forEach(c => { let i = 2; const base = c.id; while (climats.filter(x => x.id === c.id).length > 1) c.id = base + "_" + i++; });
@@ -263,7 +326,7 @@ function finish({ climats, villages, regionalLand }) {
       source: R.kind === "villages" ? "Vines: IGN BD TOPO (zone de végétation « Vigne »); village boundaries: IGN ADMIN EXPRESS (Licence Ouverte); crus: the échelle des crus"
         : "INAO — Délimitation parcellaire des AOC viticoles, via IGN Géoplateforme (Licence Ouverte); place names: IGN BD TOPO (Licence Ouverte)" },
     climats: climats.sort((a, b) => RANK[a.c] - RANK[b.c] || a.n.localeCompare(b.n, "fr")),
-    villages, regional: { ha: +polyHa(union(regionalLand)).toFixed(1), g: regional } };
+    villages, regional: { ha: +polyHa(union(regionalLand)).toFixed(1), g: regional }, ...(points ? { points } : {}) };
   const out = path.join(ROOT, `atlas-${id}.js`);
   fs.writeFileSync(out, `// Generated by tools/region-build.js ${id} — do not edit by hand.\nwindow.ATLAS_PACKS = window.ATLAS_PACKS || {};\nwindow.ATLAS_PACKS[${JSON.stringify(id)}] = ${JSON.stringify(pack)};\n`);
   const aocN = climats.filter(c => c.c === "AOC").length, gcN = climats.filter(c => c.c === "GC").length, pcN = climats.filter(c => c.c === "1er" && !c.unnamed && !c.inferred).length,

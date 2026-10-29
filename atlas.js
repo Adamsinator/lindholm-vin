@@ -17,12 +17,22 @@ const REGIONS = [
   { id: "maconnais", name: "Mâconnais", file: "atlas-maconnais.js?v=1", kw: ["pouilly fuisse", "pouilly vinzelles", "pouilly loche", "saint veran", "st veran", "vire clesse", "macon"], regional: "Regional (Mâcon…)" },
   { id: "champagne", name: "Champagne", file: "atlas-champagne.js?v=1", kw: ["champagne"], village: "Other villages' vines" },
   { id: "alsace", name: "Alsace", file: "atlas-alsace.js?v=1", kw: ["alsace", "elsass"], village: "Alsace (the rest of the AOC)" },
+  { id: "bordeaux", name: "Bordeaux", file: "atlas-bordeaux.js?v=1", kw: ["bordeaux", "pauillac", "margaux", "medoc", "saint julien", "st julien", "saint estephe", "st estephe",
+    "pessac", "graves", "sauternes", "barsac", "saint emilion", "st emilion", "pomerol", "fronsac", "listrac", "moulis"], village: "Haut-Médoc, Médoc, Graves" },
   { id: "rhone", name: "Rhône (north)", file: "atlas-rhone.js?v=1", kw: ["cote rotie", "condrieu", "chateau grillet", "hermitage", "ermitage", "crozes", "saint joseph", "st joseph", "cornas", "saint peray", "st peray"],
     regional: "Regional (Côtes du Rhône)" },
 ];
 const TYPE = { W: "Hvid", R: "Rød", RW: "Rød", S: "Bobler" };
 const CLASS = { GC: "Grand cru", "1er": "Premier cru", AOC: "Cru appellation" };
-const st = { region: null, pack: null, sel: null, view: null, show: { GC: true, "1er": true, AOC: true }, mine: false };
+const st = { region: null, pack: null, sel: null, view: null, show: { GC: true, "1er": true, AOC: true, PT: true }, mine: false };
+// classified châteaux (Bordeaux's 1855): points on the map, by rank; the classification as it's written on a label
+const PTCLASS = { "1855-1": "First growth (1855)", "1855-2": "Second growth (1855)", "1855-3": "Third growth (1855)", "1855-4": "Fourth growth (1855)", "1855-5": "Fifth growth (1855)",
+  "sau-0": "Superior first growth (1855)", "sau-1": "First growth, Sauternes (1855)", "sau-2": "Second growth, Sauternes (1855)" };
+const PTLABEL = { "1855-1": "Premier grand cru classé", "1855-2": "Deuxième grand cru classé", "1855-3": "Troisième grand cru classé", "1855-4": "Quatrième grand cru classé",
+  "1855-5": "Cinquième grand cru classé", "sau-0": "Premier cru supérieur", "sau-1": "Premier cru classé", "sau-2": "Deuxième cru classé" };
+const PTSIZE = { "1855-1": 6.5, "1855-2": 5.5, "1855-3": 5, "1855-4": 4.5, "1855-5": 4, "sau-0": 6.5, "sau-1": 5.5, "sau-2": 4.5 };
+const pts = () => (st.pack && st.pack.points) || [];
+const short = n => n.replace(/^Château /, "");
 const cls = c => c.c === "GC" ? "GC" : c.c === "AOC" ? "AOC" : c.unnamed ? "px" : "p1";
 const isTop = c => c.c === "GC" || c.c === "AOC"; // drawn and labelled first
 const noteOf = c => c.d && (c.d[window.I18N ? I18N.lang : "en"] || c.d.en);
@@ -43,9 +53,11 @@ function draw() {
   P.villages.forEach(v => el("path", { class: "vl", d: pathOf(v.g) }, g));
   P.climats.forEach(c => { c.el = el("path", { class: "cl " + cls(c), d: pathOf(c.g), "data-id": c.id }, g);
     el("title", {}, c.el).textContent = c.n; });
-  const gd = el("g", {}, svg); gLabels = el("g", {}, svg);
+  const gd = el("g", {}, svg), gp = el("g", {}, svg); gLabels = el("g", {}, svg); // château dots under the labels
   P.climats.forEach(c => { if (!c.unnamed) c.lb = el("text", { class: "lb " + c.c, x: c.lp[0], y: c.lp[1] }, gLabels); if (c.lb) c.lb.textContent = c.n;
     c.dot = el("circle", { class: "dot", cx: c.lp[0], cy: c.lp[1], r: 0 }, gd); });
+  pts().forEach(q => { if (!q.p) return; q.el = el("circle", { class: "pt", cx: q.p[0], cy: q.p[1], r: 0, "data-pt": q.id }, gp); el("title", {}, q.el).textContent = q.n;
+    q.lb = el("text", { class: "lb pl", x: q.p[0], y: q.p[1] }, gLabels); q.lb.textContent = short(q.n); });
   paint();
 }
 function paint() {
@@ -55,6 +67,8 @@ function paint() {
     c.el.classList.toggle("dim", off); c.el.classList.toggle("sel", st.sel === c.id);
     const b = CELLAR.by[c.id]?.left || 0; c.dot.setAttribute("r", b ? 0 : 0); c.dot.dataset.b = b;
   });
+  pts().forEach(q => { if (!q.el) return; q.el.classList.toggle("sel", st.sel === q.id); q.el.classList.toggle("has", !!CELLAR.by[q.id]);
+    q.el.classList.toggle("dim", !st.show.PT || (st.mine && !CELLAR.by[q.id])); });
   layoutLabels();
 }
 // labels and bottle dots keep their size on screen: scaled by the zoom, hidden where they'd crowd
@@ -68,6 +82,14 @@ function layoutLabels() {
     const w = c.n.length * 7 * k, h = 15 * k, box = [c.lp[0] - w / 2, c.lp[1] - h, c.lp[0] + w / 2, c.lp[1]];
     const hide = !st.show[c.c] || (st.mine && !CELLAR.by[c.id]) || taken.some(o => !(box[2] < o[0] || box[0] > o[2] || box[3] < o[1] || box[1] > o[3]));
     c.lb.style.display = hide ? "none" : ""; if (!hide) taken.push(box);
+  });
+  // the châteaux: a dot a little bigger for a higher rank; names once you're close enough to read them
+  pts().filter(q => q.el).sort((a, b) => PTSIZE[b.cls] - PTSIZE[a.cls]).forEach(q => {
+    const off = !st.show.PT || (st.mine && !CELLAR.by[q.id]); q.el.setAttribute("r", off ? 0 : PTSIZE[q.cls] * k);
+    q.lb.style.fontSize = 11.5 * k + "px"; q.lb.style.strokeWidth = 3 * k + "px"; q.lb.setAttribute("y", q.p[1] - 8 * k);
+    const w = short(q.n).length * 6 * k, h = 13 * k, box = [q.p[0] - w / 2, q.p[1] - 8 * k - h, q.p[0] + w / 2, q.p[1] - 8 * k];
+    const hide = off || st.view[2] > 25000 || taken.some(o => !(box[2] < o[0] || box[0] > o[2] || box[3] < o[1] || box[1] > o[3]));
+    q.lb.style.display = hide ? "none" : ""; if (!hide) taken.push(box);
   });
 }
 function setView(v) { st.view = v; svg.setAttribute("viewBox", v.map(x => Math.round(x)).join(" ")); layoutLabels(); }
@@ -96,7 +118,7 @@ svg.addEventListener("pointermove", e => {
 });
 const up = e => { ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch = null; if (!ptrs.size) svg.classList.remove("drag"); };
 svg.addEventListener("pointerup", e => { const tgt = document.elementFromPoint(e.clientX, e.clientY); up(e);
-  if (moved < 6) { const c = tgt && tgt.closest && tgt.closest(".cl"); select(c ? c.dataset.id : null); } });
+  if (moved < 6) { const q = tgt && tgt.closest && tgt.closest(".pt"), c = tgt && tgt.closest && tgt.closest(".cl"); select(q ? q.dataset.pt : c ? c.dataset.id : null); } });
 svg.addEventListener("pointercancel", up);
 $("zIn").onclick = () => { const [x, y, w, h] = st.view; zoomAt(.6, x + w / 2, y + h / 2); };
 $("zOut").onclick = () => { const [x, y, w, h] = st.view; zoomAt(1 / .6, x + w / 2, y + h / 2); };
@@ -104,10 +126,11 @@ $("zHome").onclick = () => fit(st.home);
 addEventListener("resize", () => { if (st.view) layoutLabels(); });
 
 /* ---------- the side panel ---------- */
-const byId = id => st.pack && st.pack.climats.find(c => c.id === id);
+const byId = id => st.pack && (st.pack.climats.find(c => c.id === id) || pts().find(q => q.id === id));
 function select(id, fly) {
   st.sel = byId(id) ? id : null; paint(); renderSide(); syncHash();
-  if (st.sel && fly) fit(bbOf(byId(st.sel).g), .6);
+  const c = st.sel && byId(st.sel);
+  if (c && fly) { if (c.g) fit(bbOf(c.g), .6); else if (c.p) fit([c.p[0] - 900, c.p[1] - 900, c.p[0] + 900, c.p[1] + 900], .1); }
 }
 function renderSide() {
   const P = st.pack, side = $("side"); if (!P) return;
@@ -126,14 +149,28 @@ function renderSide() {
     side.innerHTML = `<h2>${esc(P.meta.name)}</h2>
       <p class="meta">${esc(lead)}</p>
       <div class="facts">${gc.length ? fact(t("Grand cru"), sum(gc)) : ""}${P.climats.some(x => x.c === "1er") ? fact(t("Premier cru"), sum(P.climats.filter(x => x.c === "1er"))) : ""}${aoc.length ? fact(t("Cru appellation"), sum(aoc)) : ""}
-        ${P.villages.map(v => fact(R.village ? t(R.village) : v.ap, fmtHa(v.ha) + " ha")).join("")}
+        ${P.villages.map(v => fact(P.villages.length > 1 || !R.village ? v.ap : t(R.village), fmtHa(v.ha) + " ha")).join("")}
         ${P.regional.ha ? fact(t(R.regional), fmtHa(P.regional.ha) + " ha") : ""}</div>
-      ${many ? `<p class="note">${esc(t("Village figures are the land outside the premiers crus."))}</p>` : ""}
+      ${many && pc.length ? `<p class="note">${esc(t("Village figures are the land outside the premiers crus."))}</p>` : ""}
       ${cellarSummary()}
       ${gc.length ? groups(gc, "Grand cru") : ""}${pc.length ? groups(pc, "Premier cru") : ""}
       ${aoc.length ? `<h3>${esc(t("Cru appellation"))}</h3><ul class="list">${aoc.map(x => row(x)).join("")}</ul>` : ""}
+      ${Object.keys(PTCLASS).filter(k => pts().some(q => q.cls === k)).map(k => `<h3>${esc(t(PTCLASS[k]))}</h3><ul class="list">${pts().filter(q => q.cls === k).map(q => ptRow(q)).join("")}</ul>`).join("")}
+      ${pts().some(q => !q.p) ? `<p class="note">° ${esc(t("Not on IGN's map under its own name, so not drawn."))}</p>` : ""}
       ${pc.some(x => x.inferred) ? `<p class="note">* ${esc(t("INAO's map doesn't name this land; the name comes from IGN's place names inside or next to it."))}</p>` : ""}
       <p class="src">${esc(P.meta.source)}. ${esc(t("Built {0}.", P.meta.built))}</p>`;
+  } else if (!c.g) { // a classified château
+    const bottles = CELLAR.by[c.id];
+    side.innerHTML = `<p><button class="btn" id="back">← ${esc(P.meta.name)}</button></p>
+      <span class="pill GC">${esc(t(PTCLASS[c.cls]))}</span>
+      <h2>${esc(c.n)}</h2>
+      <div class="meta">${esc(c.ap)} · ${esc(PTLABEL[c.cls])}</div>
+      <p class="note">${esc(c.p ? t("On IGN's map as “{0}”.", c.ign) : t("Not on IGN's map under its own name, so not drawn."))}</p>
+      ${bottles ? `<h3>${esc(t("In your cellar"))}</h3>` + bottles.wines.slice(0, 12).map(w => `<div class="cw"><b>${w.left}×</b> ${esc(w.producer)} · ${esc(w.name || "")} ${esc(String(w.vintage || ""))}</div>`).join("") : ""}
+      <p><button class="btn primary" id="addHere">＋ ${esc(t("Add a bottle from here"))}</button></p>
+      <p class="src">${esc(t("The 1855 classification; châteaux placed on IGN BD TOPO (Licence Ouverte)."))}</p>`;
+    $("back").onclick = () => select(null);
+    $("addHere").onclick = () => addFromAtlas(c, R);
   } else {
     const parent = c.parent && byId(c.parent), bottles = CELLAR.by[c.id];
     side.innerHTML = `<p><button class="btn" id="back">← ${esc(P.meta.name)}</button></p>
@@ -154,6 +191,7 @@ function renderSide() {
   }
   side.querySelectorAll("button[data-c]").forEach(b => b.onclick = () => select(b.dataset.c, true));
 }
+const ptRow = q => `<li><button data-c="${esc(q.id)}">${esc(short(q.n))}${q.p ? "" : " °"}</button><span>${esc(q.ap)}${CELLAR.by[q.id] ? " · 🍷 " + CELLAR.by[q.id].left : ""}</span></li>`;
 const row = x => `<li><button data-c="${esc(x.id)}">${esc(x.n)}${x.inferred ? " *" : ""}</button><span>${fmtHa(x.ha)} ha${CELLAR.by[x.id] ? " · 🍷 " + CELLAR.by[x.id].left : ""}</span></li>`;
 function cellarSummary() {
   if (!CELLAR.loaded) return `<p class="note">${esc(t(CELLAR.msg))}</p>`;
@@ -162,6 +200,12 @@ function cellarSummary() {
 }
 // "Add a bottle from here": the cellar's add form, filled in (handed over in localStorage, read once by index.html)
 function addFromAtlas(c, R) {
+  if (!c.g) { // a château: the producer is the château, the classification as on its label
+    const pre = { name: "", producer: c.n, commune: c.ap, classification: PTLABEL[c.cls], region: st.pack.meta.region, country: st.pack.meta.country,
+      type: /^sau/.test(c.cls) ? "Hvid" : "Rød", at: Date.now() };
+    try { localStorage.setItem("vinAddPrefill", JSON.stringify(pre)); } catch (e) {}
+    location.href = "index.html#add"; return;
+  }
   // a cru appellation or a Champagne village is where the wine is from, not its name
   const pre = { name: c.c === "AOC" || villagesPack() ? "" : c.n, commune: c.app, classification: { GC: "Grand cru", "1er": "1. cru" }[c.c] || "", region: st.pack.meta.region, country: st.pack.meta.country,
     type: TYPE[c.col] || "Hvid", producer: "", at: Date.now() };
@@ -183,6 +227,11 @@ async function vaultData(api, user, token) {
 function matchWine(w) {
   const R = st.region, all = norm([w.region, w.commune, w.name, w.classification].join(" ")), label = norm([w.name, w.commune].join(" "));
   if (!R.kw.some(k => all.includes(" " + k + " ")) && !R.kw.some(k => norm(w.region).includes(k))) return { region: false };
+  // a classified château by its name on the bottle (producer or wine): the longest name wins (Lamothe Guignard over Lamothe)
+  const who = norm([w.producer, w.name].join(" "));
+  let pt = null;
+  for (const q of pts()) { const k = norm(short(q.n)).trim(); if (k.length > 3 && who.includes(" " + k + " ") && (!pt || k.length > pt.k)) pt = { q, k: k.length }; }
+  if (pt) return { region: true, c: pt.q };
   let best = null;
   for (const c of st.pack.climats) {
     if (c.unnamed) continue;
@@ -227,10 +276,11 @@ async function openRegion(id, sel) {
   if (!(window.ATLAS_PACKS && ATLAS_PACKS[R.id])) await loadScript(R.file);
   st.region = R; st.pack = ATLAS_PACKS[R.id]; st.sel = null; $("fRegion").value = R.id; $("regionName").textContent = st.pack.meta.name;
   document.title = "AllWine — " + st.pack.meta.name + " · " + t("Atlas");
-  $("climatList").innerHTML = st.pack.climats.filter(c => !c.unnamed).map(c => `<option value="${esc(c.n)}">`).join("");
+  $("climatList").innerHTML = st.pack.climats.filter(c => !c.unnamed).concat(pts()).map(c => `<option value="${esc(c.n)}">`).join("");
   // start on the crus (the regional land around them can be far bigger, and long and thin)
   st.home = bbOf(st.pack.climats.flatMap(c => c.g));
   for (const [f, k] of [["fGC", "GC"], ["f1er", "1er"], ["fAOC", "AOC"]]) $(f).parentNode.hidden = !st.pack.climats.some(c => c.c === k);
+  $("fPts").parentNode.hidden = !pts().length;
   place(); draw(); fit(st.home); renderLegend();
   if (sel && byId(sel)) select(sel, true); else { renderSide(); syncHash(); }
 }
@@ -239,7 +289,8 @@ function renderLegend() {
   const has = k => P.climats.some(c => c.c === k);
   $("legend").innerHTML = [has("GC") && ["var(--gc)", "Grand cru"], has("1er") && ["var(--pc)", "Premier cru"], has("AOC") && ["var(--ac)", "Cru appellation"],
     P.climats.some(c => c.unnamed) && ["var(--pcx)", "Premier cru, unnamed by INAO"],
-    P.villages.length && ["var(--vc)", P.villages.length > 1 ? "Village appellations" : st.region.village || P.villages[0].ap], P.regional.ha && ["var(--rg)", st.region.regional]].filter(Boolean)
+    P.villages.length && ["var(--vc)", st.region.village || (P.villages.length > 1 ? "Village appellations" : P.villages[0].ap)], P.regional.ha && ["var(--rg)", st.region.regional],
+    pts().length && ["var(--ink)", "Classified château (1855)"]].filter(Boolean)
     .map(([c, n]) => `<span><i style="background:${c}"></i>${esc(t(n))}</span>`).join("") + (CELLAR.loaded ? `<span><i style="background:var(--gold);border-radius:50%"></i>${esc(t("Bottles in your cellar"))}</span>` : "");
 }
 $("fRegion").innerHTML = REGIONS.map(r => `<option value="${r.id}">${esc(r.name)}</option>`).join("") + `<option value="burgundy">${esc(t("Côte d'Or (Burgundy atlas) ↗"))}</option>`;
@@ -247,8 +298,9 @@ $("fRegion").onchange = e => { if (e.target.value === "burgundy") { location.hre
 $("fGC").onchange = e => { st.show.GC = e.target.checked; paint(); };
 $("f1er").onchange = e => { st.show["1er"] = e.target.checked; paint(); };
 $("fAOC").onchange = e => { st.show.AOC = e.target.checked; paint(); };
+$("fPts").onchange = e => { st.show.PT = e.target.checked; paint(); };
 $("fMine").onchange = e => { st.mine = e.target.checked; paint(); };
-$("fSearch").addEventListener("change", e => { const q = norm(e.target.value); const c = st.pack.climats.find(x => norm(x.n) === q) || st.pack.climats.find(x => !x.unnamed && norm(x.n).includes(q.trim())); if (c) { select(c.id, true); e.target.value = ""; } });
+$("fSearch").addEventListener("change", e => { const q = norm(e.target.value); const all = st.pack.climats.concat(pts()), c = all.find(x => norm(x.n) === q) || all.find(x => !x.unnamed && norm(x.n).includes(q.trim())); if (c) { select(c.id, true); e.target.value = ""; } });
 if (window.I18N) { I18N.picker && document.querySelectorAll("[data-langpick]").forEach(I18N.picker); I18N.onChange(() => { renderSide(); renderLegend(); }); }
 
 // #r=chablis&c=les_clos, or &w=<a wine's name> from the cellar's "On the map": its vineyard if the atlas knows it

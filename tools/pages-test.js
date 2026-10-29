@@ -19,7 +19,7 @@ check("the pages on disk are what the data gives (else: node tools/pages-build.j
 const keys = Object.keys(T.en).sort().join();
 check("every language has every word", LANGS.every(L => Object.keys(T[L]).sort().join() === keys && T[L].dirs.length === 8), LANGS.filter(L => Object.keys(T[L]).sort().join() !== keys).join());
 check("every vineyard has its own address", new Set(ALL.map(v => v.slug)).size === ALL.length);
-check("about 800 vineyards across seven regions", ALL.length > 780 && new Set(ALL.map(v => v.set)).size === 7, ALL.length);
+check("about 900 vineyards and classified châteaux across eight regions", ALL.length > 880 && new Set(ALL.map(v => v.set)).size === 8, ALL.length);
 
 const pages = Object.keys(files).filter(f => f.endsWith(".html"));
 const bad = { head: [], ld: [], geo: [], junk: [], links: [] };
@@ -31,7 +31,7 @@ for (const f of pages) {
       || alts.length !== 5 || !LANGS.every(l => alts.some(a => a[1] === l && a[2] === `${SITE}${OUT}/${l}/${file}`))) bad.head.push(f);
   let ld; try { ld = JSON.parse(s.match(/<script type="application\/ld\+json">(.*?)<\/script>/)[1]); } catch (e) { bad.ld.push(f); }
   const place = ld && (ld["@graph"] || []).find(x => x["@type"] === "Place");
-  if (file !== "index.html" && (!place || !(place.geo.latitude > 44.8 && place.geo.latitude < 49.4 && place.geo.longitude > 3.7 && place.geo.longitude < 7.6))) bad.geo.push(f);
+  if (file !== "index.html" && (!place || !(place.geo.latitude > 44.4 && place.geo.latitude < 49.4 && place.geo.longitude > -1.2 && place.geo.longitude < 7.6))) bad.geo.push(f);
   if (/undefined|NaN|\{\d\}|\[object/.test(s.replace(/<svg class="map".*?<\/svg>/s, ""))) bad.junk.push(f);
   for (const [, h] of s.matchAll(/href="([^"#?]+)[^"]*"/g)) {
     if (/^(https?:|data:)/.test(h)) continue;
@@ -62,7 +62,7 @@ check("Les Clos in French: Chablis Grand Cru, 27,1 ha, into the Chablis atlas, w
 const inferred = ALL.find(v => v.inferred);
 check("a name INAO's map leaves out says it's inferred", inferred && files[`${OUT}/en/${inferred.slug}.html`].includes("INAO&#39;s map leaves this parcel unnamed"), inferred && inferred.slug);
 const hub = files[`${OUT}/en/index.html`];
-check("the vineyard index links every vineyard, by region", ALL.every(v => hub.includes(`href="${v.slug}.html"`)) && ["burgundy", "chablis", "chalonnaise", "maconnais", "champagne", "alsace", "rhone"].every(r => hub.includes(`id="${r}"`)));
+check("the vineyard index links every vineyard, by region", ALL.every(v => hub.includes(`href="${v.slug}.html"`)) && ["burgundy", "chablis", "chalonnaise", "maconnais", "champagne", "alsace", "rhone", "bordeaux"].every(r => hub.includes(`id="${r}"`)));
 const geoOf = f => ((JSON.parse((files[f].match(/ld\+json">(.*?)<\/script>/) || [, "{}"])[1])["@graph"] || [])[0] || {}).geo || {};
 const ch = files[`${OUT}/en/chouilly.html`] || "", chG = geoOf(`${OUT}/en/chouilly.html`);
 check("Chouilly: a Champagne grand cru village, its note on Pinot Noir, drawn from IGN's vines, east of Épernay", ch.includes("Champagne Grand Cru") && ch.includes("its Pinot Noir is rated premier cru")
@@ -70,6 +70,9 @@ check("Chouilly: a Champagne grand cru village, its note on Pinot Noir, drawn fr
 const he = files[`${OUT}/fr/hermitage.html`] || "", heG = geoOf(`${OUT}/fr/hermitage.html`);
 check("Hermitage in French: a cru appellation of 145,5 ha above Tain-l'Hermitage, with no commune line", he.includes("Appellation cru") && he.includes("145,5 ha") && !he.includes("<dt>Commune</dt>")
   && heG.latitude > 45.06 && heG.latitude < 45.09 && heG.longitude > 4.82 && heG.longitude < 4.86, JSON.stringify(heG));
+const la = files[`${OUT}/en/chateau-latour.html`] || "", laG = geoOf(`${OUT}/en/chateau-latour.html`);
+check("Château Latour: a first growth of 1855 in Pauillac, where IGN puts it, among its neighbours", la.includes("Premier grand cru classé") && la.includes("<dd>Pauillac</dd>")
+  && Math.abs(laG.latitude - 45.177) < .003 && Math.abs(laG.longitude + 0.744) < .004 && /<a href="chateau-pichon-baron\.html"><circle class="pt"/.test(la) && la.includes('href="../../atlas.html?lang=en#r=bordeaux&c=chateau_latour"'), JSON.stringify(laG));
 const ra = files[`${OUT}/de/rangen.html`] || "";
 check("Rangen in German: one of Alsace's 51 grands crus, into the Alsace atlas", ra.includes("Teil der 51 Grands Crus in Elsass") && ra.includes('href="../../atlas.html?lang=de#r=alsace&c=rangen"'));
 

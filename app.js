@@ -960,6 +960,7 @@ function detailHTML(w){
 const ATLAS_REGIONS = [{id:"chablis", re:/\bchablis\b/i}, {id:"chalonnaise", re:/\b(mercurey|givry|rully|montagny|bouzeron)\b|chalonnaise/i},
   {id:"maconnais", re:/pouilly[- ](fuiss|vinzelles|loch)|saint[- ]v[ée]ran|\bst[- ]v[ée]ran|vir[ée][- ]cless|m[aâ]con/i},
   {id:"champagne", re:/champagne/i}, {id:"alsace", re:/\balsace\b|\belsass\b/i},
+  {id:"bordeaux", re:/bordeaux|pauillac|margaux|m[ée]doc|saint[- ]julien|\bst[- ]julien|saint[- ]est[eè]phe|\bst[- ]est[eè]phe|pessac|\bgraves\b|sauternes|barsac|saint[- ][ée]milion|\bst[- ][ée]milion|pomerol|fronsac|listrac|moulis/i},
   {id:"rhone", re:/c[oô]te[- ]r[oô]tie|condrieu|ch[aâ]teau[- ]grillet|\b(crozes[- ])?(h|)ermitage\b|saint[- ]joseph|\bst[- ]joseph|\bcornas\b|saint[- ]p[ée]ray/i}];
 function atlasLink(w){
   const rg = ATLAS_REGIONS.find(r => r.re.test([w.region, w.commune, w.name].join(" ")));
@@ -3740,11 +3741,16 @@ const USAGE_LABEL = {active:"Active members", login:"Logins", signup:"Sign-ups",
   sommelier:"Sommelier questions", export:"Exports"};
 function renderUsage(days){
   if(!days || !days.length){ $("adminUsage").innerHTML = `<p class="ph">${esc(tr("No usage counted yet."))}</p>`; return; }
-  const max = Math.max(1, ...days.map(d=>d.active)), W = 300, H = 60, bw = W / days.length;
-  const bars = days.map((d,i)=>{ const h = Math.round(d.active / max * (H - 4)); return `<rect x="${(i*bw+1).toFixed(1)}" y="${H-h}" width="${(bw-2).toFixed(1)}" height="${h}" rx="1.5"><title>${esc(d.day)}: ${d.active}</title></rect>`; }).join("");
+  // bars with a y axis (0, half, the most) and an x axis with a date each week, the last day always labelled
+  const top = Math.max(1, ...days.map(d=>d.active)), max = top <= 4 ? top : Math.ceil(top / 2) * 2, L = 22, Rp = 10, T = 6, W = 320, H = 92, B = 16, ph = H - T - B, bw = (W - L - Rp) / days.length;
+  const y = v => T + ph - v / max * ph, dm = s => { const [, m, d] = String(s).split("-"); return `${+d}/${+m}`; };
+  const grid = [...new Set([0, max / 2, max])].filter(v => Number.isInteger(v)).map(v => `<line class="gl" x1="${L}" x2="${W - Rp}" y1="${y(v)}" y2="${y(v)}"/><text class="ax" x="${L - 4}" y="${y(v) + 3}" text-anchor="end">${v}</text>`).join("");
+  const bars = days.map((d,i)=>{ const h = d.active / max * ph; return `<rect x="${(L + i*bw + 1).toFixed(1)}" y="${(T + ph - h).toFixed(1)}" width="${(bw-2).toFixed(1)}" height="${h.toFixed(1)}" rx="1.5"><title>${esc(d.day)}: ${d.active}</title></rect>`; }).join("");
+  const ticks = days.map((d,i)=>(days.length - 1 - i) % 7 === 0 ? `<line class="tk" x1="${L + (i + .5) * bw}" x2="${L + (i + .5) * bw}" y1="${T + ph}" y2="${T + ph + 3}"/><text class="ax" x="${L + (i + .5) * bw}" y="${H - 3}" text-anchor="middle">${dm(d.day)}</text>` : "").join("");
+  const bars0 = `${grid}${bars}<line class="xl" x1="${L}" x2="${W - Rp}" y1="${T + ph}" y2="${T + ph}"/>${ticks}`;
   const sum = k => days.reduce((s,d)=>s + (d[k]||0), 0);
-  $("adminUsage").innerHTML = `<div class="ususp"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(tr("Active members a day, last 30 days"))}">${bars}</svg>
-      <span class="ph">${esc(tr("Active members a day, last 30 days"))} · ${esc(tr("most {0}", max))}</span></div>
+  $("adminUsage").innerHTML = `<div class="ususp"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(tr("Active members a day, last 30 days"))}">${bars0}</svg>
+      <span class="ph">${esc(tr("Active members a day, last 30 days"))} · ${esc(tr("most {0}", top))}</span></div>
     <dl class="usgrid">${Object.keys(USAGE_LABEL).map(k=>`<div><dt>${esc(tr(USAGE_LABEL[k]))}</dt><dd>${fmt(sum(k))}</dd></div>`).join("")}</dl>`;
 }
 function renderHelp(A){

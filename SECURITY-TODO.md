@@ -7,9 +7,10 @@ are done (see "Limits against abuse" in the README). Tick a box when an item shi
 
 - [ ] **Google Search Console:** add the domain `allwine.dk` (it asks for a DNS TXT record at the registrar), then
       Sitemaps → submit `https://allwine.dk/sitemap.xml`. The vineyard pages show up over the following weeks.
-- [ ] **Deploy `Code.gs` API 42** (account help), then Admin → Account help → **Turn on account help**, and send
+- [x] **Deploy `Code.gs` API 42** (account help), then Admin → Account help → **Turn on account help**, and send
       the key fingerprint it shows, to be pinned as `ADMIN_KID` in `config.js` (browsers then wrap to that key only).
-- [ ] **Deploy `Code.gs` API 41** (usage numbers on the admin page): paste it, Manage deployments → ✏️ → New
+      Done 29 October 2026: the Worker reports v:42, and `18c76ea2…c95c` is pinned (checked against the live key).
+- [x] **Deploy `Code.gs` API 41** (usage numbers on the admin page): paste it, Manage deployments → ✏️ → New
       version. The Stats tab appears in the master sheet with the first count.
 - [x] **Deploy `Code.gs` API 40** (bottle counts 1–9999, prices 0 or more): done 27 October 2026; the Worker
       reports v:40.
