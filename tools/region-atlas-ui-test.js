@@ -39,6 +39,9 @@ const gas = H({ Ark1: [HEAD,
   const tilesAsked = [];
   await ctx.route(/^https:\/\/(data\.geopf\.fr|sgx\.geodatenzentrum\.de)\//, r => { tilesAsked.push(r.request().url());
     r.fulfill({ contentType: "image/png", body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAAAAAA6fptVAAAACklEQVR4nGP4DwABAQEAWk1v8QAAAABJRU5ErkJggg==", "base64") }); });
+  // IGN's elevation service for the slope profile (registered after the tiles: the later route wins): a slope rising 100 m
+  await ctx.route(/^https:\/\/data\.geopf\.fr\/altimetrie\//, r => { const n = +(r.request().url().match(/sampling=(\d+)/) || [])[1] || 50;
+    r.fulfill({ contentType: "application/json", body: JSON.stringify({ elevations: Array.from({ length: n }, (_, i) => ({ z: 150 + 100 * i / (n - 1) })) }) }); });
   await ctx.route(require("./api-route"), async route => {
     const p = JSON.parse(route.request().postData() || "{}");
     let r;
@@ -88,6 +91,29 @@ const gas = H({ Ark1: [HEAD,
   const off = await p.evaluate(() => [...document.querySelectorAll("#map .topo, #map .shade")].every(g => g.style.display === "none"));
   await p.check("#fTopo"); await p.check("#fRelief");
   check("…and both switch off", off);
+  // terrain search: Chablis's grands crus face south-west; "South-facing" (SE–SW) keeps them, and dims the rest
+  await p.click("#terrChip"); await p.click('#terrbar [data-preset="south"]'); await p.waitForTimeout(300);
+  const ts = await p.evaluate(() => ({ note: (document.querySelector("#side .terrhit") || {}).textContent || "", dim: [...document.querySelectorAll("#map .cl.dim")].map(e => e.dataset.id),
+    lit: [...document.querySelectorAll("#map .cl:not(.dim)")].map(e => e.dataset.id), on: [...document.querySelectorAll("#tAsp .on")].map(b => b.textContent).join() }));
+  // (Valmur, at 256°, faces west-south-west: it's dimmed, rightly)
+  check("terrain search: south-facing (SE·S·SW) keeps Les Clos and Vaudésir, dims Valmur, and lists what matches", ts.on === "SE,S,SW" && ts.lit.includes("les_clos") && ts.lit.includes("vaudesir") && ts.dim.includes("valmur")
+    && ts.dim.length > 0 && /vineyards match the terrain search/.test(ts.note), JSON.stringify({ on: ts.on, lit: ts.lit.length, dim: ts.dim.length, note: ts.note.slice(0, 80) }));
+  await p.click("#tClear"); check("…and Clear lights them all again", await p.evaluate(() => !document.querySelector("#map .cl.dim")));
+  await p.click("#terrChip");
+  // compare: Les Clos, then Vaillons
+  await p.click('#side button[data-c="les_clos"]'); await p.click("#cmpBtn"); await p.click("#back"); await p.click('#side button[data-c="vaillons"]'); await p.waitForTimeout(300);
+  const cm = await p.evaluate(() => [...document.querySelectorAll("#side table.cmpv tr")].map(r => [...r.cells].map(c => c.textContent.trim()).join(" ").trim()));
+  check("compare: Les Clos beside Vaillons — class, altitude, the way each faces", cm.length >= 6 && /Les Clos.*Vaillons/.test(cm[0]) && cm.some(r => /^Class Grand cru Premier cru/.test(r)) && cm.some(r => /^Altitude \d+–\d+ m \d+–\d+ m/.test(r)), cm.join(" | "));
+  await p.click("#cmpEnd"); await p.click("#back"); await p.click("#zHome"); await p.waitForTimeout(300);
+  // the slope profile: two clicks across Les Clos, the ground between them from IGN's elevation service
+  await p.click("#profBtn");
+  const pt = await p.evaluate(() => { const c = st.pack.climats.find(x => x.id === "les_clos"), r = svg.getBoundingClientRect(), [vx, vy, vw, vh] = st.view,
+    sc = ([x, y]) => [r.left + (x - vx) / vw * r.width, r.top + (y - vy) / vh * r.height], xs = c.g[0][0].map(q => q[0]), ys = c.g[0][0].map(q => q[1]);
+    return [sc([Math.min(...xs) - 200, c.lp[1]]), sc([Math.max(...xs) + 200, c.lp[1]])]; });
+  await p.mouse.click(pt[0][0], pt[0][1]); await p.waitForTimeout(150); await p.mouse.click(pt[1][0], pt[1][1]); await p.waitForTimeout(800);
+  const pr = await p.evaluate(() => ({ head: (document.querySelector("#profile .phead") || {}).textContent || "", labs: [...document.querySelectorAll("#profile .plab")].map(t => t.textContent), sel: st.sel }));
+  check("slope profile: two clicks across Les Clos give IGN's profile, 100 m of relief, the grand cru named on it", /Slope profile/.test(pr.head) && /100 m of relief/.test(pr.head) && pr.labs.includes("Les Clos") && !pr.sel, JSON.stringify(pr));
+  await p.click("#profClose"); check("…and it closes", await p.evaluate(() => document.getElementById("profile").hidden && !PROF.on));
   const v0 = await p.evaluate(() => st.view.slice());
   await p.click("#zIn"); const v1 = await p.evaluate(() => st.view.slice());
   await p.mouse.move(400, 400); await p.mouse.down(); await p.mouse.move(500, 450, { steps: 5 }); await p.mouse.up(); const v2 = await p.evaluate(() => st.view.slice());
