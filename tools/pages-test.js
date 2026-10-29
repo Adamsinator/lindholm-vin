@@ -19,7 +19,7 @@ check("the pages on disk are what the data gives (else: node tools/pages-build.j
 const keys = Object.keys(T.en).sort().join();
 check("every language has every word", LANGS.every(L => Object.keys(T[L]).sort().join() === keys && T[L].dirs.length === 8), LANGS.filter(L => Object.keys(T[L]).sort().join() !== keys).join());
 check("every vineyard has its own address", new Set(ALL.map(v => v.slug)).size === ALL.length);
-check("about 700 vineyards across four regions", ALL.length > 650 && new Set(ALL.map(v => v.set)).size === 4, ALL.length);
+check("about 800 vineyards across seven regions", ALL.length > 780 && new Set(ALL.map(v => v.set)).size === 7, ALL.length);
 
 const pages = Object.keys(files).filter(f => f.endsWith(".html"));
 const bad = { head: [], ld: [], geo: [], junk: [], links: [] };
@@ -31,7 +31,7 @@ for (const f of pages) {
       || alts.length !== 5 || !LANGS.every(l => alts.some(a => a[1] === l && a[2] === `${SITE}${OUT}/${l}/${file}`))) bad.head.push(f);
   let ld; try { ld = JSON.parse(s.match(/<script type="application\/ld\+json">(.*?)<\/script>/)[1]); } catch (e) { bad.ld.push(f); }
   const place = ld && (ld["@graph"] || []).find(x => x["@type"] === "Place");
-  if (file !== "index.html" && (!place || !(place.geo.latitude > 46.2 && place.geo.latitude < 47.9 && place.geo.longitude > 3.7 && place.geo.longitude < 5.05))) bad.geo.push(f);
+  if (file !== "index.html" && (!place || !(place.geo.latitude > 44.8 && place.geo.latitude < 49.4 && place.geo.longitude > 3.7 && place.geo.longitude < 7.6))) bad.geo.push(f);
   if (/undefined|NaN|\{\d\}|\[object/.test(s.replace(/<svg class="map".*?<\/svg>/s, ""))) bad.junk.push(f);
   for (const [, h] of s.matchAll(/href="([^"#?]+)[^"]*"/g)) {
     if (/^(https?:|data:)/.test(h)) continue;
@@ -41,7 +41,7 @@ for (const f of pages) {
 }
 check(`each of ${pages.length} pages has its title, description, canonical and hreflang links`, !bad.head.length, bad.head.slice(0, 3).join(", "));
 check("each page's schema.org data parses", !bad.ld.length, bad.ld.slice(0, 3).join(", "));
-check("each vineyard's coordinates lie in Burgundy", !bad.geo.length, bad.geo.slice(0, 3).join(", "));
+check("each vineyard's coordinates lie in its French wine region", !bad.geo.length, bad.geo.slice(0, 3).join(", "));
 check("no page says undefined, NaN or {0}", !bad.junk.length, bad.junk.slice(0, 3).join(", "));
 check("every link points at a file that exists", !bad.links.length, bad.links.slice(0, 3).join(", "));
 
@@ -62,6 +62,15 @@ check("Les Clos in French: Chablis Grand Cru, 27,1 ha, into the Chablis atlas, w
 const inferred = ALL.find(v => v.inferred);
 check("a name INAO's map leaves out says it's inferred", inferred && files[`${OUT}/en/${inferred.slug}.html`].includes("INAO&#39;s map leaves this parcel unnamed"), inferred && inferred.slug);
 const hub = files[`${OUT}/en/index.html`];
-check("the vineyard index links every vineyard, by region", ALL.every(v => hub.includes(`href="${v.slug}.html"`)) && ["burgundy", "chablis", "chalonnaise", "maconnais"].every(r => hub.includes(`id="${r}"`)));
+check("the vineyard index links every vineyard, by region", ALL.every(v => hub.includes(`href="${v.slug}.html"`)) && ["burgundy", "chablis", "chalonnaise", "maconnais", "champagne", "alsace", "rhone"].every(r => hub.includes(`id="${r}"`)));
+const geoOf = f => ((JSON.parse((files[f].match(/ld\+json">(.*?)<\/script>/) || [, "{}"])[1])["@graph"] || [])[0] || {}).geo || {};
+const ch = files[`${OUT}/en/chouilly.html`] || "", chG = geoOf(`${OUT}/en/chouilly.html`);
+check("Chouilly: a Champagne grand cru village, its note on Pinot Noir, drawn from IGN's vines, east of Épernay", ch.includes("Champagne Grand Cru") && ch.includes("its Pinot Noir is rated premier cru")
+  && ch.includes("IGN BD TOPO") && ch.includes("One of the 6 grand cru villages of Côte des Blancs") && chG.latitude > 49.0 && chG.latitude < 49.05 && chG.longitude > 3.97 && chG.longitude < 4.05, JSON.stringify(chG));
+const he = files[`${OUT}/fr/hermitage.html`] || "", heG = geoOf(`${OUT}/fr/hermitage.html`);
+check("Hermitage in French: a cru appellation of 145,5 ha above Tain-l'Hermitage, with no commune line", he.includes("Appellation cru") && he.includes("145,5 ha") && !he.includes("<dt>Commune</dt>")
+  && heG.latitude > 45.06 && heG.latitude < 45.09 && heG.longitude > 4.82 && heG.longitude < 4.86, JSON.stringify(heG));
+const ra = files[`${OUT}/de/rangen.html`] || "";
+check("Rangen in German: one of Alsace's 51 grands crus, into the Alsace atlas", ra.includes("Teil der 51 Grands Crus in Elsass") && ra.includes('href="../../atlas.html?lang=de#r=alsace&c=rangen"'));
 
 const n = results.filter(Boolean).length; console.log(`\n${n}/${results.length} passed`); process.exit(n === results.length ? 0 : 1);

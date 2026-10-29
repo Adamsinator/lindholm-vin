@@ -18,6 +18,11 @@ const gas = H({ Ark1: [HEAD,
   row({ Producent: "Vincent Dauvissat", Land: "Frankrig", Område: "Bourgogne", Kommune: "Chablis", "Mark/Navn": "Chablis", Type: "Hvid", Årgang: 2021, Antal: 1 }),
   row({ Producent: "Armand Rousseau", Land: "Frankrig", Område: "Bourgogne", Kommune: "Gevrey-Chambertin", "Mark/Navn": "Clos St-Jacques", Type: "Rød", Årgang: 2016, Antal: 1 }),
   row({ Producent: "Faiveley", Land: "Frankrig", Område: "Bourgogne", Kommune: "Mercurey", "Mark/Navn": "Clos des Myglands", Klassifikation: "1. cru", Type: "Rød", Årgang: 2019, Antal: 4 }),
+  row({ Producent: "Bollinger", Land: "Frankrig", Område: "Champagne", Kommune: "Aÿ", "Mark/Navn": "La Grande Année", Type: "Bobler", Årgang: 2015, Antal: 2 }),
+  row({ Producent: "E. Guigal", Land: "Frankrig", Område: "Rhône", Kommune: "Ampuis", "Mark/Navn": "Côte-Rôtie La Mouline", Type: "Rød", Årgang: 2017, Antal: 1 }),
+  row({ Producent: "Jean-Louis Chave", Land: "Frankrig", Område: "Rhône", "Mark/Navn": "Hermitage", Type: "Rød", Årgang: 2016, Antal: 2 }),
+  row({ Producent: "Alain Graillot", Land: "Frankrig", Område: "Rhône", "Mark/Navn": "Crozes-Hermitage", Type: "Rød", Årgang: 2020, Antal: 3 }),
+  row({ Producent: "Zind-Humbrecht", Land: "Frankrig", Område: "Alsace", Kommune: "Thann", "Mark/Navn": "Riesling Grand Cru Rangen de Thann Clos Saint-Urbain", Type: "Hvid", Årgang: 2018, Antal: 1 }),
   row({ Producent: "J.-A. Ferret", Land: "Frankrig", Område: "Bourgogne", Kommune: "Pouilly-Fuissé", "Mark/Navn": "Les Crays", Klassifikation: "1. cru", Type: "Hvid", Årgang: 2021, Antal: 2 }),
 ] });
 
@@ -82,6 +87,28 @@ const gas = H({ Ark1: [HEAD,
   await p.goto(BASE + "atlas.html#r=maconnais&c=les_crays"); await p.waitForTimeout(1800);
   check("the Mâconnais: Pouilly-Fuissé's premier cru Les Crays, with its bottles", (await p.textContent("#side h2")) === "Les Crays" && /J\.-A\. Ferret/.test(await p.textContent("#side")));
   check("…its 22 premiers crus add up to INAO's ≈194 ha", await p.evaluate(() => { const a = st.pack.climats.filter(c => c.c === "1er" && !c.unnamed); return a.length === 22 && Math.abs(a.reduce((s, c) => s + c.ha, 0) - 194) < 4; }));
+
+  // Champagne: villages, not vineyards; the Northern Rhône: whole appellations; Alsace: its 51 grands crus
+  await p.goto(BASE + "atlas.html#r=champagne"); await p.waitForTimeout(2500);
+  const cp = await p.evaluate(() => ({ gc: st.pack.climats.filter(c => c.c === "GC").length, pc: st.pack.climats.filter(c => c.c === "1er").length,
+    gcHa: st.pack.climats.filter(c => c.c === "GC").reduce((s, c) => s + c.ha, 0), heads: [...document.querySelectorAll("#side h3")].map(h => h.textContent) }));
+  check("Champagne: 17 grand cru and 42 premier cru villages, about 4 400 ha of grand cru vines, by sub-region", cp.gc === 17 && cp.pc === 42 && Math.abs(cp.gcHa - 4400) < 300
+    && cp.heads.includes("Grand cru · Côte des Blancs") && cp.heads.includes("Premier cru · Vallée de la Marne"), JSON.stringify(cp));
+  check("…the Bollinger from Aÿ on Aÿ", /Aÿ[^\n]*🍷 2/.test(await p.textContent("#side")));
+  await p.click('#side button[data-c="chouilly"]'); await p.waitForTimeout(300);
+  check("…Chouilly says its Pinot Noir is only premier cru", /Pinot Noir is rated premier cru/.test(await p.textContent("#side")) && /Vines \(IGN\)/.test(await p.textContent("#side")));
+  await p.click('#side button[data-c="ay"]').catch(() => {}); await p.click("#back").catch(() => {}); await p.click('#side button[data-c="ay"]'); await p.click("#addHere");
+  await p.waitForSelector("#addModal.open", { timeout: 20000 });
+  const fa = await p.evaluate(() => [aName.value, aCommune.value, aRegion.value, aClass.value, aType.value].join("|"));
+  check("…'Add a bottle from here' leaves the name for the cuvée: Aÿ, Champagne, grand cru, sparkling", fa === "|Aÿ|Champagne|Grand cru|Bobler", fa);
+  await p.goto(BASE + "atlas.html#r=rhone"); await p.waitForTimeout(2500);
+  const rh = await p.evaluate(() => ({ n: st.pack.climats.filter(c => c.c === "AOC").map(c => c.n).sort((a, b) => a.localeCompare(b, "fr")).join(), gcBox: document.getElementById("fGC").parentNode.hidden,
+    pcBox: document.getElementById("f1er").parentNode.hidden, aoc: !document.getElementById("fAOC").parentNode.hidden, side: document.getElementById("side").textContent }));
+  check("the Northern Rhône: its eight cru appellations, with their own filter", rh.n === "Château-Grillet,Condrieu,Cornas,Côte-Rôtie,Crozes-Hermitage,Hermitage,Saint-Joseph,Saint-Péray" && rh.gcBox && rh.pcBox && rh.aoc, JSON.stringify(rh).slice(0, 300));
+  check("…Hermitage 145 ha on INAO's map, Château-Grillet under 4", /Hermitage145[.,]5ha/.test(rh.side.replace(/\s+/g, "")) && /Château-Grillet3[.,]79ha/.test(rh.side.replace(/\s+/g, "")));
+  check("…Côte-Rôtie, Hermitage and Crozes-Hermitage each get their own bottles", /Côte-Rôtie[^\n]*🍷 1/.test(rh.side) && /Crozes-Hermitage[^\n]*🍷 3/.test(rh.side) && /(^|[^-])Hermitage[^\n]*🍷 2/.test(rh.side), rh.side.match(/[^\n]*🍷[^\n]*/g));
+  await p.goto(BASE + "atlas.html#r=alsace&c=rangen"); await p.waitForTimeout(2500);
+  check("Alsace: 51 grands crus; Rangen with the Zind-Humbrecht on it", await p.evaluate(() => st.pack.climats.filter(c => c.c === "GC").length) === 51 && (await p.textContent("#side h2")) === "Rangen" && /Zind-Humbrecht/.test(await p.textContent("#side")));
 
   // a phone
   const q = await (await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true })).newPage();

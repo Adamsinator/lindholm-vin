@@ -24,11 +24,11 @@ for (const [l, d] of Object.entries(D)) {
 check("the picker offers German", /\{id:"de", n:"Deutsch"\}/.test(src) && /\n  de: `<svg/.test(src));
 // every t("…")/tr("…") literal in the front-end has a translation
 const used = new Set();
-for (const f of ["app.js", "burgundy.js", "domaine.js", "vault.js"]) {
+for (const f of ["app.js", "burgundy.js", "domaine.js", "vault.js", "atlas.js"]) {
   const s = fs.readFileSync(R(f), "utf8");
   for (const m of s.matchAll(/\b(?:tr|t|trSet)\("((?:[^"\\]|\\.)+)"/g)) used.add(JSON.parse('"' + m[1] + '"'));
 }
-for (const f of ["index.html", "burgundy.html", "domaine.html", "privacy.html"]) {
+for (const f of ["index.html", "burgundy.html", "domaine.html", "privacy.html", "atlas.html"]) {
   const s = fs.readFileSync(R(f), "utf8");
   for (const m of s.matchAll(/<([a-z0-9]+)\b[^>]*\bdata-i18n(?=[\s>])[^>]*>([^<]+)</g)) used.add(m[2].trim().replace(/&gt;/g, ">").replace(/&lt;/g, "<").replace(/&amp;/g, "&"));
   // placeholders, tooltips and aria labels marked for translation

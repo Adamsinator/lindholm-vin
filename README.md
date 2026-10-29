@@ -370,7 +370,7 @@ that climat; a third element `"f"` marks a lease, `"s"` bought grapes. Domaine
 profiles and their sources are in `PROFILES`. When you change the JS, bump the
 `?v=` on the `<script>` tags in `burgundy.html`.
 
-## Region atlas (Chablis, Côte Chalonnaise, Mâconnais)
+## Region atlas (Chablis, Côte Chalonnaise, Mâconnais, Champagne, Alsace, Northern Rhône)
 
 **More regions ↗** (tab bar, and in the Burgundy atlas) opens `atlas.html`: one wine region at a time, from INAO's own
 vineyard outlines. The Côte d'Or keeps its richer atlas (`burgundy.html`); the region atlas is lighter and generic, so a
@@ -393,6 +393,21 @@ new region is a data file, not new code.
   cru land takes the climat whose name lies inside it or within 600 m on IGN's map, using the official list of the 17
   premiers crus and the 23 names sold under them (Chapelot → Montée de Tonnerre, Forêts → Montmains…); those are marked
   "inferred" (*) and say which place name did it. What no name ties to a climat stays "unnamed by INAO".
+- **Alsace:** its 51 grands crus, each its own appellation on INAO's map ("Alsace grand cru Rangen"), over the rest of
+  AOC Alsace. INAO's outlines can be smaller than the figures often quoted (Hengst 53.5 ha on the map).
+- **The Northern Rhône:** no crus inside its appellations, so each cru appellation (Côte-Rôtie, Condrieu,
+  Château-Grillet, Hermitage, Cornas, Crozes-Hermitage, Saint-Joseph, Saint-Péray) is itself a "climat", class
+  `AOC` ("Cru appellation", its own colour and filter), over the Côtes du Rhône around them. A label's longest name
+  wins, so "Crozes-Hermitage" isn't taken for Hermitage.
+- **Champagne:** INAO's map has no Champagne (its delimitation was never published as data), and its grands and
+  premiers crus are whole villages (the échelle des crus: 17 and 42). So a cru is the vines on IGN's BD TOPO
+  (vegetation "Vigne") inside the village's boundary (IGN ADMIN EXPRESS), grouped by Montagne de Reims, Côte des Blancs
+  and Vallée de la Marne; the other vines in the box are drawn behind. A village that has merged into a new commune
+  uses its old boundary (a *commune déléguée*: Aÿ, Mareuil-sur-Aÿ, Bisseuil, Oger, Vertus, Voipreux…); Coligny merged
+  into Val-des-Marais before IGN's oldest map, so it takes that commune's boundary and says so. Chouilly (grand cru for
+  Chardonnay) and Tours-sur-Marne (for Pinot Noir) carry a note. Grand cru vines come to 4 410 ha, against the
+  ≈4 400 usually quoted. A bottle lands on a village from its commune field (Aÿ), and "Add a bottle from here"
+  leaves the name for the cuvée.
 - **A new region:** add it to `REGIONS` in `tools/region-build.js` (its box, village appellations and regional
   appellations), build it, then list it in `atlas.js` (`REGIONS`) and in `app.js` (`ATLAS_REGIONS`) for "On the map".
   Tested in `tools/region-atlas-ui-test.js`. Then rebuild the vineyard pages (next section).

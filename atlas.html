@@ -7,7 +7,7 @@
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>AllWine — Atlas</title>
-<meta name="description" content="Wine-region atlas: every grand cru and premier cru on INAO's own map, with your bottles on it.">
+<meta name="description" content="Wine-region atlas: the grands and premiers crus of Burgundy, Champagne and Alsace, and the Northern Rhône's crus, with your bottles on them.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍷</text></svg>">
 <link rel="canonical" href="https://allwine.dk/atlas.html">
 <link rel="manifest" href="manifest.json">
@@ -17,14 +17,14 @@
 :root{
   --bg:#F7F4F1; --card:#FFFFFF; --card2:#FBF9F7; --ink:#2A2126; --muted:#756A70;
   --line:#E7DFDD; --accent:#7C2D3E; --accent-ink:#FFFFFF; --gold:#A87E2F; --chip:#F1EBE8;
-  --gc:#8E2C45; --gc-ink:#FFFFFF; --pc:#D88E7C; --pc-ink:#3A1A21; --pcx:#EBC3B6; --vc:#ECDDB9; --rg:#EFEADF;
+  --gc:#8E2C45; --gc-ink:#FFFFFF; --pc:#D88E7C; --pc-ink:#3A1A21; --pcx:#EBC3B6; --ac:#B4683F; --ac-ink:#FFFFFF; --vc:#ECDDB9; --rg:#EFEADF;
   --mapbg:#F4F1EA; --sel:#1F1418; --halo:#FFFFFF; --r:10px;
 }
 @media (prefers-color-scheme: dark){
   :root{
     --bg:#171114; --card:#221A1F; --card2:#281F24; --ink:#EFE7E8; --muted:#A5949C;
     --line:#382C32; --accent:#C86A7C; --accent-ink:#1D1216; --gold:#C99B47; --chip:#2E2329;
-    --gc:#B6475F; --gc-ink:#FFF4F6; --pc:#8A4E44; --pc-ink:#FBE9E4; --pcx:#5E3B35; --vc:#4D4232; --rg:#2C2622;
+    --gc:#B6475F; --gc-ink:#FFF4F6; --pc:#8A4E44; --pc-ink:#FBE9E4; --pcx:#5E3B35; --ac:#A9683F; --ac-ink:#FFF6EF; --vc:#4D4232; --rg:#2C2622;
     --mapbg:#1E181B; --sel:#FFFFFF; --halo:#1E181B;
   }
 }
@@ -54,11 +54,11 @@ header.top h1 em{font-style:italic;color:var(--accent)} header.top h1 a{color:in
 #map{width:100%;height:100%;display:block;cursor:grab;user-select:none} #map.drag{cursor:grabbing}
 #map .rg{fill:var(--rg);stroke:none} #map .vl{fill:var(--vc);stroke:none;opacity:.75}
 #map .cl{stroke:var(--card);stroke-width:1;vector-effect:non-scaling-stroke;cursor:pointer}
-#map .cl.GC{fill:var(--gc)} #map .cl.p1{fill:var(--pc)} #map .cl.px{fill:var(--pcx)}
+#map .cl.GC{fill:var(--gc)} #map .cl.AOC{fill:var(--ac)} #map .cl.p1{fill:var(--pc)} #map .cl.px{fill:var(--pcx)}
 #map .cl:hover{filter:brightness(1.08)} #map .cl.sel{stroke:var(--sel);stroke-width:2.5}
 #map .cl.dim{opacity:.18}
 #map .lb{font-size:13px;fill:var(--ink);paint-order:stroke;stroke:var(--halo);stroke-width:3px;stroke-linejoin:round;pointer-events:none;text-anchor:middle;font-weight:600}
-#map .lb.GC{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;font-size:14.5px}
+#map .lb.GC,#map .lb.AOC{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;font-size:14.5px}
 #map .dot{fill:var(--gold);stroke:var(--card);stroke-width:1.5;vector-effect:non-scaling-stroke;pointer-events:none}
 .zoom{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;gap:4px}
 .zoom button{width:34px;height:34px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:18px;cursor:pointer}
@@ -70,7 +70,7 @@ aside#side{background:var(--card);border:1px solid var(--line);border-radius:var
 #side h3{font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:16px 0 6px}
 #side .meta{color:var(--muted);font-size:13.5px}
 #side .pill{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:999px;background:var(--chip);margin-right:4px}
-#side .pill.GC{background:var(--gc);color:var(--gc-ink)} #side .pill.p1{background:var(--pc);color:var(--pc-ink)}
+#side .pill.GC{background:var(--gc);color:var(--gc-ink)} #side .pill.AOC{background:var(--ac);color:var(--ac-ink)} #side .pill.p1{background:var(--pc);color:var(--pc-ink)}
 #side .facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0}
 #side .fact{border-top:1px solid var(--line);padding-top:4px} #side .fact .l{font-size:11.5px;color:var(--muted)} #side .fact .v{font-family:"Iowan Old Style",Georgia,serif;font-size:19px}
 #side .note{font-size:13px;color:var(--muted)} #side .cw{font-size:13.5px;padding:3px 0;border-top:1px solid var(--line)} #side .cw b{color:var(--gold)}
@@ -92,6 +92,7 @@ aside#side{background:var(--card);border:1px solid var(--line);border-radius:var
   <input type="search" id="fSearch" list="climatList" placeholder="Find a vineyard…" aria-label="Find a vineyard" data-i18n-ph data-i18n-aria><datalist id="climatList"></datalist>
   <label class="chk"><input type="checkbox" id="fGC" checked><i style="background:var(--gc)"></i><span data-i18n>Grand cru</span></label>
   <label class="chk"><input type="checkbox" id="f1er" checked><i style="background:var(--pc)"></i><span data-i18n>Premier cru</span></label>
+  <label class="chk"><input type="checkbox" id="fAOC" checked><i style="background:var(--ac)"></i><span data-i18n>Cru appellation</span></label>
   <label class="chk"><input type="checkbox" id="fMine"><span data-i18n>Only my bottles</span></label>
 </div>
 <div class="layout">
@@ -103,7 +104,7 @@ aside#side{background:var(--card);border:1px solid var(--line);border-radius:var
   <aside id="side" aria-live="polite"></aside>
 </div>
 </div>
-<script src="i18n.js?v=49"></script>
-<script src="atlas.js?v=2"></script>
+<script src="i18n.js?v=50"></script>
+<script src="atlas.js?v=3"></script>
 </body>
 </html>

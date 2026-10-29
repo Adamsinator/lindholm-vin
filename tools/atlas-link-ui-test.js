@@ -1,5 +1,5 @@
 // Browser test of the cellar and the Burgundy atlas linked both ways, against the real Code.gs (gas-harness.js):
-//   • a Burgundy bottle has "On the map", straight to its vineyard; a Champagne doesn't
+//   • a Burgundy bottle has "On the map", straight to its vineyard; a Champagne goes to the Champagne atlas
 //   • the atlas shows the bottle under "In your cellar", and "Add a bottle from here" opens the cellar's add form
 //     filled in with the vineyard (and the producer being mapped), once
 //   • the overview's Burgundy map links to the atlas
@@ -41,7 +41,8 @@ const gas = H({ Ark1: [HEAD,
   const lef = await open("Domaine Leflaive");
   check("…one with only a village goes to the village", /^burgundy\.html#v=/.test(await lef.locator("a.atlaslink").getAttribute("href").catch(() => "")));
   const krug = await open("Krug");
-  check("…a Champagne has none", (await krug.locator("a.atlaslink").count()) === 0);
+  const kh = await krug.locator("a.atlaslink").getAttribute("href").catch(() => null);
+  check("…a Champagne goes to the Champagne atlas", /^atlas\.html#r=champagne&w=/.test(kh || ""), kh);
 
   await p.evaluate(() => { MAP_VIEW = "Bourgogne"; renderMap(); });
   check("the overview's Burgundy map links to the atlas", await p.isVisible("#mapAtlas") && (await p.getAttribute("#mapAtlas", "href")) === "burgundy.html");
