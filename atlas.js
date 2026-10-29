@@ -433,7 +433,7 @@ function terrainHtml(c) {
       <div class="fact"><div class="l">${esc(t("Faces"))}</div><div class="v">${esc(asp)}</div></div>
       <div class="fact"><div class="l">${esc(t("Slope"))}</div><div class="v">${m[3].toFixed(m[3] < 10 ? 1 : 0)} %</div></div>
       <div class="fact"><div class="l">${esc(t("Mean altitude"))}</div><div class="v">${m[2]} m</div></div></div>
-    <p class="note">${esc(t(st.pack.meta.proj === "eq" ? "Terrain: Rheinland-Pfalz's 1 m terrain model (DGM1), {0} points sampled inside the outline; altitude is the 5th–95th percentile." : "Terrain: IGN RGE ALTI®, {0} points sampled inside the outline; altitude is the 5th–95th percentile.", m[6]))}${wide ? " " + esc(t("The points are {0} m apart here, so the slope is the lie of the land, not the steepness of a single vineyard.", m[7])) : ""}</p>`;
+    <p class="note">${esc(t(st.pack.meta.proj === "eq" ? "Terrain: Rheinland-Pfalz's 1 m terrain model (DGM1), {0} points sampled inside the outline; altitude is the 5th–95th percentile." : "Terrain: IGN RGE ALTI®, {0} points sampled inside the outline; altitude is the 5th–95th percentile.", m[6]))}${m[8] ? " " + esc(t("Only the outline's vineyard land counts (the Basis-DLM's Weingarten), not the woods, plateau or village inside it.")) : ""}${wide ? " " + esc(t("The points are {0} m apart here, so the slope is the lie of the land, not the steepness of a single vineyard.", m[7])) : ""}</p>`;
 }
 // Germany's map: basemap.de's relief (as its terms ask: BKG and the licence linked) and the Basis-DLM of Rheinland-Pfalz
 const deCredit = () => { const y = new Date().getFullYear();
