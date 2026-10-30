@@ -42,7 +42,7 @@ function setting(key) {
 // The legacy code only works once you've set a real one: the placeholder from the template is public.
 function accessCode() { const c = setting('ACCESS_CODE'); return c === 'CHANGE-ME' ? '' : c; }
 
-const API_VERSION = 42; // returned in every response; used to verify deployments
+const API_VERSION = 43; // returned in every response; used to verify deployments
 
 // Per-request spreadsheet for the authenticated user. Set in handle(); every
 // sheet helper reads it via ss(). Falls back to the bound (owner's) spreadsheet.
@@ -1394,6 +1394,8 @@ const IMPORT_MAX = 5000;
 const MAX_BOTTLES = 9999; // of one wine: more is a typo
 // text is kept as text: Sheets would run "=IMPORTXML(…)" as a formula (the encrypted vault has no formulas to run)
 function plainText(v) { v = String(v).trim(); return !inEngine() && /^[=+@]/.test(v) ? "'" + v : v; }
+// the same for a value that may be a number or a date: only text is touched
+const asText = v => typeof v === 'string' ? plainText(v) : v;
 const IMPORT_COLS = { rating: RATING_HEADER, value: VALUE_HEADER, drunkDate: DRUNK_DATE_HEADER, size: SIZE_HEADER, drinkFrom: DRINK_FROM_HEADER, drinkTo: DRINK_TO_HEADER, elsewhere: ELSEWHERE_HEADER, location: LOCATION_HEADER };
 function addMany(wines, bumps) {
   if (!Array.isArray(wines) || !Array.isArray(bumps)) throw new Error('Bad import');
@@ -1485,7 +1487,7 @@ function mergeRows(groups) {
     const set = (i, v) => { if (i >= 0) sh.getRange(rows[0], i + 1).setValue(v); };
     set(idx.qty, sumQ); set(idx.drunk, sumD || '');
     set(idx.price, mean(idx.price)); if (idx.value >= 0) set(idx.value, mean(idx.value));
-    [idx.note, idx.source, idx.location].forEach(i => { if (i >= 0) set(i, join(i)); });
+    [idx.note, idx.source, idx.location].forEach(i => { if (i >= 0) set(i, plainText(join(i))); });
     if (idx.acquired >= 0) set(idx.acquired, pick(idx.acquired, (a, b) => a < b));
     if (idx.drunkDate >= 0) set(idx.drunkDate, pick(idx.drunkDate, (a, b) => a > b));
     if (idx.rating >= 0) { const rs = data.map(d => Number(val(d, idx.rating))).filter(x => x > 0); if (rs.length) set(idx.rating, Math.max.apply(null, rs)); }
@@ -1519,7 +1521,7 @@ function writeInfo(sh, idx, rowNum, fields) {
     let v = fields[f] === null || fields[f] === undefined ? '' : fields[f];
     if (typeof v === 'string') v = v.trim();
     if (f === 'vintage' && /^\d{4}$/.test(String(v))) v = Number(v);
-    sh.getRange(rowNum, idx[f] + 1).setValue(v);
+    sh.getRange(rowNum, idx[f] + 1).setValue(asText(v));
   });
 }
 
@@ -1541,7 +1543,7 @@ function renameJournal(old, fields) {
     const same = k(r[col('producer')]) === k(old.producer) && k(r[col('wine')]) === k(old.wine)
       && (col('vintage') < 0 ? !k(old.vintage) : k(r[col('vintage')]) === k(old.vintage));
     if (!same) return;
-    Object.entries(want).forEach(([jf, v]) => { const c = col(jf); if (c >= 0) sh.getRange(i + 2, c + 1).setValue(v === null || v === undefined ? '' : v); });
+    Object.entries(want).forEach(([jf, v]) => { const c = col(jf); if (c >= 0) sh.getRange(i + 2, c + 1).setValue(v === null || v === undefined ? '' : asText(v)); });
     n++;
   });
   return n;
@@ -1560,7 +1562,7 @@ function enjoySync(rowNum, e) {
   const acquired = idx.acquired >= 0 ? String(sh.getRange(rowNum, idx.acquired + 1).getValue()).trim() : '';
   const marked = idx.elsewhere >= 0 && String(sh.getRange(rowNum, idx.elsewhere + 1).getValue()).trim() !== '';
   if (!(qty === 1 && drunk === 1 && (marked || !acquired))) throw new Error('Not a journal-created row');
-  const put = (f, v) => { if (v !== undefined) cell(f).setValue(v === null ? '' : v); };
+  const put = (f, v) => { if (v !== undefined) cell(f).setValue(v === null ? '' : asText(v)); };
   put('producer', e.producer); put('name', e.wine); put('vintage', e.vintage);
   put('region', e.region); put('country', e.country); put('grape', e.grape);
   if (e.commune !== undefined) put('commune', e.commune);
@@ -1578,14 +1580,14 @@ function classFill(wines, entries) {
   (wines || []).forEach(({ row, value }) => {
     if (!row || row < 2 || row > lastW || !String(value || '').trim()) return;
     const c = sh.getRange(row, idx.classification + 1);
-    if (!String(c.getValue()).trim()) c.setValue(String(value).trim());
+    if (!String(c.getValue()).trim()) c.setValue(plainText(value));
   });
   if (!(entries || []).length) return;
   const js = journalSheet(), i = ensureCol(js, JHEADERS.classification), lastJ = js.getLastRow();
   entries.forEach(({ row, value }) => {
     if (!row || row < 2 || row > lastJ || !String(value || '').trim()) return;
     const c = js.getRange(row, i + 1);
-    if (!String(c.getValue()).trim()) c.setValue(String(value).trim());
+    if (!String(c.getValue()).trim()) c.setValue(plainText(value));
   });
 }
 
@@ -1794,7 +1796,7 @@ function addJournal(e) {
   for (const [f, h] of Object.entries(JHEADERS)) {
     if (f === 'photo') continue; // handled above; never write the base64 into a cell
     const i = head.indexOf(h);
-    if (i >= 0 && e[f] !== undefined && e[f] !== null && e[f] !== '') row[i] = e[f];
+    if (i >= 0 && e[f] !== undefined && e[f] !== null && e[f] !== '') row[i] = asText(e[f]);
   }
   if (fileId) { const i = head.indexOf(JHEADERS.photo); if (i >= 0) row[i] = fileId; }
   if (!row.some(v => String(v).trim())) throw new Error('Empty entry');
@@ -1818,7 +1820,7 @@ function updateJournal(rowNum, e) {
   for (const [f, h] of Object.entries(JHEADERS)) {
     if (f === 'photo') continue;
     const i = head.indexOf(h);
-    if (i >= 0) sh.getRange(rowNum, i + 1).setValue(e[f] === undefined || e[f] === null ? '' : e[f]);
+    if (i >= 0) sh.getRange(rowNum, i + 1).setValue(e[f] === undefined || e[f] === null ? '' : asText(e[f]));
   }
   if (photoCol >= 0) sh.getRange(rowNum, photoCol + 1).setValue(newId);
 }
@@ -1940,7 +1942,7 @@ function addWishlist(e) {
   const row = new Array(sh.getLastColumn()).fill('');
   for (const [f, h] of Object.entries(WHEADERS)) {
     const i = head.indexOf(h);
-    if (i >= 0 && e[f] !== undefined && e[f] !== null && e[f] !== '') row[i] = e[f];
+    if (i >= 0 && e[f] !== undefined && e[f] !== null && e[f] !== '') row[i] = asText(e[f]);
   }
   sh.appendRow(row);
 }
@@ -1951,7 +1953,7 @@ function updateWishlist(rowNum, e) {
   const head = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String);
   for (const [f, h] of Object.entries(WHEADERS)) {
     const i = head.indexOf(h);
-    if (i >= 0) sh.getRange(rowNum, i + 1).setValue(e[f] === undefined || e[f] === null ? '' : e[f]);
+    if (i >= 0) sh.getRange(rowNum, i + 1).setValue(e[f] === undefined || e[f] === null ? '' : asText(e[f]));
   }
 }
 

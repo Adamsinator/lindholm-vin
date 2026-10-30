@@ -25,7 +25,7 @@ function makeSheet(name, rows, onRename, sheetsText) {
     getLastColumn: lastCol,
     getMaxRows: () => Math.max(cells.length, 1),
     insertRowsAfter(r, n) { for (let i = 0; i < n; i++) cells.splice(r, 0, []); return sh; },
-    appendRow(vals) { cells.splice(lastRow(), cells.length - lastRow()); cells.push([...vals]); return sh; },
+    appendRow(vals) { cells.splice(lastRow(), cells.length - lastRow()); cells.push(vals.map(put)); return sh; }, // read as Sheets reads it, like setValues
     deleteRow(r) { cells.splice(r - 1, 1); },
     deleteRows(r, n) { cells.splice(r - 1, n); },
     clear() { cells.length = 0; return sh; },

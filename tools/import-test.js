@@ -110,6 +110,11 @@ const J = x => JSON.stringify(x);
   check("addmany refuses more than 5000 rows", /Too many/.test(gas.call({ code: "test-code", action: "addmany", wines: new Array(5001).fill({ producer: "x" }) }).error));
   gas.call({ code: "test-code", action: "addmany", wines: [{ producer: "=IMPORTXML(\"http://x\")", name: "+1" }] });
   check("text that looks like a formula is stored as text", !gas.sheet("Ark1")._formulas.length && gas.rows("Ark1").some(r => r[0] === "=IMPORTXML(\"http://x\")" && r[4] === "+1"), J(gas.sheet("Ark1")._formulas));
+  // …and so is an edit, a journal entry and its edit (API 43: they went into the sheet as written before)
+  gas.call({ code: "test-code", action: "setinfo", row: 2, fields: { name: "=HYPERLINK(\"http://x\")", note: "@x" } });
+  const je = gas.call({ code: "test-code", action: "jadd", entry: { producer: "=1+1", wine: "+x", note: "=A1" } });
+  check("…an edit and a journal entry too", je.ok && !gas.sheet("Ark1")._formulas.length && !gas.sheet("Journal")._formulas.length
+    && gas.rows("Ark1")[1].includes("=HYPERLINK(\"http://x\")") && gas.rows("Journal").some(r => r.includes("=1+1") && r.includes("=A1")), J(je).slice(0, 200));
   const before = gas.rows("Ark1").length;
   res = gas.call({ code: "test-code", action: "addmany", wines: Array.from({ length: 1500 }, (_, i) => ({ producer: "P" + i, qty: 1 })) });
   check("a big import goes in in one write (the sheet grows to fit)", res.ok && gas.rows("Ark1").length === before + 1500, res.error);
