@@ -52,6 +52,21 @@ const REGIONS = {
       { ap: "Crozes-Hermitage", inao: "Crozes-Hermitage ou Crozes-Ermitage", col: "RW", cru: true }, { ap: "Saint-Joseph", col: "RW", cru: true },
       { ap: "Saint-Péray", col: "W", cru: true }],
     regional: [/^Côtes du Rhône$/] },
+  // the Beaujolais: its ten crus, each an appellation of its own (as the Northern Rhône's are), on the Beaujolais-Villages land
+  beaujolais: { name: "Beaujolais", country: "Frankrig", region: "Beaujolais", bbox: [46.05, 4.55, 46.30, 4.80], bgTol: 5,
+    apps: [{ ap: "Saint-Amour", col: "R", cru: true }, { ap: "Juliénas", col: "R", cru: true }, { ap: "Chénas", col: "R", cru: true },
+      { ap: "Moulin-à-Vent", col: "R", cru: true }, { ap: "Fleurie", col: "R", cru: true }, { ap: "Chiroubles", col: "R", cru: true },
+      { ap: "Morgon", col: "R", cru: true }, { ap: "Régnié", col: "R", cru: true }, { ap: "Côte de Brouilly", col: "R", cru: true },
+      { ap: "Brouilly", col: "R", cru: true }],
+    regional: [/^Beaujolais Villages$/] },
+  // the Southern Rhône: its cru appellations, on the Côtes du Rhône Villages land (the named villages with it)
+  rhonesud: { name: "Rhône (south)", country: "Frankrig", region: "Rhône", bbox: [43.95, 4.60, 44.36, 5.12], bgTol: 6,
+    apps: [{ ap: "Châteauneuf-du-Pape", col: "RW", cru: true }, { ap: "Gigondas", col: "R", cru: true }, { ap: "Vacqueyras", col: "RW", cru: true },
+      { ap: "Beaumes de Venise", col: "R", cru: true }, { ap: "Rasteau", col: "R", cru: true }, { ap: "Cairanne", col: "RW", cru: true },
+      { ap: "Vinsobres", col: "R", cru: true }, { ap: "Lirac", col: "RW", cru: true }, { ap: "Tavel", col: "R", cru: true }],
+    regional: [/^Côtes du Rhône Villages/],
+    // INAO's parcel map (aire_parcellaire) has no Vacqueyras: not by any spelling, nor round the village (checked 2026-10)
+    absent: ["Vacqueyras"] },
   // Bordeaux: the cru appellations (each its own climat, as in the Rhône) over Haut-Médoc, Médoc and Graves; the
   // classified châteaux are points, placed on IGN's châteaux (BD TOPO, nature "Château") inside their appellation.
   // A parcel's first appellation in this list wins (Barsac before Sauternes, Canon-Fronsac before Fronsac); the Bordeaux / Bordeaux supérieur land under everything is left out (it's most of the Gironde)
@@ -365,7 +380,7 @@ function finish({ climats, villages, regionalLand, points, meta }) {
   const regional = tidy(union(regionalLand), TOL * Math.max(5, (R.bgTol || 2) * 2)).filter(p => polyHa([p]) > 0.5);
   const all = climats.flatMap(c => c.g).concat(...villages.map(v => v.g), regional).flatMap(p => p[0]);
   const bb = all.reduce((b, [x, y]) => [Math.min(b[0], x), Math.min(b[1], y), Math.max(b[2], x), Math.max(b[3], y)], [Infinity, Infinity, -Infinity, -Infinity]);
-  const pack = { meta: { id, name: R.name, country: R.country, region: R.region, built: new Date().toISOString().slice(0, 10), origin: [lon0, lat0], l93: [E0, N0], bb, ...(meta || {}),
+  const pack = { meta: { id, name: R.name, country: R.country, region: R.region, built: new Date().toISOString().slice(0, 10), origin: [lon0, lat0], l93: [E0, N0], bb, ...(R.absent ? { absent: R.absent } : {}), ...(meta || {}),
       ...(meta && meta.source ? {} : { source: R.kind === "villages" ? "Vines: IGN BD TOPO (zone de végétation « Vigne »); village boundaries: IGN ADMIN EXPRESS (Licence Ouverte); crus: the échelle des crus"
         : "INAO — Délimitation parcellaire des AOC viticoles, via IGN Géoplateforme (Licence Ouverte); place names: IGN BD TOPO (Licence Ouverte)" }) },
     climats: climats.sort((a, b) => RANK[a.c] - RANK[b.c] || a.n.localeCompare(b.n, "fr")),

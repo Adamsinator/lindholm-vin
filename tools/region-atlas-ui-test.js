@@ -28,6 +28,8 @@ const gas = H({ Ark1: [HEAD,
   row({ Producent: "Pétrus", Land: "Frankrig", Område: "Bordeaux", Kommune: "Pomerol", Type: "Rød", Årgang: 2005, Antal: 1 }),
   row({ Producent: "Dr. Loosen", Land: "Tyskland", Område: "Mosel", "Mark/Navn": "Wehlener Sonnenuhr Riesling Spätlese", Type: "Hvid", Årgang: 2019, Antal: 3 }),
   row({ Producent: "Dönnhoff", Land: "Tyskland", Område: "Nahe", "Mark/Navn": "Niederhäuser Hermannshöhle Riesling GG", Type: "Hvid", Årgang: 2020, Antal: 2 }),
+  row({ Producent: "Marcel Lapierre", Land: "Frankrig", Område: "Beaujolais", "Mark/Navn": "Morgon", Type: "Rød", Årgang: 2022, Antal: 3 }),
+  row({ Producent: "Château de Beaucastel", Land: "Frankrig", Område: "Rhône", "Mark/Navn": "Châteauneuf-du-Pape", Type: "Rød", Årgang: 2016, Antal: 2 }),
   row({ Producent: "J.-A. Ferret", Land: "Frankrig", Område: "Bourgogne", Kommune: "Pouilly-Fuissé", "Mark/Navn": "Les Crays", Klassifikation: "1. cru", Type: "Hvid", Årgang: 2021, Antal: 2 }),
 ] });
 
@@ -179,6 +181,15 @@ const gas = H({ Ark1: [HEAD,
   await p.click('#side button[data-c="chateau_grillet"]'); await p.waitForTimeout(600);
   const gt = (await p.textContent("#side")).replace(/\s+/g, " ");
   check("terrain: Château-Grillet 156–229 m, facing SE, slope over 40 %, from IGN RGE ALTI", /Altitude ?156–229 m/.test(gt) && /Faces ?SE/.test(gt) && /Slope ?4\d %/.test(gt) && /RGE ALTI/.test(gt), gt.slice(0, 400));
+  // the Beaujolais's ten crus and the Southern Rhône's, from INAO's map (Vacqueyras isn't on it: said so)
+  await p.goto(BASE + "atlas.html#r=beaujolais"); await p.waitForTimeout(2500);
+  const bj = await p.evaluate(() => ({ n: st.pack.climats.map(c => c.n).sort((a, b) => a.localeCompare(b, "fr")).join(), side: document.getElementById("side").textContent }));
+  check("the Beaujolais: its ten crus, the Lapierre Morgon on Morgon", bj.n === "Brouilly,Chénas,Chiroubles,Côte de Brouilly,Fleurie,Juliénas,Morgon,Moulin-à-Vent,Régnié,Saint-Amour"
+    && /Morgon[^\n]*🍷 3/.test(bj.side), bj.n + " | " + (bj.side.match(/[^\n]*🍷[^\n]*/g) || []).join(" / "));
+  await p.goto(BASE + "atlas.html#r=rhonesud"); await p.waitForTimeout(2500);
+  const rs = await p.evaluate(() => ({ n: st.pack.climats.length, side: document.getElementById("side").textContent }));
+  check("the Southern Rhône: eight cru appellations, the Beaucastel on Châteauneuf-du-Pape, and Vacqueyras said to be missing", rs.n === 8 && /Châteauneuf-du-Pape[^\n]*🍷 2/.test(rs.side) && /Not drawn: Vacqueyras/.test(rs.side),
+    rs.n + " | " + (rs.side.match(/[^\n]*(🍷|Not drawn)[^\n]*/g) || []).join(" / "));
   await p.goto(BASE + "atlas.html#r=alsace&c=rangen"); await p.waitForTimeout(2500);
   check("Alsace: 51 grands crus; Rangen with the Zind-Humbrecht on it", await p.evaluate(() => st.pack.climats.filter(c => c.c === "GC").length) === 51 && (await p.textContent("#side h2")) === "Rangen" && /Zind-Humbrecht/.test(await p.textContent("#side")));
 
