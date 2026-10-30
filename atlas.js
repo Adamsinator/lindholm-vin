@@ -427,7 +427,7 @@ const WINDS = { en: "N NNE NE ENE E ESE SE SSE S SSW SW WSW W WNW NW NNW", da: "
 const wind = deg => (WINDS[window.I18N ? I18N.lang : "en"] || WINDS.en).split(" ")[Math.round(deg / 22.5) % 16];
 function terrainHtml(c) {
   const D = demOf(st.region.id), m = D && D.c[c.id]; if (!m) return "";
-  const asp = m[3] < 1.5 ? t("flat") : (m[5] < 55 ? t("varied") + " · " : "") + wind(m[4]), wide = m[7] > 60;
+  const asp = m[3] < 1.5 ? t("flat") : (m[5] < 55 ? t("varied") + " · " : "") + wind(m[4]), wide = m[7] > 120;
   return `<div class="facts" title="${esc(t("Altitude and slope measured from IGN's elevation model"))}">
       <div class="fact"><div class="l">${esc(t("Altitude"))}</div><div class="v">${m[0]}–${m[1]} m</div></div>
       <div class="fact"><div class="l">${esc(t("Faces"))}</div><div class="v">${esc(asp)}</div></div>

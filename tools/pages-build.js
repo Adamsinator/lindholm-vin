@@ -383,8 +383,8 @@ function page(v, L) {
   if (v.dem) {
     const [lo, hi, , sl, asp, cons] = v.dem;
     facts.push([t.alt, `${Math.round(lo)}–${Math.round(hi)} m`]);
-    // a big appellation's samples are hundreds of metres apart (its 8th field): there the slope says little about a vineyard
-    if (!(v.dem[7] > 60)) { facts.push([t.slope, `${Math.round(sl)} %`]); if (cons >= 40 && sl >= 2) facts.push([t.faces, dir8(asp, L)]); }
+    // a big appellation's samples are hundreds of metres apart (its 8th field, over 120 m): there the slope says little about a vineyard
+    if (!(v.dem[7] > 120)) { facts.push([t.slope, `${Math.round(sl)} %`]); if (cons >= 40 && sl >= 2) facts.push([t.faces, dir8(asp, L)]); }
   }
   const note = L === "en" ? v.note.en : v.note[L], soil = L === "en" ? v.soil : v.soilT[L];
   const owners = [...v.owners].filter(([k]) => PROD[k]).sort((a, b) => (a[2] === "s") - (b[2] === "s") || (b[1] ?? -1) - (a[1] ?? -1));
