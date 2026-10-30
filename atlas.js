@@ -27,6 +27,10 @@ const REGIONS = [
   { id: "ahr", name: "Ahr", file: "atlas-ahr.js?v=1", topo: "atlas-ahr-topo.js?v=1", dem: "atlas-ahr-dem.js?v=1", ll: [50.536, 7.079], country: "de", kind: "Einzellagen", kw: ["ahr"] },
   { id: "rhone", name: "Rhône (north)", file: "atlas-rhone.js?v=1", topo: "atlas-rhone-topo.js?v=1", dem: "atlas-rhone-dem.js?v=1", ll: [45.201, 4.809], country: "fr", kind: "Cru appellations", kw: ["cote rotie", "condrieu", "chateau grillet", "hermitage", "ermitage", "crozes", "saint joseph", "st joseph", "cornas", "saint peray", "st peray"],
     regional: "Regional (Côtes du Rhône)" },
+  { id: "beaujolais", name: "Beaujolais", file: "atlas-beaujolais.js?v=1", topo: "atlas-beaujolais-topo.js?v=1", dem: "atlas-beaujolais-dem.js?v=1", ll: [46.17, 4.68], country: "fr", kind: "The ten crus",
+    kw: ["beaujolais", "brouilly", "chenas", "chiroubles", "fleurie", "julienas", "morgon", "moulin a vent", "regnie", "saint amour", "st amour"], regional: "Beaujolais-Villages" },
+  { id: "rhonesud", name: "Rhône (south)", file: "atlas-rhonesud.js?v=1", topo: "atlas-rhonesud-topo.js?v=1", dem: "atlas-rhonesud-dem.js?v=1", ll: [44.12, 4.89], country: "fr", kind: "Cru appellations",
+    kw: ["chateauneuf du pape", "gigondas", "vacqueyras", "beaumes de venise", "rasteau", "cairanne", "vinsobres", "lirac", "tavel"], regional: "Côtes du Rhône Villages" },
 ];
 // the start page's other places: the Côte d'Or's own, richer atlas, and Piedmont, whose MGA have pages but no map
 const ELSEWHERE = [{ id: "burgundy", name: "Côte d'Or", ll: [47.058, 4.839], country: "fr", kind: "The detailed atlas: owners, terrain, geology", href: "burgundy.html" },
@@ -178,7 +182,7 @@ function drawTopo() {
   // a name already on the map nearby — a cru village's own label (Champagne), or IGN naming a town twice — isn't repeated
   const placed = st.pack.climats.filter(c => c.lb).map(c => [norm(c.n), c.lp[0], c.lp[1]]);
   T.names.slice().sort((a, b) => (a[0] === "w" ? 5 : a[0]) - (b[0] === "w" ? 5 : b[0])).forEach(([k, n, x, y]) => {
-    const nn = norm(n); if (placed.some(([m, px, py]) => m === nn && Math.hypot(px - x, py - y) < 3000)) return; placed.push([nn, x, y]);
+    const nn = norm(n); if (placed.some(([m, px, py]) => m === nn && Math.hypot(px - x, py - y) < 6000)) return; placed.push([nn, x, y]);
     const e = el("text", { class: "tn tn-" + k, x, y }, TG.names); e.textContent = n; e._k = k; });
   topoLod();
 }
@@ -372,6 +376,7 @@ function renderSide() {
         ${P.villages.map(v => fact(P.villages.length > 1 || !R.village ? v.ap : t(R.village), fmtHa(v.ha) + " ha")).join("")}
         ${P.regional.ha ? fact(t(R.regional), fmtHa(P.regional.ha) + " ha") : ""}</div>
       ${many && pc.length ? `<p class="note">${esc(t("Village figures are the land outside the premiers crus."))}</p>` : ""}
+      ${(P.meta.absent || []).length ? `<p class="note">${esc(t("Not drawn: {0} — INAO's parcel map doesn't have it yet.", P.meta.absent.join(", ")))}</p>` : ""}
       ${terrNote()}
       ${cellarSummary()}
       ${gc.length ? groups(gc, "Grand cru") : ""}${pc.length ? groups(pc, "Premier cru") : ""}

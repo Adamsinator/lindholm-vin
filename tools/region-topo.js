@@ -13,12 +13,12 @@
 const fs = require("fs"), path = require("path"), { execFile } = require("child_process");
 const ROOT = path.resolve(__dirname, ".."), CACHE = path.join(__dirname, ".topo-cache"); fs.mkdirSync(CACHE, { recursive: true });
 const WFS = "https://data.geopf.fr/wfs/ows?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&OUTPUTFORMAT=application/json&SRSNAME=EPSG:2154";
-const FRENCH = ["chablis", "chalonnaise", "maconnais", "champagne", "alsace", "rhone", "bordeaux"];
+const FRENCH = ["chablis", "chalonnaise", "maconnais", "champagne", "alsace", "rhone", "bordeaux", "beaujolais", "rhonesud"];
 const GERMAN = ["mosel", "nahe", "pfalz", "rheinhessen", "mittelrhein", "ahr"];
 const DLM = "https://geo5.service24.rlp.de/wfs/basisdlm_shape_rp.fcgi?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&OUTPUTFORMAT=application/json;%20subtype=geojson&SRSNAME=EPSG:4326";
 
 // how much to draw: the small regions get their lanes and hamlets too; Bordeaux, the size of a département, doesn't
-const DETAIL = { chablis: 2, chalonnaise: 2, maconnais: 1, rhone: 1, alsace: 1, champagne: 1, bordeaux: 0, mosel: 1, nahe: 1, pfalz: 1, rheinhessen: 1, mittelrhein: 1, ahr: 2 };
+const DETAIL = { chablis: 2, chalonnaise: 2, maconnais: 1, rhone: 1, alsace: 1, champagne: 1, bordeaux: 0, beaujolais: 1, rhonesud: 0, mosel: 1, nahe: 1, pfalz: 1, rheinhessen: 1, mittelrhein: 1, ahr: 2 };
 
 const curl = url => new Promise((ok, fail) => execFile("curl", ["-sS", "--max-time", "240", "--retry", "8", "--retry-all-errors", "--retry-delay", "2", url],
   { maxBuffer: 1 << 30 }, (e, out) => e ? fail(e) : ok(out)));
