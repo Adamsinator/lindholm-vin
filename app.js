@@ -2976,6 +2976,43 @@ const J_IDS = {producer:"jProducer", wine:"jWine", country:"jCountry", region:"j
 const EA_IDS = {producer:"eaProducer", wine:"eaWine", country:"eaCountry", region:"eaRegion", commune:"eaCommune", grape:"eaGrape", class:"eaClass", type:"eaType", note:"eaFillNote"};
 wireAutofill(J_IDS); wireAutofill(EA_IDS);
 
+/* ---------- suggestions on a phone: a browser's own list for an <input list> is a strip above the keyboard at best,
+   and matches only from the start of a name. On a touch screen each such field gets its own list instead: under it,
+   in the page, up to six names that contain what's typed (accents and case aside: "fevre" finds "William Fèvre"),
+   a tap fills it in as if typed. Set up on a field's first focus, so the grid's later rows get it too. ---------- */
+const TOUCH = window.matchMedia && matchMedia("(pointer: coarse)").matches;
+const sfold = s => String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+function touchList(inp){
+  if(inp.dataset.tl) return; inp.dataset.tl = inp.getAttribute("list"); inp.removeAttribute("list"); // the browser's own off
+  const ul = document.createElement("ul"); ul.className = "tlist"; ul.id = (inp.id || "f" + Math.random().toString(36).slice(2)) + "-tl";
+  ul.setAttribute("role", "listbox"); ul.hidden = true; inp.after(ul);
+  inp.setAttribute("aria-autocomplete", "list"); inp.setAttribute("aria-controls", ul.id); inp.setAttribute("aria-expanded", "false"); inp.setAttribute("autocomplete", "off");
+  const hide = () => { ul.hidden = true; inp.setAttribute("aria-expanded", "false"); };
+  const show = () => {
+    const q = sfold(inp.value.trim()), dl = document.getElementById(inp.dataset.tl);
+    if(!q || !dl){ hide(); return; }
+    const seen = new Set(), hits = [];
+    for(const o of dl.options){ const v = o.value; if(!v || seen.has(v)) continue; seen.add(v); const f = sfold(v), i = f.indexOf(q);
+      if(i >= 0 && f !== q) hits.push([i === 0 ? 0 : /[\s'’-]/.test(f[i-1]) ? 1 : 2, v]); } // the start of the name, then of a word, then anywhere
+    hits.sort((a, b) => a[0] - b[0] || a[1].localeCompare(b[1], "fr"));
+    if(!hits.length){ hide(); return; }
+    ul.innerHTML = hits.slice(0, 6).map(([, v]) => `<li role="option" tabindex="-1">${esc(v)}</li>`).join("");
+    ul.hidden = false; inp.setAttribute("aria-expanded", "true");
+  };
+  inp.addEventListener("input", e => { if(!e.isTrusted && e.detail === "tl") return; show(); });
+  inp.addEventListener("focus", show);
+  inp.addEventListener("blur", () => setTimeout(hide, 150));
+  inp.addEventListener("keydown", e => { if(e.key === "Escape") hide(); });
+  // pointerdown, not click: the field keeps its focus (and the keyboard stays up) while a name is picked
+  ul.addEventListener("pointerdown", e => { const li = e.target.closest("li"); if(!li) return; e.preventDefault();
+    inp.value = li.textContent; hide();
+    inp.dispatchEvent(new CustomEvent("input", { bubbles: true, detail: "tl" })); inp.dispatchEvent(new Event("change", { bubbles: true })); });
+}
+if(TOUCH){
+  document.querySelectorAll("input[list]").forEach(touchList);
+  document.addEventListener("focusin", e => { if(e.target.matches && e.target.matches("input[list]")) touchList(e.target); });
+}
+
 /* ---------- Add form: suggestions from where the wine is from ---------- */
 // A red Burgundy is Pinot Noir, a white one Chardonnay (Bourgogne Aligoté and Bouzeron aside), Mosel is Riesling:
 // once the name, commune or region says where a wine is from, the empty fields are filled in from the appellation
@@ -2983,49 +3020,56 @@ wireAutofill(J_IDS); wireAutofill(EA_IDS);
 // following what you type elsewhere until you type in it yourself; nothing you typed is overwritten.
 const ADD_IDS = {producer:"aProducer", wine:"aName", country:"aCountry", region:"aRegion", commune:"aCommune", grape:"aGrape", class:"aClass", type:"aType", note:"aFillNote"};
 wireAutofill(ADD_IDS);
-const ADD_SG = [["commune","aCommune"],["region","aRegion"],["country","aCountry"],["grape","aGrape"]];
-const sgFree = id => !$(id).value.trim() || $(id).dataset.sg==="1";
-function addSuggest(){
-  if(!window.WINE_KB) return;
-  const g = id => sgFree(id) ? "" : $(id).value.trim(), ty = $("aType");
-  const name = $("aName").value.trim(), commune = g("aCommune");
-  // the atlas's vineyards only for what could be a Burgundy
-  const reg = g("aRegion"), burg = !reg || /bourgogne|burgund|bourgogne|cote d.?or|chablis/i.test(WINE_KB.norm(reg));
-  const pl = burg && window.BURG_MATCH && BURG_MATCH.place ? BURG_MATCH.place({name, commune}) : null;
-  const sg = WINE_KB.suggest({name, commune, region:g("aRegion"), grape:g("aGrape"), type:ty.value, typeSet:ty.dataset.touched==="1", place:pl});
-  if(pl && pl.commune && !commune) sg.commune = pl.commune;
-  const said = [];
-  for(const [f, id] of ADD_SG){
-    const el = $(id); if(!sgFree(id)) { el.classList.remove("sg"); continue; }
-    if(sg[f]){ el.value = sg[f]; el.dataset.sg = "1"; el.classList.add("sg"); if(el.value!==el.defaultValue) said.push(f); }
-    else if(el.dataset.sg==="1"){ el.value = el.defaultValue; el.dataset.sg = el.defaultValue ? "1" : ""; el.classList.remove("sg"); }
+// one for each form that adds a wine: the cellar's (aName…) and Enjoyed's (eaWine…)
+function makeSuggest(I, noteId){
+  const SG = [["commune",I.commune],["region",I.region],["country",I.country],["grape",I.grape]];
+  const free = id => !$(id).value.trim() || $(id).dataset.sg==="1";
+  function run(){
+    if(!window.WINE_KB) return;
+    const g = id => free(id) ? "" : $(id).value.trim(), ty = $(I.type);
+    const name = $(I.wine).value.trim(), commune = g(I.commune);
+    // the atlas's vineyards only for what could be a Burgundy
+    const reg = g(I.region), burg = !reg || /bourgogne|burgund|bourgogne|cote d.?or|chablis/i.test(WINE_KB.norm(reg));
+    const pl = burg && window.BURG_MATCH && BURG_MATCH.place ? BURG_MATCH.place({name, commune}) : null;
+    const sg = WINE_KB.suggest({name, commune, region:g(I.region), grape:g(I.grape), type:ty.value, typeSet:ty.dataset.touched==="1", place:pl});
+    if(pl && pl.commune && !commune) sg.commune = pl.commune;
+    const said = [];
+    for(const [f, id] of SG){
+      const el = $(id); if(!free(id)) { el.classList.remove("sg"); continue; }
+      if(sg[f]){ el.value = sg[f]; el.dataset.sg = "1"; el.classList.add("sg"); if(el.value!==el.defaultValue) said.push(f); }
+      else if(el.dataset.sg==="1"){ el.value = el.defaultValue; el.dataset.sg = el.defaultValue ? "1" : ""; el.classList.remove("sg"); }
+    }
+    if(ty.dataset.touched!=="1"){
+      ty.value = sg.type || "Rød"; ty.classList.toggle("sg", !!sg.type);
+      if(sg.type) said.push("colour");
+    }
+    const mg = !pl && mgaOf({name, commune, region:g(I.region), classification:""});
+    const from = pl ? pl.climat : mg ? tr("{0} (an MGA)", mg.label) : sg.app, nt = $(noteId);
+    nt.hidden = !said.length || !from;
+    if(!nt.hidden){
+      const L = {commune:tr("commune"), region:tr("region"), country:tr("country"), grape:tr("grape"), colour:tr("colour")};
+      nt.textContent = tr("Suggested from {0}: {1}. Change anything that's wrong.").replace("{0}", from).replace("{1}", said.map(f=>L[f]).join(", "));
+    }
+    classHint(I);
   }
-  if(ty.dataset.touched!=="1"){
-    ty.value = sg.type || "Rød"; ty.classList.toggle("sg", !!sg.type);
-    if(sg.type) said.push("colour");
-  }
-  const mg = !pl && mgaOf({name, commune, region:g("aRegion"), classification:""});
-  const from = pl ? pl.climat : mg ? tr("{0} (an MGA)", mg.label) : sg.app, nt = $("aSuggest");
-  nt.hidden = !said.length || !from;
-  if(!nt.hidden){
-    const L = {commune:tr("commune"), region:tr("region"), country:tr("country"), grape:tr("grape"), colour:tr("colour")};
-    nt.textContent = tr("Suggested from {0}: {1}. Change anything that's wrong.").replace("{0}", from).replace("{1}", said.map(f=>L[f]).join(", "));
-  }
-  classHint(ADD_IDS);
+  // a field you've typed in is yours (and one a prefill set); the rest follow
+  function reset(){ SG.forEach(([, id])=>{ $(id).dataset.sg = $(id).defaultValue ? "1" : ""; $(id).classList.remove("sg"); }); $(I.type).classList.remove("sg"); $(noteId).hidden = true; }
+  SG.forEach(([, id])=>$(id).addEventListener("input", ()=>{ $(id).dataset.sg = ""; $(id).classList.remove("sg"); }));
+  [I.wine, I.commune, I.region, I.grape, I.producer].forEach(id=>$(id).addEventListener("input", run));
+  $(I.type).addEventListener("change", ()=>{ $(I.type).classList.remove("sg"); run(); });
+  return {run, reset};
 }
+const ADD_SUGGEST = makeSuggest(ADD_IDS, "aSuggest"), EA_SUGGEST = makeSuggest(EA_IDS, "eaSuggest");
+const addSuggest = () => ADD_SUGGEST.run();
 function addProducers(){
   $("jProducers").innerHTML = [...new Set(WINES.map(w=>w.producer).filter(Boolean))].sort().map(x=>`<option>${esc(x)}</option>`).join("");
 }
 function addReset(){
   $("addForm").reset(); $("aQty").value = 1;
-  ADD_SG.forEach(([, id])=>{ $(id).dataset.sg = $(id).defaultValue ? "1" : ""; $(id).classList.remove("sg"); });
-  $("aType").dataset.touched = ""; $("aType").classList.remove("sg"); $("aClass").dataset.auto = "1";
-  $("aFillNote").hidden = true; $("aSuggest").hidden = true; $("aClassHint").textContent = "";
+  ADD_SUGGEST.reset();
+  $("aType").dataset.touched = ""; $("aClass").dataset.auto = "1";
+  $("aFillNote").hidden = true; $("aClassHint").textContent = "";
 }
-// typing in a field makes it yours; the rest follow
-ADD_SG.forEach(([, id])=>$(id).addEventListener("input", ()=>{ $(id).dataset.sg = ""; $(id).classList.remove("sg"); }));
-["aName","aCommune","aRegion","aGrape","aProducer"].forEach(id=>$(id).addEventListener("input", addSuggest));
-$("aType").addEventListener("change", ()=>{ $("aType").classList.remove("sg"); addSuggest(); });
 addReset();
 function fillCommunes(){
   const B = window.BURG ? window.BURG.villages.flatMap(v=>v.n.split(" · ")) : [];
@@ -3455,7 +3499,7 @@ function openEnjoyedAdd(prefill){
     if(prefill.country) $("eaCountry").value=prefill.country;
     if(prefill.classification) $("eaClass").value=matchOpt($("eaClass"), prefill.classification);
   }
-  classHint(EA_IDS);
+  EA_SUGGEST.reset(); if(prefill) EA_SUGGEST.run(); else classHint(EA_IDS);
   $("eaModal").classList.add("open");
   setTimeout(()=>$("eaProducer").focus(),40);
 }
@@ -4025,6 +4069,7 @@ if(window.I18N) window.I18N.onChange(()=>{
   if(FEED) renderFeed();
   if($("jModal").classList.contains("open")) syncEnjoyOption();
   if($("addModal").classList.contains("open")) addSuggest();
+  if($("eaModal").classList.contains("open")) EA_SUGGEST.run();
 });
 
 /* ---------- boot ---------- */
