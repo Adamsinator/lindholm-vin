@@ -30,6 +30,9 @@ const gas = H({ Ark1: [HEAD,
   row({ Producent: "Dönnhoff", Land: "Tyskland", Område: "Nahe", "Mark/Navn": "Niederhäuser Hermannshöhle Riesling GG", Type: "Hvid", Årgang: 2020, Antal: 2 }),
   row({ Producent: "Marcel Lapierre", Land: "Frankrig", Område: "Beaujolais", "Mark/Navn": "Morgon", Type: "Rød", Årgang: 2022, Antal: 3 }),
   row({ Producent: "Château de Beaucastel", Land: "Frankrig", Område: "Rhône", "Mark/Navn": "Châteauneuf-du-Pape", Type: "Rød", Årgang: 2016, Antal: 2 }),
+  row({ Producent: "Domaine Vacheron", Land: "Frankrig", Område: "Loire", Kommune: "Sancerre", "Mark/Navn": "Les Romains", Type: "Hvid", Årgang: 2021, Antal: 2 }),
+  row({ Producent: "Nicolas Joly", Land: "Frankrig", Område: "Loire", "Mark/Navn": "Savennières Coulée de Serrant", Type: "Hvid", Årgang: 2017, Antal: 1 }),
+  row({ Producent: "Domaine Huet", Land: "Frankrig", Område: "Loire", Kommune: "Vouvray", "Mark/Navn": "Le Haut-Lieu Sec", Type: "Hvid", Årgang: 2020, Antal: 3 }),
   row({ Producent: "J.-A. Ferret", Land: "Frankrig", Område: "Bourgogne", Kommune: "Pouilly-Fuissé", "Mark/Navn": "Les Crays", Klassifikation: "1. cru", Type: "Hvid", Årgang: 2021, Antal: 2 }),
 ] });
 
@@ -205,6 +208,18 @@ const gas = H({ Ark1: [HEAD,
   const rs = await p.evaluate(() => ({ n: st.pack.climats.length, side: document.getElementById("side").textContent }));
   check("the Southern Rhône: eight cru appellations, the Beaucastel on Châteauneuf-du-Pape, and Vacqueyras said to be missing", rs.n === 8 && /Châteauneuf-du-Pape[^\n]*🍷 2/.test(rs.side) && /Not drawn: Vacqueyras/.test(rs.side),
     rs.n + " | " + (rs.side.match(/[^\n]*(🍷|Not drawn)[^\n]*/g) || []).join(" / "));
+  // the Loire, in three maps: each appellation its own cru on INAO's map, the bottles on theirs
+  await p.goto(BASE + "atlas.html#r=centreloire"); await p.waitForTimeout(2500);
+  const cl = await p.evaluate(() => ({ n: st.pack.climats.map(c => c.n).sort((a, b) => a.localeCompare(b, "fr")).join(), side: document.getElementById("side").textContent }));
+  check("the Centre-Loire: Sancerre, Pouilly-Fumé and four more; the Vacheron on Sancerre", cl.n === "Coteaux du Giennois,Menetou-Salon,Pouilly-Fumé,Quincy,Reuilly,Sancerre" && /Sancerre[^\n]*🍷 2/.test(cl.side),
+    cl.n + " | " + (cl.side.match(/[^\n]*🍷[^\n]*/g) || []).join(" / "));
+  await p.goto(BASE + "atlas.html#r=anjou"); await p.waitForTimeout(2500);
+  const an = await p.evaluate(() => ({ gc: st.pack.climats.filter(c => c.c === "GC").map(c => c.n).join(), pc: st.pack.climats.filter(c => c.c === "1er").map(c => c.n).join(),
+    cs: (st.pack.climats.find(c => c.n === "Coulée de Serrant") || {}).ha, side: document.getElementById("side").textContent }));
+  check("Anjou: Quarts de Chaume the grand cru, Chaume the premier cru, Coulée de Serrant's 7 ha with the Joly on it, not on Savennières", an.gc === "Quarts de Chaume" && an.pc === "Chaume"
+    && Math.abs(an.cs - 7) < 0.5 && /Coulée de Serrant[^\n]*🍷 1/.test(an.side) && !/(^|\n)\s*Savennières[^\n]*🍷/.test(an.side), JSON.stringify({ gc: an.gc, pc: an.pc, cs: an.cs, b: an.side.match(/[^\n]*🍷[^\n]*/g) }));
+  await p.goto(BASE + "atlas.html#r=touraine&c=vouvray"); await p.waitForTimeout(2500);
+  check("Touraine & Saumur: Vouvray with the Huet on it", (await p.textContent("#side h2")) === "Vouvray" && /Domaine Huet/.test(await p.textContent("#side")));
   await p.goto(BASE + "atlas.html#r=alsace&c=rangen"); await p.waitForTimeout(2500);
   check("Alsace: 51 grands crus; Rangen with the Zind-Humbrecht on it", await p.evaluate(() => st.pack.climats.filter(c => c.c === "GC").length) === 51 && (await p.textContent("#side h2")) === "Rangen" && /Zind-Humbrecht/.test(await p.textContent("#side")));
 

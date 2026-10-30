@@ -12,7 +12,7 @@
 "use strict";
 const fs = require("fs"), path = require("path");
 const ROOT = path.resolve(__dirname, ".."), CACHE = path.join(__dirname, ".dem-cache"); fs.mkdirSync(CACHE, { recursive: true });
-const FRENCH = ["chablis", "chalonnaise", "maconnais", "champagne", "alsace", "rhone", "bordeaux", "beaujolais", "rhonesud"];
+const FRENCH = ["chablis", "chalonnaise", "maconnais", "champagne", "alsace", "rhone", "bordeaux", "beaujolais", "rhonesud", "centreloire", "touraine", "anjou"];
 
 // Lambert-93 (EPSG:2154) back to longitude and latitude: the inverse of the conformal conic in atlas.js
 const a = 6378137, e = 0.0818191910428158, d = Math.PI / 180;

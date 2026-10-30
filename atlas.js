@@ -31,6 +31,12 @@ const REGIONS = [
     kw: ["beaujolais", "brouilly", "chenas", "chiroubles", "fleurie", "julienas", "morgon", "moulin a vent", "regnie", "saint amour", "st amour"], regional: "Beaujolais-Villages" },
   { id: "rhonesud", name: "Rhône (south)", file: "atlas-rhonesud.js?v=1", topo: "atlas-rhonesud-topo.js?v=1", dem: "atlas-rhonesud-dem.js?v=1", geol: "atlas-rhonesud-geol.js?v=1", ll: [44.12, 4.89], country: "fr", kind: "Cru appellations",
     kw: ["chateauneuf du pape", "gigondas", "vacqueyras", "beaumes de venise", "rasteau", "cairanne", "vinsobres", "lirac", "tavel"], regional: "Côtes du Rhône Villages" },
+  { id: "centreloire", name: "Centre-Loire", file: "atlas-centreloire.js?v=1", topo: "atlas-centreloire-topo.js?v=1", dem: "atlas-centreloire-dem.js?v=1", geol: "atlas-centreloire-geol.js?v=1", ll: [47.3, 2.55], country: "fr", kind: "Sancerre, Pouilly-Fumé and their neighbours",
+    kw: ["sancerre", "pouilly fume", "blanc fume de pouilly", "menetou salon", "quincy", "reuilly", "coteaux du giennois"] },
+  { id: "touraine", name: "Touraine & Saumur", file: "atlas-touraine.js?v=1", topo: "atlas-touraine-topo.js?v=1", dem: "atlas-touraine-dem.js?v=1", geol: "atlas-touraine-geol.js?v=1", ll: [47.3, 0.45], country: "fr", kind: "Cru appellations",
+    kw: ["vouvray", "montlouis", "chinon", "bourgueil", "saumur champigny"] },
+  { id: "anjou", name: "Anjou", file: "atlas-anjou.js?v=1", topo: "atlas-anjou-topo.js?v=1", dem: "atlas-anjou-dem.js?v=1", geol: "atlas-anjou-geol.js?v=1", ll: [47.33, -0.6], country: "fr", kind: "Savennières and the Layon's sweet wines",
+    kw: ["savennieres", "coulee de serrant", "roche aux moines", "quarts de chaume", "bonnezeaux", "coteaux du layon"] },
 ];
 // the start page's other places: the Côte d'Or's own, richer atlas, and Piedmont, whose MGA have pages but no map
 const ELSEWHERE = [{ id: "burgundy", name: "Côte d'Or", ll: [47.058, 4.839], country: "fr", kind: "The detailed atlas: owners, terrain, geology", href: "burgundy.html" },
@@ -535,7 +541,7 @@ function addFromAtlas(c, R) {
     location.href = "index.html#add"; return;
   }
   // a cru appellation or a Champagne village is where the wine is from, not its name
-  const pre = { name: c.c === "AOC" || villagesPack() ? "" : shown(c), commune: c.app, classification: { GC: "Grand cru", "1er": "1. cru" }[c.c] || "", region: st.pack.meta.region, country: st.pack.meta.country,
+  const pre = { name: c.c === "AOC" || c.n === c.app || villagesPack() ? "" : shown(c), commune: c.app, classification: { GC: "Grand cru", "1er": "1. cru" }[c.c] || "", region: st.pack.meta.region, country: st.pack.meta.country,
     type: TYPE[c.col] || "Hvid", producer: "", at: Date.now() };
   try { localStorage.setItem("vinAddPrefill", JSON.stringify(pre)); } catch (e) {}
   location.href = "index.html#add";
@@ -620,8 +626,9 @@ function showHome() {
     const [x, y] = xy([r.ll[1], r.ll[0]]), a = el("g", { class: "hd" + (r.href ? " out" : ""), "data-id": r.id, tabindex: 0, role: "link", "aria-label": r.name }, g);
     el("circle", { cx: x, cy: y, r: r.id === "burgundy" ? 9 : 7 }, a);
     // labels west of the dot where the Rhine regions crowd, east elsewhere
-    const west = ["nahe", "mosel", "ahr", "maconnais", "chalonnaise", "barolo"].includes(r.id);
-    const lb = el("text", { x: +x + (west ? -12 : 12), y: +y + 4, "text-anchor": west ? "end" : "start" }, a); lb.textContent = r.name;
+    // (and under it for Touraine, between Anjou and the Centre-Loire)
+    const west = ["nahe", "mosel", "ahr", "maconnais", "chalonnaise", "barolo", "anjou"].includes(r.id), below = r.id === "touraine";
+    const lb = el("text", { x: below ? x : +x + (west ? -12 : 12), y: +y + (below ? 22 : 4), "text-anchor": below ? "middle" : west ? "end" : "start" }, a); lb.textContent = r.name;
     a.onkeydown = e => { if (e.key === "Enter") goTo(r.id); };
   }
   renderLegend(); renderHomeSide();

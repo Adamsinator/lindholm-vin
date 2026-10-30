@@ -16,7 +16,7 @@ for (const f of ["burgundy-data.js", "burgundy-data-beaune.js", "burgundy-detail
 // the 1855 ranks as a label writes them (atlas.js has the same)
 const PTLABEL = { "1855-1": "Premier grand cru classé", "1855-2": "Deuxième grand cru classé", "1855-3": "Troisième grand cru classé", "1855-4": "Quatrième grand cru classé",
   "1855-5": "Cinquième grand cru classé", "sau-0": "Premier cru supérieur", "sau-1": "Premier cru classé", "sau-2": "Deuxième cru classé" };
-const PACKS = ["chablis", "chalonnaise", "maconnais", "champagne", "alsace", "rhone", "rhonesud", "beaujolais", "bordeaux", "mosel", "nahe", "pfalz", "rheinhessen", "mittelrhein", "ahr"];
+const PACKS = ["chablis", "chalonnaise", "maconnais", "champagne", "alsace", "rhone", "rhonesud", "beaujolais", "bordeaux", "centreloire", "touraine", "anjou", "mosel", "nahe", "pfalz", "rheinhessen", "mittelrhein", "ahr"];
 const GERMAN = ["mosel", "nahe", "pfalz", "rheinhessen", "mittelrhein", "ahr"];
 for (const id of PACKS) require(path.join(R, `atlas-${id}.js`));
 // measured terrain for the French packs (tools/region-dem.js), where it's been built
@@ -257,14 +257,16 @@ for (const [set, D] of Object.entries(MGA.docg)) {
 }
 // each pack's name, and the wine region it belongs to, in each language
 const NAME = { barolo: { en: "Barolo", fr: "Barolo", de: "Barolo", da: "Barolo" }, barbaresco: { en: "Barbaresco", fr: "Barbaresco", de: "Barbaresco", da: "Barbaresco" }, alsace: { en: "Alsace", fr: "Alsace", de: "Elsass", da: "Alsace" }, rhone: { en: "Northern Rhône", fr: "Rhône septentrional", de: "Nördliche Rhône", da: "Nordlige Rhône" },
-  rhonesud: { en: "Southern Rhône", fr: "Rhône méridional", de: "Südliche Rhône", da: "Sydlige Rhône" }, beaujolais: { en: "Beaujolais", fr: "Beaujolais", de: "Beaujolais", da: "Beaujolais" } };
+  rhonesud: { en: "Southern Rhône", fr: "Rhône méridional", de: "Südliche Rhône", da: "Sydlige Rhône" }, beaujolais: { en: "Beaujolais", fr: "Beaujolais", de: "Beaujolais", da: "Beaujolais" },
+  centreloire: { en: "Centre-Loire", fr: "Centre-Loire", de: "Centre-Loire", da: "Centre-Loire" }, touraine: { en: "Touraine & Saumur", fr: "Touraine et Saumur", de: "Touraine & Saumur", da: "Touraine & Saumur" },
+  anjou: { en: "Anjou", fr: "Anjou", de: "Anjou", da: "Anjou" } };
 const AREA = { burgundy: { en: "Burgundy", fr: "Bourgogne", de: "Burgund", da: "Bourgogne" }, champagne: { en: "Champagne", fr: "Champagne", de: "Champagne", da: "Champagne" },
   mosel: { en: "Mosel", fr: "Moselle", de: "Mosel", da: "Mosel" }, nahe: { en: "Nahe", fr: "Nahe", de: "Nahe", da: "Nahe" }, pfalz: { en: "Pfalz", fr: "Palatinat", de: "Pfalz", da: "Pfalz" },
   rheinhessen: { en: "Rheinhessen", fr: "Hesse rhénane", de: "Rheinhessen", da: "Rheinhessen" }, mittelrhein: { en: "Mittelrhein", fr: "Rhin moyen", de: "Mittelrhein", da: "Mittelrhein" },
   ahr: { en: "Ahr", fr: "Ahr", de: "Ahr", da: "Ahr" }, piemonte: { en: "Piedmont", fr: "Piémont", de: "Piemont", da: "Piemonte" },
   alsace: NAME.alsace, bordeaux: { en: "Bordeaux", fr: "Bordeaux", de: "Bordeaux", da: "Bordeaux" }, rhone: { en: "Rhône Valley", fr: "Vallée du Rhône", de: "Rhônetal", da: "Rhônedalen" },
-  beaujolais: { en: "Beaujolais", fr: "Beaujolais", de: "Beaujolais", da: "Beaujolais" } };
-const AREA_OF = { burgundy: "burgundy", chablis: "burgundy", chalonnaise: "burgundy", maconnais: "burgundy", champagne: "champagne", alsace: "alsace", rhone: "rhone", rhonesud: "rhone", beaujolais: "beaujolais", bordeaux: "bordeaux", barolo: "piemonte", barbaresco: "piemonte", ...Object.fromEntries(GERMAN.map(g => [g, g])) };
+  beaujolais: { en: "Beaujolais", fr: "Beaujolais", de: "Beaujolais", da: "Beaujolais" }, loire: { en: "Loire Valley", fr: "Val de Loire", de: "Loiretal", da: "Loiredalen" } };
+const AREA_OF = { burgundy: "burgundy", chablis: "burgundy", chalonnaise: "burgundy", maconnais: "burgundy", champagne: "champagne", alsace: "alsace", rhone: "rhone", rhonesud: "rhone", beaujolais: "beaujolais", bordeaux: "bordeaux", centreloire: "loire", touraine: "loire", anjou: "loire", barolo: "piemonte", barbaresco: "piemonte", ...Object.fromEntries(GERMAN.map(g => [g, g])) };
 const regionName = (set, L) => set === "burgundy" ? T[L].cote : (NAME[set] || (GERMAN.includes(set) && AREA[set]) || {})[L] || window.ATLAS_PACKS[set].meta.name;
 const countryOf = (set, t) => GERMAN.includes(set) ? t.germany : MGA.docg[set] ? t.italy : t.france;
 const areaName = (set, L) => AREA[AREA_OF[set]][L];

@@ -67,6 +67,27 @@ const REGIONS = {
     regional: [/^Côtes du Rhône Villages/],
     // INAO's parcel map (aire_parcellaire) has no Vacqueyras: not by any spelling, nor round the village (checked 2026-10)
     absent: ["Vacqueyras"] },
+  // the Loire, in three maps. Each appellation is its own "climat", as in the Rhône; where two share land (the
+  // Savennières crus inside Savennières, Quarts de Chaume inside the Coteaux du Layon) the first listed wins.
+  // Centre-Loire: Sancerre and Pouilly-Fumé across the river, Menetou-Salon, Quincy and Reuilly to the west
+  centreloire: { name: "Centre-Loire", country: "Frankrig", region: "Loire", bbox: [47.0, 1.95, 47.75, 3.1], bgTol: 5,
+    apps: [{ ap: "Sancerre", col: "RW", cru: true }, { ap: "Pouilly-Fumé", inao: "Pouilly-Fumé ou Blanc Fumé de Pouilly", col: "W", cru: true, aka: ["Blanc Fumé de Pouilly"] },
+      { ap: "Menetou-Salon", col: "RW", cru: true }, { ap: "Quincy", col: "W", cru: true }, { ap: "Reuilly", col: "RW", cru: true },
+      { ap: "Coteaux du Giennois", col: "RW", cru: true }],
+    regional: [] },
+  // Touraine's crus and Saumur-Champigny next to Chinon (Saint-Nicolas-de-Bourgueil before Bourgueil)
+  touraine: { name: "Touraine & Saumur", country: "Frankrig", region: "Loire", bbox: [47.08, -0.2, 47.48, 1.0], bgTol: 5,
+    apps: [{ ap: "Vouvray", col: "W", cru: true }, { ap: "Montlouis-sur-Loire", col: "W", cru: true, aka: ["Montlouis"] },
+      { ap: "Saint-Nicolas-de-Bourgueil", col: "R", cru: true }, { ap: "Bourgueil", col: "R", cru: true }, { ap: "Chinon", col: "R", cru: true },
+      { ap: "Saumur-Champigny", col: "R", cru: true }],
+    regional: [] },
+  // Anjou: Savennières and its two crus on the north bank; on the Layon, Quarts de Chaume (grand cru since 2011),
+  // Bonnezeaux, and the Coteaux du Layon with its premier cru Chaume
+  anjou: { name: "Anjou", country: "Frankrig", region: "Loire", bbox: [47.15, -0.85, 47.45, -0.35], bgTol: 5,
+    apps: [{ ap: "Coulée de Serrant", col: "W", cru: true, aka: ["Savennières Coulée de Serrant"] },
+      { ap: "Savennières Roche aux Moines", col: "W", cru: true, aka: ["Roche aux Moines"] }, { ap: "Savennières", col: "W", cru: true },
+      { ap: "Quarts de Chaume", col: "W", cru: true, cls: "GC" }, { ap: "Bonnezeaux", col: "W", cru: true }, { ap: "Coteaux du Layon", col: "W" }],
+    regional: [] },
   // Bordeaux: the cru appellations (each its own climat, as in the Rhône) over Haut-Médoc, Médoc and Graves; the
   // classified châteaux are points, placed on IGN's châteaux (BD TOPO, nature "Château") inside their appellation.
   // A parcel's first appellation in this list wins (Barsac before Sauternes, Canon-Fronsac before Fronsac); the Bordeaux / Bordeaux supérieur land under everything is left out (it's most of the Gironde)
@@ -333,7 +354,7 @@ async function lagenBuild() {
     if (slivers.length) add(a, `${PC} (small plots)`, "1er", PC, union(slivers.map(p => [p])), { unnamed: true });
     // the names INAO gives inside a bigger climat (Vaupulent in Fourchaume): which one
     climats.forEach(c => { if (c.app !== a.ap || c.c !== "1er" || c.unnamed) return; const g = groupOf(c.n); if (g && key(g) !== key(c.n)) c.parent = slug(g); });
-    if (a.cru) add(a, a.ap, "AOC", a.ap, union(a.village), null, TOL * 3); // a cru appellation is its own climat (whole hillsides: drawn coarser)
+    if (a.cru) add(a, a.ap, a.cls || "AOC", a.ap, union(a.village), a.aka ? { aka: a.aka } : null, TOL * 3); // a cru appellation is its own climat (whole hillsides: drawn coarser)
   }
   const villageLand = Object.fromEntries(A.filter(a => !a.cru).map(a => [a.ap, union(a.village)]));
   const villages = A.filter(a => !a.cru).map(a => ({ ap: a.ap, ha: +polyHa(villageLand[a.ap]).toFixed(1), g: tidy(villageLand[a.ap], TOL * (R.bgTol || 2)) })).filter(v => v.g.length);
