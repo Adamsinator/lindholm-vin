@@ -7,6 +7,10 @@ are done (see "Limits against abuse" in the README). Tick a box when an item shi
 
 - [ ] **Google Search Console:** add the domain `allwine.dk` (it asks for a DNS TXT record at the registrar), then
       Sitemaps → submit `https://allwine.dk/sitemap.xml`. The vineyard pages show up over the following weeks.
+- [ ] **Deploy `Code.gs` API 43** (found in the 30 October smoke test): edits, Tidy up, merges and the journal now
+      keep text that starts with `=`, `+` or `@` as text, as adding and importing already did. Before, a wine renamed
+      to `=IMPORTXML(…)` became a live formula in a plain (not yet encrypted) cellar; encrypted cellars were never
+      affected. Paste it, Manage deployments → ✏️ → New version; the Worker then reports v:43.
 - [x] **Deploy `Code.gs` API 42** (account help), then Admin → Account help → **Turn on account help**, and send
       the key fingerprint it shows, to be pinned as `ADMIN_KID` in `config.js` (browsers then wrap to that key only).
       Done 29 October 2026: the Worker reports v:42, and `18c76ea2…c95c` is pinned (checked against the live key).

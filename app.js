@@ -935,9 +935,9 @@ function detailHTML(w){
       ${isElsewhere(w)?"":`<label class="locwrap">📍 ${esc(tr("Location"))}
         <input class="setloc" list="locList" data-row="${w.row}" value="${esc(w.location)}" placeholder="${esc(tr("e.g. Cellar, shelf 2"))}"></label>`}
       <label class="datewrap">${esc(tr("Acquired"))}
-        <input class="setdate" type="date" data-field="acquired" data-row="${w.row}" value="${w.acquired||""}"></label>
+        <input class="setdate" type="date" data-field="acquired" data-row="${w.row}" value="${esc(w.acquired||"")}"></label>
       ${w.drunk>0?`<label class="datewrap">${esc(tr("Last drunk"))}
-        <input class="setdate" type="date" data-field="drunkDate" data-row="${w.row}" value="${w.drunkDate||""}"></label>`:""}
+        <input class="setdate" type="date" data-field="drunkDate" data-row="${w.row}" value="${esc(w.drunkDate||"")}"></label>`:""}
       ${(()=>{const est=defaultWindow(w), r=readiness(w);
         const ph=(x,d)=>x!=null?"≈"+x:d;
         return `<span class="winwrap">${esc(tr("Drink window"))}

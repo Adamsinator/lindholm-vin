@@ -550,7 +550,7 @@ function addFromAtlas(c, R) {
 /* ---------- your bottles ---------- */
 const apiUrl = () => (window.WINE_CONFIG && window.WINE_CONFIG.API_URL) || localStorage.getItem("vinApi") || "";
 async function vaultData(api, user, token) {
-  for (const f of ["gas-fake.js?v=6", "vault-crypto.js?v=3", "vault-engine.js?v=1", "vault.js?v=19"]) await loadScript(f);
+  for (const f of ["gas-fake.js?v=7", "vault-crypto.js?v=3", "vault-engine.js?v=1", "vault.js?v=20"]) await loadScript(f);
   const dek = await window.VCRYPTO.recall(user); if (!dek) throw new Error("token");
   const post = async p => (await fetch(api, { method: "POST", body: JSON.stringify(p), redirect: "follow" })).json();
   await window.VAULT.start({ post, user, token, dek });
@@ -649,7 +649,14 @@ function syncHash() {
 }
 async function openRegion(id, sel) {
   const R = REGIONS.find(r => r.id === id) || REGIONS[0];
-  if (!(window.ATLAS_PACKS && ATLAS_PACKS[R.id])) await loadScript(R.file);
+  if (!(window.ATLAS_PACKS && ATLAS_PACKS[R.id])) {
+    // a pack that doesn't come (GitHub Pages answers 503 now and then): once more after a moment, then say so
+    try { await loadScript(R.file).catch(() => new Promise(r => setTimeout(r, 1500)).then(() => loadScript(R.file))); }
+    catch (e) {
+      $("side").innerHTML = `<h2>${esc(R.name)}</h2><p class="note">${esc(t("Couldn't load this region's map. Check the connection and try again."))}</p><p><button class="btn" id="retryRegion">${esc(t("Try again"))}</button></p>`;
+      $("retryRegion").onclick = () => openRegion(id, sel); return;
+    }
+  }
   document.body.classList.remove("home"); svg.setAttribute("role", "img"); svg.setAttribute("aria-label", t("Vineyard map"));
   st.region = R; st.pack = ATLAS_PACKS[R.id]; st.sel = null; $("fRegion").value = R.id; $("regionName").textContent = " · " + st.pack.meta.name;
   document.title = "AllWine — " + st.pack.meta.name + " · " + t("Wine atlas");
