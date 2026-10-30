@@ -539,6 +539,10 @@ body:not(.social) .fshare{display:none!important}
 .sg{border-style:dashed!important;border-color:var(--accent)!important}
 .sgnote::before{content:"✨ "}
 .jfill{margin:8px 0 0;font-size:12.5px;color:var(--muted);text-transform:none;letter-spacing:0}
+/* a phone's suggestions under a field (app.js touchList) */
+.tlist{list-style:none;margin:4px 0 0;padding:4px;border:1px solid var(--line);border-radius:10px;background:var(--card);box-shadow:0 6px 18px rgba(0,0,0,.08);max-height:264px;overflow:auto}
+.tlist li{padding:10px 10px;border-radius:7px;font-size:15px;cursor:pointer;min-height:44px;display:flex;align-items:center}
+.tlist li:active,.tlist li:hover{background:var(--chip)}
 b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (no opacity: small text, it has to keep 4.5:1) */
 /* Enjoyed: fill-in bar and segmented filters */
 .fillbar{border-top:1px solid var(--accent);border-bottom:1px solid var(--line);padding:10px 14px;margin:0 0 12px;font-size:13.5px}
@@ -1338,6 +1342,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
     <label for="eaClass"><span data-i18n>Classification</span> <span class="lopt clshint" id="eaClassHint"></span></label>
     <select id="eaClass" data-country="eaCountry" data-region="eaRegion"></select>
     <p class="lopt jfill" id="eaFillNote" hidden></p>
+    <p class="lopt jfill sgnote" id="eaSuggest" hidden></p>
 
     <div class="row2">
       <div><label for="eaGrape" data-i18n>Grape</label><input id="eaGrape" list="grapes"></div>
@@ -1547,6 +1552,6 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 <script src="import.js?v=5"></script>
 <script src="export.js?v=2"></script>
 <script src="europe-lands.js?v=1"></script>
-<script src="app.js?v=55"></script>
+<script src="app.js?v=56"></script>
 </body>
 </html>

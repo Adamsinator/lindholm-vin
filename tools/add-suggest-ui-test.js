@@ -96,6 +96,37 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   await p.evaluate(() => { addReset(); I18N.setLang("da"); }); await type("#aRegion", "Mosel");
   check("the note follows the language", /Foreslået ud fra Mosel: .*drue/.test(await p.textContent("#aSuggest")), await p.textContent("#aSuggest"));
   check("no console errors", !errs.length, errs.join(" | "));
+  check("on a desktop the fields keep the browser's own suggestion list", (await p.getAttribute("#eaProducer", "list")) === "jProducers");
+
+  // on a phone: the Enjoyed form with its own suggestion lists (the browser's datalist is a strip above the keyboard),
+  // and filled in from where the wine is from, as the cellar's Add form is
+  const pc = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  await require("./turnstile-fake")(pc);
+  await pc.route(require("./api-route"), async route => { const q = JSON.parse(route.request().postData() || "{}"); let r;
+    if (q.action === "login") r = { ok: true, user: q.user, token: "tok", v: 26 }; else if (q.action === "prelogin") r = { ok: false, error: "bad-code", v: 27 };
+    else { delete q.user; delete q.token; q.code = "test-code"; r = gas.call(q); }
+    await route.fulfill({ contentType: "application/json", body: JSON.stringify(r) }); });
+  const m = await pc.newPage(), merrs = []; m.on("pageerror", e => merrs.push(e.message));
+  await m.goto(BASE); await m.waitForTimeout(400);
+  await m.fill("#gateUser", "adam"); await m.fill("#gatePass", "pw"); await m.tap("#gateSubmit");
+  await m.waitForSelector("#app:not([hidden])", { timeout: 20000 }); await m.waitForTimeout(600);
+  await m.evaluate(() => { location.hash = "#enjoyed"; }); await m.waitForTimeout(400);
+  await m.tap("#eAddBtn"); await m.waitForTimeout(200);
+  await m.type("#eaProducer", "rous"); await m.waitForTimeout(150);
+  const tl = await m.evaluate(() => { const ul = document.getElementById("eaProducer-tl"); return { shown: ul && !ul.hidden, items: ul ? [...ul.children].map(li => li.textContent) : [], list: document.getElementById("eaProducer").getAttribute("list") }; });
+  check("phone: the producer field lists the cellar's producers that contain what's typed — 'rous' finds Armand Rousseau", tl.shown && tl.items.includes("Armand Rousseau") && tl.list === null, JSON.stringify(tl));
+  await m.tap("#eaProducer-tl li"); await m.waitForTimeout(150);
+  check("…a tap fills it in and closes the list", (await m.inputValue("#eaProducer")) === "Armand Rousseau" && await m.evaluate(() => document.getElementById("eaProducer-tl").hidden));
+  await m.fill("#eaProducer", ""); await m.type("#eaProducer", "fevre"); await m.waitForTimeout(150);
+  await m.evaluate(() => { document.getElementById("jProducers").innerHTML += "<option>William Fèvre</option>"; document.getElementById("eaProducer").dispatchEvent(new Event("input")); });
+  await m.waitForTimeout(150);
+  check("…accents and case aside: 'fevre' finds William Fèvre", (await m.evaluate(() => [...document.getElementById("eaProducer-tl").children].map(li => li.textContent))).includes("William Fèvre"));
+  await m.fill("#eaProducer", "Domaine Fourrier"); await m.type("#eaWine", "Gevrey-Chambertin Combe aux Moines"); await m.waitForTimeout(300);
+  const ea = { region: await m.inputValue("#eaRegion"), grape: await m.inputValue("#eaGrape"), type: await m.inputValue("#eaType"), note: await m.isVisible("#eaSuggest") ? await m.textContent("#eaSuggest") : "" };
+  check("phone: the Enjoyed form fills in from where the wine is from — Gevrey-Chambertin: Bourgogne, Pinot Noir, red", ea.region === "Bourgogne" && /Pinot Noir/i.test(ea.grape) && ea.type === "Rød" && /Suggested from/.test(ea.note), JSON.stringify(ea));
+  check("phone: no sideways scroll with the form and a list open", await m.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
+  if (SHOTS) { await m.fill("#eaProducer", ""); await m.type("#eaProducer", "a"); await m.waitForTimeout(200); await m.screenshot({ path: SHOTS + "/phone-enjoyed.png" }); }
+  check("phone: no page errors", !merrs.length, merrs.join(" | "));
   await b.close();
   const n = results.filter(Boolean).length; console.log(`\n${n}/${results.length} passed`); process.exit(n === results.length ? 0 : 1);
 })().catch(e => { console.error(e); process.exit(1); });
