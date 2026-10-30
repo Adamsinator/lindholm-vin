@@ -966,7 +966,10 @@ const ATLAS_REGIONS = [{id:"chablis", re:/\bchablis\b/i}, {id:"chalonnaise", re:
   {id:"rhone", re:/c[oô]te[- ]r[oô]tie|condrieu|ch[aâ]teau[- ]grillet|\b(crozes[- ])?(h|)ermitage\b|saint[- ]joseph|\bst[- ]joseph|\bcornas\b|saint[- ]p[ée]ray/i},
   // after the Mâconnais: Saint-Véran is grown in Saint-Amour-Bellevue too
   {id:"beaujolais", re:/beaujolais|brouilly|\bch[ée]nas\b|chiroubles|fleurie|juli[ée]nas|\bmorgon\b|moulin[- ][aà][- ]vent|r[ée]gni[ée]|saint[- ]amour|\bst[- ]amour/i},
-  {id:"rhonesud", re:/ch[aâ]teauneuf[- ]du[- ]pape|gigondas|vacqueyras|beaumes[- ]de[- ]venise|\brasteau\b|cairanne|vinsobres|\blirac\b|\btavel\b/i}];
+  {id:"rhonesud", re:/ch[aâ]teauneuf[- ]du[- ]pape|gigondas|vacqueyras|beaumes[- ]de[- ]venise|\brasteau\b|cairanne|vinsobres|\blirac\b|\btavel\b/i},
+  {id:"centreloire", re:/sancerre|pouilly[- ]fum[ée]|blanc[- ]fum[ée][- ]de[- ]pouilly|menetou[- ]salon|\bquincy\b|\breuilly\b|coteaux[- ]du[- ]giennois/i},
+  {id:"touraine", re:/vouvray|montlouis|\bchinon\b|bourgueil|saumur[- ]champigny/i},
+  {id:"anjou", re:/savenni[eè]res|coul[ée]e[- ]de[- ]serrant|roche[- ]aux[- ]moines|quarts[- ]de[- ]chaume|bonnezeaux|coteaux[- ]du[- ]layon/i}];
 // Barolo and Barbaresco: no map (the MGA outlines aren't open data), but each MGA has its own page (piemonte-mga.js,
 // tools/pages-build.js). A bottle's MGA: the denomination on it, then the longest MGA name (or one of its other names)
 // standing as words in its name; a village mention ("del comune di La Morra") only when the label says so

@@ -14,7 +14,7 @@
 const fs = require("fs"), path = require("path"), cp = require("child_process");
 const pc = require("./node_modules/polygon-clipping"), shp = require("./node_modules/shapefile");
 const ROOT = path.resolve(__dirname, "..");
-const FRENCH = ["chablis", "chalonnaise", "maconnais", "champagne", "alsace", "rhone", "beaujolais", "rhonesud", "bordeaux"];
+const FRENCH = ["chablis", "chalonnaise", "maconnais", "champagne", "alsace", "rhone", "beaujolais", "rhonesud", "bordeaux", "centreloire", "touraine", "anjou"];
 
 const area = r => Math.abs(r.reduce((s, [x, y], i) => { const [x2, y2] = r[(i + 1) % r.length]; return s + x * y2 - x2 * y; }, 0) / 2);
 const mpArea = mp => mp.reduce((s, p) => s + area(p[0]) - p.slice(1).reduce((t, h) => t + area(h), 0), 0);

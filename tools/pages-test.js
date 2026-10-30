@@ -19,7 +19,7 @@ check("the pages on disk are what the data gives (else: node tools/pages-build.j
 const keys = Object.keys(T.en).sort().join();
 check("every language has every word", LANGS.every(L => Object.keys(T[L]).sort().join() === keys && T[L].dirs.length === 8), LANGS.filter(L => Object.keys(T[L]).sort().join() !== keys).join());
 check("every vineyard has its own address", new Set(ALL.map(v => v.slug)).size === ALL.length);
-check("about 2 750 vineyards, châteaux, Einzellagen and MGA across eighteen regions", ALL.length > 2700 && new Set(ALL.map(v => v.set)).size === 18, ALL.length);
+check("about 2 770 vineyards, châteaux, Einzellagen and MGA across twenty-one regions", ALL.length > 2700 && new Set(ALL.map(v => v.set)).size === 21, ALL.length);
 
 const pages = Object.keys(files).filter(f => f.endsWith(".html"));
 const bad = { head: [], ld: [], geo: [], junk: [], links: [] };
