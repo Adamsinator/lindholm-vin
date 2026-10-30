@@ -93,6 +93,17 @@ const gas = H({ Ark1: [HEAD,
   const off = await p.evaluate(() => [...document.querySelectorAll("#map .topo, #map .shade")].every(g => g.style.display === "none"));
   await p.check("#fTopo"); await p.check("#fRelief");
   check("…and both switch off", off);
+  // geology (BRGM 1:50 000): the formations under the outlines, the legend led by Chablis's Kimmeridgian, and Les Clos's own
+  await p.check("#fGeol"); await p.waitForTimeout(1500);
+  const geo = await p.evaluate(() => ({ paths: document.querySelectorAll("#map .geol path").length, on: document.getElementById("map").classList.contains("geolon"),
+    legend: document.getElementById("legend").textContent, src: document.getElementById("side").textContent }));
+  check("geology: BRGM's formations drawn under the vineyards, the legend led by the Kimmeridgian", geo.paths > 5 && geo.on && /^Geology \(BRGM 1:50 000\)j8 Calcaires et marnes à Exogyra virgula \(Kimméridgien/.test(geo.legend)
+    && /Geology: BRGM/.test(geo.src), JSON.stringify(geo).slice(0, 300));
+  await p.evaluate(() => select("les_clos", false)); await p.waitForTimeout(300);
+  const lc = (await p.textContent("#side")).replace(/\s+/g, " ");
+  check("…Les Clos: mostly Kimmeridgian, by share of its area, with BRGM's descriptions said to be in French", /Geology ?j8 Calcaires et marnes à Exogyra virgula[^%]*\d{2}%/.test(lc) && /BRGM's descriptions, in French/.test(lc), lc.slice(lc.indexOf("Geology"), lc.indexOf("Geology") + 300));
+  await p.uncheck("#fGeol"); await p.evaluate(() => select(null));
+  check("…and it switches off", await p.evaluate(() => document.querySelector("#map .geol").style.display === "none" && !document.getElementById("map").classList.contains("geolon") && !/Kimm/.test(document.getElementById("legend").textContent)));
   // terrain search: Chablis's grands crus face south-west; "South-facing" (SE–SW) keeps them, and dims the rest
   await p.click("#terrChip"); await p.click('#terrbar [data-preset="south"]'); await p.waitForTimeout(300);
   const ts = await p.evaluate(() => ({ note: (document.querySelector("#side .terrhit") || {}).textContent || "", dim: [...document.querySelectorAll("#map .cl.dim")].map(e => e.dataset.id),
@@ -186,6 +197,10 @@ const gas = H({ Ark1: [HEAD,
   const bj = await p.evaluate(() => ({ n: st.pack.climats.map(c => c.n).sort((a, b) => a.localeCompare(b, "fr")).join(), side: document.getElementById("side").textContent }));
   check("the Beaujolais: its ten crus, the Lapierre Morgon on Morgon", bj.n === "Brouilly,Chénas,Chiroubles,Côte de Brouilly,Fleurie,Juliénas,Morgon,Moulin-à-Vent,Régnié,Saint-Amour"
     && /Morgon[^\n]*🍷 3/.test(bj.side), bj.n + " | " + (bj.side.match(/[^\n]*🍷[^\n]*/g) || []).join(" / "));
+  // a vineyard's panel fetches the geology even with the layer off: Fleurie on granite, BRGM's γ written as γ
+  await p.evaluate(() => select("fleurie", false)); await p.waitForTimeout(1500);
+  const fl = (await p.textContent("#side")).replace(/\s+/g, " ");
+  check("…Fleurie: on granite, with BRGM's symbol for it (γ)", /Geology[^%]*γ[^%]*Granite porphyroïde[^%]*\d{2}%/.test(fl), fl.slice(fl.indexOf("Geology"), fl.indexOf("Geology") + 200));
   await p.goto(BASE + "atlas.html#r=rhonesud"); await p.waitForTimeout(2500);
   const rs = await p.evaluate(() => ({ n: st.pack.climats.length, side: document.getElementById("side").textContent }));
   check("the Southern Rhône: eight cru appellations, the Beaucastel on Châteauneuf-du-Pape, and Vacqueyras said to be missing", rs.n === 8 && /Châteauneuf-du-Pape[^\n]*🍷 2/.test(rs.side) && /Not drawn: Vacqueyras/.test(rs.side),
