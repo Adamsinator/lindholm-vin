@@ -19,7 +19,7 @@ check("the pages on disk are what the data gives (else: node tools/pages-build.j
 const keys = Object.keys(T.en).sort().join();
 check("every language has every word", LANGS.every(L => Object.keys(T[L]).sort().join() === keys && T[L].dirs.length === 8), LANGS.filter(L => Object.keys(T[L]).sort().join() !== keys).join());
 check("every vineyard has its own address", new Set(ALL.map(v => v.slug)).size === ALL.length);
-check("about 2 700 vineyards, châteaux, Einzellagen and MGA across sixteen regions", ALL.length > 2650 && new Set(ALL.map(v => v.set)).size === 16, ALL.length);
+check("about 2 750 vineyards, châteaux, Einzellagen and MGA across eighteen regions", ALL.length > 2700 && new Set(ALL.map(v => v.set)).size === 18, ALL.length);
 
 const pages = Object.keys(files).filter(f => f.endsWith(".html"));
 const bad = { head: [], ld: [], geo: [], junk: [], links: [] };
@@ -32,7 +32,7 @@ for (const f of pages) {
   let ld; try { ld = JSON.parse(s.match(/<script type="application\/ld\+json">(.*?)<\/script>/)[1]); } catch (e) { bad.ld.push(f); }
   const place = ld && (ld["@graph"] || []).find(x => x["@type"] === "Place");
   const mga = /Disciplinari di produzione DOCG Barolo/.test(s); // Barolo and Barbaresco's MGA: no outlines, so no coordinates
-  if (file !== "index.html" && !mga && (!place || !(place.geo.latitude > 44.4 && place.geo.latitude < 50.7 && place.geo.longitude > -1.2 && place.geo.longitude < 8.5))) bad.geo.push(f);
+  if (file !== "index.html" && !mga && (!place || !(place.geo.latitude > 43.8 && place.geo.latitude < 50.7 && place.geo.longitude > -1.2 && place.geo.longitude < 8.5))) bad.geo.push(f);
   if (/undefined|NaN|\{\d\}|\[object/.test(s.replace(/<svg class="map".*?<\/svg>/s, ""))) bad.junk.push(f);
   for (const [, h] of s.matchAll(/href="([^"#?]+)[^"]*"/g)) {
     if (/^(https?:|data:)/.test(h)) continue;
