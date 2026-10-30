@@ -19,12 +19,12 @@ const REGIONS = [
   { id: "alsace", name: "Alsace", file: "atlas-alsace.js?v=1", topo: "atlas-alsace-topo.js?v=1", dem: "atlas-alsace-dem.js?v=1", ll: [48.174, 7.329], country: "fr", kind: "Grand cru", kw: ["alsace", "elsass"], village: "Alsace (the rest of the AOC)" },
   { id: "bordeaux", name: "Bordeaux", file: "atlas-bordeaux.js?v=1", topo: "atlas-bordeaux-topo.js?v=1", dem: "atlas-bordeaux-dem.js?v=1", ll: [44.953, -0.587], country: "fr", kind: "Appellations · the 1855 châteaux", kw: ["bordeaux", "pauillac", "margaux", "medoc", "saint julien", "st julien", "saint estephe", "st estephe",
     "pessac", "graves", "sauternes", "barsac", "saint emilion", "st emilion", "pomerol", "fronsac", "listrac", "moulis"], village: "Haut-Médoc, Médoc, Graves" },
-  { id: "mosel", name: "Mosel", file: "atlas-mosel.js?v=1", topo: "atlas-mosel-topo.js?v=1", ll: [49.925, 6.968], country: "de", kind: "Einzellagen", kw: ["mosel", "saar", "ruwer"] },
-  { id: "nahe", name: "Nahe", file: "atlas-nahe.js?v=1", topo: "atlas-nahe-topo.js?v=1", ll: [49.84, 7.786], country: "de", kind: "Einzellagen", kw: ["nahe"] },
-  { id: "pfalz", name: "Pfalz", file: "atlas-pfalz.js?v=1", topo: "atlas-pfalz-topo.js?v=1", ll: [49.383, 8.158], country: "de", kind: "Einzellagen", kw: ["pfalz", "palatinate"] },
-  { id: "rheinhessen", name: "Rheinhessen", file: "atlas-rheinhessen.js?v=1", topo: "atlas-rheinhessen-topo.js?v=1", ll: [49.826, 8.16], country: "de", kind: "Einzellagen", kw: ["rheinhessen"] },
-  { id: "mittelrhein", name: "Mittelrhein", file: "atlas-mittelrhein.js?v=1", topo: "atlas-mittelrhein-topo.js?v=1", ll: [50.183, 7.671], country: "de", kind: "Einzellagen", kw: ["mittelrhein"] },
-  { id: "ahr", name: "Ahr", file: "atlas-ahr.js?v=1", topo: "atlas-ahr-topo.js?v=1", ll: [50.536, 7.079], country: "de", kind: "Einzellagen", kw: ["ahr"] },
+  { id: "mosel", name: "Mosel", file: "atlas-mosel.js?v=1", topo: "atlas-mosel-topo.js?v=1", dem: "atlas-mosel-dem.js?v=1", ll: [49.925, 6.968], country: "de", kind: "Einzellagen", kw: ["mosel", "saar", "ruwer"] },
+  { id: "nahe", name: "Nahe", file: "atlas-nahe.js?v=1", topo: "atlas-nahe-topo.js?v=1", dem: "atlas-nahe-dem.js?v=1", ll: [49.84, 7.786], country: "de", kind: "Einzellagen", kw: ["nahe"] },
+  { id: "pfalz", name: "Pfalz", file: "atlas-pfalz.js?v=1", topo: "atlas-pfalz-topo.js?v=1", dem: "atlas-pfalz-dem.js?v=1", ll: [49.383, 8.158], country: "de", kind: "Einzellagen", kw: ["pfalz", "palatinate"] },
+  { id: "rheinhessen", name: "Rheinhessen", file: "atlas-rheinhessen.js?v=1", topo: "atlas-rheinhessen-topo.js?v=1", dem: "atlas-rheinhessen-dem.js?v=1", ll: [49.826, 8.16], country: "de", kind: "Einzellagen", kw: ["rheinhessen"] },
+  { id: "mittelrhein", name: "Mittelrhein", file: "atlas-mittelrhein.js?v=1", topo: "atlas-mittelrhein-topo.js?v=1", dem: "atlas-mittelrhein-dem.js?v=1", ll: [50.183, 7.671], country: "de", kind: "Einzellagen", kw: ["mittelrhein"] },
+  { id: "ahr", name: "Ahr", file: "atlas-ahr.js?v=1", topo: "atlas-ahr-topo.js?v=1", dem: "atlas-ahr-dem.js?v=1", ll: [50.536, 7.079], country: "de", kind: "Einzellagen", kw: ["ahr"] },
   { id: "rhone", name: "Rhône (north)", file: "atlas-rhone.js?v=1", topo: "atlas-rhone-topo.js?v=1", dem: "atlas-rhone-dem.js?v=1", ll: [45.201, 4.809], country: "fr", kind: "Cru appellations", kw: ["cote rotie", "condrieu", "chateau grillet", "hermitage", "ermitage", "crozes", "saint joseph", "st joseph", "cornas", "saint peray", "st peray"],
     regional: "Regional (Côtes du Rhône)" },
 ];
@@ -427,18 +427,18 @@ const WINDS = { en: "N NNE NE ENE E ESE SE SSE S SSW SW WSW W WNW NW NNW", da: "
 const wind = deg => (WINDS[window.I18N ? I18N.lang : "en"] || WINDS.en).split(" ")[Math.round(deg / 22.5) % 16];
 function terrainHtml(c) {
   const D = demOf(st.region.id), m = D && D.c[c.id]; if (!m) return "";
-  const asp = m[3] < 1.5 ? t("flat") : (m[5] < 55 ? t("varied") + " · " : "") + wind(m[4]), wide = m[7] > 60;
+  const asp = m[3] < 1.5 ? t("flat") : (m[5] < 55 ? t("varied") + " · " : "") + wind(m[4]), wide = m[7] > 120;
   return `<div class="facts" title="${esc(t("Altitude and slope measured from IGN's elevation model"))}">
       <div class="fact"><div class="l">${esc(t("Altitude"))}</div><div class="v">${m[0]}–${m[1]} m</div></div>
       <div class="fact"><div class="l">${esc(t("Faces"))}</div><div class="v">${esc(asp)}</div></div>
       <div class="fact"><div class="l">${esc(t("Slope"))}</div><div class="v">${m[3].toFixed(m[3] < 10 ? 1 : 0)} %</div></div>
       <div class="fact"><div class="l">${esc(t("Mean altitude"))}</div><div class="v">${m[2]} m</div></div></div>
-    <p class="note">${esc(t("Terrain: IGN RGE ALTI®, {0} points sampled inside the outline; altitude is the 5th–95th percentile.", m[6]))}${wide ? " " + esc(t("The points are {0} m apart here, so the slope is the lie of the land, not the steepness of a single vineyard.", m[7])) : ""}</p>`;
+    <p class="note">${esc(t(st.pack.meta.proj === "eq" ? "Terrain: Rheinland-Pfalz's 1 m terrain model (DGM1), {0} points sampled inside the outline; altitude is the 5th–95th percentile." : "Terrain: IGN RGE ALTI®, {0} points sampled inside the outline; altitude is the 5th–95th percentile.", m[6]))}${m[8] ? " " + esc(t("Only the outline's vineyard land counts (the Basis-DLM's Weingarten), not the woods, plateau or village inside it.")) : ""}${wide ? " " + esc(t("The points are {0} m apart here, so the slope is the lie of the land, not the steepness of a single vineyard.", m[7])) : ""}</p>`;
 }
 // Germany's map: basemap.de's relief (as its terms ask: BKG and the licence linked) and the Basis-DLM of Rheinland-Pfalz
 const deCredit = () => { const y = new Date().getFullYear();
   return ` ${esc(t("Relief"))}: © GeoBasis-DE / <a href="https://www.bkg.bund.de" target="_blank" rel="noopener">BKG</a> (${y}) <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>.`
-    + ` ${esc(t("Roads, rivers, villages"))}: ©GeoBasis-DE / LVermGeoRP (${y}), <a href="https://www.govdata.de/dl-de/by-2-0" target="_blank" rel="noopener">dl-de/by-2-0</a>, <a href="https://www.lvermgeo.rlp.de" target="_blank" rel="noopener">www.lvermgeo.rlp.de</a> [${esc(t("data edited"))}].`; };
+    + ` ${esc(t("Roads, rivers, villages; altitude and slope"))}: ©GeoBasis-DE / LVermGeoRP (${y}), <a href="https://www.govdata.de/dl-de/by-2-0" target="_blank" rel="noopener">dl-de/by-2-0</a>, <a href="https://www.lvermgeo.rlp.de" target="_blank" rel="noopener">www.lvermgeo.rlp.de</a> [${esc(t("data edited"))}].`; };
 /* ---------- terrain search (French regions, from the measured terrain): faces, altitude, slope, size ---------- */
 st.terr = { asp: new Set(), altMin: null, altMax: null, slope: null, size: null };
 const terrActive = () => { const T = st.terr; return !!(T.asp.size || T.altMin != null || T.altMax != null || T.slope != null || T.size != null); };

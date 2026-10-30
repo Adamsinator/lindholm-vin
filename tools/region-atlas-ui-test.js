@@ -210,6 +210,13 @@ const gas = H({ Ark1: [HEAD,
     names: [...document.querySelectorAll("#map .tn")].map(t => t.textContent), side: document.getElementById("side").innerHTML }));
   const lv = mg.tiles.map(u => +(u.match(/DE_EPSG_3857_ADV\/(\d\d)\//) || [])[1]);
   check("the Mosel's relief: basemap.de's hillshade, at its own levels (standard 8–15 → 03–10)", mg.tiles.length > 0 && lv.every(z => z >= 3 && z <= 10), mg.tiles.slice(0, 2).join(" "));
+  // Germany's terrain: Rheinland-Pfalz's 1 m model, on the vineyard land; the terrain search is there too
+  const wsu = await p.evaluate(() => st.pack.climats.find(c => c.ap === "Wehlener Sonnenuhr").id);
+  await p.click(`#side button[data-c="${wsu}"]`); await p.waitForTimeout(500);
+  const wt = (await p.textContent("#side")).replace(/\s+/g, " ");
+  check("terrain in Germany: the Wehlener Sonnenuhr faces SSW at over 40 %, from the DGM1, on its vineyard land", /Faces ?SSW/.test(wt) && /Slope ?4\d %/.test(wt) && /Rheinland-Pfalz's 1 m terrain model/.test(wt) && /vineyard land counts/.test(wt)
+    && !(await p.evaluate(() => document.getElementById("terrChip").hidden)), wt.slice(0, 400));
+  await p.click("#back"); await p.waitForTimeout(300);
   check("…its villages from the Basis-DLM — Bernkastel-Kues, Wehlen, Zeltingen-Rachtig", ["Bernkastel-Kues", "Wehlen", "Zeltingen-Rachtig"].every(n => mg.names.includes(n)));
   check("…and BKG and LVermGeoRP credited, with the licences linked", /GeoBasis-DE \/ <a href="https:\/\/www\.bkg\.bund\.de"[^>]*>BKG<\/a> \(\d{4}\) <a href="https:\/\/creativecommons\.org\/licenses\/by\/4\.0\/"/.test(mg.side)
     && /©GeoBasis-DE \/ LVermGeoRP \(\d{4}\), <a href="https:\/\/www\.govdata\.de\/dl-de\/by-2-0"/.test(mg.side));
