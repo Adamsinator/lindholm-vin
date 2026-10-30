@@ -182,7 +182,7 @@ function drawTopo() {
   // a name already on the map nearby — a cru village's own label (Champagne), or IGN naming a town twice — isn't repeated
   const placed = st.pack.climats.filter(c => c.lb).map(c => [norm(c.n), c.lp[0], c.lp[1]]);
   T.names.slice().sort((a, b) => (a[0] === "w" ? 5 : a[0]) - (b[0] === "w" ? 5 : b[0])).forEach(([k, n, x, y]) => {
-    const nn = norm(n); if (placed.some(([m, px, py]) => m === nn && Math.hypot(px - x, py - y) < 3000)) return; placed.push([nn, x, y]);
+    const nn = norm(n); if (placed.some(([m, px, py]) => m === nn && Math.hypot(px - x, py - y) < 6000)) return; placed.push([nn, x, y]);
     const e = el("text", { class: "tn tn-" + k, x, y }, TG.names); e.textContent = n; e._k = k; });
   topoLod();
 }
