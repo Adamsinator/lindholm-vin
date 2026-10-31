@@ -14,6 +14,7 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
 (async () => {
   const b = await chromium.launch({ args: [`--unsafely-treat-insecure-origin-as-secure=${ORIGIN}`] });
   const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  await require("./ask-auto")(ctx);
   await require("./turnstile-fake")(ctx);
   let offline = false;
   await ctx.route(require("./api-route"), async r => { if (offline) return r.abort("internetdisconnected");

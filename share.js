@@ -12,7 +12,7 @@ const day = ms => new Date(ms).toLocaleDateString(lang() === "en" ? "en-GB" : la
 const STYLE = { "Rød": "Red", "Hvid": "White", "Rosé": "Rosé", "Bobler": "Sparkling" }; // as app.js names them
 // the cellar keeps countries in Danish, as the spreadsheet has them; shown here in the page's language
 const CTRY = { "Frankrig": "France", "Italien": "Italy", "Tyskland": "Germany", "Spanien": "Spain", "Portugal": "Portugal", "Østrig": "Austria", "Danmark": "Denmark" };
-const kr = n => n == null || n === "" || isNaN(n) ? "" : new Intl.NumberFormat("da-DK", { maximumFractionDigits: 0 }).format(Number(n)) + " kr";
+const kr = n => n == null || n === "" || isNaN(n) ? "" : new Intl.NumberFormat("da-DK", { maximumFractionDigits: 0 }).format(Number(n)) + " kr."; // as the cellar writes it
 // a cell with a label for the phone layout, left out when there's nothing in it (so no bare "Drink window:")
 const td = (label, v, n) => v === "" || v == null ? `<td${n ? ' class="n"' : ""}></td>` : `<td${n ? ' class="n"' : ""} data-l="${esc(label)}">${esc(v)}</td>`;
 let LIST = null, META = null;
@@ -25,7 +25,7 @@ function render() {
   const notes = LIST.w.some(r => r[11]), prices = LIST.w.some(r => r[12] != null && r[12] !== "");
   const bottles = LIST.w.reduce((s, r) => s + (Number(r[8]) || 0), 0);
   const head = `<h1>${esc(LIST.t || t("A shared wine list"))}</h1>
-    <p class="meta">${esc([LIST.by ? t("Shared by {0}", LIST.by) : "", t("{0} wines, {1} bottles", LIST.w.length, bottles), t("open until {0}", day(META.expires))].filter(Boolean).join(" · "))}</p>
+    <p class="meta">${esc([LIST.by ? t("Shared by {0}", LIST.by) : "", (LIST.w.length === 1 ? t("1 wine") : t("{0} wines", LIST.w.length)) + ", " + (bottles === 1 ? t("1 bottle") : t("{0} bottles", bottles)), t("open until {0}", day(META.expires))].filter(Boolean).join(" · "))}</p>
     <input type="search" id="q" placeholder="${esc(t("Search the list…"))}" aria-label="${esc(t("Search the list…"))}" value="${esc(q)}">`;
   const rows = w.map(r => {
     const where = [r[3], r[4], r[5] && t(CTRY[r[5]] || r[5])].filter(Boolean).filter((x, i, a) => a.indexOf(x) === i).join(", ");

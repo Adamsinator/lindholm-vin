@@ -4,6 +4,7 @@
 //   • it makes invite codes with a note, copies a ready invitation, and withdraws a code
 //   (cd .. && python3 -m http.server 8765) & node tools/admin-ui-test.js
 "use strict";
+let ASK = true; // how the site's own questions are answered (ask-auto.js)
 const { chromium } = require("./pw");
 const H = require("./gas-harness");
 const BASE = process.env.BASE || "http://localhost:8765/";
@@ -15,6 +16,7 @@ const HEAD = ["Producent", "Land", "Område", "Kommune", "Mark/Navn", "Klassifik
   const gas = H({ Ark1: [HEAD] }, { settings: { SIGNUP_CODE: "invite" } });
   const device = async () => {
     const ctx = await b.newContext({ viewport: { width: 1200, height: 900 }, permissions: ["clipboard-read", "clipboard-write"] });
+    await require("./ask-auto")(ctx, [], () => ASK);
     await require("./turnstile-fake")(ctx);
     await ctx.route(require("./api-route"), async route => { const q = JSON.parse(route.request().postData() || "{}");
       await route.fulfill({ contentType: "application/json", body: JSON.stringify(gas.call(q)) }); });
@@ -63,21 +65,21 @@ const HEAD = ["Producent", "Land", "Område", "Kommune", "Mark/Navn", "Klassifik
   await p.click(`#adminInvites button[data-copy="${codes[0]}"]`); await p.waitForTimeout(200);
   const clip = await p.evaluate(() => navigator.clipboard.readText());
   check("'Copy invitation' copies the link and the code", clip.includes(codes[0]) && /localhost:8765/.test(clip) && /works once/.test(clip), clip);
-  p.once("dialog", d => d.accept());
+  ASK = true;
   await p.click(`#adminInvites button[data-revoke="${codes[1]}"]`);
   await p.waitForFunction(c => [...document.querySelectorAll("#adminInvites li.used")].some(r => r.textContent.includes(c) && /withdrawn/.test(r.textContent)), codes[1], { timeout: 10000 });
   check("'Withdraw' marks the code as withdrawn", true);
   check("the owner can't be removed; the others can", await p.isHidden('#adminUsers button[data-remove="ole"]') && await p.isVisible('#adminUsers button[data-remove="pia"]'));
-  p.once("dialog", d => d.accept("pai"));
+  ASK = "pai";
   await p.click('#adminUsers button[data-remove="pia"]'); await p.waitForTimeout(300);
-  check("a mistyped name removes nothing", /didn't match/.test(await p.textContent("#adminErr")) && gas.rows("Users").some(r => r[0] === "pia"));
+  check("a mistyped name can't be confirmed, so nothing is removed", gas.rows("Users").some(r => r[0] === "pia") && !(await p.isVisible("#askModal.open")));
   // a member asking is refused, before anything else
   const refused = await B.p.evaluate(async () => { try { await api({ action: "admindelete", member: "ole" }); return "ran"; } catch (e) { return String(e && e.message || e); } });
   check("a member can't remove anyone", /not-owner/.test(refused) && gas.rows("Users").some(r => r[0] === "ole"), refused);
   const self = await p.evaluate(async () => { try { await api({ action: "admindelete", member: "ole" }); return "ran"; } catch (e) { return String(e && e.message || e); } });
   check("…nor the owner themselves, even asking the server directly", /owner-account/.test(self) && gas.rows("Users").some(r => r[0] === "ole"), self);
   const piaFolder = gas.run(`DriveApp.getFileById(findUser('pia').vaultId).getParents().next().getId()`);
-  p.once("dialog", d => d.accept("Pia"));
+  ASK = "Pia"; // the name in any case
   await p.click('#adminUsers button[data-remove="pia"]');
   await p.waitForFunction(() => !document.querySelector('#adminUsers button[data-remove="pia"]'), null, { timeout: 10000 });
   check("typing the name removes the member", !gas.rows("Users").some(r => r[0] === "pia") && (await p.$$("#adminUsers li")).length === 1);

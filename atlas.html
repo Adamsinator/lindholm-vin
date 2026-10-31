@@ -40,6 +40,10 @@ header.top h1{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia
 header.top h1 em{font-style:italic;color:var(--accent)} header.top h1 a{color:inherit;text-decoration:none}
 .ttl{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.14em;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
 .hright{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.helpq{display:inline-flex;align-items:center;justify-content:center;min-width:30px;min-height:30px;padding:0 !important;border:1.5px solid currentColor;border-radius:50%;font-weight:700;text-decoration:none;line-height:1}
+@media(pointer:coarse){.helpq{min-width:44px;min-height:44px}}
+.helpq-m{display:none !important;margin-left:10px;font-family:system-ui,sans-serif;font-size:15px;color:var(--accent)}
+@media(max-width:560px){.helpq-d{display:none !important}.helpq-m{display:inline-flex !important;vertical-align:middle}}
 .hright a{color:var(--accent);text-decoration:none;font-weight:600;font-size:14px}
 .langpick{display:flex;gap:4px}
 .langpick button{width:30px;height:21px;padding:0;border:1px solid var(--line);border-radius:4px;background:none;cursor:pointer;overflow:hidden;opacity:.55}
@@ -156,8 +160,8 @@ aside#side{background:var(--card);border:1px solid var(--line);border-radius:var
 <body>
 <div class="wrap">
 <header class="top">
-  <h1><a href="./">All<em>Wine</em></a><span class="ttl"><span data-i18n>Wine atlas</span><span id="regionName"></span></span></h1>
-  <div class="hright"><div data-langpick></div><a href="burgundy.html" data-i18n>Côte d'Or atlas</a><a href="./" data-i18n>← AllWine</a></div>
+  <h1><a href="./">All<em>Wine</em></a><span class="ttl"><span data-i18n>Wine atlas</span><span id="regionName"></span></span><a href="help.html#atlas" class="helpq helpq-m" title="Help and tips" aria-label="Help and tips" data-i18n-title data-i18n-aria>?</a></h1>
+  <div class="hright"><div data-langpick></div><a href="burgundy.html" data-i18n>Côte d'Or atlas</a><a href="help.html#atlas" class="helpq helpq-d" title="Help and tips" aria-label="Help and tips" data-i18n-title data-i18n-aria>?</a><a href="./" data-i18n>← AllWine</a></div>
 </header>
 <div class="toolbar" role="search">
   <select id="fRegion" aria-label="Region" data-i18n-aria></select>
@@ -195,7 +199,7 @@ aside#side{background:var(--card);border:1px solid var(--line);border-radius:var
   <aside id="side" aria-live="polite"></aside>
 </div>
 </div>
-<script src="i18n.js?v=65"></script>
+<script src="i18n.js?v=66"></script>
 <script src="europe-lands.js?v=1"></script>
 <script src="atlas.js?v=16"></script>
 </body>

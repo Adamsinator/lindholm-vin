@@ -11,6 +11,7 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
 
 (async () => {
   const b = await chromium.launch(); const ctx = await b.newContext({ viewport: { width: 1280, height: 900 }, acceptDownloads: true });
+  await require("./ask-auto")(ctx);
   const seen = [];
   await require("./turnstile-fake")(ctx);
   await ctx.route(require("./api-route"), async route => {
