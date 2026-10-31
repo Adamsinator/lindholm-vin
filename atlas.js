@@ -82,6 +82,7 @@ function draw() {
   TG.over = el("g", { class: "topo", "pointer-events": "none" }, svg); TG.names = el("g", { class: "topo", "pointer-events": "none" }, svg);
   const gd = el("g", {}, svg), gp = el("g", {}, svg); gLabels = el("g", {}, svg); // château dots under the labels
   TG.prof = el("g", { class: "prof", "pointer-events": "none" }, svg); PROF.a = PROF.b = null;
+  TG.me = el("g", { class: "me", "pointer-events": "none" }, svg); drawMe();
   P.climats.forEach(c => { if (!c.unnamed) c.lb = el("text", { class: "lb " + c.c, x: c.lp[0], y: c.lp[1] }, gLabels); if (c.lb) c.lb.textContent = c.n;
     c.dot = el("circle", { class: "dot", cx: c.lp[0], cy: c.lp[1], r: 0 }, gd); });
   pts().forEach(q => { if (!q.p) return; q.el = el("circle", { class: "pt", cx: q.p[0], cy: q.p[1], r: 0, "data-pt": q.id }, gp); el("title", {}, q.el).textContent = q.n;
@@ -130,7 +131,7 @@ let relayRaf = 0, relayT = 0, vbC = null, rectC = null;
 const mapview = $("mapview");
 // the map's place on the page as laid out, not as the gesture's transform shows it (measured while none is on)
 const mapRect = () => mapview.style.transform && rectC ? rectC : (rectC = svg.getBoundingClientRect());
-function relayout() { const v = st.view; if (!v) return; layoutLabels(); topoLod(); shadeSoon();
+function relayout() { const v = st.view; if (!v) return; layoutLabels(); topoLod(); shadeSoon(); drawMe();
   if (PROF.a && TG.prof) TG.prof.querySelectorAll("circle").forEach(c => c.setAttribute("r", 5 * v[2] / (svg.clientWidth || 800))); }
 // while a finger, the wheel or a glide is moving the map, the drawing already on screen is moved and scaled as a picture
 // (a CSS transform the compositor does, cheap), and redrawn at the new view once the movement pauses: redrawing a
@@ -350,6 +351,47 @@ svg.addEventListener("dblclick", e => { if (!st.pack || PROF.on) return; e.preve
 $("zIn").onclick = () => { const [x, y, w, h] = st.view; zoomAt(.6, x + w / 2, y + h / 2, 220); };
 $("zOut").onclick = () => { const [x, y, w, h] = st.view; zoomAt(1 / .6, x + w / 2, y + h / 2, 220); };
 $("zHome").onclick = () => fit(st.home, undefined, 320);
+/* ---------- where am I: the phone's position on the region's map, and a word on where it is ---------- */
+let toastT = 0;
+function mapToast(msg) { const b = $("mapToast"); b.textContent = msg; b.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { b.hidden = true; }, 5000); }
+// longitude, latitude → the pack's metres: Lambert-93 in France, the local grid round meta.origin in Germany
+function toPack(lon, lat) { const M = st.pack.meta;
+  if (M.proj === "eq") { const O = M.origin, d = Math.PI / 180; return [(lon - O[0]) * d * 6371000 * Math.cos(O[1] * d), (O[1] - lat) * d * 6371000]; }
+  const [E, N] = L93(lon, lat); return [E - M.l93[0], M.l93[1] - N]; }
+function drawMe() {
+  if (!TG.me) return; TG.me.innerHTML = "";
+  if (!st.me || !st.region || st.me.r !== st.region.id || !st.view) return;
+  const k = st.view[2] / (svg.clientWidth || 800);
+  el("circle", { class: "acc", cx: st.me.p[0], cy: st.me.p[1], r: Math.max(st.me.acc, 9 * k) }, TG.me);
+  el("circle", { cx: st.me.p[0], cy: st.me.p[1], r: 7 * k }, TG.me);
+}
+$("locBtn").onclick = () => {
+  if (!navigator.geolocation || !st.pack) return;
+  const R = st.region; mapToast(t("Your location") + "…");
+  navigator.geolocation.getCurrentPosition(pos => {
+    if (st.region !== R) return;
+    const p = toPack(pos.coords.longitude, pos.coords.latitude), acc = Math.min(2000, pos.coords.accuracy || 50);
+    // far from every vineyard on this map: say how far, and leave the map where it is
+    let near = Infinity; st.pack.climats.forEach(c => c.g.forEach(poly => poly[0].forEach(([x, y]) => { const d = Math.hypot(x - p[0], y - p[1]); if (d < near) near = d; })));
+    if (near > 5000) { st.me = null; drawMe(); return mapToast(t("You're about {0} km from the nearest vineyard on this map.", Math.round(near / 1000).toLocaleString())); }
+    st.me = { r: R.id, p, acc }; const c = climatAt(p);
+    mapToast(c ? t("You're in {0}.", shown(c)) : t("You're here — not inside a named vineyard."));
+    fit([p[0] - 450, p[1] - 450, p[0] + 450, p[1] + 450], .05, 400); drawMe();
+    if (c) select(c.id, false);
+  }, () => mapToast(t("Couldn't find your location.")), { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 } /* fresh: walking between vineyards */);
+};
+/* ---------- the keyboard, on the focused map: arrows pan (Shift: further), + and − zoom, 0 or Home: the whole region ---------- */
+svg.setAttribute("tabindex", "0");
+svg.addEventListener("keydown", e => {
+  if (!st.pack || !st.view || e.ctrlKey || e.metaKey || e.altKey) return;
+  const [x, y, w, h] = st.view, f = e.shiftKey ? .5 : .2, pan = { ArrowLeft: [-f * w, 0], ArrowRight: [f * w, 0], ArrowUp: [0, -f * h], ArrowDown: [0, f * h] }[e.key];
+  if (pan) flyTo([x + pan[0], y + pan[1], w, h], 160);
+  else if (e.key === "+" || e.key === "=") zoomAt(.6, x + w / 2, y + h / 2, 160);
+  else if (e.key === "-" || e.key === "_") zoomAt(1 / .6, x + w / 2, y + h / 2, 160);
+  else if (e.key === "0" || e.key === "Home") fit(st.home, undefined, 320);
+  else return;
+  e.preventDefault();
+});
 $("profBtn").onclick = () => profToggle();
 $("pngBtn").onclick = exportPNG;
 $("printBtn").onclick = () => window.print();
@@ -742,7 +784,6 @@ async function openRegion(id, sel) {
   document.body.classList.remove("home"); svg.setAttribute("role", "img"); svg.setAttribute("aria-label", t("Vineyard map"));
   st.region = R; st.pack = ATLAS_PACKS[R.id]; st.sel = null; $("fRegion").value = R.id; $("regionName").textContent = " · " + st.pack.meta.name;
   document.title = "AllWine — " + st.pack.meta.name + " · " + t("Wine atlas");
-  $("climatList").innerHTML = st.pack.climats.filter(c => !c.unnamed).concat(pts()).map(c => `<option value="${esc(shown(c))}">`).join("");
   // start on the crus (the regional land around them can be far bigger, and long and thin)
   st.home = bbOf(st.pack.climats.flatMap(c => c.g));
   for (const [f, k] of [["fGC", "GC"], ["f1er", "1er"], ["fAOC", "AOC"], ["fEL", "EL"]]) $(f).parentNode.hidden = !st.pack.climats.some(c => c.c === k);
@@ -751,7 +792,7 @@ async function openRegion(id, sel) {
   $("fRelief").parentNode.hidden = !st.pack.meta.l93 && st.pack.meta.proj !== "eq";
   $("fTopo").parentNode.hidden = !R.topo; $("fGeol").parentNode.hidden = !R.geol; if (st.geol) ensureGeol();
   st.cmpWith = null; terrClear(); $("terrbar").hidden = true; $("terrChip").hidden = !R.dem; terrSync();
-  $("profBtn").hidden = !st.pack.meta.l93; if (PROF.on) profToggle(false); // the profile needs IGN's elevation service: France only
+  $("profBtn").hidden = !st.pack.meta.l93; $("locBtn").hidden = !navigator.geolocation; if (PROF.on) profToggle(false); // the profile needs IGN's elevation service: France only
   if (R.topo && !topoOf()) loadScript(R.topo).then(() => { if (st.region === R) drawTopo(); }).catch(() => {});
   if (R.dem && !demOf(R.id)) loadScript(R.dem).then(() => { if (st.region === R) { renderSide(); paint(); } }).catch(() => {});
   if (sel && byId(sel)) select(sel, true); else { renderSide(); syncHash(); }
@@ -782,7 +823,52 @@ $("fRelief").checked = st.relief; $("fRelief").onchange = e => { st.relief = e.t
 $("fGeol").checked = st.geol; $("fGeol").onchange = e => { st.geol = e.target.checked; keep("atlasGeol", st.geol); if (st.geol) ensureGeol();
   if (TG.geol) TG.geol.style.display = st.geol ? "" : "none"; paint(); renderLegend(); };
 $("fTopo").checked = st.topo; $("fTopo").onchange = e => { st.topo = e.target.checked; keep("atlasTopo", st.topo); topoLod(); };
-$("fSearch").addEventListener("change", e => { const q = norm(e.target.value); const all = st.pack.climats.concat(pts()), c = all.find(x => norm(shown(x)) === q) || all.find(x => norm(x.n) === q) || all.find(x => !x.unnamed && norm(shown(x)).includes(q.trim())); if (c) { select(c.id, true); e.target.value = ""; } });
+/* ---------- search: this region's vineyards first, then every other region's and the Côte d'Or's (atlas-index.js,
+   fetched when the box is first used), as a list under the box that works by touch and with ↑ ↓ Enter Esc ---------- */
+const sBox = $("fSearch"), sList = $("gRes"), INDEX_SRC = "atlas-index.js?v=1";
+let sHits = [], sAt = -1;
+const placeName = id => (allPlaces().find(r => r.id === id) || {}).name || id;
+const loadIndex = () => window.ATLAS_INDEX ? Promise.resolve() : (loadIndex.p ||= loadScript(INDEX_SRC).catch(() => { loadIndex.p = null; }));
+// an entry: [name, place, id, class, commune, (an MGA's page), (other names)]
+const hitClass = e => PTCLASS[e[3]] ? t(PTCLASS[e[3]]) : e[3] === "V" ? t("Village") : e[3] === "MGA" || e[3] === "MGAV" ? "MGA" : t(CLASS[e[3]] || e[3]);
+function sFind(q) {
+  const k = norm(q).trim(); if (k.length < 2) return [];
+  const here = st.region ? st.region.id : null, out = [];
+  // the open region's own, straight from its pack (so it works before the index is in)
+  if (st.pack) st.pack.climats.filter(c => !c.unnamed).concat(pts()).forEach(c => out.push([shown(c), here, c.id, c.c === "PT" || !c.g ? c.cls : c.c, c.c === "EL" ? c.n : c.app || "", null, c.aka || []]));
+  (window.ATLAS_INDEX || []).forEach(e => { if (e[1] !== here) out.push(e); });
+  const score = e => { const names = [e[0], ...(Array.isArray(e[e.length - 1]) ? e[e.length - 1] : [])].map(norm);
+    const best = Math.min(...names.map(n => n.startsWith(" " + k) ? 0 : n.includes(" " + k) ? 1 : n.includes(k) ? 2 : 9));
+    return best === 9 ? null : best * 10 + (e[1] === here ? 0 : 5) + Math.min(4, e[0].length / 20); };
+  return out.map(e => [score(e), e]).filter(([s]) => s != null).sort((a, b) => a[0] - b[0]).slice(0, 8).map(([, e]) => e);
+}
+function sRender() {
+  sHits = sFind(sBox.value); sAt = sHits.length ? 0 : -1;
+  if (!sBox.value.trim() || norm(sBox.value).trim().length < 2) { sList.hidden = true; sBox.setAttribute("aria-expanded", "false"); return; }
+  sList.innerHTML = sHits.length ? sHits.map((e, i) => `<li role="option" id="gr${i}" data-i="${i}" aria-selected="${i === sAt}"><b>${esc(e[0])}</b><small>${esc([e[1] === (st.region && st.region.id) ? "" : placeName(e[1]), hitClass(e), e[4]].filter(Boolean).join(" · "))}</small></li>`).join("")
+    : `<li class="none">${esc(t(window.ATLAS_INDEX ? "No vineyard by that name." : "Searching…"))}</li>`;
+  sList.hidden = false; sBox.setAttribute("aria-expanded", "true"); sBox.setAttribute("aria-activedescendant", sAt >= 0 ? "gr" + sAt : "");
+}
+function sGo(e) {
+  sList.hidden = true; sBox.value = ""; sBox.blur(); sBox.setAttribute("aria-expanded", "false");
+  if (st.region && e[1] === st.region.id) return select(e[2], true);
+  if (e[1] === "burgundy") return void (location.href = "burgundy.html#c=" + encodeURIComponent(e[2]));
+  if (REGIONS.some(r => r.id === e[1])) return void (location.hash = "#r=" + e[1] + "&c=" + encodeURIComponent(e[2]));
+  location.href = `v/${window.I18N ? I18N.lang : "en"}/${e[5]}.html`; // Barolo, Barbaresco: the MGA's page
+}
+sBox.addEventListener("focus", () => { loadIndex().then(() => { if (document.activeElement === sBox) sRender(); }); });
+sBox.addEventListener("input", sRender);
+sBox.addEventListener("keydown", ev => {
+  if (ev.key === "ArrowDown" || ev.key === "ArrowUp") { if (!sHits.length) return; ev.preventDefault(); sAt = (sAt + (ev.key === "ArrowDown" ? 1 : sHits.length - 1)) % sHits.length;
+    sList.querySelectorAll("li[data-i]").forEach(li => li.setAttribute("aria-selected", +li.dataset.i === sAt)); sBox.setAttribute("aria-activedescendant", "gr" + sAt); }
+  else if (ev.key === "Enter" && !sList.hidden && sHits[sAt]) { ev.preventDefault(); sGo(sHits[sAt]); }
+  else if (ev.key === "Escape") { sList.hidden = true; sBox.setAttribute("aria-expanded", "false"); }
+});
+// pointerdown, not click: the box keeps the focus (and a phone its keyboard) until the choice is made
+sList.addEventListener("pointerdown", ev => { const li = ev.target.closest("li[data-i]"); if (li) { ev.preventDefault(); sGo(sHits[+li.dataset.i]); } });
+sBox.addEventListener("blur", () => setTimeout(() => { sList.hidden = true; sBox.setAttribute("aria-expanded", "false"); }, 150));
+// a name typed whole and confirmed (or picked from elsewhere): this region's vineyard of that name
+sBox.addEventListener("change", e => { if (!st.pack) return; const q = norm(e.target.value); const all = st.pack.climats.concat(pts()), c = all.find(x => norm(shown(x)) === q) || all.find(x => norm(x.n) === q) || all.find(x => !x.unnamed && norm(shown(x)).includes(q.trim())); if (c) { select(c.id, true); e.target.value = ""; } });
 if (window.I18N) { I18N.picker && document.querySelectorAll("[data-langpick]").forEach(I18N.picker); I18N.onChange(() => { renderSide(); renderLegend(); }); }
 
 // #r=chablis&c=les_clos, or &w=<a wine's name> from the cellar's "On the map": its vineyard if the atlas knows it

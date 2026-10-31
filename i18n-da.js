@@ -1,6 +1,7 @@
 // Danish for allwine.dk: i18n.js loads the one dictionary the page's language needs (English is the source text).
 window.I18N_DICT = window.I18N_DICT || {};
 window.I18N_DICT.da = {
+  "No vineyard by that name.": "Ingen mark med det navn.", "Searching…": "Søger…", "Vineyards found": "Fundne marker", "Where am I?": "Hvor er jeg?",
   "Your cellar, journal, wishlist and journal photos are encrypted in this browser before they're saved.": "Din kælder, journal, ønskeliste og journalfotos krypteres i denne browser, før de gemmes.", "Do you still have your recovery code? If you forget your password, it's how you get back into your encrypted cellar.": "Har du stadig din gendannelseskode? Glemmer du din adgangskode, er det den, der får dig ind i din krypterede kælder igen.", "I have it": "Jeg har den", "Make a new one": "Lav en ny", "Enter your password, then choose New recovery code.": "Skriv din adgangskode, og vælg så Ny gendannelseskode.",
   // cellar app
   "That invite code isn't right, or it has already been used.": "Den invitationskode er forkert, eller den er allerede brugt.",

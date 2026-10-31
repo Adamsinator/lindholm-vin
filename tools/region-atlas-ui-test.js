@@ -38,7 +38,7 @@ const gas = H({ Ark1: [HEAD,
 
 (async () => {
   const b = await chromium.launch();
-  const ctx = await b.newContext({ viewport: { width: 1300, height: 900 } });
+  const ctx = await b.newContext({ viewport: { width: 1300, height: 900 }, permissions: ["geolocation"] });
   await require("./turnstile-fake")(ctx);
   // IGN's relief tiles: a blank tile, so the test doesn't hang on the network (the placement is what's checked)
   const tilesAsked = [];
@@ -64,6 +64,13 @@ const gas = H({ Ark1: [HEAD,
   const h = await p.evaluate(() => ({ home: document.body.classList.contains("home"), dots: document.querySelectorAll("#map .hd").length,
     list: document.querySelectorAll("#side button[data-go], #side a[href]").length, cl: document.querySelectorAll("#map .cl").length }));
   check("atlas.html opens on Europe: a dot and a list entry for each region, no vineyards drawn", h.home && h.dots >= 16 && h.list >= 16 && h.cl === 0, JSON.stringify(h));
+  // the search on the start page looks in every region: "Wehlener" finds the Mosel's Sonnenuhr, and Enter goes there
+  await p.click("#fSearch"); await p.fill("#fSearch", "wehlener sonn"); await p.waitForTimeout(800);
+  const hits = await p.evaluate(() => [...document.querySelectorAll("#gRes li")].map(li => li.textContent));
+  check("the start page's search finds a vineyard in any region: Wehlener Sonnenuhr, in the Mosel", /^Wehlener SonnenuhrMosel/.test(hits[0] || ""), hits.slice(0, 3).join(" | "));
+  await p.press("#fSearch", "Enter"); await p.waitForTimeout(2500);
+  check("…and Enter opens it there", /r=mosel&c=/.test(await p.evaluate(() => location.hash)) && (await p.textContent("#side h2")) === "Wehlener Sonnenuhr", await p.evaluate(() => location.hash));
+  await p.goto(BASE + "atlas.html"); await p.waitForTimeout(800);
   await p.click('#side button[data-go="mosel"]'); await p.waitForTimeout(2000);
   check("…a region opens from the list", /r=mosel/.test(await p.evaluate(() => location.hash)) && !(await p.evaluate(() => document.body.classList.contains("home"))) && (await p.textContent("#regionName")).includes("Mosel"));
   await p.goBack(); await p.waitForTimeout(600);
@@ -107,6 +114,28 @@ const gas = H({ Ark1: [HEAD,
   check("…Les Clos: mostly Kimmeridgian, by share of its area, with BRGM's descriptions said to be in French", /Geology ?j8 Calcaires et marnes à Exogyra virgula[^%]*\d{2}%/.test(lc) && /BRGM's descriptions, in French/.test(lc), lc.slice(lc.indexOf("Geology"), lc.indexOf("Geology") + 300));
   await p.uncheck("#fGeol"); await p.evaluate(() => select(null));
   check("…and it switches off", await p.evaluate(() => document.querySelector("#map .geol").style.display === "none" && !document.getElementById("map").classList.contains("geolon") && !/Kimm/.test(document.getElementById("legend").textContent)));
+  // inside a region the search puts its own first, and still finds the others: Les Clos here, the Côte d'Or's Chambertin
+  await p.click("#fSearch"); await p.fill("#fSearch", "les clos"); await p.waitForTimeout(800);
+  const lc0 = await p.evaluate(() => [...document.querySelectorAll("#gRes li")].map(li => li.textContent));
+  await p.fill("#fSearch", "chambertin"); await p.waitForTimeout(400);
+  const ch0 = await p.evaluate(() => [...document.querySelectorAll("#gRes li")].map(li => li.textContent));
+  check("in Chablis, 'les clos' is this region's Les Clos first; 'chambertin' finds the Côte d'Or's", /^Les ClosGrand cru/.test(lc0[0] || "") && ch0.some(x => /^ChambertinCôte d'Or/.test(x)), lc0[0] + " | " + ch0.slice(0, 2).join(" | "));
+  await p.press("#fSearch", "Escape"); await p.fill("#fSearch", ""); await p.evaluate(() => document.activeElement.blur());
+  // where am I: a phone inside Les Clos is told so, and the map goes there with a dot; one in Copenhagen is told how far
+  const lcLL = await p.evaluate(() => { const c = st.pack.climats.find(x => x.id === "les_clos"), [E0, N0] = st.pack.meta.l93; return L93inv(E0 + c.lp[0], N0 - c.lp[1]); });
+  await ctx.setGeolocation({ longitude: lcLL[0], latitude: lcLL[1], accuracy: 20 }); await p.click("#locBtn"); await p.waitForTimeout(1200);
+  const me = await p.evaluate(() => ({ toast: document.getElementById("mapToast").textContent, dot: document.querySelectorAll("#map .me circle").length, sel: st.sel }));
+  check("'Where am I?' inside Les Clos: says so, opens it and puts a dot there", me.toast === "You're in Les Clos." && me.dot === 2 && me.sel === "les_clos", JSON.stringify(me));
+  await ctx.setGeolocation({ longitude: 12.57, latitude: 55.68 }); await p.click("#locBtn"); await p.waitForTimeout(800);
+  check("…and from Copenhagen, how far the nearest vineyard is", /You're about [\d,. ]+ km from the nearest vineyard on this map\./.test(await p.textContent("#mapToast")), await p.textContent("#mapToast"));
+  // the keyboard on the focused map: → pans a fifth of the width, + zooms in, 0 goes back to the whole region
+  await p.focus("#map"); const k0 = await p.evaluate(() => st.view.slice());
+  await p.keyboard.press("ArrowRight"); await p.waitForTimeout(350); const k1 = await p.evaluate(() => st.view.slice());
+  await p.keyboard.press("+"); await p.waitForTimeout(350); const k2 = await p.evaluate(() => st.view.slice());
+  await p.keyboard.press("0"); await p.waitForTimeout(500); const k3 = await p.evaluate(() => st.view.slice());
+  check("the keyboard: → pans, + zooms in, 0 shows the whole region", Math.abs((k1[0] - k0[0]) / k0[2] - .2) < .01 && Math.abs(k2[2] / k1[2] - .6) < .01 && k3[2] > k2[2],
+    JSON.stringify([k0, k1, k2, k3].map(v => v.map(Math.round))));
+  await p.evaluate(() => select(null)); await p.waitForTimeout(200); // back to the overview for what follows
   // terrain search: Chablis's grands crus face south-west; "South-facing" (SE–SW) keeps them, and dims the rest
   await p.click("#terrChip"); await p.click('#terrbar [data-preset="south"]'); await p.waitForTimeout(300);
   const ts = await p.evaluate(() => ({ note: (document.querySelector("#side .terrhit") || {}).textContent || "", dim: [...document.querySelectorAll("#map .cl.dim")].map(e => e.dataset.id),

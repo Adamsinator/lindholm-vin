@@ -46,7 +46,11 @@ header.top h1 em{font-style:italic;color:var(--accent)} header.top h1 a{color:in
 .langpick button svg{width:100%;height:100%;display:block} .langpick button.on{opacity:1;border-color:var(--ink)}
 .toolbar{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;margin-bottom:10px}
 .toolbar select,.toolbar input{font:inherit;font-size:14px;padding:7px 10px;border:1px solid var(--line);border-radius:var(--r);background:var(--card);color:var(--ink);max-width:100%;min-width:0}
-.toolbar input[type=search]{flex:1 1 220px}
+.toolbar .sbox{position:relative;flex:1 1 220px;min-width:0} .toolbar input[type=search]{width:100%}
+/* the search's results, under the box */
+.gres{position:absolute;z-index:20;left:0;right:0;top:calc(100% + 4px);margin:0;padding:4px 0;list-style:none;background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:0 8px 24px rgba(0,0,0,.14);max-height:60vh;overflow:auto}
+.gres li{display:flex;flex-direction:column;gap:1px;padding:8px 12px;cursor:pointer;min-height:44px;justify-content:center}
+.gres li small{color:var(--muted);font-size:12.5px} .gres li[aria-selected=true],.gres li:hover{background:var(--card2)} .gres li.none{color:var(--muted);cursor:default}
 .chk{display:flex;align-items:center;gap:5px;font-size:13.5px;cursor:pointer;user-select:none}
 .chk i{width:12px;height:12px;border-radius:3px;display:inline-block}
 .layout{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:16px;align-items:start}
@@ -116,9 +120,14 @@ body.home .chip,body.home .terrbar{display:none !important}
 .pchart .pax{font-size:9.5px;fill:var(--muted)} .pchart .pgrid{stroke:var(--line);stroke-width:.6;vector-effect:non-scaling-stroke}
 .pchart .pcur{stroke:var(--accent);stroke-width:1.4;vector-effect:non-scaling-stroke} .ptip{font-size:12px;color:var(--muted);min-height:16px}
 .mapbox:has(.profile:not([hidden])) .legend{display:none}
-body.home #fSearch,body.home .chk,body.home .zoom,body.home .legend{display:none !important} body.home #map{cursor:default}
+body.home .chk,body.home .zoom,body.home .legend{display:none !important} body.home #map{cursor:default}
 #map .dot{fill:var(--gold);stroke:var(--card);stroke-width:1.5;vector-effect:non-scaling-stroke;pointer-events:none}
 .zoom{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;gap:4px}
+/* where am I: the dot, and a word on where it is */
+#map .me circle{fill:#2B6FD6;stroke:#fff;stroke-width:2.5;vector-effect:non-scaling-stroke} #map .me .acc{fill:#2B6FD6;fill-opacity:.15;stroke:none}
+.maptoast{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);max-width:calc(100% - 40px);background:var(--ink);color:var(--bg);border-radius:8px;padding:8px 14px;font-size:14px;box-shadow:0 4px 16px rgba(0,0,0,.2)}
+.maptoast[hidden]{display:none}
+#map:focus-visible{outline:3px solid var(--accent);outline-offset:-3px}
 .zoom button{width:34px;height:34px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:18px;cursor:pointer}
 .legend{position:absolute;left:10px;bottom:10px;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:12px;display:flex;flex-direction:column;gap:3px;max-width:calc(100% - 70px)}
 .legend span{display:flex;align-items:center;gap:6px} .legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
@@ -152,7 +161,8 @@ aside#side{background:var(--card);border:1px solid var(--line);border-radius:var
 </header>
 <div class="toolbar" role="search">
   <select id="fRegion" aria-label="Region" data-i18n-aria></select>
-  <input type="search" id="fSearch" list="climatList" placeholder="Find a vineyard…" aria-label="Find a vineyard" data-i18n-ph data-i18n-aria><datalist id="climatList"></datalist>
+  <div class="sbox"><input type="search" id="fSearch" placeholder="Find a vineyard…" aria-label="Find a vineyard" data-i18n-ph data-i18n-aria role="combobox" aria-autocomplete="list" aria-controls="gRes" aria-expanded="false" autocomplete="off">
+    <ul class="gres" id="gRes" role="listbox" aria-label="Vineyards found" data-i18n-aria hidden></ul></div>
   <label class="chk"><input type="checkbox" id="fGC" checked><i style="background:var(--gc)"></i><span data-i18n>Grand cru</span></label>
   <label class="chk"><input type="checkbox" id="f1er" checked><i style="background:var(--pc)"></i><span data-i18n>Premier cru</span></label>
   <label class="chk"><input type="checkbox" id="fAOC" checked><i style="background:var(--ac)"></i><span data-i18n>Cru appellation</span></label>
@@ -177,15 +187,16 @@ aside#side{background:var(--card);border:1px solid var(--line);border-radius:var
 <div class="layout">
   <div class="mapbox">
     <div id="mapview"><svg id="map" role="img" aria-label="Vineyard map" data-i18n-aria></svg></div>
-    <div class="zoom"><button type="button" id="zIn" aria-label="Zoom in" data-i18n-aria>+</button><button type="button" id="zOut" aria-label="Zoom out" data-i18n-aria>−</button><button type="button" id="zHome" aria-label="Whole region" data-i18n-aria>⌂</button><button type="button" id="profBtn" aria-label="Slope profile" title="Slope profile" data-i18n-aria hidden>⟋</button><button type="button" id="pngBtn" title="Save this view as an image" aria-label="Save this view as an image" data-i18n-title data-i18n-aria>⤓</button><button type="button" id="printBtn" title="Print or save as PDF" aria-label="Print or save as PDF" data-i18n-title data-i18n-aria>⎙</button></div>
+    <div class="zoom"><button type="button" id="zIn" aria-label="Zoom in" data-i18n-aria>+</button><button type="button" id="locBtn" title="Where am I?" aria-label="Where am I?" data-i18n-title data-i18n-aria hidden>◉</button><button type="button" id="zOut" aria-label="Zoom out" data-i18n-aria>−</button><button type="button" id="zHome" aria-label="Whole region" data-i18n-aria>⌂</button><button type="button" id="profBtn" aria-label="Slope profile" title="Slope profile" data-i18n-aria hidden>⟋</button><button type="button" id="pngBtn" title="Save this view as an image" aria-label="Save this view as an image" data-i18n-title data-i18n-aria>⤓</button><button type="button" id="printBtn" title="Print or save as PDF" aria-label="Print or save as PDF" data-i18n-title data-i18n-aria>⎙</button></div>
     <div class="profile" id="profile" hidden></div>
+    <div class="maptoast" id="mapToast" role="status" hidden></div>
     <div class="legend" id="legend"></div>
   </div>
   <aside id="side" aria-live="polite"></aside>
 </div>
 </div>
-<script src="i18n.js?v=63"></script>
+<script src="i18n.js?v=64"></script>
 <script src="europe-lands.js?v=1"></script>
-<script src="atlas.js?v=14"></script>
+<script src="atlas.js?v=15"></script>
 </body>
 </html>
