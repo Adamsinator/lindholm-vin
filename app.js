@@ -1435,6 +1435,10 @@ function forgetAuth(){
   WINES=[]; JENTRIES=null; WITEMS=null; KEEP_OPEN=null; FEED=null; FEED_USERS=[]; FEED_FOLLOWS=[]; FEED_VIEW="all"; FEED_OPEN.clear();
   const b=$("feedBadge"); if(b) b.hidden=true;
 }
+// the site's service worker (atlas-sw.js): the cellar app opens at once on a second visit, installs on a phone's home
+// screen, and opens offline from the device's encrypted copy; the API itself is never cached
+// (not on localhost, where the tests run against files that change under them; tools/offline-ui-test.js uses 127.0.0.1)
+if("serviceWorker" in navigator && window.isSecureContext && location.hostname !== "localhost") navigator.serviceWorker.register("atlas-sw.js").catch(() => {});
 function enterApp(){ $("gate").hidden = true; $("app").hidden = false; markActive(); loadData(); route(); recReminder(); }
 // every four months or so (not on the first visit: sign-up showed the code), ask whether the recovery code is still at
 // hand; "Make a new one" opens Account, where the password makes a fresh code

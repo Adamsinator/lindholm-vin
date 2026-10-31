@@ -1,0 +1,44 @@
+# Daily: a look at the live site and its API (tools/live-check.js), so a break is found before a user finds it. On a
+# failure it opens (or updates) one issue labelled "live-check"; when the checks pass again, the issue is closed with a
+# note. Nothing on the site or in the repo is changed by this job, and it never logs in.
+name: Live check
+on:
+  schedule:
+    - cron: "43 5 * * *"   # 05:43 UTC every day
+  workflow_dispatch:
+permissions:
+  contents: read
+  issues: write
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4   # main: the live pages are compared with it
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Playwright, for the browser checks
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Check the live site
+        id: live
+        continue-on-error: true
+        run: node tools/live-check.js --out report.md
+      - name: Open, update or close the live-check issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OUTCOME: ${{ steps.live.outcome }}
+        run: |
+          gh label create live-check --color D93F0B --description "The daily check of the live site" 2>/dev/null || true
+          num=$(gh issue list --label live-check --state open --json number --jq '.[0].number')
+          run="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          if [ "$OUTCOME" = "success" ]; then
+            [ -n "$num" ] && gh issue close "$num" --comment "All checks pass again ($(date -u +%F)). Run: $run"
+            exit 0
+          fi
+          body="$(cat report.md)"$'\n\n'"Run: $run"
+          if [ -z "$num" ]; then gh issue create --title "Live check: something on allwine.dk needs a look" --label live-check --body "$body"
+          else gh issue comment "$num" --body "$body"; fi
+          exit 1

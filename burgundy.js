@@ -271,7 +271,7 @@ function shadeUpdate(){
 }
 
 /* ---------- historic rankings (burgundy-history.js): Lavalle 1855, the Beaune committee 1860, Rodier 1920 ---------- */
-const HIST = window.BURG_HISTORY || null;
+let HIST = window.BURG_HISTORY || null; // burgundy-history.js, loaded after the first paint (loadLate)
 const HSRC = {lavalle1855:"Lavalle 1855", comite1860:"Comité de Beaune 1860", rodier1920:"Rodier 1920"};
 st.hsrc = "lavalle1855";
 // each source has its own ladder (the 1860 committee had no tête de cuvée: its 1ère classe is the top), rank → 0 (top) … 3
@@ -290,7 +290,7 @@ function histHtml(c){
 }
 
 /* ---------- geology (burgundy-geol.js, BRGM 1:50 000): formations, their colours, and what lies under each climat ---------- */
-const GEOL = window.BURG_GEOL || null;
+let GEOL = window.BURG_GEOL || null; // burgundy-geol.js, loaded after the first paint (loadLate)
 let gGeol = null;
 // short names by BRGM notation (the French descriptions are BRGM's own and shown in full in French)
 const GEOL_GLOSS = {
@@ -395,11 +395,21 @@ function loadTopo(){
   const sc = document.createElement("script"); sc.src = "burgundy-topo.js?v=" + TOPO_V;
   sc.onload = () => { if(!window.BURG_TOPO) return; TOPO = window.BURG_TOPO; if(st.mode==="geo"){ const keep = {...vb}; build(); setVB(keep); } syncMode(); };
   document.body.appendChild(sc);
-  loadLieux();
 }
 const TOPO_V = 3;
-// every cadastral lieu-dit on appellation land (burgundy-lieuxdits.js, ~100 KB gzipped): outlines and names when zoomed in,
-// and the list inside each climat's panel. Loaded with the topo, drawn into its own layer without a rebuild.
+// geology and the historic rankings aren't needed for the first paint (both are null-guarded everywhere they're used):
+// fetched straight after it, and drawn in when they arrive
+const LATE = ["burgundy-geol.js?v=3", "burgundy-history.js?v=2"];
+function loadLate(){
+  if(loadLate.started) return; loadLate.started = true;
+  Promise.all(LATE.map(src => new Promise(ok => { const sc = document.createElement("script"); sc.src = src; sc.onload = sc.onerror = ok; document.body.appendChild(sc); })))
+    .then(() => { GEOL = window.BURG_GEOL || null; HIST = window.BURG_HISTORY || null;
+      if(GEOL && gGeol && st.mode==="geo" && !gGeol.childNodes.length) drawGeol(gGeol);
+      paint(); renderSide(); });
+}
+// every cadastral lieu-dit on appellation land (burgundy-lieuxdits.js, ~120 KB gzipped): outlines and names when zoomed in,
+// and the list inside each climat's panel. Loaded when first wanted (zoomed in close, a climat opened, the search box
+// used, a #l= link), drawn into its own layer without a rebuild.
 let LDX = window.BURG_LIEUXDITS && window.BURG_LIEUXDITS.ld ? window.BURG_LIEUXDITS : null, gLd = null;
 const LDX_V = 2;
 function loadLieux(){
@@ -816,7 +826,7 @@ function topoLod(k){
   if(!TOPO || st.mode!=="geo" || !gTopoNames) return;
   const mpp = 1/(GS*k); // metres per screen pixel
   svg.classList.toggle("lod-mid", mpp < 9); svg.classList.toggle("lod-near", mpp < 3.2); svg.classList.toggle("lod-close", mpp < 1.4);
-  if(mpp < 3.2) loadBld();
+  if(mpp < 3.2){ loadBld(); loadLieux(); }
   gTopoNames.setAttribute("font-size", (11/k).toFixed(2));
 }
 /* ---------- map furniture: contours, roads, villages, landmarks ---------- */
@@ -1230,6 +1240,7 @@ function focusClimat(c){
 }
 function select(id, fly){
   st.sel = id; st.vsel = null; st.overview = false; st.coteView = null; if(st.ld != null){ st.ld = null; drawLdSel(); }
+  loadLieux(); // the climat's panel lists the lieux-dits inside it
   const c = CL[id];
   renderSide(); paint(); syncHash(); syncCommunes();
   if(fly) focusClimat(c); else ensureVisible(c);
@@ -1875,6 +1886,7 @@ const hilite = (name, q) => { const qs = norm(q).split(" ").filter(Boolean);
     return `<mark>${esc(w.slice(0, hit.length))}</mark>${esc(w.slice(hit.length))}`; }).join(""); };
 let sHits = [], sActive = -1;
 const sBox = $("fSearch"), sRes = $("sResults");
+sBox.addEventListener("focus", () => loadLieux()); // the search finds lieux-dits too
 // with the box empty: "Near me" and the last few things picked (kept in this browser only)
 const RECENT_KEY = "atlasRecent", RECENT_MAX = 6;
 const recentGet = () => { try{ return JSON.parse(localStorage.getItem(RECENT_KEY) || "[]"); }catch(e){ return []; } };
@@ -2262,7 +2274,7 @@ function readHash(){
   if(q.get("p") && P[q.get("p")] && PROD[q.get("p")]){ st.prod=q.get("p"); renderProdChip(); st.color="producer"; $("fColor").value="producer"; }
   if(q.get("c") && CL[q.get("c")]) { st.sel=q.get("c"); return () => focusClimat(CL[st.sel]); }
   if(q.get("v") && VIL[q.get("v")]) { st.vsel=q.get("v"); return () => selectVillage(st.vsel, true); }
-  if(q.get("l")) { ldPending = q.get("l"); return () => resolveLdPending(); }
+  if(q.get("l")) { ldPending = q.get("l"); loadLieux(); return () => resolveLdPending(); }
   return null;
 }
 // a lieu-dit link (#l=insee:x:y) waits for burgundy-lieuxdits.js to arrive
@@ -2356,7 +2368,7 @@ function renderPeek(){
 const after = readHash();
 build(); syncMode();
 renderSide(); syncCommunes();
-requestAnimationFrame(() => { setVB(vb); focusDefault(); if(after) after(); setTimeout(loadTopo, 50); });
+requestAnimationFrame(() => { setVB(vb); focusDefault(); if(after) after(); setTimeout(() => { loadLate(); loadTopo(); }, 50); });
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { readTokens(); build(); renderSide(); setVB(vb); });
 loadCellar();
 loadEdits();
