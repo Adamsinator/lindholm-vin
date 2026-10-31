@@ -32,7 +32,7 @@ const FLAGS = {
 };
 const LANGS = [{id:"en", n:"English"}, {id:"da", n:"Dansk"}, {id:"de", n:"Deutsch"}, {id:"fr", n:"Français"}];
 
-const FILES = {da: "i18n-da.js?v=3", fr: "i18n-fr.js?v=3", de: "i18n-de.js?v=3"};
+const FILES = {da: "i18n-da.js?v=4", fr: "i18n-fr.js?v=4", de: "i18n-de.js?v=4"};
 const DICT = window.I18N_DICT = window.I18N_DICT || {};
 const known = l => l === "en" || !!FILES[l];
 // the page's own files for a language: the meta tag's entry that ends in -<lang>.js
@@ -41,7 +41,8 @@ const filesFor = l => l === "en" ? [] : [FILES[l], ...extras(l)];
 const loaded = new Set();
 const fetchJs = src => loaded.has(src) ? Promise.resolve() : new Promise((ok, no) => { const s = document.createElement("script"); s.src = src;
   s.onload = () => { loaded.add(src); ok(); }; s.onerror = () => no(new Error("load " + src)); document.head.appendChild(s); });
-const need = l => Promise.all(filesFor(l).map(fetchJs));
+// the language first, then the page's own files, which add to its dictionary
+const need = l => l === "en" ? Promise.resolve() : fetchJs(FILES[l]).then(() => Promise.all(extras(l).map(fetchJs)));
 
 let lang = (() => {
   const q = new URLSearchParams(location.search).get("lang"); // a link that says which language (the vineyard pages)

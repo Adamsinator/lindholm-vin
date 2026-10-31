@@ -687,6 +687,16 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 @media (min-width:1181px) and (max-width:1299px){ #tbl th.c-comm,#tbl tr.main td.c-comm{display:none} }
 /* the header: Account and Log out at the top right with the languages; under it the page tabs, and a quiet line
    with when the cellar was fetched, Refresh and the atlas */
+.helpq,.acct .btn.helpq{display:inline-flex;align-items:center;justify-content:center;min-width:30px;min-height:30px;padding:0 !important;border:1.5px solid currentColor;border-radius:50%;font-weight:700;text-decoration:none;line-height:1}
+@media(pointer:coarse){.helpq{min-width:44px;min-height:44px}}
+.tips{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:var(--r);padding:12px 16px;margin:0 0 14px}
+.tips-h{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap} .tips h2{font-size:18px;margin:0}
+.tips ol{margin:8px 0 4px;padding-left:22px} .tips li{margin:5px 0;font-size:14.5px} .tips li span{color:var(--muted)}
+.tips li.done{list-style:none;margin-left:-22px} .tips li.done::before{content:"✓ ";color:var(--c-green,#3B7A57);font-weight:700}
+.tips li.done b{text-decoration:line-through;text-decoration-color:var(--muted)} .tips-more{margin:6px 0 0;font-size:14px} .tips-more a{color:var(--accent);font-weight:600}
+.qhint{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border:1.5px solid var(--muted);border-radius:50%;color:var(--muted);font:700 13px/1 system-ui,sans-serif;text-decoration:none;vertical-align:middle;margin-left:6px}
+.qhint:hover,.qhint:focus-visible{border-color:var(--accent);color:var(--accent)}
+@media(pointer:coarse){.qhint{width:32px;height:32px}}
 .acct{display:flex;align-items:center;gap:2px}
 .acct .btn{padding:5px 8px}
 .gbar{flex-wrap:wrap;row-gap:4px;margin:-4px 0 14px}
@@ -898,6 +908,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
   <div class="topright"><span class="sub" data-i18n>Cellar overview</span><span data-langpick></span>
     <span class="acct">
       <button class="btn quiet" id="adminBtn" hidden data-i18n>Admin</button>
+      <a class="btn quiet helpq" id="helpLink" href="help.html" target="_blank" rel="noopener" title="Help and tips" aria-label="Help and tips" data-i18n-title data-i18n-aria>?</a>
       <button class="btn quiet" id="acctBtn" title="Password and recovery code" hidden data-i18n data-i18n-title>Account</button>
       <button class="btn quiet" id="lockBtn" title="Sign out on this device" aria-label="Log out" data-i18n-title data-i18n-aria><span aria-hidden="true">🔒</span> <span class="lbl" data-i18n>Log out</span></button>
     </span></div>
@@ -922,6 +933,18 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 </div>
 
 <div id="pageCellar">
+
+<!-- for a new member (app.js, renderTips): three steps, ticked as they're done, until both are done or it's hidden -->
+<section class="tips" id="tips" aria-labelledby="tipsTitle" hidden>
+  <div class="tips-h"><h2 id="tipsTitle" data-i18n>Welcome to your cellar</h2>
+    <button class="btn quiet" type="button" id="tipsClose" data-i18n>Hide these tips</button></div>
+  <ol>
+    <li data-tip="wines"><b data-i18n>Add your wines</b> <span data-i18n>＋ Add wine for a few, ⬆ Import for a list from a spreadsheet.</span></li>
+    <li data-tip="windows"><b data-i18n>Set drink windows</b> <span data-i18n>Tap a wine and fill in from and to, so the cellar can tell you what to open and when.</span></li>
+    <li data-tip="code"><b data-i18n>Keep your recovery code safe</b> <span data-i18n>With your password it's the only way into your encrypted cellar. Lost it? Account makes a new one.</span></li>
+  </ol>
+  <p class="tips-more"><a href="help.html" target="_blank" rel="noopener" data-i18n>All help and tips →</a></p>
+</section>
 
 <div class="actions">
   <button class="btn primary" id="addBtn" data-i18n>＋ Add wine</button>
@@ -1251,7 +1274,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 
 <div class="modal" id="tidyModal" role="dialog" aria-modal="true" aria-labelledby="tidyTitle">
   <div class="card imp">
-    <h2 id="tidyTitle" data-i18n>Tidy up your cellar</h2>
+    <h2 id="tidyTitle"><span data-i18n>Tidy up your cellar</span> <a class="qhint" href="help.html#tidy" target="_blank" rel="noopener" title="How this works" aria-label="How this works" data-i18n-title data-i18n-aria>?</a></h2>
     <p id="tidyIntro"></p>
     <div id="tidyFixWrap" hidden>
       <h3 data-i18n>Spellings and capitals</h3>
@@ -1282,7 +1305,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 
 <div class="modal" id="expModal" role="dialog" aria-modal="true" aria-labelledby="expTitle">
   <div class="card">
-    <h2 id="expTitle" data-i18n>Export your cellar</h2>
+    <h2 id="expTitle"><span data-i18n>Export your cellar</span> <a class="qhint" href="help.html#export" target="_blank" rel="noopener" title="How this works" aria-label="How this works" data-i18n-title data-i18n-aria>?</a></h2>
     <p data-i18n>Download a copy of your cellar to keep or to work on in Excel, Numbers or Google Sheets. It uses the same columns as the import, so the file imports straight back.</p>
     <div class="expopts">
       <button class="btn expopt" type="button" id="expXlsx"><b data-i18n>Excel workbook (.xlsx)</b><small data-i18n>Cellar, journal and wishlist, one sheet each</small></button>
@@ -1296,7 +1319,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 
 <div class="modal" id="lsModal" role="dialog" aria-modal="true" aria-labelledby="lsTitle">
   <form class="card" id="lsForm">
-    <h2 id="lsTitle" data-i18n>Share a list of your wines</h2>
+    <h2 id="lsTitle"><span data-i18n>Share a list of your wines</span> <a class="qhint" href="help.html#share" target="_blank" rel="noopener" title="How this works" aria-label="How this works" data-i18n-title data-i18n-aria>?</a></h2>
     <p data-i18n>Anyone with the link can see the list, read-only, until it expires or you withdraw it. It's encrypted in this browser: the key is only in the link, so AllWine can't read it.</p>
     <label for="lsName" data-i18n>Title</label><input id="lsName" maxlength="80">
     <div class="row2">
@@ -1324,7 +1347,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 
 <div class="modal" id="impModal" role="dialog" aria-modal="true" aria-labelledby="impTitle">
   <div class="card imp">
-    <h2 id="impTitle" data-i18n>Import wines</h2>
+    <h2 id="impTitle"><span data-i18n>Import wines</span> <a class="qhint" href="help.html#import" target="_blank" rel="noopener" title="How this works" aria-label="How this works" data-i18n-title data-i18n-aria>?</a></h2>
     <div id="impPick">
       <p data-i18n>Add many wines at once from an Excel workbook (.xlsx), a CSV file or a text file — one wine per row. Column headings in Danish, English, French or German are recognised, and you can correct the matching before anything is saved.</p>
       <label class="impdrop" id="impDrop">
@@ -1586,7 +1609,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 
 <!-- Pages serves these with max-age=600 and no revalidation, so a merged change can
      sit invisible behind a stale app.js for ten minutes. Bump v on every deploy. -->
-<script src="i18n.js?v=65"></script>
+<script src="i18n.js?v=66"></script>
 <script src="notes.js?v=4"></script>
 <script src="notes-i18n.js?v=1"></script>
 <script src="burgundy-data.js?v=13"></script>
@@ -1604,6 +1627,6 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 <script src="export.js?v=2"></script>
 <script src="europe-lands.js?v=1"></script>
 <script src="share-crypto.js?v=1"></script>
-<script src="app.js?v=61"></script>
+<script src="app.js?v=62"></script>
 </body>
 </html>

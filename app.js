@@ -373,6 +373,7 @@ function renderMore(cellar){
 
 /* ---------- overview (rebuilt on every data load) ---------- */
 function renderOverview(){
+  renderTips();
   const cellar = WINES.filter(w=>w.left>0);
   const bottlesLeft = cellar.reduce((s,w)=>s+w.left,0);
   const drunk = WINES.reduce((s,w)=>s+w.drunk,0);
@@ -961,7 +962,7 @@ function detailHTML(w){
         return `<span class="winwrap">${esc(tr("Drink window"))}
         <input class="setwin" type="number" inputmode="numeric" placeholder="${ph(est&&est.from,esc(tr("from")))}" data-end="from" data-row="${w.row}" value="${w.drinkFrom??""}">
         <span class="wsep">–</span>
-        <input class="setwin" type="number" inputmode="numeric" placeholder="${ph(est&&est.to,esc(tr("to")))}" data-end="to" data-row="${w.row}" value="${w.drinkTo??""}">
+        <input class="setwin" type="number" inputmode="numeric" placeholder="${ph(est&&est.to,esc(tr("to")))}" data-end="to" data-row="${w.row}" value="${w.drinkTo??""}"><a class="qhint" href="help.html#windows" target="_blank" rel="noopener" title="${esc(tr("How this works"))}" aria-label="${esc(tr("How this works"))}">?</a>
         ${r?`<span class="rbadge ${r.k}${r.est?" est":""}">${r.label}</span>`:""}
         ${r&&r.est?`<span class="est-note">${esc(tr("estimated · type to set your own"))}</span>`:""}</span>`;})()}
       <button class="jlog" data-row="${w.row}">📓 ${esc(tr("Log in journal"))}</button>
@@ -1727,7 +1728,7 @@ function impReset(){
   Object.assign(IMP, {book:null, sheet:0, t:null, fields:[], built:null, d:null, name:"", off:new Set(), merge:true});
   TIDIER = null; $("impMerge").checked = true;
   $("impPick").hidden = false; $("impMap").hidden = true; $("impBack").hidden = true; $("impGo").hidden = true; $("impGrid").hidden = true;
-  IMP.fromGrid = false; trSet("Import wines", $("impTitle")); trSet("Choose another file", $("impBack"));
+  IMP.fromGrid = false; trSet("Import wines", $("impTitle").firstElementChild); trSet("Choose another file", $("impBack"));
   $("impErr").textContent = ""; $("impFile").value = "";
   $("impLock").textContent = (window.VAULT && VAULT.active())
     ? tr("🔒 The file is read in this browser and never uploaded. The wines are encrypted here before they're saved, like the rest of your cellar.")
@@ -1894,7 +1895,7 @@ function gridOpen(){
   impReset();
   gridHead(); const body = $("wGrid").tBodies[0]; body.innerHTML = ""; for(let i=0; i<5; i++) gridRow();
   $("impPick").hidden = true; $("impGrid").hidden = false; $("impBack").hidden = false;
-  IMP.fromGrid = true; trSet("Add several wines", $("impTitle")); trSet("Choose a file instead", $("impBack"));
+  IMP.fromGrid = true; trSet("Add several wines", $("impTitle").firstElementChild); trSet("Choose a file instead", $("impBack"));
   $("impModal").classList.add("open"); gridCount();
   setTimeout(()=>body.querySelector("input").focus(), 30);
 }
@@ -2149,6 +2150,19 @@ $("expXlsx").addEventListener("click", ()=>expRun("xlsx"));
 $("expCsv").addEventListener("click", ()=>expRun("csv"));
 $("expCancel").addEventListener("click", ()=>$("expModal").classList.remove("open"));
 $("expModal").addEventListener("click", e=>{ if(e.target===$("expModal")) $("expModal").classList.remove("open"); });
+
+/* ---------- first steps for a new member (the #tips card): ticked as they're done; gone once wines and a drink window
+   are in, or when hidden (remembered per member on this device) ---------- */
+const TIPS_KEY = () => "vinTips:" + String(cfg.user||"").toLowerCase();
+function renderTips(){
+  const el = $("tips"); if(!el) return;
+  let off = false; try{ off = localStorage.getItem(TIPS_KEY())==="0"; }catch(e){}
+  const wines = WINES.length>0, windows = WINES.some(w=>w.drinkFrom!=null || w.drinkTo!=null);
+  el.querySelector('[data-tip="wines"]').classList.toggle("done", wines);
+  el.querySelector('[data-tip="windows"]').classList.toggle("done", windows);
+  el.hidden = off || !cfg.user || (wines && windows);
+}
+$("tipsClose").addEventListener("click", ()=>{ try{ localStorage.setItem(TIPS_KEY(), "0"); }catch(e){} $("tips").hidden = true; });
 
 /* ---------- share a list (share-crypto.js seals it here; share.html opens it with the key in the link) ---------- */
 const LS_KEY = () => "vinShares:" + String(cfg.user||"").toLowerCase();

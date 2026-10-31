@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- what the page may load (see README, "Content-Security-Policy"); GitHub Pages can't send it as a header -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; script-src 'self'; connect-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta name="i18n-extra" content="help-i18n-da.js?v=1 help-i18n-fr.js?v=1 help-i18n-de.js?v=1">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Help — AllWine</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍷</text></svg>">
+<style>
+:root{--bg:#F7F4F1;--card:#FFFFFF;--ink:#2A2126;--muted:#756A70;--line:#E7DFDD;--accent:#7C2D3E}
+@media (prefers-color-scheme: dark){:root{--bg:#171114;--card:#221A1F;--ink:#EFE7E8;--muted:#A5949C;--line:#382C32;--accent:#C86A7C}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:760px;margin:0 auto;padding:28px 16px 60px}
+header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+h1,.brand{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;font-weight:600;margin:0;font-size:30px}
+.brand{color:var(--ink);text-decoration:none;font-size:24px}
+.brand em{font-style:italic;color:var(--accent)}
+h2{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;font-size:20px;margin:26px 0 6px}
+section{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:6px 22px 16px;margin-top:14px}
+ul{padding-left:20px;margin:6px 0}
+li{margin:4px 0}
+p.lead,.small{color:var(--muted)}
+.small{font-size:13px;margin-top:22px}
+a{color:var(--accent)}
+.langpick{display:flex;gap:4px}
+.langpick button{width:28px;height:20px;padding:0;border:1px solid var(--line);border-radius:4px;background:none;cursor:pointer;overflow:hidden;opacity:.55}
+.langpick button svg{width:100%;height:100%;display:block}
+@media(pointer:coarse){.langpick button{width:36px;height:24px}}
+.langpick button.on{opacity:1;box-shadow:0 0 0 2px var(--accent)}
+nav.toc ol{columns:2;column-gap:28px;padding-left:20px;margin:6px 0}
+@media (max-width:560px){nav.toc ol{columns:1}}
+section{scroll-margin-top:12px}
+section:target{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <a class="brand" href="./">All<em>Wine</em></a>
+  <div data-langpick></div>
+</header>
+<h1 data-i18n>Help</h1>
+<p class="lead" data-i18n>How to use AllWine: your cellar, the wine atlas and your account. The ? buttons in the app open the part you need.</p>
+
+<nav class="toc" aria-label="On this page" data-i18n-aria>
+  <ol>
+    <li><a href="#start" data-i18n>Getting started</a></li>
+    <li><a href="#add" data-i18n>Adding wines</a></li>
+    <li><a href="#import" data-i18n>Importing a list</a></li>
+    <li><a href="#tidy" data-i18n>Tidy up</a></li>
+    <li><a href="#windows" data-i18n>Drink windows</a></li>
+    <li><a href="#tonight" data-i18n>Choosing a bottle</a></li>
+    <li><a href="#share" data-i18n>Sharing a list</a></li>
+    <li><a href="#export" data-i18n>Export and backups</a></li>
+    <li><a href="#pages" data-i18n>Enjoyed, Wishlist and Journal</a></li>
+    <li><a href="#atlas" data-i18n>The wine atlas</a></li>
+    <li><a href="#phone" data-i18n>On a phone</a></li>
+    <li><a href="#account" data-i18n>Your account</a></li>
+    <li><a href="#faq" data-i18n>Questions</a></li>
+  </ol>
+</nav>
+
+<section id="start">
+  <h2 data-i18n>Getting started</h2>
+  <ul>
+    <li data-i18n>Add your wines: ＋ Add wine for a few, ⬆ Import for a whole list from a spreadsheet.</li>
+    <li data-i18n>Give your best bottles a drink window, so the cellar can tell you what to open and when.</li>
+    <li data-i18n>Keep your recovery code safe (Account → recovery code). With your password it's the only way into your encrypted cellar: nobody else can open it for you.</li>
+  </ul>
+</section>
+<section id="add">
+  <h2 data-i18n>Adding wines</h2>
+  <ul>
+    <li data-i18n>＋ Add wine suggests producers, regions and grapes as you type. Only the producer is needed; the rest can come later.</li>
+    <li data-i18n>Many at once: the grid in the add form takes a row per wine, like a spreadsheet.</li>
+    <li data-i18n>Tap a wine in the list to open it: change the bottles, rate it, set its drink window, location, price and note.</li>
+  </ul>
+</section>
+<section id="import">
+  <h2 data-i18n>Importing a list</h2>
+  <ul>
+    <li data-i18n>⬆ Import reads Excel (.xlsx), CSV or plain text, up to 10,000 wines. It finds the columns itself and shows what it will do before anything is saved.</li>
+    <li data-i18n>It fixes common misspellings and capital letters, and spots wines you already have, so they can be added to instead of doubled.</li>
+  </ul>
+</section>
+<section id="tidy">
+  <h2 data-i18n>Tidy up</h2>
+  <ul>
+    <li data-i18n>🧹 Tidy up looks through the whole cellar for spellings to fix and wines entered twice, and lists every change first.</li>
+    <li data-i18n>Untick anything you'd rather keep as it is. A wine you delete can be put back for 30 days under Recently deleted.</li>
+  </ul>
+</section>
+<section id="windows">
+  <h2 data-i18n>Drink windows</h2>
+  <ul>
+    <li data-i18n>A drink window is the years a wine is at its best, for example 2026–2035. Set it in the wine's row: tap the wine, then fill in from and to.</li>
+    <li data-i18n>Without one, AllWine estimates a window from the wine's region, grape, colour, classification and vintage, and marks it (estimated). Your own always wins.</li>
+    <li data-i18n>The chips under What to open (Past peak, Closing soon, Drink now, Too young) filter the list. Open next names the five bottles to open first.</li>
+  </ul>
+</section>
+<section id="tonight">
+  <h2 data-i18n>Choosing a bottle</h2>
+  <ul>
+    <li data-i18n>🎲 Tonight picks a bottle for you, favouring wines in their window and those that should be drunk soon.</li>
+    <li data-i18n>Ask the sommelier (🍷, at the bottom) about food pairings, regions, grapes and vintages. It answers from the site's own wine knowledge, not from the internet.</li>
+    <li data-i18n>Show prices turns every price on or off, for when someone else is looking at the screen.</li>
+  </ul>
+</section>
+<section id="share">
+  <h2 data-i18n>Sharing a list</h2>
+  <ul>
+    <li data-i18n>🔗 Share list makes a read-only link to the wines shown now, or the whole cellar. Filter first (say, Bourgogne only) and choose The wines shown now.</li>
+    <li data-i18n>The list is encrypted in your browser and the key is only in the link, so whoever has the link can read it, and nobody else, AllWine included.</li>
+    <li data-i18n>Notes and prices stay out unless you tick them. Withdraw a link any time from the same dialog; it also ends by itself after the days you chose.</li>
+  </ul>
+</section>
+<section id="export">
+  <h2 data-i18n>Export and backups</h2>
+  <ul>
+    <li data-i18n>⬇ Export saves your cellar, journal and wishlist as an Excel workbook, or the cellar as CSV. It uses the import's columns, so it imports straight back.</li>
+    <li data-i18n>The site also keeps daily backups for 8 weeks, still encrypted.</li>
+  </ul>
+</section>
+<section id="pages">
+  <h2 data-i18n>Enjoyed, Wishlist and Journal</h2>
+  <ul>
+    <li data-i18n>Enjoyed lists the bottles you've drunk, with dates and ratings. Drinking a bottle from the cellar puts it there.</li>
+    <li data-i18n>The wishlist is for wines you want; move one to the cellar when you buy it.</li>
+    <li data-i18n>The journal keeps tasting notes and photos, also of wines you never owned.</li>
+  </ul>
+</section>
+<section id="atlas">
+  <h2 data-i18n>The wine atlas</h2>
+  <ul>
+    <li data-i18n>The atlas maps the vineyards of Burgundy, Beaujolais, Champagne, Alsace, the Loire, the Rhône, Bordeaux and German regions such as the Mosel and the Pfalz, with relief, geology, altitude and slope.</li>
+    <li data-i18n>Search finds a vineyard in any region. Where am I? puts you on the map, handy in the vineyards themselves.</li>
+    <li data-i18n>Keys: + and − zoom, 0 shows the whole region again. On a phone, pinch to zoom and drag to move.</li>
+    <li data-i18n>A wine in your cellar links to its vineyard in the atlas, and the atlas marks the vineyards you have bottles from.</li>
+  </ul>
+</section>
+<section id="phone">
+  <h2 data-i18n>On a phone</h2>
+  <ul>
+    <li data-i18n>Add the cellar to your home screen (Safari: Share → Add to Home Screen; Chrome: ⋮ → Install app). It opens like an app and works without a connection.</li>
+    <li data-i18n>Without a connection you can still look through your cellar; saving a change needs one.</li>
+  </ul>
+</section>
+<section id="account">
+  <h2 data-i18n>Your account</h2>
+  <ul>
+    <li data-i18n>Account changes your password or makes a new recovery code, and can delete the account and everything in it.</li>
+    <li data-i18n>Lost both password and recovery code? Ask the owner, who invited you: account help can make you a new recovery code, if it was set up.</li>
+    <li data-i18n>Log out (🔒) on shared computers: it also removes the copy of your cellar kept on that device.</li>
+  </ul>
+</section>
+<section id="faq">
+  <h2 data-i18n>Questions</h2>
+  <ul>
+    <li data-i18n>Can the owner read my cellar? It's encrypted in your browser, so the server and Google can't. The privacy page explains the one exception, account help, and when it's used.</li>
+    <li data-i18n>Why does a wine say (estimated)? It has no drink window of its own yet; set one in its row and the estimate goes away.</li>
+    <li data-i18n>Something looks wrong or broken? Reload the page first; the site updates itself. If it stays, tell the owner.</li>
+  </ul>
+</section>
+
+<p class="small"><a href="./" data-i18n>← AllWine</a> · <a href="atlas.html" data-i18n>Wine atlas ↗</a> · <a href="privacy.html" data-i18n>Privacy</a></p>
+</div>
+<script src="i18n.js?v=66"></script>
+</body>
+</html>
