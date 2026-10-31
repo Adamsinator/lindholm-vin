@@ -3,7 +3,7 @@
 // (OK, typing what's asked for when it wants a name typed) or false (Cancel). Call once per browser context.
 //   await require("./ask-auto")(ctx, dialogs, () => answer);
 module.exports = async (ctx, log = [], answer = () => true) => {
-  await ctx.exposeBinding("__askSeen", (src, msg) => { log.push(msg); return !!answer(msg); });
+  await ctx.exposeBinding("__askSeen", (src, msg) => { log.push(msg); const a = answer(msg); return typeof a === "string" ? a : !!a; });
   await ctx.addInitScript(() => {
     addEventListener("DOMContentLoaded", () => {
       const m = document.getElementById("askModal"); if (!m) return;
@@ -11,8 +11,9 @@ module.exports = async (ctx, log = [], answer = () => true) => {
         if (!m.classList.contains("open") || m.dataset.auto) return; m.dataset.auto = "1";
         const yes = await window.__askSeen(document.getElementById("askMsg").textContent);
         const inp = document.getElementById("askInput");
-        if (yes && !inp.hidden) { inp.value = inp.placeholder; inp.dispatchEvent(new Event("input")); }
-        document.getElementById(yes ? "askOk" : "askCancel").click(); delete m.dataset.auto;
+        if (yes && !inp.hidden) { inp.value = typeof yes === "string" ? yes : inp.placeholder; inp.dispatchEvent(new Event("input")); }
+        const ok = document.getElementById("askOk");
+        document.getElementById(yes && !ok.disabled ? "askOk" : "askCancel").click(); delete m.dataset.auto;
       }).observe(m, { attributes: true, attributeFilter: ["class"] });
     });
   });

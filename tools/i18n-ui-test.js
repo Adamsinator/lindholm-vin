@@ -51,7 +51,7 @@ const EN = /\b(the|and|your|you|with|from|click|bottles?|wines|enjoyed|cellar|(?
   check("Danish: no English left on the cellar page", !left.length, left.slice(0, 6).join(" | "));
   // a toast
   await p.click("#rows tr.detail:not([hidden]) button[data-act=drink]"); await p.waitForTimeout(700);
-  check("Danish: messages", /Skål! Flasken er markeret som drukket/.test(await txt("#toast")), await txt("#toast"));
+  check("Danish: messages", /Skål! Flasken er markeret som drukket|Det var din sidste/.test(await txt("#actMsg")) && /Fortryd/.test(await txt("#actBtns")), await txt("#actbar"));
 
   // switching redraws what's on screen
   await p.evaluate(() => I18N.setLang("de")); await p.waitForTimeout(300);

@@ -322,7 +322,7 @@ function ask(msg, opt = {}){
   $("askMsg").textContent = msg;
   ok.textContent = opt.ok || tr("OK"); ok.classList.toggle("danger", !!opt.danger); $("askCancel").textContent = opt.cancel || tr("Cancel");
   inp.hidden = !opt.typed; inp.value = ""; inp.placeholder = opt.typed || ""; ok.disabled = !!opt.typed;
-  inp.oninput = () => { ok.disabled = inp.value.trim() !== opt.typed; };
+  inp.oninput = () => { ok.disabled = inp.value.trim().toLowerCase() !== String(opt.typed).toLowerCase(); };
   m.classList.add("open"); (opt.typed ? inp : ok).focus();
   return new Promise(res => { ASK_DONE = v => { ASK_DONE = null; m.classList.remove("open"); res(v); }; });
 }
