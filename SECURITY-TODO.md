@@ -107,6 +107,11 @@ are done (see "Limits against abuse" in the README). Tick a box when an item shi
 
 ## Watching it run
 
+- [x] **A daily live check** (`.github/workflows/live-check.yml`, `tools/live-check.js`): the pages, every script they
+      ask for, the 404 page, that the live site is main, that the API answers and runs main's `API_VERSION` (a Code.gs
+      deploy forgotten shows here), that it refuses another site, and the cellar, atlas and Côte d'Or opening in a
+      browser without an error. A failure opens an issue labelled `live-check`, closed again when it passes.
+
 - [ ] Check the Apps Script **Executions** page weekly for errors and unusual traffic.
 - [x] A daily check that emails the owner when sign-ups, lockouts, errors or refused requests jump, accounts near
       `MAX_USERS`, or the backup is missing (`dailyReport`, the "Log" tab; API 36).

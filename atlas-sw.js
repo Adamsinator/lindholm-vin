@@ -1,11 +1,14 @@
-// Service worker for the Wine atlas (the Côte d'Or's and the regions'): keeps the heavy data files and the relief tiles
-// (IGN's, and basemap.de's for Germany) in the browser, so a second
-// visit opens at once and works on a patchy connection. It only answers for atlas files and relief tiles; everything
-// else (the cellar app, its API) goes straight to the network as if it weren't here.
+// Service worker for the whole site (the name is from when it served the atlas alone; a registered worker keeps its
+// address): keeps the pages' scripts and data, the atlas's region packs and the relief tiles (IGN's, and basemap.de's
+// for Germany) in the browser, so a second visit opens at once, the cellar app can be installed on a phone's home
+// screen, and both work on a patchy connection or none. The API is never kept: it goes straight to the network.
 "use strict";
 const DATA = "atlas-data-v1", TILES = "atlas-tiles-v1", MAX_TILES = 800;
 const isAtlas = u => u.origin === location.origin && /\/(burgundy[^/]*\.js|domaine\.js|i18n(-[a-z]{2})?\.js|atlas(-(?!sw)[^/]*)?\.js|europe-lands\.js|atlas-(preview|hero[^/]*)\.(jpg|webp))$/.test(u.pathname);
-const isPage = u => u.origin === location.origin && /\/(burgundy|domaine|atlas)\.html$/.test(u.pathname);
+// every script of the site's own carries a ?v= version (tools/versions-test.js sees to it), as does the vault's copy of Code.gs
+const isVersioned = u => u.origin === location.origin && /\.(js|gs)$/.test(u.pathname) && /(^|[?&])v=\d+/.test(u.search) && !/\/atlas-sw\.js$/.test(u.pathname);
+const isAsset = u => u.origin === location.origin && /\/(manifest\.json|apple-touch-icon\.png|icon-512\.png)$/.test(u.pathname);
+const isPage = u => u.origin === location.origin && /^\/((index|privacy|burgundy|domaine|atlas)\.html)?$/.test(u.pathname);
 const isTile = u => (u.hostname === "data.geopf.fr" && u.pathname === "/wmts" && /ELEVATION\.ELEVATIONGRIDCOVERAGE\.SHADOW/.test(u.search))
   || (u.hostname === "sgx.geodatenzentrum.de" && /^\/wmts_basemapde_schummerung\/tile\//.test(u.pathname));
 
@@ -19,7 +22,7 @@ self.addEventListener("fetch", ev => {
   if (ev.request.method !== "GET") return;
   const u = new URL(ev.request.url);
   if (isPage(u)) ev.respondWith(networkFirst(ev.request));
-  else if (isAtlas(u)) ev.respondWith(staleWhileRevalidate(ev, u));
+  else if (isAtlas(u) || isVersioned(u) || isAsset(u)) ev.respondWith(staleWhileRevalidate(ev, u));
   else if (isTile(u)) ev.respondWith(cacheFirst(ev.request));
 });
 
