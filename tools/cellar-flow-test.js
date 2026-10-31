@@ -48,6 +48,7 @@ const W = async (prod, name) => (await (await wines())).find(w => w.producer ===
   p.on("pageerror", e => errs.push(e.message)); p.on("console", m => m.type() === "error" && errs.push(m.text()));
   const dialogs = []; let answer = true;
   p.on("dialog", d => { dialogs.push(d.message()); answer ? d.accept() : d.dismiss(); });
+  await require("./ask-auto")(ctx, dialogs, () => answer);
   await p.goto(BASE); await p.waitForTimeout(500);
   await p.fill("#gateUser", "adam"); await p.fill("#gatePass", VAULT_MODE ? "owner-pass-1" : "pw"); await p.click("#gateSubmit");
   if (VAULT_MODE) {
@@ -84,7 +85,8 @@ const W = async (prod, name) => (await (await wines())).find(w => w.producer ===
   const nBefore = (await wines()).length;
   await openRow("#tbl", "Sylvain Cathiard");
   await detail("#tbl", "Sylvain Cathiard").locator('button[data-act="drink"]').click(); await p.waitForTimeout(1200);
-  check("last bottle prompts for a journal note", dialogs.some(d => /last .*Cathiard/.test(d)));
+  check("last bottle offers a tasting note", /last .*Cathiard/.test(await p.textContent("#actMsg")) && /tasting note/.test(await p.textContent("#actBtns")), await p.textContent("#actbar"));
+  await p.click('#actBtns button:has-text("tasting note")');
   await p.waitForSelector("#jModal.open", { timeout: 3000 }).catch(() => {});
   check("…the form says it's already in Enjoyed", await p.isVisible("#jEnjoyDone"));
   await p.click("#jSave"); await p.waitForTimeout(800);
@@ -168,7 +170,7 @@ const W = async (prod, name) => (await (await wines())).find(w => w.producer ===
   const nDel = () => p.evaluate(() => api({ action: "deleted" }).then(r => r.deleted.length)), del0 = await nDel(); // step 6 removed the Bizot Enjoyed row: it's kept too
   await openRow("#tbl", "Armand Rousseau"); dialogs.length = 0;
   await detail("#tbl", "Armand Rousseau").locator('button[data-act="delete"]').click(); await p.waitForTimeout(1200);
-  check("deleting asks first, and says it can be brought back", dialogs.some(d => /Recently deleted for 30 days/.test(d)), dialogs.join(" | "));
+  check("deleting doesn't ask: it's done, with Undo", !dialogs.length && /Deleted Armand Rousseau/.test(await p.textContent("#actMsg")) && /Undo/.test(await p.textContent("#actBtns")), await p.textContent("#actbar"));
   check("…the wine is gone from the cellar", !(await W("Armand Rousseau")));
   await p.waitForSelector("#delBtn:not([hidden])", { timeout: 5000 }).catch(() => {});
   check("…and it's under 'Recently deleted'", (await nDel()) === del0 + 1 && new RegExp("Recently deleted \\(" + (del0 + 1) + "\\)").test(await p.textContent("#delBtn")) && await p.isVisible("#delBtn"), await p.textContent("#delBtn"));

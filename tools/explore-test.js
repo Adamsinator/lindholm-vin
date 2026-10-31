@@ -27,6 +27,7 @@ const X = n => `<img src=x onerror="window.__xss='${n}'"><script>window.__xss='$
     const p = await ctx.newPage(), errs = [], dialogs = []; p._waitApp = require("./wait-app")(p); // logs from the start
     p.on("pageerror", e => errs.push(e.message)); p.on("console", m => m.type() === "error" && !/Failed to load resource|internetdisconnected/.test(m.text()) && errs.push(m.text()));
     p.on("dialog", d => { dialogs.push(d.message()); d.type() === "prompt" ? d.dismiss() : d.accept(); });
+    await require("./ask-auto")(ctx, dialogs, m => !/Type the username/.test(m)); // as the prompt was dismissed
     return { ctx, p, errs, dialogs };
   };
   const signUp = async (p, user, email) => {

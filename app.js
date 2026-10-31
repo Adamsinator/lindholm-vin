@@ -297,6 +297,41 @@ function errText(err){
 function toast(msg){ msg = limitText(msg); const t=$("toast"); t.textContent=msg; t.style.opacity=1;
   clearTimeout(toastT); toastT=setTimeout(()=>t.style.opacity=0, 2600); }
 
+// What just happened, with what can follow it: notify(msg, [{label, fn}], {extra: element, ms}). A button runs its
+// action and closes the bar; it goes by itself after a while unless a pointer or the keyboard is in it.
+let ACT_T = null;
+function notify(msg, actions = [], opt = {}){
+  const bar = $("actbar"); clearTimeout(ACT_T); $("toast").style.opacity = 0;
+  $("actMsg").textContent = limitText(msg);
+  const ex = $("actExtra"); ex.innerHTML = ""; if(opt.extra) ex.appendChild(opt.extra);
+  const bs = $("actBtns"); bs.innerHTML = "";
+  actions.forEach(a=>{ const b = document.createElement("button"); b.type = "button"; b.textContent = a.label;
+    b.addEventListener("click", ()=>{ closeNotify(); a.fn(); }); bs.appendChild(b); });
+  bar.hidden = false;
+  const later = () => { clearTimeout(ACT_T); ACT_T = setTimeout(()=>{ if(!bar.matches(":hover, :focus-within")) closeNotify(); else later(); }, opt.ms || 8000); };
+  later();
+}
+function closeNotify(){ clearTimeout(ACT_T); $("actbar").hidden = true; }
+$("actClose").addEventListener("click", closeNotify);
+// The site's own question instead of the browser's OK / Cancel: await ask(text, {ok, danger, typed}) → true / false.
+// With typed, OK waits until that exact text is typed (for what can't be undone).
+let ASK_DONE = null;
+function ask(msg, opt = {}){
+  if(ASK_DONE) ASK_DONE(false);
+  const m = $("askModal"), ok = $("askOk"), inp = $("askInput");
+  $("askMsg").textContent = msg;
+  ok.textContent = opt.ok || tr("OK"); ok.classList.toggle("danger", !!opt.danger); $("askCancel").textContent = opt.cancel || tr("Cancel");
+  inp.hidden = !opt.typed; inp.value = ""; inp.placeholder = opt.typed || ""; ok.disabled = !!opt.typed;
+  inp.oninput = () => { ok.disabled = inp.value.trim() !== opt.typed; };
+  m.classList.add("open"); (opt.typed ? inp : ok).focus();
+  return new Promise(res => { ASK_DONE = v => { ASK_DONE = null; m.classList.remove("open"); res(v); }; });
+}
+$("askForm").addEventListener("submit", e=>{ e.preventDefault(); if(ASK_DONE && !$("askOk").disabled) ASK_DONE(true); });
+$("askCancel").addEventListener("click", ()=>{ if(ASK_DONE) ASK_DONE(false); });
+$("askModal").addEventListener("click", e=>{ if(e.target===$("askModal") && ASK_DONE) ASK_DONE(false); });
+// Escape closes it like any dialog: that's a no
+new MutationObserver(()=>{ if(!$("askModal").classList.contains("open") && ASK_DONE) ASK_DONE(false); }).observe($("askModal"), {attributes:true, attributeFilter:["class"]});
+
 /* ---------- four more views of the cellar: when it needs drinking, value against price, buying and drinking by
    year, price bands. Each panel shows only once there's something to show (and money only with Show prices). ---------- */
 function kbar(label, n, max, txt, cls, closes){
@@ -388,7 +423,7 @@ function renderOverview(){
   const anyBig = cellar.some(w=>!isStdBottle(w));
   const kpis = [
     [tr("Bottles in cellar"), fmt(bottlesLeft),
-      tr("{0} different wines", cellar.length)+(anyBig?" · "+fmtLitres(litres)+" L":""), ""],
+      (cellar.length===1 ? tr("1 different wine") : tr("{0} different wines", cellar.length))+(anyBig?" · "+fmtLitres(litres)+" L":""), ""],
   ];
   if(SHOW_PRICES){
     const valueLeft = cellar.reduce((s,w)=>s+(w.price||0)*w.left,0);
@@ -964,6 +999,7 @@ function detailHTML(w){
         <span class="wsep">–</span>
         <input class="setwin" type="number" inputmode="numeric" placeholder="${ph(est&&est.to,esc(tr("to")))}" data-end="to" data-row="${w.row}" value="${w.drinkTo??""}"><a class="qhint" href="help.html#windows" target="_blank" rel="noopener" title="${esc(tr("How this works"))}" aria-label="${esc(tr("How this works"))}">?</a>
         ${r?`<span class="rbadge ${r.k}${r.est?" est":""}">${r.label}</span>`:""}
+        ${r&&r.est&&est&&est.from!=null&&est.to!=null?`<button type="button" class="usewin" data-row="${w.row}" data-from="${est.from}" data-to="${est.to}">✓ ${esc(tr("Use {0}–{1}", est.from, est.to))}</button>`:""}
         ${r&&r.est?`<span class="est-note">${esc(tr("estimated · type to set your own"))}</span>`:""}</span>`;})()}
       <button class="jlog" data-row="${w.row}">📓 ${esc(tr("Log in journal"))}</button>
       <button class="fshare" data-row="${w.row}">📣 ${esc(tr("Share"))}</button>
@@ -1197,8 +1233,10 @@ function bindDetail(root){
 /* ---------- actions ---------- */
 let LOADED_AT = null; // when the cellar was last fetched, for "Updated …" in the interface language
 function stampText(){ if(LOADED_AT) $("stamp").textContent = tr("Updated {0}", LOADED_AT.toLocaleString(I18N_LOCALE(),{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"})); }
+const SPIN0 = $("spin").innerHTML; // the loading shapes, put back after an error
 async function loadData(quiet){
-  if(!quiet){ $("spin").hidden = false; $("content").hidden = true; }
+  if(!quiet){ const sp = $("spin"); if(!sp.classList.contains("skel")){ sp.innerHTML = SPIN0; sp.classList.add("skel"); I18N.apply(sp); }
+    sp.hidden = false; $("content").hidden = true; }
   if(cfg.user){ $("who").textContent = cfg.user; $("who").hidden = false; }
   try{
     const res = await api({action:"data"});
@@ -1211,7 +1249,7 @@ async function loadData(quiet){
     loadJournalSilently(); loadFeedSilently(); refreshDeleted(); checkOwner(); takePrefill();
   }catch(err){
     if(AUTH_ERRORS.has(err.message)){ forgetAuth(); setGateMode("login"); showGate(tr("Your session expired — log in again.")); }
-    else { $("spin").textContent = tr("Could not reach the cellar API ({0}). Check your connection and refresh.", errText(err)); }
+    else { $("spin").classList.remove("skel"); $("spin").textContent = tr("Could not reach the cellar API ({0}). Check your connection and refresh.", errText(err)); }
   }
 }
 
@@ -1259,6 +1297,13 @@ async function setSizeApi(row, val, sel){
   sel.disabled = false;
 }
 
+// one tap: the estimate becomes the wine's own window
+document.addEventListener("click", e=>{
+  const b = e.target.closest("button.usewin"); if(!b) return;
+  const wrap = b.closest(".winwrap");
+  wrap.querySelector('.setwin[data-end="from"]').value = b.dataset.from; wrap.querySelector('.setwin[data-end="to"]').value = b.dataset.to;
+  b.disabled = true; setWindowApi(wrap.querySelector(".setwin"));
+});
 async function setWindowApi(inp){
   const row = Number(inp.dataset.row);
   const wrap = inp.closest(".winwrap");
@@ -1299,10 +1344,7 @@ async function setDateApi(row, field, val, inp){
 
 async function rowAction(act, row, btn){
   const w = WINES.find(x=>x.row===row);
-  if(act==="delete"){
-    const name = w ? `${w.producer} ${w.name} ${w.vintage||""}`.trim() : tr("this wine");
-    if(!confirm(w && isElsewhere(w) ? tr("Remove {0} from Enjoyed?\nYour journal entries for it stay.", name) : tr("Delete {0} from the cellar?\nYou can bring it back from Recently deleted for 30 days.", name))) return;
-  }
+  const name = w ? `${w.producer}${w.name?" "+w.name:""}${w.vintage?" "+w.vintage:""}` : tr("this wine");
   const wasLast = act==="drink" && w && w.left===1;
   const label = btn.textContent;
   btn.disabled = true; btn.textContent = tr("Updating…");
@@ -1313,19 +1355,38 @@ async function rowAction(act, row, btn){
     // now points at a different wine — forget it rather than expand a stranger.
     if(act==="delete") KEEP_OPEN = null;
     renderOverview(); renderTable(); renderEnjoyed();
-    toast(act==="drink" ? tr("Skål! Bottle marked as drunk 🍷")
-        : act==="undrink" ? tr("Bottle back in the cellar 🍾")
-        : tr("Deleted — it's in Recently deleted for 30 days"));
-    if(act==="delete") refreshDeleted();
-    if(wasLast){
-      const nw = WINES.find(x=>x.row===row) || w;
-      setTimeout(()=>{
-        if(confirm(tr("That was your last {0} 🍷\nLog a tasting note in the journal?", `${nw.producer}${nw.name?" "+nw.name:""}${nw.vintage?" "+nw.vintage:""}`)))
-          openJournalModal({producer:nw.producer, wine:nw.name, vintage:nw.vintage,
-            country:nw.country, region:nw.region, grape:nw.grape, commune:nw.commune, classification:nw.classification});
-      }, 250);
-    }
+    if(act==="drink") afterDrink(row, w, wasLast);
+    else if(act==="undrink") toast(tr("Bottle back in the cellar 🍾"));
+    else afterDelete(w, name);
   }catch(err){ toast(tr("Could not update: {0}", errText(err))); btn.disabled=false; btn.textContent=label; }
+}
+// Drunk: Undo, and how was it (the wine's 1–10 rating, as five stars); the last bottle offers a tasting note
+function afterDrink(row, w, wasLast){
+  const nw = WINES.find(x=>x.row===row) || w;
+  const nm = `${nw.producer}${nw.name?" "+nw.name:""}${nw.vintage?" "+nw.vintage:""}`;
+  const stars = document.createElement("span"); stars.className = "stars"; stars.setAttribute("role", "group"); stars.setAttribute("aria-label", tr("How was it?"));
+  for(let i=1; i<=5; i++){ const b = document.createElement("button"); b.type = "button"; b.textContent = "★"; b.dataset.v = i*2;
+    b.title = b.ariaLabel = tr("{0} of 10", i*2); if((nw.rating||0) >= i*2) b.classList.add("on");
+    b.addEventListener("click", async ()=>{ stars.querySelectorAll("button").forEach(x=>x.classList.toggle("on", Number(x.dataset.v) <= i*2));
+      try{ const r = await api({action:"rate", row, rating:i*2}); WINES = normalize(r.wines); renderTable(); renderEnjoyed(); toast(tr("Rated {0} of 10", i*2)); }
+      catch(err){ toast(tr("Could not save rating: {0}", errText(err))); } });
+    stars.appendChild(b); }
+  const acts = [{label:tr("Undo"), fn:()=>{ const b = document.querySelector(`#tbl button[data-act="undrink"][data-row="${row}"]`) || document.createElement("button"); rowAction("undrink", row, b); }}];
+  if(wasLast) acts.push({label:tr("Write a tasting note"), fn:()=>openJournalModal({producer:nw.producer, wine:nw.name, vintage:nw.vintage,
+    country:nw.country, region:nw.region, grape:nw.grape, commune:nw.commune, classification:nw.classification})});
+  notify(wasLast ? tr("That was your last {0} 🍷", nm) : tr("Skål! Bottle marked as drunk 🍷"), acts, {extra:stars, ms:10000});
+}
+// Deleted at once (nothing to confirm): Undo brings it back from Recently deleted, where it stays 30 days anyway
+async function afterDelete(w, name){
+  const enjoyed = w && isElsewhere(w);
+  await refreshDeleted();
+  const d = DELETED[0]; // newest first
+  notify(enjoyed ? tr("Removed {0} from Enjoyed", name) : tr("Deleted {0}", name),
+    d ? [{label:tr("Undo"), fn:()=>undeleteNow(d.id)}] : [], {ms:10000});
+}
+async function undeleteNow(id){
+  try{ const r = await api({action:"undelete", id}); WINES = normalize(r.wines); renderOverview(); renderTable(); renderEnjoyed(); refreshDeleted(); toast(tr("Put back")); }
+  catch(err){ toast(tr("Could not put it back: {0}", errText(err))); }
 }
 
 async function addWine(e){
@@ -1635,7 +1696,7 @@ $("acctRec").addEventListener("click", async ()=>{
 $("acctDelete").addEventListener("click", async ()=>{
   const pass = $("acctPass").value;
   if(!pass){ $("acctErr").textContent = tr("Enter your current password first."); $("acctPass").focus(); return; }
-  if(!confirm(tr("Delete your account \"{0}\" and everything in it: cellar, journal, wishlist, photos, feed posts and follows? This can't be undone.", cfg.user))) return;
+  if(!(await ask(tr("Delete your account \"{0}\" and everything in it: cellar, journal, wishlist, photos, feed posts and follows? This can't be undone.", cfg.user), {ok:tr("Delete my account"), danger:true, typed:cfg.user}))) return;
   $("acctErr").textContent = tr("Deleting…");
   try{
     await VAULT.deleteAccount({post, user:cfg.user, token:cfg.token, pass});
@@ -1847,7 +1908,7 @@ async function impRun(){
     }
     renderOverview(); renderTable(); renderEnjoyed();
     $("impModal").classList.remove("open");
-    toast(tr("{0} wines imported 🍷", done)); hit("import");
+    toast(done===1 ? tr("1 wine imported 🍷") : tr("{0} wines imported 🍷", done)); hit("import");
   }catch(err){
     const m = String(err && err.message || err);
     if(done){ renderOverview(); renderTable(); renderEnjoyed(); }
@@ -2170,7 +2231,7 @@ const lsMine = () => { try{ return JSON.parse(localStorage.getItem(LS_KEY())||"[
 const lsSave = a => { try{ localStorage.setItem(LS_KEY(), JSON.stringify(a)); }catch(e){} };
 const lsUrl = s => new URL("share.html#" + s.id + "." + s.key, location.href).href;
 const lsWines = () => ($("lsScope").value==="all" ? WINES : SHOWN).filter(w=>w.left>0);
-function lsCount(){ const w = lsWines(); $("lsCount").textContent = tr("{0} wines, {1} bottles", w.length, fmt(w.reduce((s,x)=>s+x.left,0))); $("lsGo").disabled = !w.length; }
+function lsCount(){ const w = lsWines(); $("lsCount").textContent = nWines(w.length) + ", " + nBottles(w.reduce((s,x)=>s+x.left,0)); $("lsGo").disabled = !w.length; }
 // the lists this browser made carry their key, so their link can be copied again; one made on another device, or
 // before logging out (which forgets the keys), can only be withdrawn. server: the live ones, as sharelist gives them
 function lsRender(server){
@@ -2179,7 +2240,7 @@ function lsRender(server){
   lsSave(mine);
   const rows = mine.concat((server||[]).filter(x=>!mine.some(s=>s.id===x.id)).map(x=>({id:x.id, created:x.created, expires:x.expires, count:x.wines})));
   $("lsListH").hidden = !rows.length;
-  $("lsList").innerHTML = rows.sort((a,b)=>b.created-a.created).map(s=>`<li><span>${esc(s.key ? (s.title||tr("A shared wine list")) : tr("A list shared from another device"))}<small>${esc(tr("{0} wines", s.count))} · ${esc(tr("open until {0}", new Date(s.expires).toLocaleDateString()))}</small></span>`
+  $("lsList").innerHTML = rows.sort((a,b)=>b.created-a.created).map(s=>`<li><span>${esc(s.key ? (s.title||tr("A shared wine list")) : tr("A list shared from another device"))}<small>${esc(nWines(s.count))} · ${esc(tr("open until {0}", new Date(s.expires).toLocaleDateString()))}</small></span>`
     +`<span class="btns">${s.key ? `<button type="button" class="btn quiet" data-copy="${esc(s.id)}">${esc(tr("Copy link"))}</button>` : ""}<button type="button" class="btn quiet" data-del="${esc(s.id)}">${esc(tr("Withdraw"))}</button></span></li>`).join("");
 }
 async function lsCopy(text){
@@ -2901,7 +2962,7 @@ function renderJournal(){
     if(e) openJournalEdit(e);
   }));
   document.querySelectorAll(".jdel").forEach(b=>b.addEventListener("click", async ()=>{
-    if(!confirm(tr("Delete this journal entry?"))) return;
+    if(!(await ask(tr("Delete this journal entry?"), {ok:tr("Delete"), danger:true}))) return;
     const e = (JENTRIES||[]).find(x=>x.row===Number(b.dataset.row));
     const t = e ? enjoyTarget(e) : null; // looked up before the delete
     try{
@@ -2911,8 +2972,8 @@ function renderJournal(){
     // the entry put a wine in Enjoyed: ask whether that goes too
     if(t && t.kind==="logged"){
       const nm = `${t.wine.producer}${t.wine.name?" "+t.wine.name:""}${t.wine.vintage?" "+t.wine.vintage:""}`;
-      const ask = t.elsewhere ? tr("Also remove {0} from Enjoyed?", nm) : tr("Also put the bottle of {0} back in your cellar (undo the drink)?", nm);
-      if(!confirm(ask)) return;
+      const q = t.elsewhere ? tr("Also remove {0} from Enjoyed?", nm) : tr("Also put the bottle of {0} back in your cellar (undo the drink)?", nm);
+      if(!(await ask(q, {ok:tr("Yes"), cancel:tr("No")}))) return;
       try{
         const r2 = await api({action: t.elsewhere ? "delete" : "undrink", row:t.wine.row, qty:1});
         WINES = normalize(r2.wines); KEEP_OPEN = null; renderOverview(); renderTable(); renderEnjoyed();
@@ -2984,6 +3045,53 @@ function knownWine(producer, wine){
   if(e) return {from:tr("your journal entry of {0}", fmtDate(e.date)), country:e.country, region:e.region, commune:e.commune, grape:e.grape, classification:e.classification};
   return null;
 }
+/* ---------- the atlas fills in what it knows: a vineyard or village named in the wine ("Clos St-Jacques",
+   "Meursault Perrières", "Gevrey-Chambertin") gives the commune, region, country and, where the atlas has it, the
+   classification. From atlas-index.js (every named vineyard, ~40 KB), fetched the first time a wine is typed. ---------- */
+const ATLAS_REG = {burgundy:"Bourgogne", chablis:"Bourgogne", chalonnaise:"Bourgogne", maconnais:"Bourgogne", beaujolais:"Beaujolais",
+  champagne:"Champagne", alsace:"Alsace", rhone:"Rhône", rhonesud:"Rhône", bordeaux:"Bordeaux", centreloire:"Loire", touraine:"Loire", anjou:"Loire",
+  mosel:"Mosel", nahe:"Nahe", pfalz:"Pfalz", rheinhessen:"Rheinhessen", mittelrhein:"Mittelrhein", ahr:"Ahr", barolo:"Piemonte", barbaresco:"Piemonte"};
+const ATLAS_COUNTRY = r => /^(barolo|barbaresco)$/.test(r) ? "Italien" : /^(mosel|nahe|pfalz|rheinhessen|mittelrhein|ahr)$/.test(r) ? "Tyskland" : "Frankrig";
+const ATLAS_CLS = {"1er":"1. cru", "GC":"Grand cru", "1855-1":"Cru classé", "1855-2":"Cru classé", "1855-3":"Cru classé", "1855-4":"Cru classé", "1855-5":"Cru classé"};
+// the same words however they're written: no accents or hyphens, "St" as "Saint"
+const aKey = t => " " + String(t||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[-'’.,/()]/g," ")
+  .replace(/\bste\b/g,"sainte").replace(/\bst\b/g,"saint").replace(/\s+/g," ").trim() + " ";
+let AIX = null, AIX_LOADING = false;
+function atlasIndex(then){
+  if(AIX) return AIX;
+  if(window.ATLAS_INDEX){
+    const ARTICLE = /^ (les?|la|l|aux?|en|du|des) /;
+    // a Barolo or Barbaresco MGA is listed as "Barolo Brunate": "Brunate" alone finds it too
+    AIX = {v: window.ATLAS_INDEX.filter(e=>ATLAS_REG[e[1]]).map(e=>{ const k = aKey(e[0]); const core = k.replace(ARTICLE, " ").replace(/^ (barolo|barbaresco) /, " ");
+      return {e, k, core: core.length >= 8 ? core : null}; }), communes: new Map()};
+    AIX.v.forEach(x=>{ const c = aKey(x.e[4]); if(c.length > 4 && !AIX.communes.has(c)) AIX.communes.set(c, {name:x.e[4], reg:x.e[1]}); });
+    return AIX;
+  }
+  if(!AIX_LOADING){ AIX_LOADING = true; const sc = document.createElement("script"); sc.src = "atlas-index.js?v=1"; sc.onload = then; document.head.appendChild(sc); }
+  return null;
+}
+function atlasWine(wine, commune){
+  const W = aKey(wine); if(W.length < 6) return null;
+  const ix = atlasIndex(); if(!ix) return null;
+  // the village named in the wine (the longest), or the one in the Commune field
+  let vil = null; for(const [k, v] of ix.communes) if(W.includes(k) && (!vil || k.length > vil.k.length)) vil = {k, ...v};
+  const cf = aKey(commune); if(cf.length > 4 && ix.communes.has(cf)) vil = {k:cf, ...ix.communes.get(cf)};
+  const inVillage = k => vil && vil.k.includes(k) && W.includes(vil.k); // "Chambertin" inside "Gevrey-Chambertin" is the village, not the grand cru
+  let best = [], len = 0;
+  ix.v.forEach(x=>{ for(const k of [x.k, x.core]) if(k && W.includes(k) && !inVillage(k)){
+    if(k.length > len){ best = [x]; len = k.length; } else if(k.length === len && !best.includes(x)) best.push(x); break; } });
+  // "Meursault Perrières": of the Perrières, the one in Meursault
+  if(vil && best.some(x=>aKey(x.e[4]) === vil.k)) best = best.filter(x=>aKey(x.e[4]) === vil.k);
+  const same = f => best.length && best.every(x=>f(x) === f(best[0])) ? f(best[0]) : null;
+  if(best.length){
+    const reg = same(x=>ATLAS_REG[x.e[1]]), key = best[0].e[1];
+    return {via: best.length === 1 ? best[0].e[0] : null, commune: same(x=>x.e[4]), region: reg, country: reg ? ATLAS_COUNTRY(key) : null,
+      classification: same(x=>ATLAS_CLS[x.e[3]] || ""), grape: /^(barolo|barbaresco)$/.test(key) && reg ? "Nebbiolo" : null};
+  }
+  // "Barolo" on a label is the appellation more often than the village: region and grape, not the commune
+  return vil ? {via: vil.name, commune: /^ (barolo|barbaresco) $/.test(vil.k) ? null : vil.name, region: ATLAS_REG[vil.reg], country: ATLAS_COUNTRY(vil.reg), classification: null,
+    grape: /^(barolo|barbaresco)$/.test(vil.reg) ? "Nebbiolo" : null} : null;
+}
 // the wine names you've used for a producer, for the Wine field's suggestions
 function wineNamesFor(producer){
   const p = jKey(producer); if(!p) return [];
@@ -2992,7 +3100,9 @@ function wineNamesFor(producer){
 }
 // ids: {producer, wine, country, region, commune, grape, class, type?, note}
 function autofill(ids){
-  const k = knownWine($(ids.producer).value, $(ids.wine).value), filled = [];
+  let k = knownWine($(ids.producer).value, $(ids.wine).value); const filled = [];
+  if(!k){ const a = atlasWine($(ids.wine).value, $(ids.commune).value);
+    if(a) k = {...a, from: a.via ? tr("the atlas ({0})", a.via) : tr("the atlas")}; else if(!AIX) atlasIndex(()=>autofill(ids)); }
   if(k){
     [["country","Country"],["region","Region"],["commune","Commune"],["grape","Grape"]].forEach(([f, lbl])=>{
       const el = $(ids[f]); if(el && !el.value.trim() && k[f]){ el.value = k[f]; filled.push(tr(lbl.toLowerCase())); }
@@ -3406,7 +3516,7 @@ function renderEnjoyed(){
   const valueDrunk = drunk.reduce((s,w)=>s+worth(w)*w.drunk,0);
   const prodAgg = {}; drunk.forEach(w=>{ prodAgg[w.producer]=(prodAgg[w.producer]||0)+w.drunk; });
   const top = Object.entries(prodAgg).sort((a,b)=>b[1]-a[1])[0];
-  const kpis = [[tr("Bottles enjoyed"), fmt(bottles), tr("{0} different wines", drunk.length), ""]];
+  const kpis = [[tr("Bottles enjoyed"), fmt(bottles), (drunk.length===1 ? tr("1 different wine") : tr("{0} different wines", drunk.length)), ""]];
   if(SHOW_PRICES) kpis.push([tr("Value enjoyed"), kr(valueDrunk), drunk.some(w=>!w.price && w.value) ? tr("at purchase price, or value where none was paid") : tr("at purchase price"), ""]);
   else kpis.push([tr("Value enjoyed"), "🔒 "+tr("hidden"), tr("press Show prices"), "locked"]);
   if(top) kpis.push([tr("Most enjoyed"), esc(top[0]), esc(nBottles(top[1])), ""]);
@@ -3762,13 +3872,13 @@ function renderWishlist(){
   document.querySelectorAll(".wedit").forEach(b=>b.addEventListener("click",()=>{
     const e=(WITEMS||[]).find(x=>x.row===Number(b.dataset.row)); if(e) openWishEdit(e); }));
   document.querySelectorAll(".wdel").forEach(b=>b.addEventListener("click", async ()=>{
-    if(!confirm(tr("Remove this wish?"))) return;
+    if(!(await ask(tr("Remove this wish?"), {ok:tr("Remove"), danger:true}))) return;
     try{ const res=await api({action:"wdelete", row:Number(b.dataset.row)}); WITEMS=res.items||[]; renderWishlist(); toast(tr("Wish removed")); }
     catch(err){ toast(tr("Could not remove: {0}", errText(err))); }
   }));
   document.querySelectorAll(".wmove").forEach(b=>b.addEventListener("click", async ()=>{
     const e=(WITEMS||[]).find(x=>x.row===Number(b.dataset.row));
-    if(!confirm(tr("Move {0} into the cellar (1 bottle)?", e?e.producer:tr("this wine")))) return;
+    if(!(await ask(tr("Move {0} into the cellar (1 bottle)?", e?e.producer:tr("this wine")), {ok:tr("Move to cellar")}))) return;
     b.disabled=true; b.textContent=tr("Adding…");
     try{
       const res=await api({action:"wtocellar", row:Number(b.dataset.row)});
@@ -3946,7 +4056,7 @@ $("adminHelp").addEventListener("click", async e=>{
 $("adminUsers").addEventListener("click", async e=>{
   const b = e.target.closest("button[data-help]"); if(!b) return;
   const who = b.dataset.help;
-  if(!confirm(tr("Make a new recovery code for {0}? Their old recovery code stops working. Only do this when they've asked you to.", who))) return;
+  if(!(await ask(tr("Make a new recovery code for {0}? Their old recovery code stops working. Only do this when they've asked you to.", who), {ok:tr("Make a new code")}))) return;
   $("adminErr").textContent = tr("Unlocking…");
   try{
     const r = await VAULT.adminHelp(who); ADMIN = r.admin; $("adminErr").textContent = ""; renderAdmin();
@@ -3960,9 +4070,7 @@ $("adminUsers").addEventListener("click", async e=>{
 $("adminUsers").addEventListener("click", async e=>{
   const b = e.target.closest("button[data-remove]"); if(!b) return;
   const who = b.dataset.remove;
-  const typed = window.prompt(tr("Remove {0} and everything in their account — cellar, journal, wishlist and photos? It can't be undone, and nobody (you included) can read or restore the cellar afterwards. Type the username to confirm:", who));
-  if(typed === null) return;
-  if(typed.trim().toLowerCase() !== who.toLowerCase()){ $("adminErr").textContent = tr("The name didn't match, so nothing was removed."); return; }
+  if(!(await ask(tr("Remove {0} and everything in their account — cellar, journal, wishlist and photos? It can't be undone, and nobody (you included) can read or restore the cellar afterwards. Type the username to confirm:", who), {ok:tr("Remove"), danger:true, typed:who}))) return;
   $("adminErr").textContent = tr("Removing…");
   try{ ADMIN = await api({action:"admindelete", member:who}); $("adminErr").textContent = ""; renderAdmin(); toast(tr("{0} was removed", who)); }
   catch(err){ $("adminErr").textContent = /owner-account/.test(errText(err)) ? tr("The owner's account can't be removed.")
@@ -3975,7 +4083,7 @@ $("adminInvites").addEventListener("click", async e=>{
     try{ await navigator.clipboard.writeText(msg); toast(tr("Invitation copied")); }catch(err){ window.prompt(tr("Copy the invitation"), msg); }
   }
   if(r){
-    if(!confirm(tr("Withdraw the code {0}? It stops working.", r.dataset.revoke))) return;
+    if(!(await ask(tr("Withdraw the code {0}? It stops working.", r.dataset.revoke), {ok:tr("Withdraw")}))) return;
     try{ ADMIN = await api({action:"adminrevoke", code:r.dataset.revoke}); renderAdmin(); }
     catch(err){ $("adminErr").textContent = tr("Could not reach the cellar API ({0}).", errText(err)); }
   }
@@ -4045,7 +4153,7 @@ function renderFeed(){
   }).join("");
   const F=$("feedList");
   F.querySelectorAll(".fdel").forEach(b=>b.addEventListener("click", async()=>{
-    if(!confirm(tr("Delete this post?"))) return;
+    if(!(await ask(tr("Delete this post?"), {ok:tr("Delete"), danger:true}))) return;
     try{ const res=await api({action:"feeddelete", row:Number(b.dataset.row)}); FEED=res.feed||[]; renderFeed(); toast(tr("Post deleted")); }
     catch(err){ toast(tr("Could not delete: {0}", errText(err))); }
   }));

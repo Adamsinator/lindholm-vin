@@ -15,6 +15,7 @@ const HEAD = ["Producent", "Land", "Område", "Kommune", "Mark/Navn", "Klassifik
   const gas = H({ Ark1: [HEAD] }, { settings: { SIGNUP_CODE: "invite" } });
   const device = async () => {
     const ctx = await b.newContext({ viewport: { width: 1200, height: 900 }, permissions: ["clipboard-read", "clipboard-write"] });
+    await require("./ask-auto")(ctx);
     await require("./turnstile-fake")(ctx);
     await ctx.route(require("./api-route"), async route => { const q = JSON.parse(route.request().postData() || "{}");
       await route.fulfill({ contentType: "application/json", body: JSON.stringify(gas.call(q)) }); });

@@ -18,6 +18,7 @@ const HEAD = ["Producent", "Land", "Område", "Kommune", "Mark/Navn", "Klassifik
   const gas = H({ Ark1: [HEAD] }, { settings: { SIGNUP_CODE: "invite" } });
   const device = async () => {
     const ctx = await b.newContext({ viewport: { width: 1200, height: 900 }, permissions: ["clipboard-read", "clipboard-write"] });
+    await require("./ask-auto")(ctx);
     await require("./turnstile-fake")(ctx);
     // the site pins the real owner's key (config.js ADMIN_KID); this test makes an owner key of its own, so its
     // browsers get config.js without the pin (trust on first use), and the pin itself is checked below
