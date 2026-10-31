@@ -1,6 +1,7 @@
 // French for allwine.dk: i18n.js loads the one dictionary the page's language needs (English is the source text).
 window.I18N_DICT = window.I18N_DICT || {};
 window.I18N_DICT.fr = {
+  "No vineyard by that name.": "Aucune vigne de ce nom.", "Searching…": "Recherche…", "Vineyards found": "Vignes trouvées", "Where am I?": "Où suis-je ?",
   "Your cellar, journal, wishlist and journal photos are encrypted in this browser before they're saved.": "Votre cave, votre journal, votre liste d'envies et les photos du journal sont chiffrés dans ce navigateur avant d'être enregistrés.", "Do you still have your recovery code? If you forget your password, it's how you get back into your encrypted cellar.": "Avez-vous toujours votre code de récupération ? Si vous oubliez votre mot de passe, c'est lui qui vous rouvre votre cave chiffrée.", "I have it": "Je l'ai", "Make a new one": "En créer un nouveau", "Enter your password, then choose New recovery code.": "Saisissez votre mot de passe, puis choisissez Nouveau code de récupération.",
   // cellar app
   "That invite code isn't right, or it has already been used.": "Ce code d'invitation est erroné ou a déjà servi.",
