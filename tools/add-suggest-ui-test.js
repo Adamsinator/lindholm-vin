@@ -93,7 +93,7 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   await p.click("#addBtn"); await p.waitForTimeout(100);
   check("the form starts clean after adding", (await v("#aGrape")) === "" && (await v("#aCountry")) === "Frankrig" && !(await p.isVisible("#aSuggest")));
   // in Danish
-  await p.evaluate(() => { addReset(); I18N.setLang("da"); }); await type("#aRegion", "Mosel");
+  await p.evaluate(() => { addReset(); return I18N.setLang("da"); }); await type("#aRegion", "Mosel");
   check("the note follows the language", /Foreslået ud fra Mosel: .*drue/.test(await p.textContent("#aSuggest")), await p.textContent("#aSuggest"));
   check("no console errors", !errs.length, errs.join(" | "));
   check("on a desktop the fields keep the browser's own suggestion list", (await p.getAttribute("#eaProducer", "list")) === "jProducers");

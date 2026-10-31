@@ -397,7 +397,7 @@ function loadTopo(){
   document.body.appendChild(sc);
   loadLieux();
 }
-const TOPO_V = 2;
+const TOPO_V = 3;
 // every cadastral lieu-dit on appellation land (burgundy-lieuxdits.js, ~100 KB gzipped): outlines and names when zoomed in,
 // and the list inside each climat's panel. Loaded with the topo, drawn into its own layer without a rebuild.
 let LDX = window.BURG_LIEUXDITS && window.BURG_LIEUXDITS.ld ? window.BURG_LIEUXDITS : null, gLd = null;
@@ -746,16 +746,27 @@ function topoD(flat, close){
   }
   return close ? d + "Z" : d;
 }
+const topoTiled = (list, close, cls, g, attrs = {}) => {
+  const TILE = 1500 * GS, tiles = new Map();
+  list.forEach(f => { const d = topoD(f, close), m = /^M(-?[\d.]+) (-?[\d.]+)/.exec(d); if(!m) return;
+    const k = Math.floor(m[1]/TILE) + "," + Math.floor(m[2]/TILE); tiles.set(k, (tiles.get(k) || "") + d); });
+  tiles.forEach(d => el("path", {class:cls, d, ...attrs}, g));
+};
+// buildings: ~400 KB gzipped and only shown zoomed right in (lod-near), so fetched the first time the map gets there
+let gTopoTown = null, BLD = window.BURG_TOPO_BLD || null;
+const BLD_V = 1;
+function drawBld(){ if(BLD && gTopoTown && !gTopoTown.querySelector(".t-bld")) topoTiled(BLD, true, "t-bld", gTopoTown); }
+function loadBld(){
+  if(BLD || loadBld.started) return; loadBld.started = true;
+  const sc = document.createElement("script"); sc.src = "burgundy-topo-bld.js?v=" + BLD_V;
+  sc.onload = () => { BLD = window.BURG_TOPO_BLD || null; drawBld(); };
+  sc.onerror = () => { loadBld.started = false; }; // try again on the next zoom
+  document.body.appendChild(sc);
+}
 function drawTopo(gUnder, gHill, gRoad, gTown, gNames){
   const T = TOPO;
   // big layers go in tiles (~1.5 km), one path each, so the browser skips everything off-screen when it redraws
-  const TILE = 1500 * GS;
-  const tiled = (list, close, cls, g, attrs = {}) => {
-    const tiles = new Map();
-    list.forEach(f => { const d = topoD(f, close), m = /^M(-?[\d.]+) (-?[\d.]+)/.exec(d); if(!m) return;
-      const k = Math.floor(m[1]/TILE) + "," + Math.floor(m[2]/TILE); tiles.set(k, (tiles.get(k) || "") + d); });
-    tiles.forEach(d => el("path", {class:cls, d, ...attrs}, g));
-  };
+  const tiled = topoTiled;
   tiled(T.woods, true, "t-wood", gUnder, {"fill-rule":"evenodd"});
   tiled(T.vines, true, "t-vine", gUnder);
   // contours over the vineyards, faint; every 25 m a little stronger
@@ -771,7 +782,7 @@ function drawTopo(gUnder, gHill, gRoad, gTown, gNames){
   [[3,"t-r3"],[2,"t-r2"],[1,"t-r1"]].forEach(([k,c]) => tiled(rd(k), false, "t-fill "+c, gRoad));
   const rail = T.rail.map(f => topoD(f)).join("");
   el("path", {class:"t-rail", d:rail}, gRoad); el("path", {class:"t-rail2", d:rail}, gRoad);
-  tiled(T.bld, true, "t-bld", gTown);
+  gTopoTown = gTown; drawBld(); // the buildings, if they're in (burgundy-topo-bld.js, loaded on the first close zoom)
   // names: villages and hamlets, streams and woods, and the lieux-dits — except where a climat of the same name is drawn
   T.names.forEach(([k, n, x0, y0]) => {
     const [x, y] = FWD([x0, y0]);
@@ -805,6 +816,7 @@ function topoLod(k){
   if(!TOPO || st.mode!=="geo" || !gTopoNames) return;
   const mpp = 1/(GS*k); // metres per screen pixel
   svg.classList.toggle("lod-mid", mpp < 9); svg.classList.toggle("lod-near", mpp < 3.2); svg.classList.toggle("lod-close", mpp < 1.4);
+  if(mpp < 3.2) loadBld();
   gTopoNames.setAttribute("font-size", (11/k).toFixed(2));
 }
 /* ---------- map furniture: contours, roads, villages, landmarks ---------- */
@@ -921,9 +933,13 @@ function paint(){
 /* ---------- view: pan / zoom ---------- */
 let vb = {x:0, y:0, w:W, h:H};
 const minW = 7*S;
+const aspect = () => svg.clientHeight / Math.max(1, svg.clientWidth);
+const clampW = w => Math.max(minW, Math.min(w, Math.max(W, H/aspect())*1.02)); // closest and furthest zoom
 function clampVB(v){
-  const ar = svg.clientHeight / Math.max(1, svg.clientWidth);
-  v.w = Math.max(minW, Math.min(v.w, Math.max(W, H/ar)*1.02)); v.h = v.w*ar;
+  const ar = aspect(), w = clampW(v.w);
+  // a box asked for closer (or further) than the map goes: the same middle, at the limit
+  if(w !== v.w){ const cx = v.x + v.w/2, cy = v.y + (v.h || v.w*ar)/2; v.x = cx - w/2; v.y = cy - w*ar/2; }
+  v.w = w; v.h = v.w*ar;
   const mx = v.w*.35, my = v.h*.35;
   v.x = Math.max(-mx, Math.min(v.x, W - v.w + mx));
   v.y = Math.max(-my, Math.min(v.y, H - v.h + my));
@@ -992,15 +1008,20 @@ function ensureVisible(c){
   }
 }
 const boxOfGrid = (x0,y0,x1,y1) => { const xs=[px(x0,y0),px(x1,y0),px(x0,y1),px(x1,y1)]; return [Math.min(...xs), py(y0), Math.max(...xs), py(y1)]; };
+// the view zoomed to width w with the map point (cx, cy) kept where it is on screen. The width is held to the closest
+// and furthest zoom first: worked out after, at the limit the map would slide sideways instead of standing still
+function zoomBox(w, cx, cy){ const k = clampW(w)/vb.w; return {x: cx-(cx-vb.x)*k, y: cy-(cy-vb.y)*k, w: vb.w*k, h: vb.h*k}; }
 function zoomAt(f, cx, cy){ // cx/cy in svg units
-  const w = vb.w*f; const k = w/vb.w;
-  setVBLive({x: cx-(cx-vb.x)*k, y: cy-(cy-vb.y)*k, w, h: vb.h*k});
+  if(clampW(vb.w*f) === vb.w) return; // already as far in (or out) as it goes
+  setVBLive(zoomBox(vb.w*f, cx, cy));
 }
 function clientToSvg(ex, ey){ const r = baseRect(); return [vb.x + (ex-r.left)/r.width*vb.w, vb.y + (ey-r.top)/r.height*vb.h]; }
 svg.addEventListener("wheel", ev => {
   ev.preventDefault();
   const [cx,cy] = clientToSvg(ev.clientX, ev.clientY);
-  zoomAt(Math.exp((ev.deltaMode===1 ? ev.deltaY*16 : ev.deltaY) * .0016), cx, cy);
+  // a mouse wheel's notch is ~100; a trackpad pinch arrives as small ctrl+wheel steps, so those count for more
+  const dy = ev.deltaMode===1 ? ev.deltaY*16 : ev.deltaY;
+  zoomAt(Math.exp(Math.max(-1, Math.min(1, dy * (ev.ctrlKey ? .01 : .0016)))), cx, cy);
 }, {passive:false});
 /* ---------- touch and mouse: drag with momentum, pinch that follows the fingers, double-tap zoom ----------
    Like a phone map: a flick keeps gliding and slows down; a pinch keeps the point under your fingers under them
@@ -1026,7 +1047,7 @@ svg.addEventListener("pointermove", ev => {
   ptrs.set(ev.pointerId, [ev.clientX, ev.clientY]);
   if(ptrs.size===2 && pinch0){
     const [a, b] = [...ptrs.values()], d = Math.max(20, Math.hypot(a[0]-b[0], a[1]-b[1])), r = pinch0.r;
-    const mx = (a[0]+b[0])/2, my = (a[1]+b[1])/2, w = pinch0.w * pinch0.d / d, [cx, cy] = pinch0.c;
+    const mx = (a[0]+b[0])/2, my = (a[1]+b[1])/2, w = clampW(pinch0.w * pinch0.d / d), [cx, cy] = pinch0.c;
     if(Math.abs(d/pinch0.d - 1) > .06 || Math.hypot(mx - pinch0.m[0], my - pinch0.m[1]) > 8) pinch0.moved = true;
     // the map point that was under the fingers' midpoint stays under it, wherever the midpoint goes
     setVBLive({x: cx - (mx - r.left)/r.width*w, y: cy - (my - r.top)/r.height*w*ratio(), w, h: w*ratio()}); dragMoved = true;
@@ -1086,7 +1107,7 @@ const up = ev => {
       const now = performance.now();
       if(lastTap && now - lastTap[0] < 320 && Math.hypot(ev.clientX - lastTap[1], ev.clientY - lastTap[2]) < 32){
         const [cx, cy] = clientToSvg(ev.clientX, ev.clientY); lastTap = null; noDbl = now;
-        flyTo({x:cx-(cx-vb.x)/2, y:cy-(cy-vb.y)/2, w:vb.w/2, h:vb.h/2}, 260);
+        flyTo(zoomBox(vb.w/2, cx, cy), 260);
       } else lastTap = [now, ev.clientX, ev.clientY];
     }
     down0 = null; setTimeout(()=>{ dragMoved=false; }, 0);
@@ -1094,7 +1115,7 @@ const up = ev => {
 };
 svg.addEventListener("pointerup", up); svg.addEventListener("pointercancel", up);
 // mouse double-click (touch double-taps are handled above; some browsers send a dblclick after them too)
-svg.addEventListener("dblclick", ev => { if(performance.now() - noDbl < 600) return; const [cx,cy]=clientToSvg(ev.clientX, ev.clientY); flyTo({x:cx-(cx-vb.x)/2, y:cy-(cy-vb.y)/2, w:vb.w/2, h:vb.h/2}, 260); });
+svg.addEventListener("dblclick", ev => { if(performance.now() - noDbl < 600) return; const [cx,cy]=clientToSvg(ev.clientX, ev.clientY); flyTo(zoomBox(vb.w/2, cx, cy), 260); });
 // Safari's own page pinch would fight the map's
 ["gesturestart", "gesturechange"].forEach(t => $("mapcard").addEventListener(t, e => e.preventDefault()));
 $("zIn").onclick = () => zoomAt(1/1.6, vb.x+vb.w/2, vb.y+vb.h/2);

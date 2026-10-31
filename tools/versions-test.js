@@ -12,8 +12,10 @@ const seen = {}; // file → { version: [where] }
 const note = (file, v, where) => { ((seen[file] ??= {})[v] ??= []).push(where); };
 for (const page of ["index.html", "burgundy.html", "domaine.html", "privacy.html", "atlas.html"]) {
   for (const m of read(page).matchAll(/<script src="([\w./-]+\.js)\?v=(\d+)"/g)) note(m[1], m[2], page);
+  // a page's texts in each language, loaded by i18n.js from <meta name="i18n-extra">
+  for (const m of read(page).matchAll(/<meta name="i18n-extra" content="([^"]*)"/g)) for (const f of m[1].split(/\s+/)) { const x = f.match(/^([\w./-]+\.js)\?v=(\d+)$/); if (x) note(x[1], x[2], page); }
 }
-for (const js of ["burgundy.js", "atlas.js"]) for (const m of read(js).matchAll(/"([\w.-]+\.js)\?v=(\d+)"/g)) note(m[1], m[2], js);
+for (const js of ["burgundy.js", "atlas.js", "i18n.js"]) for (const m of read(js).matchAll(/"([\w.-]+\.js)\?v=(\d+)"/g)) note(m[1], m[2], js);
 for (const [file, vs] of Object.entries(seen)) {
   const keys = Object.keys(vs);
   check(`${file} is asked for at one version everywhere`, keys.length === 1, keys.map(k => `v${k} in ${vs[k].join(", ")}`).join(" · "));
@@ -31,9 +33,10 @@ check("the vault runs the Code.gs of the current API_VERSION", api && api === en
   if (base) { // main against the files as they are on disk (committed or not)
     const at = (f, rev) => { try { return run(`git show ${rev}:${f}`); } catch (e) { return null; } }; // untrimmed: compared byte for byte
     const was = {}; // file → version main asks for
-    for (const page of ["index.html", "burgundy.html", "domaine.html", "privacy.html", "atlas.html", "burgundy.js", "atlas.js"]) {
+    for (const page of ["index.html", "burgundy.html", "domaine.html", "privacy.html", "atlas.html", "burgundy.js", "atlas.js", "i18n.js"]) {
       const txt = at(page, base); if (!txt) continue;
       for (const m of txt.matchAll(/["=]([\w./-]+\.js)\?v=(\d+)"/g)) was[m[1]] = m[2];
+      for (const m of txt.matchAll(/[" ]([\w./-]+\.js)\?v=(\d+)(?=[ "])/g)) was[m[1]] = m[2]; // the i18n-extra lists
     }
     const stale = Object.entries(seen).filter(([file, vs]) => { const v = Object.keys(vs)[0]; if (!was[file] || was[file] !== v) return false;
       const a = at(file, base), b = fs.existsSync(path.join(R, file)) ? read(file) : null; return a !== null && b !== null && a !== b; }).map(([f, vs]) => `${f} (still v${Object.keys(vs)[0]})`);

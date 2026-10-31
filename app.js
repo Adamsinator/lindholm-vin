@@ -1435,7 +1435,18 @@ function forgetAuth(){
   WINES=[]; JENTRIES=null; WITEMS=null; KEEP_OPEN=null; FEED=null; FEED_USERS=[]; FEED_FOLLOWS=[]; FEED_VIEW="all"; FEED_OPEN.clear();
   const b=$("feedBadge"); if(b) b.hidden=true;
 }
-function enterApp(){ $("gate").hidden = true; $("app").hidden = false; markActive(); loadData(); route(); }
+function enterApp(){ $("gate").hidden = true; $("app").hidden = false; markActive(); loadData(); route(); recReminder(); }
+// every four months or so (not on the first visit: sign-up showed the code), ask whether the recovery code is still at
+// hand; "Make a new one" opens Account, where the password makes a fresh code
+const REC_EVERY = 120 * 864e5;
+function recReminder(){
+  if(localStorage.getItem("vinVault")!=="1" || !cfg.user) return;
+  const k = "vinRecChk:" + cfg.user.toLowerCase(), last = Number(localStorage.getItem(k)) || 0;
+  if(!last){ localStorage.setItem(k, Date.now()); return; }
+  $("recNote").hidden = Date.now() - last < REC_EVERY;
+}
+$("recHave").addEventListener("click", () => { localStorage.setItem("vinRecChk:" + cfg.user.toLowerCase(), Date.now()); $("recNote").hidden = true; });
+$("recNew").addEventListener("click", () => { $("acctBtn").click(); $("acctErr").textContent = tr("Enter your password, then choose New recovery code."); });
 
 $("gateToggle").addEventListener("click", ()=> setGateMode(GATE_MODE==="login" ? "signup" : "login"));
 $("gateForgot").addEventListener("click", ()=> setGateMode("recover"));
@@ -1591,6 +1602,7 @@ $("acctRec").addEventListener("click", async ()=>{
   $("acctErr").textContent = tr("Making a new code…");
   try{ const code = await VAULT.newRecovery({post, user:cfg.user, token:cfg.token, pass});
     $("acctModal").classList.remove("open"); await showRecoveryCode(code); toast(tr("New recovery code saved; the old one no longer works."));
+    localStorage.setItem("vinRecChk:" + cfg.user.toLowerCase(), Date.now()); $("recNote").hidden = true;
   }catch(err){ $("acctErr").textContent = authMsg(String(err.message).replace(/^Error: /,"")); }
 });
 
@@ -4084,7 +4096,7 @@ if(cfg.api && cfg.user && cfg.token && sessionFresh && localStorage.getItem("vin
   (async ()=>{
     const dek = window.VCRYPTO ? await VCRYPTO.recall(cfg.user) : null;
     try{ if(!dek) throw new Error("no-key"); await VAULT.start({post, user:cfg.user, token:cfg.token, dek, ...VAULT_HOOKS});
-      $("acctBtn").hidden = false; $("app").hidden=false; loadData(); route(); }
+      $("acctBtn").hidden = false; $("app").hidden=false; loadData(); route(); recReminder(); }
     catch(err){ forgetAuth(); setGateMode("login"); showGate(tr("Log in again to unlock your cellar.")); }
   })();
 }else if(cfg.api && cfg.user && cfg.token && sessionFresh){

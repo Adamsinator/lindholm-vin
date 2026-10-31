@@ -70,6 +70,24 @@ are done (see "Limits against abuse" in the README). Tick a box when an item shi
   - [ ] `'unsafe-eval'` stays while the encrypted cellar runs `Code.gs` through `new Function`. Removing it would
         mean running the engine in a Web Worker from a `.js` copy of `Code.gs`.
 - [x] Confirm **Enforce HTTPS** is ticked under the repository's Settings → Pages: done 27 October 2026.
+- [x] **Clickjacking, in the page:** `i18n.js` leaves another site's frame, or shows nothing where a sandbox forbids
+      that (checked by `tools/csp-ui-test.js`). GitHub Pages can't send `X-Frame-Options` or CSP `frame-ancestors`,
+      and a `<meta>` CSP can't carry `frame-ancestors`.
+- [ ] **Optional: real security headers through Cloudflare** (the Worker is there already). It needs the DNS for
+      allwine.dk to move to Cloudflare, so it's the owner's call. Steps:
+  1. Cloudflare dashboard → Add a site → `allwine.dk` (Free plan). It reads the current DNS records: check every one
+     is there before going on (GitHub Pages' four A records `185.199.108.153`–`185.199.111.153`, the `www` CNAME to
+     `adamsinator.github.io`, and any mail (MX) or verification (TXT) records).
+  2. At the domain's registrar, change the nameservers to the two Cloudflare shows. Wait for "Active".
+  3. DNS: the A records and `www` proxied (orange cloud). SSL/TLS → mode **Full**.
+  4. Rules → Transform Rules → Modify Response Header, for all requests, set:
+     `X-Frame-Options: DENY` · `Content-Security-Policy: frame-ancestors 'none'` ·
+     `Strict-Transport-Security: max-age=31536000` · `X-Content-Type-Options: nosniff` ·
+     `Referrer-Policy: strict-origin-when-cross-origin` · `Permissions-Policy: camera=(), microphone=(), geolocation=(self)`
+     (geolocation stays for the atlas's "Where am I?").
+  5. Check: `curl -sI https://allwine.dk/ | grep -i -E "x-frame|frame-ancestors|strict-transport"`, then that the
+     site, the atlas and a login still work, and that GitHub → Settings → Pages still shows the certificate as fine.
+     To undo, set the records back to DNS only (grey cloud).
 - [x] `rel="noopener"` on every `target="_blank"` link (all of them had it).
 - [x] `<meta name="referrer" content="strict-origin-when-cross-origin">`.
 

@@ -21,6 +21,11 @@ const GERMAN = ["mosel", "nahe", "pfalz", "rheinhessen", "mittelrhein", "ahr"];
 for (const id of PACKS) require(path.join(R, `atlas-${id}.js`));
 // measured terrain for the French packs (tools/region-dem.js), where it's been built
 for (const id of PACKS) { const f = path.join(R, `atlas-${id}-dem.js`); if (fs.existsSync(f)) require(f); }
+// geology (BRGM 1:50 000): the Côte d'Or's (tools/geol-import.js) and the French packs' (tools/region-geol.js)
+require(path.join(R, "burgundy-geol.js"));
+for (const id of PACKS) { const f = path.join(R, `atlas-${id}-geol.js`); if (fs.existsSync(f)) require(f); }
+// the two main formations under a vineyard: [notation, BRGM's description, share %]
+const geolOf = (G, id) => G && G.under[id] ? G.under[id].slice(0, 2).map(([k, p]) => [G.legend[k][0], G.legend[k][1], p]) : null;
 require(path.join(R, "piemonte-mga.js")); // Barolo and Barbaresco: names and rules, no outlines (tools/mga-build.js)
 const MGA = window.PIEMONTE_MGA;
 
@@ -37,6 +42,7 @@ const T = {
     hubTitle: "Vineyard atlas: every grand cru and premier cru", hubDesc: "Every grand cru and premier cru of Burgundy (the Côte d'Or, Chablis, the Côte Chalonnaise, the Mâconnais), the grands crus of Alsace, Champagne's cru villages, the crus of the Rhône, the Beaujolais and the Loire, Bordeaux's appellations and 1855 châteaux, and the Einzellagen of the Mosel, Nahe, Pfalz, Rheinhessen, Mittelrhein and Ahr, drawn from the official maps, with altitude, slope and owners.",
     hubLead: "Every named vineyard on AllWine's atlases, drawn from INAO's delimitation. Open any of them on the interactive map, or match your own bottles to them.",
     source: "Outlines: INAO, Délimitation parcellaire des AOC viticoles (Licence Ouverte). Altitude and slope: IGN RGE ALTI®. Owners: published sources, rounded.",
+    geology: "Geology", inFrench: "(BRGM, in French)", sourceGeol: "Geology: BRGM, BD Charm-50 (Licence Ouverte).",
     sourceDem: "Altitude and slope: IGN RGE ALTI® (Licence Ouverte).",
     sourceDemDe: "Altitude and slope: DGM1, ©GeoBasis-DE / LVermGeoRP, dl-de/by-2-0 [data edited].",
     sourcePack: "Outlines: INAO, Délimitation parcellaire des AOC viticoles, via IGN's Géoplateforme (Licence Ouverte).",
@@ -62,6 +68,7 @@ const T = {
     hubTitle: "Atlas des climats : tous les grands crus et premiers crus", hubDesc: "Tous les grands crus et premiers crus de Bourgogne (Côte-d'Or, Chablis, Côte chalonnaise, Mâconnais), les grands crus d'Alsace, les villages crus de Champagne, les crus du Rhône, du Beaujolais et de la Loire, les appellations et châteaux classés de Bordeaux et les Einzellagen de Moselle, Nahe, Palatinat, Hesse rhénane, Rhin moyen et Ahr, d'après les cartes officielles, avec altitude, pente et propriétaires.",
     hubLead: "Tous les climats nommés des atlas d'AllWine, d'après la délimitation de l'INAO. Ouvrez-les sur la carte interactive ou rattachez-y vos propres bouteilles.",
     source: "Contours : INAO, Délimitation parcellaire des AOC viticoles (Licence Ouverte). Altitude et pente : IGN RGE ALTI®. Propriétaires : sources publiées, arrondies.",
+    geology: "Géologie", inFrench: "", sourceGeol: "Géologie : BRGM, BD Charm-50 (Licence Ouverte).",
     sourceDem: "Altitude et pente : IGN RGE ALTI® (Licence Ouverte).",
     sourceDemDe: "Altitude et pente : DGM1, ©GeoBasis-DE / LVermGeoRP, dl-de/by-2-0 [données modifiées].",
     sourcePack: "Contours : INAO, Délimitation parcellaire des AOC viticoles, via la Géoplateforme de l'IGN (Licence Ouverte).",
@@ -87,6 +94,7 @@ const T = {
     hubTitle: "Lagenatlas: alle Grands Crus und Premiers Crus", hubDesc: "Alle Grands Crus und Premiers Crus Burgunds (Côte d'Or, Chablis, Côte Chalonnaise, Mâconnais), die Grands Crus des Elsass, die Cru-Dörfer der Champagne, die Crus der Rhône, des Beaujolais und der Loire, Bordeaux' Appellationen und Châteaux von 1855 sowie die Einzellagen von Mosel, Nahe, Pfalz, Rheinhessen, Mittelrhein und Ahr, nach den amtlichen Karten, mit Höhe, Hangneigung und Besitzern.",
     hubLead: "Alle benannten Lagen der AllWine-Atlanten, nach der Abgrenzung des INAO. Öffnen Sie jede auf der interaktiven Karte oder ordnen Sie ihr Ihre eigenen Flaschen zu.",
     source: "Umrisse: INAO, Délimitation parcellaire des AOC viticoles (Licence Ouverte). Höhe und Neigung: IGN RGE ALTI®. Besitzer: veröffentlichte Quellen, gerundet.",
+    geology: "Geologie", inFrench: "(BRGM, auf Französisch)", sourceGeol: "Geologie: BRGM, BD Charm-50 (Licence Ouverte).",
     sourceDem: "Höhe und Neigung: IGN RGE ALTI® (Licence Ouverte).",
     sourceDemDe: "Höhe und Neigung: DGM1, ©GeoBasis-DE / LVermGeoRP, dl-de/by-2-0 [Daten bearbeitet].",
     sourcePack: "Umrisse: INAO, Délimitation parcellaire des AOC viticoles, über die Géoplateforme des IGN (Licence Ouverte).",
@@ -112,6 +120,7 @@ const T = {
     hubTitle: "Vinmarksatlas: alle grands crus og premiers crus", hubDesc: "Alle grands crus og premiers crus i Bourgogne (Côte d'Or, Chablis, Côte Chalonnaise, Mâconnais), Alsaces grands crus, Champagnes cru-landsbyer, Rhônes, Beaujolais' og Loires crus, Bordeaux' appellationer og 1855-slotte samt Einzellagen i Mosel, Nahe, Pfalz, Rheinhessen, Mittelrhein og Ahr, tegnet efter de officielle kort, med højde, hældning og ejere.",
     hubLead: "Alle navngivne vinmarker på AllWines atlas, tegnet efter INAO's afgrænsning. Åbn dem på det interaktive kort, eller knyt dine egne flasker til dem.",
     source: "Omrids: INAO, Délimitation parcellaire des AOC viticoles (Licence Ouverte). Højde og hældning: IGN RGE ALTI®. Ejere: offentliggjorte kilder, afrundet.",
+    geology: "Geologi", inFrench: "(BRGM, på fransk)", sourceGeol: "Geologi: BRGM, BD Charm-50 (Licence Ouverte).",
     sourceDem: "Højde og hældning: IGN RGE ALTI® (Licence Ouverte).",
     sourceDemDe: "Højde og hældning: DGM1, ©GeoBasis-DE / LVermGeoRP, dl-de/by-2-0 [data bearbejdet].",
     sourcePack: "Omrids: INAO, Délimitation parcellaire des AOC viticoles, via IGN's Géoplateforme (Licence Ouverte).",
@@ -210,7 +219,7 @@ const burgApp = c => { // the name on the label: appellation(c) in burgundy.js
 for (const c of B.climats) {
   const mp = G.climats[c.id] || (c.in && G.climats[c.in]); if (!mp) continue;
   ALL.push({ set: "burgundy", id: c.id, n: c.n, c: c.c, col: c.col, ha: c.ha, app: burgApp(c), commune: VIL[c.v].n, group: c.v,
-    mp, own: !!G.climats[c.id], dem: DEM[c.id], soil: c.detail && c.detail.soil, owners: c.p || [],
+    mp, own: !!G.climats[c.id], dem: DEM[c.id], geol: geolOf(window.BURG_GEOL, c.id), soil: c.detail && c.detail.soil, owners: c.p || [],
     note: { en: c.d, fr: I.fr.climats[c.id], de: I.de.climats[c.id], da: I.da.climats[c.id] },
     soilT: { fr: I.fr.detail?.[c.id]?.soil, de: I.de.detail?.[c.id]?.soil, da: I.da.detail?.[c.id]?.soil },
     map: `burgundy.html?lang={L}#c=${c.id}` });
@@ -219,7 +228,7 @@ for (const [id, x] of Object.entries(G.extra)) {
   if (!VIL[x.v] || CL[id]) continue;
   const c = { id, n: x.n, v: x.v, c: x.c, ap: x.ap, in: x.in };
   ALL.push({ set: "burgundy", id, n: x.n, c: x.c, col: "", ha: x.ha, app: burgApp(c), commune: x.ap && x.c === "1er" ? x.ap : VIL[x.v].n, group: x.v,
-    mp: x.mp, own: true, dem: DEM[id], owners: (X.holdings[id] || []).map(([k, h, kind]) => [k, h, kind || ""]),
+    mp: x.mp, own: true, dem: DEM[id], geol: geolOf(window.BURG_GEOL, id), owners: (X.holdings[id] || []).map(([k, h, kind]) => [k, h, kind || ""]),
     note: { en: X.notes[id] }, soilT: {}, map: `burgundy.html?lang={L}#c=${id}` });
 }
 for (const pid of PACKS) {
@@ -235,7 +244,7 @@ for (const pid of PACKS) {
     const el = c.c === "EL";
     ALL.push({ set: pid, id: c.id, n: el ? c.ap : c.n, c: c.c, col: c.col, ha: el && !c.reg ? 0 : c.ha, haMap: c.haMap, app: el ? (c.gl ? "Großlage " + c.gl : "") : c.ap,
       commune, gm: c.gm, group: c.area || commune, vines: !!c.area && !el, rolle: el,
-      mp: c.g.map(poly => poly.map(r => r.map(([x, y]) => [x, -y]))), own: true, dem: PDEM[c.id], inferred: !!c.inferred, note: c.d || {}, soilT: {}, owners: [],
+      mp: c.g.map(poly => poly.map(r => r.map(([x, y]) => [x, -y]))), own: true, dem: PDEM[c.id], geol: geolOf((window.ATLAS_GEOL || {})[pid], c.id), inferred: !!c.inferred, note: c.d || {}, soilT: {}, owners: [],
       ll: toLL, map: `atlas.html?lang={L}#r=${pid}&c=${encodeURIComponent(c.id)}` });
   }
   // classified châteaux (Bordeaux's 1855) that have a place on IGN's map: a page each, drawn as a point
@@ -390,6 +399,8 @@ function page(v, L) {
     // a big appellation's samples are hundreds of metres apart (its 8th field, over 120 m): there the slope says little about a vineyard
     if (!(v.dem[7] > 120)) { facts.push([t.slope, `${Math.round(sl)} %`]); if (cons >= 40 && sl >= 2) facts.push([t.faces, dir8(asp, L)]); }
   }
+  // geology: BRGM's own words, which are French (said so in the other languages)
+  if (v.geol) facts.push([t.geology, v.geol.map(([n, d, p]) => `${n ? n + " " : ""}${d} (${p} %)`).join("; ") + (L === "fr" ? "" : " " + t.inFrench)]);
   const note = L === "en" ? v.note.en : v.note[L], soil = L === "en" ? v.soil : v.soilT[L];
   const owners = [...v.owners].filter(([k]) => PROD[k]).sort((a, b) => (a[2] === "s") - (b[2] === "s") || (b[1] ?? -1) - (a[1] ?? -1));
   const nb = nearest(v), peers = SET[v.set].filter(o => o.group === v.group && o.c === v.c);
@@ -406,7 +417,7 @@ ${note ? `<p>${esc(note)}</p>\n` : ""}${oneOf ? `<p>${esc(oneOf)}</p>\n` : ""}${
 <h2>${v.nogeo ? fmt(t.otherMga, v.docg.name) : t.nearby}</h2>
 <ul class="links">${nb.map(o => `<li><a href="${o.slug}.html">${esc(o.n)}</a>${o.nogeo ? "" : ` <small>${esc([o.label || clsOf(o, t), o.commune].filter(Boolean).join(" · "))}</small>`}</li>`).join("")}</ul>
 ` + foot(L, (v.nogeo ? t.sourceMga : v.set === "burgundy" ? t.source : v.rolle ? t.sourceRolle : v.vines ? t.sourceVines : v.point ? t.sourcePt : t.sourcePack)
-  + (v.dem && v.set !== "burgundy" ? " " + (v.rolle ? t.sourceDemDe : t.sourceDem) : ""));
+  + (v.dem && v.set !== "burgundy" ? " " + (v.rolle ? t.sourceDemDe : t.sourceDem) : "") + (v.geol ? " " + t.sourceGeol : ""));
 }
 
 function hub(L) {
