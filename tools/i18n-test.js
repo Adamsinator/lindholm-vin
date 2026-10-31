@@ -8,10 +8,11 @@ const R = f => path.join(__dirname, "..", f);
 const results = []; const check = (name, ok, extra = "") => { results.push(ok); console.log((ok ? "PASS " : "FAIL ") + name + (ok ? "" : "  " + extra)); };
 const ph = s => (String(s).match(/\{\d\}/g) || []).sort().join();
 
-// UI: the dictionaries are plain object literals in i18n.js
+// UI: one dictionary file per language (i18n-da.js…), loaded by i18n.js
 const src = fs.readFileSync(R("i18n.js"), "utf8");
-const dict = n => { const a = src.indexOf("const " + n + " = {"); const b = src.indexOf("\n};", a); return eval("(" + src.slice(src.indexOf("{", a), b + 2) + ")"); };
-const D = { da: dict("DA"), de: dict("DE"), fr: dict("FR") };
+const dict = l => { const w = {}; new Function("window", fs.readFileSync(R(`i18n-${l}.js`), "utf8"))(w); return w.I18N_DICT[l]; };
+const D = { da: dict("da"), de: dict("de"), fr: dict("fr") };
+check("i18n.js names each dictionary file", ["da", "fr", "de"].every(l => new RegExp(`${l}: "i18n-${l}\\.js\\?v=\\d+"`).test(src)));
 const all = new Set(Object.values(D).flatMap(Object.keys));
 for (const [l, d] of Object.entries(D)) {
   const missing = [...all].filter(k => !(k in d));

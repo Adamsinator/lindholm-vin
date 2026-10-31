@@ -79,6 +79,12 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   await p.goto(BASE + "burgundy.html"); await p.waitForTimeout(6000);
   check("the atlas shows the encrypted cellar's bottles", await p.isVisible("#cellarChip"));
   await p.goto(BASE); await p.waitForTimeout(2500);
+  // the recovery-code reminder: not on a recent account, but four months on, with "I have it" putting it away again
+  check("no recovery-code reminder on a new account", await p.isHidden("#recNote"));
+  await p.evaluate(() => localStorage.setItem("vinRecChk:anna", Date.now() - 130 * 864e5)); await p.reload(); await p.waitForTimeout(2500);
+  check("…four months on it asks whether the code is still at hand", await p.isVisible("#recNote"));
+  await p.click("#recHave");
+  check("…and 'I have it' puts it away for another four months", await p.isHidden("#recNote") && await p.evaluate(() => Date.now() - Number(localStorage.getItem("vinRecChk:anna")) < 60000));
 
   // change password
   await p.click("#acctBtn"); await p.fill("#acctPass", "anna-pass-1"); await p.fill("#acctNew", "anna-pass-2"); await p.fill("#acctNew2", "anna-pass-2");

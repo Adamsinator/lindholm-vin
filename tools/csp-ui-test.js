@@ -89,6 +89,19 @@ const BLANK = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQ
   check("requests go to config.js's API, not an address saved in the browser", !apiHosts.has("script.google.com") && [...apiHosts].some(h => /workers\.dev$/.test(h)), [...apiHosts].join(", "));
   const real = errs.filter(e => !/example\.com/.test(e)); // the blocked fetch above is this test's own
   check("no console errors", !real.length, real.join(" | "));
+
+  // ── clickjacking: a page framed by another site leaves the frame, or shows nothing where a sandbox won't let it ──
+  const fctx = await b.newContext(), fr = await fctx.newPage();
+  await fr.setContent(`<iframe src="${BASE}atlas.html" width="600" height="400"></iframe>`); await fr.waitForTimeout(2500);
+  // (Chrome won't let a cross-origin frame move the window without a click, so there it's the hiding that happens)
+  const fa = fr.frames().find(f => /atlas\.html$/.test(f.url()));
+  const left = /\/atlas\.html$/.test(fr.url()), hidden = !!fa && await fa.evaluate(() => document.documentElement.style.display === "none");
+  check("framed by another page, the atlas takes over the window or shows nothing", left || hidden, fr.url());
+  const sb = await fctx.newPage();
+  await sb.setContent(`<iframe sandbox="allow-scripts allow-same-origin" src="${BASE}index.html" width="600" height="400"></iframe>`); await sb.waitForTimeout(2500);
+  const inner = sb.frames().find(f => /index\.html$/.test(f.url()));
+  check("…and in a sandbox that forbids that, the cellar page shows nothing", inner && await inner.evaluate(() => document.documentElement.style.display === "none"), inner ? inner.url() : "no frame");
+  await fctx.close();
   await b.close();
   const n = results.filter(Boolean).length; console.log(`\n${n}/${results.length} passed`); process.exit(n === results.length ? 0 : 1);
 })().catch(e => { console.error(e); process.exit(1); });

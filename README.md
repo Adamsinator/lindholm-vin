@@ -878,10 +878,13 @@ its site's own data and technical sheets. The 7 still unconfirmed are in `tools/
 
 ## Languages
 
-- **Interface:** `i18n.js` holds the interface strings in English, Danish, German and French and draws the flag
-  picker (front page and atlas header); the choice is remembered per browser.
+- **Interface:** `i18n.js` draws the flag picker (front page and atlas header) and translates; the choice is
+  remembered per browser. The English text is the key, and each language's strings are a file of their own
+  (`i18n-da.js`, `i18n-de.js`, `i18n-fr.js`): a page loads only the one it needs, in line while it is read, so
+  nothing shows in English first, and fetches another when that flag is picked.
 - **Atlas texts:** `burgundy-i18n-da.js`, `-de.js` and `-fr.js` hold translated climat, commune, domaine and soil
-  texts, keyed like the English data. Anything missing falls back to English.
+  texts, keyed like the English data. Anything missing falls back to English. A page names them in
+  `<meta name="i18n-extra">`, and `i18n.js` loads the one for its language along with its own.
 - **Vintage notes:** translated in `data/vintages/vintages-i18n.json`, built into `burgundy-vintages.js` by
   `tools/vintages-build.js`.
 - **Cellar app:** fully translated:

@@ -397,7 +397,7 @@ function loadTopo(){
   document.body.appendChild(sc);
   loadLieux();
 }
-const TOPO_V = 2;
+const TOPO_V = 3;
 // every cadastral lieu-dit on appellation land (burgundy-lieuxdits.js, ~100 KB gzipped): outlines and names when zoomed in,
 // and the list inside each climat's panel. Loaded with the topo, drawn into its own layer without a rebuild.
 let LDX = window.BURG_LIEUXDITS && window.BURG_LIEUXDITS.ld ? window.BURG_LIEUXDITS : null, gLd = null;
@@ -746,16 +746,27 @@ function topoD(flat, close){
   }
   return close ? d + "Z" : d;
 }
+const topoTiled = (list, close, cls, g, attrs = {}) => {
+  const TILE = 1500 * GS, tiles = new Map();
+  list.forEach(f => { const d = topoD(f, close), m = /^M(-?[\d.]+) (-?[\d.]+)/.exec(d); if(!m) return;
+    const k = Math.floor(m[1]/TILE) + "," + Math.floor(m[2]/TILE); tiles.set(k, (tiles.get(k) || "") + d); });
+  tiles.forEach(d => el("path", {class:cls, d, ...attrs}, g));
+};
+// buildings: ~400 KB gzipped and only shown zoomed right in (lod-near), so fetched the first time the map gets there
+let gTopoTown = null, BLD = window.BURG_TOPO_BLD || null;
+const BLD_V = 1;
+function drawBld(){ if(BLD && gTopoTown && !gTopoTown.querySelector(".t-bld")) topoTiled(BLD, true, "t-bld", gTopoTown); }
+function loadBld(){
+  if(BLD || loadBld.started) return; loadBld.started = true;
+  const sc = document.createElement("script"); sc.src = "burgundy-topo-bld.js?v=" + BLD_V;
+  sc.onload = () => { BLD = window.BURG_TOPO_BLD || null; drawBld(); };
+  sc.onerror = () => { loadBld.started = false; }; // try again on the next zoom
+  document.body.appendChild(sc);
+}
 function drawTopo(gUnder, gHill, gRoad, gTown, gNames){
   const T = TOPO;
   // big layers go in tiles (~1.5 km), one path each, so the browser skips everything off-screen when it redraws
-  const TILE = 1500 * GS;
-  const tiled = (list, close, cls, g, attrs = {}) => {
-    const tiles = new Map();
-    list.forEach(f => { const d = topoD(f, close), m = /^M(-?[\d.]+) (-?[\d.]+)/.exec(d); if(!m) return;
-      const k = Math.floor(m[1]/TILE) + "," + Math.floor(m[2]/TILE); tiles.set(k, (tiles.get(k) || "") + d); });
-    tiles.forEach(d => el("path", {class:cls, d, ...attrs}, g));
-  };
+  const tiled = topoTiled;
   tiled(T.woods, true, "t-wood", gUnder, {"fill-rule":"evenodd"});
   tiled(T.vines, true, "t-vine", gUnder);
   // contours over the vineyards, faint; every 25 m a little stronger
@@ -771,7 +782,7 @@ function drawTopo(gUnder, gHill, gRoad, gTown, gNames){
   [[3,"t-r3"],[2,"t-r2"],[1,"t-r1"]].forEach(([k,c]) => tiled(rd(k), false, "t-fill "+c, gRoad));
   const rail = T.rail.map(f => topoD(f)).join("");
   el("path", {class:"t-rail", d:rail}, gRoad); el("path", {class:"t-rail2", d:rail}, gRoad);
-  tiled(T.bld, true, "t-bld", gTown);
+  gTopoTown = gTown; drawBld(); // the buildings, if they're in (burgundy-topo-bld.js, loaded on the first close zoom)
   // names: villages and hamlets, streams and woods, and the lieux-dits — except where a climat of the same name is drawn
   T.names.forEach(([k, n, x0, y0]) => {
     const [x, y] = FWD([x0, y0]);
@@ -805,6 +816,7 @@ function topoLod(k){
   if(!TOPO || st.mode!=="geo" || !gTopoNames) return;
   const mpp = 1/(GS*k); // metres per screen pixel
   svg.classList.toggle("lod-mid", mpp < 9); svg.classList.toggle("lod-near", mpp < 3.2); svg.classList.toggle("lod-close", mpp < 1.4);
+  if(mpp < 3.2) loadBld();
   gTopoNames.setAttribute("font-size", (11/k).toFixed(2));
 }
 /* ---------- map furniture: contours, roads, villages, landmarks ---------- */

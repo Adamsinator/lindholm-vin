@@ -4,7 +4,7 @@
 // else (the cellar app, its API) goes straight to the network as if it weren't here.
 "use strict";
 const DATA = "atlas-data-v1", TILES = "atlas-tiles-v1", MAX_TILES = 800;
-const isAtlas = u => u.origin === location.origin && /\/(burgundy[^/]*\.js|domaine\.js|i18n\.js|atlas(-(?!sw)[^/]*)?\.js|europe-lands\.js|atlas-(preview|hero[^/]*)\.jpg)$/.test(u.pathname);
+const isAtlas = u => u.origin === location.origin && /\/(burgundy[^/]*\.js|domaine\.js|i18n(-[a-z]{2})?\.js|atlas(-(?!sw)[^/]*)?\.js|europe-lands\.js|atlas-(preview|hero[^/]*)\.(jpg|webp))$/.test(u.pathname);
 const isPage = u => u.origin === location.origin && /\/(burgundy|domaine|atlas)\.html$/.test(u.pathname);
 const isTile = u => (u.hostname === "data.geopf.fr" && u.pathname === "/wmts" && /ELEVATION\.ELEVATIONGRIDCOVERAGE\.SHADOW/.test(u.search))
   || (u.hostname === "sgx.geodatenzentrum.de" && /^\/wmts_basemapde_schummerung\/tile\//.test(u.pathname));

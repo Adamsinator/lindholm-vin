@@ -364,6 +364,9 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
 @media (max-width:480px){.expopts{grid-template-columns:1fr}}
 @media (max-width:600px){.impcols{grid-template-columns:minmax(0,1fr) minmax(0,1.2fr)}.impcols .is{display:none}}
 .spin{text-align:center;color:var(--muted);padding:60px 0;font-size:14px}
+/* the recovery-code reminder, under the header */
+.recnote{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;margin:0 0 14px;padding:12px 16px;border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:var(--r);background:var(--card);font-size:14.5px}
+.recnote[hidden]{display:none} .recnote .recbtns{display:flex;gap:8px;flex-wrap:wrap}
 #toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:var(--ink);color:var(--bg);
   padding:9px 16px;border-radius:999px;font-size:13.5px;z-index:120;opacity:0;transition:opacity .2s;pointer-events:none}
 #map{display:block;width:100%;max-width:640px;margin:0 auto;height:auto}
@@ -768,8 +771,11 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
   <main class="landing-grid">
   <div>
     <a class="atlascard" href="atlas.html">
-      <img src="atlas-hero.jpg" srcset="atlas-hero-1000.jpg 1000w, atlas-hero.jpg 2000w" sizes="(max-width: 820px) 100vw, 75vw"
-        alt="The Wine atlas: Vosne-Romanée's grands crus around Romanée-Conti" width="2000" height="1150" fetchpriority="high">
+      <picture><!-- WebP where the browser takes it: a third smaller than the JPEG -->
+        <source type="image/webp" srcset="atlas-hero-1000.webp 1000w, atlas-hero.webp 2000w" sizes="(max-width: 820px) 100vw, 75vw">
+        <img src="atlas-hero.jpg" srcset="atlas-hero-1000.jpg 1000w, atlas-hero.jpg 2000w" sizes="(max-width: 820px) 100vw, 75vw"
+          alt="The Wine atlas: Vosne-Romanée's grands crus around Romanée-Conti" width="2000" height="1150" fetchpriority="high">
+      </picture>
       <span class="credit">INAO · IGN · Etalab</span>
       <div class="ab">
         <h2 data-i18n>Wine atlas</h2>
@@ -851,7 +857,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 <div class="modal" id="acctModal" role="dialog" aria-modal="true" aria-labelledby="acctTitle">
   <form class="card" id="acctForm">
     <h2 id="acctTitle" data-i18n>Account</h2>
-    <p data-i18n>Your cellar, journal, wishlist and journal photos are encrypted in this browser before they're saved. Feed posts are shared as you write them.</p>
+    <p data-i18n>Your cellar, journal, wishlist and journal photos are encrypted in this browser before they're saved.</p>
     <label for="acctPass" data-i18n>Current password</label>
     <input id="acctPass" type="password" autocomplete="current-password">
     <label for="acctNew" data-i18n>New password (to change it)</label>
@@ -885,6 +891,9 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
     </span></div>
 </header>
 
+<!-- now and then: the recovery code is the way back into an encrypted cellar (app.js, recReminder) -->
+<div class="recnote" id="recNote" role="status" hidden><span data-i18n>Do you still have your recovery code? If you forget your password, it's how you get back into your encrypted cellar.</span>
+  <span class="recbtns"><button class="btn" type="button" id="recHave" data-i18n>I have it</button><button class="btn primary" type="button" id="recNew" data-i18n>Make a new one</button></span></div>
 <div class="gbar">
 <nav class="tabs" aria-label="Pages" data-i18n-aria>
   <button class="tab active" data-page="cellar" data-i18n>Cellar</button>
@@ -1535,7 +1544,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 
 <!-- Pages serves these with max-age=600 and no revalidation, so a merged change can
      sit invisible behind a stale app.js for ten minutes. Bump v on every deploy. -->
-<script src="i18n.js?v=60"></script>
+<script src="i18n.js?v=62"></script>
 <script src="notes.js?v=4"></script>
 <script src="notes-i18n.js?v=1"></script>
 <script src="burgundy-data.js?v=13"></script>
@@ -1552,6 +1561,6 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 <script src="import.js?v=5"></script>
 <script src="export.js?v=2"></script>
 <script src="europe-lands.js?v=1"></script>
-<script src="app.js?v=58"></script>
+<script src="app.js?v=59"></script>
 </body>
 </html>
