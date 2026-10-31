@@ -8,7 +8,7 @@ const isAtlas = u => u.origin === location.origin && /\/(burgundy[^/]*\.js|domai
 // every script of the site's own carries a ?v= version (tools/versions-test.js sees to it), as does the vault's copy of Code.gs
 const isVersioned = u => u.origin === location.origin && /\.(js|gs)$/.test(u.pathname) && /(^|[?&])v=\d+/.test(u.search) && !/\/atlas-sw\.js$/.test(u.pathname);
 const isAsset = u => u.origin === location.origin && /\/(manifest\.json|apple-touch-icon\.png|icon-512\.png)$/.test(u.pathname);
-const isPage = u => u.origin === location.origin && /^\/((index|privacy|burgundy|domaine|atlas)\.html)?$/.test(u.pathname);
+const isPage = u => u.origin === location.origin && /^\/((index|privacy|burgundy|domaine|atlas|share)\.html)?$/.test(u.pathname);
 const isTile = u => (u.hostname === "data.geopf.fr" && u.pathname === "/wmts" && /ELEVATION\.ELEVATIONGRIDCOVERAGE\.SHADOW/.test(u.search))
   || (u.hostname === "sgx.geodatenzentrum.de" && /^\/wmts_basemapde_schummerung\/tile\//.test(u.pathname));
 

@@ -175,4 +175,17 @@ const MIN = 60000, HOUR = 60 * MIN, DAY = 24 * HOUR;
   check("with SOCIAL 'on' the feed answers, and says so", f.ok && f.social === true, JSON.stringify(f).slice(0, 120));
 }
 
+// error reports from visitors' browsers (API 44): logged without a session, cleaned of addresses, emails and long numbers
+{
+  const gas = H({ Ark1: [HEAD] }, { settings: { SIGNUP_CODE: "x" } });
+  const r = gas.call({ action: "clienterr", page: "cellar", src: "https://allwine.dk/app.js?v=60#x", line: 1234,
+    msg: "Cannot read 'x' of undefined at https://evil.example/a?b=1 for anna@example.com, card 4111111111111111" });
+  const r2 = gas.call({ action: "clienterr", page: "<script>", src: "../../etc/passwd", line: -5, msg: "boom" });
+  const log = gas.rows("Log").filter(row => row[1] === "client-error").map(row => String(row[3]));
+  check("an error report is logged without a session, as 'client-error'", r.ok && r2.ok && log.length === 2, JSON.stringify(log));
+  check("…with the page, the file name and line, and the message cleaned of addresses, emails and long numbers",
+    log[0] === "cellar app.js:1234 Cannot read 'x' of undefined at <url> for <email> card #", log[0]);
+  check("…and an unknown page or a path in the file name made harmless", log[1] === "other passwd:0 boom", log[1]);
+}
+
 const n = results.filter(Boolean).length; console.log(`\n${n}/${results.length} passed`); process.exit(n === results.length ? 0 : 1);

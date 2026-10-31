@@ -10,6 +10,20 @@
 // not inside another site's frame (clickjacking): GitHub Pages can't send X-Frame-Options or CSP frame-ancestors, so
 // the page leaves the frame for the real address, and where a sandbox won't let it, shows nothing
 if(window.top !== window.self){ try{ window.top.location.replace(location.href); }catch(e){ document.documentElement.style.display = "none"; } }
+// an error in the page is reported (Code.gs logClientError): the page, file and line, and the message, never who or
+// anything from a cellar; each one once, at most three a page, and only on the live site
+(() => {
+  const file = location.pathname.split("/").pop(), page = file === "" || file === "index.html" ? "cellar" : file.replace(/\.html$/, "");
+  const seen = new Set(); let n = 0;
+  const send = (msg, src, line) => {
+    const api = window.WINE_CONFIG && window.WINE_CONFIG.API_URL;
+    if(!api || location.protocol !== "https:" || !msg || msg === "Script error." || !navigator.sendBeacon) return;
+    const k = msg + "|" + src + "|" + line; if(seen.has(k) || ++n > 3) return; seen.add(k);
+    try{ navigator.sendBeacon(api, JSON.stringify({ action: "clienterr", page, src, line, msg: String(msg).slice(0, 200) })); }catch(e){}
+  };
+  addEventListener("error", e => { if(e.message) send(String(e.message), String(e.filename || ""), e.lineno || 0); });
+  addEventListener("unhandledrejection", e => { const r = e.reason || {}; send(String(r.message || r), String(r.stack || "").match(/[\w.-]+\.js/) ? String(r.stack).match(/[\w.-]+\.js/)[0] : "", 0); });
+})();
 const FLAGS = {
   en: `<svg viewBox="0 0 60 30" aria-hidden="true"><clipPath id="fl-uk-a"><path d="M0 0v30h60V0z"/></clipPath><clipPath id="fl-uk-b"><path d="M30 15h30v15zv15H0zH0V0zV0h30z"/></clipPath><g clip-path="url(#fl-uk-a)"><path d="M0 0v30h60V0z" fill="#012169"/><path d="M0 0l60 30m0-30L0 30" stroke="#fff" stroke-width="6"/><path d="M0 0l60 30m0-30L0 30" clip-path="url(#fl-uk-b)" stroke="#C8102E" stroke-width="4"/><path d="M30 0v30M0 15h60" stroke="#fff" stroke-width="10"/><path d="M30 0v30M0 15h60" stroke="#C8102E" stroke-width="6"/></g></svg>`,
   da: `<svg viewBox="0 0 37 28" aria-hidden="true"><path fill="#C8102E" d="M0 0h37v28H0z"/><path fill="#fff" d="M12 0h4v28h-4zM0 12h37v4H0z"/></svg>`,
@@ -18,7 +32,7 @@ const FLAGS = {
 };
 const LANGS = [{id:"en", n:"English"}, {id:"da", n:"Dansk"}, {id:"de", n:"Deutsch"}, {id:"fr", n:"Français"}];
 
-const FILES = {da: "i18n-da.js?v=2", fr: "i18n-fr.js?v=2", de: "i18n-de.js?v=2"};
+const FILES = {da: "i18n-da.js?v=3", fr: "i18n-fr.js?v=3", de: "i18n-de.js?v=3"};
 const DICT = window.I18N_DICT = window.I18N_DICT || {};
 const known = l => l === "en" || !!FILES[l];
 // the page's own files for a language: the meta tag's entry that ends in -<lang>.js

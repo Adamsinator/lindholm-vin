@@ -606,6 +606,23 @@ function renderInsights(cellar){
   const panel = el.closest(".panel"); if(panel) panel.hidden = !items.length;
 }
 
+// The bottles to open first, by name: past their window (the longest past first), then the ones closing this year or
+// next (the soonest first), then those in their window; a tap opens the wine in the list
+function renderOpenNext(cellar){
+  const box=$("openNext"); if(!box) return;
+  const y=new Date().getFullYear(), rank={past:0, soon:1, now:2};
+  const list=cellar.filter(w=>w.left>0).map(w=>{ const r=readiness(w); if(!r || r.k==="young") return null; const win=drinkWindow(w);
+    return {w, r, win, k:r.k==="now" ? (r.soon?"soon":"now") : r.k}; }).filter(Boolean)
+    .sort((a,b)=>rank[a.k]-rank[b.k] || (a.win.to??9999)-(b.win.to??9999) || (b.w.value||b.w.price||0)-(a.w.value||a.w.price||0)).slice(0,5);
+  box.hidden=!list.length;
+  box.innerHTML=list.map(({w,r,win,k},i)=>`<li class="${k}"><button type="button" data-i="${i}"><span>${esc(w.producer)}${w.name?" · "+esc(w.name):""}${typeof w.vintage==="number"?" "+w.vintage:""}</span>`
+    +`<small>${esc(r.label)} · ${win.from??"?"}–${win.to??"?"}${r.est?" ("+esc(tr("estimated"))+")":""} · ${esc(btl(w.left))}</small></button></li>`).join("");
+  box.querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{ const {w,k}=list[+b.dataset.i];
+    // show it in the list under the same chip, opened
+    state.status="cellar"; $("fStatus").value="cellar"; state.ready=k; $("fReady").value=k; state.q=""; $("q").value="";
+    KEEP_OPEN=w.row; renderTable();
+    const row=document.querySelector(`#tbl tr.main[data-row="${w.row}"]`); if(row){ row.scrollIntoView({behavior:"smooth",block:"center"}); row.focus({preventScroll:true}); } }));
+}
 // Actionable "what should I drink" chips — click one to filter the table by readiness.
 function renderPriorities(cellar){
   const el=$("priorities"); if(!el) return;
@@ -622,6 +639,7 @@ function renderPriorities(cellar){
     `<button class="prio ${k}" data-ready="${fval}"><span class="prio-n">${fmt(cat[k])}</span> ${label}</button>`).join("");
   el.innerHTML = chips || `<span class="ins-h">${esc(tr("Set drink windows on your wines to see priorities here."))}</span>`;
   const panel=el.closest(".chipbar"); if(panel) panel.hidden = !chips;
+  renderOpenNext(cellar);
   el.querySelectorAll(".prio").forEach(b=>b.addEventListener("click",()=>{
     state.status="cellar"; $("fStatus").value="cellar";
     state.ready=b.dataset.ready; $("fReady").value=b.dataset.ready;
@@ -1005,6 +1023,7 @@ function takePrefill(){
   (pre.producer ? $("aVintage") : $("aProducer")).focus();
 }
 
+let SHOWN = []; // the wines the list shows now (the share dialog offers them)
 function renderTable(){
   const q = state.q.trim().toLowerCase();
   let list = WINES.filter(w=>{
@@ -1026,6 +1045,7 @@ function renderTable(){
     }
     return true;
   });
+  SHOWN = list;
   const k=state.sortK, dir=state.sortDir;
   list.sort((a,b)=>{
     let va=a[k], vb=b[k];
@@ -1426,6 +1446,7 @@ const AUTH_MSG = {
 const authMsg = code => AUTH_MSG[code] ? tr(AUTH_MSG[code]) : tr("Could not sign in ({0}).", code);
 function forgetAuth(){
   if(window.VCRYPTO) VCRYPTO.forget(cfg.user); // the session's unlocked key goes with the session
+  try{ localStorage.removeItem("vinShares:" + String(cfg.user||"").toLowerCase()); }catch(e){} // and the shared lists' links
   if(window.VAULT) VAULT.stop();
   localStorage.removeItem("vinVault"); $("acctBtn").hidden = true;
   localStorage.removeItem("vinUser"); localStorage.removeItem("vinToken"); localStorage.removeItem("vinActive");
@@ -2128,6 +2149,70 @@ $("expXlsx").addEventListener("click", ()=>expRun("xlsx"));
 $("expCsv").addEventListener("click", ()=>expRun("csv"));
 $("expCancel").addEventListener("click", ()=>$("expModal").classList.remove("open"));
 $("expModal").addEventListener("click", e=>{ if(e.target===$("expModal")) $("expModal").classList.remove("open"); });
+
+/* ---------- share a list (share-crypto.js seals it here; share.html opens it with the key in the link) ---------- */
+const LS_KEY = () => "vinShares:" + String(cfg.user||"").toLowerCase();
+const lsMine = () => { try{ return JSON.parse(localStorage.getItem(LS_KEY())||"[]"); }catch(e){ return []; } };
+const lsSave = a => { try{ localStorage.setItem(LS_KEY(), JSON.stringify(a)); }catch(e){} };
+const lsUrl = s => new URL("share.html#" + s.id + "." + s.key, location.href).href;
+const lsWines = () => ($("lsScope").value==="all" ? WINES : SHOWN).filter(w=>w.left>0);
+function lsCount(){ const w = lsWines(); $("lsCount").textContent = tr("{0} wines, {1} bottles", w.length, fmt(w.reduce((s,x)=>s+x.left,0))); $("lsGo").disabled = !w.length; }
+// the lists this browser made carry their key, so their link can be copied again; one made on another device, or
+// before logging out (which forgets the keys), can only be withdrawn. server: the live ones, as sharelist gives them
+function lsRender(server){
+  const now = Date.now(); let mine = lsMine().filter(s=>s.expires > now);
+  if(server) mine = mine.filter(s=>server.some(x=>x.id===s.id)); // withdrawn elsewhere, or gone with a pruning
+  lsSave(mine);
+  const rows = mine.concat((server||[]).filter(x=>!mine.some(s=>s.id===x.id)).map(x=>({id:x.id, created:x.created, expires:x.expires, count:x.wines})));
+  $("lsListH").hidden = !rows.length;
+  $("lsList").innerHTML = rows.sort((a,b)=>b.created-a.created).map(s=>`<li><span>${esc(s.key ? (s.title||tr("A shared wine list")) : tr("A list shared from another device"))}<small>${esc(tr("{0} wines", s.count))} · ${esc(tr("open until {0}", new Date(s.expires).toLocaleDateString()))}</small></span>`
+    +`<span class="btns">${s.key ? `<button type="button" class="btn quiet" data-copy="${esc(s.id)}">${esc(tr("Copy link"))}</button>` : ""}<button type="button" class="btn quiet" data-del="${esc(s.id)}">${esc(tr("Withdraw"))}</button></span></li>`).join("");
+}
+async function lsCopy(text){
+  try{ await navigator.clipboard.writeText(text); toast(tr("Link copied")); }
+  catch(e){ $("lsLink").select(); toast(tr("Select the link and copy it")); }
+}
+$("lsBtn").addEventListener("click", async ()=>{
+  $("lsErr").textContent = ""; $("lsOut").hidden = true;
+  if(!$("lsName").value || $("lsName").dataset.u !== cfg.user){ $("lsName").value = tr("Wines from {0}'s cellar", cfg.user||""); $("lsName").dataset.u = cfg.user; }
+  lsCount(); lsRender(); $("lsModal").classList.add("open"); $("lsName").focus();
+  try{ const r = await api({action:"sharelist"}); lsRender(r.shares||[]); }catch(e){}
+});
+$("lsScope").addEventListener("change", lsCount);
+$("lsForm").addEventListener("submit", async e=>{
+  e.preventDefault(); const btn = $("lsGo"); btn.disabled = true; $("lsErr").textContent = "";
+  try{
+    if(!window.SHARE_CRYPTO || !window.crypto || !crypto.subtle) throw new Error("old-browser");
+    const notes = $("lsNotes").checked, prices = $("lsPrices").checked, title = $("lsName").value.trim().slice(0,80);
+    const list = lsWines().map(w=>{ const r = [w.producer, w.name, w.vintage, w.commune, w.region, w.country, w.classification, w.style, w.left, w.drinkFrom, w.drinkTo];
+      if(notes || prices) r.push(notes ? w.note : ""); if(prices) r.push(w.price); return r; });
+    const sealed = await SHARE_CRYPTO.seal({v:1, t:title, by:cfg.user||"", at:Date.now(), w:list});
+    const r = await api({action:"shareput", blob:sealed.blob, days:Number($("lsDays").value), wines:list.length});
+    const s = {id:r.id, key:sealed.key, title, created:r.created, expires:r.expires, count:list.length};
+    lsSave([...lsMine(), s]); lsRender(r.shares||[]);
+    $("lsLink").value = lsUrl(s); $("lsOut").hidden = false; $("lsSend").hidden = !navigator.share; $("lsLink").select();
+    hit("share");
+  }catch(err){
+    const m = String(err && err.message || err);
+    $("lsErr").textContent = m==="too-many-shares" ? tr("You have 20 shared lists open: withdraw one first.")
+      : m==="share-too-big" ? tr("The list is too big to share: share fewer wines.")
+      : m==="old-browser" ? tr("This browser can't encrypt a shared list.")
+      : m==="bad-action" ? tr("Sharing needs the updated Apps Script (version 44) — redeploy Code.gs.") : tr("Could not share: {0}", m);
+    if(AUTH_ERRORS.has(m)) showGate(authMsg(m));
+  }
+  btn.disabled = false;
+});
+$("lsCopy").addEventListener("click", ()=>lsCopy($("lsLink").value));
+$("lsSend").addEventListener("click", ()=>{ navigator.share({title:$("lsName").value, url:$("lsLink").value}).catch(()=>{}); });
+$("lsList").addEventListener("click", async e=>{
+  const c = e.target.closest("[data-copy]"), d = e.target.closest("[data-del]");
+  if(c){ const s = lsMine().find(x=>x.id===c.dataset.copy); if(s) lsCopy(lsUrl(s)); }
+  if(d){ d.disabled = true;
+    try{ const r = await api({action:"sharedel", id:d.dataset.del}); lsSave(lsMine().filter(x=>x.id!==d.dataset.del)); lsRender(r.shares||[]); toast(tr("Withdrawn: the link no longer opens the list")); }
+    catch(err){ d.disabled = false; $("lsErr").textContent = tr("Could not withdraw: {0}", String(err && err.message || err)); } }
+});
+$("lsCancel").addEventListener("click", ()=>$("lsModal").classList.remove("open"));
+$("lsModal").addEventListener("click", e=>{ if(e.target===$("lsModal")) $("lsModal").classList.remove("open"); });
 
 /* ---------- filters / sorting (bound once) ---------- */
 // a big cellar waits for a pause in the typing instead of filtering thousands of wines on every key

@@ -42,7 +42,7 @@ function setting(key) {
 // The legacy code only works once you've set a real one: the placeholder from the template is public.
 function accessCode() { const c = setting('ACCESS_CODE'); return c === 'CHANGE-ME' ? '' : c; }
 
-const API_VERSION = 43; // returned in every response; used to verify deployments
+const API_VERSION = 44; // returned in every response; used to verify deployments
 
 // Per-request spreadsheet for the authenticated user. Set in handle(); every
 // sheet helper reads it via ss(). Falls back to the bound (owner's) spreadsheet.
@@ -151,6 +151,10 @@ function handle(p) {
   const open = { signup: doSignup, login: doLogin, prelogin: doPrelogin, recoverstart: doRecoverStart, recover: doRecover };
   // counts from the page (which pages, how often): no session needed, nothing that names anyone
   if (p.action === 'hits') { countStats(pageHits(p.ev)); return json({ ok: true }); }
+  // an error in a visitor's browser (API 44): which page, file and line, and the message, never who or anything from a cellar
+  if (p.action === 'clienterr') { logClientError(p); return json({ ok: true }); }
+  // a shared list, by its link's id (API 44): only ciphertext, which the link's key (never sent here) opens
+  if (p.action === 'shareget') { try { return json(shareGet(String(p.id || ''))); } catch (err) { return json({ ok: false, error: String(err) }); } }
   // the admin's public key (public by nature), for a browser to wrap a new or recovered account's key to it
   if (p.action === 'adminkey') { const h = adminHelpKey(); return json(Object.assign({ ok: true }, h || {})); }
   if (open[p.action]) { try { return open[p.action](p); } catch (err) { return json({ ok: false, error: String(err) }); } }
@@ -312,6 +316,9 @@ function handle(p) {
       case 'changepw':  return doChangePw(p);
       case 'newrec':    return doNewRecovery(p);
       case 'deleteaccount': return doDeleteAccount(p);
+      case 'shareput':  return json(sharePut(p));
+      case 'sharelist': return json({ ok: true, shares: shareList() });
+      case 'sharedel':  shareDel(String(p.id || '')); return json({ ok: true, shares: shareList() });
       case 'vexport':   return json({ ok: true, ...vaultExport() });
       case 'vget':      return json({ ok: true, records: readVault(vaultBook()), state: CTX_ACCOUNT.state });
       case 'vput':      { const ver = writeVault(vaultBook(), String(p.key || ''), Number(p.ver) || 0, String(p.data || '')); countStats({ save: 1 }); return json({ ok: true, ver: ver }); }
@@ -353,7 +360,7 @@ function rateLimit(kind) {
 // and only the newest LOG_KEEP rows are kept. dailyReport() (installDailyReport() runs it every morning) emails the
 // owner when the last day's counts pass ALERTS, the accounts near MAX_USERS, or the newest backup is over 8 days old.
 const LOG_SHEET = 'Log', LOG_COLS = ['Time', 'Kind', 'User', 'Detail'], LOG_KEEP = 1000, LOG_PER_HOUR = 50;
-const ALERTS = { signup: 3, lockout: 3, error: 5, 'rate-limit': 20, gateway: 10, 'signup-busy': 1 };
+const ALERTS = { signup: 3, lockout: 3, error: 5, 'rate-limit': 20, gateway: 10, 'signup-busy': 1, 'client-error': 10 };
 function logSheet() {
   const book = SpreadsheetApp.getActiveSpreadsheet();
   let sh = book.getSheetByName(LOG_SHEET);
@@ -395,6 +402,7 @@ function dailyReport() {
       newest = d2.sort().pop(); age = newest ? (now - Date.parse(newest)) / 864e5 : null; } catch (err) { logEvent('error', '', 'backup: ' + err); }
   }
   if (hasSchedule && (age === null || age > 2)) why.push('backups: ' + (newest ? 'newest is ' + newest : 'none yet'));
+  try { sharePrune(); } catch (err) { logEvent('error', '', 'shares: ' + err); } // expired shared lists go
   const summary = Object.keys(counts).sort().map(k => k + ' ' + counts[k]).join(', ') || 'no events';
   if (!why.length) return told('All quiet: ' + summary + '; ' + users + ' accounts.');
   const lines = ['AllWine noticed something in the last 24 hours:', ''].concat(why.map(w => '• ' + w), ['', 'Latest events:'],
@@ -403,6 +411,57 @@ function dailyReport() {
     ['', 'The full list is in the "Log" tab of the master sheet.']);
   MailApp.sendEmail(reportTo(), 'AllWine: ' + why[0], lines.join('\n'));
   return told('Emailed ' + reportTo() + ': ' + why.join('; '));
+}
+// ── Shared lists (API 44): a member shares a read-only list of wines by a link. The browser encrypts the list
+// (AES-GCM, a fresh key) and sends only the ciphertext; the key is in the link after the #, which a browser never sends,
+// so neither this server nor the gateway can read a shared list. Kept: an id (128 random bits), the owner, the dates,
+// the number of wines, and the ciphertext across up to SHARE_PARTS cells (a cell holds 50,000 characters). At most
+// SHARE_MAX live per member, for 1–365 days; expired ones go at the next share and in the daily check.
+const SHARES_SHEET = 'Shares', SHARE_COLS = ['Id', 'Owner', 'Created', 'Expires', 'Wines'], SHARE_PARTS = 8, SHARE_CELL = 49000, SHARE_MAX = 20;
+function sharesSheet(make) {
+  const book = SpreadsheetApp.getActiveSpreadsheet();
+  let sh = book.getSheetByName(SHARES_SHEET);
+  if (!sh && make !== false) { sh = book.insertSheet(SHARES_SHEET); sh.appendRow(SHARE_COLS.concat(Array.from({ length: SHARE_PARTS }, (_, i) => 'Data' + (i + 1)))); }
+  return sh;
+}
+const shareLive = (r, now) => Number(r[3]) > now;
+function shareRows() { const sh = sharesSheet(false); if (!sh || sh.getLastRow() < 2) return []; return sh.getRange(2, 1, sh.getLastRow() - 1, SHARE_COLS.length + SHARE_PARTS).getValues(); }
+function sharePrune() { const sh = sharesSheet(false), now = Date.now(); if (sh) dropRows(sh, r => r[0] && !shareLive(r, now)); }
+function sharePut(p) {
+  if (!CTX_ACCOUNT) throw new Error('account-only');
+  const blob = String(p.blob || ''), days = Math.round(Number(p.days)), wines = Math.max(0, Math.round(Number(p.wines) || 0));
+  if (!/^[A-Za-z0-9_-]{24,}$/.test(blob)) throw new Error('bad-share');
+  if (blob.length > SHARE_PARTS * SHARE_CELL) throw new Error('share-too-big');
+  if (!(days >= 1 && days <= 365)) throw new Error('bad-share');
+  const lock = typeof LockService !== 'undefined' ? LockService.getScriptLock() : null; if (lock) lock.waitLock(20000);
+  try {
+    sharePrune();
+    const who = normUser(CTX_USER), now = Date.now();
+    if (shareRows().filter(r => normUser(r[1]) === who && shareLive(r, now)).length >= SHARE_MAX) throw new Error('too-many-shares');
+    const id = randToken().slice(0, 32); // 128 random bits, hex
+    const parts = Array.from({ length: SHARE_PARTS }, (_, i) => blob.slice(i * SHARE_CELL, (i + 1) * SHARE_CELL));
+    const sh = sharesSheet(true), row = sh.getLastRow() + 1;
+    // all text: a part could start with '=' or '+' (base64url can't, but nothing is left to chance) and dates stay numbers
+    sh.getRange(row, 1, 1, SHARE_COLS.length + SHARE_PARTS).setNumberFormat('@')
+      .setValues([[id, CTX_USER, String(now), String(now + days * 864e5), String(wines)].concat(parts)]);
+    logEvent('share', CTX_USER, wines + ' wines, ' + days + ' days');
+    return { ok: true, id: id, created: now, expires: now + days * 864e5, shares: shareList() };
+  } finally { if (lock) lock.releaseLock(); }
+}
+function shareList() {
+  const who = normUser(CTX_USER), now = Date.now();
+  return shareRows().filter(r => normUser(r[1]) === who && shareLive(r, now))
+    .map(r => ({ id: String(r[0]), created: Number(r[2]), expires: Number(r[3]), wines: Number(r[4]) }));
+}
+function shareDel(id) {
+  const sh = sharesSheet(false), who = normUser(CTX_USER); if (!sh || !id) return;
+  dropRows(sh, r => String(r[0]) === id && normUser(r[1]) === who);
+}
+function shareGet(id) {
+  if (!/^[0-9a-f]{32}$/.test(id)) return { ok: false, error: 'share-gone' };
+  const r = shareRows().find(x => String(x[0]) === id);
+  if (!r || !shareLive(r, Date.now())) return { ok: false, error: 'share-gone' };
+  return { ok: true, blob: r.slice(SHARE_COLS.length).map(String).join(''), created: Number(r[2]), expires: Number(r[3]), wines: Number(r[4]) };
 }
 function reportTo() { return setting('REPORT_EMAIL') || Session.getEffectiveUser().getEmail(); }
 // Run once from the editor: check every morning at about 07:00 (running it again doesn't add a second schedule).
@@ -415,6 +474,16 @@ function installDailyReport() {
   return told('Daily check scheduled (about 07:00); a test email went to ' + reportTo() + '.');
 }
 const clip = (v, n) => String(v == null ? '' : v).trim().slice(0, n);
+// A report from a visitor's browser (i18n.js sends at most three a page): the page, the script's file name and line,
+// and the message with any address or long number taken out, into the Log as 'client-error' (the daily report counts them)
+const CLIENT_PAGES = { cellar: 1, atlas: 1, burgundy: 1, domaine: 1, privacy: 1, share: 1 };
+function logClientError(p) {
+  const page = CLIENT_PAGES[p.page] ? p.page : 'other';
+  const src = String(p.src || '').split(/[?#]/)[0].split('/').pop().replace(/[^\w.-]/g, '').slice(0, 60);
+  const line = Math.max(0, Math.min(1e6, Math.floor(Number(p.line) || 0)));
+  const msg = clip(String(p.msg || '').replace(/https?:\/\/\S+/g, '<url>').replace(/\S+@\S+/g, '<email>').replace(/\d{5,}/g, '#'), 160);
+  if (msg) logEvent('client-error', '', page + ' ' + (src ? src + ':' + line + ' ' : '') + msg);
+}
 
 // ── Accounts (registry + per-user spreadsheet) ───────────────────────────────
 // A "Users" tab in the bound (owner's) spreadsheet is the registry. Each row is
@@ -849,6 +918,7 @@ function removeAccount(u) {
       r.setValues(v.map(x => [String(x[0] || '').split(',').map(t => t.trim()).filter(t => t && normUser(t) !== who).join(', ')]));
     }
     dropRows(fcmtSheet(), r => normUser(r[2]) === who);
+    const shares = sharesSheet(false); if (shares) dropRows(shares, r => normUser(r[1]) === who);
     dropRows(followsSheet(), r => normUser(r[0]) === who || normUser(r[1]) === who);
     const inv = invitesSheet(false); if (inv) relabel(inv, INVITE_COLS.indexOf('UsedBy'), who);
     relabel(atlasSheet(), ATLAS_COLS.indexOf('User'), who);

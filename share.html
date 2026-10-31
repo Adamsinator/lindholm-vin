@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- a shared list (share.js): fetched as ciphertext from the API, opened here with the key after the # in the link -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; script-src 'self'; connect-src 'self' https://allwine-api.adamlenzing.workers.dev; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A shared wine list — AllWine</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍷</text></svg>">
+<style>
+:root{--bg:#F7F4F1;--card:#FFFFFF;--ink:#2A2126;--muted:#756A70;--line:#E7DFDD;--accent:#7C2D3E;--card2:#F1ECE8}
+@media (prefers-color-scheme: dark){:root{--bg:#171114;--card:#221A1F;--ink:#EFE7E8;--muted:#A5949C;--line:#382C32;--accent:#C86A7C;--card2:#2A2026}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:980px;margin:0 auto;padding:24px 16px 60px}
+header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.brand{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;font-weight:600;color:var(--ink);text-decoration:none;font-size:24px}
+.brand em{font-style:italic;color:var(--accent)}
+h1{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;font-weight:600;font-size:30px;margin:6px 0 2px}
+.meta,.note{color:var(--muted)} .note{font-size:13.5px;margin-top:24px}
+.langpick{display:flex;gap:4px}
+.langpick button{width:28px;height:20px;padding:0;border:1px solid var(--line);border-radius:4px;background:none;cursor:pointer;overflow:hidden;opacity:.55}
+.langpick button svg{width:100%;height:100%;display:block} .langpick button.on{opacity:1;box-shadow:0 0 0 2px var(--accent)}
+@media(pointer:coarse){.langpick button{width:36px;height:24px}}
+input[type=search]{width:100%;max-width:420px;font:inherit;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);margin:14px 0 10px}
+table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top;font-size:14.5px}
+th{font-size:11.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:600;background:var(--card2)}
+td.n,th.n{text-align:right;white-space:nowrap} td small{color:var(--muted);display:block}
+.state{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;padding:16px 18px;margin-top:20px}
+a{color:var(--accent)}
+/* a phone: one card per wine instead of columns */
+@media (max-width:640px){ thead{display:none} table,tbody,tr,td{display:block;width:100%} tr{border-bottom:1px solid var(--line);padding:8px 0}
+  td{border:0;padding:2px 12px} td.n{text-align:left} td:empty{display:none} td[data-l]::before{content:attr(data-l) ": ";color:var(--muted);font-size:13px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <a class="brand" href="./">All<em>Wine</em></a>
+  <div data-langpick></div>
+</header>
+<main id="main" aria-live="polite"><p class="meta" data-i18n>Opening the list…</p></main>
+<p class="note" data-i18n>Shared read-only from a private AllWine cellar. The list is encrypted, and only a link like this one opens it: AllWine itself can't read it.</p>
+</div>
+<script src="config.js?v=9"></script>
+<script src="i18n.js?v=65"></script>
+<script src="share-crypto.js?v=1"></script>
+<script src="share.js?v=1"></script>
+</body>
+</html>
