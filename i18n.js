@@ -64,7 +64,9 @@ function syncPicker(el){ el.querySelectorAll("button").forEach(b => { const on =
 function picker(el){
   el.classList.add("langpick"); el.setAttribute("role", "group"); el.setAttribute("aria-label", "Language / Sprog / Langue");
   el.innerHTML = LANGS.map(L => `<button type="button" data-lang="${L.id}" title="${L.n}" aria-label="${L.n}">${FLAGS[L.id]}</button>`).join("");
-  el.querySelectorAll("button").forEach(b => b.onclick = () => setLang(b.dataset.lang));
+  el.querySelectorAll("button").forEach(b => { b.onclick = () => setLang(b.dataset.lang);
+    // fetch the language's files as soon as a finger or the mouse is on its flag, so the click finds them in
+    ["pointerenter", "pointerdown", "focus"].forEach(t => b.addEventListener(t, () => { need(b.dataset.lang).catch(() => {}); }, {once: true})); });
   syncPicker(el);
 }
 window.I18N = {t, apply, setLang, picker, onChange: f => listeners.push(f), get lang(){ return lang; }, LANGS};

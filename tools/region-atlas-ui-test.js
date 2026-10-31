@@ -136,9 +136,9 @@ const gas = H({ Ark1: [HEAD,
   check("slope profile: two clicks across Les Clos give IGN's profile, 100 m of relief, the grand cru named on it", /Slope profile/.test(pr.head) && /100 m of relief/.test(pr.head) && pr.labs.includes("Les Clos") && !pr.sel, JSON.stringify(pr));
   await p.click("#profClose"); check("…and it closes", await p.evaluate(() => document.getElementById("profile").hidden && !PROF.on));
   const v0 = await p.evaluate(() => st.view.slice());
-  await p.click("#zIn"); const v1 = await p.evaluate(() => st.view.slice());
+  await p.click("#zIn"); await p.waitForTimeout(400); const v1 = await p.evaluate(() => st.view.slice()); // the zoom glides (220 ms)
   await p.mouse.move(400, 400); await p.mouse.down(); await p.mouse.move(500, 450, { steps: 5 }); await p.mouse.up(); const v2 = await p.evaluate(() => st.view.slice());
-  check("zoom and pan move the view", v1[2] < v0[2] && (v2[0] !== v1[0] || v2[1] !== v1[1]), JSON.stringify([v0, v1, v2].map(v => v.map(Math.round))));
+  check("zoom and pan move the view", Math.abs(v1[2] / v0[2] - .6) < .01 && (v2[0] !== v1[0] || v2[1] !== v1[1]), JSON.stringify([v0, v1, v2].map(v => v.map(Math.round))));
 
   // the cellar on the map
   await p.goto(BASE); await p.waitForTimeout(400);
@@ -277,6 +277,33 @@ const gas = H({ Ark1: [HEAD,
   q.on("pageerror", e => errs.push(e.message));
   await q.goto(BASE + "atlas.html#r=chablis&c=valmur"); await q.waitForTimeout(1500);
   check("on a phone: no sideways scrolling, the vineyard open", await q.evaluate(() => document.documentElement.scrollWidth <= 391) && (await q.textContent("#side h2")) === "Valmur");
+  // touch, as on a phone map: a pinch zooms and pans together with the point under the fingers staying under them,
+  // lifting a finger hands over to a pan without a jump, a double-tap zooms in, and at the closest zoom nothing slides
+  const mr = await q.evaluate(() => { const b = document.getElementById("map").getBoundingClientRect(); return [b.left + b.width / 2, b.top + b.height / 2]; });
+  const [mx, my] = mr;
+  const fire = (type, id, x, y) => q.evaluate(([type, id, x, y]) => document.getElementById("map").dispatchEvent(new PointerEvent(type,
+    { pointerId: id, clientX: x, clientY: y, bubbles: true, pointerType: "touch", isPrimary: id === 1 })), [type, id, x, y]);
+  const at = (x, y) => q.evaluate(([x, y]) => { const s = document.getElementById("map"), p = new DOMPoint(x, y).matrixTransform(s.getScreenCTM().inverse()); return [p.x, p.y, st.view[2]]; }, [x, y]);
+  const pxOff = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]) / b[2] * 390; // screen px at that zoom
+  await q.click("#zHome"); await q.waitForTimeout(500);
+  const t0 = await at(mx, my);
+  await fire("pointerdown", 1, mx - 40, my); await fire("pointerdown", 2, mx + 40, my);
+  for (let i = 1; i <= 10; i++) { await fire("pointermove", 1, mx - 40 - 4 * i, my); await fire("pointermove", 2, mx + 40 + 4 * i, my); }
+  for (let i = 1; i <= 6; i++) { await fire("pointermove", 1, mx - 80 + 10 * i, my); await fire("pointermove", 2, mx + 80 + 10 * i, my); }
+  await q.waitForTimeout(300); const t1 = await at(mx + 60, my);
+  check("touch: a pinch zooms ×2 and the point under the fingers follows them", Math.abs(t0[2] / t1[2] - 2) < .02 && pxOff(t0, t1) < 1.5, `×${(t0[2] / t1[2]).toFixed(2)}, ${pxOff(t0, t1).toFixed(1)} px`);
+  await fire("pointerup", 2, mx + 140, my); const h0 = await at(mx, my); await fire("pointermove", 1, mx - 19, my); await q.waitForTimeout(300); const h1 = await at(mx + 1, my);
+  await fire("pointerup", 1, mx - 19, my); await q.waitForTimeout(300);
+  check("…lifting a finger carries on as a pan, without a jump", pxOff(h0, h1) < 1.5, `${pxOff(h0, h1).toFixed(1)} px`);
+  const d0 = (await at(mx, my))[2];
+  for (let i = 0; i < 2; i++) { await fire("pointerdown", 1, mx, my); await fire("pointerup", 1, mx, my); await q.waitForTimeout(80); }
+  await q.waitForTimeout(500);
+  check("…a double-tap zooms in ×2", Math.abs(d0 / (await at(mx, my))[2] - 2) < .02);
+  const l0 = await at(mx, my);
+  await fire("pointerdown", 1, mx - 10, my); await fire("pointerdown", 2, mx + 10, my);
+  for (let i = 1; i <= 60; i++) { await fire("pointermove", 1, mx - 10 - 6 * i, my); await fire("pointermove", 2, mx + 10 + 6 * i, my); }
+  await q.waitForTimeout(300); const l1 = await at(mx, my); await fire("pointerup", 1, mx, my); await fire("pointerup", 2, mx, my);
+  check("…and pinching past the closest zoom (150 m across) leaves the map where it is", Math.round(l1[2]) === 150 && pxOff(l0, l1) < 1.5, `${l1[2].toFixed(0)} m, ${pxOff(l0, l1).toFixed(1)} px`);
   check("no console errors", !errs.length, errs.join(" | "));
   await b.close();
   const k = results.filter(Boolean).length; console.log(`\n${k}/${results.length} passed`); process.exit(k === results.length ? 0 : 1);

@@ -146,7 +146,8 @@ const overflow=async(p,where)=>{ const o=await p.evaluate(()=>document.documentE
   }
   // language: Danish and French re-render the legend and panel, English comes back
   for(const [lg, word] of [['da','Klassifikation'],['fr','Classement'],['en','Classification']]){
-    await p.click(`.langpick [data-lang=${lg}]`); await p.waitForTimeout(250);
+    // a language's dictionary may have to be fetched first (i18n.js): wait for the switch, not a fixed time
+    await p.click(`.langpick [data-lang=${lg}]`); await p.waitForFunction(l => document.documentElement.lang === l, lg, { timeout: 5000 }).catch(() => {}); await p.waitForTimeout(150);
     if(!(await p.textContent('#legend')).includes(word)) note(tag, `legend not in ${lg} after switching language`); }
   await p.click('#reset'); await p.waitForTimeout(400);
   await p.screenshot({path:OUT+tag+'_atlas.png'});

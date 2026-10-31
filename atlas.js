@@ -123,8 +123,31 @@ function layoutLabels() {
     q.lb.style.display = hide ? "none" : ""; if (!hide) taken.push(box);
   });
 }
-function setView(v) { st.view = v; svg.setAttribute("viewBox", v.map(x => Math.round(x)).join(" ")); layoutLabels(); topoLod(); shadeSoon();
+// the viewBox moves at once; the labels, the map's level of detail and the relief tiles follow on the next frame, or,
+// while a finger or the mouse is still moving the map, once it pauses (laying out every label each frame is what made
+// a drag stutter on a phone)
+let relayRaf = 0, relayT = 0, vbC = null, rectC = null;
+const mapview = $("mapview");
+// the map's place on the page as laid out, not as the gesture's transform shows it (measured while none is on)
+const mapRect = () => mapview.style.transform && rectC ? rectC : (rectC = svg.getBoundingClientRect());
+function relayout() { const v = st.view; if (!v) return; layoutLabels(); topoLod(); shadeSoon();
   if (PROF.a && TG.prof) TG.prof.querySelectorAll("circle").forEach(c => c.setAttribute("r", 5 * v[2] / (svg.clientWidth || 800))); }
+// while a finger, the wheel or a glide is moving the map, the drawing already on screen is moved and scaled as a picture
+// (a CSS transform the compositor does, cheap), and redrawn at the new view once the movement pauses: redrawing a
+// region's thousands of paths each frame was what made a drag stutter on a phone
+function setView(v, live) {
+  st.view = v; cancelAnimationFrame(relayRaf); clearTimeout(relayT);
+  if (live && vbC) { const k = vbC[2] / v[2], r = mapRect().width / vbC[2] * k;
+    mapview.style.transform = `translate(${((vbC[0] - v[0]) * r).toFixed(1)}px,${((vbC[1] - v[1]) * r).toFixed(1)}px) scale(${k.toFixed(5)})`;
+    relayT = setTimeout(commitView, 120); return; }
+  commitView();
+}
+function commitView() {
+  clearTimeout(relayT); const v = st.view; if (!v) return;
+  vbC = v.slice(); mapview.style.transform = "";
+  svg.setAttribute("viewBox", v.map(x => x.toFixed(2)).join(" ")); // not rounded to the metre: 150 m across, that's a visible jump
+  cancelAnimationFrame(relayRaf); relayRaf = requestAnimationFrame(relayout);
+}
 
 /* ---------- the ground around the vineyards (French regions): IGN's relief shading as tiles, and BD TOPO's roads,
    rivers, woods and villages from atlas-<id>-topo.js (tools/region-topo.js), both in the pack's Lambert-93 metres ---------- */
@@ -237,38 +260,96 @@ function geolHtml(c) {
   return `<h3>${esc(t("Geology"))}</h3><table class="own geolt">${u.map(([k, p]) => `<tr><td>${geolSw(G, k)}${geolLabel(G, k)}</td><td class="n">${p}%</td></tr>`).join("")}</table>
     <p class="note">${esc(t("Share of the vineyard's area on each formation of BRGM's 1:50 000 geological map; scree, colluvium and river terraces are mapped over the bedrock where they are thick."))}${window.I18N && I18N.lang !== "fr" ? " " + esc(t("BRGM's descriptions, in French.")) : ""}</p>`;
 }
-function fit(bb, pad) {
-  const W = svg.clientWidth || 800, H = svg.clientHeight || 600, bw = bb[2] - bb[0], bh = bb[3] - bb[1], m = pad ?? .06;
-  const s = Math.max(bw / W, bh / H) * (1 + 2 * m);
-  setView([(bb[0] + bb[2]) / 2 - W * s / 2, (bb[1] + bb[3]) / 2 - H * s / 2, W * s, H * s]);
+// zoom limits: no closer than 150 m across, no further out than three times the region
+const MIN_W = 150, maxW = () => st.pack ? (st.pack.meta.bb[2] - st.pack.meta.bb[0]) * 3 : Infinity;
+const clampW = w => Math.max(MIN_W, Math.min(w, maxW()));
+const svgSize = () => { const r = mapRect(); return [r.width || 800, r.height || 600]; }; // fractional, as laid out
+const aspect = () => { const [W, H] = svgSize(); return H / W; };
+function fit(bb, pad, ms) {
+  const [W, H] = svgSize(), bw = bb[2] - bb[0], bh = bb[3] - bb[1], m = pad ?? .06;
+  const w = clampW(Math.max(bw / W, bh / H) * (1 + 2 * m) * W), h = w * aspect(); // a tiny vineyard: centred, at the closest zoom
+  const v = [(bb[0] + bb[2]) / 2 - w / 2, (bb[1] + bb[3]) / 2 - h / 2, w, h];
+  if (ms && st.view) flyTo(v, ms); else setView(v);
+}
+// a short eased glide to a view (the zoom buttons, a double-tap, picking a vineyard); none if the system asks for less motion
+let flyRaf = 0;
+function flyTo(to, ms = 260) {
+  cancelAnimationFrame(flyRaf); stopGlide();
+  const from = st.view.slice(), t0 = performance.now();
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) ms = 0;
+  // zoom eased in log space, so it feels even whether going in or out
+  const step = now => { const t = ms ? Math.min(1, (now - t0) / ms) : 1, e = 1 - Math.pow(1 - t, 3);
+    const w = from[2] * Math.pow(to[2] / from[2], e), k = (w - from[2]) / ((to[2] - from[2]) || 1);
+    const v = [from[0] + (to[0] - from[0]) * k, from[1] + (to[1] - from[1]) * k, w, w * from[3] / from[2]];
+    setView(t < 1 ? v : to, t < 1); if (t < 1) flyRaf = requestAnimationFrame(step); };
+  flyRaf = requestAnimationFrame(step);
 }
 const bbOf = mp => { let a = Infinity, b = Infinity, c = -Infinity, d = -Infinity; mp.forEach(p => p[0].forEach(([x, y]) => { a = Math.min(a, x); b = Math.min(b, y); c = Math.max(c, x); d = Math.max(d, y); })); return [a, b, c, d]; };
-function zoomAt(f, cx, cy) {
-  const [x, y, w, h] = st.view, nw = Math.min(Math.max(w * f, 150), (st.pack.meta.bb[2] - st.pack.meta.bb[0]) * 3);
-  const r = nw / w; setView([cx - (cx - x) * r, cy - (cy - y) * r, w * r, h * r]);
+// the view at width w with the map point (cx, cy) kept where it is on screen; the width is held to the limits first,
+// so at the closest zoom the map stands still instead of sliding away
+const zoomBox = (w, cx, cy) => { const [x, y, w0, h0] = st.view, k = clampW(w) / w0; return [cx - (cx - x) * k, cy - (cy - y) * k, w0 * k, h0 * k]; };
+function zoomAt(f, cx, cy, ms) {
+  if (!st.pack || clampW(st.view[2] * f) === st.view[2]) return; // as far in (or out) as it goes
+  const v = zoomBox(st.view[2] * f, cx, cy); if (ms) flyTo(v, ms); else setView(v, true);
 }
-const toSvg = e => { const r = svg.getBoundingClientRect(), [x, y, w, h] = st.view; return [x + (e.clientX - r.left) / r.width * w, y + (e.clientY - r.top) / r.height * h]; };
-svg.addEventListener("wheel", e => { if (!st.view) return; e.preventDefault(); const [cx, cy] = toSvg(e); zoomAt(Math.exp(e.deltaY * .0015), cx, cy); }, { passive: false });
-const ptrs = new Map(); let moved = 0, pinch = null;
-svg.addEventListener("pointerdown", e => { ptrs.set(e.pointerId, [e.clientX, e.clientY]); moved = 0; svg.setPointerCapture(e.pointerId); svg.classList.add("drag");
-  if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch = Math.hypot(a[0] - b[0], a[1] - b[1]); } });
+const toSvg = e => { const r = mapRect(), [x, y, w, h] = st.view; return [x + (e.clientX - r.left) / r.width * w, y + (e.clientY - r.top) / r.height * h]; };
+// a mouse wheel's notch is ~100; a trackpad pinch arrives as small ctrl+wheel steps, so those count for more
+svg.addEventListener("wheel", e => { if (!st.view) return; e.preventDefault(); stopGlide(); cancelAnimationFrame(flyRaf); const [cx, cy] = toSvg(e);
+  const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY; zoomAt(Math.exp(Math.max(-1, Math.min(1, dy * (e.ctrlKey ? .01 : .0016)))), cx, cy); }, { passive: false });
+/* touch and mouse, as on a phone map: a drag pans and a flick glides on, slowing; a pinch zooms and pans together,
+   keeping the point between the fingers under them; lifting one finger carries on as a pan without a jump; a double-tap
+   or double-click zooms in there */
+const ptrs = new Map(); let moved = 0, pinch = null, pan = null, trail = [], glideRaf = 0, lastTap = null;
+function stopGlide() { cancelAnimationFrame(glideRaf); glideRaf = 0; }
+const startPan = (x, y) => { pan = { x, y, v: st.view.slice() }; trail = [[performance.now(), x, y]]; };
+function startPinch() { const [a, b] = [...ptrs.values()], m = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+  pinch = { d: Math.max(20, Math.hypot(a[0] - b[0], a[1] - b[1])), w: st.view[2], c: toSvg({ clientX: m[0], clientY: m[1] }) }; pan = null; }
+svg.addEventListener("pointerdown", e => { stopGlide(); cancelAnimationFrame(flyRaf); ptrs.set(e.pointerId, [e.clientX, e.clientY]); try { svg.setPointerCapture(e.pointerId); } catch (x) {} svg.classList.add("drag");
+  if (ptrs.size === 1) moved = 0;
+  if (!st.view) return; // the start page: its dots are links
+  if (ptrs.size === 1) startPan(e.clientX, e.clientY); else if (ptrs.size === 2) startPinch(); });
 svg.addEventListener("pointermove", e => {
   if (!ptrs.has(e.pointerId) || !st.view) return;
   const [px, py] = ptrs.get(e.pointerId); ptrs.set(e.pointerId, [e.clientX, e.clientY]);
-  if (ptrs.size === 2 && pinch) { const [a, b] = [...ptrs.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]);
-    const r = svg.getBoundingClientRect(), mid = toSvg({ clientX: (a[0] + b[0]) / 2, clientY: (a[1] + b[1]) / 2 }); zoomAt(pinch / d, mid[0], mid[1]); pinch = d; moved += 10; void r; return; }
-  const r = svg.getBoundingClientRect(), [x, y, w, h] = st.view, dx = (e.clientX - px) / r.width * w, dy = (e.clientY - py) / r.height * h;
-  moved += Math.abs(e.clientX - px) + Math.abs(e.clientY - py); setView([x - dx, y - dy, w, h]);
+  moved += Math.abs(e.clientX - px) + Math.abs(e.clientY - py);
+  const r = mapRect();
+  if (ptrs.size === 2 && pinch) { const [a, b] = [...ptrs.values()], d = Math.max(20, Math.hypot(a[0] - b[0], a[1] - b[1]));
+    const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2, w = clampW(pinch.w * pinch.d / d), h = w * aspect();
+    setView([pinch.c[0] - (mx - r.left) / r.width * w, pinch.c[1] - (my - r.top) / r.height * h, w, h], true); moved += 10; return; }
+  if (ptrs.size === 1 && pan) { const [x, y, w, h] = pan.v;
+    setView([x - (e.clientX - pan.x) / r.width * w, y - (e.clientY - pan.y) / r.height * h, w, h], true);
+    const now = performance.now(); trail.push([now, e.clientX, e.clientY]); while (trail.length > 2 && now - trail[0][0] > 90) trail.shift(); }
 });
-const up = e => { ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch = null; if (!ptrs.size) svg.classList.remove("drag"); };
-svg.addEventListener("pointerup", e => { const tgt = document.elementFromPoint(e.clientX, e.clientY); up(e);
+// after a flick: carry on at the release speed, slowing with a ~325 ms time constant
+function glideFrom(vx, vy) { const r = mapRect(); let last = performance.now();
+  const step = now => { const dt = Math.min(40, now - last); last = now; const f = Math.exp(-dt / 325); vx *= f; vy *= f;
+    const [x, y, w, h] = st.view; setView([x - vx * dt / r.width * w, y - vy * dt / r.height * h, w, h], true);
+    if (Math.hypot(vx, vy) > .02) glideRaf = requestAnimationFrame(step); else { glideRaf = 0; setView(st.view); } };
+  glideRaf = requestAnimationFrame(step); }
+const up = e => { const had = ptrs.size; ptrs.delete(e.pointerId);
+  if (had === 2 && ptrs.size === 1 && st.view) { const [x, y] = [...ptrs.values()][0]; startPan(x, y); } // one finger left: pan on from here
+  if (ptrs.size < 2) pinch = null;
+  if (!ptrs.size) { svg.classList.remove("drag");
+    if (pan && moved >= 6 && trail.length >= 2) { const [t0, x0, y0] = trail[0], [t1, x1, y1] = trail[trail.length - 1], dt = Math.max(8, t1 - t0);
+      const vx = (x1 - x0) / dt, vy = (y1 - y0) / dt; if (performance.now() - t1 < 60 && Math.hypot(vx, vy) > .25) glideFrom(vx, vy); else if (st.view) setView(st.view); }
+    else if (st.view && moved >= 6) setView(st.view);
+    pan = null; } };
+svg.addEventListener("pointerup", e => { const tgt = document.elementFromPoint(e.clientX, e.clientY), touch = e.pointerType === "touch"; up(e);
   const hd = !st.pack && tgt && tgt.closest && tgt.closest(".hd"); if (hd) { goTo(hd.dataset.id); return; }
-  if (moved < 6 && PROF.on) { profClick(toSvg(e)); return; }
-  if (moved < 6) { const q = tgt && tgt.closest && tgt.closest(".pt"), c = tgt && tgt.closest && tgt.closest(".cl"); select(q ? q.dataset.pt : c ? c.dataset.id : null); } });
+  if (moved >= 6 || !st.pack) return;
+  // a second tap close by, soon after: zoom in there (the first tap's selection stands)
+  if (touch) { const now = performance.now();
+    if (lastTap && now - lastTap[0] < 320 && Math.hypot(e.clientX - lastTap[1], e.clientY - lastTap[2]) < 32) { lastTap = null; const [cx, cy] = toSvg(e); zoomAt(.5, cx, cy, 260); return; }
+    lastTap = [now, e.clientX, e.clientY]; }
+  if (PROF.on) { profClick(toSvg(e)); return; }
+  const q = tgt && tgt.closest && tgt.closest(".pt"), c = tgt && tgt.closest && tgt.closest(".cl"); select(q ? q.dataset.pt : c ? c.dataset.id : null); });
 svg.addEventListener("pointercancel", up);
-$("zIn").onclick = () => { const [x, y, w, h] = st.view; zoomAt(.6, x + w / 2, y + h / 2); };
-$("zOut").onclick = () => { const [x, y, w, h] = st.view; zoomAt(1 / .6, x + w / 2, y + h / 2); };
-$("zHome").onclick = () => fit(st.home);
+svg.addEventListener("dblclick", e => { if (!st.pack || PROF.on) return; e.preventDefault(); const [cx, cy] = toSvg(e); zoomAt(.5, cx, cy, 260); });
+// Safari's own page pinch would fight the map's
+["gesturestart", "gesturechange"].forEach(t => svg.addEventListener(t, e => e.preventDefault()));
+$("zIn").onclick = () => { const [x, y, w, h] = st.view; zoomAt(.6, x + w / 2, y + h / 2, 220); };
+$("zOut").onclick = () => { const [x, y, w, h] = st.view; zoomAt(1 / .6, x + w / 2, y + h / 2, 220); };
+$("zHome").onclick = () => fit(st.home, undefined, 320);
 $("profBtn").onclick = () => profToggle();
 $("pngBtn").onclick = exportPNG;
 $("printBtn").onclick = () => window.print();
@@ -386,7 +467,7 @@ const byId = id => st.pack && (st.pack.climats.find(c => c.id === id) || pts().f
 function select(id, fly) {
   st.sel = byId(id) ? id : null; if (st.sel) ensureGeol(); paint(); renderSide(); syncHash();
   const c = st.sel && byId(st.sel);
-  if (c && fly) { if (c.g) fit(bbOf(c.g), .6); else if (c.p) fit([c.p[0] - 900, c.p[1] - 900, c.p[0] + 900, c.p[1] + 900], .1); }
+  if (c && fly) { if (c.g) fit(bbOf(c.g), .6, 360); else if (c.p) fit([c.p[0] - 900, c.p[1] - 900, c.p[0] + 900, c.p[1] + 900], .1, 360); }
 }
 function renderSide() {
   const P = st.pack, side = $("side"); if (!P) return renderHomeSide();
@@ -617,6 +698,7 @@ function showHome() {
   // France, Germany and the north of Italy, on a plain grid (longitude shrunk by the cosine of 47°)
   const W = 1000, lo0 = -2.6, lo1 = 13.6, la0 = 43.3, la1 = 51.7, k = W / ((lo1 - lo0) * Math.cos(47 * Math.PI / 180)), H = Math.round((la1 - la0) * k);
   const xy = ([lo, la]) => [((lo - lo0) * Math.cos(47 * Math.PI / 180) * k).toFixed(1), ((la1 - la) * k).toFixed(1)];
+  clearTimeout(relayT); mapview.style.transform = ""; vbC = null; // no region's gesture left over
   svg.innerHTML = ""; svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
   svg.setAttribute("role", "group"); svg.setAttribute("aria-label", t("Map of the wine regions")); // its dots are links: a group, not an image
   const g = el("g", {}, svg);

@@ -26,7 +26,7 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
 
   // ── the language picker in the top bar ──
   check("the top bar has the language picker once logged in", await p.isVisible("header.top .langpick") && (await p.$$("header.top .langpick button")).length === 4);
-  await p.click('header.top .langpick button[data-lang="da"]'); await p.waitForTimeout(200);
+  await p.click('header.top .langpick button[data-lang="da"]'); await p.waitForFunction(() => document.documentElement.lang === "da", null, { timeout: 5000 }); await p.waitForTimeout(100);
   check("…and it switches the page to Danish", (await p.textContent('.tab[data-page="cellar"]')).trim() === "Kælder");
   await p.click('header.top .langpick button[data-lang="en"]'); await p.waitForTimeout(200);
 
@@ -57,7 +57,7 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   const pv = await ctx.newPage(); const pvErrs = []; pv.on("console", m => m.type() === "error" && pvErrs.push(m.text()));
   await pv.goto(BASE + "privacy.html"); await pv.waitForTimeout(300);
   check("the privacy page opens, says where data lives and how to delete it", /Google Drive/.test(await pv.textContent("body")) && /Delete my account/.test(await pv.textContent("body")));
-  await pv.click('.langpick button[data-lang="da"]'); await pv.waitForTimeout(200);
+  await pv.click('.langpick button[data-lang="da"]'); await pv.waitForFunction(() => document.documentElement.lang === "da", null, { timeout: 5000 }); await pv.waitForTimeout(100);
   check("…in Danish too", (await pv.textContent("h1")).trim() === "Privatliv" && /Datatilsynet/.test(await pv.textContent("body")));
   check("…with no errors under its CSP", !pvErrs.length, pvErrs.join(" | "));
   await pv.evaluate(() => I18N.setLang("en")); await pv.close();
