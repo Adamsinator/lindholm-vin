@@ -237,6 +237,9 @@ function normalize(rows){
       source:String(r.source).trim(), note:String(r.note).trim(),
       elsewhere: r.elsewhere===true,
       location:String(r.location||"").trim(),
+      // a business account's columns (business.js): the price on the card or price list, and by the glass
+      menuPrice: (r.menuPrice===null||r.menuPrice===""||r.menuPrice===undefined) ? null : Number(r.menuPrice),
+      glassPrice: (r.glassPrice===null||r.glassPrice===""||r.glassPrice===undefined) ? null : Number(r.glassPrice),
     };
   });
 }
@@ -411,6 +414,7 @@ function renderOverview(){
   renderTips();
   const cellar = WINES.filter(w=>w.left>0);
   renderRack(cellar);
+  if(window.BIZ) BIZ.overview(cellar); // a business account's figures (business.js); gone again for a private one
   const bottlesLeft = cellar.reduce((s,w)=>s+w.left,0);
   const drunk = WINES.reduce((s,w)=>s+w.drunk,0);
   const iconWines = cellar.filter(w=>PRODUCER_NOTES[w.producer]?.[0]==="legend");
@@ -671,7 +675,7 @@ function showWine(w){
    shows a few rows and "+ N more". ---------- */
 const RACK_COL = {"Rød":"var(--b-red)","Hvid":"var(--b-white)","Rosé":"var(--b-rose)","Bobler":"var(--b-spark)"};
 const BOTTLE_SVG = `<svg viewBox="0 0 64 20" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><path class="gl" d="M3 3.5h33c4 0 6.5 2.6 9.5 4.3h6V12h-6c-3 1.9-5.5 4.5-9.5 4.5H3C1.6 16.5 1 15.4 1 14V6c0-1.4.6-2.5 2-2.5z"/><rect class="cp" x="51" y="7.3" width="11" height="5.4" rx="1.4"/><path d="M5 6.5h28" stroke="rgba(255,255,255,.35)" stroke-width="1.4" stroke-linecap="round"/></svg>`;
-let RACK_ALL = false;
+let RACK_ALL = false, RACK_CASES = [];
 const rackKey = w => { const r = readiness(w); return !r ? "none" : r.k==="now" ? (r.soon?"soon":"now") : r.k; };
 function placeWall(){
   const wall = $("wall"), side = document.querySelector("#overview .side-body"); if(!wall || !side) return;
@@ -684,8 +688,16 @@ function renderRack(cellar){
   const bottles = cellar.reduce((n,w)=>n+w.left,0);
   wall.hidden = !bottles; if(!bottles) return;
   const order = {past:0, soon:1, now:2, none:3, young:4};
-  const all = cellar.slice().sort((a,b)=>order[rackKey(a)]-order[rackKey(b)] || (a.drinkTo??drinkWindow(a)?.to??9999)-(b.drinkTo??drinkWindow(b)?.to??9999))
+  const flat = cellar.slice().sort((a,b)=>order[rackKey(a)]-order[rackKey(b)] || (a.drinkTo??drinkWindow(a)?.to??9999)-(b.drinkTo??drinkWindow(b)?.to??9999))
     .flatMap(w=>Array.from({length:w.left}, ()=>w));
+  // a big cellar: one drawn bottle stands for a case (6, or 12 past a thousand), so the rack keeps its proportions
+  // instead of saying "+ 1,960 more"; each stands for the most pressing wine in it, its colour the case's commonest
+  const unit = bottles > 1000 ? 12 : bottles > 150 ? 6 : 1;
+  RACK_CASES = [];
+  for(let i=0; i<flat.length; i+=unit) RACK_CASES.push(flat.slice(i, i+unit));
+  const all = RACK_CASES.map(c=>{ if(unit===1) return c[0];
+    const n = {}; c.forEach(w=>n[w.style]=(n[w.style]||0)+1); const st = Object.keys(n).sort((a,b)=>n[b]-n[a])[0];
+    return Object.assign(Object.create(c[0]), {style: st}); });
   const R = $("rack"), width = R.clientWidth || 320, cols = Math.max(4, Math.floor((width - 20 + 6) / (52 + 6)));
   // a few bottles over the rows aren't worth a "more" button: they're shown
   const rows = matchMedia("(max-width:700px)").matches ? 7 : 5, room = all.length <= cols*(rows+1) ? all.length : cols*rows, cap = RACK_ALL ? all.length : room;
@@ -695,11 +707,18 @@ function renderRack(cellar){
   let html = "";
   for(let i=0; i<slots; i++){ const w = shown[i];
     if(!w){ html += `<span class="btl slot">${BOTTLE_SVG}</span>`; continue; }
-    const k = rackKey(w), nm = `${w.producer}${w.name?" · "+w.name:""}${typeof w.vintage==="number"?" "+w.vintage:""}`, r = readiness(w);
-    html += `<button type="button" class="btl ${k}" data-row="${w.row}" style="--c:${RACK_COL[w.style]||"var(--b-red)"};animation-delay:${motion?Math.min(i,60)*18:0}ms" title="${esc(nm)}" aria-label="${esc(nm+(r?" — "+r.label:""))}">${BOTTLE_SVG}</button>`; }
+    const k = rackKey(w), others = new Set(RACK_CASES[i].map(x=>x.row)).size - 1, r = readiness(w);
+    const nm = `${unit>1 ? tr("{0} bottles", fmt(RACK_CASES[i].length)) + ": " : ""}${w.producer}${w.name?" · "+w.name:""}${typeof w.vintage==="number"?" "+w.vintage:""}${others ? " " + tr("+ {0} other wines", fmt(others)) : ""}`;
+    html += `<button type="button" class="btl ${k}" data-row="${w.row}" data-case="${i}" style="--c:${RACK_COL[w.style]||"var(--b-red)"};animation-delay:${motion?Math.min(i,60)*18:0}ms" title="${esc(nm)}" aria-label="${esc(nm+(r?" — "+r.label:""))}">${BOTTLE_SVG}</button>`; }
   R.innerHTML = html;
   const more = $("rackMore"); more.hidden = room >= all.length;
-  more.textContent = RACK_ALL ? tr("Show fewer") : tr("+ {0} more bottles", fmt(all.length - cap));
+  more.textContent = RACK_ALL ? tr("Show fewer") : tr("+ {0} more bottles", fmt(RACK_CASES.slice(cap).reduce((n,c)=>n+c.length,0)));
+  $("rackUnit").hidden = unit===1; $("rackUnit").textContent = tr("Each bottle drawn = {0} bottles", unit);
+  // and, in a big cellar, the regions as shelves: each as long as its share of the bottles; a tap filters the list
+  const regs = {}; if(unit>1) cellar.forEach(w=>{ const k = w.region || w.country || tr("Other"); regs[k] = (regs[k]||0) + w.left; });
+  const top = Object.entries(regs).sort((a,b)=>b[1]-a[1]).slice(0, 6);
+  $("rackShelves").hidden = !top.length;
+  $("rackShelves").innerHTML = top.map(([k,n])=>`<button type="button" data-region="${esc(k)}"><span class="sh-l">${esc(k)}</span><span class="sh-t"><i style="width:${Math.max(2, n/top[0][1]*100).toFixed(1)}%"></i></span><b>${fmt(n)}</b></button>`).join("");
   const val = cellar.reduce((n,w)=>n+(w.price||0)*w.left,0);
   $("wallN").textContent = fmt(bottles);
   $("wallSub").textContent = (bottles===1 ? tr("bottle") : tr("bottles")) + (SHOW_PRICES && val ? " · " + kr(val) : "");
@@ -711,6 +730,11 @@ function renderRack(cellar){
 }
 // a tap on a bottle: a small card by it (the wine, its window, Drink a bottle, Show in the list); the page stays put
 $("rack").addEventListener("click", e=>{ const b = e.target.closest("button.btl"); if(!b) return; const w = WINES.find(x=>x.row===Number(b.dataset.row)); if(w) rackCard(w, b); });
+$("rackShelves").addEventListener("click", e=>{ const b = e.target.closest("button[data-region]"); if(!b) return; const k = b.dataset.region;
+  const byRegion = WINES.some(w=>w.region===k);
+  state.status="cellar"; $("fStatus").value="cellar";
+  if(byRegion){ state.region = state.region===k ? "" : k; state.country = ""; } else { state.country = state.country===k ? "" : k; state.region = ""; }
+  $("fCountry").value = state.country; renderTable(); $("fRegion").value = state.region; });
 function rackCard(w, b){
   const card = $("rackCard"), r = readiness(w), win = drinkWindow(w);
   if(!card.hidden && card.dataset.row === String(w.row)){ closeRackCard(); return; }
@@ -721,6 +745,8 @@ function rackCard(w, b){
     <b class="rc-p">${esc(w.producer)}</b>
     <span class="rc-w">${esc([w.name, typeof w.vintage==="number" ? w.vintage : (w.vintage||"NV")].filter(Boolean).join(" · "))}</span>
     <span class="rc-m">${esc([where, win ? `${win.from??"?"}–${win.to??"?"}` : "", btl(fmt(w.left)), SHOW_PRICES && w.price ? kr(w.price) : ""].filter(Boolean).join(" · "))}</span>
+    ${(()=>{ const c = RACK_CASES[Number(b.dataset.case)] || [], o = [...new Map(c.filter(x=>x.row!==w.row).map(x=>[x.row,x])).values()];
+      return c.length > 1 ? `<span class="rc-c">${esc(tr("This bottle stands for {0}:", btl(fmt(c.length))))} ${esc([w, ...o].slice(0,4).map(x=>x.producer + (typeof x.vintage==="number" ? " " + x.vintage : "")).join(", "))}${o.length > 3 ? " " + esc(tr("+ {0} other wines", fmt(o.length - 3))) : ""}</span>` : ""; })()}
     <span class="rc-a"><button type="button" class="btn primary" data-rc="drink">🍷 ${esc(tr("Drink a bottle"))}</button><button type="button" class="btn" data-rc="list">${esc(tr("Show in the list"))}</button></span>`;
   card.hidden = false;
   // by the bottle, inside the rack's panel: under it, or over it when there's no room below
@@ -903,7 +929,7 @@ function loadLayout(){
   try{ const x = JSON.parse(localStorage.getItem(layoutKey()) || "null"); if(x && typeof x==="object") d = x; }catch(e){}
   const L = v && d ? ((d.at||0) > (v.at||0) ? d : v) : (v || d);
   LAYOUT = L || {};
-  if(L && L===d && v!==d && window.VAULT && VAULT.active()) VAULT.setPrefs({layout: LAYOUT}).catch(()=>{});
+  if(L && L===d && v!==d && window.VAULT && VAULT.active()) savePrefs({layout: LAYOUT}).catch(()=>{});
   Object.keys(PANEL_DEFAULT).forEach(applyLayout);
 }
 function applyLayout(id){
@@ -924,8 +950,42 @@ function setLayout(id, list){
 }
 function saveLayout(){
   clearTimeout(layoutT); layoutT = null;
-  if(window.VAULT && VAULT.active()) VAULT.setPrefs({layout: LAYOUT}).catch(()=>{});
+  if(window.VAULT && VAULT.active()) savePrefs({layout: LAYOUT}).catch(()=>{});
 }
+// the vault keeps one prefs object: a change to one part keeps the others (the layout, the kind of account)
+const savePrefs = o => VAULT.setPrefs(Object.assign({}, VAULT.prefs() || {}, o));
+
+/* What kind of account: private (the default), a restaurant or wine bar, a wine merchant or shop, a winemaker. Kept with
+   the layout (the vault's encrypted prefs, and this device). A business kind loads business.js: its fields (the price on
+   the card, by the glass, the supplier), margins and stock value, and the printable wine card or price list. The wines
+   stay the same whatever the kind; only what's shown changes. */
+const KINDS = ["private","restaurant","merchant","winemaker"];
+let KIND = "private";
+const kindKey = () => "vinKind:" + String(cfg.user||"").toLowerCase();
+const isBiz = () => KIND!=="private" && !!window.BIZ;
+function loadKind(){
+  let k = null;
+  try{ const x = window.VAULT && VAULT.active() && VAULT.prefs(); if(x && KINDS.includes(x.kind)) k = x.kind; }catch(e){}
+  if(!k){ k = localStorage.getItem(kindKey());
+    // chosen at sign-up (or on this device before the vault had it): the vault keeps it from now on
+    if(KINDS.includes(k) && k!=="private" && window.VAULT && VAULT.active()) savePrefs({kind:k}).catch(()=>{}); }
+  setKindLocal(KINDS.includes(k) ? k : "private");
+}
+function setKindLocal(k){
+  KIND = k; document.documentElement.dataset.kind = k; $("acctKind").value = k;
+  try{ localStorage.setItem(kindKey(), k); }catch(e){}
+  if(k!=="private" && !window.BIZ){ const s = document.createElement("script"); s.src = "business.js?v=1";
+    s.onload = ()=>{ if(WINES.length){ renderOverview(); renderTable(); } }; document.head.appendChild(s); }
+  else if(window.BIZ) BIZ.apply();
+}
+async function setKind(k){
+  if(!KINDS.includes(k)) return;
+  setKindLocal(k);
+  if(window.VAULT && VAULT.active()) await savePrefs({kind:k}).catch(()=>{});
+  if(WINES.length){ renderOverview(); renderTable(); }
+  toast(tr("Saved: {0}", $("acctKind").selectedOptions[0].textContent));
+}
+$("acctKind").addEventListener("change", e=>setKind(e.target.value));
 // leaving the page before the save: send it now
 document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="hidden" && layoutT) saveLayout(); });
 function renderCustom(id){
@@ -1048,12 +1108,13 @@ function detailHTML(w){
     ["Commune", w.commune],["Classification", w.classification || (suggestClass(w) ? "≈ "+suggestClass(w).cls+" ("+tr("suggested")+")" : "")],["Grape", w.grape],
     ["Format", isStdBottle(w) ? "" : tr(formatOf(w).key)+" · "+formatOf(w).note],
     ["Bought", btl(w.qty)],["Enjoyed", w.drunk?btl(w.drunk):""],["Source", w.source],
-    ["Price", SHOW_PRICES && w.price ? kr(w.price) : ""],["Location", w.location],
+    [KIND==="private" ? "Price" : "Cost price", SHOW_PRICES && w.price ? kr(w.price) : ""],["Location", w.location],
   ].filter(c=>c[1]).map(([k,v])=>`<div><div class="k">${esc(tr(k))}</div>${esc(v)}</div>`).join("");
   return `<div class="dgrid">${cells}</div>
     ${w.note?`<div class="unote">“${esc(w.note)}” — ${esc(tr("cellar note"))}</div>`:""}
     ${pn?`<div class="pnote"><b>${esc(w.producer)}</b> · ${esc(tr(TIER_LABEL[pn[0]]))} — ${esc(noteText(pn[1]))}</div>`:""}
     ${journalHTML(w)}
+    ${isBiz() ? BIZ.detail(w) : ""}
     <div class="links">
       ${w.left>0?`<button class="drink" data-act="drink" data-row="${w.row}">🍷 ${esc(tr("Mark 1 bottle as drunk"))}</button>`:""}
       ${w.drunk>0 && !w.elsewhere?`<button class="drink" data-act="undrink" data-row="${w.row}" title="${isElsewhere(w)?esc(tr("Puts the bottle in your cellar")):""}">↩︎ ${esc(tr("Undo drink"))}</button>`:""}
@@ -1215,7 +1276,7 @@ function renderTable(){
       <td class="num c-vint">${esc(w.vintage||"—")}</td>
       <td class="c-reg">${where}</td>
       <td class="num c-qty">${state.status==="drunk"?w.drunk:w.left}</td>
-      <td class="num c-price">${SHOW_PRICES ? (w.price?kr(w.price):"—") : "···"}</td>
+      <td class="num c-price">${SHOW_PRICES ? (w.price?kr(w.price):"—") + (isBiz() ? BIZ.priceCell(w) : "") : "···"}</td>
     </tr>
     <tr class="detail" aria-level="2" hidden><td colspan="7"></td></tr>`;
   }).join("") + moreRow(list.length, shown.length, 7, "cellar");
@@ -1324,7 +1385,7 @@ async function loadData(quiet){
   try{
     const res = await api({action:"data"});
     WINES = normalize(res.wines);
-    loadLayout();
+    loadLayout(); loadKind();
     $("priceBtn").textContent = SHOW_PRICES ? tr("Hide prices") : tr("Show prices");
     renderOverview(); renderTable(); renderEnjoyed();
     LOADED_AT = new Date(); stampText();
@@ -1513,7 +1574,7 @@ function showGate(msg){
 function setGateMode(mode){
   GATE_MODE = mode;
   const signup = mode==="signup", recover = mode==="recover";
-  $("gateInviteWrap").hidden = !signup;
+  $("gateInviteWrap").hidden = !signup; $("gateKindWrap").hidden = !signup;
   $("gateRecWrap").hidden = !recover;
   $("gateForgot").hidden = mode!=="login";
   trSet(signup ? "Create your own cellar. You'll need an invite code."
@@ -1668,6 +1729,7 @@ async function gateEncrypted(mode, user, pass){
     const data = await post({action:"signup", user, email:$("gateEmail").value.trim(), code:$("gateInvite").value.trim(), turnstile:humanToken(), ...k.fields});
     if(!data.ok) throw new Error(data.error);
     cfg.user = data.user; VAULT.rememberSalt(data.user, k.fields);
+    try{ localStorage.setItem(kindKey(), $("gateKind").value); }catch(e){} // what kind of account: into the vault's prefs on first load
     await VAULT.escrow({post, user:data.user, token:data.token, dekX:k.dekX}); // account help, when the owner has it on
     // the account exists from here: if the phone reloads the page while the code is on screen (a trip to the
     // password manager), the login says so instead of looking like nothing happened
@@ -2389,7 +2451,7 @@ function closeSheets(){ $("moreSheet").classList.remove("open"); $("meSheet").cl
   closeSheets(); setTimeout(()=>$(b.dataset.press).click(), 60); }));
 ["moreSheet","meSheet"].forEach(id=>$(id).addEventListener("click", e=>{ if(e.target===$(id)) closeSheets(); }));
 $("pMore").addEventListener("click", ()=>{
-  sheetMenu("moreMenu", [["⬆", tr("Import a list"), "impBtn"], ["⬇", tr("Export"), "expBtn"], ["🔗", tr("Share a list"), "lsBtn"], ["🧹", tr("Tidy up"), "tidyBtn"],
+  sheetMenu("moreMenu", [isBiz() ? ["🧾", BIZ.cardLabel(), "bizCardBtn"] : null, ["⬆", tr("Import a list"), "impBtn"], ["⬇", tr("Export"), "expBtn"], ["🔗", tr("Share a list"), "lsBtn"], ["🧹", tr("Tidy up"), "tidyBtn"],
     ["🎲", tr("Pick tonight's bottle"), "tonightBtn"], ["👁", $("priceBtn").textContent, "priceBtn"],
     $("delBtn").hidden ? null : ["↩", $("delBtn").textContent.replace(/^↩\s*/, ""), "delBtn"], ["↻", tr("Refresh"), "refreshBtn", $("stamp").textContent]]);
   $("moreSheet").classList.add("open");

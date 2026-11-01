@@ -12,11 +12,13 @@ const CELLAR = [["producer", "Producent"], ["country", "Land"], ["region", "Omr�
   ["classification", "Klassifikation"], ["type", "Type"], ["grape", "Drue"], ["vintage", "Årgang"], ["qty", "Antal"], ["price", "Pris kr (WS)"],
   ["drunk", "Drukket"], ["source", "Kilde"], ["note", "Note"], ["rating", "Rating"], ["value", "Værdi kr"], ["acquired", "Anskaffet"],
   ["drunkDate", "Drukket dato"], ["size", "Størrelse"], ["drinkFrom", "Drik fra"], ["drinkTo", "Drik til"], ["elsewhere", "Drukket ude"], ["location", "Placering"]];
+// a business account's prices, only when the cellar has some (a private export is as it always was)
+const BIZ = [["menuPrice", "Menupris"], ["glassPrice", "Glaspris"]];
 const JOURNAL = [["date", "Dato"], ["producer", "Producent"], ["wine", "Vin"], ["vintage", "Årgang"], ["country", "Land"], ["region", "Område"],
   ["commune", "Kommune"], ["classification", "Klassifikation"], ["grape", "Drue"], ["place", "Sted"], ["rating", "Rating"], ["price", "Pris"], ["note", "Note"]];
 const WISH = [["producer", "Producent"], ["wine", "Vin"], ["vintage", "Årgang"], ["region", "Område"], ["price", "Målpris kr"], ["note", "Note"]];
 const DATES = new Set(["acquired", "drunkDate", "date"]);
-const NUMS = new Set(["qty", "price", "drunk", "rating", "value", "drinkFrom", "drinkTo"]);
+const NUMS = new Set(["qty", "price", "drunk", "rating", "value", "drinkFrom", "drinkTo", "menuPrice", "glassPrice"]);
 
 function cell(f, v) {
   if (v === null || v === undefined || v === "") return "";
@@ -26,7 +28,7 @@ function cell(f, v) {
   return String(v).trim();
 }
 const table = (cols, list, fix) => [cols.map(c => c[1]), ...(list || []).map(x => { x = fix ? fix(x) : x; return cols.map(([f]) => cell(f, x[f])); })];
-const cellar = wines => table(CELLAR, wines, w => {
+const cellar = wines => table(CELLAR.concat(BIZ.filter(([f]) => (wines || []).some(w => w[f] !== null && w[f] !== undefined && w[f] !== ""))), wines, w => {
   const qty = Number(w.qty) || 1;
   const d = String(w.drunk).trim().toLowerCase() === "x" ? qty : Math.min(qty, Number(w.drunk) || 0);
   return Object.assign({}, w, { qty, drunk: d || "", elsewhere: w.elsewhere ? 1 : "" });

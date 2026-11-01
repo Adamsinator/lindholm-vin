@@ -42,7 +42,7 @@ function setting(key) {
 // The legacy code only works once you've set a real one: the placeholder from the template is public.
 function accessCode() { const c = setting('ACCESS_CODE'); return c === 'CHANGE-ME' ? '' : c; }
 
-const API_VERSION = 44; // returned in every response; used to verify deployments
+const API_VERSION = 45; // returned in every response; used to verify deployments
 
 // Per-request spreadsheet for the authenticated user. Set in handle(); every
 // sheet helper reads it via ss(). Falls back to the bound (owner's) spreadsheet.
@@ -107,8 +107,21 @@ const ELSEWHERE_HEADER = 'Drukket ude';
 // Where the bottles are ("Kælder, reol 3, hylde 2", "Køleskab række 4"); free text, auto-created on first use.
 const LOCATION_HEADER = 'Placering';
 
+// A business account (a restaurant, a shop, a domaine): the price on the wine card or price list and the price by the
+// glass (the supplier is the Kilde column). Optional columns, auto-created on first use, so a private cellar never sees them.
+const BIZ_HEADERS = { menuPrice: 'Menupris', glassPrice: 'Glaspris' };
+const BIZ_NUM = ['menuPrice', 'glassPrice'];
+// a price as stored: blank, or a number of 0 or more (anything else is refused, not guessed at)
+function bizValue(f, v) {
+  if (v === undefined || v === null || String(v).trim() === '') return '';
+  if (BIZ_NUM.indexOf(f) === -1) return plainText(v);
+  const n = Number(String(v).replace(',', '.')); if (!isFinite(n) || n < 0) throw new Error('Bad price');
+  return Math.round(n * 100) / 100;
+}
+function ensureBiz(sh, fields) { Object.keys(BIZ_HEADERS).forEach(f => { if (fields.some(x => x && f in x && String(x[f] == null ? '' : x[f]).trim() !== '')) ensureCol(sh, BIZ_HEADERS[f]); }); }
+
 // The wine fields the site may edit in place (rename, fix a commune, set a classification…).
-const INFO_FIELDS = ['producer', 'name', 'commune', 'classification', 'region', 'country', 'grape', 'type', 'vintage', 'source', 'note', 'location'];
+const INFO_FIELDS = ['producer', 'name', 'commune', 'classification', 'region', 'country', 'grape', 'type', 'vintage', 'source', 'note', 'location', 'menuPrice', 'glassPrice'];
 
 function today() { return Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd'); }
 function ymd(v) {
@@ -1373,6 +1386,7 @@ function colIndexes(sh) {
   idx.drinkTo   = head.indexOf(DRINK_TO_HEADER);
   idx.elsewhere = head.indexOf(ELSEWHERE_HEADER);
   idx.location  = head.indexOf(LOCATION_HEADER);
+  for (const f of Object.keys(BIZ_HEADERS)) idx[f] = head.indexOf(BIZ_HEADERS[f]);
   return idx;
 }
 
@@ -1400,6 +1414,7 @@ function readAll() {
     w.drinkTo   = idx.drinkTo   >= 0 ? (r[idx.drinkTo]   === null || r[idx.drinkTo]   === undefined ? '' : r[idx.drinkTo])   : '';
     w.elsewhere = idx.elsewhere >= 0 && String(r[idx.elsewhere]).trim() !== '' && String(r[idx.elsewhere]).trim() !== '0';
     w.location = idx.location >= 0 ? String(r[idx.location] === null || r[idx.location] === undefined ? '' : r[idx.location]).trim() : '';
+    for (const f of Object.keys(BIZ_HEADERS)) { const v = idx[f] >= 0 ? r[idx[f]] : ''; w[f] = v === null || v === undefined ? '' : (BIZ_NUM.indexOf(f) >= 0 || typeof v !== 'string' ? v : v.trim()); }
     wines.push(w);
   });
   return wines;
@@ -1410,6 +1425,7 @@ function addWine(wine) {
   ensureCol(sh, ACQUIRED_HEADER);
   if (String(wine.size || '').trim()) ensureCol(sh, SIZE_HEADER);
   if (String(wine.location || '').trim()) ensureCol(sh, LOCATION_HEADER);
+  ensureBiz(sh, [wine]);
   const idx = colIndexes(sh);
   const row = new Array(sh.getLastColumn()).fill('');
   for (const field of Object.keys(HEADERS)) {
@@ -1426,6 +1442,7 @@ function addWine(wine) {
   row[idx.acquired] = ymd(wine.acquired) || today();
   if (idx.size >= 0 && String(wine.size || '').trim()) row[idx.size] = String(wine.size).trim();
   if (idx.location >= 0 && String(wine.location || '').trim()) row[idx.location] = String(wine.location).trim();
+  for (const f of Object.keys(BIZ_HEADERS)) if (idx[f] >= 0) row[idx[f]] = bizValue(f, wine[f]);
   sh.appendRow(row);
 }
 
@@ -1475,6 +1492,7 @@ function addMany(wines, bumps) {
   const sh = sheet();
   ensureCol(sh, ACQUIRED_HEADER);
   Object.keys(IMPORT_COLS).forEach(f => { if (wines.some(w => !blank(w[f]))) ensureCol(sh, IMPORT_COLS[f]); });
+  ensureBiz(sh, wines);
   const idx = colIndexes(sh), width = sh.getLastColumn(), last = sh.getLastRow();
   const count = v => Math.min(MAX_BOTTLES, Math.max(0, Math.round(Number(v) || 0)));
   bumps.forEach(b => { const r = Number(b.row); if (!r || r < 2 || r > last) throw new Error('Bad row'); });
@@ -1508,6 +1526,7 @@ function addMany(wines, bumps) {
     if (!blank(w.drinkFrom)) row[idx.drinkFrom] = num(w.drinkFrom);
     if (!blank(w.drinkTo)) row[idx.drinkTo] = num(w.drinkTo);
     if (!blank(w.elsewhere) && Number(w.elsewhere)) row[idx.elsewhere] = 1;
+    for (const f of Object.keys(BIZ_HEADERS)) if (idx[f] >= 0 && !blank(w[f])) { try { row[idx[f]] = bizValue(f, w[f]); } catch (e) { row[idx[f]] = ''; } }
     if (!blank(w.location)) row[idx.location] = text(String(w.location));
     return row;
   });
@@ -1522,6 +1541,7 @@ function setInfoMany(edits) {
   if (!Array.isArray(edits) || edits.length > IMPORT_MAX) throw new Error('Bad edits');
   const sh = sheet(), last = sh.getLastRow();
   if (edits.some(e => e && e.fields && 'location' in e.fields)) ensureCol(sh, LOCATION_HEADER);
+  ensureBiz(sh, edits.map(e => e && e.fields));
   edits.forEach(e => { const r = Number(e && e.row); if (!r || r < 2 || r > last) throw new Error('Bad row');
     if (e.fields && 'producer' in e.fields && !String(e.fields.producer || '').trim()) throw new Error('Producer is required'); });
   const idx = colIndexes(sh); // read once: thousands of edits fit in one call
@@ -1581,6 +1601,7 @@ function setInfo(rowNum, fields) {
   const sh = sheet();
   if (!rowNum || rowNum < 2 || rowNum > sh.getLastRow()) throw new Error('Bad row');
   if ('location' in fields) ensureCol(sh, LOCATION_HEADER);
+  ensureBiz(sh, [fields]);
   writeInfo(sh, colIndexes(sh), rowNum, fields);
 }
 // only writes, so many of them in a row are sent to the sheet together (a read in between would flush each one)
@@ -1591,6 +1612,7 @@ function writeInfo(sh, idx, rowNum, fields) {
     let v = fields[f] === null || fields[f] === undefined ? '' : fields[f];
     if (typeof v === 'string') v = v.trim();
     if (f === 'vintage' && /^\d{4}$/.test(String(v))) v = Number(v);
+    if (f in BIZ_HEADERS) { if (idx[f] < 0) return; v = bizValue(f, v); } // a blank on a column that isn't there yet: nothing to write
     sh.getRange(rowNum, idx[f] + 1).setValue(asText(v));
   });
 }

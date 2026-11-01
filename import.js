@@ -188,7 +188,7 @@ const norm = s => String(s == null ? "" : s).normalize("NFD").replace(/[̀-ͯ]/g
 // The fields a column can fill. "left" (bottles still there) and "window" ("2025–2035") are turned into qty/drunk and
 // drinkFrom/drinkTo; "line" is a whole wine written as one line of text.
 const FIELDS = ["producer", "name", "commune", "region", "country", "classification", "type", "grape", "vintage", "qty",
-  "left", "drunk", "price", "value", "source", "note", "rating", "acquired", "drunkDate", "size", "drinkFrom", "drinkTo", "window", "elsewhere", "location", "line"];
+  "left", "drunk", "price", "value", "source", "note", "rating", "acquired", "drunkDate", "size", "drinkFrom", "drinkTo", "window", "elsewhere", "location", "menuPrice", "glassPrice", "line"];
 const TEXT_FIELDS = new Set(["producer", "name", "commune", "region", "country", "classification", "type", "grape", "source", "note", "location"]);
 const SYN = {
   producer: ["weingut", "winzer", "produzent", "hersteller", "producent", "producer", "producteur", "produttore", "productor", "erzeuger", "winery", "vinhus", "domaine", "domain", "estate", "maker", "house", "chateau", "vingard", "vigneron", "brand"],
@@ -215,6 +215,9 @@ const SYN = {
   drinkTo: ["trinken bis", "haltbar bis", "drik til", "drink to", "drink by", "end consume", "endconsume", "drink before", "drinking window end", "drink window to", "until", "til", "end", "jusqu a", "apogee fin"],
   location: ["placering", "location", "lokation", "plads", "bin", "hylde", "reol", "rack", "shelf", "cellar location", "storage", "opbevaring",
     "emplacement", "casier", "rangement", "lagerort", "standort", "fach", "regal", "lagerplatz", "where", "hvor"],
+  // a business's prices: on the wine card or price list, and by the glass (business.js)
+  menuPrice: ["menupris", "menu price", "list price", "salgspris", "udsalgspris", "sale price", "selling price", "kortpris", "vinkortpris", "prix de vente", "prix carte", "verkaufspreis", "kartenpreis"],
+  glassPrice: ["glaspris", "glass price", "by the glass", "pris pr glas", "price per glass", "prix au verre", "glaspreis", "offenausschank"],
   elsewhere: ["drukket ude", "drunk elsewhere", "elsewhere", "not from cellar", "bu ailleurs"],
   window: ["trinkfenster", "trinkreife", "drikkevindue", "drink window", "drinking window", "window", "vindue", "fenetre", "fenetre de degustation", "apogee", "drink"],
 };
@@ -481,7 +484,7 @@ function build(rows, header, fields) {
     if (qty <= 0) { skipped.zero++; return; }
     if (!w.producer) { skipped.noProducer++; return; }
     w.qty = qty; w.drunk = Math.max(0, Math.min(drunk, qty));
-    for (const f of ["price", "value"]) { const v = num(at(r, f)); if (v !== null && v >= 0) w[f] = Math.round(v * 100) / 100; }
+    for (const f of ["price", "value", "menuPrice", "glassPrice"]) { const v = num(at(r, f)); if (v !== null && v >= 0) w[f] = Math.round(v * 100) / 100; }
     { const v = num(at(r, "rating")); if (v !== null && v > 0) w.rating = Math.round(rScale(v) * 10) / 10; }
     for (const f of ["acquired", "drunkDate"]) { const v = at(r, f); if (v !== undefined && isoDate(v)) w[f] = isoDate(v); }
     if (at(r, "size") !== undefined) { const s = size(at(r, "size")); if (s) w.size = s; }
