@@ -680,7 +680,7 @@ function placeWall(){
 }
 matchMedia("(min-width:1181px)").addEventListener("change", ()=>{ placeWall(); renderRack(WINES.filter(w=>w.left>0)); });
 function renderRack(cellar){
-  const wall = $("wall"); if(!wall) return; placeWall();
+  const wall = $("wall"); if(!wall) return; placeWall(); closeRackCard();
   const bottles = cellar.reduce((n,w)=>n+w.left,0);
   wall.hidden = !bottles; if(!bottles) return;
   const order = {past:0, soon:1, now:2, none:3, young:4};
@@ -709,7 +709,34 @@ function renderRack(cellar){
   $("wallStats").innerHTML = [["now", n(r=>r.k==="now"), tr("ready now")], past ? ["past", past, tr("past their best")] : ["soon", n(r=>r.soon), tr("closing soon")], ["young", n(r=>r.k==="young"), tr("still too young")]]
     .map(([k,n,l])=>`<button type="button" data-ready="${k}"><b>${fmt(n)}</b><span>${esc(l)}</span></button>`).join("");
 }
-$("rack").addEventListener("click", e=>{ const b = e.target.closest("button.btl"); if(!b) return; const w = WINES.find(x=>x.row===Number(b.dataset.row)); if(w) showWine(w); });
+// a tap on a bottle: a small card by it (the wine, its window, Drink a bottle, Show in the list); the page stays put
+$("rack").addEventListener("click", e=>{ const b = e.target.closest("button.btl"); if(!b) return; const w = WINES.find(x=>x.row===Number(b.dataset.row)); if(w) rackCard(w, b); });
+function rackCard(w, b){
+  const card = $("rackCard"), r = readiness(w), win = drinkWindow(w);
+  if(!card.hidden && card.dataset.row === String(w.row)){ closeRackCard(); return; }
+  card.dataset.row = w.row;
+  const where = [w.commune, w.region, w.country].filter(Boolean).filter((x,i,a)=>a.indexOf(x)===i).join(", ");
+  card.innerHTML = `<button type="button" class="rc-x" aria-label="${esc(tr("Close"))}">✕</button>
+    <span class="rc-k ${r ? (r.k==="now" && r.soon ? "soon" : r.k) : ""}">${r ? esc(r.label) : ""}${r && r.est ? " · " + esc(tr("estimated")) : ""}</span>
+    <b class="rc-p">${esc(w.producer)}</b>
+    <span class="rc-w">${esc([w.name, typeof w.vintage==="number" ? w.vintage : (w.vintage||"NV")].filter(Boolean).join(" · "))}</span>
+    <span class="rc-m">${esc([where, win ? `${win.from??"?"}–${win.to??"?"}` : "", btl(fmt(w.left)), SHOW_PRICES && w.price ? kr(w.price) : ""].filter(Boolean).join(" · "))}</span>
+    <span class="rc-a"><button type="button" class="btn primary" data-rc="drink">🍷 ${esc(tr("Drink a bottle"))}</button><button type="button" class="btn" data-rc="list">${esc(tr("Show in the list"))}</button></span>`;
+  card.hidden = false;
+  // by the bottle, inside the rack's panel: under it, or over it when there's no room below
+  const wall = $("wall").getBoundingClientRect(), br = b.getBoundingClientRect(), cw = Math.min(300, wall.width - 16);
+  card.style.width = cw + "px";
+  const left = Math.max(8, Math.min(br.left - wall.left + br.width/2 - cw/2, wall.width - cw - 8));
+  const below = br.bottom - wall.top + 8, h = card.offsetHeight;
+  card.style.left = left + "px"; card.style.top = (below + h > wall.height + 40 ? br.top - wall.top - h - 8 : below) + "px";
+  card.querySelector(".rc-x").onclick = closeRackCard;
+  card.querySelector('[data-rc="drink"]').onclick = ev => { closeRackCard(); rowAction("drink", w.row, ev.currentTarget); };
+  card.querySelector('[data-rc="list"]').onclick = () => { closeRackCard(); showWine(w); };
+  card.querySelector('[data-rc="drink"]').focus({preventScroll:true});
+}
+function closeRackCard(){ const c = $("rackCard"); if(c){ c.hidden = true; c.dataset.row = ""; } }
+document.addEventListener("pointerdown", e=>{ if(!e.target.closest("#rackCard, #rack button.btl")) closeRackCard(); });
+document.addEventListener("keydown", e=>{ if(e.key==="Escape") closeRackCard(); });
 $("rackMore").addEventListener("click", ()=>{ RACK_ALL = !RACK_ALL; renderRack(WINES.filter(w=>w.left>0)); });
 $("wallStats").addEventListener("click", e=>{ const b = e.target.closest("button[data-ready]"); if(!b) return;
   state.status="cellar"; $("fStatus").value="cellar"; state.ready=b.dataset.ready; $("fReady").value=b.dataset.ready; renderTable();

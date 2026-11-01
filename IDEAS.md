@@ -35,6 +35,25 @@ shows a few rows with "+ N more": fine for a private cellar of 20–150, meaning
   value; the list does the detail.
 - Keep the one-bottle-per-bottle rack for small cellars: it's the charm of the thing.
 
+## Four kinds of account: private, restaurant, wine merchant, winemaker (raised 1 November 2026)
+
+One engine, one sign-up that asks "what are you?", and each kind of account gets the words, overviews and tools it
+needs; nothing it doesn't. A member can change kind later; the data stays the same.
+
+- **Private** (today's AllWine): the cellar, drink windows, Enjoyed, the journal, wishlist, the atlas, share a list.
+- **Restaurant / wine bar:** the wine card and by-the-glass, stock per location, par levels and reorder, allocations,
+  margins, Danish VAT and duty, staff roles, sales and depletion (details in the section below).
+- **Wine merchant / shop:** stock and purchase prices across suppliers, price lists and a shareable catalogue,
+  allocations offered to customers, reserved and en primeur stock, customer lists (with their consent), what's
+  arriving and what's selling; exports for the accountant.
+- **Winemaker / domaine:** their own vineyards on the atlas (the "send your parcels" idea: holdings, plantings, age of
+  vines), vintages and how much was made, the back vintages in their own cellar, a public page per wine with tasting
+  notes and drink windows, and allocations to importers and merchants.
+- Shared underneath: import and export, the atlas, the sommelier, sharing, the encrypted store; the business kinds add
+  several people on one account (see the encryption question below) and an audit trail.
+- Pricing and plans per kind, if it's ever sold: decide before building, so a private member never pays for business
+  features and a business gets support.
+
 ## A business version: restaurants, wine bars, shops (raised 1 November 2026)
 
 The same engine (encrypted cellar, import, atlas, drink windows) for a business that needs other overviews and words.
