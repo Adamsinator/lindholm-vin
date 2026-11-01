@@ -239,9 +239,9 @@ tr.detail td{background:var(--card2);padding:14px 16px 16px}
 td.emptyrow{text-align:center;color:var(--muted);padding:34px 16px;font-size:14px}
 .dgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px 20px;font-size:13px;margin-bottom:10px}
 .dgrid .k{font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted)}
-.pnote{font-size:13px;border-left:3px solid var(--accent);padding:2px 0 2px 10px;margin:10px 0;max-width:65ch}
+.pnote{font-size:13px;padding:0;margin:10px 0;max-width:65ch}
 .unote{font-size:13px;font-style:italic;color:var(--accent);margin:8px 0}
-.wjournal{margin:10px 0;border-left:3px solid var(--gold);padding:2px 0 2px 10px;max-width:70ch}
+.wjournal{margin:10px 0;padding:0;max-width:70ch}
 .wjournal .k{font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin-bottom:4px}
 .wj{font-size:13px;margin:3px 0}
 .wj-h{color:var(--muted)}
@@ -373,7 +373,7 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
 @media (max-width:640px){ .sk-kpis{grid-template-columns:repeat(2,1fr)} .sk-kpis i:nth-child(n+5){display:none} }
 @media (prefers-reduced-motion:reduce){ .sk-kpis i,.sk-rows i{animation:none} }
 /* the recovery-code reminder, under the header */
-.recnote{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;margin:0 0 14px;padding:12px 16px;border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:var(--r);background:var(--card);font-size:14.5px}
+.recnote{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;margin:0 0 14px;padding:12px 16px;border:1px solid var(--line);border-radius:var(--r);background:var(--card);font-size:14.5px}
 .recnote[hidden]{display:none} .recnote .recbtns{display:flex;gap:8px;flex-wrap:wrap}
 #actbar{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:121;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
   max-width:min(640px,calc(100vw - 24px));background:var(--ink);color:var(--bg);padding:8px 8px 8px 16px;border-radius:14px;font-size:14px;box-shadow:0 6px 24px rgba(0,0,0,.18)}
@@ -710,7 +710,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
    with when the cellar was fetched, Refresh and the atlas */
 .helpq,.acct .btn.helpq{display:inline-flex;align-items:center;justify-content:center;min-width:30px;min-height:30px;padding:0 !important;border:1.5px solid currentColor;border-radius:50%;font-weight:700;text-decoration:none;line-height:1}
 @media(pointer:coarse){.helpq{min-width:44px;min-height:44px}}
-.tips{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:var(--r);padding:12px 16px;margin:0 0 14px}
+.tips{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px 16px;margin:0 0 14px}
 @media (min-width:900px){ .tips{padding:10px 16px} .tips ol{display:grid;grid-template-columns:repeat(3,1fr);gap:4px 22px;margin:6px 0 2px}
   .tips li{font-size:13.5px;margin:0} .tips li b{display:block} .tips-h{gap:16px} .tips-more{display:inline;margin:0} .tips-h .tips-more{margin-left:auto} }
 .tips-h{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap} .tips h2{font-size:18px;margin:0}
@@ -723,6 +723,8 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 .qhint{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border:1.5px solid var(--muted);border-radius:50%;color:var(--muted);font:700 13px/1 system-ui,sans-serif;text-decoration:none;vertical-align:middle;margin-left:6px}
 .qhint:hover,.qhint:focus-visible{border-color:var(--accent);color:var(--accent)}
 @media(pointer:coarse){.qhint{width:32px;height:32px}}
+#qtip{position:fixed;z-index:90;background:var(--ink);color:var(--bg);font-size:13px;line-height:1.45;padding:10px 12px;border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,.25)}
+#qtip[hidden]{display:none} #qtip a{color:inherit;font-weight:600;white-space:nowrap}
 .acct{display:flex;align-items:center;gap:2px}
 .acct .btn{padding:5px 8px}
 .gbar{flex-wrap:wrap;row-gap:4px;margin:-4px 0 14px}
@@ -756,7 +758,8 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 .rack{display:grid;grid-template-columns:repeat(auto-fill,minmax(52px,1fr));grid-auto-rows:22px;gap:6px 6px;padding:8px 10px 6px;border-radius:12px;
   background:repeating-linear-gradient(180deg,transparent 0 23px,#4a3328 23px 26px,transparent 26px 28px),#160f12;box-shadow:inset 0 2px 10px rgba(0,0,0,.6)}
 .btl{border:0;padding:0;background:none;display:block;cursor:pointer;width:100%;height:20px;opacity:0;transform:translateX(-12px);animation:btlIn .45s cubic-bezier(.2,.9,.3,1) forwards;border-radius:4px}
-.btl svg{display:block;width:100%;height:100%}
+.btl svg{display:block;width:100%;height:100%} .btl{position:relative}
+.btl .cnt{position:absolute;left:5px;top:4px;font:700 9px/12px system-ui,sans-serif;color:rgba(28,19,22,.85);pointer-events:none;letter-spacing:.02em}
 .btl .gl{fill:var(--c)} .btl .cp{fill:#2b1a1f}
 .btl.past .cp,.btl.soon .cp{fill:var(--b-amber)} .btl.soon .cp{animation:capGlow 2.2s ease-in-out infinite}
 .btl.young{filter:saturate(.5) brightness(.68)}
@@ -781,6 +784,8 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 .rackcard .rc-a{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px} .rackcard .rc-a .btn{font-size:13px;padding:6px 10px}
 @media (prefers-reduced-motion:reduce){ .wall .rackcard{animation:none} }
 .cellar-side .wall{margin:0 0 18px}
+.delacts{display:flex;gap:6px;flex-shrink:0}
+#brandHome{color:inherit;text-decoration:none} #brandHome:hover em{text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:4px}
 .rack-unit{margin:6px 0 0;font-size:11.5px;color:#B9A3AA}
 .rack-shelves{display:grid;gap:5px;margin-top:12px} .rack-shelves[hidden]{display:none}
 .rack-shelves button{display:grid;grid-template-columns:minmax(70px,34%) 1fr auto;align-items:center;gap:8px;border:0;background:none;color:inherit;font:inherit;font-size:12.5px;padding:2px 0;cursor:pointer;text-align:left}
@@ -1026,7 +1031,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 <div class="wrap" id="app" hidden>
 <header class="top">
   <div class="brand">
-    <h1>All<em>Wine</em></h1>
+    <h1><a href="./" id="brandHome" title="Your cellar" data-i18n-title>All<em>Wine</em></a></h1>
     <span class="who" id="who" hidden></span>
   </div>
   <div class="topright"><span class="sub" data-i18n>Cellar overview</span><span data-langpick></span>
@@ -1435,11 +1440,11 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 
 <div class="modal" id="delModal" role="dialog" aria-modal="true" aria-labelledby="delTitle">
   <div class="card imp">
-    <h2 id="delTitle" data-i18n>Recently deleted</h2>
-    <p class="imphint" data-i18n>Deleted wines are kept here for 30 days. Restore puts a wine back in your cellar exactly as it was.</p>
+    <h2 id="delTitle" data-i18n>Trash</h2>
+    <p class="imphint" data-i18n>Deleted wines wait here for 30 days, then go by themselves. Restore puts a wine back in your cellar exactly as it was; Delete for good removes it now.</p>
     <div class="impfixes" id="delList"></div>
     <div class="err" id="delErr" role="status" aria-live="polite"></div>
-    <div class="mact"><button class="btn" type="button" id="delClose" data-i18n>Close</button></div>
+    <div class="mact"><button class="btn quiet danger" type="button" id="delEmpty" data-i18n>Empty the trash</button><button class="btn" type="button" id="delClose" data-i18n>Close</button></div>
   </div>
 </div>
 
@@ -1774,7 +1779,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 
 <!-- Pages serves these with max-age=600 and no revalidation, so a merged change can
      sit invisible behind a stale app.js for ten minutes. Bump v on every deploy. -->
-<script src="i18n.js?v=73"></script>
+<script src="i18n.js?v=74"></script>
 <script src="notes.js?v=4"></script>
 <script src="notes-i18n.js?v=1"></script>
 <script src="burgundy-data.js?v=13"></script>
@@ -1784,7 +1789,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 <script src="gas-fake.js?v=7"></script>
 <script src="vault-crypto.js?v=3"></script>
 <script src="vault-engine.js?v=1"></script>
-<script src="vault.js?v=23"></script>
+<script src="vault.js?v=24"></script>
 <script src="wine-kb.js?v=2"></script>
 <script src="piemonte-mga.js?v=1"></script>
 <script src="tidy.js?v=3"></script>
@@ -1792,6 +1797,6 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 <script src="export.js?v=3"></script>
 <script src="europe-lands.js?v=1"></script>
 <script src="share-crypto.js?v=1"></script>
-<script src="app.js?v=69"></script>
+<script src="app.js?v=70"></script>
 </body>
 </html>

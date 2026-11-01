@@ -306,7 +306,7 @@ const GEOL_GLOSS = {
   LP:["Plateau silts","Plateausilt","Plateau-Schluffe"], Hydro:["Water","Vand","Wasser"],
 };
 const geolName = code => { const L = GEOL.legend[code]; if(!L) return code; const lg = window.I18N ? window.I18N.lang : "en", g = GEOL_GLOSS[L[0]];
-  return lg==="fr" || !g ? L[1] : g[lg==="da" ? 1 : lg==="de" ? 2 : 0]; };
+  return lg==="fr" ? L[1] : g ? g[lg==="da" ? 1 : lg==="de" ? 2 : 0] : window.GEOL_TR ? GEOL_TR(L[1], lg) : L[1]; }; // the hand glosses first, then geol-gloss.js
 const geolColor = code => { const L = GEOL.legend[code]; if(!L) return TOK.none; return L[0]==="GP" ? "#D6CFC2" : L[2]; };
 function drawGeol(g){
   Object.entries(GEOL.shapes).forEach(([code, rings]) => {
@@ -2304,7 +2304,7 @@ const matchWine = window.BURG_MATCH.make(C, V).match;
 // An encrypted cellar: load the vault scripts only now, and decrypt here with the key the Cellar page kept for this session
 const loadScript = src => new Promise((res, rej) => { const el = document.createElement("script"); el.src = src; el.onload = res; el.onerror = () => rej(new Error("load " + src)); document.head.appendChild(el); });
 async function vaultData(api, user, token){
-  for(const f of ["gas-fake.js?v=7", "vault-crypto.js?v=3", "vault-engine.js?v=1", "vault.js?v=23"]) await loadScript(f);
+  for(const f of ["gas-fake.js?v=7", "vault-crypto.js?v=3", "vault-engine.js?v=1", "vault.js?v=24"]) await loadScript(f);
   const dek = await window.VCRYPTO.recall(user);
   if(!dek) throw new Error("token");
   const post = async p => (await fetch(api, {method:"POST", body:JSON.stringify(p), redirect:"follow"})).json();

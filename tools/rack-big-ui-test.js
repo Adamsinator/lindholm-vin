@@ -1,5 +1,6 @@
-// The wine rack in a big cellar (app.js, renderRack): past 150 bottles one drawn bottle stands for a case of 6, past a
-// thousand for 12, the rack says so, a tap on one tells what's in it, and the regions are shelves that filter the list.
+// The wine rack in a big cellar (app.js, renderRack): past 150 bottles one drawn bottle stands for one WINE, with how many
+// bottles of it ("×6"), the rack says so, a tap opens that wine and only that, and the regions are shelves that filter
+// the list.
 //   (cd .. && python3 -m http.server 8765) & node tools/rack-big-ui-test.js
 "use strict";
 const { chromium } = require("./pw");
@@ -32,15 +33,15 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
 
   const r = await p.evaluate(() => ({ n: document.getElementById("wallN").textContent, unit: document.getElementById("rackUnit").textContent, unitHid: document.getElementById("rackUnit").hidden,
     drawn: document.querySelectorAll("#rack button.btl").length, more: document.getElementById("rackMore").textContent }));
-  check("1,206 bottles: the rack says each drawn bottle is 12", /1.206/.test(r.n) && !r.unitHid && /= 12 bottles/.test(r.unit), JSON.stringify(r));
+  check("1,206 bottles: the rack says each drawn bottle is one wine", /1.206/.test(r.n) && !r.unitHid && /each drawn bottle is one wine/.test(r.unit), JSON.stringify(r));
   await p.click("#rackMore"); await p.waitForTimeout(200);
   const all = await p.$$eval("#rack button.btl", bs => bs.length);
-  check("…all of it in 101 drawn bottles (1,206 ÷ 12, rounded up), not 1,206", all === 101, String(all));
-  const first = await p.$eval("#rack button.btl", x => x.getAttribute("aria-label"));
-  check("…each says what it stands for: 12 bottles, the most pressing wine first (the old rosé)", /^12 bottles: Tempier/.test(first), first);
+  check("…all of it in 161 drawn bottles, one per wine, not 1,206", all === 161, String(all));
+  const first = await p.$eval("#rack button.btl", x => [x.getAttribute("aria-label"), x.querySelector(".cnt") && x.querySelector(".cnt").textContent, x.getAttribute("style")]);
+  check("…the most pressing wine first (the old rosé), rosé-coloured, marked ×6", /^Tempier · Bandol Rosé 2015 · 6/.test(first[0]) && first[1] === "×6" && /b-rose/.test(first[2]), JSON.stringify(first));
   await p.click("#rack button.btl >> nth=0"); await p.waitForTimeout(300);
   const card = await p.textContent("#rackCard");
-  check("…and a tap says what's in that case", /stands for 12/.test(card) && /Tempier/.test(card) && /other wine|Château|Cave|Domaine/.test(card), card.slice(0, 200));
+  check("…and a tap opens that wine, and no other", /Tempier/.test(card) && /6 btl/.test(card) && !/Château|Cave|Domaine|Maison|Weingut/.test(card), card.slice(0, 200));
   await p.keyboard.press("Escape");
   const sh = await p.$$eval("#rackShelves button", bs => bs.map(x => x.dataset.region + ":" + x.querySelector("b").textContent));
   check("the regions as shelves, biggest first", sh.length >= 5 && /^Bordeaux:400/.test(sh[0]) && /^Bourgogne:300/.test(sh[1]), sh.join());

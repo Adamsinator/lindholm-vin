@@ -173,13 +173,22 @@ const W = async (prod, name) => (await (await wines())).find(w => w.producer ===
   check("deleting doesn't ask: it's done, with Undo", !dialogs.length && /Deleted Armand Rousseau/.test(await p.textContent("#actMsg")) && /Undo/.test(await p.textContent("#actBtns")), await p.textContent("#actbar"));
   check("…the wine is gone from the cellar", !(await W("Armand Rousseau")));
   await p.waitForSelector("#delBtn:not([hidden])", { timeout: 5000 }).catch(() => {});
-  check("…and it's under 'Recently deleted'", (await nDel()) === del0 + 1 && new RegExp("Recently deleted \\(" + (del0 + 1) + "\\)").test(await p.textContent("#delBtn")) && await p.isVisible("#delBtn"), await p.textContent("#delBtn"));
+  check("…and it's in the Trash", (await nDel()) === del0 + 1 && new RegExp("Trash \\(" + (del0 + 1) + "\\)").test(await p.textContent("#delBtn")) && await p.isVisible("#delBtn"), await p.textContent("#delBtn"));
   await p.click("#delBtn"); await p.waitForTimeout(200);
   check("…listing it", /Armand Rousseau/.test(await p.textContent("#delList")));
   await p.click('#delList .jcheck:has-text("Armand Rousseau") [data-undel]'); await p.waitForTimeout(1200);
   const rsBack = await W("Armand Rousseau");
   check("Restore puts it back as it was", rsBack && rsBack.qty === rsBefore.qty && rsBack.price === rsBefore.price && rsBack.name === rsBefore.name && rsBack.vintage === rsBefore.vintage, JSON.stringify([rsBefore, rsBack]));
   check("…and leaves the list", (await nDel()) === del0 && !/Armand Rousseau/.test(await p.textContent("#delList")));
+  // the trash can: delete one for good (after a question), then empty the rest
+  await p.click("#delClose"); answer = true;
+  await openRow("#tbl", "Armand Rousseau"); await detail("#tbl", "Armand Rousseau").locator('button[data-act="delete"]').click(); await p.waitForTimeout(1200);
+  await p.click("#delBtn"); await p.waitForTimeout(200); dialogs.length = 0;
+  await p.click('#delList .jcheck:has-text("Armand Rousseau") [data-purge]'); await p.waitForTimeout(1200);
+  check("Delete for good: asked first, then gone from the trash and not restorable", dialogs.some(d => /for good/.test(d)) && !/Armand Rousseau/.test(await p.textContent("#delList")) && (await nDel()) === del0 && !(await W("Armand Rousseau")), JSON.stringify(dialogs));
+  const left = await nDel();
+  if (left) { dialogs.length = 0; await p.click("#delEmpty"); await p.waitForTimeout(1200); }
+  check("Empty the trash: asked, then nothing left in it, and the button goes", (left ? dialogs.some(d => /Empty the trash/.test(d)) : true) && (await nDel()) === 0 && await p.isHidden("#delEmpty") && /trash is empty/i.test(await p.textContent("#delList")), JSON.stringify({ left, dialogs }));
   await p.click("#delClose");
 
   if (VAULT_MODE) {

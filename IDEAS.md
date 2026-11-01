@@ -2,6 +2,19 @@
 
 Things agreed as worth doing, not yet started. Newest first. When one is picked up, move it into a PR and delete it here.
 
+## Look less machine-made (raised 1 November 2026)
+
+What readers say gives a site away as generated, from surveys and design write-ups (see the business plan's sources): emoji
+used as icons, a coloured left edge on boxes, em dashes in every other sentence, vague copy, the same fade-in on every
+element. People trust a site less when they think it's AI-made, even when it isn't. AllWine already avoids the worst
+(own words, real numbers, a serif of its own, official data, the sommelier is rule-based, not AI). Done: the coloured
+left edges are gone, the business buttons have words, not emoji. Still to do:
+
+- **One drawn icon set** in place of the ~100 emoji in the cellar app (🍷 🗑 ✏ 🔒 📍 ⬆ ⬇ 🔗 🧹 🎲 …): small line icons
+  in the site's own stroke, the same on every page; keep 🍷 only where it's a wink, not an icon.
+- **Fewer em dashes** in the interface (about 33 strings in app.js): a full stop or a colon reads more like a person.
+- **Calmer motion:** the bottles' slide-in on the rack is fine once; check nothing else fades in by default.
+
 ## Account kinds, the next steps (raised 1 November 2026; the first slice is built)
 
 Built: Account (and sign-up) asks what kind of account it is: private, restaurant or wine bar, wine merchant or shop,

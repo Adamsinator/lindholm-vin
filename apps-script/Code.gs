@@ -42,7 +42,7 @@ function setting(key) {
 // The legacy code only works once you've set a real one: the placeholder from the template is public.
 function accessCode() { const c = setting('ACCESS_CODE'); return c === 'CHANGE-ME' ? '' : c; }
 
-const API_VERSION = 46; // returned in every response; used to verify deployments
+const API_VERSION = 47; // returned in every response; used to verify deployments
 
 // Per-request spreadsheet for the authenticated user. Set in handle(); every
 // sheet helper reads it via ss(). Falls back to the bound (owner's) spreadsheet.
@@ -275,6 +275,9 @@ function handle(p) {
       case 'undelete':
         undeleteWine(String(p.id || ''));
         return json({ ok: true, wines: readAll(), deleted: listDeleted() });
+      case 'purge':      // the trash can: one wine gone for good, or (id "all") the whole can emptied
+        purgeOne(String(p.id || ''));
+        return json({ ok: true, deleted: listDeleted() });
       case 'rate':
         rateWine(Number(p.row), p.rating);
         return json({ ok: true, wines: readAll() });
@@ -1817,6 +1820,13 @@ function purgeDeleted() {
   const sh = deletedSheet(false); if (!sh) return;
   const old = Date.now() - DELETED_DAYS * 864e5;
   deletedRows().filter(d => !(Date.parse(d.at) >= old)).reverse().forEach(d => sh.deleteRow(d.sheetRow)); // bottom up
+}
+// Delete for good from the trash can: one kept wine by its id, or all of them ("all"); nothing in the cellar changes
+function purgeOne(id) {
+  const sh = deletedSheet(false); if (!sh || !id) return;
+  const rows = deletedRows(), gone = id === 'all' ? rows : rows.filter(d => d.id === id);
+  if (id !== 'all' && !gone.length) throw new Error('not-found');
+  gone.slice().reverse().forEach(d => sh.deleteRow(d.sheetRow)); // bottom up, so the rows above keep their numbers
 }
 function undeleteWine(id) {
   const d = deletedRows().find(x => x.id === id);
