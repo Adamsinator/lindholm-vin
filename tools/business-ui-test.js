@@ -41,7 +41,7 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
 
   // open Rousseau and price it
   await p.click('#tbl tr.main:has-text("Armand Rousseau")'); await p.waitForTimeout(300);
-  const det = 'tr.detail:not([hidden])';
+  const det = '#tbl tr.detail:not([hidden])';
   check("a wine's details: menu price, by the glass and supplier", await p.isVisible(`${det} .bz-in[data-f="menuPrice"]`) && await p.isVisible(`${det} .bz-in[data-f="glassPrice"]`) && await p.isVisible(`${det} .bz-in[data-f="source"]`));
   await p.fill(`${det} .bz-in[data-f="menuPrice"]`, "900"); await p.press(`${det} .bz-in[data-f="menuPrice"]`, "Tab"); await p.waitForTimeout(900);
   await p.fill(`${det} .bz-in[data-f="glassPrice"]`, "150"); await p.press(`${det} .bz-in[data-f="glassPrice"]`, "Tab"); await p.waitForTimeout(900);
@@ -57,6 +57,19 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   check("the panel: stock at cost (3×300 + 2×500 + 2×400 = 2,700) and at menu price (2,700), margin 58 %, one by the glass, the supplier",
     /2\.700 kr/.test(panel) && /Stock at menu price/.test(panel) && /58 %/.test(panel) && /Vinimportøren/.test(panel) && /2 wines in stock have no menu price/.test(panel), panel.slice(0, 400));
 
+  // selling: a bottle, then glasses (5 to a bottle): the first glass opens a bottle, the stock goes down by the bottle
+  await p.click(`${det} button[data-sell="bottle"]`); await p.waitForTimeout(900);
+  check("Sold a bottle: one bottle less in stock, and the bar says so with Undo", await p.evaluate(() => WINES.find(w => w.producer === "Armand Rousseau").left === 2)
+    && /Sold a bottle of Armand Rousseau/.test(await p.textContent("#actMsg")) && /Undo/.test(await p.textContent("#actBtns")));
+  await p.click("#actBtns button"); await p.waitForTimeout(900);
+  check("…Undo puts it back", await p.evaluate(() => WINES.find(w => w.producer === "Armand Rousseau").left === 3));
+  await p.click(`${det} button[data-sell="bottle"]`); await p.waitForTimeout(900);
+  for (let i = 0; i < 2; i++) { await p.click(`${det} button[data-sell="glass"]`); await p.waitForTimeout(800); }
+  const st = await p.evaluate(() => { const w = WINES.find(w => w.producer === "Armand Rousseau"); return [w.left, w.openGlasses]; });
+  check("two glasses: a second bottle opened, 3 glasses left in it (5 to a bottle)", st[0] === 1 && st[1] === 3 && /3 glasses left in the open bottle/.test(await p.textContent(det)), JSON.stringify(st));
+  const sp = await p.textContent("#bizPanel");
+  check("…the panel: 1 bottle + 2 glasses this week, 900 + 2 × 150 = 1,200 kr. taken, Rousseau the best seller (1.4 bottles)",
+    /1\s*\+ 2 🥂/.test(sp) && /1\.200 kr/.test(sp) && /Best sellers/.test(sp) && /1[.,]4 bottles/.test(sp), sp.slice(sp.indexOf("Sales"), sp.indexOf("Sales") + 400));
   await p.click("#bizCardBtn"); await p.waitForTimeout(400);
   const card = await p.textContent("#bizCard .bz-sheet");
   check("the wine card: what's in stock and priced, with the glass price; the unpriced left off", await p.isVisible("#bizCard") && /Armand Rousseau/.test(card) && /900/.test(card) && /150/.test(card) && !/Leflaive/.test(card) && /Red/.test(card), card.slice(0, 300));
@@ -71,7 +84,7 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   await p.click("#acctBtn"); await p.waitForSelector("#acctModal.open"); await p.selectOption("#acctKind", "winemaker"); await p.keyboard.press("Escape"); await p.waitForTimeout(400);
   check("a winemaker: a price list, no glass price", /Price list/.test(await p.textContent("#bizCardBtn")) && !(await p.$('tr.detail:not([hidden]) .bz-in[data-f="glassPrice"]')));
   await p.fill("#bzDom", "Rousseau"); await p.press("#bzDom", "Tab"); await p.waitForTimeout(300);
-  check("…names its domaine and sees its own wines by vintage", /Clos St-Jacques/.test(await p.textContent("#bizPanel")) && /2016 · 3/.test(await p.textContent("#bizPanel")));
+  check("…names its domaine and sees its own wines by vintage", /Clos St-Jacques/.test(await p.textContent("#bizPanel")) && /2016 · 1/.test(await p.textContent("#bizPanel")));
 
   await p.reload(); await p.waitForSelector("#app:not([hidden])", { timeout: 30000 }); await p.waitForTimeout(1500);
   check("…kept in the encrypted vault's prefs (with the domaine), not only on this device", await p.evaluate(() => VAULT.active() && VAULT.prefs().kind === "winemaker" && VAULT.prefs().domaine === "Rousseau"));

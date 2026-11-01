@@ -48,6 +48,9 @@ window.BIZ = (() => {
       ${num("menuPrice", W.sell, w.menuPrice)}
       ${W.glass ? num("glassPrice", "By the glass", w.glassPrice) : ""}
       <label class="bz-f">${esc(tr("Supplier"))}<input class="bz-in" data-f="source" data-row="${w.row}" list="bzSup" value="${esc(w.source)}" placeholder="—"></label>
+      <span class="bz-sell">${w.left > 0 || w.openGlasses > 0 ? `<button type="button" class="btn primary" data-sell="bottle" data-row="${w.row}"${w.left > 0 ? "" : " disabled"}>💶 ${esc(tr("Sold a bottle"))}</button>` : ""}
+        ${W.glass && (w.left > 0 || w.openGlasses > 0) ? `<button type="button" class="btn" data-sell="glass" data-row="${w.row}">🥂 ${esc(tr("Sold a glass"))}</button>` : ""}
+        ${w.openGlasses > 0 ? `<span class="note">${esc(tr("{0} glasses left in the open bottle", w.openGlasses))}</span>` : ""}</span>
       <span class="bz-m">${m ? esc(tr("Margin {0} ({1} a bottle, VAT excluded) · mark-up {2}", pct(m.pct), kr(Math.round(m.gross)), times(m.x)))
         : esc(tr(w.price > 0 ? "Set a price to see the margin" : "Add the cost price to see the margin"))}</span>
     </div>`;
@@ -64,6 +67,63 @@ window.BIZ = (() => {
       toast(tr("Saved"));
     } catch (err) { toast(tr("Could not save: {0}", errText(err))); inp.disabled = false; }
   });
+  /* ---------- "Sold": a bottle, or a glass (a bottle is opened for the first glass), with Undo ---------- */
+  let SALES = null, salesBusy = null;
+  const glassesKey = () => "vinGlasses:" + String(cfg.user || "").toLowerCase();
+  function perBottle() {
+    try { const x = window.VAULT && VAULT.active() && VAULT.prefs(); if (x && x.glasses) return Number(x.glasses); } catch (e) {}
+    return Number(localStorage.getItem(glassesKey())) || 5;
+  }
+  function setPerBottle(n) { n = Math.max(2, Math.min(12, Math.round(n) || 5)); try { localStorage.setItem(glassesKey(), n); } catch (e) {}
+    if (window.VAULT && VAULT.active()) savePrefs({ glasses: n }).catch(() => {}); }
+  function loadSales() {
+    if (SALES || salesBusy) return salesBusy;
+    salesBusy = api({ action: "sales" }).then(r => { SALES = r.sales || []; salesBusy = null; overview(WINES.filter(w => w.left > 0)); })
+      .catch(() => { SALES = []; salesBusy = null; });
+    return salesBusy;
+  }
+  document.addEventListener("click", async e => {
+    const b = e.target.closest && e.target.closest("button[data-sell]"); if (!b) return;
+    const row = Number(b.dataset.row), unit = b.dataset.sell, w = WINES.find(x => x.row === row); if (!w) return;
+    b.disabled = true;
+    try {
+      const res = await api({ action: "sell", row, unit, per: perBottle() });
+      KEEP_OPEN = row; WINES = normalize(res.wines); SALES = res.sales || SALES; renderOverview(); renderTable(); renderEnjoyed();
+      const nm = w.producer + (w.name ? " " + w.name : ""), id = res.id;
+      notify(tr(unit === "glass" ? "Sold a glass of {0}" : "Sold a bottle of {0}", nm), [{ label: tr("Undo"), fn: async () => {
+        try { const r = await api({ action: "unsell", id }); KEEP_OPEN = row; WINES = normalize(r.wines); SALES = r.sales || SALES;
+          renderOverview(); renderTable(); renderEnjoyed(); toast(tr("Sale undone")); }
+        catch (err) { toast(tr("Could not undo: {0}", errText(err))); } } }]);
+    } catch (err) { toast(/None left/.test(String(err && err.message || err)) ? tr("None left in stock") : tr("Could not save: {0}", errText(err))); b.disabled = false; }
+  });
+  // what the sales say: this week, the last eight weeks, best sellers and slow movers (90 days)
+  function salesHTML(cellar) {
+    if (!SALES) { loadSales(); return `<h3>${esc(tr("Sales"))}</h3><p class="note">${esc(tr("Loading…"))}</p>`; }
+    const per = perBottle(), day = d => new Date(d + "T12:00:00").getTime(), now = Date.now(), D = 864e5;
+    const since = n => SALES.filter(s => now - day(s.date) < n * D), eq = s => s.unit === "glass" ? 1 / per : 1;
+    const wk = since(7), money = l => l.reduce((n, s) => n + (s.price || 0), 0);
+    const nB = wk.filter(s => s.unit === "bottle").length, nG = wk.length - nB;
+    // eight weeks, oldest first
+    const weeks = Array.from({ length: 8 }, (_, i) => SALES.filter(s => { const a = (now - day(s.date)) / D; return a >= (7 - i) * 7 && a < (8 - i) * 7; }));
+    const wmax = Math.max(1, ...weeks.map(l => l.reduce((n, s) => n + eq(s), 0)));
+    const by = {}; since(90).forEach(s => { const k = s.row + "|" + s.producer; (by[k] = by[k] || { s, n: 0, kr: 0 }); by[k].n += eq(s); by[k].kr += s.price || 0; });
+    const best = Object.values(by).sort((a, b) => b.n - a.n).slice(0, 5);
+    const soldRows = new Set(since(90).map(s => s.row));
+    const old = w => !w.acquired || now - new Date(w.acquired + "T12:00:00").getTime() > 90 * D;
+    const slow = cellar.filter(w => !soldRows.has(w.row) && old(w)).sort((a, b) => (b.price || 0) * b.left - (a.price || 0) * a.left).slice(0, 5);
+    const nm = s => `${esc(s.producer)}${s.name ? " · " + esc(s.name) : ""}${s.vintage ? " " + esc(s.vintage) : ""}`;
+    const n1 = x => x.toLocaleString(window.I18N ? I18N.lang : "en", { maximumFractionDigits: 1 });
+    return `<h3>${esc(tr("Sales"))}</h3>
+      <div class="bz-ks">
+        <div class="bz-k"><b>${esc(fmt(nB))}${KIND === "restaurant" ? ` <small>+ ${esc(fmt(nG))} 🥂</small>` : ""}</b><span>${esc(tr(KIND === "restaurant" ? "Bottles and glasses sold, last 7 days" : "Bottles sold, last 7 days"))}</span></div>
+        <div class="bz-k"><b>${SHOW_PRICES ? esc(kr(Math.round(money(wk)))) : "···"}</b><span>${esc(tr("Sales, last 7 days, VAT included"))}</span></div>
+      </div>
+      <div class="bz-wk" role="img" aria-label="${esc(tr("Bottles sold a week, the last eight weeks"))}">${weeks.map((l, i) => { const n = l.reduce((t, s) => t + eq(s), 0);
+        return `<span title="${esc(tr("{0} bottles", n1(n)))}"><i style="height:${(n / wmax * 100).toFixed(0)}%"></i><em>${i === 7 ? esc(tr("this week")) : ""}</em></span>`; }).join("")}</div>
+      ${best.length ? `<h4>${esc(tr("Best sellers, 90 days"))}</h4><ul class="bz-sup">${best.map(x => `<li><span>${nm(x.s)}</span><b>${esc(tr("{0} bottles", n1(x.n)))}</b></li>`).join("")}</ul>` : `<p class="note">${esc(tr("Nothing sold yet: open a wine and press Sold."))}</p>`}
+      ${SALES.length && slow.length ? `<h4>${esc(tr("Slow movers: in stock, nothing sold in 90 days"))}</h4><ul class="bz-sup">${slow.map(w => `<li><span>${nm(w)}</span><b>${esc(btl(fmt(w.left)))}</b></li>`).join("")}</ul>` : ""}
+      ${KIND === "restaurant" ? `<label class="bz-f bz-gl">${esc(tr("Glasses in a bottle"))}<input id="bzGlasses" type="number" min="2" max="12" step="1" value="${per}"></label>` : ""}`;
+  }
   const priceCell = w => on() && w.menuPrice > 0 ? `<small class="bz-mp" title="${esc(tr(words().sell))}">${esc(kr(w.menuPrice))}</small>` : "";
 
   /* ---------- the overview: money, what's missing, suppliers; a winemaker's own wines ---------- */
@@ -98,10 +158,12 @@ window.BIZ = (() => {
         ${W.glass ? fig(fmt(glass.length), tr("Wines by the glass")) : ""}
       </div>
       ${noPrice.length ? `<p class="note">${esc(tr(noPrice.length === 1 ? "1 wine in stock has no {1} yet: it's left off the {2}." : "{0} wines in stock have no {1} yet: they're left off the {2}.", fmt(noPrice.length), low(tr(W.sell)), low(tr(W.card))))}</p>` : ""}
+      ${KIND !== "winemaker" ? salesHTML(cellar) : ""}
       ${sups.length ? `<h3>${esc(tr("Suppliers"))}</h3><ul class="bz-sup">${sups.map(([k, n]) => `<li><span>${esc(k)}</span><b>${esc(btl(fmt(n)))}</b></li>`).join("")}</ul>` : ""}
       ${own}
       <p class="bz-foot"><button type="button" class="btn" data-bz="card">🧾 ${esc(tr(W.card))}</button> <span class="note">${esc(tr("Prices include VAT (moms 25 %); the margin is worked out without it."))}</span></p>`;
     p.querySelector('[data-bz="card"]').onclick = openCard;
+    const g = $("bzGlasses"); if (g) g.onchange = () => { setPerBottle(Number(g.value)); overview(WINES.filter(w => w.left > 0)); };
     const d = $("bzDom"); if (d) d.onchange = () => { setDomaine(d.value.trim()); overview(WINES.filter(w => w.left > 0)); };
   }
   const domKey = () => "vinDomaine:" + String(cfg.user || "").toLowerCase();
@@ -156,6 +218,12 @@ window.BIZ = (() => {
 .bz-f input[data-f="source"],.bz-dom input{width:200px}
 .bz-m{font-size:13px;color:var(--ink);flex-basis:100%}
 .bz-mp{display:block;font-size:11.5px;color:var(--muted)}
+.bz-sell{display:flex;flex-wrap:wrap;gap:8px;align-items:center;flex-basis:100%}
+.bz-p h4{font-size:12.5px;margin:12px 0 4px;color:var(--muted);font-weight:600} .bz-k small{font-size:13px;font-weight:500;color:var(--muted)}
+.bz-wk{display:grid;grid-template-columns:repeat(8,1fr);gap:4px;height:64px;align-items:end;margin:6px 0 2px} .bz-wk span{position:relative;height:100%;display:flex;align-items:flex-end}
+.bz-wk i{display:block;width:100%;min-height:2px;border-radius:3px 3px 0 0;background:var(--accent,#7C2D3E)} .bz-wk span:last-child i{background:var(--gold,#A87E2F)}
+.bz-wk em{position:absolute;bottom:-16px;right:0;font-size:10.5px;font-style:normal;color:var(--muted);white-space:nowrap} .bz-wk{margin-bottom:20px}
+.bz-gl input{width:70px}
 .bz-p{margin:0 0 16px} .bz-p h2{margin-top:0} .bz-ks{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin:6px 0 10px}
 .bz-k{background:var(--card2,rgba(0,0,0,.03));border-radius:10px;padding:8px 10px} .bz-k b{display:block;font:600 19px/1.15 var(--serif,Georgia);font-variant-numeric:tabular-nums} .bz-k span{font-size:11.5px;color:var(--muted)}
 .bz-sup{list-style:none;padding:0;margin:0 0 8px} .bz-sup li{display:flex;justify-content:space-between;border-bottom:1px solid var(--line);padding:4px 0;font-size:13.5px}
