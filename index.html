@@ -942,6 +942,15 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
       <label for="gateInvite" data-i18n>Invite code</label>
       <input id="gateInvite" type="text" autocomplete="off" autocapitalize="none">
     </div>
+    <div id="gateKindWrap" hidden>
+      <label for="gateKind" data-i18n>What kind of account</label>
+      <select id="gateKind">
+        <option value="private" data-i18n>A private cellar</option>
+        <option value="restaurant" data-i18n>A restaurant or wine bar</option>
+        <option value="merchant" data-i18n>A wine merchant or shop</option>
+        <option value="winemaker" data-i18n>A winemaker or domaine</option>
+      </select>
+    </div>
     <div id="gateRecWrap" hidden>
       <label for="gateRec" data-i18n>Recovery code (yours, or one the site's owner gave you)</label>
       <input id="gateRec" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXX-XXXX-XXXX-…">
@@ -987,6 +996,14 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
   <form class="card" id="acctForm">
     <h2 id="acctTitle" data-i18n>Account</h2>
     <p data-i18n>Your cellar, journal, wishlist and journal photos are encrypted in this browser before they're saved.</p>
+    <label for="acctKind" data-i18n>What kind of account</label>
+    <select id="acctKind">
+      <option value="private" data-i18n>A private cellar</option>
+      <option value="restaurant" data-i18n>A restaurant or wine bar</option>
+      <option value="merchant" data-i18n>A wine merchant or shop</option>
+      <option value="winemaker" data-i18n>A winemaker or domaine</option>
+    </select>
+    <p class="hint" data-i18n>It changes the words, fields and overviews; your wines stay as they are. Saved at once.</p>
     <label for="acctPass" data-i18n>Current password</label>
     <input id="acctPass" type="password" autocomplete="current-password">
     <label for="acctNew" data-i18n>New password (to change it)</label>
@@ -1767,14 +1784,14 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 <script src="gas-fake.js?v=7"></script>
 <script src="vault-crypto.js?v=3"></script>
 <script src="vault-engine.js?v=1"></script>
-<script src="vault.js?v=21"></script>
+<script src="vault.js?v=22"></script>
 <script src="wine-kb.js?v=2"></script>
 <script src="piemonte-mga.js?v=1"></script>
 <script src="tidy.js?v=3"></script>
-<script src="import.js?v=5"></script>
-<script src="export.js?v=2"></script>
+<script src="import.js?v=6"></script>
+<script src="export.js?v=3"></script>
 <script src="europe-lands.js?v=1"></script>
 <script src="share-crypto.js?v=1"></script>
-<script src="app.js?v=67"></script>
+<script src="app.js?v=68"></script>
 </body>
 </html>

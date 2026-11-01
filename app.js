@@ -237,6 +237,9 @@ function normalize(rows){
       source:String(r.source).trim(), note:String(r.note).trim(),
       elsewhere: r.elsewhere===true,
       location:String(r.location||"").trim(),
+      // a business account's columns (business.js): the price on the card or price list, and by the glass
+      menuPrice: (r.menuPrice===null||r.menuPrice===""||r.menuPrice===undefined) ? null : Number(r.menuPrice),
+      glassPrice: (r.glassPrice===null||r.glassPrice===""||r.glassPrice===undefined) ? null : Number(r.glassPrice),
     };
   });
 }
@@ -411,6 +414,7 @@ function renderOverview(){
   renderTips();
   const cellar = WINES.filter(w=>w.left>0);
   renderRack(cellar);
+  if(window.BIZ) BIZ.overview(cellar); // a business account's figures (business.js); gone again for a private one
   const bottlesLeft = cellar.reduce((s,w)=>s+w.left,0);
   const drunk = WINES.reduce((s,w)=>s+w.drunk,0);
   const iconWines = cellar.filter(w=>PRODUCER_NOTES[w.producer]?.[0]==="legend");
@@ -925,7 +929,7 @@ function loadLayout(){
   try{ const x = JSON.parse(localStorage.getItem(layoutKey()) || "null"); if(x && typeof x==="object") d = x; }catch(e){}
   const L = v && d ? ((d.at||0) > (v.at||0) ? d : v) : (v || d);
   LAYOUT = L || {};
-  if(L && L===d && v!==d && window.VAULT && VAULT.active()) VAULT.setPrefs({layout: LAYOUT}).catch(()=>{});
+  if(L && L===d && v!==d && window.VAULT && VAULT.active()) savePrefs({layout: LAYOUT}).catch(()=>{});
   Object.keys(PANEL_DEFAULT).forEach(applyLayout);
 }
 function applyLayout(id){
@@ -946,8 +950,42 @@ function setLayout(id, list){
 }
 function saveLayout(){
   clearTimeout(layoutT); layoutT = null;
-  if(window.VAULT && VAULT.active()) VAULT.setPrefs({layout: LAYOUT}).catch(()=>{});
+  if(window.VAULT && VAULT.active()) savePrefs({layout: LAYOUT}).catch(()=>{});
 }
+// the vault keeps one prefs object: a change to one part keeps the others (the layout, the kind of account)
+const savePrefs = o => VAULT.setPrefs(Object.assign({}, VAULT.prefs() || {}, o));
+
+/* What kind of account: private (the default), a restaurant or wine bar, a wine merchant or shop, a winemaker. Kept with
+   the layout (the vault's encrypted prefs, and this device). A business kind loads business.js: its fields (the price on
+   the card, by the glass, the supplier), margins and stock value, and the printable wine card or price list. The wines
+   stay the same whatever the kind; only what's shown changes. */
+const KINDS = ["private","restaurant","merchant","winemaker"];
+let KIND = "private";
+const kindKey = () => "vinKind:" + String(cfg.user||"").toLowerCase();
+const isBiz = () => KIND!=="private" && !!window.BIZ;
+function loadKind(){
+  let k = null;
+  try{ const x = window.VAULT && VAULT.active() && VAULT.prefs(); if(x && KINDS.includes(x.kind)) k = x.kind; }catch(e){}
+  if(!k){ k = localStorage.getItem(kindKey());
+    // chosen at sign-up (or on this device before the vault had it): the vault keeps it from now on
+    if(KINDS.includes(k) && k!=="private" && window.VAULT && VAULT.active()) savePrefs({kind:k}).catch(()=>{}); }
+  setKindLocal(KINDS.includes(k) ? k : "private");
+}
+function setKindLocal(k){
+  KIND = k; document.documentElement.dataset.kind = k; $("acctKind").value = k;
+  try{ localStorage.setItem(kindKey(), k); }catch(e){}
+  if(k!=="private" && !window.BIZ){ const s = document.createElement("script"); s.src = "business.js?v=1";
+    s.onload = ()=>{ if(WINES.length){ renderOverview(); renderTable(); } }; document.head.appendChild(s); }
+  else if(window.BIZ) BIZ.apply();
+}
+async function setKind(k){
+  if(!KINDS.includes(k)) return;
+  setKindLocal(k);
+  if(window.VAULT && VAULT.active()) await savePrefs({kind:k}).catch(()=>{});
+  if(WINES.length){ renderOverview(); renderTable(); }
+  toast(tr("Saved: {0}", $("acctKind").selectedOptions[0].textContent));
+}
+$("acctKind").addEventListener("change", e=>setKind(e.target.value));
 // leaving the page before the save: send it now
 document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="hidden" && layoutT) saveLayout(); });
 function renderCustom(id){
@@ -1070,12 +1108,13 @@ function detailHTML(w){
     ["Commune", w.commune],["Classification", w.classification || (suggestClass(w) ? "≈ "+suggestClass(w).cls+" ("+tr("suggested")+")" : "")],["Grape", w.grape],
     ["Format", isStdBottle(w) ? "" : tr(formatOf(w).key)+" · "+formatOf(w).note],
     ["Bought", btl(w.qty)],["Enjoyed", w.drunk?btl(w.drunk):""],["Source", w.source],
-    ["Price", SHOW_PRICES && w.price ? kr(w.price) : ""],["Location", w.location],
+    [KIND==="private" ? "Price" : "Cost price", SHOW_PRICES && w.price ? kr(w.price) : ""],["Location", w.location],
   ].filter(c=>c[1]).map(([k,v])=>`<div><div class="k">${esc(tr(k))}</div>${esc(v)}</div>`).join("");
   return `<div class="dgrid">${cells}</div>
     ${w.note?`<div class="unote">“${esc(w.note)}” — ${esc(tr("cellar note"))}</div>`:""}
     ${pn?`<div class="pnote"><b>${esc(w.producer)}</b> · ${esc(tr(TIER_LABEL[pn[0]]))} — ${esc(noteText(pn[1]))}</div>`:""}
     ${journalHTML(w)}
+    ${isBiz() ? BIZ.detail(w) : ""}
     <div class="links">
       ${w.left>0?`<button class="drink" data-act="drink" data-row="${w.row}">🍷 ${esc(tr("Mark 1 bottle as drunk"))}</button>`:""}
       ${w.drunk>0 && !w.elsewhere?`<button class="drink" data-act="undrink" data-row="${w.row}" title="${isElsewhere(w)?esc(tr("Puts the bottle in your cellar")):""}">↩︎ ${esc(tr("Undo drink"))}</button>`:""}
@@ -1237,7 +1276,7 @@ function renderTable(){
       <td class="num c-vint">${esc(w.vintage||"—")}</td>
       <td class="c-reg">${where}</td>
       <td class="num c-qty">${state.status==="drunk"?w.drunk:w.left}</td>
-      <td class="num c-price">${SHOW_PRICES ? (w.price?kr(w.price):"—") : "···"}</td>
+      <td class="num c-price">${SHOW_PRICES ? (w.price?kr(w.price):"—") + (isBiz() ? BIZ.priceCell(w) : "") : "···"}</td>
     </tr>
     <tr class="detail" aria-level="2" hidden><td colspan="7"></td></tr>`;
   }).join("") + moreRow(list.length, shown.length, 7, "cellar");
@@ -1346,7 +1385,7 @@ async function loadData(quiet){
   try{
     const res = await api({action:"data"});
     WINES = normalize(res.wines);
-    loadLayout();
+    loadLayout(); loadKind();
     $("priceBtn").textContent = SHOW_PRICES ? tr("Hide prices") : tr("Show prices");
     renderOverview(); renderTable(); renderEnjoyed();
     LOADED_AT = new Date(); stampText();
@@ -1535,7 +1574,7 @@ function showGate(msg){
 function setGateMode(mode){
   GATE_MODE = mode;
   const signup = mode==="signup", recover = mode==="recover";
-  $("gateInviteWrap").hidden = !signup;
+  $("gateInviteWrap").hidden = !signup; $("gateKindWrap").hidden = !signup;
   $("gateRecWrap").hidden = !recover;
   $("gateForgot").hidden = mode!=="login";
   trSet(signup ? "Create your own cellar. You'll need an invite code."
@@ -1690,6 +1729,7 @@ async function gateEncrypted(mode, user, pass){
     const data = await post({action:"signup", user, email:$("gateEmail").value.trim(), code:$("gateInvite").value.trim(), turnstile:humanToken(), ...k.fields});
     if(!data.ok) throw new Error(data.error);
     cfg.user = data.user; VAULT.rememberSalt(data.user, k.fields);
+    try{ localStorage.setItem(kindKey(), $("gateKind").value); }catch(e){} // what kind of account: into the vault's prefs on first load
     await VAULT.escrow({post, user:data.user, token:data.token, dekX:k.dekX}); // account help, when the owner has it on
     // the account exists from here: if the phone reloads the page while the code is on screen (a trip to the
     // password manager), the login says so instead of looking like nothing happened
@@ -2411,7 +2451,7 @@ function closeSheets(){ $("moreSheet").classList.remove("open"); $("meSheet").cl
   closeSheets(); setTimeout(()=>$(b.dataset.press).click(), 60); }));
 ["moreSheet","meSheet"].forEach(id=>$(id).addEventListener("click", e=>{ if(e.target===$(id)) closeSheets(); }));
 $("pMore").addEventListener("click", ()=>{
-  sheetMenu("moreMenu", [["⬆", tr("Import a list"), "impBtn"], ["⬇", tr("Export"), "expBtn"], ["🔗", tr("Share a list"), "lsBtn"], ["🧹", tr("Tidy up"), "tidyBtn"],
+  sheetMenu("moreMenu", [isBiz() ? ["🧾", BIZ.cardLabel(), "bizCardBtn"] : null, ["⬆", tr("Import a list"), "impBtn"], ["⬇", tr("Export"), "expBtn"], ["🔗", tr("Share a list"), "lsBtn"], ["🧹", tr("Tidy up"), "tidyBtn"],
     ["🎲", tr("Pick tonight's bottle"), "tonightBtn"], ["👁", $("priceBtn").textContent, "priceBtn"],
     $("delBtn").hidden ? null : ["↩", $("delBtn").textContent.replace(/^↩\s*/, ""), "delBtn"], ["↻", tr("Refresh"), "refreshBtn", $("stamp").textContent]]);
   $("moreSheet").classList.add("open");
