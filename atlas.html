@@ -155,6 +155,82 @@ aside#side{background:var(--card);border:1px solid var(--line);border-radius:var
 .btn{font:inherit;font-size:14px;font-weight:600;padding:8px 12px;border-radius:var(--r);border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .src{font-size:12px;color:var(--muted);margin-top:14px}
+
+/* ---------- the map's look: light, dark (whatever the device says) or IGN's aerial photos under the vineyards ---------- */
+html[data-map="dark"]{--bg:#171114;--card:#221A1F;--card2:#281F24;--ink:#EFE7E8;--muted:#A5949C;--line:#382C32;--accent:#C86A7C;--accent-ink:#1D1216;--gold:#C99B47;--chip:#2E2329;
+  --gc:#B6475F;--gc-ink:#FFF4F6;--pc:#8A4E44;--pc-ink:#FBE9E4;--pcx:#5E3B35;--ac:#A9683F;--ac-ink:#FFF6EF;--vc:#4D4232;--rg:#2C2622;--mapbg:#1E181B;--sel:#FFFFFF;--halo:#1E181B;
+  --forest:#23302A;--water:#4F7A9C;--lake:#24323D;--town:#332A2E;--rfill:#4A3F44;--rcase:#2A2226;--rmain:#8A6A33;color-scheme:dark}
+html[data-map="light"]{--bg:#F7F4F1;--card:#FFFFFF;--card2:#FBF9F7;--ink:#2A2126;--muted:#756A70;--line:#E7DFDD;--accent:#7C2D3E;--accent-ink:#FFFFFF;--gold:#A87E2F;--chip:#F1EBE8;
+  --gc:#8E2C45;--gc-ink:#FFFFFF;--pc:#D88E7C;--pc-ink:#3A1A21;--pcx:#EBC3B6;--ac:#B4683F;--ac-ink:#FFFFFF;--vc:#ECDDB9;--rg:#EFEADF;--mapbg:#F4F1EA;--sel:#1F1418;--halo:#FFFFFF;
+  --forest:#DCE5D3;--water:#7FA8C9;--lake:#CFE0EC;--town:#E4DCD7;--rfill:#FFFFFF;--rcase:#C9BDB6;--rmain:#E9C27A;color-scheme:light}
+html[data-map="dark"] #map .shade{mix-blend-mode:screen;opacity:.16} html[data-map="light"] #map .shade{mix-blend-mode:multiply;opacity:.38}
+#map.photo .rg,#map.photo .vl{fill-opacity:0} #map.photo .cl{fill-opacity:.5;stroke:#fff;stroke-width:1.4} #map.photo .cl.sel{fill-opacity:.7}
+#map.photo .t-wood,#map.photo .t-town,#map.photo .t-lake{fill-opacity:0}
+/* the breadcrumb, top left on the map */
+.crumb{position:absolute;left:10px;top:10px;z-index:6;display:flex;align-items:center;gap:6px;flex-wrap:wrap;max-width:calc(100% - 130px);padding:6px 12px;border-radius:999px;
+  background:color-mix(in srgb,var(--card) 88%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--line);
+  font:600 11.5px/1.3 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--ink);box-shadow:0 2px 10px rgba(0,0,0,.08)}
+.crumb button{border:0;background:none;padding:0;font:inherit;color:var(--accent);cursor:pointer;letter-spacing:inherit;text-transform:inherit}
+.crumb .sep{color:var(--muted)} .crumb .n{color:var(--muted);font-weight:500}
+.mmenu,.mbar,.sidex{display:none}
+/* panels: a floating card on a wide screen, a sheet from the bottom on a phone */
+.panel{position:fixed;right:24px;top:120px;z-index:60;width:min(360px,calc(100vw - 32px));max-height:calc(100vh - 150px);overflow:auto;background:var(--card);color:var(--ink);
+  border:1px solid var(--line);border-radius:18px;padding:14px 16px 16px;box-shadow:0 18px 50px rgba(0,0,0,.22)}
+.panel-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.panel h2{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;font-size:22px;margin:0} .panel h2 em{color:var(--accent)}
+.px{width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--card2);color:var(--ink);cursor:pointer;font-size:15px}
+.styles{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.styles button{border:0;background:none;padding:0;display:grid;gap:5px;justify-items:center;font:inherit;font-size:12.5px;color:var(--muted);cursor:pointer}
+.styles button[aria-checked="true"]{color:var(--ink);font-weight:600} .styles button[aria-checked="true"] .th{box-shadow:0 0 0 2px var(--card),0 0 0 4px var(--accent)}
+.styles button:disabled{opacity:.4;cursor:default}
+.th{display:block;width:100%;aspect-ratio:1.15;border-radius:12px;border:1px solid var(--line)}
+.th-light{background:radial-gradient(circle at 30% 40%,#8E2C45 0 14%,transparent 15%),radial-gradient(circle at 62% 58%,#D88E7C 0 18%,transparent 19%),radial-gradient(circle at 70% 25%,#ECDDB9 0 12%,transparent 13%),#F4F1EA}
+.th-dark{background:radial-gradient(circle at 30% 40%,#B6475F 0 14%,transparent 15%),radial-gradient(circle at 62% 58%,#8A4E44 0 18%,transparent 19%),radial-gradient(circle at 70% 25%,#4D4232 0 12%,transparent 13%),#1E181B}
+.th-photo{background:radial-gradient(circle at 30% 40%,rgba(142,44,69,.7) 0 14%,transparent 15%),radial-gradient(circle at 62% 58%,rgba(216,142,124,.7) 0 18%,transparent 19%),linear-gradient(135deg,#6f7f4a,#a69a6a 45%,#5d6b3c 70%,#8a8f63)}
+.th-auto{background:linear-gradient(135deg,#F4F1EA 0 50%,#1E181B 50%)}
+.pnote{font-size:12.5px;color:var(--muted);margin:8px 0 0}
+.pfilters:not(:empty){margin-top:14px;border-top:1px solid var(--line);padding-top:12px}
+.pfilters .toolbar{flex-direction:column;align-items:stretch;gap:10px;margin:0} .pfilters .legend{position:static;margin-top:12px;box-shadow:none}
+.pfilters .terrbar{margin-top:10px}
+.pmenu{display:grid;gap:2px} .pmenu a{display:flex;gap:12px;align-items:center;padding:12px 6px;border-radius:12px;color:var(--ink);text-decoration:none;font-size:16px} .pmenu a:hover{background:var(--card2)}
+.mlang{margin-top:12px;display:flex;justify-content:center}
+@media(max-width:760px){
+  /* the map is the screen */
+  .wrap{padding:0} header.top,.wrap > .toolbar,.wrap > .terrbar{display:none !important}
+  .layout{display:block} .mapbox{position:fixed;inset:0;height:auto;border:0;border-radius:0;z-index:1}
+  .mapbox > .legend{display:none}
+  .mmenu{display:grid;place-items:center;position:absolute;right:10px;top:10px;z-index:6;width:44px;height:44px;border-radius:50%;border:1px solid var(--line);
+    background:color-mix(in srgb,var(--card) 88%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:var(--ink);cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.1)}
+  .crumb{max-width:calc(100% - 76px)}
+  /* the controls: a round column on the right */
+  .mapbox .zoom{top:auto;bottom:calc(84px + env(safe-area-inset-bottom));right:10px;left:auto;flex-direction:column;gap:0;border-radius:24px;overflow:hidden;
+    background:color-mix(in srgb,var(--card) 88%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--line);box-shadow:0 2px 12px rgba(0,0,0,.12)}
+  .mapbox .zoom button{width:48px;height:48px;border:0;border-bottom:1px solid var(--line);border-radius:0;background:none;font-size:18px}
+  .mapbox .zoom button:last-child{border-bottom:0}
+  #zIn,#zOut,#pngBtn,#printBtn{display:none !important}
+  /* the bottom: search and the regions as chips */
+  .mbar{display:flex;gap:8px;align-items:center;position:absolute;left:10px;right:10px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:6}
+  .msearch{flex:none;width:52px;height:52px;border-radius:50%;border:1px solid var(--line);background:color-mix(in srgb,var(--card) 90%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:var(--ink);cursor:pointer;display:grid;place-items:center;box-shadow:0 2px 12px rgba(0,0,0,.12)}
+  .rchips{flex:1;min-width:0;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:5px;border-radius:999px;border:1px solid var(--line);
+    background:color-mix(in srgb,var(--card) 88%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 2px 12px rgba(0,0,0,.12)}
+  .rchips::-webkit-scrollbar{display:none}
+  .rchips button{flex:none;display:flex;align-items:center;gap:7px;border:0;border-radius:999px;padding:9px 14px;background:none;color:var(--ink);font:600 14px/1 inherit;font-family:inherit;cursor:pointer;white-space:nowrap}
+  .rchips button i{width:9px;height:9px;border-radius:50%;background:var(--c,var(--accent))} .rchips button.on{background:var(--ink);color:var(--bg)}
+  .srch{position:absolute;left:10px;right:10px;top:62px;z-index:7} .srch .sbox input{width:100%;font-size:16px;padding:12px 14px;border-radius:14px;box-shadow:0 6px 20px rgba(0,0,0,.15)}
+  /* panels and the vineyard's details slide up from the bottom */
+  .panel{left:0;right:0;top:auto;bottom:0;width:auto;max-height:78dvh;border-radius:22px 22px 0 0;border-bottom:0;padding:10px 16px calc(18px + env(safe-area-inset-bottom));animation:atlUp .26s cubic-bezier(.2,.8,.2,1)}
+  .panel::before,.sidewrap::before{content:"";display:block;width:40px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 10px}
+  .sidewrap{position:fixed;left:0;right:0;bottom:0;z-index:20;max-height:46dvh;overflow:auto;background:var(--card);border-radius:22px 22px 0 0;border-top:1px solid var(--line);
+    box-shadow:0 -12px 40px rgba(0,0,0,.18);padding:10px 0 env(safe-area-inset-bottom);transform:translateY(105%);transition:transform .28s cubic-bezier(.2,.8,.2,1)}
+  body.side-open .sidewrap{transform:none}
+  /* the round controls stay above an open sheet, and in reach */
+  body.side-open .mapbox .zoom{bottom:calc(var(--sheet,0px) + 12px);transition:bottom .28s cubic-bezier(.2,.8,.2,1)}
+  .sidewrap #side{border:0;box-shadow:none;margin:0}
+  .sidex{display:grid;place-items:center;position:sticky;top:0;float:right;margin:-4px 12px 0 0;width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--card2);color:var(--ink);cursor:pointer;z-index:2}
+  .profile{bottom:calc(84px + env(safe-area-inset-bottom))}
+}
+@keyframes atlUp{from{transform:translateY(40px);opacity:.4}}
+@media(prefers-reduced-motion:reduce){.panel{animation:none}.sidewrap{transition:none}}
 </style>
 </head>
 <body>
@@ -191,16 +267,36 @@ aside#side{background:var(--card);border:1px solid var(--line);border-radius:var
 <div class="layout">
   <div class="mapbox">
     <div id="mapview"><svg id="map" role="img" aria-label="Vineyard map" data-i18n-aria></svg></div>
-    <div class="zoom"><button type="button" id="zIn" aria-label="Zoom in" data-i18n-aria>+</button><button type="button" id="locBtn" title="Where am I?" aria-label="Where am I?" data-i18n-title data-i18n-aria hidden>◉</button><button type="button" id="zOut" aria-label="Zoom out" data-i18n-aria>−</button><button type="button" id="zHome" aria-label="Whole region" data-i18n-aria>⌂</button><button type="button" id="profBtn" aria-label="Slope profile" title="Slope profile" data-i18n-aria hidden>⟋</button><button type="button" id="pngBtn" title="Save this view as an image" aria-label="Save this view as an image" data-i18n-title data-i18n-aria>⤓</button><button type="button" id="printBtn" title="Print or save as PDF" aria-label="Print or save as PDF" data-i18n-title data-i18n-aria>⎙</button></div>
+    <nav class="crumb" id="crumb" aria-label="Where you are" data-i18n-aria></nav>
+    <button type="button" class="mmenu" id="menuBtn" aria-label="Menu" aria-haspopup="dialog" data-i18n-aria><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+    <div class="mbar" id="mbar"><button type="button" class="msearch" id="srchBtn" aria-label="Find a vineyard" data-i18n-aria><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg></button><div class="rchips" id="rchips" role="group" aria-label="Regions" data-i18n-aria></div></div>
+    <div class="srch" id="srch" hidden></div>
+    <div class="zoom"><button type="button" id="styleBtn" title="Map style and layers" aria-label="Map style and layers" aria-haspopup="dialog" data-i18n-title data-i18n-aria><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2V6z"/><path d="M9 4v14M15 6v14"/></svg></button><button type="button" id="zIn" aria-label="Zoom in" data-i18n-aria>+</button><button type="button" id="locBtn" title="Where am I?" aria-label="Where am I?" data-i18n-title data-i18n-aria hidden>◉</button><button type="button" id="zOut" aria-label="Zoom out" data-i18n-aria>−</button><button type="button" id="zHome" aria-label="Whole region" data-i18n-aria>⌂</button><button type="button" id="profBtn" aria-label="Slope profile" title="Slope profile" data-i18n-aria hidden>⟋</button><button type="button" id="pngBtn" title="Save this view as an image" aria-label="Save this view as an image" data-i18n-title data-i18n-aria>⤓</button><button type="button" id="printBtn" title="Print or save as PDF" aria-label="Print or save as PDF" data-i18n-title data-i18n-aria>⎙</button></div>
     <div class="profile" id="profile" hidden></div>
     <div class="maptoast" id="mapToast" role="status" hidden></div>
     <div class="legend" id="legend"></div>
   </div>
-  <aside id="side" aria-live="polite"></aside>
+  <div class="sidewrap" id="sideWrap"><button type="button" class="sidex" id="sideX" aria-label="Close" data-i18n-aria>✕</button><aside id="side" aria-live="polite"></aside></div>
 </div>
 </div>
-<script src="i18n.js?v=67"></script>
+<div class="panel" id="stylePanel" role="dialog" aria-labelledby="styleTitle" hidden>
+  <div class="panel-h"><h2 id="styleTitle" data-i18n>Map</h2><button type="button" class="px" data-close aria-label="Close" data-i18n-aria>✕</button></div>
+  <div class="styles" id="styles" role="radiogroup" aria-label="Map style" data-i18n-aria>
+    <button type="button" role="radio" data-style="auto"><i class="th th-auto"></i><span data-i18n>Automatic</span></button>
+    <button type="button" role="radio" data-style="light"><i class="th th-light"></i><span data-i18n>Light</span></button>
+    <button type="button" role="radio" data-style="dark"><i class="th th-dark"></i><span data-i18n>Dark</span></button>
+    <button type="button" role="radio" data-style="photo"><i class="th th-photo"></i><span data-i18n>Aerial photo</span></button>
+  </div>
+  <p class="pnote" id="photoNote" hidden data-i18n>Aerial photos: IGN, France only.</p>
+  <div class="pfilters" id="pFilters"></div>
+</div>
+<div class="panel" id="menuPanel" role="dialog" aria-labelledby="menuTitle" hidden>
+  <div class="panel-h"><h2 id="menuTitle">All<em>Wine</em></h2><button type="button" class="px" data-close aria-label="Close" data-i18n-aria>✕</button></div>
+  <nav class="pmenu"><a href="./"><span aria-hidden="true">🍷</span><span data-i18n>Your cellar</span></a><a href="burgundy.html"><span aria-hidden="true">🗺</span><span data-i18n>Côte d'Or atlas</span></a><a href="help.html#atlas"><span aria-hidden="true">?</span><span data-i18n>Help and tips</span></a><a href="privacy.html"><span aria-hidden="true">🔏</span><span data-i18n>Privacy</span></a></nav>
+  <div class="mlang" data-langpick></div>
+</div>
+<script src="i18n.js?v=68"></script>
 <script src="europe-lands.js?v=1"></script>
-<script src="atlas.js?v=16"></script>
+<script src="atlas.js?v=17"></script>
 </body>
 </html>
