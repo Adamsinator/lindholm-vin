@@ -410,6 +410,7 @@ function renderMore(cellar){
 function renderOverview(){
   renderTips();
   const cellar = WINES.filter(w=>w.left>0);
+  renderRack(cellar);
   const bottlesLeft = cellar.reduce((s,w)=>s+w.left,0);
   const drunk = WINES.reduce((s,w)=>s+w.drunk,0);
   const iconWines = cellar.filter(w=>PRODUCER_NOTES[w.producer]?.[0]==="legend");
@@ -656,9 +657,64 @@ function renderOpenNext(cellar){
   box.querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{ const {w,k}=list[+b.dataset.i];
     // show it in the list under the same chip, opened
     state.status="cellar"; $("fStatus").value="cellar"; state.ready=k; $("fReady").value=k; state.q=""; $("q").value="";
-    KEEP_OPEN=w.row; renderTable();
-    const row=document.querySelector(`#tbl tr.main[data-row="${w.row}"]`); if(row){ row.scrollIntoView({behavior:"smooth",block:"center"}); row.focus({preventScroll:true}); } }));
+    showWine(w); }));
 }
+// a wine opened in the list and brought into view (the list's filters cleared if they'd hide it)
+function showWine(w){
+  KEEP_OPEN=w.row; renderTable();
+  if(!SHOWN.some(x=>x.row===w.row)){ $("clear").click(); KEEP_OPEN=w.row; renderTable(); }
+  const row=document.querySelector(`#tbl tr.main[data-row="${w.row}"]`); if(row){ row.scrollIntoView({behavior:"smooth",block:"center"}); row.focus({preventScroll:true}); }
+}
+
+/* ---------- the wine rack: a bottle for each bottle in the cellar, coloured by type, the most pressing first (past their
+   window, then closing soon, in it, too young); the capsule is amber when it's time. A tap opens the wine. A big cellar
+   shows a few rows and "+ N more". ---------- */
+const RACK_COL = {"Rød":"var(--b-red)","Hvid":"var(--b-white)","Rosé":"var(--b-rose)","Bobler":"var(--b-spark)"};
+const BOTTLE_SVG = `<svg viewBox="0 0 64 20" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><path class="gl" d="M3 3.5h33c4 0 6.5 2.6 9.5 4.3h6V12h-6c-3 1.9-5.5 4.5-9.5 4.5H3C1.6 16.5 1 15.4 1 14V6c0-1.4.6-2.5 2-2.5z"/><rect class="cp" x="51" y="7.3" width="11" height="5.4" rx="1.4"/><path d="M5 6.5h28" stroke="rgba(255,255,255,.35)" stroke-width="1.4" stroke-linecap="round"/></svg>`;
+let RACK_ALL = false;
+const rackKey = w => { const r = readiness(w); return !r ? "none" : r.k==="now" ? (r.soon?"soon":"now") : r.k; };
+function placeWall(){
+  const wall = $("wall"), side = document.querySelector("#overview .side-body"); if(!wall || !side) return;
+  if(matchMedia("(min-width:1181px)").matches){ if(wall.parentNode !== side) side.insertBefore(wall, side.firstChild); }
+  else if(wall.nextElementSibling !== $("kpis")) $("kpis").parentNode.insertBefore(wall, $("kpis"));
+}
+matchMedia("(min-width:1181px)").addEventListener("change", ()=>{ placeWall(); renderRack(WINES.filter(w=>w.left>0)); });
+function renderRack(cellar){
+  const wall = $("wall"); if(!wall) return; placeWall();
+  const bottles = cellar.reduce((n,w)=>n+w.left,0);
+  wall.hidden = !bottles; if(!bottles) return;
+  const order = {past:0, soon:1, now:2, none:3, young:4};
+  const all = cellar.slice().sort((a,b)=>order[rackKey(a)]-order[rackKey(b)] || (a.drinkTo??drinkWindow(a)?.to??9999)-(b.drinkTo??drinkWindow(b)?.to??9999))
+    .flatMap(w=>Array.from({length:w.left}, ()=>w));
+  const R = $("rack"), width = R.clientWidth || 320, cols = Math.max(4, Math.floor((width - 20 + 6) / (52 + 6)));
+  // a few bottles over the rows aren't worth a "more" button: they're shown
+  const rows = matchMedia("(max-width:700px)").matches ? 7 : 5, room = all.length <= cols*(rows+1) ? all.length : cols*rows, cap = RACK_ALL ? all.length : room;
+  // empty places show room left in the rack, only when every bottle is in view
+  const shown = all.slice(0, cap), slots = cap < all.length ? cap : Math.max(cols*2, Math.ceil((shown.length + 1) / cols) * cols);
+  const motion = !matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let html = "";
+  for(let i=0; i<slots; i++){ const w = shown[i];
+    if(!w){ html += `<span class="btl slot">${BOTTLE_SVG}</span>`; continue; }
+    const k = rackKey(w), nm = `${w.producer}${w.name?" · "+w.name:""}${typeof w.vintage==="number"?" "+w.vintage:""}`, r = readiness(w);
+    html += `<button type="button" class="btl ${k}" data-row="${w.row}" style="--c:${RACK_COL[w.style]||"var(--b-red)"};animation-delay:${motion?Math.min(i,60)*18:0}ms" title="${esc(nm)}" aria-label="${esc(nm+(r?" — "+r.label:""))}">${BOTTLE_SVG}</button>`; }
+  R.innerHTML = html;
+  const more = $("rackMore"); more.hidden = room >= all.length;
+  more.textContent = RACK_ALL ? tr("Show fewer") : tr("+ {0} more bottles", fmt(all.length - cap));
+  const val = cellar.reduce((n,w)=>n+(w.price||0)*w.left,0);
+  $("wallN").textContent = fmt(bottles);
+  $("wallSub").textContent = (bottles===1 ? tr("bottle") : tr("bottles")) + (SHOW_PRICES && val ? " · " + kr(val) : "");
+  // each figure counts exactly what its filter in the list shows
+  const n = f => cellar.filter(w=>{ const r = readiness(w); return r && f(r); }).reduce((t,w)=>t+w.left,0);
+  const past = n(r=>r.k==="past");
+  $("wallStats").innerHTML = [["now", n(r=>r.k==="now"), tr("ready now")], past ? ["past", past, tr("past their best")] : ["soon", n(r=>r.soon), tr("closing soon")], ["young", n(r=>r.k==="young"), tr("still too young")]]
+    .map(([k,n,l])=>`<button type="button" data-ready="${k}"><b>${fmt(n)}</b><span>${esc(l)}</span></button>`).join("");
+}
+$("rack").addEventListener("click", e=>{ const b = e.target.closest("button.btl"); if(!b) return; const w = WINES.find(x=>x.row===Number(b.dataset.row)); if(w) showWine(w); });
+$("rackMore").addEventListener("click", ()=>{ RACK_ALL = !RACK_ALL; renderRack(WINES.filter(w=>w.left>0)); });
+$("wallStats").addEventListener("click", e=>{ const b = e.target.closest("button[data-ready]"); if(!b) return;
+  state.status="cellar"; $("fStatus").value="cellar"; state.ready=b.dataset.ready; $("fReady").value=b.dataset.ready; renderTable();
+  const t = $("tbl"); if(t) t.scrollIntoView({behavior:"smooth", block:"start"}); });
+let RACK_W = 0; new ResizeObserver(()=>{ const w = $("rack").clientWidth; if(w && Math.abs(w-RACK_W) > 30){ RACK_W = w; if(WINES.length) renderRack(WINES.filter(x=>x.left>0)); } }).observe($("rack"));
 // Actionable "what should I drink" chips — click one to filter the table by readiness.
 function renderPriorities(cellar){
   const el=$("priorities"); if(!el) return;
@@ -1237,7 +1293,7 @@ const SPIN0 = $("spin").innerHTML; // the loading shapes, put back after an erro
 async function loadData(quiet){
   if(!quiet){ const sp = $("spin"); if(!sp.classList.contains("skel")){ sp.innerHTML = SPIN0; sp.classList.add("skel"); I18N.apply(sp); }
     sp.hidden = false; $("content").hidden = true; }
-  if(cfg.user){ $("who").textContent = cfg.user; $("who").hidden = false; }
+  if(cfg.user){ $("who").textContent = cfg.user; $("who").hidden = false; $("pMe").textContent = cfg.user.trim().charAt(0).toUpperCase() || "·"; }
   try{
     const res = await api({action:"data"});
     WINES = normalize(res.wines);
@@ -2289,6 +2345,34 @@ $("lsList").addEventListener("click", async e=>{
 $("lsCancel").addEventListener("click", ()=>$("lsModal").classList.remove("open"));
 $("lsModal").addEventListener("click", e=>{ if(e.target===$("lsModal")) $("lsModal").classList.remove("open"); });
 
+/* ---------- phones: the pages as tabs at the bottom, ＋ adds to the page you're on, and two menus for the rest: ⋯ for the
+   cellar's tools, your initial for the account, language and help. Each item presses the same button as on a wide screen. ---------- */
+document.querySelectorAll("#ptabs button").forEach(t=>t.addEventListener("click", ()=>{ location.hash = t.dataset.page==="cellar" ? "" : t.dataset.page; scrollTo({top:0}); }));
+$("pFab").addEventListener("click", ()=>{
+  const page = ["enjoyed","wishlist","journal"].find(p=>!$("page"+p[0].toUpperCase()+p.slice(1)).hidden);
+  $({enjoyed:"eAddBtn", wishlist:"wAddBtn", journal:"jAddBtn"}[page] || "addBtn").click();
+});
+function sheetMenu(menu, items){
+  $(menu).innerHTML = items.filter(Boolean).map(([ic, label, act, note])=> act.startsWith("http") || act.endsWith(".html")
+    ? `<a href="${esc(act)}" ${act.startsWith("help") ? 'target="_blank" rel="noopener"' : ""}><span class="ic" aria-hidden="true">${ic}</span>${esc(label)}${note?`<small>${esc(note)}</small>`:""}</a>`
+    : `<button type="button" data-press="${esc(act)}"><span class="ic" aria-hidden="true">${ic}</span>${esc(label)}${note?`<small>${esc(note)}</small>`:""}</button>`).join("");
+}
+function closeSheets(){ $("moreSheet").classList.remove("open"); $("meSheet").classList.remove("open"); }
+["moreMenu","meMenu"].forEach(id=>$(id).addEventListener("click", e=>{ const b = e.target.closest("[data-press]"); if(!b) return;
+  closeSheets(); setTimeout(()=>$(b.dataset.press).click(), 60); }));
+["moreSheet","meSheet"].forEach(id=>$(id).addEventListener("click", e=>{ if(e.target===$(id)) closeSheets(); }));
+$("pMore").addEventListener("click", ()=>{
+  sheetMenu("moreMenu", [["⬆", tr("Import a list"), "impBtn"], ["⬇", tr("Export"), "expBtn"], ["🔗", tr("Share a list"), "lsBtn"], ["🧹", tr("Tidy up"), "tidyBtn"],
+    ["🎲", tr("Pick tonight's bottle"), "tonightBtn"], ["👁", $("priceBtn").textContent, "priceBtn"],
+    $("delBtn").hidden ? null : ["↩", $("delBtn").textContent.replace(/^↩\s*/, ""), "delBtn"], ["↻", tr("Refresh"), "refreshBtn", $("stamp").textContent]]);
+  $("moreSheet").classList.add("open");
+});
+$("pMe").addEventListener("click", ()=>{
+  $("meTitle").textContent = cfg.user || "";
+  sheetMenu("meMenu", [["👤", tr("Account"), "acctBtn", tr("password, recovery code")], $("adminBtn").hidden ? null : ["🛡", tr("Admin"), "adminBtn", tr("members, invites")],
+    ["?", tr("Help and tips"), "help.html"], ["🔏", tr("Privacy"), "privacy.html"], ["🔒", tr("Log out"), "lockBtn"]]);
+  $("meSheet").classList.add("open");
+});
 /* ---------- filters / sorting (bound once) ---------- */
 // a big cellar waits for a pause in the typing instead of filtering thousands of wines on every key
 let Q_T = null;
@@ -4249,6 +4333,8 @@ function route(){
   $("pageFeed").hidden = page!=="feed";
   document.querySelectorAll(".tab").forEach(t=>
     t.classList.toggle("active", t.dataset.page===page));
+  document.querySelectorAll("#ptabs button").forEach(t=>t.classList.toggle("on", t.dataset.page===page));
+  $("pFab").hidden = page==="feed";
   if(page==="journal" && cfg.token) loadJournal();
   if(page==="wishlist" && cfg.token) loadWishlist();
   if(page==="feed" && cfg.token) loadFeed();

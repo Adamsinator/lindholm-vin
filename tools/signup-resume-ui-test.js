@@ -6,6 +6,7 @@
 //     still get through (the device's copy and the kept key are a convenience, not a must)
 //   (cd .. && python3 -m http.server 8765) & node tools/signup-resume-ui-test.js
 "use strict";
+const press = require("./press"); // a phone presses some buttons through ＋, the tabs or a menu
 const { chromium } = require("./pw");
 const H = require("./gas-harness");
 const BASE = process.env.BASE || "http://localhost:8765/";
@@ -44,10 +45,10 @@ const shown = p => p.evaluate(() => ({ gate: !document.getElementById("gate").hi
     check("…and points to a new recovery code under Account", /new one under Account/.test(msg));
     await p.fill("#gatePass", "frede-pass-1"); await p.click("#gateSubmit");
     check("…and logging in opens the new cellar", await p.waitForSelector("#app:not([hidden])", { timeout: 20000 }).then(() => true, () => false));
-    await p.click("#acctBtn"); await p.waitForTimeout(200);
+    await press(p, "#acctBtn"); await p.waitForTimeout(200);
     check("…where Account has 'New recovery code'", await p.isVisible("#acctRec"));
     await p.keyboard.press("Escape");
-    await p.click("#lockBtn"); await p.waitForTimeout(400); await p.reload(); await p.waitForTimeout(800);
+    await press(p, "#lockBtn"); await p.waitForTimeout(400); await p.reload(); await p.waitForTimeout(800);
     check("the note shows only once (not after a later logout and reload)", !/is created/.test(await p.textContent("#gateErr")), await p.textContent("#gateErr"));
     check("no console errors", !errs.length, errs.join(" | "));
     await ctx.close(); }
@@ -60,7 +61,7 @@ const shown = p => p.evaluate(() => ({ gate: !document.getElementById("gate").hi
     const opened = await p.waitForSelector("#app:not([hidden])", { timeout: 20000 }).then(() => true, () => false);
     check(`with IndexedDB hanging, sign-up still opens the cellar (in ${((Date.now() - t0) / 1000).toFixed(1)} s)`, opened);
     if (!opened) { console.log("(the cellar never opened: the rest can't run)"); await b.close(); process.exit(1); }
-    await p.click("#addBtn"); await p.fill("#aProducer", "Domaine Roulot"); await p.click('#addForm button[type="submit"]');
+    await press(p, "#addBtn"); await p.fill("#aProducer", "Domaine Roulot"); await p.click('#addForm button[type="submit"]');
     check("…and a wine can be added", await p.waitForFunction(() => document.querySelector("#tbl").textContent.includes("Roulot"), null, { timeout: 15000 }).then(() => true, () => false));
     await p.reload();
     const back = await p.waitForFunction(() => !document.getElementById("gate").hidden || !document.getElementById("app").hidden, null, { timeout: 15000 }).then(() => true, () => false);

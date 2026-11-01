@@ -9,7 +9,7 @@ const http = require("http"), fs = require("fs"), path = require("path"), { spaw
 const ROOT = path.join(__dirname, ".."), PORT = 8765;
 const NODE = ["i18n-test", "import-test", "export-test", "messy-test", "vault-test", "sommelier-test", "big-import-test", "abuse-test", "backup-test", "worker-test", "account-test", "stats-test", "versions-test", "pages-test", "atlas-sw-test", "size-test", "share-test"];
 const BROWSER = ["import-ui-test", "tidy-ui-test", "vault-ui-test", "sommelier-ui-test", "add-suggest-ui-test", "i18n-ui-test",
-  "cellar-flow-test", "cellar-flow-test:vault", "big-import-ui-test", "fast-login-ui-test", "csp-ui-test", "account-ui-test", "signup-resume-ui-test", "customise-ui-test", "addform-ui-test", "signup-ui-test", "admin-ui-test", "help-ui-test", "atlas-link-ui-test", "region-atlas-ui-test", "pages-ui-test", "grid-ui-test", "explore-test", "layout-ui-test", "a11y-ui-test", "offline-ui-test", "share-ui-test", "guide-ui-test", "smart-ui-test", "smoke-test"];
+  "cellar-flow-test", "cellar-flow-test:vault", "big-import-ui-test", "fast-login-ui-test", "csp-ui-test", "account-ui-test", "signup-resume-ui-test", "customise-ui-test", "addform-ui-test", "signup-ui-test", "admin-ui-test", "help-ui-test", "atlas-link-ui-test", "region-atlas-ui-test", "pages-ui-test", "grid-ui-test", "explore-test", "layout-ui-test", "a11y-ui-test", "offline-ui-test", "share-ui-test", "guide-ui-test", "smart-ui-test", "shell-ui-test", "smoke-test"];
 const args = process.argv.slice(2);
 let suites = args.includes("--node") ? NODE : NODE.concat(BROWSER);
 const named = args.filter(a => !a.startsWith("--"));
