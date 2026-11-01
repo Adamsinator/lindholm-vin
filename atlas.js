@@ -69,7 +69,8 @@ const el = (name, attrs, parent) => { const e = document.createElementNS(NS, nam
 const pathOf = mp => mp.map(p => p.map(r => "M" + r.map(([x, y]) => x + " " + y).join("L") + "Z").join("")).join("");
 let gLabels = null;
 function draw() {
-  const P = st.pack; svg.innerHTML = ""; shadeTiles.clear();
+  const P = st.pack; svg.innerHTML = ""; shadeTiles.clear(); photoTiles.clear();
+  gPhoto = el("g", { class: "photo", "pointer-events": "none" }, svg); // IGN's aerial photos, under everything, when chosen
   // under the vineyards: woods, lakes, built-up areas; over them, faint relief, then rivers, roads and railways
   TG.under = el("g", { class: "topo", "pointer-events": "none" }, svg);
   TG.geol = el("g", { class: "geol", "pointer-events": "none" }, svg); // BRGM's formations, when Geology is on
@@ -152,9 +153,12 @@ function commitView() {
 
 /* ---------- the ground around the vineyards (French regions): IGN's relief shading as tiles, and BD TOPO's roads,
    rivers, woods and villages from atlas-<id>-topo.js (tools/region-topo.js), both in the pack's Lambert-93 metres ---------- */
-const TG = {}; let gShade = null; const shadeTiles = new Map();
+const TG = {}; let gShade = null, gPhoto = null; const shadeTiles = new Map(), photoTiles = new Map();
 const pref = (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : v === "1"; } catch (e) { return d; } };
 st.relief = pref("atlasRelief", true); st.topo = pref("atlasTopo", true);
+// the map's look: "auto" follows the device's light or dark, or "light", "dark", or "photo" (IGN's aerial photos, France)
+st.style = (() => { try { return localStorage.getItem("atlasStyle") || "auto"; } catch (e) { return "auto"; } })();
+const PHOTO_URL = (z, x, y) => `https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ORTHOIMAGERY.ORTHOPHOTOS&STYLE=normal&TILEMATRIXSET=PM&TILEMATRIX=${z}&TILEROW=${y}&TILECOL=${x}&FORMAT=image/jpeg`;
 const topoOf = () => st.region && window.ATLAS_TOPO && ATLAS_TOPO[st.region.id];
 // Lambert-93 (EPSG:2154): conformal conic on GRS80, standard parallels 44° and 49°, origin 46.5° N 3° E (700 000, 6 600 000)
 const L93 = (() => { const a = 6378137, e = 0.0818191910428158, d = Math.PI / 180;
@@ -167,7 +171,16 @@ const SHADE_URL = (z, x, y) => `https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=
 let shadeT = 0; const shadeSoon = () => { clearTimeout(shadeT); shadeT = setTimeout(shadeUpdate, 250); };
 function shadeUpdate() {
   if (!gShade || !st.pack || !st.view) return;
-  const M = st.pack.meta, de = M.proj === "eq", on = st.relief && (!!M.l93 || de); gShade.style.display = on ? "" : "none"; if (!on) return;
+  const M = st.pack.meta, de = M.proj === "eq", photo = st.style === "photo" && !!M.l93;
+  svg.classList.toggle("photo", photo); gPhoto.style.display = photo ? "" : "none";
+  if (photo) tileLayer(gPhoto, photoTiles, PHOTO_URL, 18);
+  // the relief's shading over a photo would only darken it
+  const on = st.relief && !photo && (!!M.l93 || de); gShade.style.display = on ? "" : "none";
+  if (on) tileLayer(gShade, shadeTiles, de ? SHADE_DE : SHADE_URL, 15); // IGN serves the relief to level 15
+}
+// a layer of web map tiles (256 px, Web Mercator) laid over the pack's own metres, for the view and a margin round it
+function tileLayer(g, tiles, url, zmax) {
+  const M = st.pack.meta, de = M.proj === "eq";
   const d2r = Math.PI / 180, O = M.origin, kx = d2r * 6371000 * Math.cos(O[1] * d2r), ky = d2r * 6371000;
   // to the pack's metres: Lambert-93 in France, the local equirectangular grid round meta.origin in Germany
   const toP = de ? (lon, lat) => [(lon - O[0]) * kx, (O[1] - lat) * ky] : (lon, lat) => { const [E, N] = L93(lon, lat); return [E - M.l93[0], M.l93[1] - N]; };
@@ -176,25 +189,25 @@ function shadeUpdate() {
   const ax = .1 / (p1[0] - p0[0]), ay = .1 / (p1[1] - p0[1]), toLL = (x, y) => [lo0 + (x - p0[0]) * ax, la0 + (y - p0[1]) * ay];
   const [w, n] = toLL(vx - vw * .1, vy - vh * .1), [e, s] = toLL(vx + vw * 1.1, vy + vh * 1.1), lat = (n + s) / 2;
   const mpp = vw / (svg.clientWidth || 800);
-  const z = Math.max(8, Math.min(15, Math.round(Math.log2(156543.03 * Math.cos(lat * d2r) / mpp)))); // IGN serves it to level 15
+  const z = Math.max(8, Math.min(zmax, Math.round(Math.log2(156543.03 * Math.cos(lat * d2r) / mpp))));
   const N = 2 ** z, tx = lon => Math.floor((lon + 180) / 360 * N), ty = la => Math.floor((1 - Math.log(Math.tan(la * d2r) + 1 / Math.cos(la * d2r)) / Math.PI) / 2 * N);
   const lonOf = x => x / N * 360 - 180, latOf = y => Math.atan(Math.sinh(Math.PI * (1 - 2 * y / N))) / d2r;
   const x0 = tx(Math.min(w, e)), x1 = tx(Math.max(w, e)), y0 = ty(Math.max(n, s)), y1 = ty(Math.min(n, s));
   if ((x1 - x0 + 1) * (y1 - y0 + 1) > 140) return;
   const want = new Set();
   for (let x = x0; x <= x1; x++) for (let y = y0; y <= y1; y++) {
-    const k = `${z}/${x}/${y}`; want.add(k); if (shadeTiles.has(k)) continue;
+    const k = `${z}/${x}/${y}`; want.add(k); if (tiles.has(k)) continue;
     const TL = toP(lonOf(x), latOf(y)), TR = toP(lonOf(x + 1), latOf(y)), BL = toP(lonOf(x), latOf(y + 1));
-    const img = el("image", { href: (de ? SHADE_DE : SHADE_URL)(z, x, y), width: 256, height: 256, preserveAspectRatio: "none",
-      transform: `matrix(${((TR[0] - TL[0]) / 256).toFixed(5)} ${((TR[1] - TL[1]) / 256).toFixed(5)} ${((BL[0] - TL[0]) / 256).toFixed(5)} ${((BL[1] - TL[1]) / 256).toFixed(5)} ${TL[0].toFixed(1)} ${TL[1].toFixed(1)})` }, gShade);
+    const img = el("image", { href: url(z, x, y), width: 256, height: 256, preserveAspectRatio: "none",
+      transform: `matrix(${((TR[0] - TL[0]) / 256).toFixed(5)} ${((TR[1] - TL[1]) / 256).toFixed(5)} ${((BL[0] - TL[0]) / 256).toFixed(5)} ${((BL[1] - TL[1]) / 256).toFixed(5)} ${TL[0].toFixed(1)} ${TL[1].toFixed(1)})` }, g);
     img.addEventListener("error", () => img.remove());
-    shadeTiles.set(k, img);
+    tiles.set(k, img);
   }
   // other zoom levels go once this one has had a moment to load (checked against the latest view's tiles, not this
   // call's: a quick second zoom mustn't have its new tiles swept away by the first one's timer)
-  shadeUpdate.want = want; shadeUpdate.z = z;
-  setTimeout(() => { const W = shadeUpdate.want, Z = shadeUpdate.z + "/";
-    shadeTiles.forEach((img, k) => { if (!W.has(k) && (!k.startsWith(Z) || shadeTiles.size > 240)) { img.remove(); shadeTiles.delete(k); } }); }, 900);
+  tiles.want = want; tiles.z = z;
+  setTimeout(() => { const W = tiles.want, Z = tiles.z + "/";
+    tiles.forEach((img, k) => { if (!W.has(k) && (!k.startsWith(Z) || tiles.size > 240)) { img.remove(); tiles.delete(k); } }); }, 900);
 }
 // a delta-encoded coordinate list (first point absolute, then steps) → path data
 const topoD = (f, close) => { let x = 0, y = 0, d = ""; for (let i = 0; i < f.length; i += 2) { x += f[i]; y += f[i + 1]; d += (i ? "L" : "M") + x + " " + y; } return close ? d + "Z" : d; };
@@ -508,6 +521,7 @@ addEventListener("resize", () => { if (st.view) layoutLabels(); });
 const byId = id => st.pack && (st.pack.climats.find(c => c.id === id) || pts().find(q => q.id === id));
 function select(id, fly) {
   st.sel = byId(id) ? id : null; if (st.sel) ensureGeol(); paint(); renderSide(); syncHash();
+  document.body.classList.toggle("side-open", !!st.sel); // a phone: the vineyard's details slide up
   const c = st.sel && byId(st.sel);
   if (c && fly) { if (c.g) fit(bbOf(c.g), .6, 360); else if (c.p) fit([c.p[0] - 900, c.p[1] - 900, c.p[0] + 900, c.p[1] + 900], .1, 360); }
 }
@@ -541,7 +555,7 @@ function renderSide() {
       ${Object.keys(PTCLASS).filter(k => pts().some(q => q.cls === k)).map(k => `<h3>${esc(t(PTCLASS[k]))}</h3><ul class="list">${pts().filter(q => q.cls === k).map(q => ptRow(q)).join("")}</ul>`).join("")}
       ${pts().some(q => !q.p) ? `<p class="note">° ${esc(t("Not on IGN's map under its own name, so not drawn."))}</p>` : ""}
       ${pc.some(x => x.inferred) ? `<p class="note">* ${esc(t("INAO's map doesn't name this land; the name comes from IGN's place names inside or next to it."))}</p>` : ""}
-      <p class="src">${esc(P.meta.source)}. ${esc(t("Built {0}.", P.meta.built))}${P.meta.l93 ? " " + esc(t("Relief shading and roads, rivers, woods and villages: IGN (Géoplateforme, Licence Ouverte).")) : ""}${R.geol ? " " + esc(t("Geology: BRGM, the harmonised 1:50 000 map (BD Charm-50, Licence Ouverte).")) : ""}${P.meta.proj === "eq" ? deCredit() : ""}</p>`;
+      <p class="src">${esc(P.meta.source)}. ${esc(t("Built {0}.", P.meta.built))}${P.meta.l93 ? " " + esc(t("Relief shading and roads, rivers, woods and villages: IGN (Géoplateforme, Licence Ouverte).")) : ""}${R.geol ? " " + esc(t("Geology: BRGM, the harmonised 1:50 000 map (BD Charm-50, Licence Ouverte).")) : ""}${st.style === "photo" && P.meta.l93 ? " " + esc(t("Aerial photos: IGN (Géoplateforme, Licence Ouverte).")) : ""}${P.meta.proj === "eq" ? deCredit() : ""}</p>`;
   } else if (!c.g) { // a classified château
     const bottles = CELLAR.by[c.id];
     side.innerHTML = `<p><button class="btn" id="back">← ${esc(P.meta.name)}</button></p>
@@ -755,7 +769,7 @@ function showHome() {
     const lb = el("text", { x: below ? x : +x + (west ? -12 : 12), y: +y + (below ? 22 : 4), "text-anchor": below ? "middle" : west ? "end" : "start" }, a); lb.textContent = r.name;
     a.onkeydown = e => { if (e.key === "Enter") goTo(r.id); };
   }
-  renderLegend(); renderHomeSide();
+  renderLegend(); renderHomeSide(); document.body.classList.remove("side-open"); renderCrumb();
 }
 function renderHomeSide() {
   const by = c => allPlaces().filter(r => r.country === c);
@@ -783,6 +797,7 @@ async function openRegion(id, sel) {
   }
   document.body.classList.remove("home"); svg.setAttribute("role", "img"); svg.setAttribute("aria-label", t("Vineyard map"));
   st.region = R; st.pack = ATLAS_PACKS[R.id]; st.sel = null; $("fRegion").value = R.id; $("regionName").textContent = " · " + st.pack.meta.name;
+  document.body.classList.remove("side-open"); renderCrumb(); applyStyle(); // aerial photos: France only
   document.title = "AllWine — " + st.pack.meta.name + " · " + t("Wine atlas");
   // start on the crus (the regional land around them can be far bigger, and long and thin)
   st.home = bbOf(st.pack.climats.flatMap(c => c.g));
@@ -879,6 +894,65 @@ async function fromHash() {
   else if ((q.get("c") || null) !== st.sel) select(q.get("c"), true);
   if (q.get("w") && st.region) { const m = matchWine({ region: st.region.kw[0], name: q.get("w") }); if (m.c) select(m.c.id, true); else syncHash(); }
 }
+/* ---------- the map as an app: where you are as a breadcrumb, the map's look and layers in a panel, and on a phone the
+   map is the screen: the regions as chips at the bottom, search behind a button, the controls in a round column, the
+   vineyard's details sliding up from the bottom ---------- */
+const PHONE = matchMedia("(max-width:760px)");
+const REGION_DOT = { fr: "var(--gc)", de: "var(--gold)", it: "var(--ac)" };
+function renderCrumb() {
+  const c = $("crumb"); if (!c) return;
+  if (!st.pack) { c.innerHTML = `<span>${esc(t("Europe"))}</span><span class="n">· ${esc(t("{0} regions", allPlaces().length))}</span>`; }
+  else { const n = st.pack.climats.filter(x => !x.unnamed).length;
+    c.innerHTML = `<button type="button" data-home>${esc(t("Europe"))}</button><span class="sep">›</span><button type="button" data-info>${esc(st.pack.meta.name)}</button><span class="n">· ${esc(t("{0} vineyards", n))}</span>`; }
+  const h = c.querySelector("[data-home]"); if (h) h.onclick = () => { location.hash = ""; };
+  const i = c.querySelector("[data-info]"); if (i) i.onclick = () => { if (st.sel) select(null); renderSide(); document.body.classList.add("side-open"); };
+  renderChips();
+}
+function renderChips() {
+  const box = $("rchips"); if (!box) return;
+  const cur = st.region ? st.region.id : "";
+  box.innerHTML = `<button type="button" data-r="" class="${cur ? "" : "on"}"><i style="--c:var(--accent)"></i>${esc(t("All regions"))}</button>`
+    + allPlaces().map(r => `<button type="button" data-r="${r.id}" class="${r.id === cur ? "on" : ""}"><i style="--c:${REGION_DOT[r.country] || "var(--accent)"}"></i>${esc(r.name)}${r.href ? " ↗" : ""}</button>`).join("");
+  box.querySelectorAll("button").forEach(b => b.onclick = () => { if (!b.dataset.r) location.hash = ""; else goTo(b.dataset.r); });
+  const on = box.querySelector(".on"); if (on) on.scrollIntoView({ block: "nearest", inline: "center" });
+}
+// the map's look, remembered on this device
+function applyStyle(v) {
+  if (v) { st.style = v; try { localStorage.setItem("atlasStyle", v); } catch (e) {} }
+  document.documentElement.dataset.map = st.style === "photo" ? "light" : st.style === "auto" ? "" : st.style;
+  if (!document.documentElement.dataset.map) delete document.documentElement.dataset.map;
+  const fr = !st.pack || !!st.pack.meta.l93;
+  document.querySelectorAll("#styles button").forEach(b => { b.setAttribute("aria-checked", b.dataset.style === st.style); if (b.dataset.style === "photo") b.disabled = !!st.pack && !fr; });
+  $("photoNote").hidden = !(st.style === "photo" || (st.pack && !fr));
+  shadeUpdate();
+}
+$("styles").addEventListener("click", e => { const b = e.target.closest("button[data-style]"); if (b && !b.disabled) { applyStyle(b.dataset.style); if (st.pack) renderSide(); } });
+// panels: one open at a time; Escape, ✕ or a tap on the map closes them
+function openPanel(id) { ["stylePanel", "menuPanel"].forEach(p => $(p).hidden = p !== id); if (id === "stylePanel") applyStyle(); }
+function closePanels() { $("stylePanel").hidden = true; $("menuPanel").hidden = true; }
+$("styleBtn").onclick = () => $("stylePanel").hidden ? openPanel("stylePanel") : closePanels();
+$("menuBtn").onclick = () => $("menuPanel").hidden ? openPanel("menuPanel") : closePanels();
+document.querySelectorAll(".panel [data-close]").forEach(b => b.onclick = closePanels);
+$("sideX").onclick = () => { document.body.classList.remove("side-open"); if (st.sel) select(null); };
+addEventListener("keydown", e => { if (e.key === "Escape") { closePanels(); document.body.classList.remove("side-open"); } });
+svg.addEventListener("pointerdown", () => { if (PHONE.matches) closePanels(); });
+// a phone: the filters, the terrain bar and the legend move into the Map panel, the search box under its button
+const SPOT = { tb: document.querySelector(".wrap > .toolbar"), terr: $("terrbar"), legend: $("legend") };
+const HOME = { tb: [SPOT.tb.parentNode, SPOT.tb.nextSibling], terr: [SPOT.terr.parentNode, SPOT.terr.nextSibling], legend: [SPOT.legend.parentNode, SPOT.legend.nextSibling] };
+const SBOX = document.querySelector(".toolbar .sbox"), SBOX_HOME = [SBOX.parentNode, SBOX.nextSibling];
+function placeForScreen() {
+  if (PHONE.matches) { $("pFilters").append(SPOT.tb, SPOT.terr, SPOT.legend); $("srch").append(SBOX); }
+  else { for (const k of ["tb", "terr", "legend"]) HOME[k][0].insertBefore(SPOT[k], HOME[k][1]); SBOX_HOME[0].insertBefore(SBOX, SBOX_HOME[1]); $("srch").hidden = true; }
+}
+PHONE.addEventListener("change", placeForScreen); placeForScreen();
+$("srchBtn").onclick = () => { const s = $("srch"); s.hidden = !s.hidden; if (!s.hidden) $("fSearch").focus(); };
+$("fSearch").addEventListener("keydown", e => { if (e.key === "Enter" && PHONE.matches) setTimeout(() => { $("srch").hidden = true; }, 50); });
+$("gRes").addEventListener("pointerdown", () => { if (PHONE.matches) setTimeout(() => { $("srch").hidden = true; }, 50); }); // a result is chosen on pointerdown
+// the open sheet's height, for the controls to sit above it
+const sheetH = () => document.body.style.setProperty("--sheet", (document.body.classList.contains("side-open") && PHONE.matches ? $("sideWrap").offsetHeight : 0) + "px");
+new ResizeObserver(sheetH).observe($("sideWrap")); new MutationObserver(sheetH).observe(document.body, { attributes: true, attributeFilter: ["class"] });
+if (window.I18N) I18N.onChange(() => renderCrumb());
+applyStyle(); renderCrumb();
 // a link or Back that only changes the hash doesn't reload the page
 addEventListener("hashchange", () => { fromHash().then(() => { if (st.pack) { place(); paint(); renderSide(); } }); });
 fromHash().then(loadCellar);
