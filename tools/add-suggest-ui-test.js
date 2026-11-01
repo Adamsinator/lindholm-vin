@@ -4,6 +4,7 @@
 // them yourself; and what's saved is what the form showed. Against the real Code.gs (gas-harness.js).
 //   (cd .. && python3 -m http.server 8765) & node tools/add-suggest-ui-test.js        SHOTS=dir for screenshots
 "use strict";
+const press = require("./press"); // a phone presses some buttons through ＋, the tabs or a menu
 const { chromium } = require("./pw");
 const H = require("./gas-harness");
 const BASE = process.env.BASE || "http://localhost:8765/", SHOTS = process.env.SHOTS || "";
@@ -38,7 +39,7 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   await p.setViewportSize({ width: 1280, height: 900 });
 
   const v = id => p.inputValue(id);
-  const open = async () => { await p.evaluate(() => { document.getElementById("addModal").classList.remove("open"); addReset(); }); await p.click("#addBtn"); await p.waitForTimeout(100); };
+  const open = async () => { await p.evaluate(() => { document.getElementById("addModal").classList.remove("open"); addReset(); }); await press(p, "#addBtn"); await p.waitForTimeout(100); };
   const type = async (id, s) => { await p.fill(id, s); await p.waitForTimeout(60); };
   const state = async () => ({ commune: await v("#aCommune"), region: await v("#aRegion"), country: await v("#aCountry"), grape: await v("#aGrape"), type: await v("#aType"), cls: await v("#aClass") });
 
@@ -90,7 +91,7 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   await p.click('#addForm button[type="submit"]'); await p.waitForTimeout(800);
   const row = gas.call({ code: "test-code", action: "data" }).wines.find(w => w.producer === "Egon Müller");
   check("saved: Tyskland, Mosel, Hvid, Riesling", row && row.country === "Tyskland" && row.region === "Mosel" && row.type === "Hvid" && row.grape === "Riesling", JSON.stringify(row));
-  await p.click("#addBtn"); await p.waitForTimeout(100);
+  await press(p, "#addBtn"); await p.waitForTimeout(100);
   check("the form starts clean after adding", (await v("#aGrape")) === "" && (await v("#aCountry")) === "Frankrig" && !(await p.isVisible("#aSuggest")));
   // in Danish
   await p.evaluate(() => { addReset(); return I18N.setLang("da"); }); await type("#aRegion", "Mosel");
@@ -111,7 +112,7 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   await m.fill("#gateUser", "adam"); await m.fill("#gatePass", "pw"); await m.tap("#gateSubmit");
   await m.waitForSelector("#app:not([hidden])", { timeout: 20000 }); await m.waitForTimeout(600);
   await m.evaluate(() => { location.hash = "#enjoyed"; }); await m.waitForTimeout(400);
-  await m.tap("#eAddBtn"); await m.waitForTimeout(200);
+  await m.tap((await m.isVisible("#eAddBtn")) ? "#eAddBtn" : "#pFab"); await m.waitForTimeout(200);
   await m.type("#eaProducer", "rous"); await m.waitForTimeout(150);
   const tl = await m.evaluate(() => { const ul = document.getElementById("eaProducer-tl"); return { shown: ul && !ul.hidden, items: ul ? [...ul.children].map(li => li.textContent) : [], list: document.getElementById("eaProducer").getAttribute("list") }; });
   check("phone: the producer field lists the cellar's producers that contain what's typed — 'rous' finds Armand Rousseau", tl.shown && tl.items.includes("Armand Rousseau") && tl.list === null, JSON.stringify(tl));

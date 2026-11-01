@@ -4,6 +4,7 @@
 // sideways scrolling, unhandled errors and anything the server lets through that it shouldn't.
 //   (cd .. && python3 -m http.server 8765) & node tools/explore-test.js
 "use strict";
+const press = require("./press"); // a phone presses some buttons through ＋, the tabs or a menu
 const { chromium } = require("./pw");
 const H = require("./gas-harness");
 const BASE = process.env.BASE || "http://localhost:8765/";
@@ -43,14 +44,14 @@ const X = n => `<img src=x onerror="window.__xss='${n}'"><script>window.__xss='$
   // against the device width: a phone browser widens innerWidth itself when the page is too wide
   const noSideways = p => p.evaluate(w => document.documentElement.scrollWidth <= w + 1, p.viewportSize().width);
   const xss = p => p.evaluate(() => window.__xss || "");
-  const go = async (p, pg) => { await p.click(`.tab[data-page=${pg}]`); await p.waitForTimeout(400); };
+  const go = async (p, pg) => { await press(p, `.tab[data-page=${pg}]`); await p.waitForTimeout(400); };
   const cellar = p => p.evaluate(() => VAULT.call({ action: "data" }).then(r => r.wines));
 
   // ───────────── 1. a member's week, on a phone ─────────────
   const A = await device(), p = A.p;
   const rec = await signUp(p, "maja");
   check("sign-up on a phone lands in an empty cellar without sideways scrolling", await noSideways(p) && (await cellar(p)).length === 0);
-  await p.click("#addBtn"); await p.waitForTimeout(250);
+  await press(p, "#addBtn"); await p.waitForTimeout(250);
   await p.fill("#aProducer", "Domaine Roulot"); await p.fill("#aName", "Meursault Les Luchets"); await p.click("#addForm .qpick button:has-text('Frankrig'), #addForm .qpick button:has-text('France')").catch(() => {});
   await p.fill("#aVintage", "2020"); await p.fill("#aQty", "3"); await p.fill("#aPrice", "650"); await p.selectOption("#aType", "Hvid");
   await p.click("#addSave"); await p.waitForFunction(() => !document.getElementById("addModal").classList.contains("open"), null, { timeout: 10000 });
@@ -105,7 +106,7 @@ const X = n => `<img src=x onerror="window.__xss='${n}'"><script>window.__xss='$
   check("…and still shows as text", (await p.textContent("#tbl")).includes("<img src=x"), (await p.textContent("#tbl")).slice(0, 120));
   // the export: a formula in a cell is a classic spreadsheet trap
   await p.evaluate(() => api({ action: "add", wine: { producer: "=HYPERLINK(\"http://evil.example\",\"click\")", name: "+cmd|' /C calc'!A0", qty: 1 } }).then(loadData));
-  await p.click("#expBtn"); await p.waitForTimeout(300);
+  await press(p, "#expBtn"); await p.waitForTimeout(300);
   const [dl] = await Promise.all([p.waitForEvent("download", { timeout: 8000 }).catch(() => null), p.click("#expCsv")]);
   const csv = dl ? require("fs").readFileSync(await dl.path(), "utf8") : "";
   check("exported CSV defuses formulas (=, +, -, @ at the start of a cell)", csv && !/(^|[,;\n])"?[=+@]/.test(csv.replace(/^﻿/, "")), csv.split("\n").filter(l => /HYPERLINK|cmd/.test(l)).join(" / "));
@@ -130,14 +131,14 @@ const X = n => `<img src=x onerror="window.__xss='${n}'"><script>window.__xss='$
 
   // ───────────── 4. double clicks and a dropped connection ─────────────
   const before = (await cellar(p)).length;
-  await p.click("#addBtn"); await p.waitForTimeout(250); await p.fill("#aProducer", "Double Click Domaine"); await p.fill("#aQty", "1");
+  await press(p, "#addBtn"); await p.waitForTimeout(250); await p.fill("#aProducer", "Double Click Domaine"); await p.fill("#aQty", "1");
   await p.evaluate(() => { const b = document.getElementById("addSave"); b.click(); b.click(); b.click(); });
   await p.waitForTimeout(2500);
   const dbl = (await cellar(p)).filter(w => w.producer === "Double Click Domaine").length;
   check("three fast clicks on Save add the wine once", dbl === 1, "rows: " + dbl);
   await p.keyboard.press("Escape");
   offline = true;
-  await p.click("#addBtn"); await p.waitForTimeout(250); await p.fill("#aProducer", "Offline Domaine"); await p.click("#addSave"); await p.waitForTimeout(2500);
+  await press(p, "#addBtn"); await p.waitForTimeout(250); await p.fill("#aProducer", "Offline Domaine"); await p.click("#addSave"); await p.waitForTimeout(2500);
   const offMsg = (await p.textContent("body")).match(/Could not[^.]*|offline[^.]*/i);
   check("saving without a connection says so, and keeps the form filled", !!offMsg && (await p.inputValue("#aProducer")) === "Offline Domaine", offMsg && offMsg[0]);
   offline = false;
@@ -148,7 +149,7 @@ const X = n => `<img src=x onerror="window.__xss='${n}'"><script>window.__xss='$
   await p.keyboard.press("Escape");
 
   // ───────────── 5. the grid, pushed ─────────────
-  await p.click("#impBtn"); await p.waitForTimeout(200); await p.click("#gridOpen"); await p.waitForTimeout(200);
+  await press(p, "#impBtn"); await p.waitForTimeout(200); await p.click("#gridOpen"); await p.waitForTimeout(200);
   const many = Array.from({ length: 400 }, (_, i) => `Grid Producer ${i}\tCuvée ${i}\t\t\t\t\t${i % 2 ? "Red" : "White"}\t\t${2000 + (i % 25)}\t${1 + (i % 3)}\t\t${100 + i}`).join("\n");
   await p.evaluate(text => { const inp = document.querySelector('#wGrid tbody input[data-c="0"]'); inp.focus(); const dt = new DataTransfer(); dt.setData("text/plain", text);
     inp.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true })); }, many);
@@ -211,7 +212,7 @@ const X = n => `<img src=x onerror="window.__xss='${n}'"><script>window.__xss='$
   await r.evaluate(id => api({ action: "undelete", id }), id);
   check("…and comes back from there", (await cellar(r)).some(w => w.producer === "From The Phone"));
   // a new password on the laptop: the phone's next save must not vanish quietly
-  await r.click("#acctBtn"); await r.waitForTimeout(200);
+  await press(r, "#acctBtn"); await r.waitForTimeout(200);
   await r.fill("#acctPass", "maja-new-pass-2"); await r.fill("#acctNew", "maja-third-pass-3"); await r.fill("#acctNew2", "maja-third-pass-3"); await r.click("#acctSave");
   await r.waitForFunction(() => !document.getElementById("acctModal").classList.contains("open"), null, { timeout: 15000 }).catch(() => {});
   const pres = await p.evaluate(async () => { try { await api({ action: "add", wine: { producer: "After The New Password", qty: 1 } }); return "saved"; } catch (e) { return "refused " + e.message; } });

@@ -7,6 +7,7 @@
 // and producer panel, saves an atlas correction, logs out — on desktop, phone and dark mode.
 // Prints any page errors, failed requests, HTTP errors or sideways scrolling; screenshots go to OUT.
 let chromium; try{ ({chromium}=require('playwright')); }catch(e){ ({chromium}=require('/opt/node22/lib/node_modules/playwright')); }
+const press = require("./press"); // a phone presses some buttons through ＋, the tabs or a menu
 const OUT=require('os').tmpdir()+'/allwine-smoke/'; require('fs').mkdirSync(OUT,{recursive:true});
 const BASE=process.env.BASE||'http://localhost:8765/';
 const BLANK_TILE = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==", "base64");
@@ -80,18 +81,18 @@ const overflow=async(p,where)=>{ const o=await p.evaluate(()=>document.documentE
   if(!(await p.isVisible('#app'))) note(tag,'app not visible after login');
   await overflow(p,tag+' cellar'); await p.screenshot({path:OUT+tag+'_cellar.png',fullPage:true});
   // cellar interactions
-  try{ await p.click('#priceBtn'); await p.click('#priceBtn'); }catch(e){note(tag,'priceBtn '+e.message)}
+  try{ await press(p, '#priceBtn'); await press(p, '#priceBtn'); }catch(e){note(tag,'priceBtn '+e.message)}
   try{ await p.fill('#q','Rousseau'); await p.waitForTimeout(200); await p.fill('#q',''); }catch(e){note(tag,'search '+e.message)}
   try{ await p.click('#tbl tbody tr >> nth=0'); await p.waitForTimeout(300); }catch(e){note(tag,'row expand '+e.message)}
-  try{ await p.click('#addBtn'); await p.waitForTimeout(300); await p.screenshot({path:OUT+tag+'_addmodal.png'}); await p.keyboard.press('Escape'); await p.waitForTimeout(200);
+  try{ await press(p, '#addBtn'); await p.waitForTimeout(300); await p.screenshot({path:OUT+tag+'_addmodal.png'}); await p.keyboard.press('Escape'); await p.waitForTimeout(200);
        const open=await p.evaluate(()=>!!document.querySelector('.modal.open')); if(open){ note(tag,'add modal does not close on Escape'); await p.evaluate(()=>document.querySelectorAll('.modal.open').forEach(m=>m.classList.remove('open'))); } }catch(e){note(tag,'add modal '+e.message)}
-  try{ await p.click('#tonightBtn'); await p.waitForTimeout(300); await p.keyboard.press('Escape'); await p.evaluate(()=>document.querySelectorAll('.modal.open').forEach(m=>m.classList.remove('open'))); }catch(e){note(tag,'tonight '+e.message)}
+  try{ await press(p, '#tonightBtn'); await p.waitForTimeout(300); await p.keyboard.press('Escape'); await p.evaluate(()=>document.querySelectorAll('.modal.open').forEach(m=>m.classList.remove('open'))); }catch(e){note(tag,'tonight '+e.message)}
   // map drill to Bourgogne (the map sits folded in the overview: open both, as a person would)
   await p.evaluate(()=>{ if(window.setLayout) ["overview","eOverview"].forEach(id=>setLayout(id, panelEls(id).map(e=>e.dataset.panel))); });
   await p.evaluate(()=>{ const o=document.getElementById('overview'); if(o) o.open=true; const m=document.getElementById('mapFold'); if(m) m.open=true; }); await p.waitForTimeout(300);
   try{ const dot=await p.$('#map circle.dot, #map .dot'); if(dot){ await dot.click(); await p.waitForTimeout(300);} }catch(e){note(tag,'map '+e.message)}
   for(const pg of ['enjoyed','wishlist','journal','feed','cellar']){
-    try{ await p.click(`.tab[data-page=${pg}]`); await p.waitForTimeout(700); await overflow(p,tag+' '+pg); await p.screenshot({path:OUT+tag+'_'+pg+'.png',fullPage:true}); }
+    try{ await press(p, `.tab[data-page=${pg}]`); await p.waitForTimeout(700); await overflow(p,tag+' '+pg); await p.screenshot({path:OUT+tag+'_'+pg+'.png',fullPage:true}); }
     catch(e){ note(tag,'tab '+pg+' '+e.message); }
   }
   // atlas link from app
@@ -167,7 +168,7 @@ const overflow=async(p,where)=>{ const o=await p.evaluate(()=>document.documentE
   else note(tag,'no edit button while logged in');
   // logout returns to the front page
   await p.goto(BASE); await p.waitForSelector('#app:not([hidden])',{timeout:20000}).catch(()=>{}); await p.waitForTimeout(300);
-  try{ await p.click('#lockBtn'); await p.waitForTimeout(400); if(!(await p.isVisible('#gate'))) note(tag,'gate not shown after logout'); if(!(await p.isVisible('.atlascard'))) note(tag,'atlas card missing after logout'); }catch(e){note(tag,'logout '+e.message)}
+  try{ await press(p, '#lockBtn'); await p.waitForTimeout(400); if(!(await p.isVisible('#gate'))) note(tag,'gate not shown after logout'); if(!(await p.isVisible('.atlascard'))) note(tag,'atlas card missing after logout'); }catch(e){note(tag,'logout '+e.message)}
   await ctx.close();
  }
  // atlas DOM size and timing

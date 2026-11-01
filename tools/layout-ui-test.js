@@ -4,6 +4,7 @@
 // Journal as a grid of cards.
 //   (cd .. && python3 -m http.server 8765) & node tools/layout-ui-test.js
 "use strict";
+const press = require("./press"); // a phone presses some buttons through ＋, the tabs or a menu
 const { chromium } = require("./pw");
 const H = require("./gas-harness");
 const BASE = process.env.BASE || "http://localhost:8765/";
@@ -90,7 +91,7 @@ const wines = Array.from({ length: 120 }, (_, i) => { const p = P[i % P.length];
   check("…and a second click takes the filter off", !(await p.$("#press .kbar.active")) && (await p.$$("#tbl tr.main")).length > got.rows);
   await bar.click(); await p.click("#clear"); await p.waitForTimeout(200);
   check("…as does Clear filters", !(await p.$("#press .kbar.active")) && (await p.evaluate(() => state.closes)) === "");
-  if (!(await p.evaluate(() => SHOW_PRICES))) await p.click("#priceBtn");
+  if (!(await p.evaluate(() => SHOW_PRICES))) await press(p, "#priceBtn");
   const band = await p.evaluate(() => ({ shown: !document.getElementById("bandPanel").hidden,
     sum: [...document.querySelectorAll("#bands .rb-n")].reduce((s, e) => s + parseInt(e.textContent, 10), 0),
     want: WINES.filter(w => w.left > 0 && w.price > 0).reduce((s, w) => s + w.left, 0) }));
@@ -99,7 +100,7 @@ const wines = Array.from({ length: 120 }, (_, i) => { const p = P[i % P.length];
   await p.waitForTimeout(400);
   const worth = await p.evaluate(() => ({ shown: !document.getElementById("worthPanel").hidden, txt: document.getElementById("worth").textContent }));
   check("…and a value set (twice the price) brings 'Value against what you paid': +100 %", worth.shown && /\+100 %/.test(worth.txt), worth.txt.slice(0, 200));
-  await p.click("#priceBtn");
+  await press(p, "#priceBtn");
 
   // ── list / timeline ──
   await p.click("#viewTl"); await p.waitForTimeout(300);
@@ -127,8 +128,8 @@ const wines = Array.from({ length: 120 }, (_, i) => { const p = P[i % P.length];
   // ── Enjoyed: a bottle you didn't buy (a tasting) counts at its value ──
   await p.evaluate(async () => { await api({ action: "addmany", wines: [{ producer: "Domaine du Comte Liger-Belair", name: "La Romanée", vintage: 2011, size: "Magnum", qty: 1, drunk: 1, drunkDate: "2026-10-24", elsewhere: 1, value: 125000 },
     { producer: "Krug", name: "Clos du Mesnil", vintage: 2002, qty: 1, drunk: 1, drunkDate: "2026-10-23", elsewhere: 1, price: 9000, value: 12000 }], bumps: [] }); await loadData(); });
-  await p.click('.tab[data-page="cellar"]'); if (!(await p.evaluate(() => SHOW_PRICES))) await p.click("#priceBtn");
-  await p.click('.tab[data-page="enjoyed"]'); await p.fill("#eq", "la romanée"); await p.waitForTimeout(300);
+  await press(p, '.tab[data-page="cellar"]'); if (!(await p.evaluate(() => SHOW_PRICES))) await press(p, "#priceBtn");
+  await press(p, '.tab[data-page="enjoyed"]'); await p.fill("#eq", "la romanée"); await p.waitForTimeout(300);
   const cell = await p.$eval("#eRows tr.main td:last-child", td => td.textContent.trim()).catch(() => "");
   check("Enjoyed shows the value of a bottle with no price, marked as a value", /≈\s*125[.,\s]?000/.test(cell), cell);
   await p.fill("#eq", "clos du mesnil"); await p.waitForTimeout(300);
@@ -144,13 +145,13 @@ const wines = Array.from({ length: 120 }, (_, i) => { const p = P[i % P.length];
   // ── the journal as a grid ──
   await p.setViewportSize({ width: 1650, height: 1000 });
   for (const w of [1650, 1280]) {
-    await p.setViewportSize({ width: w, height: 1000 }); await p.click('.tab[data-page="enjoyed"]'); await p.waitForTimeout(300);
+    await p.setViewportSize({ width: w, height: 1000 }); await press(p, '.tab[data-page="enjoyed"]'); await p.waitForTimeout(300);
     const cols = await p.$$eval("#eTbl thead th", ts => ts.map(t => Math.round(t.getBoundingClientRect().width)));
     check(`Enjoyed at ${w} px: the wine has the room, the small columns stay small (${cols.join(" · ")})`, cols[0] >= 320 && cols[4] <= 60 && cols[0] > cols.slice(1).reduce((a, b) => Math.max(a, b), 0) * 2.3, cols.join(","));
   }
   await p.setViewportSize({ width: 1650, height: 1000 });
   for (let i = 0; i < 4; i++) await p.evaluate(n => api({ action: "jadd", entry: { date: "2026-10-1" + n, producer: "Krug", wine: "Grande Cuvée", rating: 8, note: "fine" } }), i);
-  await p.click('.tab[data-page="journal"]'); await p.evaluate(() => { JENTRIES = null; loadJournal(); }); await p.waitForTimeout(800);
+  await press(p, '.tab[data-page="journal"]'); await p.evaluate(() => { JENTRIES = null; loadJournal(); }); await p.waitForTimeout(800);
   const jy = await p.$$eval("#jList .jentry", es => es.map(e => Math.round(e.getBoundingClientRect().y)));
   check("journal entries sit side by side on a wide screen", jy.length === 4 && new Set(jy).size < 4, JSON.stringify(jy));
   check("no console errors", !errs.length, errs.join(" | "));

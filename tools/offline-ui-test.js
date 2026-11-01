@@ -4,6 +4,7 @@
 // http://127.0.0.1 as one (app.js leaves the worker off on localhost, where the other tests run).
 //   (cd .. && python3 -m http.server 8765) & node tools/offline-ui-test.js
 "use strict";
+const press = require("./press"); // a phone presses some buttons through ＋, the tabs or a menu
 const { chromium } = require("./pw");
 const H = require("./gas-harness");
 const ORIGIN = (process.env.BASE || "http://localhost:8765/").replace("localhost", "127.0.0.1").replace(/\/$/, ""), BASE = ORIGIN + "/";
@@ -25,7 +26,7 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   await p.fill("#gateUser", "anna"); await p.fill("#gatePass", "anna-pass-1"); await p.fill("#gateInvite", "invite"); await p.fill("#gatePass2", "anna-pass-1"); await p.fill("#gateEmail", "a@example.com");
   await p.click("#gateSubmit"); await p.waitForSelector("#recModal.open", { timeout: 20000 }); await p.check("#recOk"); await p.click("#recDone");
   await p.waitForSelector("#app:not([hidden])", { timeout: 20000 });
-  await p.click("#addBtn"); await p.fill("#aProducer", "Domaine Roulot"); await p.fill("#aName", "Meursault Perrières"); await p.fill("#aVintage", "2020");
+  await press(p, "#addBtn"); await p.fill("#aProducer", "Domaine Roulot"); await p.fill("#aName", "Meursault Perrières"); await p.fill("#aVintage", "2020");
   await p.click('#addForm button[type="submit"]'); await p.waitForTimeout(1500);
   check("the site's service worker is installed from the cellar page", await p.evaluate(async () => { const r = await navigator.serviceWorker.getRegistration(); return !!(r && r.active); }));
   await p.reload(); await p.waitForTimeout(2500); // the worker serves this load, and keeps what it serves
