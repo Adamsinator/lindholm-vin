@@ -293,7 +293,7 @@ const listJoin = (lang, arr) => { if (arr.length < 2) return arr.join(""); const
 const bottlesTxt = (lang, n) => n === 1 ? say(lang, "bottle1") : say(lang, "bottles", n);
 const winesTxt = (lang, n) => n === 1 ? say(lang, "wine1") : say(lang, "wines", n);
 const left = w => (w.left != null ? w.left : (Number(w.qty) || 0) - (Number(w.drunk) || 0));
-const wineLine = (lang, w, withLoc) => `<b>${esc(w.producer)}</b> ${esc([w.name, w.vintage].filter(Boolean).join(" "))} <span class="sm-m">· ${esc(bottlesTxt(lang, left(w)))}${withLoc ? " · 📍 " + esc(w.location || say(lang, "noLoc")) : (w.location ? " · 📍 " + esc(w.location) : "")}</span>`;
+const wineLine = (lang, w, withLoc) => `<b>${esc(w.producer)}</b> ${esc([w.name, w.vintage].filter(Boolean).join(" "))} <span class="sm-m">· ${esc(bottlesTxt(lang, left(w)))}${withLoc ? " · " + esc(w.location || say(lang, "noLoc")) : (w.location ? " · " + esc(w.location) : "")}</span>`;
 const ul = items => `<ul>${items.map(i => `<li>${i}</li>`).join("")}</ul>`;
 const p = s => `<p>${s}</p>`;
 const villageCote = (burg, vid) => { if (!burg || !burg.villages || !burg.cotes) return null; let cur = burg.cotes[0].id;

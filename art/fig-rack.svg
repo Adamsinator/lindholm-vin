@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 160"><title>An empty wine rack</title>
+<!-- the empty cellar: a rack waiting for its first bottles, one already in -->
+<g fill="none" stroke="#7C2D3E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+<path d="M30 28h180M30 64h180M30 100h180M30 136h180" stroke="#C99B47"/><path d="M34 22v122M206 22v122" />
+<g opacity=".35"><circle cx="66" cy="46" r="11"/><circle cx="102" cy="46" r="11"/><circle cx="138" cy="46" r="11"/><circle cx="174" cy="46" r="11"/>
+<circle cx="66" cy="82" r="11"/><circle cx="138" cy="82" r="11"/><circle cx="174" cy="82" r="11"/>
+<circle cx="66" cy="118" r="11"/><circle cx="102" cy="118" r="11"/><circle cx="138" cy="118" r="11"/><circle cx="174" cy="118" r="11"/></g>
+<circle cx="102" cy="82" r="11" fill="#F3E7E3"/><circle cx="102" cy="82" r="4.5" fill="#C99B47" stroke="none"/></g></svg>

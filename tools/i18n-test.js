@@ -10,7 +10,9 @@ const ph = s => (String(s).match(/\{\d\}/g) || []).sort().join();
 
 // UI: one dictionary file per language (i18n-da.js…), loaded by i18n.js
 const src = fs.readFileSync(R("i18n.js"), "utf8");
-const dict = l => { const w = {}; new Function("window", fs.readFileSync(R(`i18n-${l}.js`), "utf8"))(w); return w.I18N_DICT[l]; };
+// the shared dictionary, plus the privacy page's own (privacy-i18n-*.js, loaded only there)
+const dict = l => { const w = {}; new Function("window", fs.readFileSync(R(`i18n-${l}.js`), "utf8"))(w);
+  new Function("window", fs.readFileSync(R(`privacy-i18n-${l}.js`), "utf8"))(w); return w.I18N_DICT[l]; };
 const D = { da: dict("da"), de: dict("de"), fr: dict("fr") };
 check("i18n.js names each dictionary file", ["da", "fr", "de"].every(l => new RegExp(`${l}: "i18n-${l}\\.js\\?v=\\d+"`).test(src)));
 const all = new Set(Object.values(D).flatMap(Object.keys));

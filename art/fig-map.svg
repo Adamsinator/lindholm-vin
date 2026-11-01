@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 160"><title>A folded map with a vineyard marked</title>
+<!-- the atlas: a folded map, its parcels, a pin on one of them -->
+<g stroke="#7C2D3E" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round">
+<path d="M40 40l50-14 60 14 50-14v94l-50 14-60-14-50 14z" fill="#F3E7E3"/><path d="M90 26v94M150 40v94" fill="none" opacity=".5"/>
+<g fill="#C99B47" stroke="#C99B47" fill-opacity=".35" stroke-width="1.6"><path d="M52 62l26-8 6 20-26 8z"/><path d="M98 70l30-4 4 22-30 5z"/><path d="M160 58l26-7 4 18-26 7z"/><path d="M104 102l26-6 2 14-26 6z"/></g>
+<path d="M115 52c0-9 6-14 13-14s13 5 13 14c0 11-13 24-13 24s-13-13-13-24z" fill="#7C2D3E"/><circle cx="128" cy="52" r="4.6" fill="#F3E7E3" stroke="none"/></g></svg>

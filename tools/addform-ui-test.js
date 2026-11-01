@@ -82,7 +82,7 @@ const HEAD = ["Producent", "Land", "Område", "Kommune", "Mark/Navn", "Klassifik
   check("…and #feed shows the cellar instead", await p.isVisible("#pageCellar") && await p.isHidden("#pageFeed"));
   check("…with nothing of the feed kept on the device", await p.evaluate(() => !Object.keys(localStorage).some(k => k.startsWith("vinFeed:"))));
   // the privacy page from inside the cellar
-  check("the privacy page is linked from the cellar when logged in", await p.isVisible('.appfoot a[href="privacy.html"]'));
+  check("the privacy page is linked from the cellar when logged in", await p.isVisible('#app .sitefoot a[href="privacy.html"]'));
   check("no console errors", !errs.length, errs.join(" | "));
   await b.close();
   const n = results.filter(Boolean).length; console.log(`\n${n}/${results.length} passed`); process.exit(n === results.length ? 0 : 1);

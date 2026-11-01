@@ -1,9 +1,17 @@
 // The help page's texts in German (help.html; English is the source there). Loaded after i18n-de.js,
 // which i18n.js makes sure of, and added to its dictionary.
 Object.assign(window.I18N_DICT.de, {
+  "Add your wines: ＋ Add wine for a few, Import for a whole list from a spreadsheet.": "Fügen Sie Ihre Weine hinzu: ＋ Wein hinzufügen für einige, Importieren für eine ganze Liste aus einer Tabelle.",
+  "Import reads Excel (.xlsx), CSV or plain text, up to 10,000 wines. It finds the columns itself and shows what it will do before anything is saved.": "Importieren liest Excel (.xlsx), CSV oder einfachen Text, bis zu 10.000 Weine. Es findet die Spalten selbst und zeigt, was es tun wird, bevor etwas gespeichert wird.",
+  "Tidy up looks through the whole cellar for spellings to fix and wines entered twice, and lists every change first.": "Aufräumen durchsucht den ganzen Keller nach Schreibweisen zum Korrigieren und doppelt erfassten Weinen und listet jede Änderung zuerst auf.",
+  "Tonight picks a bottle for you, favouring wines in their window and those that should be drunk soon.": "Heute Abend wählt eine Flasche für Sie und bevorzugt Weine in ihrem Fenster und solche, die bald getrunken werden sollten.",
+  "Ask the sommelier (, at the bottom) about food pairings, regions, grapes and vintages. It answers from the site's own wine knowledge, not from the internet.": "Fragen Sie den Sommelier (, unten) nach Speisen, Regionen, Rebsorten und Jahrgängen. Er antwortet aus dem Weinwissen der Seite, nicht aus dem Internet.",
+  "Share list makes a read-only link to the wines shown now, or the whole cellar. Filter first (say, Bourgogne only) and choose The wines shown now.": "Liste teilen erstellt einen schreibgeschützten Link zu den jetzt angezeigten Weinen oder dem ganzen Keller. Erst filtern (etwa nur Burgund), dann Die jetzt angezeigten Weine wählen.",
+  "Export saves your cellar, journal and wishlist as an Excel workbook, or the cellar as CSV. It uses the import's columns, so it imports straight back.": "Exportieren speichert Keller, Journal und Wunschliste als Excel-Arbeitsmappe oder den Keller als CSV. Es nutzt die Spalten des Imports und lässt sich direkt wieder importieren.",
+  "Log out () on shared computers: it also removes the copy of your cellar kept on that device.": "Melden Sie sich () an gemeinsam genutzten Computern ab: Das entfernt auch die Kopie Ihres Kellers auf dem Gerät.",
   "How to use AllWine: your cellar, the wine atlas and your account. The ? buttons in the app open the part you need.": "So nutzen Sie AllWine: Ihren Keller, den Weinatlas und Ihr Konto. Die ?-Knöpfe in der App öffnen den passenden Teil.",
   "Getting started": "Erste Schritte",
-  "Add your wines: ＋ Add wine for a few, ⬆ Import for a whole list from a spreadsheet.": "Fügen Sie Ihre Weine hinzu: ＋ Wein hinzufügen für einige, ⬆ Importieren für eine ganze Liste aus einer Tabelle.",
+  
   "Give your best bottles a drink window, so the cellar can tell you what to open and when.": "Geben Sie Ihren besten Flaschen ein Trinkfenster, damit der Keller Ihnen sagt, was Sie wann öffnen sollten.",
   "Keep your recovery code safe (Account → recovery code). With your password it's the only way into your encrypted cellar: nobody else can open it for you.": "Bewahren Sie Ihren Wiederherstellungscode sicher auf (Konto → Wiederherstellungscode). Zusammen mit Ihrem Passwort ist er der einzige Weg in Ihren verschlüsselten Keller: Niemand sonst kann ihn für Sie öffnen.",
   "Adding wines": "Weine hinzufügen",
@@ -11,25 +19,25 @@ Object.assign(window.I18N_DICT.de, {
   "Many at once: the grid in the add form takes a row per wine, like a spreadsheet.": "Viele auf einmal: Das Raster im Formular nimmt eine Zeile pro Wein, wie eine Tabelle.",
   "Tap a wine in the list to open it: change the bottles, rate it, set its drink window, location, price and note.": "Tippen Sie auf einen Wein in der Liste, um ihn zu öffnen: Flaschen ändern, bewerten, Trinkfenster, Lagerort, Preis und Notiz setzen.",
   "Importing a list": "Eine Liste importieren",
-  "⬆ Import reads Excel (.xlsx), CSV or plain text, up to 10,000 wines. It finds the columns itself and shows what it will do before anything is saved.": "⬆ Importieren liest Excel (.xlsx), CSV oder einfachen Text, bis zu 10.000 Weine. Es findet die Spalten selbst und zeigt, was es tun wird, bevor etwas gespeichert wird.",
+  
   "It fixes common misspellings and capital letters, and spots wines you already have, so they can be added to instead of doubled.": "Es korrigiert häufige Tippfehler und Großschreibung und erkennt Weine, die Sie schon haben, damit sie ergänzt statt verdoppelt werden.",
   "Tidy up": "Aufräumen",
-  "🧹 Tidy up looks through the whole cellar for spellings to fix and wines entered twice, and lists every change first.": "🧹 Aufräumen durchsucht den ganzen Keller nach Schreibweisen zum Korrigieren und doppelt erfassten Weinen und listet jede Änderung zuerst auf.",
+  
   "Untick anything you'd rather keep as it is. A wine you delete can be put back for 30 days under Recently deleted.": "Entfernen Sie das Häkchen bei allem, was bleiben soll, wie es ist. Ein gelöschter Wein lässt sich 30 Tage lang unter Zuletzt gelöscht zurückholen.",
   "Drink windows": "Trinkfenster",
   "A drink window is the years a wine is at its best, for example 2026–2035. Set it in the wine's row: tap the wine, then fill in from and to.": "Ein Trinkfenster sind die Jahre, in denen ein Wein am besten ist, zum Beispiel 2026–2035. Setzen Sie es in der Zeile des Weins: Wein antippen, dann ab und bis ausfüllen.",
   "Without one, AllWine estimates a window from the wine's region, grape, colour, classification and vintage, and marks it (estimated). Your own always wins.": "Ohne eines schätzt AllWine ein Fenster aus Region, Rebsorte, Farbe, Klassifikation und Jahrgang des Weins und markiert es (geschätzt). Ihr eigenes gilt immer.",
   "The chips under What to open (Past peak, Closing soon, Drink now, Too young) filter the list. Open next names the five bottles to open first.": "Die Knöpfe unter Was öffnen (Über dem Höhepunkt, Fenster schließt bald, Jetzt trinken, Zu jung) filtern die Liste. Zuerst öffnen nennt die fünf Flaschen, die zuerst dran sind.",
   "Choosing a bottle": "Eine Flasche wählen",
-  "🎲 Tonight picks a bottle for you, favouring wines in their window and those that should be drunk soon.": "🎲 Heute Abend wählt eine Flasche für Sie und bevorzugt Weine in ihrem Fenster und solche, die bald getrunken werden sollten.",
-  "Ask the sommelier (🍷, at the bottom) about food pairings, regions, grapes and vintages. It answers from the site's own wine knowledge, not from the internet.": "Fragen Sie den Sommelier (🍷, unten) nach Speisen, Regionen, Rebsorten und Jahrgängen. Er antwortet aus dem Weinwissen der Seite, nicht aus dem Internet.",
+  
+  
   "Show prices turns every price on or off, for when someone else is looking at the screen.": "Preise zeigen blendet alle Preise ein oder aus, wenn jemand anderes auf den Bildschirm schaut.",
   "Sharing a list": "Eine Liste teilen",
-  "🔗 Share list makes a read-only link to the wines shown now, or the whole cellar. Filter first (say, Bourgogne only) and choose The wines shown now.": "🔗 Liste teilen erstellt einen schreibgeschützten Link zu den jetzt angezeigten Weinen oder dem ganzen Keller. Erst filtern (etwa nur Burgund), dann Die jetzt angezeigten Weine wählen.",
+  
   "The list is encrypted in your browser and the key is only in the link, so whoever has the link can read it, and nobody else, AllWine included.": "Die Liste wird in Ihrem Browser verschlüsselt, und der Schlüssel steht nur im Link: Wer den Link hat, kann sie lesen, sonst niemand, auch nicht AllWine.",
   "Notes and prices stay out unless you tick them. Withdraw a link any time from the same dialog; it also ends by itself after the days you chose.": "Notizen und Preise bleiben draußen, außer Sie setzen ein Häkchen. Ziehen Sie einen Link jederzeit im selben Fenster zurück; er läuft auch von selbst nach den gewählten Tagen ab.",
   "Export and backups": "Export und Sicherungen",
-  "⬇ Export saves your cellar, journal and wishlist as an Excel workbook, or the cellar as CSV. It uses the import's columns, so it imports straight back.": "⬇ Exportieren speichert Keller, Journal und Wunschliste als Excel-Arbeitsmappe oder den Keller als CSV. Es nutzt die Spalten des Imports und lässt sich direkt wieder importieren.",
+  
   "The site also keeps daily backups for 8 weeks, still encrypted.": "Die Seite macht außerdem tägliche Sicherungen, 8 Wochen lang aufbewahrt und weiterhin verschlüsselt.",
   "Enjoyed, Wishlist and Journal": "Genossen, Wunschliste und Journal",
   "Enjoyed lists the bottles you've drunk, with dates and ratings. Drinking a bottle from the cellar puts it there.": "Genossen listet die getrunkenen Flaschen mit Datum und Bewertung. Wer eine Flasche aus dem Keller trinkt, findet sie dort.",
@@ -46,7 +54,7 @@ Object.assign(window.I18N_DICT.de, {
   "Your account": "Ihr Konto",
   "Account changes your password or makes a new recovery code, and can delete the account and everything in it.": "Konto ändert Ihr Passwort oder erstellt einen neuen Wiederherstellungscode und kann das Konto mit allem darin löschen.",
   "Lost both password and recovery code? Ask the owner, who invited you: account help can make you a new recovery code, if it was set up.": "Passwort und Wiederherstellungscode verloren? Fragen Sie den Betreiber, der Sie eingeladen hat: Die Kontohilfe kann Ihnen einen neuen Wiederherstellungscode erstellen, wenn sie eingerichtet ist.",
-  "Log out (🔒) on shared computers: it also removes the copy of your cellar kept on that device.": "Melden Sie sich (🔒) an gemeinsam genutzten Computern ab: Das entfernt auch die Kopie Ihres Kellers auf dem Gerät.",
+  
   "Questions": "Fragen",
   "Can the owner read my cellar? It's encrypted in your browser, so the server and Google can't. The privacy page explains the one exception, account help, and when it's used.": "Kann der Betreiber meinen Keller lesen? Er wird in Ihrem Browser verschlüsselt, also können Server und Google es nicht. Die Datenschutzseite erklärt die eine Ausnahme, die Kontohilfe, und wann sie genutzt wird.",
   "Why does a wine say (estimated)? It has no drink window of its own yet; set one in its row and the estimate goes away.": "Warum steht bei einem Wein (geschätzt)? Er hat noch kein eigenes Trinkfenster; setzen Sie eines in seiner Zeile, dann verschwindet die Schätzung.",
