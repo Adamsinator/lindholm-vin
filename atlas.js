@@ -798,6 +798,7 @@ async function openRegion(id, sel) {
   document.body.classList.remove("home"); svg.setAttribute("role", "img"); svg.setAttribute("aria-label", t("Vineyard map"));
   st.region = R; st.pack = ATLAS_PACKS[R.id]; st.sel = null; $("fRegion").value = R.id; $("regionName").textContent = " · " + st.pack.meta.name;
   document.body.classList.remove("side-open"); renderCrumb(); applyStyle(); // aerial photos: France only
+  $("t3dBtn").hidden = !st.pack.meta.l93; // IGN's heights: France only
   document.title = "AllWine — " + st.pack.meta.name + " · " + t("Wine atlas");
   // start on the crus (the regional land around them can be far bigger, and long and thin)
   st.home = bbOf(st.pack.climats.flatMap(c => c.g));
@@ -953,6 +954,20 @@ const sheetH = () => document.body.style.setProperty("--sheet", (document.body.c
 new ResizeObserver(sheetH).observe($("sideWrap")); new MutationObserver(sheetH).observe(document.body, { attributes: true, attributeFilter: ["class"] });
 if (window.I18N) I18N.onChange(() => renderCrumb());
 applyStyle(); renderCrumb();
+/* ---------- the view in 3D (terrain3d.js): the pack's Lambert-93 metres back to longitude and latitude, as a plane
+   fitted round the middle of the view (Lambert-93 is near enough flat over a view) ---------- */
+function viewToLL() {
+  const M = st.pack.meta, O = M.origin, toP = (lon, lat) => { const [E, N] = L93(lon, lat); return [E - M.l93[0], M.l93[1] - N]; };
+  const fit = (lo, la) => { const a = toP(lo, la), b = toP(lo + .01, la), c = toP(lo, la + .01);
+    const m11 = (b[0] - a[0]) / .01, m21 = (b[1] - a[1]) / .01, m12 = (c[0] - a[0]) / .01, m22 = (c[1] - a[1]) / .01, det = m11 * m22 - m12 * m21;
+    return (x, y) => { const dx = x - a[0], dy = y - a[1]; return [lo + (m22 * dx - m12 * dy) / det, la + (-m21 * dx + m11 * dy) / det]; }; };
+  const [x, y, w, h] = st.view, mid = fit(O[0], O[1])(x + w / 2, y + h / 2);
+  return fit(mid[0], mid[1]);
+}
+// terrain3d.js is loaded only when it's asked for: most visits never tilt the map
+$("t3dBtn").onclick = async () => { if (!st.pack || !st.view) return; closePanels();
+  if (!window.TERRAIN3D) { try { await loadScript("terrain3d.js?v=1"); } catch (e) { return; } }
+  TERRAIN3D.open({ svg, view: st.view.slice(), toLL: viewToLL(), labels: '.lb.GC, .lb.AOC, .lb[class~="1er"]', title: st.pack.meta.name + " · 3D" }); };
 // a link or Back that only changes the hash doesn't reload the page
 addEventListener("hashchange", () => { fromHash().then(() => { if (st.pack) { place(); paint(); renderSide(); } }); });
 fromHash().then(loadCellar);

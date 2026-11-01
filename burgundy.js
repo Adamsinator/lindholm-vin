@@ -2011,6 +2011,7 @@ function syncMode(){
   $("rotL").hidden = $("rotR").hidden = !geo;
   $("reliefBtn").hidden = !geo; $("reliefBtn").classList.toggle("on", !!st.relief);
   $("profBtn").hidden = !geo; if(!geo && PROF.on) profToggle(false);
+  $("t3dBtn").hidden = !geo; // the surveyed map has real coordinates; IGN's heights are France
   $("compass").title = t(geo ? "North up" : "Schematic map: north is roughly up, the slope rises to the west");
   $("attr").textContent = t(geo ? (TOPO ? "Boundaries © INAO · map data © IGN, Licence Ouverte" : "Boundaries © INAO, Licence Ouverte") : "Schematic · not to scale · slope rises west");
   syncCompass();
@@ -2054,6 +2055,14 @@ $("pngBtn").onclick = exportPNG;
 $("printBtn").onclick = () => window.print();
 if("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("atlas-sw.js").catch(() => {});
 $("profBtn").onclick = () => profToggle();
+// the view in 3D (terrain3d.js): svg units → the surveyed map's metres → longitude and latitude
+$("t3dBtn").onclick = async () => {
+  if(st.mode!=="geo" || !GEO || !INV) return;
+  if(!window.TERRAIN3D){ try { await loadScript("terrain3d.js?v=1"); } catch(e){ return; } } // loaded only when asked for
+  const [LON0, LAT0] = GEO.meta.origin, R = 6371000, d2r = Math.PI/180, KX = d2r*R*Math.cos(LAT0*d2r), KY = d2r*R;
+  TERRAIN3D.open({ svg, view: [vb.x, vb.y, vb.w, vb.h], toLL: (x, y) => { const [e, n] = INV([x, y]); return [LON0 + e/KX, LAT0 + n/KY]; },
+    labels: ".lab", title: t("Côte d'Or") + " · 3D" });
+};
 // terrain search bar
 const ASP8 = {en:"N NE E SE S SW W NW", da:"N NØ Ø SØ S SV V NV", fr:"N NE E SE S SO O NO", de:"N NO O SO S SW W NW"};
 function terrSync(){

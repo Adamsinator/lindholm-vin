@@ -13,6 +13,9 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   // no map tiles from IGN in a test: an empty image answers, and the requests are counted
   const tiles = [];
   const ctxOf = async opt => { const c = await b.newContext(opt);
+    // and IGN's heights made up: a slope rising to the west, so the 3D view has something to show
+    await c.route(/data\.geopf\.fr\/altimetrie/, r => { const u = new URL(r.request().url()), lon = u.searchParams.get("lon").split("|").map(Number);
+      r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ elevations: lon.map(x => 200 + (5 - x) * 2000) }) }); });
     await c.route(/data\.geopf\.fr\/wmts/, r => { tiles.push(r.request().url()); r.fulfill({ status: 200, contentType: "image/png", body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==", "base64") }); });
     return c; };
 
@@ -59,7 +62,17 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   const ph = await d.evaluate(() => ({ cls: document.getElementById("map").classList.contains("photo"), n: document.querySelectorAll("#map g.photo image").length, shade: getComputedStyle(document.querySelector("#map g.shade")).display }));
   check("Aerial photo: IGN's photos laid under the vineyards, the relief shading off", ph.cls && ph.n > 0 && ph.shade === "none" && tiles.some(u => /ORTHOIMAGERY\.ORTHOPHOTOS/.test(u)), JSON.stringify(ph));
   check("…and credited in the region's sources", /Aerial photos: IGN/.test(await d.textContent("#side")));
+  // the view in 3D
+  await d.click('#styles button[data-style="auto"]').catch(() => {}); await d.evaluate(() => { document.getElementById("stylePanel").hidden = true; });
+  check("a French region offers 3D", await d.isVisible("#t3dBtn"));
+  await d.click("#t3dBtn"); await d.waitForFunction(() => document.querySelector(".t3d-s") && document.querySelector(".t3d-s").hidden, null, { timeout: 20000 }).catch(() => {}); await d.waitForTimeout(1200);
+  const t3 = await d.evaluate(() => { const c = document.querySelector(".t3d canvas"), g = c.getContext("2d"), px = g.getImageData(0, 0, c.width, c.height).data; let n = 0;
+    for (let i = 0; i < px.length; i += 4 * 97) if (px[i + 3] > 0) n++; return { open: !document.querySelector(".t3d").hidden, drawn: n, title: document.querySelector(".t3d-t").textContent, credit: document.querySelector(".t3d-cr").textContent }; });
+  check("…which lifts the view onto the ground: the block drawn, named, the heights credited", t3.open && t3.drawn > 200 && /Chablis · 3D/.test(t3.title) && /IGN, RGE ALTI/.test(t3.credit), JSON.stringify(t3));
+  await d.keyboard.press("Escape"); await d.waitForTimeout(200);
+  check("…and Escape is back on the map", await d.evaluate(() => document.querySelector(".t3d").hidden));
   await d.goto(BASE + "atlas.html#r=mosel"); await d.waitForTimeout(2500);
+  check("…nor 3D: IGN's heights stop at the border", await d.isHidden("#t3dBtn"));
   check("in Germany there are no photos: the choice is greyed out, the map drawn as usual", await d.evaluate(() => document.querySelector('#styles button[data-style="photo"]').disabled && !document.getElementById("map").classList.contains("photo")));
   await d.evaluate(() => localStorage.removeItem("atlasStyle"));
   check("no page errors", !errs.length, errs.join(" | "));
