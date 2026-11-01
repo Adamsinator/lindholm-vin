@@ -4,7 +4,7 @@
 // screen, and both work on a patchy connection or none. The API is never kept: it goes straight to the network.
 "use strict";
 const DATA = "atlas-data-v1", TILES = "atlas-tiles-v1", MAX_TILES = 800;
-const isAtlas = u => u.origin === location.origin && /\/(burgundy[^/]*\.js|domaine\.js|i18n(-[a-z]{2})?\.js|atlas(-(?!sw)[^/]*)?\.js|europe-lands\.js|atlas-(preview|hero[^/]*)\.(jpg|webp))$/.test(u.pathname);
+const isAtlas = u => u.origin === location.origin && /\/(burgundy[^/]*\.js|domaine\.js|i18n(-[a-z]{2})?\.js|atlas(-(?!sw)[^/]*)?\.js|europe-lands\.js|atlas-(preview|hero[^/]*|relief[^/]*)\.(jpg|webp))$/.test(u.pathname);
 // every script of the site's own carries a ?v= version (tools/versions-test.js sees to it), as does the vault's copy of Code.gs
 const isVersioned = u => u.origin === location.origin && /\.(js|gs)$/.test(u.pathname) && /(^|[?&])v=\d+/.test(u.search) && !/\/atlas-sw\.js$/.test(u.pathname);
 const isAsset = u => u.origin === location.origin && /\/(manifest\.json|apple-touch-icon\.png|icon-512\.png)$/.test(u.pathname);

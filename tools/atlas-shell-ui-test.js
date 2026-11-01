@@ -26,6 +26,11 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   check("phone, start page: the breadcrumb says Europe and how many regions", /Europe/i.test(await q.textContent("#crumb")) && /\d+ regions/i.test(await q.textContent("#crumb")));
   const box = await q.evaluate(() => { const r = document.querySelector(".mapbox").getBoundingClientRect(); return [r.width, r.height, innerWidth, innerHeight]; });
   check("…the map is the whole screen, the header gone", box[0] === box[2] && box[1] === box[3] && await q.isHidden("header.top"), JSON.stringify(box));
+  const home = await q.evaluate(() => ({ ol: document.querySelectorAll("#map .ol").length, relief: !!document.querySelector('#map image.relief[href="atlas-relief-eu.webp"]'),
+    credit: /Natural Earth/.test(document.getElementById("side").textContent), font: parseFloat(getComputedStyle(document.querySelector("#map .hd text")).fontSize),
+    scale: document.getElementById("map").getScreenCTM().a }));
+  check("…the regions as outlines of where their vineyards are, on Natural Earth's relief (credited)", home.ol >= 19 && home.relief && home.credit, JSON.stringify(home));
+  check("…and the place names big enough to read on a phone (≥ 10 px)", home.font * home.scale >= 10, JSON.stringify(home));
   const chips = await q.$$eval("#rchips button", bs => bs.map(x => x.textContent));
   check("…the regions as chips at the bottom, 'All regions' first and lit", chips.length > 15 && /All regions/.test(chips[0]) && /Chablis/.test(chips.join()) && await q.isVisible("#rchips button.on"));
   await q.tap('#rchips button[data-r="chablis"]'); await q.waitForFunction(() => !!st.pack && st.region.id === "chablis", null, { timeout: 10000 }); await q.waitForTimeout(600);
@@ -55,6 +60,13 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   // ── a wide screen ──
   const d = await (await ctxOf({ viewport: { width: 1300, height: 850 } })).newPage();
   d.on("pageerror", e => errs.push(e.message));
+  await d.goto(BASE + "atlas.html"); await d.waitForTimeout(1200);
+  await d.hover('#map .hd[data-id="alsace"] circle'); await d.waitForTimeout(150);
+  check("wide screen, start page: pointing at a region lights its dot and its outline together", (await d.$$eval('#map .hot', n => n.map(x => x.tagName.toLowerCase() + ":" + x.dataset.id))).sort().join() === "g:alsace,path:alsace");
+  const spot = await d.evaluate(() => { const o = document.querySelector('#map .ol[data-id="alsace"]'), r = o.getBoundingClientRect(); // a point of the outline, away from the dot
+    for (let y = r.bottom - 2; y > r.top; y -= 2) for (let x = r.left; x < r.right; x += 2) if (document.elementFromPoint(x, y) === o) return [x, y]; return null; });
+  if (spot) { await d.mouse.click(spot[0], spot[1]); await d.waitForFunction(() => !!st.pack && st.region.id === "alsace", null, { timeout: 10000 }).catch(() => {}); }
+  check("…and a tap on the outline opens the region", !!spot && await d.evaluate(() => !!st.pack && st.region.id === "alsace"), JSON.stringify(spot));
   await d.goto(BASE + "atlas.html#r=chablis"); await d.waitForTimeout(2000);
   check("wide screen: the toolbar and legend where they were, the breadcrumb on the map", await d.evaluate(() => !!document.querySelector(".wrap > .toolbar #fGC") && !!document.querySelector(".mapbox > #legend")) && await d.isVisible("#crumb") && await d.isHidden("#rchips"));
   await d.click("#styleBtn"); await d.waitForTimeout(200); tiles.length = 0;

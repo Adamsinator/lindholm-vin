@@ -349,7 +349,7 @@ const up = e => { const had = ptrs.size; ptrs.delete(e.pointerId);
     else if (st.view && moved >= 6) setView(st.view);
     pan = null; } };
 svg.addEventListener("pointerup", e => { const tgt = document.elementFromPoint(e.clientX, e.clientY), touch = e.pointerType === "touch"; up(e);
-  const hd = !st.pack && tgt && tgt.closest && tgt.closest(".hd"); if (hd) { goTo(hd.dataset.id); return; }
+  const hd = !st.pack && tgt && tgt.closest && tgt.closest(".hd, .ol"); if (hd) { goTo(hd.dataset.id); return; }
   if (moved >= 6 || !st.pack) return;
   // a second tap close by, soon after: zoom in there (the first tap's selection stands)
   if (touch) { const now = performance.now();
@@ -755,18 +755,37 @@ function showHome() {
   const W = 1000, lo0 = -2.6, lo1 = 13.6, la0 = 43.3, la1 = 51.7, k = W / ((lo1 - lo0) * Math.cos(47 * Math.PI / 180)), H = Math.round((la1 - la0) * k);
   const xy = ([lo, la]) => [((lo - lo0) * Math.cos(47 * Math.PI / 180) * k).toFixed(1), ((la1 - la) * k).toFixed(1)];
   clearTimeout(relayT); mapview.style.transform = ""; vbC = null; // no region's gesture left over
-  svg.innerHTML = ""; svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.innerHTML = "";
+  // framed on the regions, not the whole sheet: on a phone they'd be specks. Room for the labels, which run east, and
+  // for the breadcrumb above; the land and relief go on beyond the frame where the screen is wider than it
+  // (a phone draws the labels bigger, see atlas.html, so it needs more room at the sides)
+  const phone = matchMedia("(max-width: 760px)").matches, pad = phone ? [100, 70, 175, 50] : [70, 70, 130, 50];
+  const P = allPlaces().map(r => xy([r.ll[1], r.ll[0]]).map(Number)), bx = [Math.min(...P.map(p => p[0])) - pad[0], Math.min(...P.map(p => p[1])) - pad[1]];
+  svg.setAttribute("viewBox", `${bx[0].toFixed(0)} ${bx[1].toFixed(0)} ${(Math.max(...P.map(p => p[0])) + pad[2] - bx[0]).toFixed(0)} ${(Math.max(...P.map(p => p[1])) + pad[3] - bx[1]).toFixed(0)}`);
   svg.setAttribute("role", "group"); svg.setAttribute("aria-label", t("Map of the wine regions")); // its dots are links: a group, not an image
-  const g = el("g", {}, svg);
-  for (const [n, ring] of Object.entries(window.EUROPE_LANDS || {}))
-    el("path", { class: "land" + (/^(France|Germany|Italy)/.test(n) ? " on" : ""), d: "M" + ring.map(xy).map(q => q.join(" ")).join("L") + "Z" }, g);
+  const g = el("g", {}, svg), clip = el("clipPath", { id: "landClip" }, el("defs", {}, g));
+  for (const [n, ring] of Object.entries(window.EUROPE_LANDS || {})) {
+    const d = "M" + ring.map(xy).map(q => q.join(" ")).join("L") + "Z";
+    el("path", { class: "land" + (/^(France|Germany|Italy)/.test(n) ? " on" : ""), d }, g); el("path", { d }, clip); }
+  // the lie of the land: Natural Earth's shaded relief (public domain), cut to the same frame, over the land only
+  const [rx0, ry0] = xy([-6, 53]).map(Number), [rx1, ry1] = xy([16, 41.5]).map(Number); // the image's corners
+  el("image", { href: "atlas-relief-eu.webp", x: rx0, y: ry0, width: rx1 - rx0, height: ry1 - ry0, preserveAspectRatio: "none", class: "relief", "clip-path": "url(#landClip)", "aria-hidden": "true" }, g);
+  // where each region's vineyards are (atlas-outlines.js, built from the regions' own maps), loaded with the page's first view
+  const ols = el("g", { class: "ols", "aria-hidden": "true" }, g);
+  const outline = () => { for (const r of allPlaces()) { const rings = (window.ATLAS_OUTLINES || {})[r.id]; if (!rings) continue;
+    el("path", { class: "ol" + (r.href ? " out" : ""), "data-id": r.id, "fill-rule": "evenodd", d: rings.map(q => "M" + q.map(xy).map(p => p.join(" ")).join("L") + "Z").join("") }, ols); } };
+  if (window.ATLAS_OUTLINES) outline(); else loadScript("atlas-outlines.js?v=1").then(() => { if (!st.pack && ols.isConnected) outline(); }).catch(() => {});
+  // a region's outline and its dot light up together
+  const hot = (e, on) => { const x = e.target.closest && e.target.closest("[data-id]"); if (x) svg.querySelectorAll(`[data-id="${x.dataset.id}"]`).forEach(n => n.classList.toggle("hot", on)); };
+  g.addEventListener("pointerover", e => hot(e, true)); g.addEventListener("pointerout", e => hot(e, false));
   for (const r of allPlaces()) {
     const [x, y] = xy([r.ll[1], r.ll[0]]), a = el("g", { class: "hd" + (r.href ? " out" : ""), "data-id": r.id, tabindex: 0, role: "link", "aria-label": r.name }, g);
-    el("circle", { cx: x, cy: y, r: r.id === "burgundy" ? 9 : 7 }, a);
+    el("circle", { cx: x, cy: y, r: r.id === "burgundy" ? 6.5 : 5 }, a); // small: the outline shows the region
     // labels west of the dot where the Rhine regions crowd, east elsewhere
     // (and under it for Touraine, between Anjou and the Centre-Loire)
-    const west = ["nahe", "mosel", "ahr", "maconnais", "chalonnaise", "barolo", "anjou"].includes(r.id), below = r.id === "touraine";
-    const lb = el("text", { x: below ? x : +x + (west ? -12 : 12), y: +y + (below ? 22 : 4), "text-anchor": below ? "middle" : west ? "end" : "start" }, a); lb.textContent = r.name;
+    // (on a phone's bigger labels Nahe goes under its dot, clear of the Mosel's)
+    const below = r.id === "touraine" || phone && r.id === "nahe", west = !below && ["nahe", "mosel", "ahr", "maconnais", "chalonnaise", "barolo", "anjou"].includes(r.id);
+    const lb = el("text", { x: below ? x : +x + (west ? -12 : 12), y: +y + (below ? (phone ? 30 : 22) : phone ? 7 : 4), "text-anchor": below ? "middle" : west ? "end" : "start" }, a); lb.textContent = r.name;
     a.onkeydown = e => { if (e.key === "Enter") goTo(r.id); };
   }
   renderLegend(); renderHomeSide(); document.body.classList.remove("side-open"); renderCrumb();
@@ -776,7 +795,8 @@ function renderHomeSide() {
   $("side").innerHTML = `<h2>${esc(t("Wine atlas"))}</h2>
     <p class="meta">${esc(t("Every region here is drawn from its official map: INAO's for France, the Weinbergsrolle for Germany. Pick one."))}</p>
     ${Object.entries(COUNTRY).map(([c, n]) => `<h3>${esc(t(n))}</h3><ul class="list">${by(c).map(r => `<li><button data-go="${r.id}">${esc(r.name)}${r.href ? " ↗" : ""}</button><span>${esc(t(r.kind))}</span></li>`).join("")}</ul>`).join("")}
-    ${cellarSummaryHome()}`;
+    ${cellarSummaryHome()}
+    <p class="src">${esc(t("The outlines are where each region's vineyards are, from its own map. Relief: Natural Earth (public domain)."))}</p>`;
   $("side").querySelectorAll("button[data-go]").forEach(b => b.onclick = () => goTo(b.dataset.go));
 }
 const cellarSummaryHome = () => CELLAR.loaded ? "" : `<p class="note">${esc(t(CELLAR.msg))}</p>`;
