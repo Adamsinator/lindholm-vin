@@ -1,6 +1,7 @@
 // Danish for allwine.dk: i18n.js loads the one dictionary the page's language needs (English is the source text).
 window.I18N_DICT = window.I18N_DICT || {};
 window.I18N_DICT.da = {
+  "of {0} bottles, as filtered": "af {0} flasker, efter filtret",
   "Scored {0}/10": "Karakter {0}/10",
   "Bottle back in the cellar": "Flasken er tilbage i kælderen",
   "That was your last {0}": "Det var din sidste {0}",

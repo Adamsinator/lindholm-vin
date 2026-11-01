@@ -47,7 +47,11 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   check("the regions as shelves, biggest first", sh.length >= 5 && /^Bordeaux:400/.test(sh[0]) && /^Bourgogne:300/.test(sh[1]), sh.join());
   await p.click('#rackShelves button[data-region="Mosel"]'); await p.waitForTimeout(400);
   check("…a shelf filters the list to that region", (await p.inputValue("#fRegion")) === "Mosel" && await p.evaluate(() => SHOWN.length === 25 && SHOWN.every(w => w.region === "Mosel")));
-  await p.click("#clear");
+  const fr = await p.evaluate(() => ({ n: document.getElementById("wallN").textContent, sub: document.getElementById("wallSub").textContent, drawn: document.querySelectorAll("#rack button.btl").length,
+    all: [...document.querySelectorAll("#rack button.btl")].every(b => /Weingut/.test(b.title)) }));
+  check("…and the rack follows the filter: only the Mosel's 150 bottles, said to be out of 1,206", fr.n === "150" && /of 1.206 bottles, as filtered/.test(fr.sub) && fr.drawn > 0 && fr.all, JSON.stringify(fr));
+  await p.click("#clear"); await p.waitForTimeout(300);
+  check("…cleared: the whole cellar again", (await p.textContent("#wallN")) === "1.206" && !/as filtered/.test(await p.textContent("#wallSub")));
   check("nothing wider than the screen, no errors", await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth) && !errs.length, errs.join(" | "));
   await b.close();
   const n = results.filter(Boolean).length; console.log(`\n${n}/${results.length} passed`); process.exit(n === results.length ? 0 : 1);

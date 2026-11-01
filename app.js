@@ -688,10 +688,15 @@ function placeWall(){
   else if(wall.nextElementSibling !== $("kpis")) $("kpis").parentNode.insertBefore(wall, $("kpis"));
 }
 matchMedia("(min-width:1181px)").addEventListener("change", ()=>{ placeWall(); renderRack(WINES.filter(w=>w.left>0)); });
+// the rack shows what the list shows: with a filter on (a region, a style, a search…) only those bottles, and it says so
+let RACK_SRC = null;
 function renderRack(cellar){
   const wall = $("wall"); if(!wall) return; placeWall(); closeRackCard();
+  const total = cellar.reduce((n,w)=>n+w.left,0);
+  if(RACK_SRC) cellar = RACK_SRC;
   const bottles = cellar.reduce((n,w)=>n+w.left,0);
-  wall.hidden = !bottles; if(!bottles) return;
+  wall.hidden = !total; if(!total) return;
+  wall.classList.toggle("filtered", !!RACK_SRC);
   const order = {past:0, soon:1, now:2, none:3, young:4};
   const flat = cellar.slice().sort((a,b)=>order[rackKey(a)]-order[rackKey(b)] || (a.drinkTo??drinkWindow(a)?.to??9999)-(b.drinkTo??drinkWindow(b)?.to??9999))
     .flatMap(w=>Array.from({length:w.left}, ()=>w));
@@ -723,7 +728,7 @@ function renderRack(cellar){
   $("rackShelves").innerHTML = top.map(([k,n])=>`<button type="button" data-region="${esc(k)}"><span class="sh-l">${esc(k)}</span><span class="sh-t"><i style="width:${Math.max(2, n/top[0][1]*100).toFixed(1)}%"></i></span><b>${fmt(n)}</b></button>`).join("");
   const val = cellar.reduce((n,w)=>n+(w.price||0)*w.left,0);
   $("wallN").textContent = fmt(bottles);
-  $("wallSub").textContent = (bottles===1 ? tr("bottle") : tr("bottles")) + (SHOW_PRICES && val ? " · " + kr(val) : "");
+  $("wallSub").textContent = (RACK_SRC ? tr("of {0} bottles, as filtered", fmt(total)) : (bottles===1 ? tr("bottle") : tr("bottles"))) + (SHOW_PRICES && val ? " · " + kr(val) : "");
   // each figure counts exactly what its filter in the list shows
   const n = f => cellar.filter(w=>{ const r = readiness(w); return r && f(r); }).reduce((t,w)=>t+w.left,0);
   const past = n(r=>r.k==="past");
@@ -1262,6 +1267,10 @@ function renderTable(){
     return true;
   });
   SHOWN = list;
+  // the rack follows the filter (not the In cellar / Enjoyed choice, which is what the rack is about anyway)
+  const filtering = !!(state.q.trim() || state.country || state.region || state.style || state.ready || state.loc || state.closes);
+  const was = RACK_SRC; RACK_SRC = filtering ? list.filter(w=>w.left>0) : null;
+  if(was || RACK_SRC) renderRack(WINES.filter(w=>w.left>0));
   const k=state.sortK, dir=state.sortDir;
   list.sort((a,b)=>{
     let va=a[k], vb=b[k];
