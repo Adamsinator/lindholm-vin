@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 160"><title>A vineyard slope</title>
+<!-- the atlas's subject: a slope of vines, a village below, the sun over the hill -->
+<circle cx="250" cy="38" r="16" fill="#E2C38A"/>
+<path d="M0 118C60 70 120 46 200 58s90 34 120 50v52H0z" fill="#F3E7E3"/>
+<g fill="none" stroke="#7C2D3E" stroke-width="2" stroke-linecap="round">
+<path d="M0 118C60 70 120 46 200 58s90 34 120 50"/>
+<path d="M30 112c14-12 30-22 48-30M52 118c14-13 30-24 48-32M74 124c14-13 32-24 50-32M98 128c15-13 32-24 52-32M122 132c15-12 34-22 54-30M148 134c16-11 36-19 56-25M176 136c16-9 36-15 56-19" stroke-dasharray="1 6" stroke-width="3.2"/></g>
+<g fill="#7C2D3E"><path d="M226 128h20v14h-20z"/><path d="M223 129l13-10 13 10z"/><path d="M252 132h14v10h-14z"/><path d="M250 133l9-7 9 7z"/><path d="M270 124h5v-12l3-4 3 4v12h5v18h-16z"/></g>
+<path d="M0 142h320" stroke="#C99B47" stroke-width="2.4" stroke-linecap="round"/></svg>

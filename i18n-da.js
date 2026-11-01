@@ -1,6 +1,33 @@
 // Danish for allwine.dk: i18n.js loads the one dictionary the page's language needs (English is the source text).
 window.I18N_DICT = window.I18N_DICT || {};
 window.I18N_DICT.da = {
+  "Scored {0}/10": "Karakter {0}/10",
+  "Bottle back in the cellar": "Flasken er tilbage i kælderen",
+  "That was your last {0}": "Det var din sidste {0}",
+  "Skål! Bottle marked as drunk": "Skål! Flasken er markeret som drukket",
+  "The file is read in this browser and never uploaded. The wines are encrypted here before they're saved, like the rest of your cellar.": "Filen læses i denne browser og uploades aldrig. Vinene krypteres her, før de gemmes, ligesom resten af din kælder.",
+  "1 wine imported": "1 vin importeret",
+  "{0} wines imported": "{0} vine importeret",
+  "Cellar tidied": "Kælderen er ryddet op",
+  "The file is made in this browser from your decrypted cellar. Keep it somewhere safe: it isn't encrypted.": "Filen laves i denne browser ud fra din dekrypterede kælder. Opbevar den et sikkert sted: den er ikke krypteret.",
+  "Tonight's bottle": "Aftenens flaske",
+  "Enjoyed updated too": "Nydt er også opdateret",
+  "bottle marked drunk": "flasken er markeret som drukket",
+  "added to Enjoyed": "lagt i Nydt",
+  "price saved to Enjoyed": "prisen er gemt i Nydt",
+  "Added to Enjoyed": "Lagt i Nydt",
+  "Renamed": "Omdøbt",
+  "Details saved": "Oplysninger gemt",
+  "1 classification filled in": "1 klassifikation udfyldt",
+  "{0} classifications filled in": "{0} klassifikationer udfyldt",
+  "Added to the cellar": "Lagt i kælderen",
+  "Sent to {0}": "Sendt til {0}",
+  "Shared to the feed": "Delt i feedet",
+  "Import": "Importér",
+  "Share list": "Del liste",
+  "Tonight": "I aften",
+  "＋ Add wine for a few, Import for a list from a spreadsheet.": "＋ Tilføj vin til nogle få, Importér til en liste fra et regneark.",
+  "Your cellar is encrypted on this device before it's saved; the server only ever holds the locked copy.": "Din kælder krypteres på denne enhed, før den gemmes; serveren har kun den låste kopi.",
   "About & terms": "Om og vilkår",
   "Privacy & cookies": "Privatliv og cookies",
   "Data & licences": "Data og licenser",
@@ -100,12 +127,12 @@ window.I18N_DICT.da = {
   "Drink a bottle": "Drik en flaske", "Show in the list": "Vis i listen", "The wine": "Vinen",
   "{0} regions": "{0} områder", "{0} vineyards": "{0} marker", "Automatic": "Automatisk", "Light": "Lys", "Dark": "Mørk", "Aerial photo": "Luftfoto", "Aerial photos: IGN, France only.": "Luftfotos: IGN, kun Frankrig.", "Map style and layers": "Kortets udseende og lag", "Map style": "Kortets udseende", "Where you are": "Hvor du er", "Menu": "Menu", "Aerial photos: IGN (Géoplateforme, Licence Ouverte).": "Luftfotos: IGN (Géoplateforme, Licence Ouverte).",
   "Every bottle in the cellar": "Hver flaske i kælderen", "Amber cap: drink soon": "Ravgul kapsel: drik snart", "Dim: too young": "Mat: for ung", "Show fewer": "Vis færre", "+ {0} more bottles": "+ {0} flasker mere", "bottle": "flaske", "ready now": "klar nu", "closing soon": "lukker snart", "past their best": "over toppen", "still too young": "stadig for unge", "More: import, export, share, tidy up…": "Mere: importér, eksportér, del, ryd op…", "Account, language and help": "Konto, sprog og hjælp", "Add": "Tilføj", "Import a list": "Importér en liste", "Export": "Eksportér", "Share a list": "Del en liste", "Tidy up": "Ryd op", "Pick tonight's bottle": "Vælg aftenens flaske", "password, recovery code": "adgangskode, gendannelseskode", "members, invites": "medlemmer, invitationer",
-  "1 different wine": "1 forskellig vin", "1 wine imported 🍷": "1 vin importeret 🍷", "OK": "OK", "Delete my account": "Slet min konto", "Yes": "Ja", "No": "Nej", "Move to cellar": "Flyt til kælderen", "Make a new code": "Lav en ny kode", "{0} of 10": "{0} ud af 10", "Rated {0} of 10": "Givet {0} ud af 10", "Could not save rating: {0}": "Kunne ikke gemme karakteren: {0}", "Undo": "Fortryd", "Write a tasting note": "Skriv en smagsnote", "That was your last {0} 🍷": "Det var din sidste {0} 🍷", "Removed {0} from Enjoyed": "Fjernede {0} fra Nydt", "Deleted {0}": "Slettede {0}", "Put back": "Sat tilbage", "Could not put it back: {0}": "Kunne ikke sætte den tilbage: {0}", "Use {0}–{1}": "Brug {0}–{1}", "the atlas ({0})": "atlasset ({0})", "the atlas": "atlasset",
-  "Help": "Hjælp", "Help and tips": "Hjælp og tips", "How this works": "Sådan virker det", "Welcome to your cellar": "Velkommen til din kælder", "Hide these tips": "Skjul disse tips", "Add your wines": "Tilføj dine vine", "＋ Add wine for a few, ⬆ Import for a list from a spreadsheet.": "＋ Tilføj vin til nogle få, ⬆ Importér til en liste fra et regneark.", "Set drink windows": "Sæt drikkevinduer", "Tap a wine and fill in from and to, so the cellar can tell you what to open and when.": "Tryk på en vin, og udfyld fra og til, så kælderen kan fortælle dig, hvad du skal åbne og hvornår.", "Keep your recovery code safe": "Pas godt på din gendannelseskode", "With your password it's the only way into your encrypted cellar. Lost it? Account makes a new one.": "Sammen med din adgangskode er den den eneste vej ind i din krypterede kælder. Mistet den? Konto laver en ny.", "All help and tips →": "Al hjælp og alle tips →",
+  "1 different wine": "1 forskellig vin", "OK": "OK", "Delete my account": "Slet min konto", "Yes": "Ja", "No": "Nej", "Move to cellar": "Flyt til kælderen", "Make a new code": "Lav en ny kode", "{0} of 10": "{0} ud af 10", "Rated {0} of 10": "Givet {0} ud af 10", "Could not save rating: {0}": "Kunne ikke gemme karakteren: {0}", "Undo": "Fortryd", "Write a tasting note": "Skriv en smagsnote", "Removed {0} from Enjoyed": "Fjernede {0} fra Nydt", "Deleted {0}": "Slettede {0}", "Put back": "Sat tilbage", "Could not put it back: {0}": "Kunne ikke sætte den tilbage: {0}", "Use {0}–{1}": "Brug {0}–{1}", "the atlas ({0})": "atlasset ({0})", "the atlas": "atlasset",
+  "Help": "Hjælp", "Help and tips": "Hjælp og tips", "How this works": "Sådan virker det", "Welcome to your cellar": "Velkommen til din kælder", "Hide these tips": "Skjul disse tips", "Add your wines": "Tilføj dine vine", "Set drink windows": "Sæt drikkevinduer", "Tap a wine and fill in from and to, so the cellar can tell you what to open and when.": "Tryk på en vin, og udfyld fra og til, så kælderen kan fortælle dig, hvad du skal åbne og hvornår.", "Keep your recovery code safe": "Pas godt på din gendannelseskode", "With your password it's the only way into your encrypted cellar. Lost it? Account makes a new one.": "Sammen med din adgangskode er den den eneste vej ind i din krypterede kælder. Mistet den? Konto laver en ny.", "All help and tips →": "Al hjælp og alle tips →",
   "A list shared from another device": "En liste delt fra en anden enhed",
   "Sharing needs the updated Apps Script (version 44) — redeploy Code.gs.": "Deling kræver det opdaterede Apps Script (version 44) — udgiv Code.gs igen.",
   
-  "Opening the list…": "Åbner listen…", "Shared read-only from a private AllWine cellar. The list is encrypted, and only a link like this one opens it: AllWine itself can't read it.": "Delt til læsning fra en privat AllWine-kælder. Listen er krypteret, og kun et link som dette åbner den: AllWine kan ikke selv læse den.", "A shared wine list": "En delt vinliste", "Shared by {0}": "Delt af {0}", "{0} wines, {1} bottles": "{0} vine, {1} flasker", "open until {0}": "åben til {0}", "Search the list…": "Søg i listen…", "This link isn't complete: ask for it again, and copy all of it.": "Linket er ikke helt: bed om det igen, og kopiér det hele.", "This browser can't open a shared list.": "Denne browser kan ikke åbne en delt liste.", "This list isn't shared any more: it expired, or was withdrawn.": "Listen er ikke delt længere: den er udløbet eller trukket tilbage.", "Couldn't open the list just now. Try again in a moment.": "Kunne ikke åbne listen lige nu. Prøv igen om lidt.", "This link doesn't open the list: ask for it again, and copy all of it.": "Linket åbner ikke listen: bed om det igen, og kopiér det hele.", "🔗 Share list": "🔗 Del liste", "Share a list of your wines": "Del en liste over dine vine", "Anyone with the link can see the list, read-only, until it expires or you withdraw it. It's encrypted in this browser: the key is only in the link, so AllWine can't read it.": "Alle med linket kan se listen, kun til læsning, indtil den udløber, eller du trækker den tilbage. Den krypteres i denne browser: nøglen findes kun i linket, så AllWine kan ikke læse den.", "Title": "Titel", "Which wines": "Hvilke vine", "The wines shown now": "De vine, der vises nu", "The whole cellar": "Hele kælderen", "Open for": "Åben i", "7 days": "7 dage", "30 days": "30 dage", "90 days": "90 dage", "1 year": "1 år", "Include my notes": "Medtag mine noter", "Include prices": "Medtag priser", "Link to the list": "Link til listen", "Copy link": "Kopiér link", "Send…": "Send…", "Make the link": "Lav linket", "Your shared lists": "Dine delte lister", "Select the link and copy it": "Markér linket, og kopiér det", "Wines from {0}'s cellar": "Vine fra {0}s kælder", "You have 20 shared lists open: withdraw one first.": "Du har 20 delte lister åbne: træk én tilbage først.", "The list is too big to share: share fewer wines.": "Listen er for stor til at dele: del færre vine.", "This browser can't encrypt a shared list.": "Denne browser kan ikke kryptere en delt liste.", "Withdrawn: the link no longer opens the list": "Trukket tilbage: linket åbner ikke længere listen", "Could not withdraw: {0}": "Kunne ikke trække tilbage: {0}",
+  "Opening the list…": "Åbner listen…", "Shared read-only from a private AllWine cellar. The list is encrypted, and only a link like this one opens it: AllWine itself can't read it.": "Delt til læsning fra en privat AllWine-kælder. Listen er krypteret, og kun et link som dette åbner den: AllWine kan ikke selv læse den.", "A shared wine list": "En delt vinliste", "Shared by {0}": "Delt af {0}", "{0} wines, {1} bottles": "{0} vine, {1} flasker", "open until {0}": "åben til {0}", "Search the list…": "Søg i listen…", "This link isn't complete: ask for it again, and copy all of it.": "Linket er ikke helt: bed om det igen, og kopiér det hele.", "This browser can't open a shared list.": "Denne browser kan ikke åbne en delt liste.", "This list isn't shared any more: it expired, or was withdrawn.": "Listen er ikke delt længere: den er udløbet eller trukket tilbage.", "Couldn't open the list just now. Try again in a moment.": "Kunne ikke åbne listen lige nu. Prøv igen om lidt.", "This link doesn't open the list: ask for it again, and copy all of it.": "Linket åbner ikke listen: bed om det igen, og kopiér det hele.", "Share a list of your wines": "Del en liste over dine vine", "Anyone with the link can see the list, read-only, until it expires or you withdraw it. It's encrypted in this browser: the key is only in the link, so AllWine can't read it.": "Alle med linket kan se listen, kun til læsning, indtil den udløber, eller du trækker den tilbage. Den krypteres i denne browser: nøglen findes kun i linket, så AllWine kan ikke læse den.", "Title": "Titel", "Which wines": "Hvilke vine", "The wines shown now": "De vine, der vises nu", "The whole cellar": "Hele kælderen", "Open for": "Åben i", "7 days": "7 dage", "30 days": "30 dage", "90 days": "90 dage", "1 year": "1 år", "Include my notes": "Medtag mine noter", "Include prices": "Medtag priser", "Link to the list": "Link til listen", "Copy link": "Kopiér link", "Send…": "Send…", "Make the link": "Lav linket", "Your shared lists": "Dine delte lister", "Select the link and copy it": "Markér linket, og kopiér det", "Wines from {0}'s cellar": "Vine fra {0}s kælder", "You have 20 shared lists open: withdraw one first.": "Du har 20 delte lister åbne: træk én tilbage først.", "The list is too big to share: share fewer wines.": "Listen er for stor til at dele: del færre vine.", "This browser can't encrypt a shared list.": "Denne browser kan ikke kryptere en delt liste.", "Withdrawn: the link no longer opens the list": "Trukket tilbage: linket åbner ikke længere listen", "Could not withdraw: {0}": "Kunne ikke trække tilbage: {0}",
   "Open next": "Åbn først",
   "No vineyard by that name.": "Ingen mark med det navn.", "Searching…": "Søger…", "Vineyards found": "Fundne marker", "Where am I?": "Hvor er jeg?",
   "Your cellar, journal, wishlist and journal photos are encrypted in this browser before they're saved.": "Din kælder, journal, ønskeliste og journalfotos krypteres i denne browser, før de gemmes.", "Do you still have your recovery code? If you forget your password, it's how you get back into your encrypted cellar.": "Har du stadig din gendannelseskode? Glemmer du din adgangskode, er det den, der får dig ind i din krypterede kælder igen.", "I have it": "Jeg har den", "Make a new one": "Lav en ny", "Enter your password, then choose New recovery code.": "Skriv din adgangskode, og vælg så Ny gendannelseskode.",
@@ -217,7 +244,7 @@ window.I18N_DICT.da = {
   "Show prices": "Vis priser",
   "Could not reach the cellar API ({0}). Check your connection and refresh.": "Kunne ikke nå kælderens API ({0}). Tjek forbindelsen og opdatér.",
   "Score cleared": "Karakter fjernet",
-  "Scored {0}/10 🍷": "Karakter {0}/10 🍷",
+  
   "Could not save score: {0}": "Kunne ikke gemme karakteren: {0}",
   "Value cleared": "Værdi fjernet",
   "Value set to {0}": "Værdi sat til {0}",
@@ -237,8 +264,8 @@ window.I18N_DICT.da = {
   "Remove {0} from Enjoyed?\nYour journal entries for it stay.": "Fjern {0} fra Nydt?\nDine journalnoter om den bliver.",
   "Delete {0} from the cellar?\nThis removes the whole row from the sheet.": "Slet {0} fra kælderen?\nHele rækken fjernes fra arket.",
   "Updating…": "Opdaterer…",
-  "Skål! Bottle marked as drunk 🍷": "Skål! Flasken er markeret som drukket 🍷",
-  "Bottle back in the cellar 🍾": "Flasken er tilbage i kælderen 🍾",
+  
+  
   "Wine deleted from the sheet": "Vinen er slettet fra arket",
   "That was your last {0} 🍷\nLog a tasting note in the journal?": "Det var din sidste {0} 🍷\nSkriv en smagsnote i journalen?",
   "Could not update: {0}": "Kunne ikke opdatere: {0}",
@@ -289,7 +316,7 @@ window.I18N_DICT.da = {
   "Journal": "Journal",
   "classification": "klassifikation",
   "The cellar is empty…": "Kælderen er tom…",
-  "Tonight's bottle 🍷": "Aftenens flaske 🍷",
+  
   "Pick another": "Vælg en anden",
   "1 entry": "1 note",
   "{0} entries": "{0} noter",
@@ -327,10 +354,10 @@ window.I18N_DICT.da = {
   "Marking drunk…": "Markerer som drukket…",
   "Journal entry updated": "Journalnoten er opdateret",
   "Journal entry saved": "Journalnoten er gemt",
-  "Enjoyed updated too 🍷": "Nydt er også opdateret 🍷",
-  "bottle marked drunk 🍷": "flasken er markeret som drukket 🍷",
-  "added to Enjoyed 🍷": "lagt i Nydt 🍷",
-  "price saved to Enjoyed 🍷": "prisen er gemt i Nydt 🍷",
+  
+  
+  
+  
   "the API needs Drive access. In Apps Script, run the “authorize” function once and approve, then try again.": "API'et skal have adgang til Drive. Kør funktionen “authorize” én gang i Apps Script og godkend, og prøv så igen.",
   "Could not save: {0}": "Kunne ikke gemme: {0}",
   "Could not save — see the message in the form": "Kunne ikke gemme — se beskeden i formularen",
@@ -354,14 +381,14 @@ window.I18N_DICT.da = {
   "enjoyed": "nydt",
   "{0} enjoyed without a date — mark drinks in the app so they’re dated.": "{0} nydt uden dato — markér flasker som drukket i appen, så de får en dato.",
   "{0} more enjoyed without a date (not shown)": "{0} mere nydt uden dato (vises ikke)",
-  "Added to Enjoyed 🍷": "Lagt i Nydt 🍷",
+  
   "Add to Enjoyed": "Læg i Nydt",
   "Edit this Enjoyed wine": "Ret denne nydte vin",
   "Edit wine details": "Ret vinens oplysninger",
   "Also rename its journal entry if the name changes": "Omdøb også dens journalnote, hvis navnet ændres",
   "Also rename its {0} journal entries if the name changes": "Omdøb også dens {0} journalnoter, hvis navnet ændres",
-  "Renamed ✏️": "Omdøbt ✏️",
-  "Details saved ✏️": "Oplysninger gemt ✏️",
+  
+  
   "The Apps Script needs the latest version (26) for this — paste apps-script/Code.gs into it and redeploy.": "Apps Script skal have den nyeste version (26) til dette — indsæt apps-script/Code.gs og udgiv igen.",
   "Save details": "Gem oplysninger",
   "1 wine has no classification yet — the app can tell from the name": "1 vin har ingen klassifikation endnu — appen kan se den ud fra navnet",
@@ -372,8 +399,8 @@ window.I18N_DICT.da = {
   "See the suggestions": "Se forslagene",
   "on the label": "på etiketten",
   "…and {0} more": "…og {0} mere",
-  "1 classification filled in ✓": "1 klassifikation udfyldt ✓",
-  "{0} classifications filled in ✓": "{0} klassifikationer udfyldt ✓",
+  
+  
   "Update the Apps Script (version 26) to save these": "Opdatér Apps Script (version 26) for at gemme dem",
   "Could not load the wishlist ({0}). The Apps Script may need the latest redeploy.": "Kunne ikke hente ønskelisten ({0}). Apps Script skal måske udgives igen.",
   "1 wish": "1 ønske",
@@ -386,7 +413,7 @@ window.I18N_DICT.da = {
   "Wish removed": "Ønske fjernet",
   "Could not remove: {0}": "Kunne ikke fjerne: {0}",
   "Move {0} into the cellar (1 bottle)?": "Flyt {0} ind i kælderen (1 flaske)?",
-  "Added to the cellar 🍷": "Lagt i kælderen 🍷",
+  
   "Could not move: {0}": "Kunne ikke flytte: {0}",
   "Add to wishlist": "Tilføj til ønskelisten",
   "Edit wish": "Ret ønske",
@@ -418,8 +445,8 @@ window.I18N_DICT.da = {
   "Could not comment: {0}": "Kunne ikke kommentere: {0}",
   "Shared photo": "Delt foto",
   "Add a wine, a note or a photo.": "Tilføj en vin, en note eller et foto.",
-  "Sent to {0} 🍷": "Sendt til {0} 🍷",
-  "Shared to the feed 🍷": "Delt i feedet 🍷",
+  
+  
   "Could not share: {0}": "Kunne ikke dele: {0}",
   "Could not update follow: {0}": "Kunne ikke opdatere følg: {0}",
   "Your session expired after inactivity — log in again.": "Din session udløb efter inaktivitet — log ind igen.",
@@ -430,7 +457,7 @@ window.I18N_DICT.da = {
   "Feed": "Feed",
   "Burgundy atlas ↗": "Bourgogne-atlas ↗",
   "＋ Add wine": "＋ Tilføj vin",
-  "🎲 Tonight": "🎲 I aften",
+  
   "Fetching the cellar…": "Henter kælderen…",
   "Drinking priorities": "Hvad skal drikkes",
   "What to open, by drink window · click to filter the list below": "Hvad der skal åbnes, efter drikkevindue · klik for at filtrere listen nedenfor",
@@ -561,10 +588,10 @@ window.I18N_DICT.da = {
   "Here's what can be tidied. Untick anything you want left as it is.": "Her er det, der kan ryddes op. Fjern fluebenet ved det, der skal blive som det er.",
   "Nothing to tidy: every spelling is consistent and no wine is in two rows.": "Intet at rydde op: alle stavemåder er ens, og ingen vin står i to rækker.",
   "Tidy {0} wines and join {1} groups": "Ryd op i {0} vine og slå {1} grupper sammen",
-  "Cellar tidied 🧹": "Kælderen er ryddet op 🧹",
+  
   "Tidying needs the updated Apps Script (version 32) — redeploy Code.gs.": "Oprydning kræver det opdaterede Apps Script (version 32) — udgiv Code.gs igen.",
   "Could not tidy: {0}": "Kunne ikke rydde op: {0}",
-  "🧹 Tidy up": "🧹 Ryd op",
+  
   "Tidy up your cellar": "Ryd op i din kælder",
   "Spellings and capitals": "Stavning og store bogstaver",
   "The same wine in several rows": "Samme vin i flere rækker",
@@ -585,19 +612,19 @@ window.I18N_DICT.da = {
   "Location (cellar, shelf…)": "Placering (kælder, hylde …)",
   // export
   "Drunk elsewhere (not from the cellar)": "Drukket ude (ikke fra kælderen)",
-  "⬇ Export": "⬇ Eksportér",
+  
   "Export your cellar": "Eksportér din kælder",
   "Download a copy of your cellar to keep or to work on in Excel, Numbers or Google Sheets. It uses the same columns as the import, so the file imports straight back.": "Hent en kopi af din kælder til at gemme eller arbejde videre med i Excel, Numbers eller Google Sheets. Den har de samme kolonner som importen, så filen kan importeres direkte igen.",
   "Excel workbook (.xlsx)": "Excel-projektmappe (.xlsx)",
   "Cellar, journal and wishlist, one sheet each": "Kælder, journal og ønskeliste, ét ark hver",
   "CSV file (.csv)": "CSV-fil (.csv)",
   "The cellar only": "Kun kælderen",
-  "🔒 The file is made in this browser from your decrypted cellar. Keep it somewhere safe: it isn't encrypted.": "🔒 Filen laves i denne browser ud fra din dekrypterede kælder. Opbevar den et sikkert sted: den er ikke krypteret.",
+  
   "The file is made in this browser from your cellar.": "Filen laves i denne browser ud fra din kælder.",
   "Saved {0}": "Gemt: {0}",
   "Could not export: {0}": "Kunne ikke eksportere: {0}",
   // import
-  "⬆ Import": "⬆ Importér",
+  
   "Import wines": "Importér vine",
   "Add many wines at once from an Excel workbook (.xlsx), a CSV file or a text file — one wine per row. Column headings in Danish, English, French or German are recognised, and you can correct the matching before anything is saved.": "Tilføj mange vine på én gang fra et Excel-ark (.xlsx), en CSV-fil eller en tekstfil — én vin pr. række. Kolonneoverskrifter på dansk, engelsk, fransk og tysk genkendes, og du kan rette tilknytningen, før noget gemmes.",
   "Choose a file or drop it here": "Vælg en fil eller slip den her",
@@ -606,7 +633,7 @@ window.I18N_DICT.da = {
   "Skip them": "Spring dem over",
   "Cancel": "Annullér",
   "Choose another file": "Vælg en anden fil",
-  "🔒 The file is read in this browser and never uploaded. The wines are encrypted here before they're saved, like the rest of your cellar.": "🔒 Filen læses i denne browser og uploades aldrig. Vinene krypteres her, før de gemmes, ligesom resten af din kælder.",
+  
   "The file is read in this browser and never uploaded; only the wines are saved to your cellar.": "Filen læses i denne browser og uploades aldrig; kun vinene gemmes i din kælder.",
   "— not imported —": "— importeres ikke —",
   "Vineyard / cuvée": "Mark / cuvée",
@@ -657,7 +684,7 @@ window.I18N_DICT.da = {
   "{0} of these are already in your cellar (same producer, wine, vintage and format):": "{0} af dem er allerede i din kælder (samme producent, vin, årgang og format):",
   "Import {0} wines": "Importér {0} vine",
   "Importing… {0} of {1}": "Importerer… {0} af {1}",
-  "{0} wines imported 🍷": "{0} vine importeret 🍷",
+  
   "Importing needs the updated Apps Script (version 29) — redeploy Code.gs.": "Import kræver det opdaterede Apps Script (version 29) — udgiv Code.gs igen.",
   "{0} of {1} wines were imported before an error: {2}": "{0} af {1} vine blev importeret før en fejl: {2}",
   "Could not import: {0}": "Kunne ikke importere: {0}",
@@ -667,7 +694,7 @@ window.I18N_DICT.da = {
   "New password": "Ny adgangskode",
   "Forgot password?": "Glemt adgangskode?",
   "Recovery code": "Gendannelseskode",
-  "🔒 Your cellar is encrypted on this device before it's saved; the server only ever holds the locked copy.": "🔒 Din kælder krypteres på denne enhed, før den gemmes; serveren har kun den låste kopi.",
+  
   "Vineyard atlas: every grand cru and premier cru": "Vinmarksatlas: alle grands crus og premiers crus",
   "That recovery code doesn't match this account.": "Gendannelseskoden passer ikke til denne konto.",
   "Reload the page — the site has been updated.": "Genindlæs siden — siden er blevet opdateret.",

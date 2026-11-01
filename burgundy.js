@@ -915,7 +915,7 @@ function tipHtml(c){
   const own = c.mono ? t("Monopole · {0}", esc(P[c.mono])) : ((c.p||[]).length ? `${t("Owners")}: ${c.p.length}` : "");
   let extra = "";
   if(st.prod){ const hr = hrec(c, st.prod); if(hr) extra = `<br>${esc(P[st.prod])}: ${hr[2]==="s" ? t("buys grapes here") : hr[1]==null ? t("holder") : fmtHa(hr[1])+" ha · "+Math.round(100*hr[1]/c.ha)+"%"}${hr[2]==="f"?` (${t("leased")})`:""}${hr[3]?" · "+t("since {0}", hr[3]):""}`; }
-  const cb = CELLAR.by[c.id]; if(cb) extra += `<br>🍷 ${cb.left} · ${t("in your cellar")}`;
+  const cb = CELLAR.by[c.id]; if(cb) extra += `<br><svg class="svgi" aria-hidden="true" focusable="false"><use href="icons.svg#bottle"/></svg> ${cb.left} · ${t("in your cellar")}`;
   return `<b>${esc(c.n)}</b><br>${CLASS_NAME[c.c]} · ${esc(c.vil.n)} · ${fmtHa(c.ha)} ha${own?"<br>"+own:""}${extra}`;
 }
 

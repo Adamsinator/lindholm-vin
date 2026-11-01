@@ -1,6 +1,33 @@
 // French for allwine.dk: i18n.js loads the one dictionary the page's language needs (English is the source text).
 window.I18N_DICT = window.I18N_DICT || {};
 window.I18N_DICT.fr = {
+  "Scored {0}/10": "Noté {0}/10",
+  "Bottle back in the cellar": "Bouteille remise en cave",
+  "That was your last {0}": "C'était votre dernière bouteille de {0}",
+  "Skål! Bottle marked as drunk": "Santé ! Bouteille marquée comme bue",
+  "The file is read in this browser and never uploaded. The wines are encrypted here before they're saved, like the rest of your cellar.": "Le fichier est lu dans ce navigateur et n'est jamais envoyé. Les vins sont chiffrés ici avant d'être enregistrés, comme le reste de votre cave.",
+  "1 wine imported": "1 vin importé",
+  "{0} wines imported": "{0} vins importés",
+  "Cellar tidied": "Cave rangée",
+  "The file is made in this browser from your decrypted cellar. Keep it somewhere safe: it isn't encrypted.": "Le fichier est créé dans ce navigateur à partir de votre cave déchiffrée. Gardez-le en lieu sûr: il n'est pas chiffré.",
+  "Tonight's bottle": "La bouteille de ce soir",
+  "Enjoyed updated too": "Dégustés mis à jour aussi",
+  "bottle marked drunk": "bouteille marquée comme bue",
+  "added to Enjoyed": "ajouté aux Dégustés",
+  "price saved to Enjoyed": "prix enregistré dans les Dégustés",
+  "Added to Enjoyed": "Ajouté aux Dégustés",
+  "Renamed": "Renommé",
+  "Details saved": "Détails enregistrés",
+  "1 classification filled in": "1 classement complété",
+  "{0} classifications filled in": "{0} classements complétés",
+  "Added to the cellar": "Ajouté à la cave",
+  "Sent to {0}": "Envoyé à {0}",
+  "Shared to the feed": "Partagé dans le fil",
+  "Import": "Importer",
+  "Share list": "Partager une liste",
+  "Tonight": "Ce soir",
+  "＋ Add wine for a few, Import for a list from a spreadsheet.": "＋ Ajouter un vin pour quelques-uns, Importer pour une liste depuis un tableur.",
+  "Your cellar is encrypted on this device before it's saved; the server only ever holds the locked copy.": "Votre cave est chiffrée sur cet appareil avant d'être enregistrée; le serveur n'en garde que la copie verrouillée.",
   "About & terms": "À propos et conditions",
   "Privacy & cookies": "Confidentialité et cookies",
   "Data & licences": "Données et licences",
@@ -100,12 +127,12 @@ window.I18N_DICT.fr = {
   "Drink a bottle": "Boire une bouteille", "Show in the list": "Voir dans la liste", "The wine": "Le vin",
   "{0} regions": "{0} régions", "{0} vineyards": "{0} vignobles", "Automatic": "Automatique", "Light": "Clair", "Dark": "Sombre", "Aerial photo": "Photo aérienne", "Aerial photos: IGN, France only.": "Photos aériennes : IGN, France uniquement.", "Map style and layers": "Style de la carte et calques", "Map style": "Style de la carte", "Where you are": "Où vous êtes", "Menu": "Menu", "Aerial photos: IGN (Géoplateforme, Licence Ouverte).": "Photos aériennes : IGN (Géoplateforme, Licence Ouverte).",
   "Every bottle in the cellar": "Chaque bouteille de la cave", "Amber cap: drink soon": "Capsule ambrée : à boire bientôt", "Dim: too young": "Pâle : trop jeune", "Show fewer": "Afficher moins", "+ {0} more bottles": "+ {0} bouteilles de plus", "bottle": "bouteille", "ready now": "prêtes", "closing soon": "bientôt fermées", "past their best": "passées", "still too young": "encore trop jeunes", "More: import, export, share, tidy up…": "Plus : importer, exporter, partager, ranger…", "Account, language and help": "Compte, langue et aide", "Add": "Ajouter", "Import a list": "Importer une liste", "Export": "Exporter", "Share a list": "Partager une liste", "Tidy up": "Ranger", "Pick tonight's bottle": "Choisir la bouteille du soir", "password, recovery code": "mot de passe, code de récupération", "members, invites": "membres, invitations",
-  "1 different wine": "1 vin différent", "1 wine imported 🍷": "1 vin importé 🍷", "OK": "OK", "Delete my account": "Supprimer mon compte", "Yes": "Oui", "No": "Non", "Move to cellar": "Passer à la cave", "Make a new code": "Créer un nouveau code", "{0} of 10": "{0} sur 10", "Rated {0} of 10": "Noté {0} sur 10", "Could not save rating: {0}": "Impossible d'enregistrer la note : {0}", "Undo": "Annuler", "Write a tasting note": "Écrire une note de dégustation", "That was your last {0} 🍷": "C'était votre dernière bouteille de {0} 🍷", "Removed {0} from Enjoyed": "{0} retiré des Dégustés", "Deleted {0}": "{0} supprimé", "Put back": "Rétabli", "Could not put it back: {0}": "Impossible de le rétablir : {0}", "Use {0}–{1}": "Prendre {0}–{1}", "the atlas ({0})": "l'atlas ({0})", "the atlas": "l'atlas",
-  "Help": "Aide", "Help and tips": "Aide et astuces", "How this works": "Comment ça marche", "Welcome to your cellar": "Bienvenue dans votre cave", "Hide these tips": "Masquer ces astuces", "Add your wines": "Ajoutez vos vins", "＋ Add wine for a few, ⬆ Import for a list from a spreadsheet.": "＋ Ajouter un vin pour quelques-uns, ⬆ Importer pour une liste depuis un tableur.", "Set drink windows": "Fixez des fenêtres de dégustation", "Tap a wine and fill in from and to, so the cellar can tell you what to open and when.": "Touchez un vin et remplissez de et à, pour que la cave vous dise quoi ouvrir et quand.", "Keep your recovery code safe": "Gardez votre code de récupération en lieu sûr", "With your password it's the only way into your encrypted cellar. Lost it? Account makes a new one.": "Avec votre mot de passe, c'est le seul moyen d'entrer dans votre cave chiffrée. Perdu ? Compte en crée un nouveau.", "All help and tips →": "Toute l'aide et les astuces →",
+  "1 different wine": "1 vin différent", "OK": "OK", "Delete my account": "Supprimer mon compte", "Yes": "Oui", "No": "Non", "Move to cellar": "Passer à la cave", "Make a new code": "Créer un nouveau code", "{0} of 10": "{0} sur 10", "Rated {0} of 10": "Noté {0} sur 10", "Could not save rating: {0}": "Impossible d'enregistrer la note : {0}", "Undo": "Annuler", "Write a tasting note": "Écrire une note de dégustation", "Removed {0} from Enjoyed": "{0} retiré des Dégustés", "Deleted {0}": "{0} supprimé", "Put back": "Rétabli", "Could not put it back: {0}": "Impossible de le rétablir : {0}", "Use {0}–{1}": "Prendre {0}–{1}", "the atlas ({0})": "l'atlas ({0})", "the atlas": "l'atlas",
+  "Help": "Aide", "Help and tips": "Aide et astuces", "How this works": "Comment ça marche", "Welcome to your cellar": "Bienvenue dans votre cave", "Hide these tips": "Masquer ces astuces", "Add your wines": "Ajoutez vos vins", "Set drink windows": "Fixez des fenêtres de dégustation", "Tap a wine and fill in from and to, so the cellar can tell you what to open and when.": "Touchez un vin et remplissez de et à, pour que la cave vous dise quoi ouvrir et quand.", "Keep your recovery code safe": "Gardez votre code de récupération en lieu sûr", "With your password it's the only way into your encrypted cellar. Lost it? Account makes a new one.": "Avec votre mot de passe, c'est le seul moyen d'entrer dans votre cave chiffrée. Perdu ? Compte en crée un nouveau.", "All help and tips →": "Toute l'aide et les astuces →",
   "A list shared from another device": "Une liste partagée depuis un autre appareil",
   "Sharing needs the updated Apps Script (version 44) — redeploy Code.gs.": "Le partage nécessite l'Apps Script à jour (version 44) — redéployez Code.gs.",
   
-  "Opening the list…": "Ouverture de la liste…", "Shared read-only from a private AllWine cellar. The list is encrypted, and only a link like this one opens it: AllWine itself can't read it.": "Partagée en lecture seule depuis une cave AllWine privée. La liste est chiffrée, et seul un lien comme celui-ci l'ouvre : AllWine lui-même ne peut pas la lire.", "A shared wine list": "Une liste de vins partagée", "Shared by {0}": "Partagée par {0}", "{0} wines, {1} bottles": "{0} vins, {1} bouteilles", "open until {0}": "ouverte jusqu'au {0}", "Search the list…": "Rechercher dans la liste…", "This link isn't complete: ask for it again, and copy all of it.": "Ce lien est incomplet : redemandez-le et copiez-le en entier.", "This browser can't open a shared list.": "Ce navigateur ne peut pas ouvrir une liste partagée.", "This list isn't shared any more: it expired, or was withdrawn.": "Cette liste n'est plus partagée : elle a expiré ou a été retirée.", "Couldn't open the list just now. Try again in a moment.": "Impossible d'ouvrir la liste pour le moment. Réessayez dans un instant.", "This link doesn't open the list: ask for it again, and copy all of it.": "Ce lien n'ouvre pas la liste : redemandez-le et copiez-le en entier.", "🔗 Share list": "🔗 Partager une liste", "Share a list of your wines": "Partager une liste de vos vins", "Anyone with the link can see the list, read-only, until it expires or you withdraw it. It's encrypted in this browser: the key is only in the link, so AllWine can't read it.": "Toute personne ayant le lien peut voir la liste, en lecture seule, jusqu'à son expiration ou son retrait. Elle est chiffrée dans ce navigateur : la clé n'est que dans le lien, AllWine ne peut donc pas la lire.", "Title": "Titre", "Which wines": "Quels vins", "The wines shown now": "Les vins affichés", "The whole cellar": "Toute la cave", "Open for": "Ouverte pendant", "7 days": "7 jours", "30 days": "30 jours", "90 days": "90 jours", "1 year": "1 an", "Include my notes": "Inclure mes notes", "Include prices": "Inclure les prix", "Link to the list": "Lien vers la liste", "Copy link": "Copier le lien", "Send…": "Envoyer…", "Make the link": "Créer le lien", "Your shared lists": "Vos listes partagées", "Select the link and copy it": "Sélectionnez le lien et copiez-le", "Wines from {0}'s cellar": "Vins de la cave de {0}", "You have 20 shared lists open: withdraw one first.": "Vous avez 20 listes partagées ouvertes : retirez-en une d'abord.", "The list is too big to share: share fewer wines.": "La liste est trop grande pour être partagée : partagez moins de vins.", "This browser can't encrypt a shared list.": "Ce navigateur ne peut pas chiffrer une liste partagée.", "Withdrawn: the link no longer opens the list": "Retirée : le lien n'ouvre plus la liste", "Could not withdraw: {0}": "Impossible de retirer : {0}",
+  "Opening the list…": "Ouverture de la liste…", "Shared read-only from a private AllWine cellar. The list is encrypted, and only a link like this one opens it: AllWine itself can't read it.": "Partagée en lecture seule depuis une cave AllWine privée. La liste est chiffrée, et seul un lien comme celui-ci l'ouvre : AllWine lui-même ne peut pas la lire.", "A shared wine list": "Une liste de vins partagée", "Shared by {0}": "Partagée par {0}", "{0} wines, {1} bottles": "{0} vins, {1} bouteilles", "open until {0}": "ouverte jusqu'au {0}", "Search the list…": "Rechercher dans la liste…", "This link isn't complete: ask for it again, and copy all of it.": "Ce lien est incomplet : redemandez-le et copiez-le en entier.", "This browser can't open a shared list.": "Ce navigateur ne peut pas ouvrir une liste partagée.", "This list isn't shared any more: it expired, or was withdrawn.": "Cette liste n'est plus partagée : elle a expiré ou a été retirée.", "Couldn't open the list just now. Try again in a moment.": "Impossible d'ouvrir la liste pour le moment. Réessayez dans un instant.", "This link doesn't open the list: ask for it again, and copy all of it.": "Ce lien n'ouvre pas la liste : redemandez-le et copiez-le en entier.", "Share a list of your wines": "Partager une liste de vos vins", "Anyone with the link can see the list, read-only, until it expires or you withdraw it. It's encrypted in this browser: the key is only in the link, so AllWine can't read it.": "Toute personne ayant le lien peut voir la liste, en lecture seule, jusqu'à son expiration ou son retrait. Elle est chiffrée dans ce navigateur : la clé n'est que dans le lien, AllWine ne peut donc pas la lire.", "Title": "Titre", "Which wines": "Quels vins", "The wines shown now": "Les vins affichés", "The whole cellar": "Toute la cave", "Open for": "Ouverte pendant", "7 days": "7 jours", "30 days": "30 jours", "90 days": "90 jours", "1 year": "1 an", "Include my notes": "Inclure mes notes", "Include prices": "Inclure les prix", "Link to the list": "Lien vers la liste", "Copy link": "Copier le lien", "Send…": "Envoyer…", "Make the link": "Créer le lien", "Your shared lists": "Vos listes partagées", "Select the link and copy it": "Sélectionnez le lien et copiez-le", "Wines from {0}'s cellar": "Vins de la cave de {0}", "You have 20 shared lists open: withdraw one first.": "Vous avez 20 listes partagées ouvertes : retirez-en une d'abord.", "The list is too big to share: share fewer wines.": "La liste est trop grande pour être partagée : partagez moins de vins.", "This browser can't encrypt a shared list.": "Ce navigateur ne peut pas chiffrer une liste partagée.", "Withdrawn: the link no longer opens the list": "Retirée : le lien n'ouvre plus la liste", "Could not withdraw: {0}": "Impossible de retirer : {0}",
   "Open next": "À ouvrir d'abord",
   "No vineyard by that name.": "Aucune vigne de ce nom.", "Searching…": "Recherche…", "Vineyards found": "Vignes trouvées", "Where am I?": "Où suis-je ?",
   "Your cellar, journal, wishlist and journal photos are encrypted in this browser before they're saved.": "Votre cave, votre journal, votre liste d'envies et les photos du journal sont chiffrés dans ce navigateur avant d'être enregistrés.", "Do you still have your recovery code? If you forget your password, it's how you get back into your encrypted cellar.": "Avez-vous toujours votre code de récupération ? Si vous oubliez votre mot de passe, c'est lui qui vous rouvre votre cave chiffrée.", "I have it": "Je l'ai", "Make a new one": "En créer un nouveau", "Enter your password, then choose New recovery code.": "Saisissez votre mot de passe, puis choisissez Nouveau code de récupération.",
@@ -217,7 +244,7 @@ window.I18N_DICT.fr = {
   "Show prices": "Afficher les prix",
   "Could not reach the cellar API ({0}). Check your connection and refresh.": "Impossible de joindre l'API de la cave ({0}). Vérifiez la connexion et actualisez.",
   "Score cleared": "Note effacée",
-  "Scored {0}/10 🍷": "Noté {0}/10 🍷",
+  
   "Could not save score: {0}": "Impossible d'enregistrer la note : {0}",
   "Value cleared": "Valeur effacée",
   "Value set to {0}": "Valeur fixée à {0}",
@@ -237,8 +264,8 @@ window.I18N_DICT.fr = {
   "Remove {0} from Enjoyed?\nYour journal entries for it stay.": "Retirer {0} des Dégustés ?\nVos notes de journal sont conservées.",
   "Delete {0} from the cellar?\nThis removes the whole row from the sheet.": "Supprimer {0} de la cave ?\nToute la ligne est retirée de la feuille.",
   "Updating…": "Mise à jour…",
-  "Skål! Bottle marked as drunk 🍷": "Santé ! Bouteille marquée comme bue 🍷",
-  "Bottle back in the cellar 🍾": "Bouteille remise en cave 🍾",
+  
+  
   "Wine deleted from the sheet": "Vin supprimé de la feuille",
   "That was your last {0} 🍷\nLog a tasting note in the journal?": "C'était votre dernière bouteille de {0} 🍷\nNoter une dégustation dans le journal ?",
   "Could not update: {0}": "Mise à jour impossible : {0}",
@@ -289,7 +316,7 @@ window.I18N_DICT.fr = {
   "Journal": "Journal",
   "classification": "classement",
   "The cellar is empty…": "La cave est vide…",
-  "Tonight's bottle 🍷": "La bouteille de ce soir 🍷",
+  
   "Pick another": "En choisir une autre",
   "1 entry": "1 note",
   "{0} entries": "{0} notes",
@@ -327,10 +354,10 @@ window.I18N_DICT.fr = {
   "Marking drunk…": "Marquage comme bue…",
   "Journal entry updated": "Note de journal mise à jour",
   "Journal entry saved": "Note de journal enregistrée",
-  "Enjoyed updated too 🍷": "Dégustés mis à jour aussi 🍷",
-  "bottle marked drunk 🍷": "bouteille marquée comme bue 🍷",
-  "added to Enjoyed 🍷": "ajouté aux Dégustés 🍷",
-  "price saved to Enjoyed 🍷": "prix enregistré dans les Dégustés 🍷",
+  
+  
+  
+  
   "the API needs Drive access. In Apps Script, run the “authorize” function once and approve, then try again.": "l'API a besoin d'accéder à Drive. Dans Apps Script, lancez une fois la fonction « authorize », approuvez, puis réessayez.",
   "Could not save: {0}": "Enregistrement impossible : {0}",
   "Could not save — see the message in the form": "Enregistrement impossible — voir le message dans le formulaire",
@@ -354,14 +381,14 @@ window.I18N_DICT.fr = {
   "enjoyed": "dégustées",
   "{0} enjoyed without a date — mark drinks in the app so they’re dated.": "{0} dégustées sans date — marquez-les comme bues dans l'application pour qu'elles soient datées.",
   "{0} more enjoyed without a date (not shown)": "{0} de plus dégustées sans date (non affichées)",
-  "Added to Enjoyed 🍷": "Ajouté aux Dégustés 🍷",
+  
   "Add to Enjoyed": "Ajouter aux Dégustés",
   "Edit this Enjoyed wine": "Modifier ce vin dégusté",
   "Edit wine details": "Modifier les détails du vin",
   "Also rename its journal entry if the name changes": "Renommer aussi sa note de journal si le nom change",
   "Also rename its {0} journal entries if the name changes": "Renommer aussi ses {0} notes de journal si le nom change",
-  "Renamed ✏️": "Renommé ✏️",
-  "Details saved ✏️": "Détails enregistrés ✏️",
+  
+  
   "The Apps Script needs the latest version (26) for this — paste apps-script/Code.gs into it and redeploy.": "L'Apps Script doit être à jour (version 26) pour cela — collez-y apps-script/Code.gs et redéployez.",
   "Save details": "Enregistrer les détails",
   "1 wine has no classification yet — the app can tell from the name": "1 vin n'a pas encore de classement — l'application le déduit du nom",
@@ -372,8 +399,8 @@ window.I18N_DICT.fr = {
   "See the suggestions": "Voir les suggestions",
   "on the label": "sur l'étiquette",
   "…and {0} more": "…et {0} de plus",
-  "1 classification filled in ✓": "1 classement complété ✓",
-  "{0} classifications filled in ✓": "{0} classements complétés ✓",
+  
+  
   "Update the Apps Script (version 26) to save these": "Mettez à jour l'Apps Script (version 26) pour les enregistrer",
   "Could not load the wishlist ({0}). The Apps Script may need the latest redeploy.": "Impossible de charger la liste d'envies ({0}). L'Apps Script doit peut-être être redéployé.",
   "1 wish": "1 envie",
@@ -386,7 +413,7 @@ window.I18N_DICT.fr = {
   "Wish removed": "Envie retirée",
   "Could not remove: {0}": "Retrait impossible : {0}",
   "Move {0} into the cellar (1 bottle)?": "Mettre {0} en cave (1 bouteille) ?",
-  "Added to the cellar 🍷": "Ajouté à la cave 🍷",
+  
   "Could not move: {0}": "Déplacement impossible : {0}",
   "Add to wishlist": "Ajouter à la liste d'envies",
   "Edit wish": "Modifier l'envie",
@@ -418,8 +445,8 @@ window.I18N_DICT.fr = {
   "Could not comment: {0}": "Commentaire impossible : {0}",
   "Shared photo": "Photo partagée",
   "Add a wine, a note or a photo.": "Ajoutez un vin, une note ou une photo.",
-  "Sent to {0} 🍷": "Envoyé à {0} 🍷",
-  "Shared to the feed 🍷": "Partagé dans le fil 🍷",
+  
+  
   "Could not share: {0}": "Partage impossible : {0}",
   "Could not update follow: {0}": "Impossible de mettre à jour l'abonnement : {0}",
   "Your session expired after inactivity — log in again.": "Votre session a expiré après inactivité — reconnectez-vous.",
@@ -430,7 +457,7 @@ window.I18N_DICT.fr = {
   "Feed": "Fil",
   "Burgundy atlas ↗": "Atlas de la Bourgogne ↗",
   "＋ Add wine": "＋ Ajouter un vin",
-  "🎲 Tonight": "🎲 Ce soir",
+  
   "Fetching the cellar…": "Chargement de la cave…",
   "Drinking priorities": "Priorités de dégustation",
   "What to open, by drink window · click to filter the list below": "Quoi ouvrir, selon la fenêtre · cliquez pour filtrer la liste ci-dessous",
@@ -561,10 +588,10 @@ window.I18N_DICT.fr = {
   "Here's what can be tidied. Untick anything you want left as it is.": "Voici ce qui peut être rangé. Décochez ce que vous voulez laisser tel quel.",
   "Nothing to tidy: every spelling is consistent and no wine is in two rows.": "Rien à ranger : toutes les orthographes sont cohérentes et aucun vin n'est sur deux lignes.",
   "Tidy {0} wines and join {1} groups": "Ranger {0} vins et fusionner {1} groupes",
-  "Cellar tidied 🧹": "Cave rangée 🧹",
+  
   "Tidying needs the updated Apps Script (version 32) — redeploy Code.gs.": "Le rangement nécessite l'Apps Script à jour (version 32) — redéployez Code.gs.",
   "Could not tidy: {0}": "Rangement impossible : {0}",
-  "🧹 Tidy up": "🧹 Ranger",
+  
   "Tidy up your cellar": "Ranger votre cave",
   "Spellings and capitals": "Orthographe et majuscules",
   "The same wine in several rows": "Le même vin sur plusieurs lignes",
@@ -585,19 +612,19 @@ window.I18N_DICT.fr = {
   "Location (cellar, shelf…)": "Emplacement (cave, étagère…)",
   // export
   "Drunk elsewhere (not from the cellar)": "Bu ailleurs (pas de la cave)",
-  "⬇ Export": "⬇ Exporter",
+  
   "Export your cellar": "Exporter votre cave",
   "Download a copy of your cellar to keep or to work on in Excel, Numbers or Google Sheets. It uses the same columns as the import, so the file imports straight back.": "Téléchargez une copie de votre cave à conserver ou à retravailler dans Excel, Numbers ou Google Sheets. Elle utilise les mêmes colonnes que l'import, le fichier se réimporte donc tel quel.",
   "Excel workbook (.xlsx)": "Classeur Excel (.xlsx)",
   "Cellar, journal and wishlist, one sheet each": "Cave, journal et liste d'envies, une feuille chacun",
   "CSV file (.csv)": "Fichier CSV (.csv)",
   "The cellar only": "La cave seulement",
-  "🔒 The file is made in this browser from your decrypted cellar. Keep it somewhere safe: it isn't encrypted.": "🔒 Le fichier est créé dans ce navigateur à partir de votre cave déchiffrée. Gardez-le en lieu sûr : il n'est pas chiffré.",
+  
   "The file is made in this browser from your cellar.": "Le fichier est créé dans ce navigateur à partir de votre cave.",
   "Saved {0}": "Enregistré : {0}",
   "Could not export: {0}": "Export impossible : {0}",
   // import
-  "⬆ Import": "⬆ Importer",
+  
   "Import wines": "Importer des vins",
   "Add many wines at once from an Excel workbook (.xlsx), a CSV file or a text file — one wine per row. Column headings in Danish, English, French or German are recognised, and you can correct the matching before anything is saved.": "Ajoutez de nombreux vins d'un coup depuis un classeur Excel (.xlsx), un fichier CSV ou un fichier texte — un vin par ligne. Les en-têtes en danois, anglais, français ou allemand sont reconnus, et vous pouvez corriger la correspondance avant tout enregistrement.",
   "Choose a file or drop it here": "Choisissez un fichier ou déposez-le ici",
@@ -606,7 +633,7 @@ window.I18N_DICT.fr = {
   "Skip them": "Les ignorer",
   "Cancel": "Annuler",
   "Choose another file": "Choisir un autre fichier",
-  "🔒 The file is read in this browser and never uploaded. The wines are encrypted here before they're saved, like the rest of your cellar.": "🔒 Le fichier est lu dans ce navigateur et n'est jamais envoyé. Les vins sont chiffrés ici avant d'être enregistrés, comme le reste de votre cave.",
+  
   "The file is read in this browser and never uploaded; only the wines are saved to your cellar.": "Le fichier est lu dans ce navigateur et n'est jamais envoyé ; seuls les vins sont enregistrés dans votre cave.",
   "— not imported —": "— non importé —",
   "Vineyard / cuvée": "Climat / cuvée",
@@ -657,7 +684,7 @@ window.I18N_DICT.fr = {
   "{0} of these are already in your cellar (same producer, wine, vintage and format):": "{0} d'entre eux sont déjà dans votre cave (même producteur, vin, millésime et format) :",
   "Import {0} wines": "Importer {0} vins",
   "Importing… {0} of {1}": "Importation… {0} sur {1}",
-  "{0} wines imported 🍷": "{0} vins importés 🍷",
+  
   "Importing needs the updated Apps Script (version 29) — redeploy Code.gs.": "L'import nécessite l'Apps Script à jour (version 29) — redéployez Code.gs.",
   "{0} of {1} wines were imported before an error: {2}": "{0} vins sur {1} ont été importés avant une erreur : {2}",
   "Could not import: {0}": "Import impossible : {0}",
@@ -667,7 +694,7 @@ window.I18N_DICT.fr = {
   "New password": "Nouveau mot de passe",
   "Forgot password?": "Mot de passe oublié ?",
   "Recovery code": "Code de récupération",
-  "🔒 Your cellar is encrypted on this device before it's saved; the server only ever holds the locked copy.": "🔒 Votre cave est chiffrée sur cet appareil avant d'être enregistrée ; le serveur n'en garde que la copie verrouillée.",
+  
   "Vineyard atlas: every grand cru and premier cru": "Atlas des climats : tous les grands crus et premiers crus",
   "That recovery code doesn't match this account.": "Ce code de récupération ne correspond pas à ce compte.",
   "Reload the page — the site has been updated.": "Rechargez la page — le site a été mis à jour.",

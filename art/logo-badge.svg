@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><title>AllWine</title>
+<!-- the round badge: profile pictures, stickers, the corner of a wine card -->
+<defs><path id="arcTop" d="M30 100a70 70 0 0 1 140 0"/><path id="arcBot" d="M38 104a62 62 0 0 0 124 0"/></defs>
+<circle cx="100" cy="100" r="96" fill="#7C2D3E"/><circle cx="100" cy="100" r="86" fill="none" stroke="#C99B47" stroke-width="1.5"/>
+<g transform="translate(46 86) scale(1.68)"><path d="M3 3.5h33c4 0 6.5 2.6 9.5 4.3h6V12h-6c-3 1.9-5.5 4.5-9.5 4.5H3C1.6 16.5 1 15.4 1 14V6c0-1.4.6-2.5 2-2.5z" fill="#F3E7E3"/><rect x="51" y="7.3" width="11" height="5.4" rx="1.4" fill="#C99B47"/></g>
+<path d="M50 126h100" stroke="#C99B47" stroke-width="3" stroke-linecap="round"/>
+<text font-family="'Iowan Old Style','Palatino Linotype',Palatino,Georgia,serif" font-size="19" font-weight="600" letter-spacing="3" fill="#F3E7E3"><textPath href="#arcTop" startOffset="50%" text-anchor="middle">ALLWINE</textPath></text>
+<text font-family="system-ui,-apple-system,'Segoe UI',sans-serif" font-size="10.5" letter-spacing="2.4" fill="#E2C38A"><textPath href="#arcBot" startOffset="50%" text-anchor="middle">CELLAR · ATLAS</textPath></text></svg>

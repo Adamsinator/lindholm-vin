@@ -87,8 +87,8 @@ t("no dish named", "en", "what goes well with it", /Which dish\?/);
 // your cellar
 t("drink now", "en", "What should I drink now?", /Ready to drink.*Leflaive Les Pucelles 2014.*past its window.*Lynch-Bages 2005/);
 t("…German", "de", "Was soll ich heute Abend öffnen?", /Jetzt trinkreif/);
-t("where is", "en", "where is my rousseau", /Armand Rousseau Clos St-Jacques 2016 · 3 bottles · 📍 Kælder, reol 3/);
-t("where, no location", "da", "hvor er min leflaive", /Les Pucelles 2014 · 2 flasker · 📍 ingen placering/);
+t("where is", "en", "where is my rousseau", /Armand Rousseau Clos St-Jacques 2016 · 3 bottles · Kælder, reol 3/);
+t("where, no location", "da", "hvor er min leflaive", /Les Pucelles 2014 · 2 flasker · ingen placering/);
 t("how many red", "da", "hvor mange flasker rødvin har jeg", /Du har 12 flasker \(3 vine\) — rød/);
 t("how many of a region", "en", "how many bottles of burgundy do I have", /5 bottles \(2 wines\) — Burgundy/);
 t("how many in all", "en", "how many bottles do I have", /14 bottles \(4 wines\).*By style: red 12, white 2/);

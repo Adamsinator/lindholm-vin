@@ -1,6 +1,33 @@
 // German for allwine.dk: i18n.js loads the one dictionary the page's language needs (English is the source text).
 window.I18N_DICT = window.I18N_DICT || {};
 window.I18N_DICT.de = {
+  "Scored {0}/10": "Bewertet mit {0}/10",
+  "Bottle back in the cellar": "Flasche wieder im Keller",
+  "That was your last {0}": "Das war Ihre letzte Flasche {0}",
+  "Skål! Bottle marked as drunk": "Prost! Flasche als getrunken markiert",
+  "The file is read in this browser and never uploaded. The wines are encrypted here before they're saved, like the rest of your cellar.": "Die Datei wird in diesem Browser gelesen und nie hochgeladen. Die Weine werden hier verschlüsselt, bevor sie gespeichert werden – wie der Rest Ihres Kellers.",
+  "1 wine imported": "1 Wein importiert",
+  "{0} wines imported": "{0} Weine importiert",
+  "Cellar tidied": "Keller aufgeräumt",
+  "The file is made in this browser from your decrypted cellar. Keep it somewhere safe: it isn't encrypted.": "Die Datei wird in diesem Browser aus Ihrem entschlüsselten Keller erstellt. Bewahren Sie sie sicher auf: Sie ist nicht verschlüsselt.",
+  "Tonight's bottle": "Die Flasche für heute Abend",
+  "Enjoyed updated too": "Genossen ebenfalls aktualisiert",
+  "bottle marked drunk": "Flasche als getrunken markiert",
+  "added to Enjoyed": "zu Genossen hinzugefügt",
+  "price saved to Enjoyed": "Preis in Genossen gespeichert",
+  "Added to Enjoyed": "Zu Genossen hinzugefügt",
+  "Renamed": "Umbenannt",
+  "Details saved": "Angaben gespeichert",
+  "1 classification filled in": "1 Klassifikation ergänzt",
+  "{0} classifications filled in": "{0} Klassifikationen ergänzt",
+  "Added to the cellar": "Zum Keller hinzugefügt",
+  "Sent to {0}": "An {0} gesendet",
+  "Shared to the feed": "Im Feed geteilt",
+  "Import": "Importieren",
+  "Share list": "Liste teilen",
+  "Tonight": "Heute Abend",
+  "＋ Add wine for a few, Import for a list from a spreadsheet.": "＋ Wein hinzufügen für einige, Importieren für eine Liste aus einer Tabelle.",
+  "Your cellar is encrypted on this device before it's saved; the server only ever holds the locked copy.": "Ihr Keller wird auf diesem Gerät verschlüsselt, bevor er gespeichert wird; der Server hat nur die verschlüsselte Kopie.",
   "About & terms": "Impressum & Bedingungen",
   "Privacy & cookies": "Datenschutz & Cookies",
   "Data & licences": "Daten & Lizenzen",
@@ -100,12 +127,12 @@ window.I18N_DICT.de = {
   "Drink a bottle": "Eine Flasche trinken", "Show in the list": "In der Liste zeigen", "The wine": "Der Wein",
   "{0} regions": "{0} Regionen", "{0} vineyards": "{0} Lagen", "Automatic": "Automatisch", "Light": "Hell", "Dark": "Dunkel", "Aerial photo": "Luftbild", "Aerial photos: IGN, France only.": "Luftbilder: IGN, nur Frankreich.", "Map style and layers": "Kartenstil und Ebenen", "Map style": "Kartenstil", "Where you are": "Wo Sie sind", "Menu": "Menü", "Aerial photos: IGN (Géoplateforme, Licence Ouverte).": "Luftbilder: IGN (Géoplateforme, Licence Ouverte).",
   "Every bottle in the cellar": "Jede Flasche im Keller", "Amber cap: drink soon": "Bernsteinkapsel: bald trinken", "Dim: too young": "Blass: zu jung", "Show fewer": "Weniger zeigen", "+ {0} more bottles": "+ {0} weitere Flaschen", "bottle": "Flasche", "ready now": "trinkreif", "closing soon": "schließt bald", "past their best": "über dem Höhepunkt", "still too young": "noch zu jung", "More: import, export, share, tidy up…": "Mehr: importieren, exportieren, teilen, aufräumen…", "Account, language and help": "Konto, Sprache und Hilfe", "Add": "Hinzufügen", "Import a list": "Liste importieren", "Export": "Exportieren", "Share a list": "Liste teilen", "Tidy up": "Aufräumen", "Pick tonight's bottle": "Flasche für heute Abend wählen", "password, recovery code": "Passwort, Wiederherstellungscode", "members, invites": "Mitglieder, Einladungen",
-  "1 different wine": "1 verschiedener Wein", "1 wine imported 🍷": "1 Wein importiert 🍷", "OK": "OK", "Delete my account": "Mein Konto löschen", "Yes": "Ja", "No": "Nein", "Move to cellar": "In den Keller", "Make a new code": "Neuen Code erstellen", "{0} of 10": "{0} von 10", "Rated {0} of 10": "Mit {0} von 10 bewertet", "Could not save rating: {0}": "Bewertung konnte nicht gespeichert werden: {0}", "Undo": "Rückgängig", "Write a tasting note": "Verkostungsnotiz schreiben", "That was your last {0} 🍷": "Das war Ihre letzte Flasche {0} 🍷", "Removed {0} from Enjoyed": "{0} aus Genossen entfernt", "Deleted {0}": "{0} gelöscht", "Put back": "Wiederhergestellt", "Could not put it back: {0}": "Konnte nicht wiederhergestellt werden: {0}", "Use {0}–{1}": "{0}–{1} übernehmen", "the atlas ({0})": "dem Atlas ({0})", "the atlas": "dem Atlas",
-  "Help": "Hilfe", "Help and tips": "Hilfe und Tipps", "How this works": "So funktioniert es", "Welcome to your cellar": "Willkommen in Ihrem Keller", "Hide these tips": "Diese Tipps ausblenden", "Add your wines": "Fügen Sie Ihre Weine hinzu", "＋ Add wine for a few, ⬆ Import for a list from a spreadsheet.": "＋ Wein hinzufügen für einige, ⬆ Importieren für eine Liste aus einer Tabelle.", "Set drink windows": "Trinkfenster setzen", "Tap a wine and fill in from and to, so the cellar can tell you what to open and when.": "Tippen Sie auf einen Wein und füllen Sie ab und bis aus, damit der Keller Ihnen sagt, was Sie wann öffnen sollten.", "Keep your recovery code safe": "Bewahren Sie Ihren Wiederherstellungscode sicher auf", "With your password it's the only way into your encrypted cellar. Lost it? Account makes a new one.": "Zusammen mit Ihrem Passwort ist er der einzige Weg in Ihren verschlüsselten Keller. Verloren? Konto erstellt einen neuen.", "All help and tips →": "Alle Hilfe und Tipps →",
+  "1 different wine": "1 verschiedener Wein", "OK": "OK", "Delete my account": "Mein Konto löschen", "Yes": "Ja", "No": "Nein", "Move to cellar": "In den Keller", "Make a new code": "Neuen Code erstellen", "{0} of 10": "{0} von 10", "Rated {0} of 10": "Mit {0} von 10 bewertet", "Could not save rating: {0}": "Bewertung konnte nicht gespeichert werden: {0}", "Undo": "Rückgängig", "Write a tasting note": "Verkostungsnotiz schreiben", "Removed {0} from Enjoyed": "{0} aus Genossen entfernt", "Deleted {0}": "{0} gelöscht", "Put back": "Wiederhergestellt", "Could not put it back: {0}": "Konnte nicht wiederhergestellt werden: {0}", "Use {0}–{1}": "{0}–{1} übernehmen", "the atlas ({0})": "dem Atlas ({0})", "the atlas": "dem Atlas",
+  "Help": "Hilfe", "Help and tips": "Hilfe und Tipps", "How this works": "So funktioniert es", "Welcome to your cellar": "Willkommen in Ihrem Keller", "Hide these tips": "Diese Tipps ausblenden", "Add your wines": "Fügen Sie Ihre Weine hinzu", "Set drink windows": "Trinkfenster setzen", "Tap a wine and fill in from and to, so the cellar can tell you what to open and when.": "Tippen Sie auf einen Wein und füllen Sie ab und bis aus, damit der Keller Ihnen sagt, was Sie wann öffnen sollten.", "Keep your recovery code safe": "Bewahren Sie Ihren Wiederherstellungscode sicher auf", "With your password it's the only way into your encrypted cellar. Lost it? Account makes a new one.": "Zusammen mit Ihrem Passwort ist er der einzige Weg in Ihren verschlüsselten Keller. Verloren? Konto erstellt einen neuen.", "All help and tips →": "Alle Hilfe und Tipps →",
   "A list shared from another device": "Eine von einem anderen Gerät geteilte Liste",
   "Sharing needs the updated Apps Script (version 44) — redeploy Code.gs.": "Teilen braucht das aktualisierte Apps Script (Version 44) — Code.gs neu bereitstellen.",
   
-  "Opening the list…": "Liste wird geöffnet…", "Shared read-only from a private AllWine cellar. The list is encrypted, and only a link like this one opens it: AllWine itself can't read it.": "Schreibgeschützt geteilt aus einem privaten AllWine-Keller. Die Liste ist verschlüsselt, und nur ein Link wie dieser öffnet sie: AllWine selbst kann sie nicht lesen.", "A shared wine list": "Eine geteilte Weinliste", "Shared by {0}": "Geteilt von {0}", "{0} wines, {1} bottles": "{0} Weine, {1} Flaschen", "open until {0}": "offen bis {0}", "Search the list…": "Liste durchsuchen…", "This link isn't complete: ask for it again, and copy all of it.": "Dieser Link ist unvollständig: Bitten Sie erneut darum und kopieren Sie ihn ganz.", "This browser can't open a shared list.": "Dieser Browser kann keine geteilte Liste öffnen.", "This list isn't shared any more: it expired, or was withdrawn.": "Diese Liste wird nicht mehr geteilt: Sie ist abgelaufen oder wurde zurückgezogen.", "Couldn't open the list just now. Try again in a moment.": "Die Liste lässt sich gerade nicht öffnen. Versuchen Sie es gleich noch einmal.", "This link doesn't open the list: ask for it again, and copy all of it.": "Dieser Link öffnet die Liste nicht: Bitten Sie erneut darum und kopieren Sie ihn ganz.", "🔗 Share list": "🔗 Liste teilen", "Share a list of your wines": "Eine Liste Ihrer Weine teilen", "Anyone with the link can see the list, read-only, until it expires or you withdraw it. It's encrypted in this browser: the key is only in the link, so AllWine can't read it.": "Jeder mit dem Link kann die Liste schreibgeschützt sehen, bis sie abläuft oder Sie sie zurückziehen. Sie wird in diesem Browser verschlüsselt: Der Schlüssel steht nur im Link, daher kann AllWine sie nicht lesen.", "Title": "Titel", "Which wines": "Welche Weine", "The wines shown now": "Die jetzt angezeigten Weine", "The whole cellar": "Der ganze Keller", "Open for": "Offen für", "7 days": "7 Tage", "30 days": "30 Tage", "90 days": "90 Tage", "1 year": "1 Jahr", "Include my notes": "Meine Notizen einschließen", "Include prices": "Preise einschließen", "Link to the list": "Link zur Liste", "Copy link": "Link kopieren", "Send…": "Senden…", "Make the link": "Link erstellen", "Your shared lists": "Ihre geteilten Listen", "Select the link and copy it": "Link markieren und kopieren", "Wines from {0}'s cellar": "Weine aus dem Keller von {0}", "You have 20 shared lists open: withdraw one first.": "Sie haben 20 geteilte Listen offen: Ziehen Sie zuerst eine zurück.", "The list is too big to share: share fewer wines.": "Die Liste ist zu groß zum Teilen: Teilen Sie weniger Weine.", "This browser can't encrypt a shared list.": "Dieser Browser kann keine geteilte Liste verschlüsseln.", "Withdrawn: the link no longer opens the list": "Zurückgezogen: Der Link öffnet die Liste nicht mehr", "Could not withdraw: {0}": "Zurückziehen fehlgeschlagen: {0}",
+  "Opening the list…": "Liste wird geöffnet…", "Shared read-only from a private AllWine cellar. The list is encrypted, and only a link like this one opens it: AllWine itself can't read it.": "Schreibgeschützt geteilt aus einem privaten AllWine-Keller. Die Liste ist verschlüsselt, und nur ein Link wie dieser öffnet sie: AllWine selbst kann sie nicht lesen.", "A shared wine list": "Eine geteilte Weinliste", "Shared by {0}": "Geteilt von {0}", "{0} wines, {1} bottles": "{0} Weine, {1} Flaschen", "open until {0}": "offen bis {0}", "Search the list…": "Liste durchsuchen…", "This link isn't complete: ask for it again, and copy all of it.": "Dieser Link ist unvollständig: Bitten Sie erneut darum und kopieren Sie ihn ganz.", "This browser can't open a shared list.": "Dieser Browser kann keine geteilte Liste öffnen.", "This list isn't shared any more: it expired, or was withdrawn.": "Diese Liste wird nicht mehr geteilt: Sie ist abgelaufen oder wurde zurückgezogen.", "Couldn't open the list just now. Try again in a moment.": "Die Liste lässt sich gerade nicht öffnen. Versuchen Sie es gleich noch einmal.", "This link doesn't open the list: ask for it again, and copy all of it.": "Dieser Link öffnet die Liste nicht: Bitten Sie erneut darum und kopieren Sie ihn ganz.", "Share a list of your wines": "Eine Liste Ihrer Weine teilen", "Anyone with the link can see the list, read-only, until it expires or you withdraw it. It's encrypted in this browser: the key is only in the link, so AllWine can't read it.": "Jeder mit dem Link kann die Liste schreibgeschützt sehen, bis sie abläuft oder Sie sie zurückziehen. Sie wird in diesem Browser verschlüsselt: Der Schlüssel steht nur im Link, daher kann AllWine sie nicht lesen.", "Title": "Titel", "Which wines": "Welche Weine", "The wines shown now": "Die jetzt angezeigten Weine", "The whole cellar": "Der ganze Keller", "Open for": "Offen für", "7 days": "7 Tage", "30 days": "30 Tage", "90 days": "90 Tage", "1 year": "1 Jahr", "Include my notes": "Meine Notizen einschließen", "Include prices": "Preise einschließen", "Link to the list": "Link zur Liste", "Copy link": "Link kopieren", "Send…": "Senden…", "Make the link": "Link erstellen", "Your shared lists": "Ihre geteilten Listen", "Select the link and copy it": "Link markieren und kopieren", "Wines from {0}'s cellar": "Weine aus dem Keller von {0}", "You have 20 shared lists open: withdraw one first.": "Sie haben 20 geteilte Listen offen: Ziehen Sie zuerst eine zurück.", "The list is too big to share: share fewer wines.": "Die Liste ist zu groß zum Teilen: Teilen Sie weniger Weine.", "This browser can't encrypt a shared list.": "Dieser Browser kann keine geteilte Liste verschlüsseln.", "Withdrawn: the link no longer opens the list": "Zurückgezogen: Der Link öffnet die Liste nicht mehr", "Could not withdraw: {0}": "Zurückziehen fehlgeschlagen: {0}",
   "Open next": "Zuerst öffnen",
   "No vineyard by that name.": "Keine Lage mit diesem Namen.", "Searching…": "Suche…", "Vineyards found": "Gefundene Lagen", "Where am I?": "Wo bin ich?",
   "Your cellar, journal, wishlist and journal photos are encrypted in this browser before they're saved.": "Ihr Keller, Ihr Journal, Ihre Wunschliste und die Journalfotos werden in diesem Browser verschlüsselt, bevor sie gespeichert werden.", "Do you still have your recovery code? If you forget your password, it's how you get back into your encrypted cellar.": "Haben Sie Ihren Wiederherstellungscode noch? Wenn Sie Ihr Passwort vergessen, kommen Sie nur damit wieder in Ihren verschlüsselten Keller.", "I have it": "Ich habe ihn", "Make a new one": "Neuen erstellen", "Enter your password, then choose New recovery code.": "Geben Sie Ihr Passwort ein und wählen Sie dann Neuer Wiederherstellungscode.",
@@ -217,7 +244,7 @@ window.I18N_DICT.de = {
   "Show prices": "Preise zeigen",
   "Could not reach the cellar API ({0}). Check your connection and refresh.": "Die Keller-API war nicht erreichbar ({0}). Prüfen Sie die Verbindung und laden Sie neu.",
   "Score cleared": "Note entfernt",
-  "Scored {0}/10 🍷": "Bewertet mit {0}/10 🍷",
+  
   "Could not save score: {0}": "Note konnte nicht gespeichert werden: {0}",
   "Value cleared": "Wert entfernt",
   "Value set to {0}": "Wert auf {0} gesetzt",
@@ -237,8 +264,8 @@ window.I18N_DICT.de = {
   "Remove {0} from Enjoyed?\nYour journal entries for it stay.": "{0} aus Genossen entfernen?\nIhre Journaleinträge dazu bleiben.",
   "Delete {0} from the cellar?\nThis removes the whole row from the sheet.": "{0} aus dem Keller löschen?\nDie ganze Zeile wird aus der Tabelle entfernt.",
   "Updating…": "Aktualisiere…",
-  "Skål! Bottle marked as drunk 🍷": "Prost! Flasche als getrunken markiert 🍷",
-  "Bottle back in the cellar 🍾": "Flasche wieder im Keller 🍾",
+  
+  
   "Wine deleted from the sheet": "Wein aus der Tabelle gelöscht",
   "That was your last {0} 🍷\nLog a tasting note in the journal?": "Das war Ihre letzte Flasche {0} 🍷\nEine Verkostungsnotiz ins Journal schreiben?",
   "Could not update: {0}": "Aktualisierung fehlgeschlagen: {0}",
@@ -289,7 +316,7 @@ window.I18N_DICT.de = {
   "Journal": "Journal",
   "classification": "Klassifikation",
   "The cellar is empty…": "Der Keller ist leer…",
-  "Tonight's bottle 🍷": "Die Flasche für heute Abend 🍷",
+  
   "Pick another": "Eine andere wählen",
   "1 entry": "1 Eintrag",
   "{0} entries": "{0} Einträge",
@@ -327,10 +354,10 @@ window.I18N_DICT.de = {
   "Marking drunk…": "Markiere als getrunken…",
   "Journal entry updated": "Journaleintrag aktualisiert",
   "Journal entry saved": "Journaleintrag gespeichert",
-  "Enjoyed updated too 🍷": "Genossen ebenfalls aktualisiert 🍷",
-  "bottle marked drunk 🍷": "Flasche als getrunken markiert 🍷",
-  "added to Enjoyed 🍷": "zu Genossen hinzugefügt 🍷",
-  "price saved to Enjoyed 🍷": "Preis in Genossen gespeichert 🍷",
+  
+  
+  
+  
   "the API needs Drive access. In Apps Script, run the “authorize” function once and approve, then try again.": "die API braucht Drive-Zugriff. Führen Sie im Apps Script einmal die Funktion „authorize“ aus, bestätigen Sie, und versuchen Sie es erneut.",
   "Could not save: {0}": "Speichern fehlgeschlagen: {0}",
   "Could not save — see the message in the form": "Speichern fehlgeschlagen — siehe Hinweis im Formular",
@@ -354,14 +381,14 @@ window.I18N_DICT.de = {
   "enjoyed": "genossen",
   "{0} enjoyed without a date — mark drinks in the app so they’re dated.": "{0} ohne Datum genossen — markieren Sie Flaschen in der App als getrunken, damit sie ein Datum haben.",
   "{0} more enjoyed without a date (not shown)": "{0} weitere ohne Datum genossen (nicht gezeigt)",
-  "Added to Enjoyed 🍷": "Zu Genossen hinzugefügt 🍷",
+  
   "Add to Enjoyed": "Zu Genossen hinzufügen",
   "Edit this Enjoyed wine": "Diesen genossenen Wein bearbeiten",
   "Edit wine details": "Weinangaben bearbeiten",
   "Also rename its journal entry if the name changes": "Auch den Journaleintrag umbenennen, wenn sich der Name ändert",
   "Also rename its {0} journal entries if the name changes": "Auch die {0} Journaleinträge umbenennen, wenn sich der Name ändert",
-  "Renamed ✏️": "Umbenannt ✏️",
-  "Details saved ✏️": "Angaben gespeichert ✏️",
+  
+  
   "The Apps Script needs the latest version (26) for this — paste apps-script/Code.gs into it and redeploy.": "Dafür braucht das Apps Script die neueste Version (26) — fügen Sie apps-script/Code.gs ein und stellen Sie neu bereit.",
   "Save details": "Angaben speichern",
   "1 wine has no classification yet — the app can tell from the name": "1 Wein hat noch keine Klassifikation — die App erkennt sie am Namen",
@@ -372,8 +399,8 @@ window.I18N_DICT.de = {
   "See the suggestions": "Vorschläge ansehen",
   "on the label": "auf dem Etikett",
   "…and {0} more": "…und {0} weitere",
-  "1 classification filled in ✓": "1 Klassifikation ergänzt ✓",
-  "{0} classifications filled in ✓": "{0} Klassifikationen ergänzt ✓",
+  
+  
   "Update the Apps Script (version 26) to save these": "Aktualisieren Sie das Apps Script (Version 26), um sie zu speichern",
   "Could not load the wishlist ({0}). The Apps Script may need the latest redeploy.": "Die Wunschliste konnte nicht geladen werden ({0}). Das Apps Script muss eventuell neu bereitgestellt werden.",
   "1 wish": "1 Wunsch",
@@ -386,7 +413,7 @@ window.I18N_DICT.de = {
   "Wish removed": "Wunsch entfernt",
   "Could not remove: {0}": "Entfernen fehlgeschlagen: {0}",
   "Move {0} into the cellar (1 bottle)?": "{0} in den Keller übernehmen (1 Flasche)?",
-  "Added to the cellar 🍷": "Zum Keller hinzugefügt 🍷",
+  
   "Could not move: {0}": "Verschieben fehlgeschlagen: {0}",
   "Add to wishlist": "Zur Wunschliste hinzufügen",
   "Edit wish": "Wunsch bearbeiten",
@@ -418,8 +445,8 @@ window.I18N_DICT.de = {
   "Could not comment: {0}": "Kommentieren fehlgeschlagen: {0}",
   "Shared photo": "Geteiltes Foto",
   "Add a wine, a note or a photo.": "Fügen Sie einen Wein, eine Notiz oder ein Foto hinzu.",
-  "Sent to {0} 🍷": "An {0} gesendet 🍷",
-  "Shared to the feed 🍷": "Im Feed geteilt 🍷",
+  
+  
   "Could not share: {0}": "Teilen fehlgeschlagen: {0}",
   "Could not update follow: {0}": "Folgen konnte nicht aktualisiert werden: {0}",
   "Your session expired after inactivity — log in again.": "Ihre Sitzung ist wegen Inaktivität abgelaufen — melden Sie sich erneut an.",
@@ -430,7 +457,7 @@ window.I18N_DICT.de = {
   "Feed": "Feed",
   "Burgundy atlas ↗": "Burgund-Atlas ↗",
   "＋ Add wine": "＋ Wein hinzufügen",
-  "🎲 Tonight": "🎲 Heute Abend",
+  
   "Fetching the cellar…": "Keller wird geladen…",
   "Drinking priorities": "Trinkprioritäten",
   "What to open, by drink window · click to filter the list below": "Was zu öffnen ist, nach Trinkfenster · klicken, um die Liste unten zu filtern",
@@ -561,10 +588,10 @@ window.I18N_DICT.de = {
   "Here's what can be tidied. Untick anything you want left as it is.": "Das lässt sich aufräumen. Entfernen Sie den Haken bei allem, was bleiben soll, wie es ist.",
   "Nothing to tidy: every spelling is consistent and no wine is in two rows.": "Nichts aufzuräumen: Alle Schreibweisen sind einheitlich, und kein Wein steht in zwei Zeilen.",
   "Tidy {0} wines and join {1} groups": "{0} Weine aufräumen und {1} Gruppen zusammenführen",
-  "Cellar tidied 🧹": "Keller aufgeräumt 🧹",
+  
   "Tidying needs the updated Apps Script (version 32) — redeploy Code.gs.": "Das Aufräumen braucht das aktualisierte Apps Script (Version 32) – Code.gs neu bereitstellen.",
   "Could not tidy: {0}": "Aufräumen nicht möglich: {0}",
-  "🧹 Tidy up": "🧹 Aufräumen",
+  
   "Tidy up your cellar": "Keller aufräumen",
   "Spellings and capitals": "Schreibweise und Großbuchstaben",
   "The same wine in several rows": "Derselbe Wein in mehreren Zeilen",
@@ -584,18 +611,18 @@ window.I18N_DICT.de = {
   "Could not save location: {0}": "Lagerort konnte nicht gespeichert werden: {0}",
   "Location (cellar, shelf…)": "Lagerort (Keller, Regal …)",
   "Drunk elsewhere (not from the cellar)": "Anderswo getrunken (nicht aus dem Keller)",
-  "⬇ Export": "⬇ Exportieren",
+  
   "Export your cellar": "Keller exportieren",
   "Download a copy of your cellar to keep or to work on in Excel, Numbers or Google Sheets. It uses the same columns as the import, so the file imports straight back.": "Laden Sie eine Kopie Ihres Kellers herunter, zum Aufbewahren oder zum Bearbeiten in Excel, Numbers oder Google Sheets. Sie hat dieselben Spalten wie der Import, die Datei lässt sich also direkt wieder importieren.",
   "Excel workbook (.xlsx)": "Excel-Arbeitsmappe (.xlsx)",
   "Cellar, journal and wishlist, one sheet each": "Keller, Journal und Wunschliste, je ein Blatt",
   "CSV file (.csv)": "CSV-Datei (.csv)",
   "The cellar only": "Nur der Keller",
-  "🔒 The file is made in this browser from your decrypted cellar. Keep it somewhere safe: it isn't encrypted.": "🔒 Die Datei wird in diesem Browser aus Ihrem entschlüsselten Keller erstellt. Bewahren Sie sie sicher auf: Sie ist nicht verschlüsselt.",
+  
   "The file is made in this browser from your cellar.": "Die Datei wird in diesem Browser aus Ihrem Keller erstellt.",
   "Saved {0}": "Gespeichert: {0}",
   "Could not export: {0}": "Export nicht möglich: {0}",
-  "⬆ Import": "⬆ Importieren",
+  
   "Import wines": "Weine importieren",
   "Add many wines at once from an Excel workbook (.xlsx), a CSV file or a text file — one wine per row. Column headings in Danish, English, French or German are recognised, and you can correct the matching before anything is saved.": "Fügen Sie viele Weine auf einmal hinzu – aus einer Excel-Arbeitsmappe (.xlsx), einer CSV- oder Textdatei, ein Wein pro Zeile. Spaltenüberschriften auf Dänisch, Englisch, Französisch oder Deutsch werden erkannt, und Sie können die Zuordnung korrigieren, bevor etwas gespeichert wird.",
   "Choose a file or drop it here": "Datei wählen oder hier ablegen",
@@ -604,7 +631,7 @@ window.I18N_DICT.de = {
   "Skip them": "Überspringen",
   "Cancel": "Abbrechen",
   "Choose another file": "Andere Datei wählen",
-  "🔒 The file is read in this browser and never uploaded. The wines are encrypted here before they're saved, like the rest of your cellar.": "🔒 Die Datei wird in diesem Browser gelesen und nie hochgeladen. Die Weine werden hier verschlüsselt, bevor sie gespeichert werden – wie der Rest Ihres Kellers.",
+  
   "The file is read in this browser and never uploaded; only the wines are saved to your cellar.": "Die Datei wird in diesem Browser gelesen und nie hochgeladen; nur die Weine werden in Ihrem Keller gespeichert.",
   "— not imported —": "— nicht importiert —",
   "Vineyard / cuvée": "Lage / Cuvée",
@@ -655,7 +682,7 @@ window.I18N_DICT.de = {
   "{0} of these are already in your cellar (same producer, wine, vintage and format):": "{0} davon sind schon in Ihrem Keller (gleicher Erzeuger, Wein, Jahrgang und Format):",
   "Import {0} wines": "{0} Weine importieren",
   "Importing… {0} of {1}": "Importiere … {0} von {1}",
-  "{0} wines imported 🍷": "{0} Weine importiert 🍷",
+  
   "Importing needs the updated Apps Script (version 29) — redeploy Code.gs.": "Der Import braucht das aktualisierte Apps Script (Version 29) – Code.gs neu bereitstellen.",
   "{0} of {1} wines were imported before an error: {2}": "{0} von {1} Weinen wurden vor einem Fehler importiert: {2}",
   "Could not import: {0}": "Import nicht möglich: {0}",
@@ -664,7 +691,7 @@ window.I18N_DICT.de = {
   "New password": "Neues Passwort",
   "Forgot password?": "Passwort vergessen?",
   "Recovery code": "Wiederherstellungscode",
-  "🔒 Your cellar is encrypted on this device before it's saved; the server only ever holds the locked copy.": "🔒 Ihr Keller wird auf diesem Gerät verschlüsselt, bevor er gespeichert wird; der Server hat nur die verschlüsselte Kopie.",
+  
   "Vineyard atlas: every grand cru and premier cru": "Lagenatlas: alle Grands Crus und Premiers Crus",
   "That recovery code doesn't match this account.": "Dieser Wiederherstellungscode passt nicht zu diesem Konto.",
   "Reload the page — the site has been updated.": "Laden Sie die Seite neu – die Seite wurde aktualisiert.",

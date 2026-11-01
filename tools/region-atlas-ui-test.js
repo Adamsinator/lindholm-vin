@@ -197,7 +197,7 @@ const gas = H({ Ark1: [HEAD,
   await p.goto(BASE + "atlas.html#r=chalonnaise"); await p.waitForTimeout(1800);
   const ch = await p.evaluate(() => ({ pc: st.pack.climats.filter(c => c.c === "1er" && !c.unnamed).length, apps: st.pack.villages.map(v => v.ap).join(), gcBox: document.getElementById("fGC").parentNode.hidden }));
   check("the Côte Chalonnaise: its five appellations and well over a hundred premiers crus, no grand cru filter", ch.pc > 120 && ch.apps === "Bouzeron,Rully,Mercurey,Givry,Montagny" && ch.gcBox, JSON.stringify(ch));
-  check("…the Mercurey bottle on Clos des Myglands", /Clos des Myglands[^\n]*🍷 4/.test(await p.textContent("#side")));
+  check("…the Mercurey bottle on Clos des Myglands", /Clos des Myglands[^\n]*in your cellar: 4/.test(await p.textContent("#side")));
   await p.goto(BASE + "atlas.html#r=maconnais&c=les_crays"); await p.waitForTimeout(1800);
   check("the Mâconnais: Pouilly-Fuissé's premier cru Les Crays, with its bottles", (await p.textContent("#side h2")) === "Les Crays" && /J\.-A\. Ferret/.test(await p.textContent("#side")));
   check("…its 22 premiers crus add up to INAO's ≈194 ha", await p.evaluate(() => { const a = st.pack.climats.filter(c => c.c === "1er" && !c.unnamed); return a.length === 22 && Math.abs(a.reduce((s, c) => s + c.ha, 0) - 194) < 4; }));
@@ -208,7 +208,7 @@ const gas = H({ Ark1: [HEAD,
     gcHa: st.pack.climats.filter(c => c.c === "GC").reduce((s, c) => s + c.ha, 0), heads: [...document.querySelectorAll("#side h3")].map(h => h.textContent) }));
   check("Champagne: 17 grand cru and 42 premier cru villages, about 4 400 ha of grand cru vines, by sub-region", cp.gc === 17 && cp.pc === 42 && Math.abs(cp.gcHa - 4400) < 300
     && cp.heads.includes("Grand cru · Côte des Blancs") && cp.heads.includes("Premier cru · Vallée de la Marne"), JSON.stringify(cp));
-  check("…the Bollinger from Aÿ on Aÿ", /Aÿ[^\n]*🍷 2/.test(await p.textContent("#side")));
+  check("…the Bollinger from Aÿ on Aÿ", /Aÿ[^\n]*in your cellar: 2/.test(await p.textContent("#side")));
   await p.click('#side button[data-c="chouilly"]'); await p.waitForTimeout(300);
   check("…Chouilly says its Pinot Noir is only premier cru", /Pinot Noir is rated premier cru/.test(await p.textContent("#side")) && /Vines \(IGN\)/.test(await p.textContent("#side")));
   await p.click('#side button[data-c="ay"]').catch(() => {}); await p.click("#back").catch(() => {}); await p.click('#side button[data-c="ay"]'); await p.click("#addHere");
@@ -220,7 +220,7 @@ const gas = H({ Ark1: [HEAD,
     pcBox: document.getElementById("f1er").parentNode.hidden, aoc: !document.getElementById("fAOC").parentNode.hidden, side: document.getElementById("side").textContent }));
   check("the Northern Rhône: its eight cru appellations, with their own filter", rh.n === "Château-Grillet,Condrieu,Cornas,Côte-Rôtie,Crozes-Hermitage,Hermitage,Saint-Joseph,Saint-Péray" && rh.gcBox && rh.pcBox && rh.aoc, JSON.stringify(rh).slice(0, 300));
   check("…Hermitage 145 ha on INAO's map, Château-Grillet under 4", /Hermitage145[.,]5ha/.test(rh.side.replace(/\s+/g, "")) && /Château-Grillet3[.,]79ha/.test(rh.side.replace(/\s+/g, "")));
-  check("…Côte-Rôtie, Hermitage and Crozes-Hermitage each get their own bottles", /Côte-Rôtie[^\n]*🍷 1/.test(rh.side) && /Crozes-Hermitage[^\n]*🍷 3/.test(rh.side) && /(^|[^-])Hermitage[^\n]*🍷 2/.test(rh.side), rh.side.match(/[^\n]*🍷[^\n]*/g));
+  check("…Côte-Rôtie, Hermitage and Crozes-Hermitage each get their own bottles", /Côte-Rôtie[^\n]*in your cellar: 1/.test(rh.side) && /Crozes-Hermitage[^\n]*in your cellar: 3/.test(rh.side) && /(^|[^-])Hermitage[^\n]*in your cellar: 2/.test(rh.side), rh.side.match(/[^\n]*in your cellar[^\n]*/g));
   // measured terrain: Château-Grillet's amphitheatre, steep and facing south-east; Saint-Émilion's too big for a slope
   await p.click('#side button[data-c="chateau_grillet"]'); await p.waitForTimeout(600);
   const gt = (await p.textContent("#side")).replace(/\s+/g, " ");
@@ -229,25 +229,25 @@ const gas = H({ Ark1: [HEAD,
   await p.goto(BASE + "atlas.html#r=beaujolais"); await p.waitForTimeout(2500);
   const bj = await p.evaluate(() => ({ n: st.pack.climats.map(c => c.n).sort((a, b) => a.localeCompare(b, "fr")).join(), side: document.getElementById("side").textContent }));
   check("the Beaujolais: its ten crus, the Lapierre Morgon on Morgon", bj.n === "Brouilly,Chénas,Chiroubles,Côte de Brouilly,Fleurie,Juliénas,Morgon,Moulin-à-Vent,Régnié,Saint-Amour"
-    && /Morgon[^\n]*🍷 3/.test(bj.side), bj.n + " | " + (bj.side.match(/[^\n]*🍷[^\n]*/g) || []).join(" / "));
+    && /Morgon[^\n]*in your cellar: 3/.test(bj.side), bj.n + " | " + (bj.side.match(/[^\n]*in your cellar[^\n]*/g) || []).join(" / "));
   // a vineyard's panel fetches the geology even with the layer off: Fleurie on granite, BRGM's γ written as γ
   await p.evaluate(() => select("fleurie", false)); await p.waitForTimeout(1500);
   const fl = (await p.textContent("#side")).replace(/\s+/g, " ");
   check("…Fleurie: on granite, with BRGM's symbol for it (γ)", /Geology[^%]*γ[^%]*Granite[^%]*\d{2}%/.test(fl), fl.slice(fl.indexOf("Geology"), fl.indexOf("Geology") + 200));
   await p.goto(BASE + "atlas.html#r=rhonesud"); await p.waitForTimeout(2500);
   const rs = await p.evaluate(() => ({ n: st.pack.climats.length, side: document.getElementById("side").textContent }));
-  check("the Southern Rhône: eight cru appellations, the Beaucastel on Châteauneuf-du-Pape, and Vacqueyras said to be missing", rs.n === 8 && /Châteauneuf-du-Pape[^\n]*🍷 2/.test(rs.side) && /Not drawn: Vacqueyras/.test(rs.side),
-    rs.n + " | " + (rs.side.match(/[^\n]*(🍷|Not drawn)[^\n]*/g) || []).join(" / "));
+  check("the Southern Rhône: eight cru appellations, the Beaucastel on Châteauneuf-du-Pape, and Vacqueyras said to be missing", rs.n === 8 && /Châteauneuf-du-Pape[^\n]*in your cellar: 2/.test(rs.side) && /Not drawn: Vacqueyras/.test(rs.side),
+    rs.n + " | " + (rs.side.match(/[^\n]*(in your cellar|Not drawn)[^\n]*/g) || []).join(" / "));
   // the Loire, in three maps: each appellation its own cru on INAO's map, the bottles on theirs
   await p.goto(BASE + "atlas.html#r=centreloire"); await p.waitForTimeout(2500);
   const cl = await p.evaluate(() => ({ n: st.pack.climats.map(c => c.n).sort((a, b) => a.localeCompare(b, "fr")).join(), side: document.getElementById("side").textContent }));
-  check("the Centre-Loire: Sancerre, Pouilly-Fumé and four more; the Vacheron on Sancerre", cl.n === "Coteaux du Giennois,Menetou-Salon,Pouilly-Fumé,Quincy,Reuilly,Sancerre" && /Sancerre[^\n]*🍷 2/.test(cl.side),
-    cl.n + " | " + (cl.side.match(/[^\n]*🍷[^\n]*/g) || []).join(" / "));
+  check("the Centre-Loire: Sancerre, Pouilly-Fumé and four more; the Vacheron on Sancerre", cl.n === "Coteaux du Giennois,Menetou-Salon,Pouilly-Fumé,Quincy,Reuilly,Sancerre" && /Sancerre[^\n]*in your cellar: 2/.test(cl.side),
+    cl.n + " | " + (cl.side.match(/[^\n]*in your cellar[^\n]*/g) || []).join(" / "));
   await p.goto(BASE + "atlas.html#r=anjou"); await p.waitForTimeout(2500);
   const an = await p.evaluate(() => ({ gc: st.pack.climats.filter(c => c.c === "GC").map(c => c.n).join(), pc: st.pack.climats.filter(c => c.c === "1er").map(c => c.n).join(),
     cs: (st.pack.climats.find(c => c.n === "Coulée de Serrant") || {}).ha, side: document.getElementById("side").textContent }));
   check("Anjou: Quarts de Chaume the grand cru, Chaume the premier cru, Coulée de Serrant's 7 ha with the Joly on it, not on Savennières", an.gc === "Quarts de Chaume" && an.pc === "Chaume"
-    && Math.abs(an.cs - 7) < 0.5 && /Coulée de Serrant[^\n]*🍷 1/.test(an.side) && !/(^|\n)\s*Savennières[^\n]*🍷/.test(an.side), JSON.stringify({ gc: an.gc, pc: an.pc, cs: an.cs, b: an.side.match(/[^\n]*🍷[^\n]*/g) }));
+    && Math.abs(an.cs - 7) < 0.5 && /Coulée de Serrant[^\n]*in your cellar: 1/.test(an.side) && !/(^|\n)\s*Savennières[^\n]*in your cellar/.test(an.side), JSON.stringify({ gc: an.gc, pc: an.pc, cs: an.cs, b: an.side.match(/[^\n]*in your cellar[^\n]*/g) }));
   await p.goto(BASE + "atlas.html#r=touraine&c=vouvray"); await p.waitForTimeout(2500);
   check("Touraine & Saumur: Vouvray with the Huet on it", (await p.textContent("#side h2")) === "Vouvray" && /Domaine Huet/.test(await p.textContent("#side")));
   await p.goto(BASE + "atlas.html#r=alsace&c=rangen"); await p.waitForTimeout(2500);
@@ -259,8 +259,8 @@ const gas = H({ Ark1: [HEAD,
     drawn: document.querySelectorAll("#map .pt").length, firsts: st.pack.points.filter(q => q.cls === "1855-1").map(q => q.n).join(), side: document.getElementById("side").textContent }));
   check("Bordeaux: 14 cru appellations; the 1855 classification's 88 châteaux, the ones on IGN's map drawn", bx.aoc === 14 && bx.pts === 88 && bx.placed >= 75 && bx.drawn === bx.placed
     && bx.firsts === "Château Lafite Rothschild,Château Latour,Château Margaux,Château Haut-Brion,Château Mouton Rothschild", JSON.stringify(bx).slice(0, 300));
-  check("…the Latour on Latour, the Lamothe Guignard not on Lamothe, the Pomerol on Pomerol", /Latour[^\n]*🍷 1/.test(bx.side) && /Lamothe Guignard °[^\n]*🍷 2/.test(bx.side) && !/Lamothe[^ ][^\n]*🍷/.test(bx.side.replace(/Lamothe Guignard[^\n]*/g, ""))
-    && /Pomerol[^\n]*🍷 1/.test(bx.side), bx.side.match(/[^\n]*🍷[^\n]*/g));
+  check("…the Latour on Latour, the Lamothe Guignard not on Lamothe, the Pomerol on Pomerol", /Latour[^\n]*in your cellar: 1/.test(bx.side) && /Lamothe Guignard °[^\n]*in your cellar: 2/.test(bx.side) && !/Lamothe[^ ][^\n]*in your cellar/.test(bx.side.replace(/Lamothe Guignard[^\n]*/g, ""))
+    && /Pomerol[^\n]*in your cellar: 1/.test(bx.side), bx.side.match(/[^\n]*in your cellar[^\n]*/g));
   await p.click('#side button[data-c="saint_emilion_grand_cru"]'); await p.waitForTimeout(600);
   check("…and a big appellation's slope comes with a word on what it means", /lie of the land/.test(await p.textContent("#side")));
   await p.goto(BASE + "atlas.html#r=bordeaux&c=chateau_latour"); await p.waitForTimeout(2000);
@@ -291,7 +291,7 @@ const gas = H({ Ark1: [HEAD,
   check("…its villages from the Basis-DLM — Bernkastel-Kues, Wehlen, Zeltingen-Rachtig", ["Bernkastel-Kues", "Wehlen", "Zeltingen-Rachtig"].every(n => mg.names.includes(n)));
   check("…and BKG and LVermGeoRP credited, with the licences linked", /GeoBasis-DE \/ <a href="https:\/\/www\.bkg\.bund\.de"[^>]*>BKG<\/a> \(\d{4}\) <a href="https:\/\/creativecommons\.org\/licenses\/by\/4\.0\/"/.test(mg.side)
     && /©GeoBasis-DE \/ LVermGeoRP \(\d{4}\), <a href="https:\/\/www\.govdata\.de\/dl-de\/by-2-0"/.test(mg.side));
-  check("…the Loosen lands on Wehlen's Sonnenuhr, not on one of the other four", /Wehlener Sonnenuhr[^\n]*🍷 3/.test(mo.side) && !/(Zeltingen-Rachtiger|Pommerner|Neumagener|Maring-Noviander) Sonnenuhr[^\n]*🍷/.test(mo.side), mo.side.match(/[^\n]*🍷[^\n]*/g));
+  check("…the Loosen lands on Wehlen's Sonnenuhr, not on one of the other four", /Wehlener Sonnenuhr[^\n]*in your cellar: 3/.test(mo.side) && !/(Zeltingen-Rachtiger|Pommerner|Neumagener|Maring-Noviander) Sonnenuhr[^\n]*in your cellar/.test(mo.side), mo.side.match(/[^\n]*in your cellar[^\n]*/g));
   await p.click('#side button[data-c="sonnenuhr_wehlen"]'); await p.waitForTimeout(300);
   const ws = await p.textContent("#side");
   check("…Wehlener Sonnenuhr: Großlage Münzlay, 42.6 ha of vines in the register, its outline beside it", /Großlage Münzlay/.test(ws) && /42[.,]6 ha/.test(ws) && /Outline on the map/.test(ws) && /Gemarkung: Wehlen/.test(ws), ws.slice(0, 300));
@@ -299,8 +299,8 @@ const gas = H({ Ark1: [HEAD,
   const fw = await p.evaluate(() => [aName.value, aCommune.value, aRegion.value, aCountry.value, aType.value].join("|"));
   check("…'Add a bottle from here' writes it as a label does: Wehlener Sonnenuhr, Mosel, Germany", fw === "Wehlener Sonnenuhr|Bernkastel-Kues|Mosel|Tyskland|Hvid", fw);
   await p.goto(BASE + "atlas.html#r=nahe"); await p.waitForTimeout(2500);
-  const nahe = await p.evaluate(() => [...document.querySelectorAll("#side li")].map(e => e.textContent).filter(x => /🍷/.test(x)));
-  check("the Nahe: the Dönnhoff 'Niederhäuser' finds Niederhausen's Hermannshöhle", nahe.length === 1 && /Niederhausener Hermannshöhle[^\n]*🍷 2/.test(nahe[0]), JSON.stringify(nahe));
+  const nahe = await p.evaluate(() => [...document.querySelectorAll("#side li")].map(e => e.textContent).filter(x => /in your cellar/.test(x)));
+  check("the Nahe: the Dönnhoff 'Niederhäuser' finds Niederhausen's Hermannshöhle", nahe.length === 1 && /Niederhausener Hermannshöhle[^\n]*in your cellar: 2/.test(nahe[0]), JSON.stringify(nahe));
 
   // a phone
   const q = await (await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true })).newPage();

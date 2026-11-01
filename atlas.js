@@ -6,6 +6,9 @@
 const t = (window.I18N && window.I18N.t) || ((s, ...a) => s.replace(/\{(\d)\}/g, (m, i) => a[i] ?? ""));
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const svgi = n => `<svg class="svgi" aria-hidden="true" focusable="false"><use href="icons.svg#${n}"/></svg>`; // AllWine's icons (icons.svg)
+// a count of your bottles: the icon for the eye, the words for a screen reader (and the tests)
+const inCellar = n => `<span class="incel">${svgi("bottle")}<span class="vh">${esc(t("in your cellar"))}: </span>${n}</span>`;
 const fmtHa = v => Number(v).toLocaleString(window.I18N && I18N.lang === "en" ? "en-GB" : (window.I18N ? I18N.lang : "en"), { maximumFractionDigits: v < 10 ? 2 : 1 });
 const norm = s => " " + String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, " ").trim() + " ";
 
@@ -666,17 +669,17 @@ function compareHtml(a, b) {
       [t("Faces"), c => dem(c) ? (dem(c)[3] < 1.5 ? t("flat") : (dem(c)[5] < 55 ? t("varied") + " · " : "") + wind(dem(c)[4])) : "—"],
       [t("Slope"), c => dem(c) ? `${dem(c)[3]} %` : "—"], [t("Mean altitude"), c => dem(c) ? `${dem(c)[2]} m` : "—"]] : [])
     .concat(geolOf() ? [[t("Geology"), c => { const G = geolOf(), u = G.under[c.id]; return u ? u.slice(0, 2).map(([k, p]) => `${geolSw(G, k)}${esc(G.legend[k][0] || G.legend[k][1].split(/[,(;]/)[0])} ${p}%`).join("<br>") : "—"; }]] : [])
-    .concat(CELLAR.loaded ? [[t("In your cellar"), c => bot(c) ? `🍷 ${bot(c)}` : "—"]] : []);
+    .concat(CELLAR.loaded ? [[t("In your cellar"), c => bot(c) ? inCellar(bot(c)) : "—"]] : []);
   return `<h3>${esc(t("Compare"))}</h3><table class="own cmpv"><thead><tr><th></th>${[a, b].map(c => `<th><button class="plink" data-c="${esc(c.id)}">${esc(shown(c))}</button></th>`).join("")}</tr></thead>
     <tbody>${rows.map(([l, f]) => `<tr><td>${esc(l)}</td><td>${f(a)}</td><td>${f(b)}</td></tr>`).join("")}</tbody></table>
     <p><button class="btn" id="cmpEnd">${esc(t("Stop comparing"))}</button></p>`;
 }
-const ptRow = q => `<li><button data-c="${esc(q.id)}">${esc(short(q.n))}${q.p ? "" : " °"}</button><span>${esc(q.ap)}${CELLAR.by[q.id] ? " · 🍷 " + CELLAR.by[q.id].left : ""}</span></li>`;
-const row = x => `<li><button data-c="${esc(x.id)}">${esc(shown(x))}${x.inferred ? " *" : ""}</button><span>${fmtHa(x.ha)} ha${CELLAR.by[x.id] ? " · 🍷 " + CELLAR.by[x.id].left : ""}</span></li>`;
+const ptRow = q => `<li><button data-c="${esc(q.id)}">${esc(short(q.n))}${q.p ? "" : " °"}</button><span>${esc(q.ap)}${CELLAR.by[q.id] ? " · " + inCellar(CELLAR.by[q.id].left) : ""}</span></li>`;
+const row = x => `<li><button data-c="${esc(x.id)}">${esc(shown(x))}${x.inferred ? " *" : ""}</button><span>${fmtHa(x.ha)} ha${CELLAR.by[x.id] ? " · " + inCellar(CELLAR.by[x.id].left) : ""}</span></li>`;
 function cellarSummary() {
   if (!CELLAR.loaded) return `<p class="note">${esc(t(CELLAR.msg))}</p>`;
   const n = Object.values(CELLAR.by).reduce((s, b) => s + b.left, 0), nc = Object.keys(CELLAR.by).length;
-  return `<p class="note">🍷 ${esc(nc ? t(n > 1 ? "{0} bottles across {1} climats" : "{0} bottle in {1} climat", n, nc) : t("No bottles matched to a climat yet."))}${CELLAR.other ? " · " + esc(t("{0} more of this region's wines without a named climat", CELLAR.other)) : ""}</p>`;
+  return `<p class="note">${svgi("bottle")} ${esc(nc ? t(n > 1 ? "{0} bottles across {1} climats" : "{0} bottle in {1} climat", n, nc) : t("No bottles matched to a climat yet."))}${CELLAR.other ? " · " + esc(t("{0} more of this region's wines without a named climat", CELLAR.other)) : ""}</p>`;
 }
 // "Add a bottle from here": the cellar's add form, filled in (handed over in localStorage, read once by index.html)
 function addFromAtlas(c, R) {

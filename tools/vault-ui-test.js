@@ -50,7 +50,7 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   // a location for the bottle: inline in the details, shown in the table, filterable and searchable
   await p.click('#tbl tr.main:has-text("Domaine Roulot")'); await p.waitForTimeout(200);
   await p.fill("#tbl input.setloc", "Kælder, reol 3, hylde 2"); await p.press("#tbl input.setloc", "Tab"); await p.waitForTimeout(1200);
-  check("a location can be set in the details", (await p.textContent("#tbl")).includes("📍 Kælder, reol 3, hylde 2"));
+  check("a location can be set in the details", (await p.textContent("#tbl")).includes("Kælder, reol 3, hylde 2"));
   check("…and the filter offers its place", (await p.$$eval("#fLoc option", o => o.map(x => x.textContent))).includes("Kælder") && await p.isVisible("#fLoc"));
   await p.selectOption("#fLoc", "-"); await p.waitForTimeout(200);
   check("…'No location yet' hides it", !(await p.textContent("#tbl")).includes("Domaine Roulot"));

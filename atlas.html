@@ -243,6 +243,8 @@ html[data-map="dark"] #map .shade{mix-blend-mode:screen;opacity:.16} html[data-m
 @keyframes atlUp{from{transform:translateY(40px);opacity:.4}}
 @media(prefers-reduced-motion:reduce){.panel{animation:none}.sidewrap{transition:none}}
 .zoom .t3dbtn{font:700 13px/1 system-ui,-apple-system,sans-serif;letter-spacing:.02em}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap} .incel{white-space:nowrap}
+.svgi{width:1.1em;height:1.1em;vertical-align:-.18em;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
 </style>
 </head>
 <body>
@@ -305,11 +307,11 @@ html[data-map="dark"] #map .shade{mix-blend-mode:screen;opacity:.16} html[data-m
 </div>
 <div class="panel" id="menuPanel" role="dialog" aria-labelledby="menuTitle" hidden>
   <div class="panel-h"><h2 id="menuTitle">All<em>Wine</em></h2><button type="button" class="px" data-close aria-label="Close" data-i18n-aria>✕</button></div>
-  <nav class="pmenu"><a href="./"><span aria-hidden="true">🍷</span><span data-i18n>Your cellar</span></a><a href="burgundy.html"><span aria-hidden="true">🗺</span><span data-i18n>Côte d'Or atlas</span></a><a href="help.html#atlas"><span aria-hidden="true">?</span><span data-i18n>Help and tips</span></a><a href="privacy.html"><span aria-hidden="true">🔏</span><span data-i18n>Privacy</span></a><a href="legal.html"><span aria-hidden="true">§</span><span data-i18n>About & terms</span></a></nav>
+  <nav class="pmenu"><a href="./"><span aria-hidden="true"><svg class="svgi" aria-hidden="true" focusable="false"><use href="icons.svg#bottle"/></svg></span><span data-i18n>Your cellar</span></a><a href="burgundy.html"><span aria-hidden="true"><svg class="svgi" aria-hidden="true" focusable="false"><use href="icons.svg#map"/></svg></span><span data-i18n>Côte d'Or atlas</span></a><a href="help.html#atlas"><span aria-hidden="true">?</span><span data-i18n>Help and tips</span></a><a href="privacy.html"><span aria-hidden="true"><svg class="svgi" aria-hidden="true" focusable="false"><use href="icons.svg#lock"/></svg></span><span data-i18n>Privacy</span></a><a href="legal.html"><span aria-hidden="true">§</span><span data-i18n>About & terms</span></a></nav>
   <div class="mlang" data-langpick></div>
 </div>
 <script src="i18n.js?v=75"></script>
 <script src="europe-lands.js?v=1"></script>
-<script src="atlas.js?v=23"></script>
+<script src="atlas.js?v=24"></script>
 </body>
 </html>
