@@ -53,6 +53,13 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   check("…'Show in the list' opens it there", await p.isHidden("#rackCard") && await p.evaluate(() => { const r = document.querySelector('#tbl tr.main:has(+ tr.detail:not([hidden]))'); return !!r && /Tempier/.test(r.textContent); }));
   await p.click('#wallStats button[data-ready="past"]'); await p.waitForTimeout(400);
   check("a figure under the rack filters the list to those wines", (await p.inputValue("#fReady")) === "past" && await p.evaluate(() => SHOWN.length >= 1 && SHOWN.every(w => readiness(w).k === "past") && SHOWN.some(w => w.producer === "Tempier")));
+  // the "?" answers on the spot when pointed at; the name top left goes back to the cellar from anywhere
+  await p.click("#impBtn"); await p.waitForSelector("#impModal.open"); await p.hover("#impTitle .qhint"); await p.waitForTimeout(200);
+  check("pointing at a ? shows the answer there, with the way to Help", await p.isVisible("#qtip") && /Reads Excel, CSV or text/.test(await p.textContent("#qtip")) && /More in Help/.test(await p.textContent("#qtip")));
+  await p.keyboard.press("Escape"); await p.keyboard.press("Escape");
+  await p.evaluate(() => { location.hash = "journal"; }); await p.waitForTimeout(500); await p.evaluate(() => scrollTo(0, 400));
+  await p.click("#brandHome"); await p.waitForTimeout(700);
+  check("AllWine top left: back to the cellar's first page, at the top", await p.isVisible("#pageCellar") && await p.evaluate(() => !location.hash && scrollY < 5));
   await p.click("#clear"); check("on a wide screen: no phone tabs, no ＋, no ⋯", await p.isHidden("#ptabs") && await p.isHidden("#pFab") && await p.isHidden("#pMore"));
 
   // ── phone ──

@@ -69,7 +69,7 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   check("two glasses: a second bottle opened, 3 glasses left in it (5 to a bottle)", st[0] === 1 && st[1] === 3 && /3 glasses left in the open bottle/.test(await p.textContent(det)), JSON.stringify(st));
   const sp = await p.textContent("#bizPanel");
   check("…the panel: 1 bottle + 2 glasses this week, 900 + 2 × 150 = 1,200 kr. taken, Rousseau the best seller (1.4 bottles)",
-    /1\s*\+ 2 🥂/.test(sp) && /1\.200 kr/.test(sp) && /Best sellers/.test(sp) && /1[.,]4 bottles/.test(sp), sp.slice(sp.indexOf("Sales"), sp.indexOf("Sales") + 400));
+    /1\s*\+ 2 glasses/.test(sp) && /1\.200 kr/.test(sp) && /Best sellers/.test(sp) && /1[.,]4 bottles/.test(sp), sp.slice(sp.indexOf("Sales"), sp.indexOf("Sales") + 400));
   await p.click("#bizCardBtn"); await p.waitForTimeout(400);
   const card = await p.textContent("#bizCard .bz-sheet");
   check("the wine card: what's in stock and priced, with the glass price; the unpriced left off", await p.isVisible("#bizCard") && /Armand Rousseau/.test(card) && /900/.test(card) && /150/.test(card) && !/Leflaive/.test(card) && /Red/.test(card), card.slice(0, 300));

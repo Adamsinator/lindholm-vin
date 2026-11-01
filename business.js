@@ -34,7 +34,7 @@ window.BIZ = (() => {
     let b = $("bizCardBtn");
     if (!b) { b = document.createElement("button"); b.className = "btn"; b.id = "bizCardBtn"; b.type = "button";
       $("addBtn").after(b); b.addEventListener("click", openCard); }
-    b.hidden = !on(); b.textContent = "🧾 " + tr(words().card);
+    b.hidden = !on(); b.textContent = tr(words().card);
     if (!on()) { const p = $("bizPanel"); if (p) p.hidden = true; }
   }
   const cardLabel = () => tr(words().card);
@@ -48,8 +48,8 @@ window.BIZ = (() => {
       ${num("menuPrice", W.sell, w.menuPrice)}
       ${W.glass ? num("glassPrice", "By the glass", w.glassPrice) : ""}
       <label class="bz-f">${esc(tr("Supplier"))}<input class="bz-in" data-f="source" data-row="${w.row}" list="bzSup" value="${esc(w.source)}" placeholder="—"></label>
-      <span class="bz-sell">${w.left > 0 || w.openGlasses > 0 ? `<button type="button" class="btn primary" data-sell="bottle" data-row="${w.row}"${w.left > 0 ? "" : " disabled"}>💶 ${esc(tr("Sold a bottle"))}</button>` : ""}
-        ${W.glass && (w.left > 0 || w.openGlasses > 0) ? `<button type="button" class="btn" data-sell="glass" data-row="${w.row}">🥂 ${esc(tr("Sold a glass"))}</button>` : ""}
+      <span class="bz-sell">${w.left > 0 || w.openGlasses > 0 ? `<button type="button" class="btn primary" data-sell="bottle" data-row="${w.row}"${w.left > 0 ? "" : " disabled"}>${esc(tr("Sold a bottle"))}</button>` : ""}
+        ${W.glass && (w.left > 0 || w.openGlasses > 0) ? `<button type="button" class="btn" data-sell="glass" data-row="${w.row}">${esc(tr("Sold a glass"))}</button>` : ""}
         ${w.openGlasses > 0 ? `<span class="note">${esc(tr("{0} glasses left in the open bottle", w.openGlasses))}</span>` : ""}</span>
       <span class="bz-m">${m ? esc(tr("Margin {0} ({1} a bottle, VAT excluded) · mark-up {2}", pct(m.pct), kr(Math.round(m.gross)), times(m.x)))
         : esc(tr(w.price > 0 ? "Set a price to see the margin" : "Add the cost price to see the margin"))}</span>
@@ -115,7 +115,7 @@ window.BIZ = (() => {
     const n1 = x => x.toLocaleString(window.I18N ? I18N.lang : "en", { maximumFractionDigits: 1 });
     return `<h3>${esc(tr("Sales"))}</h3>
       <div class="bz-ks">
-        <div class="bz-k"><b>${esc(fmt(nB))}${KIND === "restaurant" ? ` <small>+ ${esc(fmt(nG))} 🥂</small>` : ""}</b><span>${esc(tr(KIND === "restaurant" ? "Bottles and glasses sold, last 7 days" : "Bottles sold, last 7 days"))}</span></div>
+        <div class="bz-k"><b>${esc(fmt(nB))}${KIND === "restaurant" ? ` <small>+ ${esc(fmt(nG))} ${esc(tr("glasses"))}</small>` : ""}</b><span>${esc(tr(KIND === "restaurant" ? "Bottles and glasses sold, last 7 days" : "Bottles sold, last 7 days"))}</span></div>
         <div class="bz-k"><b>${SHOW_PRICES ? esc(kr(Math.round(money(wk)))) : "···"}</b><span>${esc(tr("Sales, last 7 days, VAT included"))}</span></div>
       </div>
       <div class="bz-wk" role="img" aria-label="${esc(tr("Bottles sold a week, the last eight weeks"))}">${weeks.map((l, i) => { const n = l.reduce((t, s) => t + eq(s), 0);
@@ -161,7 +161,7 @@ window.BIZ = (() => {
       ${KIND !== "winemaker" ? salesHTML(cellar) : ""}
       ${sups.length ? `<h3>${esc(tr("Suppliers"))}</h3><ul class="bz-sup">${sups.map(([k, n]) => `<li><span>${esc(k)}</span><b>${esc(btl(fmt(n)))}</b></li>`).join("")}</ul>` : ""}
       ${own}
-      <p class="bz-foot"><button type="button" class="btn" data-bz="card">🧾 ${esc(tr(W.card))}</button> <span class="note">${esc(tr("Prices include VAT (moms 25 %); the margin is worked out without it."))}</span></p>`;
+      <p class="bz-foot"><button type="button" class="btn" data-bz="card">${esc(tr(W.card))}</button> <span class="note">${esc(tr("Prices include VAT (moms 25 %); the margin is worked out without it."))}</span></p>`;
     p.querySelector('[data-bz="card"]').onclick = openCard;
     const g = $("bzGlasses"); if (g) g.onchange = () => { setPerBottle(Number(g.value)); overview(WINES.filter(w => w.left > 0)); };
     const d = $("bzDom"); if (d) d.onchange = () => { setDomaine(d.value.trim()); overview(WINES.filter(w => w.left > 0)); };
@@ -184,7 +184,7 @@ window.BIZ = (() => {
       .map(s => [s, list.filter(w => w.style === s).sort((a, b) => (a.country || "").localeCompare(b.country || "") || (a.region || "").localeCompare(b.region || "")
         || a.producer.localeCompare(b.producer) || (a.vintage || 0) - (b.vintage || 0))]).filter(g => g[1].length);
     const title = localStorage.getItem(titleKey()) || tr(W.card);
-    c.innerHTML = `<div class="bz-bar"><button type="button" class="btn primary" data-bz="print">🖨 ${esc(tr("Print or save as PDF"))}</button>
+    c.innerHTML = `<div class="bz-bar"><button type="button" class="btn primary" data-bz="print">${esc(tr("Print or save as PDF"))}</button>
         <button type="button" class="btn" data-bz="close">${esc(tr("Close"))}</button>
         <span class="note">${esc(tr(list.length === 1 ? "1 wine: in stock and priced. Click the title to change it." : "{0} wines: in stock and priced. Click the title to change it.", fmt(list.length)))}</span></div>
       <article class="bz-sheet">

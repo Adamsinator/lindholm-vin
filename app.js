@@ -691,14 +691,11 @@ function renderRack(cellar){
   const order = {past:0, soon:1, now:2, none:3, young:4};
   const flat = cellar.slice().sort((a,b)=>order[rackKey(a)]-order[rackKey(b)] || (a.drinkTo??drinkWindow(a)?.to??9999)-(b.drinkTo??drinkWindow(b)?.to??9999))
     .flatMap(w=>Array.from({length:w.left}, ()=>w));
-  // a big cellar: one drawn bottle stands for a case (6, or 12 past a thousand), so the rack keeps its proportions
-  // instead of saying "+ 1,960 more"; each stands for the most pressing wine in it, its colour the case's commonest
-  const unit = bottles > 1000 ? 12 : bottles > 150 ? 6 : 1;
-  RACK_CASES = [];
-  for(let i=0; i<flat.length; i+=unit) RACK_CASES.push(flat.slice(i, i+unit));
-  const all = RACK_CASES.map(c=>{ if(unit===1) return c[0];
-    const n = {}; c.forEach(w=>n[w.style]=(n[w.style]||0)+1); const st = Object.keys(n).sort((a,b)=>n[b]-n[a])[0];
-    return Object.assign(Object.create(c[0]), {style: st}); });
+  // a big cellar: one drawn bottle per WINE, with how many bottles of it on the bottle ("×6"), so a tap is always that
+  // one wine; a small cellar keeps a drawn bottle per bottle. (Mixing several wines in one drawn bottle read as random.)
+  const perWine = bottles > 150;
+  RACK_CASES = perWine ? [...new Map(flat.map(w=>[w.row, w])).values()].map(w=>Array.from({length:w.left}, ()=>w)) : flat.map(w=>[w]);
+  const all = RACK_CASES.map(c=>c[0]);
   const R = $("rack"), width = R.clientWidth || 320, cols = Math.max(4, Math.floor((width - 20 + 6) / (52 + 6)));
   // a few bottles over the rows aren't worth a "more" button: they're shown
   const rows = matchMedia("(max-width:700px)").matches ? 7 : 5, room = all.length <= cols*(rows+1) ? all.length : cols*rows, cap = RACK_ALL ? all.length : room;
@@ -708,15 +705,15 @@ function renderRack(cellar){
   let html = "";
   for(let i=0; i<slots; i++){ const w = shown[i];
     if(!w){ html += `<span class="btl slot">${BOTTLE_SVG}</span>`; continue; }
-    const k = rackKey(w), others = new Set(RACK_CASES[i].map(x=>x.row)).size - 1, r = readiness(w);
-    const nm = `${unit>1 ? tr("{0} bottles", fmt(RACK_CASES[i].length)) + ": " : ""}${w.producer}${w.name?" · "+w.name:""}${typeof w.vintage==="number"?" "+w.vintage:""}${others ? " " + tr("+ {0} other wines", fmt(others)) : ""}`;
-    html += `<button type="button" class="btl ${k}" data-row="${w.row}" data-case="${i}" style="--c:${RACK_COL[w.style]||"var(--b-red)"};animation-delay:${motion?Math.min(i,60)*18:0}ms" title="${esc(nm)}" aria-label="${esc(nm+(r?" — "+r.label:""))}">${BOTTLE_SVG}</button>`; }
+    const k = rackKey(w), n = RACK_CASES[i].length, r = readiness(w);
+    const nm = `${w.producer}${w.name?" · "+w.name:""}${typeof w.vintage==="number"?" "+w.vintage:""}${perWine && n>1 ? " · "+btl(fmt(n)) : ""}`;
+    html += `<button type="button" class="btl ${k}" data-row="${w.row}" data-case="${i}" style="--c:${RACK_COL[w.style]||"var(--b-red)"};animation-delay:${motion?Math.min(i,60)*18:0}ms" title="${esc(nm)}" aria-label="${esc(nm+(r?" — "+r.label:""))}">${BOTTLE_SVG}${perWine && n>1 ? `<b class="cnt" aria-hidden="true">×${n}</b>` : ""}</button>`; }
   R.innerHTML = html;
   const more = $("rackMore"); more.hidden = room >= all.length;
   more.textContent = RACK_ALL ? tr("Show fewer") : tr("+ {0} more bottles", fmt(RACK_CASES.slice(cap).reduce((n,c)=>n+c.length,0)));
-  $("rackUnit").hidden = unit===1; $("rackUnit").textContent = tr("Each bottle drawn = {0} bottles", unit);
+  $("rackUnit").hidden = !perWine; $("rackUnit").textContent = tr("A big cellar: each drawn bottle is one wine, the number how many bottles of it");
   // and, in a big cellar, the regions as shelves: each as long as its share of the bottles; a tap filters the list
-  const regs = {}; if(unit>1) cellar.forEach(w=>{ const k = w.region || w.country || tr("Other"); regs[k] = (regs[k]||0) + w.left; });
+  const regs = {}; if(perWine) cellar.forEach(w=>{ const k = w.region || w.country || tr("Other"); regs[k] = (regs[k]||0) + w.left; });
   const top = Object.entries(regs).sort((a,b)=>b[1]-a[1]).slice(0, 6);
   $("rackShelves").hidden = !top.length;
   $("rackShelves").innerHTML = top.map(([k,n])=>`<button type="button" data-region="${esc(k)}"><span class="sh-l">${esc(k)}</span><span class="sh-t"><i style="width:${Math.max(2, n/top[0][1]*100).toFixed(1)}%"></i></span><b>${fmt(n)}</b></button>`).join("");
@@ -746,8 +743,6 @@ function rackCard(w, b){
     <b class="rc-p">${esc(w.producer)}</b>
     <span class="rc-w">${esc([w.name, typeof w.vintage==="number" ? w.vintage : (w.vintage||"NV")].filter(Boolean).join(" · "))}</span>
     <span class="rc-m">${esc([where, win ? `${win.from??"?"}–${win.to??"?"}` : "", btl(fmt(w.left)), SHOW_PRICES && w.price ? kr(w.price) : ""].filter(Boolean).join(" · "))}</span>
-    ${(()=>{ const c = RACK_CASES[Number(b.dataset.case)] || [], o = [...new Map(c.filter(x=>x.row!==w.row).map(x=>[x.row,x])).values()];
-      return c.length > 1 ? `<span class="rc-c">${esc(tr("This bottle stands for {0}:", btl(fmt(c.length))))} ${esc([w, ...o].slice(0,4).map(x=>x.producer + (typeof x.vintage==="number" ? " " + x.vintage : "")).join(", "))}${o.length > 3 ? " " + esc(tr("+ {0} other wines", fmt(o.length - 3))) : ""}</span>` : ""; })()}
     <span class="rc-a"><button type="button" class="btn primary" data-rc="drink">🍷 ${esc(tr("Drink a bottle"))}</button><button type="button" class="btn" data-rc="list">${esc(tr("Show in the list"))}</button></span>`;
   card.hidden = false;
   // by the bottle, inside the rack's panel: under it, or over it when there's no room below
@@ -975,7 +970,7 @@ function loadKind(){
 function setKindLocal(k){
   KIND = k; document.documentElement.dataset.kind = k; $("acctKind").value = k;
   try{ localStorage.setItem(kindKey(), k); }catch(e){}
-  if(k!=="private" && !window.BIZ){ const s = document.createElement("script"); s.src = "business.js?v=2";
+  if(k!=="private" && !window.BIZ){ const s = document.createElement("script"); s.src = "business.js?v=3";
     s.onload = ()=>{ if(WINES.length){ renderOverview(); renderTable(); } }; document.head.appendChild(s); }
   else if(window.BIZ) BIZ.apply();
 }
@@ -989,6 +984,39 @@ async function setKind(k){
   toast(tr("Saved: {0}", $("acctKind").selectedOptions[0].textContent));
 }
 $("acctKind").addEventListener("change", e=>setKind(e.target.value));
+/* The "?" next to a feature: pointing at it (or focusing it, or a tap on a phone) shows a short answer on the spot; the
+   whole page in Help is a click away (on a phone: the link in the bubble). */
+const QHELP = {
+  windows: "The years to drink the wine in. Type your own, or keep the estimate (≈) from the region, style and vintage. An amber capsule in the rack means the window closes soon.",
+  tidy: "Finds spelling variants, odd capitals and duplicates in your cellar and suggests fixes. Nothing changes until you accept a fix.",
+  export: "Saves your cellar as an Excel or CSV file, made in this browser. The file isn't encrypted, so keep it somewhere safe.",
+  share: "Makes a read-only link to a list of your wines for a friend or a guest. You choose what's on it and can stop the link at any time.",
+  import: "Reads Excel, CSV or text, also from CellarTracker or Vivino. You check the columns and the wines before anything is added.",
+};
+function qtip(a){
+  const key = (a.getAttribute("href")||"").split("#")[1], txt = QHELP[key]; if(!txt) return null;
+  let t = $("qtip"); if(!t){ t = document.createElement("div"); t.id = "qtip"; t.setAttribute("role", "tooltip"); document.body.appendChild(t); }
+  t.innerHTML = `<span>${esc(tr(txt))}</span> <a href="${esc(a.getAttribute("href"))}" target="_blank" rel="noopener">${esc(tr("More in Help ↗"))}</a>`;
+  t.hidden = false; a.setAttribute("aria-describedby", "qtip");
+  const r = a.getBoundingClientRect(), w = Math.min(300, innerWidth - 24); t.style.width = w + "px";
+  t.style.left = Math.max(12, Math.min(r.left + r.width/2 - w/2, innerWidth - w - 12)) + "px";
+  const below = r.bottom + 8, h = t.offsetHeight; t.style.top = (below + h > innerHeight - 8 ? r.top - h - 8 : below) + "px";
+  return t;
+}
+const qhide = () => { const t = $("qtip"); if(t) t.hidden = true; };
+document.addEventListener("pointerover", e=>{ const a = e.target.closest && e.target.closest(".qhint"); if(a && e.pointerType !== "touch") qtip(a); });
+document.addEventListener("pointerout", e=>{ const a = e.target.closest && e.target.closest(".qhint"); if(a && !(e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest("#qtip"))) qhide(); });
+document.addEventListener("focusin", e=>{ const a = e.target.closest && e.target.closest(".qhint"); if(a) qtip(a); else if(!(e.target.closest && e.target.closest("#qtip"))) qhide(); });
+// a phone has no hover: the first tap shows the answer, the link inside it opens Help
+document.addEventListener("click", e=>{ const a = e.target.closest && e.target.closest(".qhint"); if(!a) { if(!(e.target.closest && e.target.closest("#qtip"))) qhide(); return; }
+  if(matchMedia("(hover: none)").matches){ const t = $("qtip"); if(!t || t.hidden || a.getAttribute("aria-describedby")!=="qtip"){ e.preventDefault(); qtip(a); } } });
+document.addEventListener("keydown", e=>{ if(e.key==="Escape") qhide(); });
+addEventListener("scroll", qhide, {passive:true});
+
+// the name top left: back to the cellar's first page from anywhere in the app (a tab, a sheet, a dialog, scrolled down)
+$("brandHome").addEventListener("click", e=>{ if(e.metaKey || e.ctrlKey || e.shiftKey || e.button) return; e.preventDefault();
+  document.querySelectorAll(".modal.open").forEach(m=>m.classList.remove("open")); closeSheets();
+  if(location.hash) location.hash = ""; scrollTo({top:0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"}); });
 // leaving the page before the save: send it now
 document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="hidden" && layoutT) saveLayout(); });
 function renderCustom(id){
@@ -1877,27 +1905,46 @@ let DELETED = [];
 async function refreshDeleted(){
   try{ const r = await api({action:"deleted"}); DELETED = r.deleted || []; }
   catch(e){ DELETED = []; } // a server from before this keeps nothing: no button
-  const b = $("delBtn"); b.hidden = !DELETED.length; b.textContent = "↩ " + tr("Recently deleted ({0})", DELETED.length);
+  delBtnText();
   if($("delModal").classList.contains("open")) renderDeleted();
 }
+const delBtnText = () => { const b = $("delBtn"); b.hidden = !DELETED.length; b.textContent = "🗑 " + tr("Trash ({0})", DELETED.length); };
 function renderDeleted(){
   const fmtAt = at => { const d = new Date(at); return isNaN(d) ? "" : d.toLocaleDateString(I18N.lang==="en"?"en-GB":I18N.lang, {day:"numeric", month:"short"}); };
   $("delList").innerHTML = DELETED.length ? DELETED.map(d => `<div class="jcheck"><span><b>${esc(d.producer)}</b> ${esc([d.name, d.vintage].filter(Boolean).join(" "))}
       <span class="aimeta">${esc(tr("deleted {0}", fmtAt(d.at)))}${Number(d.qty) ? " · " + esc(btl(fmt(Math.max(0, Number(d.qty) - (Number(d.drunk) || 0))))) : ""}</span></span>
-      <button class="btn" type="button" data-undel="${esc(d.id)}">${esc(tr("Restore"))}</button></div>`).join("")
-    : `<p class="imphint">${esc(tr("Nothing deleted in the last 30 days."))}</p>`;
+      <span class="delacts"><button class="btn" type="button" data-undel="${esc(d.id)}">${esc(tr("Restore"))}</button>
+      <button class="btn quiet danger" type="button" data-purge="${esc(d.id)}" title="${esc(tr("Delete for good"))}" aria-label="${esc(tr("Delete {0} for good", d.producer))}">🗑</button></span></div>`).join("")
+    : `<p class="imphint">${esc(tr("The trash is empty."))}</p>`;
+  $("delEmpty").hidden = !DELETED.length;
 }
 $("delBtn").addEventListener("click", ()=>{ $("delErr").textContent = ""; renderDeleted(); $("delModal").classList.add("open"); });
 $("delClose").addEventListener("click", ()=>$("delModal").classList.remove("open"));
 $("delModal").addEventListener("click", async e=>{
   if(e.target===$("delModal")) return $("delModal").classList.remove("open");
+  const pb = e.target.closest("[data-purge]");
+  if(pb){ const d = DELETED.find(x=>x.id===pb.dataset.purge);
+    if(!(await ask(tr("Delete {0} for good? It can't be restored after this.", d ? [d.producer, d.name, d.vintage].filter(Boolean).join(" ") : ""), {ok:tr("Delete for good"), danger:true}))) return;
+    pb.disabled = true; $("delErr").textContent = "";
+    try{ const r = await api({action:"purge", id:pb.dataset.purge}); DELETED = r.deleted || []; renderDeleted(); delBtnText(); toast(tr("Deleted for good")); }
+    catch(err){ $("delErr").textContent = tr("Could not delete: {0}", errText(err)); pb.disabled = false; }
+    return; }
   const b = e.target.closest("[data-undel]"); if(!b) return;
   b.disabled = true; $("delErr").textContent = "";
   try{ const r = await api({action:"undelete", id:b.dataset.undel});
     WINES = normalize(r.wines); DELETED = r.deleted || [];
     renderOverview(); renderTable(); renderEnjoyed(); renderDeleted(); toast(tr("Restored to your cellar"));
-    $("delBtn").hidden = !DELETED.length; $("delBtn").textContent = "↩ " + tr("Recently deleted ({0})", DELETED.length);
+    delBtnText();
   }catch(err){ $("delErr").textContent = tr("Could not restore: {0}", errText(err)); b.disabled = false; }
+});
+// Empty the trash: everything in it, for good, after a question that names how many
+$("delEmpty").addEventListener("click", async ()=>{
+  if(!DELETED.length) return;
+  if(!(await ask(tr("Empty the trash? {0} wines will be deleted for good and can't be restored.", DELETED.length), {ok:tr("Empty the trash"), danger:true}))) return;
+  $("delEmpty").disabled = true; $("delErr").textContent = "";
+  try{ const r = await api({action:"purge", id:"all"}); DELETED = r.deleted || []; renderDeleted(); delBtnText(); toast(tr("The trash is empty")); }
+  catch(err){ $("delErr").textContent = tr("Could not delete: {0}", errText(err)); }
+  $("delEmpty").disabled = false;
 });
 // Escape closes the photo lightbox or the topmost open dialog, like their Cancel / backdrop clicks.
 document.addEventListener("keydown", e=>{
@@ -2454,9 +2501,9 @@ function closeSheets(){ $("moreSheet").classList.remove("open"); $("meSheet").cl
   closeSheets(); setTimeout(()=>$(b.dataset.press).click(), 60); }));
 ["moreSheet","meSheet"].forEach(id=>$(id).addEventListener("click", e=>{ if(e.target===$(id)) closeSheets(); }));
 $("pMore").addEventListener("click", ()=>{
-  sheetMenu("moreMenu", [isBiz() ? ["🧾", BIZ.cardLabel(), "bizCardBtn"] : null, ["⬆", tr("Import a list"), "impBtn"], ["⬇", tr("Export"), "expBtn"], ["🔗", tr("Share a list"), "lsBtn"], ["🧹", tr("Tidy up"), "tidyBtn"],
+  sheetMenu("moreMenu", [isBiz() ? ["▤", BIZ.cardLabel(), "bizCardBtn"] : null, ["⬆", tr("Import a list"), "impBtn"], ["⬇", tr("Export"), "expBtn"], ["🔗", tr("Share a list"), "lsBtn"], ["🧹", tr("Tidy up"), "tidyBtn"],
     ["🎲", tr("Pick tonight's bottle"), "tonightBtn"], ["👁", $("priceBtn").textContent, "priceBtn"],
-    $("delBtn").hidden ? null : ["↩", $("delBtn").textContent.replace(/^↩\s*/, ""), "delBtn"], ["↻", tr("Refresh"), "refreshBtn", $("stamp").textContent]]);
+    $("delBtn").hidden ? null : ["🗑", $("delBtn").textContent.replace(/^🗑\s*/, ""), "delBtn"], ["↻", tr("Refresh"), "refreshBtn", $("stamp").textContent]]);
   $("moreSheet").classList.add("open");
 });
 $("pMe").addEventListener("click", ()=>{

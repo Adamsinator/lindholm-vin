@@ -273,12 +273,14 @@ function drawGeol() {
   TG.geol.style.display = st.geol ? "" : "none";
 }
 // BRGM's notation (γ for granite, j8 for the Kimmeridgian…) and its own description, which is in French
-const geolLabel = (G, k) => { const [n, d] = G.legend[k]; return (n ? `<b>${esc(n)}</b> ` : "") + esc(d); };
+// BRGM's description is French: a short translated label (geol-gloss.js), the French original on hover
+const geolText = d => window.GEOL_TR ? GEOL_TR(d, window.I18N ? I18N.lang : "en") : d;
+const geolLabel = (G, k) => { const [n, d] = G.legend[k], g = geolText(d); return (n ? `<b>${esc(n)}</b> ` : "") + (g !== d ? `<span title="${esc(d)}">${esc(g)}</span>` : esc(d)); };
 const geolSw = (G, k) => `<span class="cls" style="background:${G.legend[k][2]}"></span>`;
 function geolHtml(c) {
   const G = geolOf(), u = G && G.under[c.id]; if (!u) return "";
   return `<h3>${esc(t("Geology"))}</h3><table class="own geolt">${u.map(([k, p]) => `<tr><td>${geolSw(G, k)}${geolLabel(G, k)}</td><td class="n">${p}%</td></tr>`).join("")}</table>
-    <p class="note">${esc(t("Share of the vineyard's area on each formation of BRGM's 1:50 000 geological map; scree, colluvium and river terraces are mapped over the bedrock where they are thick."))}${window.I18N && I18N.lang !== "fr" ? " " + esc(t("BRGM's descriptions, in French.")) : ""}</p>`;
+    <p class="note">${esc(t("Share of the vineyard's area on each formation of BRGM's 1:50 000 geological map; scree, colluvium and river terraces are mapped over the bedrock where they are thick."))}${window.I18N && I18N.lang !== "fr" ? " " + esc(t("BRGM's descriptions are in French: shown here shortened and translated; point at one for the original.")) : ""}</p>`;
 }
 // zoom limits: no closer than 150 m across, no further out than three times the region
 const MIN_W = 150, maxW = () => st.pack ? (st.pack.meta.bb[2] - st.pack.meta.bb[0]) * 3 : Infinity;
@@ -693,7 +695,7 @@ function addFromAtlas(c, R) {
 /* ---------- your bottles ---------- */
 const apiUrl = () => (window.WINE_CONFIG && window.WINE_CONFIG.API_URL) || localStorage.getItem("vinApi") || "";
 async function vaultData(api, user, token) {
-  for (const f of ["gas-fake.js?v=7", "vault-crypto.js?v=3", "vault-engine.js?v=1", "vault.js?v=23"]) await loadScript(f);
+  for (const f of ["gas-fake.js?v=7", "vault-crypto.js?v=3", "vault-engine.js?v=1", "vault.js?v=24"]) await loadScript(f);
   const dek = await window.VCRYPTO.recall(user); if (!dek) throw new Error("token");
   const post = async p => (await fetch(api, { method: "POST", body: JSON.stringify(p), redirect: "follow" })).json();
   await window.VAULT.start({ post, user, token, dek });
