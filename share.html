@@ -34,12 +34,13 @@ a{color:var(--accent)}
 /* a phone: one card per wine instead of columns */
 @media (max-width:640px){ thead{display:none} table,tbody,tr,td{display:block;width:100%} tr{border-bottom:1px solid var(--line);padding:8px 0}
   td{border:0;padding:2px 12px} td.n{text-align:left} td:empty{display:none} td[data-l]::before{content:attr(data-l) ": ";color:var(--muted);font-size:13px} }
+.brandmark{width:.95em;height:.95em;vertical-align:-.12em;margin-right:.28em;border-radius:22%}
 </style>
 </head>
 <body>
 <div class="wrap">
 <header>
-  <a class="brand" href="./">All<em>Wine</em></a>
+  <a class="brand" href="./"><img class="brandmark" src="logo.svg" alt="" width="34" height="34">All<em>Wine</em></a>
   <div data-langpick></div>
 </header>
 <main id="main" aria-live="polite"><p class="meta" data-i18n>Opening the list…</p></main>
@@ -47,7 +48,7 @@ a{color:var(--accent)}
 <p class="note" data-i18n>Shared read-only from a private AllWine cellar. The list is encrypted, and only a link like this one opens it: AllWine itself can't read it.</p>
 </div>
 <script src="config.js?v=9"></script>
-<script src="i18n.js?v=75"></script>
+<script src="i18n.js?v=76"></script>
 <script src="site-info.js?v=1"></script>
 <script src="site-foot.js?v=1"></script>
 <script src="share-crypto.js?v=1"></script>
