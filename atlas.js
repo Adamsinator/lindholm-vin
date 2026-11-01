@@ -693,7 +693,7 @@ function addFromAtlas(c, R) {
 /* ---------- your bottles ---------- */
 const apiUrl = () => (window.WINE_CONFIG && window.WINE_CONFIG.API_URL) || localStorage.getItem("vinApi") || "";
 async function vaultData(api, user, token) {
-  for (const f of ["gas-fake.js?v=7", "vault-crypto.js?v=3", "vault-engine.js?v=1", "vault.js?v=22"]) await loadScript(f);
+  for (const f of ["gas-fake.js?v=7", "vault-crypto.js?v=3", "vault-engine.js?v=1", "vault.js?v=23"]) await loadScript(f);
   const dek = await window.VCRYPTO.recall(user); if (!dek) throw new Error("token");
   const post = async p => (await fetch(api, { method: "POST", body: JSON.stringify(p), redirect: "follow" })).json();
   await window.VAULT.start({ post, user, token, dek });

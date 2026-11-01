@@ -42,7 +42,7 @@ function setting(key) {
 // The legacy code only works once you've set a real one: the placeholder from the template is public.
 function accessCode() { const c = setting('ACCESS_CODE'); return c === 'CHANGE-ME' ? '' : c; }
 
-const API_VERSION = 45; // returned in every response; used to verify deployments
+const API_VERSION = 46; // returned in every response; used to verify deployments
 
 // Per-request spreadsheet for the authenticated user. Set in handle(); every
 // sheet helper reads it via ss(). Falls back to the bound (owner's) spreadsheet.
@@ -117,6 +117,58 @@ function bizValue(f, v) {
   if (BIZ_NUM.indexOf(f) === -1) return plainText(v);
   const n = Number(String(v).replace(',', '.')); if (!isFinite(n) || n < 0) throw new Error('Bad price');
   return Math.round(n * 100) / 100;
+}
+// What a business sold (business.js, "Sold"): one row per sale in a "Salg" tab, a bottle or a glass. A bottle sold
+// leaves the stock as a bottle drunk does; a glass opens a bottle when none is open, and the wine's "Åbne glas" column
+// counts the glasses still in it, so the stock goes down by the bottle, never by the glass. In an encrypted cellar the
+// tab is one more encrypted tab of the vault.
+const SALES_SHEET = 'Salg', OPEN_HEADER = 'Åbne glas', SALES_DAYS = 400;
+const SALES_HEAD = ['Dato', 'Id', 'Række', 'Producent', 'Vin', 'Årgang', 'Enhed', 'Pris', 'Åbnede flaske'];
+function salesSheet(create) {
+  const book = ss(); let sh = book.getSheetByName(SALES_SHEET);
+  if (!sh && create) { sh = book.insertSheet(SALES_SHEET); sh.appendRow(SALES_HEAD); }
+  return sh;
+}
+function sellOne(rowNum, unit, perBottle) {
+  if (unit !== 'bottle' && unit !== 'glass') throw new Error('Bad unit');
+  const sh = sheet(), glass = unit === 'glass';
+  if (glass) ensureCol(sh, OPEN_HEADER);
+  if (!rowNum || rowNum < 2 || rowNum > sh.getLastRow()) throw new Error('Bad row');
+  const idx = colIndexes(sh), r = sh.getRange(rowNum, 1, 1, sh.getLastColumn()).getValues()[0];
+  const qty = Number(r[idx.qty]) || 1, drunk = String(r[idx.drunk]).trim().toLowerCase() === 'x' ? qty : Number(r[idx.drunk]) || 0;
+  const open = glass ? Number(r[idx.openGlasses]) || 0 : 0;
+  let opened = 0;
+  if (glass && open > 0) sh.getRange(rowNum, idx.openGlasses + 1).setValue(open - 1 || '');
+  else {
+    if (drunk >= qty) throw new Error('None left');
+    markDrunk(rowNum, 1); opened = 1;
+    if (glass) sh.getRange(rowNum, idx.openGlasses + 1).setValue(Math.max(2, Math.min(12, Math.round(perBottle) || 5)) - 1);
+  }
+  const price = glass ? (idx.glassPrice >= 0 ? r[idx.glassPrice] : '') : (idx.menuPrice >= 0 ? r[idx.menuPrice] : '');
+  const id = Utilities.getUuid();
+  salesSheet(true).appendRow([today(), id, rowNum, r[idx.producer], r[idx.name], r[idx.vintage], glass ? 'glas' : 'flaske', price === '' || price == null ? '' : Number(price) || '', opened]);
+  return id;
+}
+// Undo a sale (straight after it, from the bar that says it was sold): the bottle or the glass goes back
+function unsell(id) {
+  const ssh = salesSheet(false); if (!ssh || ssh.getLastRow() < 2 || !id) throw new Error('Sale not found');
+  const rows = ssh.getRange(2, 1, ssh.getLastRow() - 1, SALES_HEAD.length).getValues(), i = rows.findIndex(r => String(r[1]) === id);
+  if (i < 0) throw new Error('Sale not found');
+  const [, , rowNum, producer, , , unit, , opened] = rows[i], sh = sheet(), idx = colIndexes(sh);
+  if (rowNum >= 2 && rowNum <= sh.getLastRow() && String(sh.getRange(rowNum, idx.producer + 1).getValue()) === String(producer)) {
+    if (Number(opened)) markDrunk(Number(rowNum), -1);
+    if (unit === 'glas' && idx.openGlasses >= 0) { const c = sh.getRange(rowNum, idx.openGlasses + 1);
+      c.setValue(Number(opened) ? '' : (Number(c.getValue()) || 0) + 1); }
+  }
+  ssh.deleteRow(i + 2);
+}
+// the last SALES_DAYS days' sales, oldest first
+function readSales() {
+  const sh = salesSheet(false); if (!sh || sh.getLastRow() < 2) return [];
+  const from = ymd(new Date(Date.now() - SALES_DAYS * 864e5));
+  return sh.getRange(2, 1, sh.getLastRow() - 1, SALES_HEAD.length).getValues().map(r => ({ date: ymd(r[0]) || String(r[0]).slice(0, 10), id: String(r[1]), row: Number(r[2]) || 0,
+    producer: String(r[3]), name: String(r[4]), vintage: r[5] instanceof Date ? r[5].getFullYear() : r[5], unit: r[6] === 'glas' ? 'glass' : 'bottle', price: r[7] === '' ? null : Number(r[7]) }))
+    .filter(s => s.date >= from);
 }
 function ensureBiz(sh, fields) { Object.keys(BIZ_HEADERS).forEach(f => { if (fields.some(x => x && f in x && String(x[f] == null ? '' : x[f]).trim() !== '')) ensureCol(sh, BIZ_HEADERS[f]); }); }
 
@@ -208,6 +260,13 @@ function handle(p) {
       case 'undrink':
         markDrunk(Number(p.row), -(Number(p.qty) || 1));
         return json({ ok: true, wines: readAll() });
+      case 'sell': { const id = sellOne(Number(p.row), String(p.unit || ''), Number(p.per));
+        return json({ ok: true, wines: readAll(), id: id, sales: readSales() }); }
+      case 'unsell':
+        unsell(String(p.id || ''));
+        return json({ ok: true, wines: readAll(), sales: readSales() });
+      case 'sales':
+        return json({ ok: true, sales: readSales() });
       case 'delete':
         deleteWine(Number(p.row));
         return json({ ok: true, wines: readAll() });
@@ -1387,6 +1446,7 @@ function colIndexes(sh) {
   idx.elsewhere = head.indexOf(ELSEWHERE_HEADER);
   idx.location  = head.indexOf(LOCATION_HEADER);
   for (const f of Object.keys(BIZ_HEADERS)) idx[f] = head.indexOf(BIZ_HEADERS[f]);
+  idx.openGlasses = head.indexOf(OPEN_HEADER);
   return idx;
 }
 
@@ -1414,6 +1474,7 @@ function readAll() {
     w.drinkTo   = idx.drinkTo   >= 0 ? (r[idx.drinkTo]   === null || r[idx.drinkTo]   === undefined ? '' : r[idx.drinkTo])   : '';
     w.elsewhere = idx.elsewhere >= 0 && String(r[idx.elsewhere]).trim() !== '' && String(r[idx.elsewhere]).trim() !== '0';
     w.location = idx.location >= 0 ? String(r[idx.location] === null || r[idx.location] === undefined ? '' : r[idx.location]).trim() : '';
+    w.openGlasses = idx.openGlasses >= 0 ? Number(r[idx.openGlasses]) || 0 : 0;
     for (const f of Object.keys(BIZ_HEADERS)) { const v = idx[f] >= 0 ? r[idx[f]] : ''; w[f] = v === null || v === undefined ? '' : (BIZ_NUM.indexOf(f) >= 0 || typeof v !== 'string' ? v : v.trim()); }
     wines.push(w);
   });

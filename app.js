@@ -240,6 +240,7 @@ function normalize(rows){
       // a business account's columns (business.js): the price on the card or price list, and by the glass
       menuPrice: (r.menuPrice===null||r.menuPrice===""||r.menuPrice===undefined) ? null : Number(r.menuPrice),
       glassPrice: (r.glassPrice===null||r.glassPrice===""||r.glassPrice===undefined) ? null : Number(r.glassPrice),
+      openGlasses: Number(r.openGlasses)||0, // glasses still in an opened bottle (a restaurant's "Sold a glass")
     };
   });
 }
@@ -974,7 +975,7 @@ function loadKind(){
 function setKindLocal(k){
   KIND = k; document.documentElement.dataset.kind = k; $("acctKind").value = k;
   try{ localStorage.setItem(kindKey(), k); }catch(e){}
-  if(k!=="private" && !window.BIZ){ const s = document.createElement("script"); s.src = "business.js?v=1";
+  if(k!=="private" && !window.BIZ){ const s = document.createElement("script"); s.src = "business.js?v=2";
     s.onload = ()=>{ if(WINES.length){ renderOverview(); renderTable(); } }; document.head.appendChild(s); }
   else if(window.BIZ) BIZ.apply();
 }
@@ -982,7 +983,9 @@ async function setKind(k){
   if(!KINDS.includes(k)) return;
   setKindLocal(k);
   if(window.VAULT && VAULT.active()) await savePrefs({kind:k}).catch(()=>{});
-  if(WINES.length){ renderOverview(); renderTable(); }
+  // an open wine is drawn again with the new kind's fields
+  const open = document.querySelector('#tbl tr.main[aria-expanded="true"]'); if(open) KEEP_OPEN = Number(open.dataset.row);
+  if(WINES.length){ renderOverview(); renderTable(); renderEnjoyed(); }
   toast(tr("Saved: {0}", $("acctKind").selectedOptions[0].textContent));
 }
 $("acctKind").addEventListener("change", e=>setKind(e.target.value));

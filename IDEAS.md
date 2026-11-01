@@ -10,8 +10,8 @@ sees it), the margin without VAT and the mark-up, the stock at cost and at sale 
 field), and a printable wine card or price list of what's in stock and priced. A winemaker names its domaine and sees its
 own wines by vintage. Still to do, roughly in order:
 
-- **Sales and depletion:** a quick "sold" button for the floor (one bottle, or a glass: 5 or 6 glasses a bottle), bottles
-  sold per week, best sellers and slow movers, what's past its window and should go by the glass.
+- **Sales, more:** (built: "Sold a bottle" / "Sold a glass" with Undo, the week's sales, eight weeks, best sellers and
+  slow movers) a sales export for the accountant, sales by staff member, and suggesting by the glass what's past its window.
 - **Par levels and reorder:** a minimum per wine, an alert when stock falls under it, a reorder list per supplier.
 - **Allocations, en primeur and deliveries:** what was offered, accepted, paid, and when it arrives; stock that's bought
   but not yet in the cellar.
