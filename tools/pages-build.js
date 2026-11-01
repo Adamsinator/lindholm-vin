@@ -46,7 +46,7 @@ const T = {
     sourceDem: "Altitude and slope: IGN RGE ALTI® (Licence Ouverte).",
     sourceDemDe: "Altitude and slope: DGM1, ©GeoBasis-DE / LVermGeoRP, dl-de/by-2-0 [data edited].",
     sourcePack: "Outlines: INAO, Délimitation parcellaire des AOC viticoles, via IGN's Géoplateforme (Licence Ouverte).",
-    burgundy: "Burgundy", france: "France", cote: "Côte d'Or", privacy: "Privacy", lang: "Language",
+    burgundy: "Burgundy", france: "France", cote: "Côte d'Or", privacy: "Privacy", terms: "About & terms", lang: "Language",
         GCv: "grand cru villages", "1erv": "premier cru villages",
     PT: "Classified château", classification: "Classification", descPt: "{0}: {1} ({2}, {3}). Where it stands on the map, among the appellations and the other classified châteaux.", sourcePt: "The 1855 classification. Château positions: IGN BD TOPO; appellations: INAO (Licence Ouverte).",
     cls: {"1855-1": "First growths (1855)", "1855-2": "Second growths (1855)", "1855-3": "Third growths (1855)", "1855-4": "Fourth growths (1855)", "1855-5": "Fifth growths (1855)", "sau-0": "Superior first growth, Sauternes (1855)", "sau-1": "First growths, Sauternes (1855)", "sau-2": "Second growths, Sauternes (1855)"},
@@ -72,7 +72,7 @@ const T = {
     sourceDem: "Altitude et pente : IGN RGE ALTI® (Licence Ouverte).",
     sourceDemDe: "Altitude et pente : DGM1, ©GeoBasis-DE / LVermGeoRP, dl-de/by-2-0 [données modifiées].",
     sourcePack: "Contours : INAO, Délimitation parcellaire des AOC viticoles, via la Géoplateforme de l'IGN (Licence Ouverte).",
-    burgundy: "Bourgogne", france: "France", cote: "Côte-d'Or", privacy: "Confidentialité", lang: "Langue",
+    burgundy: "Bourgogne", france: "France", cote: "Côte-d'Or", privacy: "Confidentialité", terms: "À propos et conditions", lang: "Langue",
         GCv: "villages grand cru", "1erv": "villages premier cru",
     PT: "Château classé", classification: "Classement", descPt: "{0} : {1} ({2}, {3}). Sa place sur la carte, parmi les appellations et les autres châteaux classés.", sourcePt: "Le classement de 1855. Emplacement des châteaux : IGN BD TOPO ; appellations : INAO (Licence Ouverte).",
     cls: {"1855-1": "Premiers grands crus classés (1855)", "1855-2": "Deuxièmes grands crus classés (1855)", "1855-3": "Troisièmes grands crus classés (1855)", "1855-4": "Quatrièmes grands crus classés (1855)", "1855-5": "Cinquièmes grands crus classés (1855)", "sau-0": "Premier cru supérieur, Sauternes (1855)", "sau-1": "Premiers crus classés, Sauternes (1855)", "sau-2": "Deuxièmes crus classés, Sauternes (1855)"},
@@ -98,7 +98,7 @@ const T = {
     sourceDem: "Höhe und Neigung: IGN RGE ALTI® (Licence Ouverte).",
     sourceDemDe: "Höhe und Neigung: DGM1, ©GeoBasis-DE / LVermGeoRP, dl-de/by-2-0 [Daten bearbeitet].",
     sourcePack: "Umrisse: INAO, Délimitation parcellaire des AOC viticoles, über die Géoplateforme des IGN (Licence Ouverte).",
-    burgundy: "Burgund", france: "Frankreich", cote: "Côte d'Or", privacy: "Datenschutz", lang: "Sprache",
+    burgundy: "Burgund", france: "Frankreich", cote: "Côte d'Or", privacy: "Datenschutz", terms: "Impressum & Bedingungen", lang: "Sprache",
         GCv: "Grand-Cru-Dörfer", "1erv": "Premier-Cru-Dörfer",
     PT: "Klassifiziertes Château", classification: "Klassifikation", descPt: "{0}: {1} ({2}, {3}). Seine Lage auf der Karte, zwischen den Appellationen und den anderen klassifizierten Châteaux.", sourcePt: "Die Klassifikation von 1855. Lage der Châteaux: IGN BD TOPO; Appellationen: INAO (Licence Ouverte).",
     cls: {"1855-1": "Erste Gewächse (1855)", "1855-2": "Zweite Gewächse (1855)", "1855-3": "Dritte Gewächse (1855)", "1855-4": "Vierte Gewächse (1855)", "1855-5": "Fünfte Gewächse (1855)", "sau-0": "Erstes Gewächs supérieur, Sauternes (1855)", "sau-1": "Erste Gewächse, Sauternes (1855)", "sau-2": "Zweite Gewächse, Sauternes (1855)"},
@@ -124,7 +124,7 @@ const T = {
     sourceDem: "Højde og hældning: IGN RGE ALTI® (Licence Ouverte).",
     sourceDemDe: "Højde og hældning: DGM1, ©GeoBasis-DE / LVermGeoRP, dl-de/by-2-0 [data bearbejdet].",
     sourcePack: "Omrids: INAO, Délimitation parcellaire des AOC viticoles, via IGN's Géoplateforme (Licence Ouverte).",
-    burgundy: "Bourgogne", france: "Frankrig", cote: "Côte d'Or", privacy: "Privatliv", lang: "Sprog",
+    burgundy: "Bourgogne", france: "Frankrig", cote: "Côte d'Or", privacy: "Privatliv", terms: "Om og vilkår", lang: "Sprog",
         GCv: "grand cru-landsbyer", "1erv": "premier cru-landsbyer",
     PT: "Klassificeret slot", classification: "Klassifikation", descPt: "{0}: {1} ({2}, {3}). Hvor det ligger på kortet, mellem appellationerne og de andre klassificerede slotte.", sourcePt: "Klassifikationen fra 1855. Slottenes placering: IGN BD TOPO; appellationer: INAO (Licence Ouverte).",
     cls: {"1855-1": "Første cru (1855)", "1855-2": "Anden cru (1855)", "1855-3": "Tredje cru (1855)", "1855-4": "Fjerde cru (1855)", "1855-5": "Femte cru (1855)", "sau-0": "Første cru supérieur, Sauternes (1855)", "sau-1": "Første cru, Sauternes (1855)", "sau-2": "Anden cru, Sauternes (1855)"},
@@ -339,7 +339,7 @@ function head(L, file, title, desc, ld) {
 ${LANGS.map(l => `<link rel="alternate" hreflang="${l}" href="${url(l, file)}">`).join("\n")}
 <link rel="alternate" hreflang="x-default" href="${url("en", file)}">
 <meta property="og:type" content="website"><meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(desc)}"><meta property="og:url" content="${url(L, file)}">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍷</text></svg>">
+<link rel="icon" href="../../logo.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../page.css">
 <script type="application/ld+json">${JSON.stringify(ld).replace(/</g, "\\u003c")}</script>
 </head>
@@ -347,7 +347,7 @@ ${LANGS.map(l => `<link rel="alternate" hreflang="${l}" href="${url(l, file)}">`
 <header><a class="logo" href="../../">All<em>Wine</em></a><nav class="lang" aria-label="${T[L].lang}">${LANGS.map(l => `<a href="../${l}/${file}" hreflang="${l}" lang="${l}"${l === L ? ' aria-current="page"' : ""}>${NAMES[l]}</a>`).join("")}</nav></header>
 `;
 }
-const foot = (L, src) => `<p class="src">${esc(src)} · <a href="../../privacy.html">${T[L].privacy}</a></p>
+const foot = (L, src) => `<p class="src">${esc(src)} · <a href="../../privacy.html">${T[L].privacy}</a> · <a href="../../legal.html">${T[L].terms}</a></p>
 </div></body>
 </html>
 `;

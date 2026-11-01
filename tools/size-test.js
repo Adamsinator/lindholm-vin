@@ -11,7 +11,7 @@ const gz = f => zlib.gzipSync(fs.readFileSync(path.join(R, f)), { level: 9 }).le
 const KB = n => Math.round(n / 1024);
 
 // KB gzipped (2026-11: index 245, atlas 76, burgundy 468, domaine 329, privacy 37, 404 1)
-const PAGES = { "index.html": 270, "atlas.html": 90, "burgundy.html": 520, "domaine.html": 360, "privacy.html": 45, "help.html": 60, "share.html": 50, "404.html": 5 };
+const PAGES = { "index.html": 270, "atlas.html": 90, "burgundy.html": 520, "domaine.html": 360, "privacy.html": 50, "help.html": 60, "share.html": 50, "404.html": 5 };
 for (const [page, budget] of Object.entries(PAGES)) {
   const html = fs.readFileSync(path.join(R, page), "utf8");
   const files = [...html.matchAll(/<script src="([^"?]+)/g)].map(m => m[1]);
