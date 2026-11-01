@@ -1,6 +1,7 @@
 // Danish for allwine.dk: i18n.js loads the one dictionary the page's language needs (English is the source text).
 window.I18N_DICT = window.I18N_DICT || {};
 window.I18N_DICT.da = {
+  "The outlines are where each region's vineyards are, from its own map. Relief: Natural Earth (public domain).": "Omridsene viser, hvor hver regions vinmarker ligger, efter dens eget kort. Relief: Natural Earth (public domain).",
   "See it in 3D": "Se det i 3D", "The map in 3D": "Kortet i 3D", "Height ×": "Højde ×", "Tilt / from above": "Vip / ovenfra", "Heights: IGN, RGE ALTI® (Licence Ouverte).": "Højder: IGN, RGE ALTI® (Licence Ouverte).", "Fetching the ground…": "Henter terrænet…", "Fetching the ground… {0} %": "Henter terrænet… {0} %", "Couldn't fetch the ground just now. Check the connection and try again.": "Kunne ikke hente terrænet lige nu. Tjek forbindelsen, og prøv igen.", "IGN has no heights here: the 3D view is for France.": "IGN har ingen højder her: 3D-visningen er til Frankrig.", "Côte d'Or": "Côte d'Or",
   "Drink a bottle": "Drik en flaske", "Show in the list": "Vis i listen", "The wine": "Vinen",
   "{0} regions": "{0} områder", "{0} vineyards": "{0} marker", "Automatic": "Automatisk", "Light": "Lys", "Dark": "Mørk", "Aerial photo": "Luftfoto", "Aerial photos: IGN, France only.": "Luftfotos: IGN, kun Frankrig.", "Map style and layers": "Kortets udseende og lag", "Map style": "Kortets udseende", "Where you are": "Hvor du er", "Menu": "Menu", "Aerial photos: IGN (Géoplateforme, Licence Ouverte).": "Luftfotos: IGN (Géoplateforme, Licence Ouverte).",

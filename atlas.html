@@ -78,8 +78,12 @@ header.top h1 em{font-style:italic;color:var(--accent)} header.top h1 a{color:in
 #map .pt{fill:var(--ink);stroke:var(--card);stroke-width:1.5;vector-effect:non-scaling-stroke;cursor:pointer} #map .pt.has{fill:var(--gold)} #map .pt.sel{stroke:var(--accent);stroke-width:3}
 #map .lb.pl{font-size:11.5px;font-weight:600;font-style:italic}
 #map .land{fill:var(--card2);stroke:var(--line);stroke-width:1} #map .land.on{fill:var(--rg)}
-#map .hd{cursor:pointer} #map .hd circle{fill:var(--gc);stroke:var(--card);stroke-width:2} #map .hd.out circle{fill:var(--accent)} #map .hd:hover circle,#map .hd:focus circle{fill:var(--gold)}
+#map .hd{cursor:pointer} #map .hd circle{fill:var(--gc);stroke:var(--card);stroke-width:2} #map .hd.out circle{fill:var(--accent)} #map .hd:hover circle,#map .hd:focus circle,#map .hd.hot circle{fill:var(--gold)}
+#map .relief{mix-blend-mode:multiply;opacity:.6;pointer-events:none} @media (prefers-color-scheme: dark){ html:not([data-map="light"]) #map .relief{opacity:1;filter:contrast(1.8)} } html[data-map="dark"] #map .relief{opacity:1;filter:contrast(1.8)}
+#map .ol{fill:var(--gc);fill-opacity:.2;stroke:var(--gc);stroke-width:1.3;stroke-opacity:.75;stroke-linejoin:round;cursor:pointer} #map .ol.out{fill:var(--accent);stroke:var(--accent)}
+#map .ol.hot{fill:var(--gold);fill-opacity:.38;stroke:var(--gold)}
 #map .hd text{font-size:15px;font-weight:600;fill:var(--ink);paint-order:stroke;stroke:var(--halo);stroke-width:4px;stroke-linejoin:round}
+@media (max-width:760px){ #map .hd text{font-size:24px;stroke-width:6px} #map .hd circle{r:7px} } /* the start map is shown at half size on a phone */
 /* the ground (IGN): relief multiplies over the colours; roads and rivers thin, over the vineyards; names under theirs */
 #map .shade{mix-blend-mode:multiply;opacity:.38}
 @media (prefers-color-scheme: dark){ #map .shade{mix-blend-mode:screen;opacity:.16} }
@@ -299,8 +303,8 @@ html[data-map="dark"] #map .shade{mix-blend-mode:screen;opacity:.16} html[data-m
   <nav class="pmenu"><a href="./"><span aria-hidden="true">🍷</span><span data-i18n>Your cellar</span></a><a href="burgundy.html"><span aria-hidden="true">🗺</span><span data-i18n>Côte d'Or atlas</span></a><a href="help.html#atlas"><span aria-hidden="true">?</span><span data-i18n>Help and tips</span></a><a href="privacy.html"><span aria-hidden="true">🔏</span><span data-i18n>Privacy</span></a></nav>
   <div class="mlang" data-langpick></div>
 </div>
-<script src="i18n.js?v=70"></script>
+<script src="i18n.js?v=71"></script>
 <script src="europe-lands.js?v=1"></script>
-<script src="atlas.js?v=18"></script>
+<script src="atlas.js?v=19"></script>
 </body>
 </html>
