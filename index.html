@@ -781,6 +781,13 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 .rackcard .rc-a{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px} .rackcard .rc-a .btn{font-size:13px;padding:6px 10px}
 @media (prefers-reduced-motion:reduce){ .wall .rackcard{animation:none} }
 .cellar-side .wall{margin:0 0 18px}
+.rack-unit{margin:6px 0 0;font-size:11.5px;color:#B9A3AA}
+.rack-shelves{display:grid;gap:5px;margin-top:12px} .rack-shelves[hidden]{display:none}
+.rack-shelves button{display:grid;grid-template-columns:minmax(70px,34%) 1fr auto;align-items:center;gap:8px;border:0;background:none;color:inherit;font:inherit;font-size:12.5px;padding:2px 0;cursor:pointer;text-align:left}
+.rack-shelves .sh-l{white-space:nowrap;overflow:hidden;text-overflow:ellipsis} .rack-shelves b{font-variant-numeric:tabular-nums;font-weight:600}
+.rack-shelves .sh-t{height:8px;border-radius:2px;background:rgba(255,255,255,.07);border-bottom:2px solid rgba(201,155,71,.55)} .rack-shelves .sh-t i{display:block;height:100%;border-radius:2px;background:linear-gradient(90deg,#7C2D3E,#A64B5E)}
+.rack-shelves button:hover .sh-t i{filter:brightness(1.25)}
+.wall .rackcard .rc-c{font-size:12px;color:var(--muted);margin-top:2px}
 @media (prefers-reduced-motion:reduce){ .btl{animation:none;opacity:1;transform:none} .btl.soon .cp{animation:none} }
 /* ---------- phones: an app — a slim top bar, the pages as tabs at the bottom, ＋ for adding, the rest in two menus ---------- */
 .pmore,.pme,.ptabs,.pfab{display:none}
@@ -1069,10 +1076,12 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 <section class="wall" id="wall" aria-labelledby="wallTitle" hidden>
   <div class="wall-h"><h2 id="wallTitle" data-i18n>Your cellar</h2><p class="wall-big"><b id="wallN"></b> <span id="wallSub"></span></p></div>
   <div class="rack" id="rack" role="group" aria-label="Every bottle in the cellar" data-i18n-aria></div>
+  <p class="rack-unit" id="rackUnit" hidden></p>
   <button type="button" class="rack-more" id="rackMore" hidden></button>
   <div class="rackcard" id="rackCard" role="dialog" aria-label="The wine" data-i18n-aria hidden></div>
   <div class="wall-leg"><span><i style="--c:var(--b-red)"></i><span data-i18n>Red</span></span><span><i style="--c:var(--b-white)"></i><span data-i18n>White</span></span><span><i style="--c:var(--b-rose)"></i>Rosé</span><span><i style="--c:var(--b-spark)"></i><span data-i18n>Sparkling</span></span><span><i class="cap"></i><span data-i18n>Amber cap: drink soon</span></span><span><i class="dim"></i><span data-i18n>Dim: too young</span></span></div>
   <div class="wall-stats" id="wallStats"></div>
+  <div class="rack-shelves" id="rackShelves" aria-label="Bottles by region" data-i18n-aria hidden></div>
 </section>
 <section class="kpis" id="kpis" aria-label="Cellar totals" data-i18n-aria></section>
 
@@ -1748,7 +1757,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 
 <!-- Pages serves these with max-age=600 and no revalidation, so a merged change can
      sit invisible behind a stale app.js for ten minutes. Bump v on every deploy. -->
-<script src="i18n.js?v=71"></script>
+<script src="i18n.js?v=72"></script>
 <script src="notes.js?v=4"></script>
 <script src="notes-i18n.js?v=1"></script>
 <script src="burgundy-data.js?v=13"></script>
@@ -1766,6 +1775,6 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 <script src="export.js?v=2"></script>
 <script src="europe-lands.js?v=1"></script>
 <script src="share-crypto.js?v=1"></script>
-<script src="app.js?v=66"></script>
+<script src="app.js?v=67"></script>
 </body>
 </html>

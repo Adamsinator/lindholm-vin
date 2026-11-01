@@ -1,6 +1,10 @@
 // French for allwine.dk: i18n.js loads the one dictionary the page's language needs (English is the source text).
 window.I18N_DICT = window.I18N_DICT || {};
 window.I18N_DICT.fr = {
+  "Each bottle drawn = {0} bottles": "Chaque bouteille dessinée = {0} bouteilles",
+  "+ {0} other wines": "+ {0} autres vins",
+  "This bottle stands for {0}:": "Cette bouteille représente {0} :",
+  "Bottles by region": "Bouteilles par région",
   "The outlines are where each region's vineyards are, from its own map. Relief: Natural Earth (public domain).": "Les contours montrent où sont les vignes de chaque région, d'après sa propre carte. Relief : Natural Earth (domaine public).",
   "See it in 3D": "Voir en 3D", "The map in 3D": "La carte en 3D", "Height ×": "Hauteur ×", "Tilt / from above": "Incliner / vue de dessus", "Heights: IGN, RGE ALTI® (Licence Ouverte).": "Altitudes : IGN, RGE ALTI® (Licence Ouverte).", "Fetching the ground…": "Chargement du relief…", "Fetching the ground… {0} %": "Chargement du relief… {0} %", "Couldn't fetch the ground just now. Check the connection and try again.": "Impossible de charger le relief pour le moment. Vérifiez la connexion et réessayez.", "IGN has no heights here: the 3D view is for France.": "L'IGN n'a pas d'altitudes ici : la vue 3D est pour la France.", "Côte d'Or": "Côte d'Or",
   "Drink a bottle": "Boire une bouteille", "Show in the list": "Voir dans la liste", "The wine": "Le vin",

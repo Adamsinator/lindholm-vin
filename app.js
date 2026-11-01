@@ -671,7 +671,7 @@ function showWine(w){
    shows a few rows and "+ N more". ---------- */
 const RACK_COL = {"Rød":"var(--b-red)","Hvid":"var(--b-white)","Rosé":"var(--b-rose)","Bobler":"var(--b-spark)"};
 const BOTTLE_SVG = `<svg viewBox="0 0 64 20" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><path class="gl" d="M3 3.5h33c4 0 6.5 2.6 9.5 4.3h6V12h-6c-3 1.9-5.5 4.5-9.5 4.5H3C1.6 16.5 1 15.4 1 14V6c0-1.4.6-2.5 2-2.5z"/><rect class="cp" x="51" y="7.3" width="11" height="5.4" rx="1.4"/><path d="M5 6.5h28" stroke="rgba(255,255,255,.35)" stroke-width="1.4" stroke-linecap="round"/></svg>`;
-let RACK_ALL = false;
+let RACK_ALL = false, RACK_CASES = [];
 const rackKey = w => { const r = readiness(w); return !r ? "none" : r.k==="now" ? (r.soon?"soon":"now") : r.k; };
 function placeWall(){
   const wall = $("wall"), side = document.querySelector("#overview .side-body"); if(!wall || !side) return;
@@ -684,8 +684,16 @@ function renderRack(cellar){
   const bottles = cellar.reduce((n,w)=>n+w.left,0);
   wall.hidden = !bottles; if(!bottles) return;
   const order = {past:0, soon:1, now:2, none:3, young:4};
-  const all = cellar.slice().sort((a,b)=>order[rackKey(a)]-order[rackKey(b)] || (a.drinkTo??drinkWindow(a)?.to??9999)-(b.drinkTo??drinkWindow(b)?.to??9999))
+  const flat = cellar.slice().sort((a,b)=>order[rackKey(a)]-order[rackKey(b)] || (a.drinkTo??drinkWindow(a)?.to??9999)-(b.drinkTo??drinkWindow(b)?.to??9999))
     .flatMap(w=>Array.from({length:w.left}, ()=>w));
+  // a big cellar: one drawn bottle stands for a case (6, or 12 past a thousand), so the rack keeps its proportions
+  // instead of saying "+ 1,960 more"; each stands for the most pressing wine in it, its colour the case's commonest
+  const unit = bottles > 1000 ? 12 : bottles > 150 ? 6 : 1;
+  RACK_CASES = [];
+  for(let i=0; i<flat.length; i+=unit) RACK_CASES.push(flat.slice(i, i+unit));
+  const all = RACK_CASES.map(c=>{ if(unit===1) return c[0];
+    const n = {}; c.forEach(w=>n[w.style]=(n[w.style]||0)+1); const st = Object.keys(n).sort((a,b)=>n[b]-n[a])[0];
+    return Object.assign(Object.create(c[0]), {style: st}); });
   const R = $("rack"), width = R.clientWidth || 320, cols = Math.max(4, Math.floor((width - 20 + 6) / (52 + 6)));
   // a few bottles over the rows aren't worth a "more" button: they're shown
   const rows = matchMedia("(max-width:700px)").matches ? 7 : 5, room = all.length <= cols*(rows+1) ? all.length : cols*rows, cap = RACK_ALL ? all.length : room;
@@ -695,11 +703,18 @@ function renderRack(cellar){
   let html = "";
   for(let i=0; i<slots; i++){ const w = shown[i];
     if(!w){ html += `<span class="btl slot">${BOTTLE_SVG}</span>`; continue; }
-    const k = rackKey(w), nm = `${w.producer}${w.name?" · "+w.name:""}${typeof w.vintage==="number"?" "+w.vintage:""}`, r = readiness(w);
-    html += `<button type="button" class="btl ${k}" data-row="${w.row}" style="--c:${RACK_COL[w.style]||"var(--b-red)"};animation-delay:${motion?Math.min(i,60)*18:0}ms" title="${esc(nm)}" aria-label="${esc(nm+(r?" — "+r.label:""))}">${BOTTLE_SVG}</button>`; }
+    const k = rackKey(w), others = new Set(RACK_CASES[i].map(x=>x.row)).size - 1, r = readiness(w);
+    const nm = `${unit>1 ? tr("{0} bottles", fmt(RACK_CASES[i].length)) + ": " : ""}${w.producer}${w.name?" · "+w.name:""}${typeof w.vintage==="number"?" "+w.vintage:""}${others ? " " + tr("+ {0} other wines", fmt(others)) : ""}`;
+    html += `<button type="button" class="btl ${k}" data-row="${w.row}" data-case="${i}" style="--c:${RACK_COL[w.style]||"var(--b-red)"};animation-delay:${motion?Math.min(i,60)*18:0}ms" title="${esc(nm)}" aria-label="${esc(nm+(r?" — "+r.label:""))}">${BOTTLE_SVG}</button>`; }
   R.innerHTML = html;
   const more = $("rackMore"); more.hidden = room >= all.length;
-  more.textContent = RACK_ALL ? tr("Show fewer") : tr("+ {0} more bottles", fmt(all.length - cap));
+  more.textContent = RACK_ALL ? tr("Show fewer") : tr("+ {0} more bottles", fmt(RACK_CASES.slice(cap).reduce((n,c)=>n+c.length,0)));
+  $("rackUnit").hidden = unit===1; $("rackUnit").textContent = tr("Each bottle drawn = {0} bottles", unit);
+  // and, in a big cellar, the regions as shelves: each as long as its share of the bottles; a tap filters the list
+  const regs = {}; if(unit>1) cellar.forEach(w=>{ const k = w.region || w.country || tr("Other"); regs[k] = (regs[k]||0) + w.left; });
+  const top = Object.entries(regs).sort((a,b)=>b[1]-a[1]).slice(0, 6);
+  $("rackShelves").hidden = !top.length;
+  $("rackShelves").innerHTML = top.map(([k,n])=>`<button type="button" data-region="${esc(k)}"><span class="sh-l">${esc(k)}</span><span class="sh-t"><i style="width:${Math.max(2, n/top[0][1]*100).toFixed(1)}%"></i></span><b>${fmt(n)}</b></button>`).join("");
   const val = cellar.reduce((n,w)=>n+(w.price||0)*w.left,0);
   $("wallN").textContent = fmt(bottles);
   $("wallSub").textContent = (bottles===1 ? tr("bottle") : tr("bottles")) + (SHOW_PRICES && val ? " · " + kr(val) : "");
@@ -711,6 +726,11 @@ function renderRack(cellar){
 }
 // a tap on a bottle: a small card by it (the wine, its window, Drink a bottle, Show in the list); the page stays put
 $("rack").addEventListener("click", e=>{ const b = e.target.closest("button.btl"); if(!b) return; const w = WINES.find(x=>x.row===Number(b.dataset.row)); if(w) rackCard(w, b); });
+$("rackShelves").addEventListener("click", e=>{ const b = e.target.closest("button[data-region]"); if(!b) return; const k = b.dataset.region;
+  const byRegion = WINES.some(w=>w.region===k);
+  state.status="cellar"; $("fStatus").value="cellar";
+  if(byRegion){ state.region = state.region===k ? "" : k; state.country = ""; } else { state.country = state.country===k ? "" : k; state.region = ""; }
+  $("fCountry").value = state.country; renderTable(); $("fRegion").value = state.region; });
 function rackCard(w, b){
   const card = $("rackCard"), r = readiness(w), win = drinkWindow(w);
   if(!card.hidden && card.dataset.row === String(w.row)){ closeRackCard(); return; }
@@ -721,6 +741,8 @@ function rackCard(w, b){
     <b class="rc-p">${esc(w.producer)}</b>
     <span class="rc-w">${esc([w.name, typeof w.vintage==="number" ? w.vintage : (w.vintage||"NV")].filter(Boolean).join(" · "))}</span>
     <span class="rc-m">${esc([where, win ? `${win.from??"?"}–${win.to??"?"}` : "", btl(fmt(w.left)), SHOW_PRICES && w.price ? kr(w.price) : ""].filter(Boolean).join(" · "))}</span>
+    ${(()=>{ const c = RACK_CASES[Number(b.dataset.case)] || [], o = [...new Map(c.filter(x=>x.row!==w.row).map(x=>[x.row,x])).values()];
+      return c.length > 1 ? `<span class="rc-c">${esc(tr("This bottle stands for {0}:", btl(fmt(c.length))))} ${esc([w, ...o].slice(0,4).map(x=>x.producer + (typeof x.vintage==="number" ? " " + x.vintage : "")).join(", "))}${o.length > 3 ? " " + esc(tr("+ {0} other wines", fmt(o.length - 3))) : ""}</span>` : ""; })()}
     <span class="rc-a"><button type="button" class="btn primary" data-rc="drink">🍷 ${esc(tr("Drink a bottle"))}</button><button type="button" class="btn" data-rc="list">${esc(tr("Show in the list"))}</button></span>`;
   card.hidden = false;
   // by the bottle, inside the rack's panel: under it, or over it when there's no room below

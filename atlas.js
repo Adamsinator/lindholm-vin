@@ -148,7 +148,13 @@ function commitView() {
   clearTimeout(relayT); const v = st.view; if (!v) return;
   vbC = v.slice(); mapview.style.transform = "";
   svg.setAttribute("viewBox", v.map(x => x.toFixed(2)).join(" ")); // not rounded to the metre: 150 m across, that's a visible jump
-  cancelAnimationFrame(relayRaf); relayRaf = requestAnimationFrame(relayout);
+  cancelAnimationFrame(relayRaf); relayRaf = requestAnimationFrame(relayout); scaleBar();
+}
+// a quiet scale bar: the longest round distance that fits in about 110 px (the map's units are metres)
+function scaleBar() {
+  const sb = $("scalebar"), m = svg.getScreenCTM(); sb.hidden = !st.pack || !st.view || !m || !m.a; if (sb.hidden) return;
+  const mpp = 1 / Math.hypot(m.a, m.b), L = [10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000].filter(m => m / mpp <= 110).pop() || 10;
+  sb.querySelector("span").style.width = (L / mpp).toFixed(0) + "px"; sb.querySelector("em").textContent = L >= 1000 ? (L / 1000).toLocaleString(window.I18N ? I18N.lang : "en") + " km" : L + " m";
 }
 
 /* ---------- the ground around the vineyards (French regions): IGN's relief shading as tiles, and BD TOPO's roads,
@@ -748,7 +754,7 @@ function goTo(id) {
   if (x.href) location.href = x.href.replace("{L}", window.I18N ? I18N.lang : "en"); else location.hash = "#r=" + id;
 }
 function showHome() {
-  st.region = null; st.pack = null; st.sel = null; st.view = null;
+  st.region = null; st.pack = null; st.sel = null; st.view = null; $("scalebar").hidden = true;
   document.title = "AllWine — " + t("Wine atlas"); $("regionName").textContent = ""; $("fRegion").value = "";
   document.body.classList.add("home");
   // France, Germany and the north of Italy, on a plain grid (longitude shrunk by the cosine of 47°)
