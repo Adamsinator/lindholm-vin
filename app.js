@@ -4083,7 +4083,7 @@ async function openAdmin(){
 const USAGE_LABEL = {active:"Active members", login:"Logins", signup:"Sign-ups", save:"Cellar saves", atlas:"Atlas visits",
   cellar:"Cellar page", enjoyed:"Enjoyed page", wishlist:"Wishlist page", journal:"Journal page", import:"Imports",
   sommelier:"Sommelier questions", export:"Exports"};
-function renderUsage(days){
+function renderUsage(days, users){
   if(!days || !days.length){ $("adminUsage").innerHTML = `<p class="ph">${esc(tr("No usage counted yet."))}</p>`; return; }
   // bars with a y axis (0, half, the most) and an x axis with a date each week, the last day always labelled
   const top = Math.max(1, ...days.map(d=>d.active)), max = top <= 4 ? top : Math.ceil(top / 2) * 2, L = 22, Rp = 10, T = 6, W = 320, H = 92, B = 16, ph = H - T - B, bw = (W - L - Rp) / days.length;
@@ -4093,9 +4093,13 @@ function renderUsage(days){
   const ticks = days.map((d,i)=>(days.length - 1 - i) % 7 === 0 ? `<line class="tk" x1="${L + (i + .5) * bw}" x2="${L + (i + .5) * bw}" y1="${T + ph}" y2="${T + ph + 3}"/><text class="ax" x="${L + (i + .5) * bw}" y="${H - 3}" text-anchor="middle">${dm(d.day)}</text>` : "").join("");
   const bars0 = `${grid}${bars}<line class="xl" x1="${L}" x2="${W - Rp}" y1="${T + ph}" y2="${T + ph}"/>${ticks}`;
   const sum = k => days.reduce((s,d)=>s + (d[k]||0), 0);
+  // "Active members" is people, not member-days: the daily counts add up the same person once a day, so the tile counts
+  // the members last seen within these days instead (the bars keep the per-day counts)
+  const from = String(days[0].day || ""), people = (users||[]).filter(u=>u.lastSeen && String(u.lastSeen) >= from).length;
+  const total = k => k==="active" && users ? people : sum(k);
   $("adminUsage").innerHTML = `<div class="ususp"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(tr("Active members a day, last 30 days"))}">${bars0}</svg>
       <span class="ph">${esc(tr("Active members a day, last 30 days"))} · ${esc(tr("most {0}", top))}</span></div>
-    <dl class="usgrid">${Object.keys(USAGE_LABEL).map(k=>`<div><dt>${esc(tr(USAGE_LABEL[k]))}</dt><dd>${fmt(sum(k))}</dd></div>`).join("")}</dl>`;
+    <dl class="usgrid">${Object.keys(USAGE_LABEL).map(k=>`<div><dt>${esc(tr(USAGE_LABEL[k]))}</dt><dd>${fmt(total(k))}</dd></div>`).join("")}</dl>`;
 }
 function renderHelp(A){
   const members = A.users.filter(u=>!u.owner), ready = members.filter(u=>u.helpReady).length;
@@ -4108,7 +4112,7 @@ function renderHelp(A){
 }
 function renderAdmin(){
   const A = ADMIN || {users:[], invites:[]};
-  renderUsage(A.stats); renderHelp(A);
+  renderUsage(A.stats, A.users); renderHelp(A);
   $("adminCount").textContent = tr("{0} of at most {1}", fmt(A.users.length), fmt(A.max || 50));
   $("adminUsers").innerHTML = A.users.map(u=>`<li><span class="a1"><b>${esc(u.user)}</b> · ${u.email ? `<a href="mailto:${esc(u.email)}">${esc(u.email)}</a>` : "—"}</span>
       ${u.owner ? `<span class="ph adrm">${esc(tr("you (owner)"))}</span>` : `${A.adminKid ? (u.helpReady ? `<button type="button" data-help="${esc(u.user)}">${esc(tr("Help back in"))}</button>` : `<span class="hwait">${esc(tr("help: after next login"))}</span>`) : ""}

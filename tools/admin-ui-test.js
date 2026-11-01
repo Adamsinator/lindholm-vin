@@ -55,6 +55,12 @@ const HEAD = ["Producent", "Land", "Område", "Kommune", "Mark/Navn", "Klassifik
   const usage = await p.$$eval("#adminUsage dl div", ds => Object.fromEntries(ds.map(d => [d.querySelector("dt").textContent, Number(d.querySelector("dd").textContent.replace(/\D/g, ""))])));
   check("Usage shows the server's counts: sign-ups, logins, members active", usage["Sign-ups"] === 2 && usage["Active members"] === 2 && usage["Cellar saves"] > 0, JSON.stringify(usage));
   check("…and the pages members opened", usage["Journal page"] >= 1 && usage["Enjoyed page"] >= 1, JSON.stringify(usage));
+  // the same two people active on three days are 2 active members, not 6 (the daily counts add up person-days)
+  const people = await p.evaluate(() => { renderUsage([{ day: "2026-10-01", active: 2 }, { day: "2026-10-02", active: 2 }, { day: "2026-10-03", active: 2 }],
+    [{ lastSeen: "2026-10-03" }, { lastSeen: "2026-10-02" }, { lastSeen: "2026-09-20" }]);
+    const d = [...document.querySelectorAll("#adminUsage dl div")].find(x => /Active members/.test(x.textContent)), n = d.querySelector("dd").textContent;
+    renderUsage(ADMIN.stats, ADMIN.users); return n; }); // and the real numbers back
+  check("'Active members' counts people over the 30 days, not member-days", people === "2", people);
   check("…with a bar a day for 30 days", (await p.$$("#adminUsage svg rect")).length === 30);
   check("the Stats tab holds counts only", !/pia|ole|example\.dk/.test(JSON.stringify(gas.rows("Stats"))), JSON.stringify(gas.rows("Stats")));
 

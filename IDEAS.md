@@ -2,6 +2,26 @@
 
 Things agreed as worth doing, not yet started. Newest first. When one is picked up, move it into a PR and delete it here.
 
+## The atlas, round 3: what to learn from burgundyatlas.com (raised 1 November 2026)
+
+Inspiration, not a copy: from screenshots of their phone site, the things that make it feel like a map app, done in
+AllWine's own look (wine red, the serif, our classification colours) and with our own open data (INAO, IGN, BRGM).
+
+- **The map is the whole screen,** with the controls floating on it: a round cluster on the right (compass, map style,
+  settings, where am I), search and the region switcher at the bottom where the thumb is. Today our atlas has a header,
+  a select and a side panel around the map.
+- **One drill-down with a breadcrumb:** Europe › Burgundy › Côte de Nuits › Vosne-Romanée, as a chip at the top with a
+  count ("151 villages"); each level colours its children (regions, then villages, then climats by classification).
+- **Region chips at the bottom:** a sideways-scrolling row, a colour dot and a count each; tapping one flies there.
+- **Map style with thumbnails:** our surveyed map, relief, and aerial photos (IGN's orthophotos are open data for
+  France; to check for Germany), plus a dark map that matches the cellar's rack.
+- **Settings as a sheet:** language, metric/imperial, open in perspective (the 3D tilt), show cadastral sections and
+  lieux-dits.
+- **A quiet scale bar** at the top, and village names in small caps with a halo, vineyards as see-through fills with a
+  bright edge.
+- **Later:** "for domaines: send your parcels", a way for a domaine to correct its holdings (we have the holdings
+  checker; this would be the public side of it).
+
 ## The wine rack for big cellars (raised 1 November 2026)
 
 Most cellars that matter hold 250–5,000 bottles. Today's rack (app.js, `renderRack`) draws one bottle per bottle and
