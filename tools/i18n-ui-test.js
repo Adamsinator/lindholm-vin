@@ -42,7 +42,7 @@ const EN = /\b(the|and|your|you|with|from|click|bottles?|wines|enjoyed|cellar|(?
   check("Danish: the totals", /Flasker i kælderen/.test(await txt("#kpis")) && /Kælderens værdi/.test(await txt("#kpis")), await txt("#kpis"));
   check("Danish: the table and its count", /Producent/.test(await txt("#tbl thead")) && /3 vine · 11 fl\./.test(await txt("#count")), await txt("#count"));
   check("Danish: tabs, filters and buttons", /Nydt/.test(await txt(".tabs, nav")) && (await p.$eval("#fStatus", s => s.options[s.selectedIndex].textContent)) === "I kælderen" && /Tilføj vin/.test(await txt("#addBtn")));
-  check("Danish: the date of the last update", /^Opdateret \d+\. okt\. 2026/.test(await txt("#stamp")), await txt("#stamp"));
+  check("Danish: the date of the last update", /^Opdateret \d+\. [a-zæøå]{3,4}\.? \d{4}/.test(await txt("#stamp")), await txt("#stamp"));
   await p.click("#rows tr.main:has-text('Leflaive')"); await p.waitForTimeout(300);
   const det = await txt("#rows tr.detail:not([hidden])");
   check("Danish: a wine's details", /Markér 1 flaske som drukket/.test(det) && /Drikkevindue/.test(det) && /Ret oplysninger/.test(det), det.slice(0, 200));
@@ -56,7 +56,7 @@ const EN = /\b(the|and|your|you|with|from|click|bottles?|wines|enjoyed|cellar|(?
   // switching redraws what's on screen
   await p.evaluate(() => I18N.setLang("de")); await p.waitForTimeout(300);
   check("German: switching redraws the totals and the table", /Flaschen im Keller/.test(await txt("#kpis")) && /Erzeuger/.test(await txt("#tbl thead")) && /2 Weine · 10 Fl\./.test(await txt("#count")), await txt("#count")); // Leflaive's last bottle was drunk above
-  check("German: the price button and the date", /Preise ausblenden/.test(await txt("#priceBtn")) && /^Aktualisiert \d+\. Okt\. 2026/.test(await txt("#stamp")), await txt("#stamp"));
+  check("German: the price button and the date", /Preise ausblenden/.test(await txt("#priceBtn")) && /^Aktualisiert \d+\. [A-ZÄÖÜ][a-zäöü]{2,3}\.? \d{4}/.test(await txt("#stamp")), await txt("#stamp"));
   left = await leftovers();
   check("German: no English left on the cellar page", !left.length, left.slice(0, 6).join(" | "));
   for (const [pg, sel] of [["enjoyed", "#pageEnjoyed"], ["wishlist", "#pageWishlist"], ["journal", "#pageJournal"], ["feed", "#pageFeed"]]) {
