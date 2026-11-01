@@ -265,7 +265,8 @@ const geolShown = () => st.geol && !!geolOf();
 function ensureGeol() {
   const R = st.region; if (!R || !R.geol || geolOf() || ensureGeol.busy === R) return;
   ensureGeol.busy = R;
-  loadScript(R.geol).then(() => { if (st.region === R) { drawGeol(); paint(); renderLegend(); renderSide(); } }).catch(() => {}).finally(() => { ensureGeol.busy = null; });
+  // the geology and its glossary (geol-gloss.js: BRGM's French in the reader's language) come only when geology is wanted
+  Promise.all([loadScript(R.geol), window.GEOL_TR ? null : loadScript("geol-gloss.js?v=1").catch(() => {})]).then(() => { if (st.region === R) { drawGeol(); paint(); renderLegend(); renderSide(); } }).catch(() => {}).finally(() => { ensureGeol.busy = null; });
 }
 function drawGeol() {
   const G = geolOf(); if (!G || !TG.geol) return; TG.geol.innerHTML = "";
