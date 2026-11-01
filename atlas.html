@@ -234,6 +234,7 @@ html[data-map="dark"] #map .shade{mix-blend-mode:screen;opacity:.16} html[data-m
 }
 @keyframes atlUp{from{transform:translateY(40px);opacity:.4}}
 @media(prefers-reduced-motion:reduce){.panel{animation:none}.sidewrap{transition:none}}
+.zoom .t3dbtn{font:700 13px/1 system-ui,-apple-system,sans-serif;letter-spacing:.02em}
 </style>
 </head>
 <body>
@@ -274,7 +275,7 @@ html[data-map="dark"] #map .shade{mix-blend-mode:screen;opacity:.16} html[data-m
     <button type="button" class="mmenu" id="menuBtn" aria-label="Menu" aria-haspopup="dialog" data-i18n-aria><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
     <div class="mbar" id="mbar"><button type="button" class="msearch" id="srchBtn" aria-label="Find a vineyard" data-i18n-aria><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg></button><div class="rchips" id="rchips" role="group" aria-label="Regions" data-i18n-aria></div></div>
     <div class="srch" id="srch" hidden></div>
-    <div class="zoom"><button type="button" id="styleBtn" title="Map style and layers" aria-label="Map style and layers" aria-haspopup="dialog" data-i18n-title data-i18n-aria><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2V6z"/><path d="M9 4v14M15 6v14"/></svg></button><button type="button" id="zIn" aria-label="Zoom in" data-i18n-aria>+</button><button type="button" id="locBtn" title="Where am I?" aria-label="Where am I?" data-i18n-title data-i18n-aria hidden>◉</button><button type="button" id="zOut" aria-label="Zoom out" data-i18n-aria>−</button><button type="button" id="zHome" aria-label="Whole region" data-i18n-aria>⌂</button><button type="button" id="profBtn" aria-label="Slope profile" title="Slope profile" data-i18n-aria hidden>⟋</button><button type="button" id="pngBtn" title="Save this view as an image" aria-label="Save this view as an image" data-i18n-title data-i18n-aria>⤓</button><button type="button" id="printBtn" title="Print or save as PDF" aria-label="Print or save as PDF" data-i18n-title data-i18n-aria>⎙</button></div>
+    <div class="zoom"><button type="button" id="styleBtn" title="Map style and layers" aria-label="Map style and layers" aria-haspopup="dialog" data-i18n-title data-i18n-aria><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2V6z"/><path d="M9 4v14M15 6v14"/></svg></button><button type="button" id="t3dBtn" class="t3dbtn" title="See it in 3D" aria-label="See it in 3D" data-i18n-title data-i18n-aria hidden>3D</button><button type="button" id="zIn" aria-label="Zoom in" data-i18n-aria>+</button><button type="button" id="locBtn" title="Where am I?" aria-label="Where am I?" data-i18n-title data-i18n-aria hidden>◉</button><button type="button" id="zOut" aria-label="Zoom out" data-i18n-aria>−</button><button type="button" id="zHome" aria-label="Whole region" data-i18n-aria>⌂</button><button type="button" id="profBtn" aria-label="Slope profile" title="Slope profile" data-i18n-aria hidden>⟋</button><button type="button" id="pngBtn" title="Save this view as an image" aria-label="Save this view as an image" data-i18n-title data-i18n-aria>⤓</button><button type="button" id="printBtn" title="Print or save as PDF" aria-label="Print or save as PDF" data-i18n-title data-i18n-aria>⎙</button></div>
     <div class="profile" id="profile" hidden></div>
     <div class="maptoast" id="mapToast" role="status" hidden></div>
     <div class="legend" id="legend"></div>
@@ -298,8 +299,8 @@ html[data-map="dark"] #map .shade{mix-blend-mode:screen;opacity:.16} html[data-m
   <nav class="pmenu"><a href="./"><span aria-hidden="true">🍷</span><span data-i18n>Your cellar</span></a><a href="burgundy.html"><span aria-hidden="true">🗺</span><span data-i18n>Côte d'Or atlas</span></a><a href="help.html#atlas"><span aria-hidden="true">?</span><span data-i18n>Help and tips</span></a><a href="privacy.html"><span aria-hidden="true">🔏</span><span data-i18n>Privacy</span></a></nav>
   <div class="mlang" data-langpick></div>
 </div>
-<script src="i18n.js?v=68"></script>
+<script src="i18n.js?v=70"></script>
 <script src="europe-lands.js?v=1"></script>
-<script src="atlas.js?v=17"></script>
+<script src="atlas.js?v=18"></script>
 </body>
 </html>

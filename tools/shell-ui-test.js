@@ -44,8 +44,13 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   await p.click("#rackMore");
   const first = await p.evaluate(() => { const b = document.querySelector("#rack button.btl"); return { cls: b.className, t: b.title }; });
   check("the most pressing first: the 2015 rosé, long past its window, with the amber capsule", /past/.test(first.cls) && /Tempier/.test(first.t), JSON.stringify(first));
-  await p.click("#rack button.btl >> nth=0"); await p.waitForTimeout(700);
-  check("a tap on a bottle opens that wine in the list", await p.evaluate(() => { const r = document.querySelector('#tbl tr.main:has(+ tr.detail:not([hidden]))'); return !!r && /Tempier/.test(r.textContent); }));
+  await p.locator("#rack button.btl >> nth=0").scrollIntoViewIfNeeded(); const y0 = await p.evaluate(() => scrollY); // the click itself mustn't move the page
+  await p.click("#rack button.btl >> nth=0"); await p.waitForTimeout(400);
+  check("a tap on a bottle: a small card by it with the wine, and the page stays where it was", await p.isVisible("#rackCard") && /Tempier/.test(await p.textContent("#rackCard"))
+    && /Drink a bottle/.test(await p.textContent("#rackCard")) && Math.abs((await p.evaluate(() => scrollY)) - y0) < 5,
+    JSON.stringify({ vis: await p.isVisible("#rackCard"), txt: (await p.textContent("#rackCard")).slice(0, 80), y0, y1: await p.evaluate(() => scrollY) }));
+  await p.click('#rackCard [data-rc="list"]'); await p.waitForTimeout(700);
+  check("…'Show in the list' opens it there", await p.isHidden("#rackCard") && await p.evaluate(() => { const r = document.querySelector('#tbl tr.main:has(+ tr.detail:not([hidden]))'); return !!r && /Tempier/.test(r.textContent); }));
   await p.click('#wallStats button[data-ready="past"]'); await p.waitForTimeout(400);
   check("a figure under the rack filters the list to those wines", (await p.inputValue("#fReady")) === "past" && await p.evaluate(() => SHOWN.length >= 1 && SHOWN.every(w => readiness(w).k === "past") && SHOWN.some(w => w.producer === "Tempier")));
   await p.click("#clear"); check("on a wide screen: no phone tabs, no ＋, no ⋯", await p.isHidden("#ptabs") && await p.isHidden("#pFab") && await p.isHidden("#pMore"));
