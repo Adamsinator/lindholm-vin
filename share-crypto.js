@@ -3,6 +3,8 @@
 // link after the # (share.html#<id>.<key>), which a browser never sends anywhere, so neither the server nor the
 // gateway can read a shared list.
 //   const { blob, key } = await SHARE_CRYPTO.seal(object)    → base64url strings
+//   SHARE_CRYPTO.seal(object, key) seals it again under the same key (a fresh IV), so a link already handed out (the
+//   business wine card's QR code) opens the new contents
 //   const object = await SHARE_CRYPTO.open(blob, key)
 // The blob: 1 byte version (1), 1 byte flags (1 = gzipped), 12 bytes IV, then the AES-GCM ciphertext and tag.
 (function (root) {
@@ -14,10 +16,11 @@ const unb64u = s => { const b = atob(String(s).replace(/-/g, "+").replace(/_/g, 
 const pipe = async (bytes, stream) => new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(stream)).arrayBuffer());
 const canZip = typeof CompressionStream !== "undefined" && typeof DecompressionStream !== "undefined";
 
-async function seal(obj) {
+async function seal(obj, keyText) {
   const raw = new TextEncoder().encode(JSON.stringify(obj));
   const body = canZip ? await pipe(raw, new CompressionStream("gzip")) : raw;
-  const keyBytes = crypto.getRandomValues(new Uint8Array(32)), iv = crypto.getRandomValues(new Uint8Array(12));
+  const keyBytes = keyText ? unb64u(keyText) : crypto.getRandomValues(new Uint8Array(32)), iv = crypto.getRandomValues(new Uint8Array(12));
+  if (keyBytes.length !== 32) throw new Error("bad-share");
   const key = await crypto.subtle.importKey("raw", keyBytes, "AES-GCM", false, ["encrypt"]);
   const ct = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, body));
   const out = new Uint8Array(2 + 12 + ct.length); out[0] = 1; out[1] = canZip ? 1 : 0; out.set(iv, 2); out.set(ct, 14);

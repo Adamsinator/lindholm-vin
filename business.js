@@ -5,7 +5,9 @@
 //  · in the overview: the stock at cost and at card price, the average margin, what has no price yet, the suppliers;
 //    for a winemaker, its own wines by vintage;
 //  · the wine card or price list, printable (or saved as a PDF): in stock and priced only, so a sold-out wine leaves it
-//    by itself.
+//    by itself; and online, behind a QR code: sealed in the browser like a shared list (share-crypto.js), and sealed
+//    again under the same key when it changes, so the code on the table keeps showing what's on the shelf;
+//  · a minimum per wine, and the reorder list it makes, by supplier; the sales of a month as a CSV for the accounts.
 // Uses app.js's globals (WINES, KIND, api, normalize, tr, esc, kr, fmt…), like the other scripts of the page.
 "use strict";
 window.BIZ = (() => {
@@ -47,6 +49,7 @@ window.BIZ = (() => {
     return `<div class="bz-d">
       ${num("menuPrice", W.sell, w.menuPrice)}
       ${W.glass ? num("glassPrice", "By the glass", w.glassPrice) : ""}
+      ${num("par", "Minimum in stock", w.par || null)}
       <label class="bz-f">${esc(tr("Supplier"))}<input class="bz-in" data-f="source" data-row="${w.row}" list="bzSup" value="${esc(w.source)}" placeholder="—"></label>
       <span class="bz-sell">${w.left > 0 || w.openGlasses > 0 ? `<button type="button" class="btn primary" data-sell="bottle" data-row="${w.row}"${w.left > 0 ? "" : " disabled"}>${esc(tr("Sold a bottle"))}</button>` : ""}
         ${W.glass && (w.left > 0 || w.openGlasses > 0) ? `<button type="button" class="btn" data-sell="glass" data-row="${w.row}">${esc(tr("Sold a glass"))}</button>` : ""}
@@ -59,7 +62,7 @@ window.BIZ = (() => {
   document.addEventListener("change", async e => {
     const inp = e.target.closest && e.target.closest(".bz-in"); if (!inp) return;
     const row = Number(inp.dataset.row), f = inp.dataset.f, v = inp.value.trim();
-    if (f !== "source" && v !== "" && !(Number(v) >= 0)) { toast(tr("A price is a number of 0 or more")); return; }
+    if (f !== "source" && v !== "" && !(Number(v) >= 0)) { toast(tr(f === "par" ? "The minimum is a number of bottles, 0 or more" : "A price is a number of 0 or more")); return; }
     inp.disabled = true;
     try {
       const res = await api({ action: "setinfo", row, fields: { [f]: f === "source" ? v : (v === "" ? "" : Number(v)) } });
@@ -122,7 +125,46 @@ window.BIZ = (() => {
         return `<span title="${esc(tr("{0} bottles", n1(n)))}"><i style="height:${(n / wmax * 100).toFixed(0)}%"></i><em>${i === 7 ? esc(tr("this week")) : ""}</em></span>`; }).join("")}</div>
       ${best.length ? `<h4>${esc(tr("Best sellers, 90 days"))}</h4><ul class="bz-sup">${best.map(x => `<li><span>${nm(x.s)}</span><b>${esc(tr("{0} bottles", n1(x.n)))}</b></li>`).join("")}</ul>` : `<p class="note">${esc(tr("Nothing sold yet: open a wine and press Sold."))}</p>`}
       ${SALES.length && slow.length ? `<h4>${esc(tr("Slow movers: in stock, nothing sold in 90 days"))}</h4><ul class="bz-sup">${slow.map(w => `<li><span>${nm(w)}</span><b>${esc(btl(fmt(w.left)))}</b></li>`).join("")}</ul>` : ""}
+      ${SALES.length ? `<p class="bz-exp"><label class="bz-f">${esc(tr("Sales of the month"))}<select id="bzMonth">${months().map(m => `<option value="${m}">${esc(monthName(m))}</option>`).join("")}</select></label>
+        <button type="button" class="btn" id="bzSalesCsv">${esc(tr("Download as CSV"))}</button></p>` : ""}
       ${KIND === "restaurant" ? `<label class="bz-f bz-gl">${esc(tr("Glasses in a bottle"))}<input id="bzGlasses" type="number" min="2" max="12" step="1" value="${per}"></label>` : ""}`;
+  }
+  // the months that have sales, newest first ("2026-10"), and a month's sales as rows for EXPORT.csv: one line a
+  // sale, its price with and without VAT and the VAT itself, and a total; a spreadsheet for the bookkeeping
+  const months = () => [...new Set((SALES || []).map(s => s.date.slice(0, 7)))].sort().reverse();
+  const monthName = m => new Date(m + "-15T12:00:00").toLocaleDateString(window.I18N ? (I18N.lang === "en" ? "en-GB" : I18N.lang) : "en-GB", { month: "long", year: "numeric" });
+  const r2 = x => Math.round(x * 100) / 100;
+  function salesRows(m) {
+    const list = (SALES || []).filter(s => s.date.slice(0, 7) === m);
+    const head = [tr("Date"), tr("Producer"), tr("Wine"), tr("Vintage"), tr("Sold"), tr("Price incl. VAT"), tr("Price excl. VAT"), tr("VAT")];
+    const rows = list.map(s => { const p = s.price || 0, ex = r2(p / (1 + VAT));
+      return [s.date, s.producer, s.name || "", s.vintage || "", tr(s.unit === "glass" ? "a glass" : "a bottle"), r2(p), ex, r2(p - ex)]; });
+    const tot = i => r2(rows.reduce((n, r) => n + r[i], 0));
+    return [head, ...rows, [tr("Total"), "", "", "", fmt(list.length), tot(5), tot(6), tot(7)]];
+  }
+  function salesCsv(m) {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([EXPORT.csv(salesRows(m))], { type: "text/csv;charset=utf-8" }));
+    a.download = `allwine-${tr("sales")}-${m}.csv`;
+    document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+    toast(tr("Saved {0}", a.download));
+  }
+  // what to order: every wine with a minimum that has fewer bottles than that (sold out included), by supplier
+  function reorder() {
+    const by = {};
+    WINES.filter(w => w.par > 0 && w.left < w.par).forEach(w => { const k = w.source || ""; (by[k] = by[k] || []).push(w); });
+    return Object.entries(by).sort((a, b) => (!a[0]) - (!b[0]) || a[0].localeCompare(b[0]))
+      .map(([k, ws]) => [k, ws.sort((a, b) => a.producer.localeCompare(b.producer) || (a.vintage || 0) - (b.vintage || 0))]);
+  }
+  const wname = w => [w.producer, w.name, w.vintage || "NV"].filter(Boolean).join(" ");
+  function reorderText(groups) {
+    return groups.map(([k, ws]) => (k || tr("No supplier")) + "\n" + ws.map(w => `  ${w.par - w.left} × ${wname(w)}`).join("\n")).join("\n\n");
+  }
+  function reorderHTML() {
+    const g = reorder(); if (!g.length) return "";
+    return `<h3>${esc(tr("To reorder"))}</h3>
+      ${g.map(([k, ws]) => `<h4>${esc(k || tr("No supplier"))}</h4><ul class="bz-sup">${ws.map(w => `<li><span>${esc(wname(w))}<small class="bz-have">${esc(tr("{0} of a minimum of {1}", fmt(w.left), fmt(w.par)))}</small></span><b>${esc(tr("order {0}", fmt(w.par - w.left)))}</b></li>`).join("")}</ul>`).join("")}
+      <p><button type="button" class="btn" id="bzReorderCopy">${esc(tr("Copy the list"))}</button></p>`;
   }
   const priceCell = w => on() && w.menuPrice > 0 ? `<small class="bz-mp" title="${esc(tr(words().sell))}">${esc(kr(w.menuPrice))}</small>` : "";
 
@@ -158,11 +200,16 @@ window.BIZ = (() => {
         ${W.glass ? fig(fmt(glass.length), tr("Wines by the glass")) : ""}
       </div>
       ${noPrice.length ? `<p class="note">${esc(tr(noPrice.length === 1 ? "1 wine in stock has no {1} yet: it's left off the {2}." : "{0} wines in stock have no {1} yet: they're left off the {2}.", fmt(noPrice.length), low(tr(W.sell)), low(tr(W.card))))}</p>` : ""}
+      ${reorderHTML()}
       ${KIND !== "winemaker" ? salesHTML(cellar) : ""}
       ${sups.length ? `<h3>${esc(tr("Suppliers"))}</h3><ul class="bz-sup">${sups.map(([k, n]) => `<li><span>${esc(k)}</span><b>${esc(btl(fmt(n)))}</b></li>`).join("")}</ul>` : ""}
       ${own}
       <p class="bz-foot"><button type="button" class="btn" data-bz="card">${esc(tr(W.card))}</button> <span class="note">${esc(tr("Prices include VAT (moms 25 %); the margin is worked out without it."))}</span></p>`;
     p.querySelector('[data-bz="card"]').onclick = openCard;
+    const rc = $("bzReorderCopy"); if (rc) rc.onclick = async () => {
+      try { await navigator.clipboard.writeText(reorderText(reorder())); toast(tr("Copied")); } catch (e) { toast(tr("Could not copy")); } };
+    const sc = $("bzSalesCsv"); if (sc) sc.onclick = () => salesCsv($("bzMonth").value);
+    syncCard();
     const g = $("bzGlasses"); if (g) g.onchange = () => { setPerBottle(Number(g.value)); overview(WINES.filter(w => w.left > 0)); };
     const d = $("bzDom"); if (d) d.onchange = () => { setDomaine(d.value.trim()); overview(WINES.filter(w => w.left > 0)); };
   }
@@ -172,6 +219,102 @@ window.BIZ = (() => {
     return localStorage.getItem(domKey()) || "";
   }
   function setDomaine(v) { try { localStorage.setItem(domKey(), v); } catch (e) {} if (window.VAULT && VAULT.active()) savePrefs({ domaine: v }).catch(() => {}); }
+
+  /* ---------- the wine card online: share.html#<id>.<key>, behind a QR code ---------- */
+  // Sealed with share-crypto.js like a shared list, kept for a year, and sealed again under the same key whenever what it
+  // shows changes (a price, a wine sold out) or a month has gone by, so the printed code never needs replacing. The id
+  // and key live in this browser and in the vault's prefs; without them (another browser, before the vault) the card
+  // is put online afresh, with a new code.
+  const CARD_DAYS = 365, REFRESH = 30 * 864e5;
+  const cardKey = () => "vinCardShare:" + String(cfg.user || "").toLowerCase();
+  function cardShare() {
+    let here = null, vault = null;
+    try { here = JSON.parse(localStorage.getItem(cardKey()) || "null"); } catch (e) {}
+    try { const x = window.VAULT && VAULT.active() && VAULT.prefs(); if (x && x.cardShare && x.cardShare.id) vault = x.cardShare; } catch (e) {}
+    if (vault) return here && here.id === vault.id ? here : { id: vault.id, key: vault.key }; // no sig: sealed again at the next change
+    return here && here.id ? here : null;
+  }
+  function setCardShare(x) {
+    try { x ? localStorage.setItem(cardKey(), JSON.stringify(x)) : localStorage.removeItem(cardKey()); } catch (e) {}
+    if (window.VAULT && VAULT.active()) savePrefs({ cardShare: x ? { id: x.id, key: x.key } : null }).catch(() => {});
+  }
+  const cardUrl = x => new URL("share.html#" + x.id + "." + x.key, location.href).href;
+  const cardTitle = () => { try { return localStorage.getItem(titleKey()) || tr(words().card); } catch (e) { return tr(words().card); } };
+  // what the online card shows: [producer, wine, vintage, region, country, colour, glass price, price, bottles]
+  function cardData() {
+    const W = words();
+    const w = WINES.filter(x => x.left > 0 && x.menuPrice > 0).map(x => [x.producer, [x.name, x.classification].filter(Boolean).join(" · "), x.vintage || "",
+      x.region || "", x.country || "", x.style || "", W.glass && x.glassPrice > 0 ? x.glassPrice : null, x.menuPrice, KIND === "merchant" ? x.left : null]);
+    return { v: 1, k: "card", kind: KIND, t: cardTitle(), by: cfg.user || "", glass: !!W.glass, w };
+  }
+  const sigOf = d => JSON.stringify(d);
+  let cardBusy = null, cardTimer = 0;
+  async function publishCard() {
+    if (cardBusy) return cardBusy;
+    cardBusy = (async () => {
+      if (!window.SHARE_CRYPTO || !window.crypto || !crypto.subtle) throw new Error("old-browser");
+      const d = cardData(), sig = sigOf(d), old = cardShare();
+      const sealed = await SHARE_CRYPTO.seal(Object.assign({ at: Date.now() }, d), old && old.key);
+      let r = null;
+      if (old) {
+        // withdrawn (here, or in Share) or run out: never a new link behind the owner's back, as the printed code
+        // would quietly stop working; the card says it's offline, and putting it online again makes a new code
+        try { r = await api({ action: "shareupdate", id: old.id, blob: sealed.blob, days: CARD_DAYS, wines: d.w.length }); }
+        catch (e) { if (/share-gone/.test(String(e && e.message || e))) setCardShare(null); throw e; }
+        setCardShare({ id: old.id, key: old.key, sig, at: Date.now() }); return cardShare();
+      }
+      const fresh = await SHARE_CRYPTO.seal(Object.assign({ at: Date.now() }, d));
+      r = await api({ action: "shareput", blob: fresh.blob, days: CARD_DAYS, wines: d.w.length });
+      setCardShare({ id: r.id, key: fresh.key, sig, at: Date.now() });
+      return cardShare();
+    })();
+    try { return await cardBusy; } finally { cardBusy = null; }
+  }
+  // after a change: if the card is online and what it shows is different, or it's a month old, seal it again (quietly)
+  function syncCard() {
+    const x = cardShare(); if (!x || !on()) return;
+    if (x.sig === sigOf(cardData()) && Date.now() - (x.at || 0) < REFRESH) return;
+    clearTimeout(cardTimer);
+    const redraw = () => { const o = $("bzOnline"); if (o) onlineHTML(o); };
+    cardTimer = setTimeout(() => publishCard().then(redraw, e => { if (/share-gone/.test(String(e && e.message || e))) { redraw(); toast(tr("The online wine card was withdrawn: its QR code no longer opens it")); } }), 3000);
+  }
+  async function takeOffline() {
+    const x = cardShare(); if (!x) return;
+    try { await api({ action: "sharedel", id: x.id }); } catch (e) { if (!/share-gone/.test(String(e && e.message || e))) throw e; }
+    setCardShare(null);
+  }
+  let QR_LOAD = null;
+  const loadQR = () => window.qrcode ? Promise.resolve() : (QR_LOAD = QR_LOAD || new Promise((ok, no) => {
+    const s = document.createElement("script"); s.src = "vendor/qrcode.js?v=1"; s.onload = ok; s.onerror = () => { QR_LOAD = null; no(new Error("qr")); }; document.head.appendChild(s); }));
+  function qrSvg(text) { const q = qrcode(0, "M"); q.addData(text); q.make(); return q.createSvgTag({ cellSize: 4, margin: 4, scalable: true }); }
+  const shareErr = m => m === "too-many-shares" ? tr("You have 20 shared lists open: withdraw one first.")
+    : m === "share-too-big" ? tr("The card is too big to put online.") : m === "old-browser" ? tr("This browser can't encrypt a shared list.")
+    : m === "bad-action" ? tr("The online card needs the updated Apps Script (version 48): redeploy Code.gs.") : tr("Could not save: {0}", m);
+  async function onlineHTML(box) {
+    const x = cardShare();
+    if (!x) {
+      box.innerHTML = `<button type="button" class="btn" data-bz="online">${esc(tr("Put it online, with a QR code"))}</button>
+        <span class="note">${esc(tr("Guests scan the code and see the card as it is: it follows your prices and stock by itself. It's encrypted in your browser; we can't read it."))}</span>`;
+      box.querySelector('[data-bz="online"]').onclick = async e => { e.target.disabled = true;
+        try { await publishCard(); onlineHTML(box); } catch (err) { e.target.disabled = false; toast(shareErr(String(err && err.message || err).replace(/^Error: /, ""))); } };
+      return;
+    }
+    const url = cardUrl(x);
+    box.innerHTML = `<div class="bz-qr" id="bzQr"></div><div class="bz-on"><b>${esc(tr("Online"))}</b>
+        <input class="bz-url" readonly value="${esc(url)}" aria-label="${esc(tr("The card's link"))}">
+        <span class="bz-btns"><button type="button" class="btn" data-bz="copy">${esc(tr("Copy link"))}</button>
+          <button type="button" class="btn" data-bz="qrprint">${esc(tr("Print the QR code"))}</button>
+          <a class="btn" href="${esc(url)}" target="_blank" rel="noopener">${esc(tr("Open"))}</a>
+          <button type="button" class="btn quiet" data-bz="offline">${esc(tr("Take it offline"))}</button></span>
+        <span class="note">${esc(x.at ? tr("Updated {0}", new Date(x.at).toLocaleString()) : "")}</span></div>`;
+    box.querySelector('[data-bz="copy"]').onclick = async () => { try { await navigator.clipboard.writeText(url); toast(tr("Link copied")); } catch (e) { box.querySelector(".bz-url").select(); toast(tr("Select the link and copy it")); } };
+    box.querySelector('[data-bz="qrprint"]').onclick = () => { document.body.classList.add("bz-qrprint"); window.print(); setTimeout(() => document.body.classList.remove("bz-qrprint"), 500); };
+    box.querySelector('[data-bz="offline"]').onclick = async e => { e.target.disabled = true;
+      try { await takeOffline(); toast(tr("Taken offline: the code no longer opens the card")); onlineHTML(box); }
+      catch (err) { e.target.disabled = false; toast(tr("Could not withdraw: {0}", String(err && err.message || err))); } };
+    try { await loadQR(); const q = $("bzQr"); if (q) q.innerHTML = qrSvg(url) + `<p class="bz-qrt">${esc(cardTitle())}</p><p class="bz-qrn">${esc(tr("Scan for the wine card"))}</p>`; }
+    catch (e) { const q = $("bzQr"); if (q) q.textContent = tr("The QR code couldn't load: copy the link instead."); }
+  }
 
   /* ---------- the wine card / price list: on the page, printable ---------- */
   const STYLE_ORDER = ["Bobler", "Hvid", "Rosé", "Rød"], STYLE_NAME = { Bobler: "Sparkling", Hvid: "White", "Rosé": "Rosé", "Rød": "Red" };
@@ -187,6 +330,7 @@ window.BIZ = (() => {
     c.innerHTML = `<div class="bz-bar"><button type="button" class="btn primary" data-bz="print">${esc(tr("Print or save as PDF"))}</button>
         <button type="button" class="btn" data-bz="close">${esc(tr("Close"))}</button>
         <span class="note">${esc(tr(list.length === 1 ? "1 wine: in stock and priced. Click the title to change it." : "{0} wines: in stock and priced. Click the title to change it.", fmt(list.length)))}</span></div>
+      <div class="bz-online" id="bzOnline"></div>
       <article class="bz-sheet">
         <h1 contenteditable="true" spellcheck="false" id="bzTitle">${esc(title)}</h1>
         ${groups.length ? groups.map(([s, ws]) => {
@@ -205,7 +349,8 @@ window.BIZ = (() => {
     const close = () => { c.hidden = true; document.body.classList.remove("bz-open"); };
     c.querySelector('[data-bz="close"]').onclick = close;
     c.querySelector('[data-bz="print"]').onclick = () => window.print();
-    const h = $("bzTitle"); h.onblur = () => { const v = h.textContent.trim(); try { v ? localStorage.setItem(titleKey(), v) : localStorage.removeItem(titleKey()); } catch (e) {} };
+    const h = $("bzTitle"); h.onblur = () => { const v = h.textContent.trim(); try { v ? localStorage.setItem(titleKey(), v) : localStorage.removeItem(titleKey()); } catch (e) {} syncCard(); };
+    onlineHTML($("bzOnline"));
     h.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); h.blur(); } };
     c.onkeydown = e => { if (e.key === "Escape" && e.target !== h) close(); };
     c.querySelector('[data-bz="print"]').focus();
@@ -223,7 +368,8 @@ window.BIZ = (() => {
 .bz-wk{display:grid;grid-template-columns:repeat(8,1fr);gap:4px;height:64px;align-items:end;margin:6px 0 2px} .bz-wk span{position:relative;height:100%;display:flex;align-items:flex-end}
 .bz-wk i{display:block;width:100%;min-height:2px;border-radius:3px 3px 0 0;background:var(--accent,#7C2D3E)} .bz-wk span:last-child i{background:var(--gold,#A87E2F)}
 .bz-wk em{position:absolute;bottom:-16px;right:0;font-size:10.5px;font-style:normal;color:var(--muted);white-space:nowrap} .bz-wk{margin-bottom:20px}
-.bz-gl input{width:70px}
+.bz-gl input{width:70px} .bz-exp{display:flex;flex-wrap:wrap;gap:8px;align-items:end} .bz-exp select{font:inherit;font-size:14px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
+.bz-have{display:block;font-size:11.5px;color:var(--muted)}
 .bz-p{margin:0 0 16px} .bz-p h2{margin-top:0} .bz-ks{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin:6px 0 10px}
 .bz-k{background:var(--card2,rgba(0,0,0,.03));border-radius:10px;padding:8px 10px} .bz-k b{display:block;font:600 19px/1.15 var(--serif,Georgia);font-variant-numeric:tabular-nums} .bz-k span{font-size:11.5px;color:var(--muted)}
 .bz-sup{list-style:none;padding:0;margin:0 0 8px} .bz-sup li{display:flex;justify-content:space-between;border-bottom:1px solid var(--line);padding:4px 0;font-size:13.5px}
@@ -237,11 +383,22 @@ window.BIZ = (() => {
 .bz-sheet h3{font:600 12px/1.2 system-ui,sans-serif;text-transform:uppercase;letter-spacing:.08em;color:#8a7a80;margin:14px 0 4px}
 .bz-l{display:grid;grid-template-columns:1fr auto auto auto auto;gap:4px 14px;align-items:baseline;padding:3px 0;font-size:14.5px}
 .bz-w b{font-weight:600} .bz-y,.bz-s,.bz-g,.bz-pr{font-variant-numeric:tabular-nums;text-align:right} .bz-g{color:#8a7a80} .bz-pr{min-width:56px;font-weight:600}
+.bz-online{display:flex;flex-wrap:wrap;gap:12px;align-items:center;max-width:720px;margin:0 auto 12px;padding:10px 12px;border:1px solid var(--line);border-radius:10px}
+.bz-qr{width:132px;text-align:center} .bz-qr svg{display:block;width:132px;height:132px;background:#fff} .bz-qrt,.bz-qrn{display:none}
+.bz-on{display:grid;gap:6px;flex:1;min-width:220px} .bz-url{font:inherit;font-size:13px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);width:100%}
+.bz-btns{display:flex;flex-wrap:wrap;gap:6px}
 .bz-fine{margin-top:26px;font:12px system-ui,sans-serif;color:#8a7a80;text-align:center}
 @media (max-width:600px){ .bz-sheet{padding:24px 16px} .bz-l{grid-template-columns:1fr auto auto;font-size:13.5px} .bz-s,.bz-g{display:none} }
-@media print{ body.bz-open > *:not(#bizCard){display:none !important} body.bz-open .bz-card{position:static;padding:0;overflow:visible;background:#fff}
+@media print{ body.bz-qrprint .bz-bar, body.bz-qrprint .bz-sheet, body.bz-qrprint .bz-on{display:none !important}
+  body.bz-qrprint .bz-online{display:block;border:0;max-width:none} body.bz-qrprint .bz-qr{width:auto;margin:30mm auto 0}
+  body.bz-qrprint .bz-qr svg{width:90mm;height:90mm;margin:0 auto} body.bz-qrprint .bz-qrt{display:block;font:600 26px var(--serif,Georgia),serif;margin:10mm 0 2mm}
+  body.bz-qrprint .bz-qrn{display:block;font:14px system-ui,sans-serif;color:#555}
+  body.bz-open:not(.bz-qrprint) .bz-online{display:none !important}
+  body.bz-open > *:not(#bizCard){display:none !important} body.bz-open .bz-card{position:static;padding:0;overflow:visible;background:#fff}
   body.bz-open .bz-bar{display:none} body.bz-open .bz-sheet{box-shadow:none;max-width:none;padding:0} body.bz-open .bz-l{break-inside:avoid} }
 </style>`);
   setTimeout(apply, 0);
-  return { apply, detail, priceCell, overview, cardLabel, margin, openCard };
+  // its words: only a business needs them, so they come now, not with every page (i18n.js redraws the page in them)
+  if (window.I18N) { I18N.onChange(apply); if (I18N.more) I18N.more("business-i18n", "?v=1"); }
+  return { apply, detail, priceCell, overview, cardLabel, margin, openCard, salesRows, reorder, reorderText, cardData, publishCard, cardShare };
 })();

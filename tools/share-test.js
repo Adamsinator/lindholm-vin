@@ -31,6 +31,13 @@ check("…and someone else can't withdraw it", gas.call({ action: "shareget", id
 check("not something that isn't base64url, too big, or for 0 or 400 days", ["shareput"].every(a =>
   /bad-share/.test(as(anna, { action: a, blob: "<script>", days: 30 }).error) && /share-too-big/.test(as(anna, { action: a, blob: "A".repeat(8 * 49000 + 1), days: 30 }).error)
   && /bad-share/.test(as(anna, { action: a, blob, days: 0 }).error) && /bad-share/.test(as(anna, { action: a, blob, days: 400 }).error)));
+// a wine card keeps its address: its owner replaces the contents, nobody else can
+const up = as(anna, { action: "shareupdate", id: put.id, blob: "Z".repeat(60), days: 365, wines: 3 });
+check("the owner updates a share in place: same id, new contents, new expiry, same created", up.ok && up.id === put.id && up.created === put.created && Math.abs(up.expires - Date.now() - 365 * DAY) < 5000
+  && gas.call({ action: "shareget", id: put.id }).blob === "Z".repeat(60) && gas.call({ action: "shareget", id: put.id }).wines === 3, JSON.stringify(up).slice(0, 160));
+check("…someone else can't, nor an unknown id, nor bad contents", as(bob, { action: "shareupdate", id: put.id, blob: "Y".repeat(60), days: 30 }).error.includes("share-gone")
+  && as(anna, { action: "shareupdate", id: "0".repeat(32), blob: "Y".repeat(60), days: 30 }).error.includes("share-gone") && /bad-share/.test(as(anna, { action: "shareupdate", id: put.id, blob: "<b>", days: 30 }).error)
+  && gas.call({ action: "shareget", id: put.id }).blob === "Z".repeat(60));
 check("a session is needed to share", /bad-token|bad-code/.test(gas.call({ action: "shareput", blob, days: 30 }).error));
 const del = as(anna, { action: "sharedel", id: put.id });
 check("the owner withdraws it: the link stops working", del.ok && del.shares.length === 0 && gas.call({ action: "shareget", id: put.id }).error === "share-gone");

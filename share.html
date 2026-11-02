@@ -34,6 +34,15 @@ a{color:var(--accent)}
 /* a phone: one card per wine instead of columns */
 @media (max-width:640px){ thead{display:none} table,tbody,tr,td{display:block;width:100%} tr{border-bottom:1px solid var(--line);padding:8px 0}
   td{border:0;padding:2px 12px} td.n{text-align:left} td:empty{display:none} td[data-l]::before{content:attr(data-l) ": ";color:var(--muted);font-size:13px} }
+/* a business's wine card (k: "card") */
+.card{max-width:720px;margin:0 auto;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:28px 32px;font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif}
+.card h1{text-align:center;letter-spacing:.03em;margin:0 0 14px} .card input[type=search]{display:block;margin:0 auto 10px;font-family:system-ui,sans-serif}
+.card h2{font-size:14px;text-transform:uppercase;letter-spacing:.18em;text-align:center;margin:24px 0 6px;color:var(--accent)}
+.card h3{font:600 11.5px/1.2 system-ui,sans-serif;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:14px 0 4px}
+.cl{display:grid;grid-template-columns:1fr auto auto auto auto;gap:4px 14px;align-items:baseline;padding:3px 0;font-size:15px}
+.cy,.cs,.cg,.cp{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap} .cg,.cs{color:var(--muted)} .cp{min-width:52px;font-weight:600}
+.card .fine{margin-top:24px;font:12.5px/1.5 system-ui,sans-serif;color:var(--muted);text-align:center}
+@media (max-width:600px){ .card{padding:20px 14px} .cl{grid-template-columns:1fr auto auto auto;font-size:14px} .cs{display:none} }
 .brandmark{width:.95em;height:.95em;vertical-align:-.12em;margin-right:.28em;border-radius:22%}
 </style>
 </head>
@@ -45,13 +54,13 @@ a{color:var(--accent)}
 </header>
 <main id="main" aria-live="polite"><p class="meta" data-i18n>Opening the list…</p></main>
 <div data-sitefoot></div>
-<p class="note" data-i18n>Shared read-only from a private AllWine cellar. The list is encrypted, and only a link like this one opens it: AllWine itself can't read it.</p>
+<p class="note" id="privNote" data-i18n>Shared read-only from a private AllWine cellar. The list is encrypted, and only a link like this one opens it: AllWine itself can't read it.</p>
 </div>
 <script src="config.js?v=9"></script>
-<script src="i18n.js?v=76"></script>
+<script src="i18n.js?v=77"></script>
 <script src="site-info.js?v=1"></script>
 <script src="site-foot.js?v=1"></script>
-<script src="share-crypto.js?v=1"></script>
-<script src="share.js?v=2"></script>
+<script src="share-crypto.js?v=2"></script>
+<script src="share.js?v=3"></script>
 </body>
 </html>
