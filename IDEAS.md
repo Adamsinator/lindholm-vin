@@ -63,6 +63,16 @@ The personal setup is right as it is. A business shouldn't feel like a personal 
   - Changing a wine's name doesn't seem to carry through everywhere (list, rack, card, atlas match). Check each place
     that shows or keys on the name.
 
+## Admin test tools: test users and test wines (raised 2 November 2026)
+
+- **Test users from Admin, no invite codes:** one click makes a test account of a chosen kind (private, restaurant,
+  merchant, winemaker), marked as test, logged into in a new tab; a "Delete all test users" button cleans up. Test
+  users don't count in the usage numbers.
+- **Test wines:** "Add 10 / 100 / 1 000 test wines" on a test account: varied producers, regions, vintages, prices,
+  drink windows (some past, some young), styles; for a business also cost and card prices, suppliers, minimums and a
+  few weeks of sales, so every chart and list has something to show. Only on test accounts, never on a real cellar.
+- Together: a test environment to try every feature freely, without typing wines in by hand.
+
 ## Account kinds, the next steps (raised 1 November 2026; the first slice is built)
 
 Built: Account (and sign-up) asks what kind of account it is: private, restaurant or wine bar, wine merchant or shop,
