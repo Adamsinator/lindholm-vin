@@ -93,7 +93,7 @@ t("how many red", "da", "hvor mange flasker rødvin har jeg", /Du har 12 flasker
 t("how many of a region", "en", "how many bottles of burgundy do I have", /5 bottles \(2 wines\) — Burgundy/);
 t("how many in all", "en", "how many bottles do I have", /14 bottles \(4 wines\).*By style: red 12, white 2/);
 t("do I have, drunk-out ones don't count", "en", "do I have any Krug", /can't find/);
-t("do I have", "fr", "ai-je du Barolo ?", /Oui — 1 vin.*Conterno/);
+t("do I have", "fr", "ai-je du Barolo ?", /Oui, 1 vin.*Conterno/);
 t("most expensive", "en", "my most expensive wine", /most expensive.*Armand Rousseau.*4.500 kr./);
 t("oldest", "en", "what's my oldest wine", /oldest vintages.*Lynch-Bages 2005/);
 t("value", "en", "what is my cellar worth", /14 bottles; at what you paid that is 27.350 kr\.$/);
@@ -197,7 +197,7 @@ t("…by region, in Danish", "da", "hvilken region har jeg flest af", /Det meste
 t("the most valuable bottle", "en", "what is my most valuable bottle", /most valuable bottles.*Armand Rousseau Clos St-Jacques 2016.*4\.500 kr/);
 const Y = new Date().getFullYear(), soonWin = w => w.producer === "Château Lynch-Bages" ? { from: 2013, to: Y } : w.producer === "Domaine Leflaive" ? { from: 2018, to: Y - 2 } : { from: 2030, to: 2045 };
 t("what must be drunk this year", "da", "hvilke vine skal drikkes i år", new RegExp(`Disse bør drikkes inden udgangen af ${Y} \\(8 flasker\\).*Domaine Leflaive Les Pucelles 2014.*forbi vinduet siden ${Y - 2}.*Lynch-Bages 2005.*vinduet lukker ${Y}`), { window: soonWin });
-t("what is past its peak", "en", "which of my wines are past their peak", /Past their drink window \(2 bottles\) — open these first: Domaine Leflaive Les Pucelles 2014/);
+t("what is past its peak", "en", "which of my wines are past their peak", /Past their drink window \(2 bottles\)\. Open these first: Domaine Leflaive Les Pucelles 2014/);
 t("…in German, with the window", "de", "Welche Weine sind über dem Höhepunkt?", new RegExp(`Domaine Leflaive Les Pucelles 2014.*Fenster seit ${Y - 2} vorbei`), { window: soonWin });
 t("…and nothing due says what's next", "en", "which of my wines need drinking soon", new RegExp(`Nothing in your cellar closes its window before the end of ${Y + 1}`));
 // producers beyond Burgundy, in every language
@@ -206,12 +206,12 @@ t("…a Piedmont producer you own", "en", "tell me about Giacomo Conterno", /Mon
 t("…Champagne, in Danish", "da", "fortæl om Krug", /Krug · Champagne Huset, hvor al vin gæres/);
 t("…in French", "fr", "Parlez-moi de Gaja", /Gaja · Piémont Angelo Gaja a mis le Barbaresco/);
 t("…two side by side", "en", "Krug or Bollinger?", /Krug · Champagne.*Bollinger · Champagne/);
-t("…and in the cellar", "en", "do I have any Lynch-Bages", /Yes — 1 wine: Château Lynch-Bages 2005/);
+t("…and in the cellar", "en", "do I have any Lynch-Bages", /Yes, 1 wine: Château Lynch-Bages 2005/);
 const noKeller = text(ask("de", "Was soll ich heute Abend aus meinem Keller trinken?")), noWeil = text(ask("de", "Ich frage, weil ich Gäste habe: was passt zu Lamm?"));
 check("German 'Keller' (cellar) isn't the producer Keller", !/Rheinhessen|G-Max/.test(noKeller), noKeller.slice(0, 160));
 check("…nor 'weil' (because) Robert Weil", !/Kiedrich/.test(noWeil) && /Lamm/.test(noWeil), noWeil.slice(0, 160));
 // more terms
-t("Chablis's grands crus", "en", "what are the grand crus of Chablis", /seven climats — Blanchot, Bougros, Les Clos, Grenouilles, Les Preuses, Valmur and Vaudésir/);
+t("Chablis's grands crus", "en", "what are the grand crus of Chablis", /seven climats \(Blanchot, Bougros, Les Clos, Grenouilles, Les Preuses, Valmur and Vaudésir\)/);
 t("a classification named with its place", "en", "what is the Bordeaux 1855 classification", /1855 classification ranked the Médoc/);
 t("why Burgundy costs so much", "da", "hvorfor er bourgogne så dyr", /Lidt vin, og hele verden vil have den/);
 t("the Beaujolais crus", "en", "what are the beaujolais crus", /Saint-Amour, Juliénas, Chénas, Moulin-à-Vent/);
