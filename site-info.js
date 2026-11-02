@@ -6,6 +6,6 @@ window.SITE_INFO = {
   name: "",      // e.g. "AllWine v/ Fornavn Efternavn" (an enkeltmandsvirksomhed's registered name)
   address: "",   // the physical address, as registered in CVR
   email: "info@allwine.dk",
-  cvr: "",       // the CVR number, once the business is registered
+  cvr: "38570862", // the CVR number (registered November 2026)
   since: 2026,   // the first year of the copyright notice
 };

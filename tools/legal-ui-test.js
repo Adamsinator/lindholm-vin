@@ -16,15 +16,22 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
     if (opt.info) await c.route(/site-info\.js/, r => r.fulfill({ contentType: "application/javascript", body: "window.SITE_INFO = " + JSON.stringify(opt.info) + ";" }));
     const p = await c.newPage(); p.on("pageerror", e => errs.push(e.message)); p.on("console", m => m.type() === "error" && errs.push(m.text())); return p; };
 
-  // English reader, nothing filled in yet
+  // English reader, the site as it is (a CVR number, no name or address on the page)
   let p = await page({ lang: "en" }); await p.goto(BASE + "legal.html"); await p.waitForTimeout(500);
   check("English: the English text, saying the Danish one applies", await p.isVisible('[data-l="en"]') && await p.isHidden('[data-l="da"]') && /the Danish version applies/.test(await p.textContent('[data-l="en"] .lead')));
-  check("…not yet a business: it says a private person in Denmark runs it", /private person in Denmark/.test(await p.textContent('[data-who="en"]')));
+  const whoEn = await p.textContent('[data-who="en"]');
+  check("…registered: the CVR number, linked to its record, where the owner's name and address are", /CVR no\.\s*38570862/.test(whoEn) && /registered in the Danish CVR register/.test(whoEn)
+    && await p.evaluate(() => [...document.querySelectorAll('[data-who="en"] a')].filter(a => a.href === "https://datacvr.virk.dk/enhed/virksomhed/38570862").length === 2), whoEn);
   check("…terms, not-advice, copyright with every data source, local storage, accessibility and contact", await p.evaluate(() => ["terms", "advice", "copy", "storage", "a11y", "contact"].every(k => !!document.getElementById("en-" + k)))
     && await p.evaluate(() => { const t = document.getElementById("en-copy").textContent; return ["INAO", "IGN", "BRGM", "Landwirtschaftskammer", "GeoBasis-DE", "Natural Earth", "Licence Ouverte", "dl-de/by-2-0", "CC BY 4.0"].every(w => t.includes(w)); }));
   check("…no cookies, and why local storage needs no consent", /sets no cookies/.test(await p.textContent("#en-storage")) && /cookie order/.test(await p.textContent("#en-storage")));
   const ft = await p.textContent(".sitefoot");
   check("…the footer: © and the year, About & terms, Privacy & cookies, Data & licences", new RegExp("© .*" + new Date().getFullYear() + " AllWine").test(ft) && /About & terms/.test(ft) && /Privacy & cookies/.test(ft) && /Data & licences/.test(ft), ft);
+  await p.close();
+
+  // before there was a CVR number: a private person
+  p = await page({ lang: "en", info: { name: "", address: "", email: "info@allwine.dk", cvr: "", since: 2026 } }); await p.goto(BASE + "legal.html"); await p.waitForTimeout(500);
+  check("…without a CVR number it says a private person in Denmark runs it", /private person in Denmark/.test(await p.textContent('[data-who="en"]')));
   await p.close();
 
   // a Danish reader, and the details filled in
