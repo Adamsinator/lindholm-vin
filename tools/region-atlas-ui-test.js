@@ -33,6 +33,8 @@ const gas = H({ Ark1: [HEAD,
   row({ Producent: "Domaine Vacheron", Land: "Frankrig", Område: "Loire", Kommune: "Sancerre", "Mark/Navn": "Les Romains", Type: "Hvid", Årgang: 2021, Antal: 2 }),
   row({ Producent: "Nicolas Joly", Land: "Frankrig", Område: "Loire", "Mark/Navn": "Savennières Coulée de Serrant", Type: "Hvid", Årgang: 2017, Antal: 1 }),
   row({ Producent: "Domaine Huet", Land: "Frankrig", Område: "Loire", Kommune: "Vouvray", "Mark/Navn": "Le Haut-Lieu Sec", Type: "Hvid", Årgang: 2020, Antal: 3 }),
+  row({ Producent: "Jean Macle", Land: "Frankrig", Område: "Jura", Kommune: "Château-Chalon", "Mark/Navn": "Château-Chalon", Type: "Hvid", Årgang: 2015, Antal: 2 }),
+  row({ Producent: "Domaine Tempier", Land: "Frankrig", Område: "Provence", Kommune: "Bandol", "Mark/Navn": "La Migoua", Type: "Rød", Årgang: 2019, Antal: 1 }),
   row({ Producent: "J.-A. Ferret", Land: "Frankrig", Område: "Bourgogne", Kommune: "Pouilly-Fuissé", "Mark/Navn": "Les Crays", Klassifikation: "1. cru", Type: "Hvid", Årgang: 2021, Antal: 2 }),
 ] });
 
@@ -250,6 +252,16 @@ const gas = H({ Ark1: [HEAD,
     && Math.abs(an.cs - 7) < 0.5 && /Coulée de Serrant[^\n]*in your cellar: 1/.test(an.side) && !/(^|\n)\s*Savennières[^\n]*in your cellar/.test(an.side), JSON.stringify({ gc: an.gc, pc: an.pc, cs: an.cs, b: an.side.match(/[^\n]*in your cellar[^\n]*/g) }));
   await p.goto(BASE + "atlas.html#r=touraine&c=vouvray"); await p.waitForTimeout(2500);
   check("Touraine & Saumur: Vouvray with the Huet on it", (await p.textContent("#side h2")) === "Vouvray" && /Domaine Huet/.test(await p.textContent("#side")));
+  // the Jura: four cru appellations on the Côtes du Jura, the Macle on Château-Chalon (steep, south-west-facing marl)
+  await p.goto(BASE + "atlas.html#r=jura"); await p.waitForTimeout(2500);
+  const ju = await p.evaluate(() => ({ n: st.pack.climats.map(c => c.n).sort((a, b) => a.localeCompare(b, "fr")).join(), side: document.getElementById("side").textContent }));
+  check("the Jura: Arbois, Arbois Pupillin, Château-Chalon and L'Étoile; the Macle on Château-Chalon", ju.n === "Arbois,Arbois Pupillin,Château-Chalon,L'Étoile" && /Château-Chalon[^\n]*in your cellar: 2/.test(ju.side),
+    ju.n + " | " + (ju.side.match(/[^\n]*in your cellar[^\n]*/g) || []).join(" / "));
+  await p.goto(BASE + "atlas.html#r=provence&c=bandol"); await p.waitForTimeout(2500);
+  const pv = await p.evaluate(() => ({ n: st.pack.climats.map(c => c.n).sort().join(), h: document.querySelector("#side h2").textContent, side: document.getElementById("side").textContent }));
+  check("Provence: Bandol and Palette, the Tempier on Bandol; Cassis said to be missing from INAO's map", pv.n === "Bandol,Palette" && pv.h === "Bandol" && /Domaine Tempier/.test(pv.side), JSON.stringify(pv).slice(0, 300));
+  await p.goto(BASE + "atlas.html#r=provence"); await p.waitForTimeout(2000);
+  check("…Cassis said to be missing from INAO's map", /Not drawn: Cassis/.test(await p.textContent("#side")));
   await p.goto(BASE + "atlas.html#r=alsace&c=rangen"); await p.waitForTimeout(2500);
   check("Alsace: 51 grands crus; Rangen with the Zind-Humbrecht on it", await p.evaluate(() => st.pack.climats.filter(c => c.c === "GC").length) === 51 && (await p.textContent("#side h2")) === "Rangen" && /Zind-Humbrecht/.test(await p.textContent("#side")));
 

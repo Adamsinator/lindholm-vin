@@ -21,11 +21,15 @@
     document.querySelectorAll("[data-l]").forEach(el => { el.hidden = el.dataset.l !== l; });
     document.documentElement.lang = l; document.title = l === "da" ? "Om AllWine og vilkår" : "About AllWine and terms";
     const T = l === "da"
-      ? { name: "Navn", addr: "Adresse", email: "E-mail", cvr: "CVR-nr.", none: "AllWine drives af en privatperson i Danmark og er endnu ikke en registreret virksomhed.", copy: "© {0} {1}. Sidens kode, tekster og design må ikke kopieres uden tilladelse. Det, du selv lægger ind, er dit.", contact: "Skriv til {0}.", nocontact: "Kontakt ejeren, der sendte dig din invitation." }
-      : { name: "Name", addr: "Address", email: "E-mail", cvr: "CVR no.", none: "AllWine is run by a private person in Denmark and is not yet a registered business.", copy: "© {0} {1}. The site's code, text and design may not be copied without permission. What you put in yourself is yours.", contact: "Write to {0}.", nocontact: "Contact the owner who sent you your invite." };
+      ? { name: "Navn", addr: "Adresse", email: "E-mail", cvr: "CVR-nr.", none: "AllWine drives af en privatperson i Danmark og er endnu ikke en registreret virksomhed.", reg: "AllWine er registreret i CVR. Ejerens navn og adresse står i {0}.", regLink: "CVR-registret", copy: "© {0} {1}. Sidens kode, tekster og design må ikke kopieres uden tilladelse. Det, du selv lægger ind, er dit.", contact: "Skriv til {0}.", nocontact: "Kontakt ejeren, der sendte dig din invitation." }
+      : { name: "Name", addr: "Address", email: "E-mail", cvr: "CVR no.", none: "AllWine is run by a private person in Denmark and is not yet a registered business.", reg: "AllWine is registered in the Danish CVR register. The owner's name and address are in {0}.", regLink: "the CVR register", copy: "© {0} {1}. The site's code, text and design may not be copied without permission. What you put in yourself is yours.", contact: "Write to {0}.", nocontact: "Contact the owner who sent you your invite." };
     const f = (s, ...a) => s.replace(/\{(\d)\}/g, (m, i) => a[i] ?? "");
     const rows = [[T.name, S.name], [T.addr, S.address], [T.email, S.email ? `<a href="mailto:${esc(S.email)}">${esc(S.email)}</a>` : ""], [T.cvr, S.cvr]].filter(r => r[1]);
-    document.querySelectorAll("[data-who]").forEach(el => { el.innerHTML = rows.length ? rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${k === T.email ? v : esc(v)}</dd>`).join("") + (S.name ? "" : `<dd style="grid-column:1/-1">${esc(T.none)}</dd>`) : `<dd style="grid-column:1/-1">${esc(T.none)}</dd>`; });
+    // without a name on the page: registered (the CVR record shows who and where), or not yet a business at all
+    const cvrUrl = S.cvr ? `https://datacvr.virk.dk/enhed/virksomhed/${encodeURIComponent(S.cvr)}` : "";
+    const note = S.name ? "" : S.cvr ? f(esc(T.reg), `<a href="${cvrUrl}" rel="noopener">${esc(T.regLink)}</a>`) : esc(T.none);
+    document.querySelectorAll("[data-who]").forEach(el => { el.innerHTML = rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${k === T.email ? v : k === T.cvr ? `<a href="${cvrUrl}" rel="noopener">${esc(v)}</a>` : esc(v)}</dd>`).join("")
+      + (note ? `<dd style="grid-column:1/-1">${note}</dd>` : ""); });
     document.querySelectorAll("[data-copy]").forEach(el => { el.textContent = f(T.copy, years, S.name || "AllWine"); });
     document.querySelectorAll("[data-contact]").forEach(el => { el.innerHTML = S.email ? f(esc(T.contact), `<a href="mailto:${esc(S.email)}">${esc(S.email)}</a>`) : esc(T.nocontact); });
   }

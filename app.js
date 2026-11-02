@@ -685,7 +685,8 @@ let RACK_ALL = false, RACK_CASES = [];
 const rackKey = w => { const r = readiness(w); return !r ? "none" : r.k==="now" ? (r.soon?"soon":"now") : r.k; };
 function placeWall(){
   const wall = $("wall"), side = document.querySelector("#overview .side-body"); if(!wall || !side) return;
-  if(matchMedia("(min-width:1181px)").matches){ if(wall.parentNode !== side) side.insertBefore(wall, side.firstChild); }
+  // wide: one of the overview's panels, where the customizer puts it (first, unless moved); narrow: above the figures
+  if(matchMedia("(min-width:1181px)").matches){ if(wall.parentNode !== side){ side.appendChild(wall); applyLayout("overview"); } }
   else if(wall.nextElementSibling !== $("kpis")) $("kpis").parentNode.insertBefore(wall, $("kpis"));
 }
 matchMedia("(min-width:1181px)").addEventListener("change", ()=>{ placeWall(); renderRack(WINES.filter(w=>w.left>0)); });
@@ -919,12 +920,16 @@ syncOverview();
 /* The overview's panels: which show, and in what order. A calm default of a few; "Customise" moves, removes and adds
    them. Saved per account on this device and, for an encrypted account, in its vault (encrypted), so the layout follows
    to the phone. Only what shows changes: the wines don't. */
-const PANEL_DEFAULT = { overview: ["insights","press","regions","map","vintages","worth"], eOverview: ["estyles","eproducers","etime"] };
+const PANEL_DEFAULT = { overview: ["rack","insights","press","regions","map","vintages","worth"], eOverview: ["estyles","eproducers","etime"] };
 let LAYOUT = {}, layoutT = null;
 const layoutKey = () => "vinLayout:" + String(cfg.user||"").toLowerCase();
-const panelEls = id => [...$(id).querySelectorAll(".side-body > [data-panel]")];
+// the overview's panels; the rack is one of them even while a narrow screen shows it above the figures
+const panelEls = id => { const a = [...$(id).querySelectorAll(".side-body > [data-panel]")], w = $("wall");
+  return id==="overview" && w && !a.includes(w) ? [w, ...a] : a; };
 function layoutOf(id){
-  const keys = panelEls(id).map(e=>e.dataset.panel), L = LAYOUT[id];
+  const keys = panelEls(id).map(e=>e.dataset.panel);
+  // a layout saved before the rack could be moved (no "rack" in it, and no rack mark) has the rack first, as it was
+  const L = id==="overview" && Array.isArray(LAYOUT[id]) && !LAYOUT.rack && !LAYOUT[id].includes("rack") ? ["rack", ...LAYOUT[id]] : LAYOUT[id];
   return Array.isArray(L) ? L.filter((k,i)=>keys.includes(k) && L.indexOf(k)===i) : PANEL_DEFAULT[id].slice();
 }
 function loadLayout(){
@@ -944,11 +949,12 @@ function applyLayout(id){
   on.forEach(k=>body.appendChild(at[k]));
   els.filter(e=>!on.includes(e.dataset.panel)).forEach(e=>body.appendChild(e));
   els.forEach(e=>e.classList.toggle("off", !on.includes(e.dataset.panel)));
+  if(id==="overview") placeWall(); // a narrow screen keeps the rack above the figures
   renderCustom(id);
 }
 function setLayout(id, list){
   if(list) LAYOUT[id] = list; else delete LAYOUT[id];
-  LAYOUT.at = Date.now();
+  LAYOUT.at = Date.now(); LAYOUT.rack = 1; // from now on, no "rack" in the list means it was taken away
   applyLayout(id);
   if(WINES.length) (id==="overview" ? renderOverview : renderEnjoyed)(); // a panel coming back is drawn for its width
   try{ localStorage.setItem(layoutKey(), JSON.stringify(LAYOUT)); }catch(e){}
@@ -1032,7 +1038,7 @@ document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState=
 function renderCustom(id){
   const ed = $(id).querySelector(".custed"); if(ed.hidden) return;
   const on = layoutOf(id), rest = panelEls(id).map(e=>e.dataset.panel).filter(k=>!on.includes(k));
-  const el = k => $(id).querySelector(`.side-body > [data-panel="${k}"]`);
+  const el = k => panelEls(id).find(e=>e.dataset.panel===k);
   const name = k => { const h = el(k).querySelector("h2"); return h ? h.textContent.trim() : k; };
   const label = k => `<span>${esc(name(k))}${el(k).hidden ? ` <span class="ph">· ${esc(tr("nothing to show yet"))}</span>` : ""}</span>`;
   const b = (act, k, sym, aria, off) => `<button type="button" class="ibtn" data-act="${act}" data-k="${k}" aria-label="${esc(aria)}" title="${esc(aria)}"${off?" disabled":""}>${sym}</button>`;
@@ -1209,7 +1215,9 @@ const ATLAS_REGIONS = [{id:"chablis", re:/\bchablis\b/i}, {id:"chalonnaise", re:
   {id:"rhonesud", re:/ch[aâ]teauneuf[- ]du[- ]pape|gigondas|vacqueyras|beaumes[- ]de[- ]venise|\brasteau\b|cairanne|vinsobres|\blirac\b|\btavel\b/i},
   {id:"centreloire", re:/sancerre|pouilly[- ]fum[ée]|blanc[- ]fum[ée][- ]de[- ]pouilly|menetou[- ]salon|\bquincy\b|\breuilly\b|coteaux[- ]du[- ]giennois/i},
   {id:"touraine", re:/vouvray|montlouis|\bchinon\b|bourgueil|saumur[- ]champigny/i},
-  {id:"anjou", re:/savenni[eè]res|coul[ée]e[- ]de[- ]serrant|roche[- ]aux[- ]moines|quarts[- ]de[- ]chaume|bonnezeaux|coteaux[- ]du[- ]layon/i}];
+  {id:"anjou", re:/savenni[eè]res|coul[ée]e[- ]de[- ]serrant|roche[- ]aux[- ]moines|quarts[- ]de[- ]chaume|bonnezeaux|coteaux[- ]du[- ]layon/i},
+  {id:"jura", re:/\barbois\b|pupillin|ch[aâ]teau[- ]chalon|l['’ ]?[ée]toile\b|c[oô]tes[- ]du[- ]jura|vin[- ]jaune|\bjura\b/i},
+  {id:"provence", re:/\bbandol\b|\bpalette\b|c[oô]tes[- ]de[- ]provence|sainte[- ]victoire/i}];
 // Barolo and Barbaresco: no map (the MGA outlines aren't open data), but each MGA has its own page (piemonte-mga.js,
 // tools/pages-build.js). A bottle's MGA: the denomination on it, then the longest MGA name (or one of its other names)
 // standing as words in its name; a village mention ("del comune di La Morra") only when the label says so
@@ -3287,7 +3295,7 @@ function knownWine(producer, wine){
    "Meursault Perrières", "Gevrey-Chambertin") gives the commune, region, country and, where the atlas has it, the
    classification. From atlas-index.js (every named vineyard, ~40 KB), fetched the first time a wine is typed. ---------- */
 const ATLAS_REG = {burgundy:"Bourgogne", chablis:"Bourgogne", chalonnaise:"Bourgogne", maconnais:"Bourgogne", beaujolais:"Beaujolais",
-  champagne:"Champagne", alsace:"Alsace", rhone:"Rhône", rhonesud:"Rhône", bordeaux:"Bordeaux", centreloire:"Loire", touraine:"Loire", anjou:"Loire",
+  champagne:"Champagne", alsace:"Alsace", rhone:"Rhône", rhonesud:"Rhône", bordeaux:"Bordeaux", centreloire:"Loire", touraine:"Loire", anjou:"Loire", jura:"Jura", provence:"Provence",
   mosel:"Mosel", nahe:"Nahe", pfalz:"Pfalz", rheinhessen:"Rheinhessen", mittelrhein:"Mittelrhein", ahr:"Ahr", barolo:"Piemonte", barbaresco:"Piemonte"};
 const ATLAS_COUNTRY = r => /^(barolo|barbaresco)$/.test(r) ? "Italien" : /^(mosel|nahe|pfalz|rheinhessen|mittelrhein|ahr)$/.test(r) ? "Tyskland" : "Frankrig";
 const ATLAS_CLS = {"1er":"1. cru", "GC":"Grand cru", "1855-1":"Cru classé", "1855-2":"Cru classé", "1855-3":"Cru classé", "1855-4":"Cru classé", "1855-5":"Cru classé"};
@@ -3305,7 +3313,7 @@ function atlasIndex(then){
     AIX.v.forEach(x=>{ const c = aKey(x.e[4]); if(c.length > 4 && !AIX.communes.has(c)) AIX.communes.set(c, {name:x.e[4], reg:x.e[1]}); });
     return AIX;
   }
-  if(!AIX_LOADING){ AIX_LOADING = true; const sc = document.createElement("script"); sc.src = "atlas-index.js?v=1"; sc.onload = then; document.head.appendChild(sc); }
+  if(!AIX_LOADING){ AIX_LOADING = true; const sc = document.createElement("script"); sc.src = "atlas-index.js?v=2"; sc.onload = then; document.head.appendChild(sc); }
   return null;
 }
 function atlasWine(wine, commune){

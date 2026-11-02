@@ -88,6 +88,18 @@ const REGIONS = {
       { ap: "Savennières Roche aux Moines", col: "W", cru: true, aka: ["Roche aux Moines"] }, { ap: "Savennières", col: "W", cru: true },
       { ap: "Quarts de Chaume", col: "W", cru: true, cls: "GC" }, { ap: "Bonnezeaux", col: "W", cru: true }, { ap: "Coteaux du Layon", col: "W" }],
     regional: [] },
+  // the Jura: its cru appellations (Château-Chalon for vin jaune, L'Étoile, Arbois with its Pupillin) on the Côtes du
+  // Jura land. Arbois Pupillin is a dénomination inside Arbois, so it's listed first and keeps its own land.
+  jura: { name: "Jura", country: "Frankrig", region: "Jura", bbox: [46.40, 5.30, 47.00, 5.95], bgTol: 5,
+    apps: [{ ap: "Château-Chalon", col: "W", cru: true }, { ap: "L'Étoile", inao: "L'Etoile", col: "W", cru: true },
+      { ap: "Arbois Pupillin", col: "RW", cru: true, aka: ["Pupillin"] }, { ap: "Arbois", col: "RW", cru: true }, { ap: "Côtes du Jura", col: "RW" }],
+    regional: [] },
+  // Provence by the sea: Bandol and Palette, the old cru appellations, over the Côtes de Provence (Sainte-Victoire as its
+  // own land). INAO's parcel map has no Cassis: not by any spelling, nor round the town (checked 2026-11)
+  provence: { name: "Provence", country: "Frankrig", region: "Provence", bbox: [43.08, 5.40, 43.56, 5.95], bgTol: 6,
+    apps: [{ ap: "Bandol", col: "RW", cru: true }, { ap: "Palette", col: "RW", cru: true }, { ap: "Côtes de Provence Sainte-Victoire", col: "RW" }],
+    regional: [/^Côtes de Provence$/],
+    absent: ["Cassis"] },
   // Bordeaux: the cru appellations (each its own climat, as in the Rhône) over Haut-Médoc, Médoc and Graves; the
   // classified châteaux are points, placed on IGN's châteaux (BD TOPO, nature "Château") inside their appellation.
   // A parcel's first appellation in this list wins (Barsac before Sauternes, Canon-Fronsac before Fronsac); the Bordeaux / Bordeaux supérieur land under everything is left out (it's most of the Gironde)
