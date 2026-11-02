@@ -685,7 +685,8 @@ let RACK_ALL = false, RACK_CASES = [];
 const rackKey = w => { const r = readiness(w); return !r ? "none" : r.k==="now" ? (r.soon?"soon":"now") : r.k; };
 function placeWall(){
   const wall = $("wall"), side = document.querySelector("#overview .side-body"); if(!wall || !side) return;
-  if(matchMedia("(min-width:1181px)").matches){ if(wall.parentNode !== side) side.insertBefore(wall, side.firstChild); }
+  // wide: one of the overview's panels, where the customizer puts it (first, unless moved); narrow: above the figures
+  if(matchMedia("(min-width:1181px)").matches){ if(wall.parentNode !== side){ side.appendChild(wall); applyLayout("overview"); } }
   else if(wall.nextElementSibling !== $("kpis")) $("kpis").parentNode.insertBefore(wall, $("kpis"));
 }
 matchMedia("(min-width:1181px)").addEventListener("change", ()=>{ placeWall(); renderRack(WINES.filter(w=>w.left>0)); });
@@ -919,12 +920,16 @@ syncOverview();
 /* The overview's panels: which show, and in what order. A calm default of a few; "Customise" moves, removes and adds
    them. Saved per account on this device and, for an encrypted account, in its vault (encrypted), so the layout follows
    to the phone. Only what shows changes: the wines don't. */
-const PANEL_DEFAULT = { overview: ["insights","press","regions","map","vintages","worth"], eOverview: ["estyles","eproducers","etime"] };
+const PANEL_DEFAULT = { overview: ["rack","insights","press","regions","map","vintages","worth"], eOverview: ["estyles","eproducers","etime"] };
 let LAYOUT = {}, layoutT = null;
 const layoutKey = () => "vinLayout:" + String(cfg.user||"").toLowerCase();
-const panelEls = id => [...$(id).querySelectorAll(".side-body > [data-panel]")];
+// the overview's panels; the rack is one of them even while a narrow screen shows it above the figures
+const panelEls = id => { const a = [...$(id).querySelectorAll(".side-body > [data-panel]")], w = $("wall");
+  return id==="overview" && w && !a.includes(w) ? [w, ...a] : a; };
 function layoutOf(id){
-  const keys = panelEls(id).map(e=>e.dataset.panel), L = LAYOUT[id];
+  const keys = panelEls(id).map(e=>e.dataset.panel);
+  // a layout saved before the rack could be moved (no "rack" in it, and no rack mark) has the rack first, as it was
+  const L = id==="overview" && Array.isArray(LAYOUT[id]) && !LAYOUT.rack && !LAYOUT[id].includes("rack") ? ["rack", ...LAYOUT[id]] : LAYOUT[id];
   return Array.isArray(L) ? L.filter((k,i)=>keys.includes(k) && L.indexOf(k)===i) : PANEL_DEFAULT[id].slice();
 }
 function loadLayout(){
@@ -944,11 +949,12 @@ function applyLayout(id){
   on.forEach(k=>body.appendChild(at[k]));
   els.filter(e=>!on.includes(e.dataset.panel)).forEach(e=>body.appendChild(e));
   els.forEach(e=>e.classList.toggle("off", !on.includes(e.dataset.panel)));
+  if(id==="overview") placeWall(); // a narrow screen keeps the rack above the figures
   renderCustom(id);
 }
 function setLayout(id, list){
   if(list) LAYOUT[id] = list; else delete LAYOUT[id];
-  LAYOUT.at = Date.now();
+  LAYOUT.at = Date.now(); LAYOUT.rack = 1; // from now on, no "rack" in the list means it was taken away
   applyLayout(id);
   if(WINES.length) (id==="overview" ? renderOverview : renderEnjoyed)(); // a panel coming back is drawn for its width
   try{ localStorage.setItem(layoutKey(), JSON.stringify(LAYOUT)); }catch(e){}
@@ -1032,7 +1038,7 @@ document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState=
 function renderCustom(id){
   const ed = $(id).querySelector(".custed"); if(ed.hidden) return;
   const on = layoutOf(id), rest = panelEls(id).map(e=>e.dataset.panel).filter(k=>!on.includes(k));
-  const el = k => $(id).querySelector(`.side-body > [data-panel="${k}"]`);
+  const el = k => panelEls(id).find(e=>e.dataset.panel===k);
   const name = k => { const h = el(k).querySelector("h2"); return h ? h.textContent.trim() : k; };
   const label = k => `<span>${esc(name(k))}${el(k).hidden ? ` <span class="ph">· ${esc(tr("nothing to show yet"))}</span>` : ""}</span>`;
   const b = (act, k, sym, aria, off) => `<button type="button" class="ibtn" data-act="${act}" data-k="${k}" aria-label="${esc(aria)}" title="${esc(aria)}"${off?" disabled":""}>${sym}</button>`;
