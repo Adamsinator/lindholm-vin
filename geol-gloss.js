@@ -33,6 +33,7 @@
     [/\brhyolit|\bignimbrit|\blatite|\bdiabase|\bvolcan|\bpyroclast|\bcinerite|\btrachy|\bandesit/, "Volcanic rock", "Vulkansk bjergart", "Vulkangestein"],
     [/\bmicrogranite|\bgranophyre|\bporphyr/, "Granite", "Granit", "Granit"], [/\bfilon/, "Vein", "Gang", "Gang"],
     [/\barkose/, "Arkose", "Arkose", "Arkose"], [/\bquartz\b/, "Quartz", "Kvarts", "Quarz"],
+    [/\bglissement/, "Landslip deposits", "Jordskredsmateriale", "Rutschmassen"], [/\bbauxite/, "Bauxite", "Bauxit", "Bauxit"],
     [/\bdiorite|\bgabbro|\bsyenite/, "Igneous rock", "Dybbjergart", "Tiefengestein"], [/\bamphibolite|\bleptynite|\bcorneenne|\bhornfels/, "Metamorphic rock", "Metamorf bjergart", "Metamorphes Gestein"], [/\bmeuliere/, "Millstone grit", "Møllestenskvarts", "Mühlsteinquarzit"],
   ];
   // ages: French stems → [en, da, de], the most precise that appears wins (stages before epochs before periods)

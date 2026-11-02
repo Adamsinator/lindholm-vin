@@ -1209,7 +1209,9 @@ const ATLAS_REGIONS = [{id:"chablis", re:/\bchablis\b/i}, {id:"chalonnaise", re:
   {id:"rhonesud", re:/ch[aâ]teauneuf[- ]du[- ]pape|gigondas|vacqueyras|beaumes[- ]de[- ]venise|\brasteau\b|cairanne|vinsobres|\blirac\b|\btavel\b/i},
   {id:"centreloire", re:/sancerre|pouilly[- ]fum[ée]|blanc[- ]fum[ée][- ]de[- ]pouilly|menetou[- ]salon|\bquincy\b|\breuilly\b|coteaux[- ]du[- ]giennois/i},
   {id:"touraine", re:/vouvray|montlouis|\bchinon\b|bourgueil|saumur[- ]champigny/i},
-  {id:"anjou", re:/savenni[eè]res|coul[ée]e[- ]de[- ]serrant|roche[- ]aux[- ]moines|quarts[- ]de[- ]chaume|bonnezeaux|coteaux[- ]du[- ]layon/i}];
+  {id:"anjou", re:/savenni[eè]res|coul[ée]e[- ]de[- ]serrant|roche[- ]aux[- ]moines|quarts[- ]de[- ]chaume|bonnezeaux|coteaux[- ]du[- ]layon/i},
+  {id:"jura", re:/\barbois\b|pupillin|ch[aâ]teau[- ]chalon|l['’ ]?[ée]toile\b|c[oô]tes[- ]du[- ]jura|vin[- ]jaune|\bjura\b/i},
+  {id:"provence", re:/\bbandol\b|\bpalette\b|c[oô]tes[- ]de[- ]provence|sainte[- ]victoire/i}];
 // Barolo and Barbaresco: no map (the MGA outlines aren't open data), but each MGA has its own page (piemonte-mga.js,
 // tools/pages-build.js). A bottle's MGA: the denomination on it, then the longest MGA name (or one of its other names)
 // standing as words in its name; a village mention ("del comune di La Morra") only when the label says so
@@ -3287,7 +3289,7 @@ function knownWine(producer, wine){
    "Meursault Perrières", "Gevrey-Chambertin") gives the commune, region, country and, where the atlas has it, the
    classification. From atlas-index.js (every named vineyard, ~40 KB), fetched the first time a wine is typed. ---------- */
 const ATLAS_REG = {burgundy:"Bourgogne", chablis:"Bourgogne", chalonnaise:"Bourgogne", maconnais:"Bourgogne", beaujolais:"Beaujolais",
-  champagne:"Champagne", alsace:"Alsace", rhone:"Rhône", rhonesud:"Rhône", bordeaux:"Bordeaux", centreloire:"Loire", touraine:"Loire", anjou:"Loire",
+  champagne:"Champagne", alsace:"Alsace", rhone:"Rhône", rhonesud:"Rhône", bordeaux:"Bordeaux", centreloire:"Loire", touraine:"Loire", anjou:"Loire", jura:"Jura", provence:"Provence",
   mosel:"Mosel", nahe:"Nahe", pfalz:"Pfalz", rheinhessen:"Rheinhessen", mittelrhein:"Mittelrhein", ahr:"Ahr", barolo:"Piemonte", barbaresco:"Piemonte"};
 const ATLAS_COUNTRY = r => /^(barolo|barbaresco)$/.test(r) ? "Italien" : /^(mosel|nahe|pfalz|rheinhessen|mittelrhein|ahr)$/.test(r) ? "Tyskland" : "Frankrig";
 const ATLAS_CLS = {"1er":"1. cru", "GC":"Grand cru", "1855-1":"Cru classé", "1855-2":"Cru classé", "1855-3":"Cru classé", "1855-4":"Cru classé", "1855-5":"Cru classé"};
@@ -3305,7 +3307,7 @@ function atlasIndex(then){
     AIX.v.forEach(x=>{ const c = aKey(x.e[4]); if(c.length > 4 && !AIX.communes.has(c)) AIX.communes.set(c, {name:x.e[4], reg:x.e[1]}); });
     return AIX;
   }
-  if(!AIX_LOADING){ AIX_LOADING = true; const sc = document.createElement("script"); sc.src = "atlas-index.js?v=1"; sc.onload = then; document.head.appendChild(sc); }
+  if(!AIX_LOADING){ AIX_LOADING = true; const sc = document.createElement("script"); sc.src = "atlas-index.js?v=2"; sc.onload = then; document.head.appendChild(sc); }
   return null;
 }
 function atlasWine(wine, commune){

@@ -370,7 +370,7 @@ that climat; a third element `"f"` marks a lease, `"s"` bought grapes. Domaine
 profiles and their sources are in `PROFILES`. When you change the JS, bump the
 `?v=` on the `<script>` tags in `burgundy.html`.
 
-## Region atlas (Burgundy beyond the Côte d'Or, Champagne, Alsace, Northern Rhône, Bordeaux, Germany)
+## Region atlas (Burgundy beyond the Côte d'Or, Champagne, Alsace, the Rhône, the Loire, the Jura, Provence, Bordeaux, Germany)
 
 **More regions ↗** (tab bar, and in the Burgundy atlas) opens `atlas.html`: one wine region at a time, from INAO's own
 vineyard outlines. The Côte d'Or keeps its richer atlas (`burgundy.html`); the region atlas is lighter and generic, so a
@@ -408,6 +408,12 @@ new region is a data file, not new code.
   Chardonnay) and Tours-sur-Marne (for Pinot Noir) carry a note. Grand cru vines come to 4 410 ha, against the
   ≈4 400 usually quoted. A bottle lands on a village from its commune field (Aÿ), and "Add a bottle from here"
   leaves the name for the cuvée.
+- **The Jura and Provence:** the same model as the Rhône, each cru appellation its own climat. The Jura: Château-Chalon,
+  L'Étoile, Arbois and its dénomination Arbois Pupillin (listed first, so it keeps its own land) on the Côtes du Jura.
+  Provence by the sea: Bandol and Palette over the Côtes de Provence, with Sainte-Victoire as its own land. INAO's map
+  has no Cassis (not by any spelling, nor round the town; checked November 2026), so the side panel says it isn't
+  drawn. INAO's areas are the land entitled to the name, planted or not: Bandol 9 600 ha and Palette 1 860 ha on the
+  map, against about 1 500 ha and 46 ha of vines usually quoted. Geology from BRGM's maps for départements 039, 013 and 083.
 - **Bordeaux:** 14 cru appellations as "Cru appellation" climats (Saint-Estèphe, Pauillac, Saint-Julien, Margaux,
   Listrac, Moulis, Pessac-Léognan, Barsac, Sauternes, Saint-Émilion Grand Cru, Pomerol, Lalande-de-Pomerol,
   Canon-Fronsac, Fronsac) over Haut-Médoc, Médoc and Graves; the Bordeaux / Bordeaux supérieur land under the whole

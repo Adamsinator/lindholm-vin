@@ -40,6 +40,10 @@ const REGIONS = [
     kw: ["vouvray", "montlouis", "chinon", "bourgueil", "saumur champigny"] },
   { id: "anjou", name: "Anjou", file: "atlas-anjou.js?v=1", topo: "atlas-anjou-topo.js?v=1", dem: "atlas-anjou-dem.js?v=1", geol: "atlas-anjou-geol.js?v=1", ll: [47.33, -0.6], country: "fr", kind: "Savennières and the Layon's sweet wines",
     kw: ["savennieres", "coulee de serrant", "roche aux moines", "quarts de chaume", "bonnezeaux", "coteaux du layon"] },
+  { id: "jura", name: "Jura", file: "atlas-jura.js?v=1", topo: "atlas-jura-topo.js?v=1", dem: "atlas-jura-dem.js?v=1", geol: "atlas-jura-geol.js?v=1", ll: [46.75, 5.65], country: "fr", kind: "Château-Chalon, L'Étoile and Arbois",
+    kw: ["jura", "arbois", "pupillin", "chateau chalon", "l etoile", "cotes du jura", "vin jaune"], village: "Côtes du Jura" },
+  { id: "provence", name: "Provence", file: "atlas-provence.js?v=1", topo: "atlas-provence-topo.js?v=1", dem: "atlas-provence-dem.js?v=1", geol: "atlas-provence-geol.js?v=1", ll: [43.25, 5.75], country: "fr", kind: "Bandol and Palette",
+    kw: ["bandol", "palette", "cotes de provence", "sainte victoire"], regional: "Côtes de Provence" },
 ];
 // the start page's other places: the Côte d'Or's own, richer atlas, and Piedmont, whose MGA have pages but no map
 const ELSEWHERE = [{ id: "burgundy", name: "Côte d'Or", ll: [47.058, 4.839], country: "fr", kind: "The detailed atlas: owners, terrain, geology", href: "burgundy.html" },
@@ -269,7 +273,7 @@ function ensureGeol() {
   const R = st.region; if (!R || !R.geol || geolOf() || ensureGeol.busy === R) return;
   ensureGeol.busy = R;
   // the geology and its glossary (geol-gloss.js: BRGM's French in the reader's language) come only when geology is wanted
-  Promise.all([loadScript(R.geol), window.GEOL_TR ? null : loadScript("geol-gloss.js?v=1").catch(() => {})]).then(() => { if (st.region === R) { drawGeol(); paint(); renderLegend(); renderSide(); } }).catch(() => {}).finally(() => { ensureGeol.busy = null; });
+  Promise.all([loadScript(R.geol), window.GEOL_TR ? null : loadScript("geol-gloss.js?v=2").catch(() => {})]).then(() => { if (st.region === R) { drawGeol(); paint(); renderLegend(); renderSide(); } }).catch(() => {}).finally(() => { ensureGeol.busy = null; });
 }
 function drawGeol() {
   const G = geolOf(); if (!G || !TG.geol) return; TG.geol.innerHTML = "";
@@ -786,7 +790,7 @@ function showHome() {
   const ols = el("g", { class: "ols", "aria-hidden": "true" }, g);
   const outline = () => { for (const r of allPlaces()) { const rings = (window.ATLAS_OUTLINES || {})[r.id]; if (!rings) continue;
     el("path", { class: "ol" + (r.href ? " out" : ""), "data-id": r.id, "fill-rule": "evenodd", d: rings.map(q => "M" + q.map(xy).map(p => p.join(" ")).join("L") + "Z").join("") }, ols); } };
-  if (window.ATLAS_OUTLINES) outline(); else loadScript("atlas-outlines.js?v=1").then(() => { if (!st.pack && ols.isConnected) outline(); }).catch(() => {});
+  if (window.ATLAS_OUTLINES) outline(); else loadScript("atlas-outlines.js?v=2").then(() => { if (!st.pack && ols.isConnected) outline(); }).catch(() => {});
   // a region's outline and its dot light up together
   const hot = (e, on) => { const x = e.target.closest && e.target.closest("[data-id]"); if (x) svg.querySelectorAll(`[data-id="${x.dataset.id}"]`).forEach(n => n.classList.toggle("hot", on)); };
   g.addEventListener("pointerover", e => hot(e, true)); g.addEventListener("pointerout", e => hot(e, false));
@@ -873,7 +877,7 @@ $("fGeol").checked = st.geol; $("fGeol").onchange = e => { st.geol = e.target.ch
 $("fTopo").checked = st.topo; $("fTopo").onchange = e => { st.topo = e.target.checked; keep("atlasTopo", st.topo); topoLod(); };
 /* ---------- search: this region's vineyards first, then every other region's and the Côte d'Or's (atlas-index.js,
    fetched when the box is first used), as a list under the box that works by touch and with ↑ ↓ Enter Esc ---------- */
-const sBox = $("fSearch"), sList = $("gRes"), INDEX_SRC = "atlas-index.js?v=1";
+const sBox = $("fSearch"), sList = $("gRes"), INDEX_SRC = "atlas-index.js?v=2";
 let sHits = [], sAt = -1;
 const placeName = id => (allPlaces().find(r => r.id === id) || {}).name || id;
 const loadIndex = () => window.ATLAS_INDEX ? Promise.resolve() : (loadIndex.p ||= loadScript(INDEX_SRC).catch(() => { loadIndex.p = null; }));

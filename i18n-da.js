@@ -1,6 +1,8 @@
 // Danish for allwine.dk: i18n.js loads the one dictionary the page's language needs (English is the source text).
 window.I18N_DICT = window.I18N_DICT || {};
 window.I18N_DICT.da = {
+  "Château-Chalon, L'Étoile and Arbois": "Château-Chalon, L'Étoile og Arbois",
+  "Bandol and Palette": "Bandol og Palette",
   "The online wine card was withdrawn: its QR code no longer opens it": "Vinkortet online er trukket tilbage: QR-koden åbner det ikke længere",
   "The wine card online (its QR code)": "Vinkortet online (dets QR-kode)",
   "Total": "I alt",
