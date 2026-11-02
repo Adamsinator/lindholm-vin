@@ -271,7 +271,7 @@ function classShown(w){
 // " · Grand cru" after a wine's name; a suggested one is marked ≈ and dashed. Plain AOC isn't worth the space.
 function classChip(w){
   const c = classShown(w); if(!c || clsKey(c.txt)==="V") return "";
-  return c.est ? ` · <b class="clsest" title="${esc(tr("Suggested from {0} — not saved yet", c.sg.climat||tr("the label")))}">≈ ${esc(c.txt)}</b>` : " · <b>"+esc(c.txt)+"</b>";
+  return c.est ? ` · <b class="clsest" title="${esc(tr("Suggested from {0}: not saved yet", c.sg.climat||tr("the label")))}">≈ ${esc(c.txt)}</b>` : " · <b>"+esc(c.txt)+"</b>";
 }
 // A wine drunk somewhere else and never in the cellar: marked by the API since v26; older rows by their shape.
 const isElsewhere = w => w.elsewhere || (w.qty===1 && w.drunk===1 && !w.acquired);
@@ -285,7 +285,7 @@ function showTip(html,x,y){ tip.innerHTML=html; tip.style.opacity=1;
 function hideTip(){ tip.style.opacity=0; }
 let toastT;
 // the server's limits, said in words wherever an error message shows their code
-const LIMIT_MSG = {"too-many":"You've done that a lot in a short time — wait a while and try again.", "too-big":"That's too large to save."};
+const LIMIT_MSG = {"too-many":"You've done that a lot in a short time: wait a while and try again.", "too-big":"That's too large to save."};
 const limitText = m => String(m).replace(/\b(too-many|too-big)\b/, c => tr(LIMIT_MSG[c]));
 // An error as a person should read it: the API's codes and Google's usual exception texts (quotas, timeouts, locks,
 // permissions) in plain words, in the chosen language; anything else as it came, without "Error:"/"Exception:".
@@ -519,7 +519,7 @@ function renderOverview(){
       <span class="rb-name">${esc(name)}</span>
       <span class="rb-track"><span class="rb-fill" style="width:${Math.max(1.5,p.b/maxPB*100)}%"></span></span>
       <span class="rb-n">${btl(p.b)}</span>
-    </button>`).join("") + (prods.length>10?`<div class="morep">${esc(tr("+ {0} more producers — use the search box", prods.length-10))}</div>`:"");
+    </button>`).join("") + (prods.length>10?`<div class="morep">${esc(tr("+ {0} more producers: use the search box", prods.length-10))}</div>`:"");
   document.querySelectorAll("#producers .rbar").forEach(el=>{
     const name = el.dataset.prod, p = prodAgg[name];
     el.addEventListener("mousemove",e=>showTip(`<b>${esc(name)}</b><br>${esc(nBottles(p.b))} · ${esc(nWines(p.n))}${SHOW_PRICES?" · "+kr(p.v):""}`,e.clientX,e.clientY));
@@ -781,7 +781,7 @@ function renderPriorities(cellar){
   cellar.forEach(w=>{ const r=readiness(w); if(!r) return;
     const k = r.k==="now" ? (r.soon?"soon":"now") : r.k; cat[k]+=w.left; });
   const defs=[
-    ["past","past",tr("Past peak — drink up")],
+    ["past","past",tr("Past peak: drink up")],
     ["soon","soon",tr("Closing soon")],
     ["now","now",tr("Drink now")],
     ["young","young",tr("Too young")],
@@ -1038,7 +1038,7 @@ function renderCustom(id){
   const b = (act, k, sym, aria, off) => `<button type="button" class="ibtn" data-act="${act}" data-k="${k}" aria-label="${esc(aria)}" title="${esc(aria)}"${off?" disabled":""}>${sym}</button>`;
   ed.innerHTML = `<h3>${esc(tr("Shown, in this order"))}</h3><ul class="custlist">` + (on.length ? on.map((k,i)=>`<li>${label(k)}${
       b("up", k, "↑", tr("Move {0} up", name(k)), i===0)}${b("down", k, "↓", tr("Move {0} down", name(k)), i===on.length-1)}${b("off", k, "✕", tr("Remove {0}", name(k)))}</li>`).join("")
-      : `<li><span class="ph">${esc(tr("Nothing shown — add a chart below"))}</span></li>`) + `</ul>` +
+      : `<li><span class="ph">${esc(tr("Nothing shown: add a chart below"))}</span></li>`) + `</ul>` +
     (rest.length ? `<h3>${esc(tr("＋ Add a chart"))}</h3><ul class="custlist">` + rest.map(k=>`<li>${label(k)}${b("on", k, "＋", tr("Add {0}", name(k)))}</li>`).join("") + `</ul>` : "") +
     `<div class="custact"><button type="button" class="btn quiet" data-act="reset">${esc(tr("Reset to default"))}</button><button type="button" class="btn primary" data-act="done">${esc(tr("Done"))}</button></div>`;
 }
@@ -1307,7 +1307,7 @@ function renderTable(){
     const badge = pn?`<span class="badge ${pn[0]}">${tr(TIER_LABEL[pn[0]])}</span>`:"";
     const rd = w.left>0 ? readiness(w) : null;
     const rwin = rd ? drinkWindow(w) : null;
-    const rbadge = rd?`<span class="rbadge ${rd.k}${rd.est?" est":""}" title="${esc(rd.est ? tr("Estimated drink window {0} — set your own in the wine", `${rwin.from??"?"}–${rwin.to??"?"}`) : tr("Your drink window {0}", `${rwin.from??"?"}–${rwin.to??"?"}`))}">${esc(rd.label)}</span>`:"";
+    const rbadge = rd?`<span class="rbadge ${rd.k}${rd.est?" est":""}" title="${esc(rd.est ? tr("Estimated drink window {0}: set your own in the wine", `${rwin.from??"?"}–${rwin.to??"?"}`) : tr("Your drink window {0}", `${rwin.from??"?"}–${rwin.to??"?"}`))}">${esc(rd.label)}</span>`:"";
     const nm = [w.name, w.commune && w.commune!==w.name ? w.commune : ""].filter(Boolean).join(" · ");
     // the colour as a dot before the wine (the style has its filter and its chart)
     const dot = `<span class="sdot" title="${esc(tr(STYLE_EN[w.style])||w.style||"")}" style="background:var(${STYLE_VAR[w.style]||"--muted"})"></span>`;
@@ -1327,7 +1327,7 @@ function renderTable(){
   }).join("") + moreRow(list.length, shown.length, 7, "cellar");
   if(!list.length){
     const anyWines = WINES.some(w=>w.left>0);
-    const msg = !anyWines ? esc(tr("Your cellar is empty — press ＋ Add wine to start building it."))
+    const msg = !anyWines ? esc(tr("Your cellar is empty: press ＋ Add wine to start building it."))
               : esc(tr("No wines match these filters."));
     // an empty cellar gets its picture (art/fig-rack.svg); a filter that finds nothing only says so
     $("rows").innerHTML = `<tr><td colspan="7" class="emptyrow">${!anyWines ? fig("rack") : ""}${msg}</td></tr>`;
@@ -1438,7 +1438,7 @@ async function loadData(quiet){
     $("spin").hidden = true; $("content").hidden = false;
     loadJournalSilently(); loadFeedSilently(); refreshDeleted(); checkOwner(); takePrefill();
   }catch(err){
-    if(AUTH_ERRORS.has(err.message)){ forgetAuth(); setGateMode("login"); showGate(tr("Your session expired — log in again.")); }
+    if(AUTH_ERRORS.has(err.message)){ forgetAuth(); setGateMode("login"); showGate(tr("Your session expired: log in again.")); }
     else { $("spin").classList.remove("skel"); $("spin").textContent = tr("Could not reach the cellar API ({0}). Check your connection and refresh.", errText(err)); }
   }
 }
@@ -1662,7 +1662,7 @@ function passProblem(pass, user){
   if(p.length < 10) return tr("Use a password of at least 10 characters.");
   if(user && low === String(user).trim().toLowerCase()) return tr("Don't use your username as the password.");
   if(COMMON_PASS.has(low) || /^(.)\1+$/.test(p) || "01234567890123456789".includes(p) || "abcdefghijklmnopqrstuvwxyz".includes(low))
-    return tr("That password is too easy to guess — pick another.");
+    return tr("That password is too easy to guess: pick another.");
   return "";
 }
 // the eye shows both password fields as text, and says when the two match
@@ -1682,16 +1682,16 @@ $("gateUser").addEventListener("blur", ()=>{ if(GATE_MODE!=="signup") return; co
 // Friendly text for the error codes the API returns.
 const AUTH_MSG = {
   "bad-login":"Wrong username or password.", "bad-invite":"That invite code isn't right, or it has already been used.",
-  "locked":"Too many wrong tries — wait 15 minutes and try again.", "signup-full":"There's no room for new accounts right now. Ask the owner.",
-  "signup-busy":"Too many sign-ups just now — try again in an hour.",
-  "signup-disabled":"Signups are closed right now.", "user-taken":"That username is taken — choose another.", "bad-email":"Enter your email address.",
+  "locked":"Too many wrong tries: wait 15 minutes and try again.", "signup-full":"There's no room for new accounts right now. Ask the owner.",
+  "signup-busy":"Too many sign-ups just now: try again in an hour.",
+  "signup-disabled":"Signups are closed right now.", "user-taken":"That username is taken: choose another.", "bad-email":"Enter your email address.",
   "bad-username":"Username: 3–24 letters, numbers, . _ or -.", "weak-pass":"Use a password of at least 6 characters.",
   "no-cellar":"Your cellar couldn't be opened. Contact the owner.",
   "human-check":"The \"are you human\" check didn't go through. Wait for it to finish and try again.",
   "gateway":"The site's server isn't set up right. Tell the owner.", "origin":"The site's server isn't set up right. Tell the owner.",
   "upstream":"The cellar's server didn't answer. Try again in a moment.",
-  "too-many":"You've done that a lot in a short time — wait a while and try again.",
-  "bad-recovery":"That recovery code doesn't match this account.", "update-site":"Reload the page — the site has been updated.",
+  "too-many":"You've done that a lot in a short time: wait a while and try again.",
+  "bad-recovery":"That recovery code doesn't match this account.", "update-site":"Reload the page: the site has been updated.",
   "vaulted":"This cellar is encrypted: log in with your username and password.",
   "bad-keys":"Something went wrong preparing your keys. Reload and try again.",
 };
@@ -1757,7 +1757,7 @@ const VAULT_HOOKS = {
     JENTRIES = null; WITEMS = null; loadData(true);
     if(location.hash==="#journal" || location.hash==="#wishlist") route();
   },
-  onLost(){ forgetAuth(); setGateMode("login"); showGate(tr("Your session expired — log in again.")); },
+  onLost(){ forgetAuth(); setGateMode("login"); showGate(tr("Your session expired: log in again.")); },
 };
 const STEP_MSG = { export:"Reading your cellar…", photos:"Encrypting journal photos ({0} of {1})…", write:"Encrypting your cellar…",
   verify:"Checking the encrypted copy…", finish:"Removing the unencrypted copy…" };
@@ -1854,7 +1854,7 @@ $("gateForm").addEventListener("submit", async e=>{
   }catch(err){
     const m = String(err.message||"").replace(/^Error: /,"");
     $("gateErr").textContent = AUTH_MSG[m] ? authMsg(m)
-      : /^verify-failed/.test(m) ? tr("Encrypting your cellar stopped before it finished — nothing was lost. Log in again to continue.")
+      : /^verify-failed/.test(m) ? tr("Encrypting your cellar stopped before it finished: nothing was lost. Log in again to continue.")
       : tr("Could not reach the cellar API ({0}).", errText(m));
   }
   finally{ $("gateSubmit").disabled = false; if(GATE_MODE!=="login") humanReset(); }
@@ -2060,7 +2060,7 @@ function impBuild(){
       + `<td>${w.qty}${w.drunk ? " · "+esc(tr("{0} drunk", w.drunk)) : ""}</td><td>${w.price!=null ? esc(fmt(w.price)) : ""}</td>`
       + `<td>${esc(w.type||"")}</td><td>${esc(w.size||"")}</td></tr>`).join("")
     + (ws.length > 8 ? `<tr><td colspan="9">${esc(tr("… and {0} more", ws.length - 8))}</td></tr>` : "")
-    + (ws.length ? "" : `<tr><td colspan="9">${esc(tr("Nothing to import yet — choose which column holds the producer."))}</td></tr>`)
+    + (ws.length ? "" : `<tr><td colspan="9">${esc(tr("Nothing to import yet: choose which column holds the producer."))}</td></tr>`)
     + "</tbody>";
   const bottles = ws.reduce((s,w) => s + w.qty, 0);
   const notes = [];
@@ -2122,7 +2122,7 @@ async function impRun(){
   }catch(err){
     const m = String(err && err.message || err);
     if(done){ renderOverview(); renderTable(); renderEnjoyed(); }
-    $("impErr").textContent = m === "bad-action" ? tr("Importing needs the updated Apps Script (version 29) — redeploy Code.gs.")
+    $("impErr").textContent = m === "bad-action" ? tr("Importing needs the updated Apps Script (version 29): redeploy Code.gs.")
       : done ? tr("{0} of {1} wines were imported before an error: {2}", done, total, m)
       : tr("Could not import: {0}", m);
     // what went in now counts as "already in the cellar": skip it on a retry so nothing is added twice
@@ -2371,7 +2371,7 @@ async function tidyRun(){
     toast(tr("Cellar tidied"));
   }catch(err){
     const m = String(err && err.message || err);
-    $("tidyErr").textContent = m === "bad-action" ? tr("Tidying needs the updated Apps Script (version 32) — redeploy Code.gs.") : tr("Could not tidy: {0}", m);
+    $("tidyErr").textContent = m === "bad-action" ? tr("Tidying needs the updated Apps Script (version 32): redeploy Code.gs.") : tr("Could not tidy: {0}", m);
     btn.disabled = false;
     if(AUTH_ERRORS.has(m)) showGate(authMsg(m));
   }
@@ -2482,7 +2482,7 @@ $("lsForm").addEventListener("submit", async e=>{
     $("lsErr").textContent = m==="too-many-shares" ? tr("You have 20 shared lists open: withdraw one first.")
       : m==="share-too-big" ? tr("The list is too big to share: share fewer wines.")
       : m==="old-browser" ? tr("This browser can't encrypt a shared list.")
-      : m==="bad-action" ? tr("Sharing needs the updated Apps Script (version 44) — redeploy Code.gs.") : tr("Could not share: {0}", m);
+      : m==="bad-action" ? tr("Sharing needs the updated Apps Script (version 44): redeploy Code.gs.") : tr("Could not share: {0}", m);
     if(AUTH_ERRORS.has(m)) showGate(authMsg(m));
   }
   btn.disabled = false;
@@ -2745,7 +2745,7 @@ function renderMap(){
     title:"Mosel · Saar · Ruwer — "+tr("villages"), region:"Mosel",
     geo:MOSEL_GEO, cities:MOSEL_CITIES, areas:MOSEL_AREAS, lat:49.8 });
   if(MAP_VIEW==="Piemonte") return renderScatterMap(svg, {
-    title:tr("Piemonte — Langhe & beyond"), region:"Piemonte",
+    title:tr("Piemonte: Langhe & beyond"), region:"Piemonte",
     geo:PIEMONTE_GEO, cities:PIEMONTE_CITIES, areas:PIEMONTE_AREAS, lat:44.7 });
   renderEuropeMap(svg);
 }
@@ -3158,7 +3158,7 @@ async function loadJournal(force){
     JENTRIES = res.entries || [];
     renderJournal();
   }catch(err){
-    if(AUTH_ERRORS.has(err.message)){ forgetAuth(); setGateMode("login"); showGate(tr("Your session expired — log in again.")); }
+    if(AUTH_ERRORS.has(err.message)){ forgetAuth(); setGateMode("login"); showGate(tr("Your session expired: log in again.")); }
     else $("jList").innerHTML = `<div class="spin">${esc(tr("Could not load the journal ({0}). The Apps Script may need the latest redeploy.", errText(err)))}</div>`;
   }
   $("jSpin").hidden = true;
@@ -3186,7 +3186,7 @@ function renderJournal(){
       ${e.note?`<div class="jnote">${esc(e.note)}</div>`:""}
       ${photo}
     </div>`;
-  }).join("") : `<div class="spin">${fig("journal")}${esc(tr("No entries yet — press “＋ New entry” after your next good bottle."))}</div>`;
+  }).join("") : `<div class="spin">${fig("journal")}${esc(tr("No entries yet: press “＋ New entry” after your next good bottle."))}</div>`;
   document.querySelectorAll(".jphoto[data-id]").forEach(el=>{
     const id = el.dataset.id;
     loadPhoto(id).then(src=>{
@@ -3262,11 +3262,11 @@ function syncEnjoyOption(){
   // that night, which may be a restaurant's. A row the journal itself created has
   // no other source, so there the journal stays authoritative.
   $("jPriceOpt").textContent =
-  tr(done && !t.elsewhere ? (Number(t.wine.price) > 0 ? "(optional — kept here; your cellar's own price is left alone)" : "(optional — also fills the blank price on your cellar row)")
-    : done ? "(optional — also saved onto its Enjoyed row)"
-    : t.kind!=="cellar" ? "(optional — what the bottle cost)"
-    : Number(t.wine.price) > 0 ? "(optional — kept here; your cellar's own price is left alone)"
-    : "(optional — also fills the blank price on your cellar row)");
+  tr(done && !t.elsewhere ? (Number(t.wine.price) > 0 ? "(optional: kept here; your cellar's own price is left alone)" : "(optional: also fills the blank price on your cellar row)")
+    : done ? "(optional: also saved onto its Enjoyed row)"
+    : t.kind!=="cellar" ? "(optional: what the bottle cost)"
+    : Number(t.wine.price) > 0 ? "(optional: kept here; your cellar's own price is left alone)"
+    : "(optional: also fills the blank price on your cellar row)");
 }
 ["jProducer","jWine","jVintage","jDate"].forEach(id=>
   $(id).addEventListener("input", syncEnjoyOption));
@@ -3645,7 +3645,7 @@ $("jForm").addEventListener("submit", async e=>{
   if(file){
     btn.textContent = tr("Preparing photo…");
     try{ entry.photo = await shrinkImage(file); }
-    catch(err){ toast(tr("Couldn't read that photo — saving without it")); }
+    catch(err){ toast(tr("Couldn't read that photo: saving without it")); }
   }else if(editing && J_PHOTO_REMOVE){
     entry.photoRemove = true;
   }
@@ -3672,7 +3672,7 @@ $("jForm").addEventListener("submit", async e=>{
           if(entry.rating!=="" && !tOld.wine.rating) r4 = await api({action:"rate", row:tOld.wine.row, rating:entry.rating});
         }
         if(r4){ WINES = normalize(r4.wines); renderOverview(); renderTable(); renderEnjoyed(); }
-      }catch(e4){ if(e4.message==="bad-action") toast(tr("Journal saved — update the Apps Script to keep Enjoyed in step")); }
+      }catch(e4){ if(e4.message==="bad-action") toast(tr("Journal saved. Update the Apps Script to keep Enjoyed in step")); }
     }
     const t = enjoyTarget(entry);
     if($("jEnjoy").checked && !$("jEnjoyWrap").hidden){
@@ -3721,19 +3721,19 @@ $("jForm").addEventListener("submit", async e=>{
     renderJournal();
     if(location.hash!=="#journal") location.hash = "#journal";
     const what = editing ? tr("Journal entry updated") : tr("Journal entry saved");
-    toast(alsoEnjoyed==="synced" ? what+" — "+tr("Enjoyed updated too")
-        : alsoEnjoyed==="drunk" ? what+" — "+tr("bottle marked drunk")
+    toast(alsoEnjoyed==="synced" ? what+" · "+tr("Enjoyed updated too")
+        : alsoEnjoyed==="drunk" ? what+" · "+tr("bottle marked drunk")
         : alsoEnjoyed==="added" ? what+" + "+tr("added to Enjoyed")
-        : alsoEnjoyed==="priced" ? what+" — "+tr("price saved to Enjoyed")
+        : alsoEnjoyed==="priced" ? what+" · "+tr("price saved to Enjoyed")
         : what);
   }catch(err){
     const m = String(err.message||"");
     const hint = /authori[sz]|permission/i.test(m)
-      ? " — "+tr("the API needs Drive access. In Apps Script, run the “authorize” function once and approve, then try again.")
+      ? ": "+tr("the API needs Drive access. In Apps Script, run the “authorize” function once and approve, then try again.")
       : "";
     $("jErr").textContent = tr("Could not save: {0}", errText(m))+hint;
     $("jErr").hidden = false;
-    toast(tr("Could not save — see the message in the form"));
+    toast(tr("Could not save: see the message in the form"));
   }
   btn.disabled = false; btn.textContent = editing ? tr("Save changes") : tr("Save entry");
 });
@@ -3799,7 +3799,7 @@ function renderEnjoyed(){
   $("eCount").textContent = ct;
 
   if(!list.length){
-    $("eRows").innerHTML = `<tr><td colspan="7"><div class="spin">${q ? "" : fig("glasses")}${esc(q?tr("No enjoyed wines match your search."):tr("Nothing enjoyed yet — bottles you finish will collect here."))}</div></td></tr>`;
+    $("eRows").innerHTML = `<tr><td colspan="7"><div class="spin">${q ? "" : fig("glasses")}${esc(q?tr("No enjoyed wines match your search."):tr("Nothing enjoyed yet: bottles you finish will collect here."))}</div></td></tr>`;
     return;
   }
   const shown = pageOf(list, "enjoyed");
@@ -3885,7 +3885,7 @@ function drawDrinkingTime(drunk){
   const nodate = drunk.reduce((s,w)=>s+(dm(w)?0:w.drunk),0);
   if(!dated.length){
     svg.innerHTML=""; svg.removeAttribute("viewBox");
-    cap.textContent = nodate ? tr("{0} enjoyed without a date — mark drinks in the app so they’re dated.", nBottles(nodate)) : "";
+    cap.textContent = nodate ? tr("{0} enjoyed without a date: mark drinks in the app so they’re dated.", nBottles(nodate)) : "";
     return;
   }
   const byMonth={};
@@ -4044,7 +4044,7 @@ $("iForm").addEventListener("submit", async e=>{
     renderOverview(); renderTable(); renderEnjoyed(); if(JENTRIES) renderJournal();
     toast(renamed ? tr("Renamed") : tr("Details saved"));
   }catch(err){
-    $("iErr").textContent = err.message==="bad-action" ? tr("The Apps Script needs the latest version (26) for this — paste apps-script/Code.gs into it and redeploy.") : tr("Could not save: {0}", errText(err));
+    $("iErr").textContent = err.message==="bad-action" ? tr("The Apps Script needs the latest version (26) for this: paste apps-script/Code.gs into it and redeploy.") : tr("Could not save: {0}", errText(err));
     $("iErr").hidden = false;
   }
   btn.disabled = false; btn.textContent = tr("Save details");
@@ -4061,7 +4061,7 @@ function renderFillBar(){
   const {wines, entries} = classSuggestions(), n = wines.length + entries.length;
   box.hidden = !n; if(!n){ box.innerHTML = ""; return; }
   const eg = [...wines.map(x=>[x.w.producer+" "+x.w.name, x.sg]), ...entries.map(x=>[x.e.producer+" "+x.e.wine, x.sg])].slice(0, 40);
-  box.innerHTML = `<div class="fb-t">${esc(n===1 ? tr("1 wine has no classification yet — the app can tell from the name") : tr("{0} wines have no classification yet — the app can tell from the name", n))}
+  box.innerHTML = `<div class="fb-t">${esc(n===1 ? tr("1 wine has no classification yet: the app can tell from the name") : tr("{0} wines have no classification yet: the app can tell from the name", n))}
       (${esc(tr("{0} in your cellar & Enjoyed, {1} in the journal", wines.length, entries.length))}).
       <button class="btn primary" id="eFillGo">${esc(n===1?tr("Fill it in"):tr("Fill them in"))}</button></div>
     <details><summary>${esc(tr("See the suggestions"))}</summary><ul>${eg.map(([nm, sg])=>`<li>${esc(nm)} → <b>${esc(sg.cls)}</b>${sg.climat?` <span class="ph">(${esc(sg.climat)})</span>`:sg.why==="label"?` <span class="ph">(${esc(tr("on the label"))})</span>`:""}</li>`).join("")}${n>eg.length?`<li class="ph">${esc(tr("…and {0} more", n-eg.length))}</li>`:""}</ul></details>`;
@@ -4087,7 +4087,7 @@ async function loadWishlist(force){
     WITEMS = res.items || [];
     renderWishlist();
   }catch(err){
-    if(AUTH_ERRORS.has(err.message)){ forgetAuth(); setGateMode("login"); showGate(tr("Your session expired — log in again.")); }
+    if(AUTH_ERRORS.has(err.message)){ forgetAuth(); setGateMode("login"); showGate(tr("Your session expired: log in again.")); }
     else $("wList").innerHTML = `<div class="spin">${esc(tr("Could not load the wishlist ({0}). The Apps Script may need the latest redeploy.", errText(err)))}</div>`;
   }
   $("wSpin").hidden = true;
@@ -4106,7 +4106,7 @@ function renderWishlist(){
       ${e.note?`<div class="jnote">${esc(e.note)}</div>`:""}
       <div class="wact"><button class="wmove" data-row="${e.row}">＋ ${esc(tr("Add to cellar"))}</button></div>
     </div>`;
-  }).join("") : `<div class="spin">${fig("glasses")}${esc(tr("Nothing on the wishlist yet — press “＋ Add wish”."))}</div>`;
+  }).join("") : `<div class="spin">${fig("glasses")}${esc(tr("Nothing on the wishlist yet: press “＋ Add wish”."))}</div>`;
   document.querySelectorAll(".wedit").forEach(b=>b.addEventListener("click",()=>{
     const e=(WITEMS||[]).find(x=>x.row===Number(b.dataset.row)); if(e) openWishEdit(e); }));
   document.querySelectorAll(".wdel").forEach(b=>b.addEventListener("click", async ()=>{
@@ -4279,7 +4279,7 @@ function renderAdmin(){
       <span class="a2">${esc(tr("Made"))} ${esc(i.created)}</span></li>`).join("") +
     done.slice().reverse().map(i=>`<li class="used"><span class="a1"><span class="code">${esc(i.code)}</span>${i.note ? " · " + esc(i.note) : ""}</span>
       <span class="a2">${esc(i.usedBy==="(revoked)" ? tr("withdrawn {0}", i.usedAt) : tr("used by {0}, {1}", i.usedBy, i.usedAt))}</span></li>`).join("") +
-    (A.invites.length ? "" : `<li class="used">${esc(tr("No codes yet — make some above."))}</li>`);
+    (A.invites.length ? "" : `<li class="used">${esc(tr("No codes yet: make some above."))}</li>`);
 }
 $("adminBtn").addEventListener("click", openAdmin);
 $("adminClose").addEventListener("click", ()=>$("adminModal").classList.remove("open"));
@@ -4302,7 +4302,7 @@ $("adminUsers").addEventListener("click", async e=>{
   $("adminErr").textContent = tr("Unlocking…");
   try{
     const r = await VAULT.adminHelp(who); ADMIN = r.admin; $("adminErr").textContent = ""; renderAdmin();
-    const msg = tr("Your new AllWine recovery code: {0} — on the login page choose 'Forgot password?', type your username, this code and a new password.", r.code);
+    const msg = tr("Your new AllWine recovery code: {0}: on the login page choose 'Forgot password?', type your username, this code and a new password.", r.code);
     $("helpOut").innerHTML = `<p>${esc(tr("New recovery code for {0} (shown only now):", who))}</p><p class="code" id="helpCode">${esc(r.code)}</p>
       <p><button type="button" class="btn" id="helpCopy">${esc(tr("Copy a message for {0}", who))}</button></p>`;
     $("helpCopy").onclick = async ()=>{ try{ await navigator.clipboard.writeText(msg); toast(tr("Copied")); }catch(err){ window.prompt(tr("Copy"), msg); } };
@@ -4312,7 +4312,7 @@ $("adminUsers").addEventListener("click", async e=>{
 $("adminUsers").addEventListener("click", async e=>{
   const b = e.target.closest("button[data-remove]"); if(!b) return;
   const who = b.dataset.remove;
-  if(!(await ask(tr("Remove {0} and everything in their account — cellar, journal, wishlist and photos? It can't be undone, and nobody (you included) can read or restore the cellar afterwards. Type the username to confirm:", who), {ok:tr("Remove"), danger:true, typed:who}))) return;
+  if(!(await ask(tr("Remove {0} and everything in their account: cellar, journal, wishlist and photos? It can't be undone, and nobody (you included) can read or restore the cellar afterwards. Type the username to confirm:", who), {ok:tr("Remove"), danger:true, typed:who}))) return;
   $("adminErr").textContent = tr("Removing…");
   try{ ADMIN = await api({action:"admindelete", member:who}); $("adminErr").textContent = ""; renderAdmin(); toast(tr("{0} was removed", who)); }
   catch(err){ $("adminErr").textContent = /owner-account/.test(errText(err)) ? tr("The owner's account can't be removed.")
@@ -4348,7 +4348,7 @@ async function loadFeed(force){
     $("feedSpin").hidden=true; renderFeed(); markFeedSeen();
   }catch(err){
     $("feedSpin").hidden=true;
-    if(AUTH_ERRORS.has(err.message)){ forgetAuth(); setGateMode("login"); showGate(tr("Your session expired — log in again.")); }
+    if(AUTH_ERRORS.has(err.message)){ forgetAuth(); setGateMode("login"); showGate(tr("Your session expired: log in again.")); }
     else $("feedList").innerHTML=`<div class="spin">${esc(tr("Could not load the feed ({0}). The Apps Script may need the latest redeploy.", errText(err)))}</div>`;
   }
 }
@@ -4364,7 +4364,7 @@ function renderFeed(){
     `<button class="ftog${FEED_VIEW==="following"?" on":""}" data-v="following">${esc(tr("Following"))}${FEED_FOLLOWS.length?` · ${FEED_FOLLOWS.length}`:""}</button>`;
   $("feedTabs").querySelectorAll(".ftog").forEach(b=>b.addEventListener("click",()=>{ FEED_VIEW=b.dataset.v; renderFeed(); }));
   if(!list.length){
-    $("feedList").innerHTML=`<div class="spin">${esc(FEED_VIEW==="following"?tr("Nobody you follow has shared yet — switch to Everyone and follow some people."):tr("Nothing shared yet — press “＋ Share a bottle”."))}</div>`;
+    $("feedList").innerHTML=`<div class="spin">${esc(FEED_VIEW==="following"?tr("Nobody you follow has shared yet: switch to Everyone and follow some people."):tr("Nothing shared yet: press “＋ Share a bottle”."))}</div>`;
     updateFeedBadge(); return;
   }
   $("feedList").innerHTML = list.map(e=>{
@@ -4520,7 +4520,7 @@ function markActive(){
 function idleLogout(){
   forgetAuth(); localStorage.removeItem("vinActive");
   setGateMode("login");
-  showGate(staySignedIn() ? tr("Your session expired after inactivity — log in again.") : tr("Signed out after 60 minutes of inactivity — log in again."));
+  showGate(staySignedIn() ? tr("Your session expired after inactivity: log in again.") : tr("Signed out after 60 minutes of inactivity: log in again."));
 }
 function checkIdle(){ if(cfg.token && Date.now()-lastActive > idleMs()) idleLogout(); }
 ["click","keydown","pointerdown","scroll","touchstart"].forEach(ev=>
@@ -4564,5 +4564,5 @@ if(cfg.api && cfg.user && cfg.token && sessionFresh && localStorage.getItem("vin
   let made = ""; try{ made = sessionStorage.getItem("vinNewAccount") || ""; sessionStorage.removeItem("vinNewAccount"); }catch(e){}
   if(made){ $("gateUser").value = made;
     showGate(tr("Your account {0} is created. Log in with your password. If you didn't save the recovery code, make a new one under Account.", made)); }
-  else showGate(staleDrop ? tr("Your session expired after inactivity — log in again.") : "");
+  else showGate(staleDrop ? tr("Your session expired after inactivity: log in again.") : "");
 }

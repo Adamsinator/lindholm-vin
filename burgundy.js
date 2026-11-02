@@ -1285,7 +1285,7 @@ function ownersHtml(c){
     return `<tr><td><button class="plink${st.prod===k?" on":""}" data-p="${k}">${esc(P[k])}</button>${ed?` <span class="ktag ed" title="${esc([ed.note, ed.time, ed.user].filter(Boolean).join(" · "))}">${t("✎ corrected")}</span>`:""}${EDITS.can?` <button class="edbtn" data-ed="${k}" title="${t("Correct this holding")}">✎</button>`:""}${kind||since?` <span class="ktag ${kind}">${[KIND[kind],since&&t("since {0}", since)].filter(Boolean).join(" · ")}</span>`:""}${share!=null?`<span class="pb" style="width:${Math.max(2,share).toFixed(1)}%"></span>`:""}</td>
       <td class="n">${kind==="s"?"":h!=null?`<b>${fmtHa(h)}</b> ha`:t("holder")}</td><td class="n">${share!=null?(share<1?share.toFixed(1):Math.round(share))+"%":""}</td></tr>`;
   }).join("");
-  const cover = c.mono ? `<p class="note">${t("Monopole — the whole climat belongs to {0}.", esc(P[c.mono]))}</p>`
+  const cover = c.mono ? `<p class="note">${t("Monopole: the whole climat belongs to {0}.", esc(P[c.mono]))}</p>`
     : known >= c.ha*.98 ? `<p class="note">${t("The owners listed cover essentially the whole climat (published figures are rounded).")}</p>`
     : known ? `<p class="note">${t("Owners with a published figure account for {0} of {1} ha ({2}%); the other {3} ha belongs to {4}smaller growers.", fmtHa(known), fmtHa(c.ha), Math.round(100*known/c.ha), fmtHa(rest), rows.some(r=>r[1]==null) ? t("the holders listed without a figure and ") : "")}</p>`
     : `<p class="note">${t("Notable owners; individual holdings not listed.")}</p>`;
@@ -1377,7 +1377,7 @@ function renderSide(){
         <div class="fact"><div class="l">${t("1ers on map")}</div><div class="v">${pc}</div></div>
         <div class="fact"><div class="l">${t("Monopoles")}</div><div class="v">${mono}</div></div>
       </div>
-      <p>${t("The Côte d'Or is one east-facing escarpment some 50 km long: the Côte de Nuits in the north, almost all red, then from Corton the Côte de Beaune, where Chardonnay takes over south of Volnay. The best sites sit mid-slope, around 250–300 m, on limestone and marl — grands crus in the middle band, premiers crus just above and below, village wine toward the D974, regional Bourgogne on the flat.")}</p>
+      <p>${t("The Côte d'Or is one east-facing escarpment some 50 km long: the Côte de Nuits in the north, almost all red, then from Corton the Côte de Beaune, where Chardonnay takes over south of Volnay. The best sites sit mid-slope, around 250–300 m, on limestone and marl: grands crus in the middle band, premiers crus just above and below, village wine toward the D974, regional Bourgogne on the flat.")}</p>
       <h3>${t("Start with")}</h3><div class="qp">${picks.map(id=>`<button data-c="${id}">${esc(CL[id].n)}</button>`).join("")}</div>`;
   }
   side.querySelectorAll("[data-c]").forEach(b => b.onclick = ev => { ev.stopPropagation(); select(b.dataset.c, true); });
@@ -1783,7 +1783,7 @@ function removedHtml(c){
 }
 function editHtml(c){
   if(!EDITS.can) return `<p class="note">${t("Spotted a wrong figure? Log in on the Cellar page and you can correct it here.")}</p>`;
-  if(EDITS.status==="redeploy") return `<p class="note">${t("Corrections need the updated Apps Script — redeploy Code.gs (see README).")}</p>`;
+  if(EDITS.status==="redeploy") return `<p class="note">${t("Corrections need the updated Apps Script: redeploy Code.gs (see README).")}</p>`;
   if(EDITS.open!==c.id) return `<p><button class="btn" id="edOpen">${t("✎ Correct the holdings")}</button></p>`;
   const pre = EDITS.pre || {};
   return `<form class="edform" id="edForm">
@@ -1800,7 +1800,7 @@ function editHtml(c){
 async function saveEdit(c, action){
   const name = $("edP").value.trim(), note = $("edN").value.trim();
   if(!name){ $("edMsg").textContent = t("Pick or type a producer."); return; }
-  if(!note){ $("edMsg").textContent = t("Add where the figure comes from — it helps the next person."); return; }
+  if(!note){ $("edMsg").textContent = t("Add where the figure comes from: it helps the next person."); return; }
   const key = keyFor(name);
   const edit = {climat:c.id, producer: key.startsWith("x_") ? name : key, action,
     ha: $("edHa").value==="" ? "" : Number($("edHa").value), kind: $("edK").value, since: $("edS").value, note};
@@ -1810,7 +1810,7 @@ async function saveEdit(c, action){
       user:localStorage.getItem("vinUser")||"", token:localStorage.getItem("vinToken")||"", action:"atlasedit", edit})});
     const data = await res.json();
     if(!data.ok){ $("edMsg").textContent = data.error==="bad-action" ? t("The Apps Script needs redeploying first (see README).") :
-      data.error==="bad-token" ? t("Your session expired — log in on the Cellar page again.") : data.error==="not-an-atlas-editor" ? t("Your account isn't on the atlas editors list.") : t("Couldn't save: {0}", data.error); return; }
+      data.error==="bad-token" ? t("Your session expired: log in on the Cellar page again.") : data.error==="not-an-atlas-editor" ? t("Your account isn't on the atlas editors list.") : t("Couldn't save: {0}", data.error); return; }
     EDITS.list = data.edits || []; EDITS.open = null; EDITS.pre = null;
     applyEdits(); renderSide(); paint();
   }catch(err){ $("edMsg").textContent = t("Couldn't reach the cellar API."); }
@@ -1977,7 +1977,7 @@ function locateMe(){
     if(c){ st.sel = c.id; st.vsel = null; st.ld = null; drawLdSel(); renderSide(); paint(); syncHash(); syncCommunes(); toast(t("You're in {0}.", c.n)); }
     else { const i = LDX ? LDX.ld.findIndex(l => { ldGeom(l); return m[0] >= l._bb[0] && m[0] <= l._bb[2] && m[1] >= l._bb[1] && m[1] <= l._bb[3] && inPoly(m[0], m[1], l._r); }) : -1;
       if(i >= 0){ st.ld = i; st.sel = null; st.vsel = null; renderSide(); paint(); drawLdSel(); syncHash(); toast(t("You're in {0}.", LDX.ld[i][1])); }
-      else toast(t("You're here — not inside a named vineyard.")); }
+      else toast(t("You're here: not inside a named vineyard.")); }
     flyTo(fitBox(q[0] - r, q[1] - r, q[0] + r, q[1] + r, 0));
   }, err => toast(err.code === 1 ? t("Location is turned off for this site.") : t("Couldn't find your location.")), {enableHighAccuracy:true, timeout:12000, maximumAge:30000});
 }
@@ -2158,7 +2158,7 @@ function surveyHa(c){
 }
 function areaNote(c){
   const s = surveyHa(c); if(!s || (s/c.ha > .8 && s/c.ha < 1.25)) return "";
-  return `<p class="note">${t("The two areas differ: INAO's plan counts all land entitled to the name, planted or not, while the published {0} ha counts vineyard — sometimes with neighbouring plots sold under the same name.", fmtHa(c.ha))}</p>`;
+  return `<p class="note">${t("The two areas differ: INAO's plan counts all land entitled to the name, planted or not, while the published {0} ha counts vineyard, sometimes with neighbouring plots sold under the same name.", fmtHa(c.ha))}</p>`;
 }
 function syncCompass(){
   const a = st.mode==="geo" ? st.rot : 0;
@@ -2236,7 +2236,7 @@ function orient(){
   if(v && !wide){
     const cote = COTES.find(q => q.id===v.cote), comm = st.mode==="geo" && TOPO && INV ? communeAt(INV(clientToSvg(cx, cy))) : null;
     here.innerHTML = `${cote ? `<span class="c">${esc(cote.n)} ›</span> ` : ""}${comm ? esc(comm) : `${near ? t("near ") : ""}${esc(v.n)}`}`;
-    here.dataset.v = v.id; here.title = t("You're looking at {0} — click for the commune", v.n);
+    here.dataset.v = v.id; here.title = t("You're looking at {0}: click for the commune", v.n);
     here.style.left = Math.round((r.width - dpx)/2) + "px";
   }
   const id = v && !wide ? v.id : null;
@@ -2338,7 +2338,7 @@ async function loadCellar(){
     $("cellarChip").hidden = !nc;
     paint(); renderSide();
   }catch(err){
-    CELLAR.msg = /token|code|cellar/.test(err.message) ? "Your session expired — log in on the Cellar page, then reload." : "Couldn't reach the cellar right now.";
+    CELLAR.msg = /token|code|cellar/.test(err.message) ? "Your session expired: log in on the Cellar page, then reload." : "Couldn't reach the cellar right now.";
     renderLegend();
   }
 }
