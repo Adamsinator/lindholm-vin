@@ -400,7 +400,7 @@ $("locBtn").onclick = () => {
     let near = Infinity; st.pack.climats.forEach(c => c.g.forEach(poly => poly[0].forEach(([x, y]) => { const d = Math.hypot(x - p[0], y - p[1]); if (d < near) near = d; })));
     if (near > 5000) { st.me = null; drawMe(); return mapToast(t("You're about {0} km from the nearest vineyard on this map.", Math.round(near / 1000).toLocaleString())); }
     st.me = { r: R.id, p, acc }; const c = climatAt(p);
-    mapToast(c ? t("You're in {0}.", shown(c)) : t("You're here — not inside a named vineyard."));
+    mapToast(c ? t("You're in {0}.", shown(c)) : t("You're here: not inside a named vineyard."));
     fit([p[0] - 450, p[1] - 450, p[0] + 450, p[1] + 450], .05, 400); drawMe();
     if (c) select(c.id, false);
   }, () => mapToast(t("Couldn't find your location.")), { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 } /* fresh: walking between vineyards */);
@@ -558,7 +558,7 @@ function renderSide() {
         ${P.villages.map(v => fact(P.villages.length > 1 || !R.village ? v.ap : t(R.village), fmtHa(v.ha) + " ha")).join("")}
         ${P.regional.ha ? fact(t(R.regional), fmtHa(P.regional.ha) + " ha") : ""}</div>
       ${many && pc.length ? `<p class="note">${esc(t("Village figures are the land outside the premiers crus."))}</p>` : ""}
-      ${(P.meta.absent || []).length ? `<p class="note">${esc(t("Not drawn: {0} — INAO's parcel map doesn't have it yet.", P.meta.absent.join(", ")))}</p>` : ""}
+      ${(P.meta.absent || []).length ? `<p class="note">${esc(t("Not drawn: {0}. INAO's parcel map doesn't have it yet.", P.meta.absent.join(", ")))}</p>` : ""}
       ${terrNote()}
       ${cellarSummary()}
       ${gc.length ? groups(gc, "Grand cru") : ""}${pc.length ? groups(pc, "Premier cru") : ""}
@@ -738,7 +738,7 @@ async function loadCellar() {
       : await (await fetch(api, { method: "POST", body: JSON.stringify({ user, token, action: "data" }), redirect: "follow" })).json();
     if (!data.ok) throw new Error(data.error || "error");
     CELLAR.wines = data.wines || []; place(); CELLAR.loaded = true;
-  } catch (err) { CELLAR.msg = /token|code|cellar/.test(err.message) ? "Your session expired — log in on the Cellar page, then reload." : "Couldn't reach the cellar right now."; }
+  } catch (err) { CELLAR.msg = /token|code|cellar/.test(err.message) ? "Your session expired: log in on the Cellar page, then reload." : "Couldn't reach the cellar right now."; }
   paint(); renderSide();
 }
 function place() {

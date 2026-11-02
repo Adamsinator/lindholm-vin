@@ -66,7 +66,7 @@ const HEAD = ["Producent", "Land", "Område", "Kommune", "Mark/Navn", "Klassifik
   const p2 = await ctx2.newPage(); await p2.goto(BASE); await p2.waitForTimeout(400); await p2.click("#gateToggle");
   for (const [id, v] of Object.entries({ ...good, gateUser: "Hugo", gateEmail: "other@example.dk" })) await p2.fill("#" + id, v);
   await p2.click("#gateSubmit"); await p2.waitForFunction(() => /taken/.test(document.getElementById("gateErr").textContent), null, { timeout: 15000 }).catch(() => {});
-  check("a taken username (in any case) says so, and to choose another", /taken — choose another/.test(await p2.textContent("#gateErr")), await p2.textContent("#gateErr"));
+  check("a taken username (in any case) says so, and to choose another", /taken: choose another/.test(await p2.textContent("#gateErr")), await p2.textContent("#gateErr"));
 
   check("no console errors", !errs.length, errs.join(" | "));
   await b.close();

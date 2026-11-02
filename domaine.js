@@ -185,7 +185,7 @@ function domaineHtml(r){
           .map(({v, ha, n, unk}) => `<tr><td>${esc(v.n)}</td><td class="n">${n} ${t(n === 1 ? "climat" : "climats")}</td><td class="n">${ha ? `<b>${fmtHa(ha)}</b> ha${unk ? "+" : ""}` : t("holder")}</td></tr>`).join("")}</table>` : ""}
         ${(pf.extra||[]).length ? `<h2>${t("Not on this map")}</h2><table class="own small">${pf.extra.map(([n, h, kind], i) => `<tr><td>${esc((pextra||[])[i] || n)}${kind ? ` <span class="ktag ${kind}">${esc(t(KIND[kind]))}</span>` : ""}</td><td class="n">${h!=null ? `<b>${fmtHa(h)}</b> ha` : ""}</td></tr>`).join("")}</table>` : ""}
         ${(pf.src||[]).length ? `<h2>${t("Sources")}</h2><p class="note">${pf.src.map(u => `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(host(u))}</a>`).join(" · ")}</p>` : ""}
-        <p class="note fine">${t("Holdings come from published ownership lists, domaine sources and trade press, rounded — parcels change hands all the time, so treat them as indicative. \"Leased\" means farmed en fermage or métayage; \"buys grapes\" is négociant sourcing and never counts as ownership.")}</p>
+        <p class="note fine">${t("Holdings come from published ownership lists, domaine sources and trade press, rounded: parcels change hands all the time, so treat them as indicative. \"Leased\" means farmed en fermage or métayage; \"buys grapes\" is négociant sourcing and never counts as ownership.")}</p>
       </div>
       <div class="dright">${mapsHtml(hold)}<p class="note mapnote">${t("Numbers match the table · tap a vineyard to open it in the atlas · boundaries © INAO")}</p></div>
     </div>
@@ -215,7 +215,7 @@ function render(){
     $("printBtn").onclick = () => print();
     $("shareBtn").onclick = async () => {
       const url = location.href;
-      if(navigator.share){ try{ await navigator.share({title:r.name, text:t("{0} — vineyards in the Côte d'Or", r.name), url}); }catch(e){} return; }
+      if(navigator.share){ try{ await navigator.share({title:r.name, text:t("{0}: vineyards in the Côte d'Or", r.name), url}); }catch(e){} return; }
       try{ await navigator.clipboard.writeText(url); $("shareBtn").textContent = t("Link copied"); setTimeout(() => $("shareBtn").textContent = t("Share"), 2000); }catch(e){ prompt(t("Copy this link"), url); }
     };
   } else { document.title = `${t("All domaines")} — AllWine`; main.innerHTML = listHtml(); }
