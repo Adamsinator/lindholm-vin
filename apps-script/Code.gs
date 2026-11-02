@@ -42,7 +42,7 @@ function setting(key) {
 // The legacy code only works once you've set a real one: the placeholder from the template is public.
 function accessCode() { const c = setting('ACCESS_CODE'); return c === 'CHANGE-ME' ? '' : c; }
 
-const API_VERSION = 47; // returned in every response; used to verify deployments
+const API_VERSION = 48; // returned in every response; used to verify deployments
 
 // Per-request spreadsheet for the authenticated user. Set in handle(); every
 // sheet helper reads it via ss(). Falls back to the bound (owner's) spreadsheet.
@@ -109,14 +109,14 @@ const LOCATION_HEADER = 'Placering';
 
 // A business account (a restaurant, a shop, a domaine): the price on the wine card or price list and the price by the
 // glass (the supplier is the Kilde column). Optional columns, auto-created on first use, so a private cellar never sees them.
-const BIZ_HEADERS = { menuPrice: 'Menupris', glassPrice: 'Glaspris' };
-const BIZ_NUM = ['menuPrice', 'glassPrice'];
+const BIZ_HEADERS = { menuPrice: 'Menupris', glassPrice: 'Glaspris', par: 'Minimum' }; // par: the fewest bottles to keep (the reorder list)
+const BIZ_NUM = ['menuPrice', 'glassPrice', 'par'];
 // a price as stored: blank, or a number of 0 or more (anything else is refused, not guessed at)
 function bizValue(f, v) {
   if (v === undefined || v === null || String(v).trim() === '') return '';
   if (BIZ_NUM.indexOf(f) === -1) return plainText(v);
   const n = Number(String(v).replace(',', '.')); if (!isFinite(n) || n < 0) throw new Error('Bad price');
-  return Math.round(n * 100) / 100;
+  return f === 'par' ? Math.min(MAX_BOTTLES, Math.round(n)) : Math.round(n * 100) / 100;
 }
 // What a business sold (business.js, "Sold"): one row per sale in a "Salg" tab, a bottle or a glass. A bottle sold
 // leaves the stock as a bottle drunk does; a glass opens a bottle when none is open, and the wine's "Åbne glas" column
@@ -173,7 +173,7 @@ function readSales() {
 function ensureBiz(sh, fields) { Object.keys(BIZ_HEADERS).forEach(f => { if (fields.some(x => x && f in x && String(x[f] == null ? '' : x[f]).trim() !== '')) ensureCol(sh, BIZ_HEADERS[f]); }); }
 
 // The wine fields the site may edit in place (rename, fix a commune, set a classification…).
-const INFO_FIELDS = ['producer', 'name', 'commune', 'classification', 'region', 'country', 'grape', 'type', 'vintage', 'source', 'note', 'location', 'menuPrice', 'glassPrice'];
+const INFO_FIELDS = ['producer', 'name', 'commune', 'classification', 'region', 'country', 'grape', 'type', 'vintage', 'source', 'note', 'location', 'menuPrice', 'glassPrice', 'par'];
 
 function today() { return Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd'); }
 function ymd(v) {
@@ -392,6 +392,7 @@ function handle(p) {
       case 'newrec':    return doNewRecovery(p);
       case 'deleteaccount': return doDeleteAccount(p);
       case 'shareput':  return json(sharePut(p));
+      case 'shareupdate': return json(shareUpdate(p));
       case 'sharelist': return json({ ok: true, shares: shareList() });
       case 'sharedel':  shareDel(String(p.id || '')); return json({ ok: true, shares: shareList() });
       case 'vexport':   return json({ ok: true, ...vaultExport() });
@@ -521,6 +522,24 @@ function sharePut(p) {
       .setValues([[id, CTX_USER, String(now), String(now + days * 864e5), String(wines)].concat(parts)]);
     logEvent('share', CTX_USER, wines + ' wines, ' + days + ' days');
     return { ok: true, id: id, created: now, expires: now + days * 864e5, shares: shareList() };
+  } finally { if (lock) lock.releaseLock(); }
+}
+// A share kept at the same address with new contents (a business's wine card: the QR code on the table stays right as the
+// stock and the prices change). Only its owner can, and only while it's live; the expiry moves to `days` from now.
+function shareUpdate(p) {
+  if (!CTX_ACCOUNT) throw new Error('account-only');
+  const id = String(p.id || ''), blob = String(p.blob || ''), days = Math.round(Number(p.days)), wines = Math.max(0, Math.round(Number(p.wines) || 0));
+  if (!/^[0-9a-f]{32}$/.test(id) || !/^[A-Za-z0-9_-]{24,}$/.test(blob) || !(days >= 1 && days <= 365)) throw new Error('bad-share');
+  if (blob.length > SHARE_PARTS * SHARE_CELL) throw new Error('share-too-big');
+  const lock = typeof LockService !== 'undefined' ? LockService.getScriptLock() : null; if (lock) lock.waitLock(20000);
+  try {
+    const sh = sharesSheet(false), now = Date.now(), rows = shareRows(), who = normUser(CTX_USER);
+    const i = rows.findIndex(r => String(r[0]) === id && normUser(r[1]) === who && shareLive(r, now));
+    if (!sh || i < 0) throw new Error('share-gone');
+    const parts = Array.from({ length: SHARE_PARTS }, (_, k) => blob.slice(k * SHARE_CELL, (k + 1) * SHARE_CELL));
+    sh.getRange(i + 2, 1, 1, SHARE_COLS.length + SHARE_PARTS).setNumberFormat('@')
+      .setValues([[id, CTX_USER, String(rows[i][2]), String(now + days * 864e5), String(wines)].concat(parts)]);
+    return { ok: true, id: id, created: Number(rows[i][2]), expires: now + days * 864e5, shares: shareList() };
   } finally { if (lock) lock.releaseLock(); }
 }
 function shareList() {

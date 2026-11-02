@@ -244,6 +244,7 @@ function normalize(rows){
       // a business account's columns (business.js): the price on the card or price list, and by the glass
       menuPrice: (r.menuPrice===null||r.menuPrice===""||r.menuPrice===undefined) ? null : Number(r.menuPrice),
       glassPrice: (r.glassPrice===null||r.glassPrice===""||r.glassPrice===undefined) ? null : Number(r.glassPrice),
+      par: Number(r.par)>0 ? Math.round(Number(r.par)) : 0, // the minimum to keep in stock (business.js's reorder list)
       openGlasses: Number(r.openGlasses)||0, // glasses still in an opened bottle (a restaurant's "Sold a glass")
     };
   });
@@ -979,7 +980,7 @@ function loadKind(){
 function setKindLocal(k){
   KIND = k; document.documentElement.dataset.kind = k; $("acctKind").value = k;
   try{ localStorage.setItem(kindKey(), k); }catch(e){}
-  if(k!=="private" && !window.BIZ){ const s = document.createElement("script"); s.src = "business.js?v=3";
+  if(k!=="private" && !window.BIZ){ const s = document.createElement("script"); s.src = "business.js?v=4";
     s.onload = ()=>{ if(WINES.length){ renderOverview(); renderTable(); } }; document.head.appendChild(s); }
   else if(window.BIZ) BIZ.apply();
 }
@@ -2449,7 +2450,7 @@ function lsRender(server){
   lsSave(mine);
   const rows = mine.concat((server||[]).filter(x=>!mine.some(s=>s.id===x.id)).map(x=>({id:x.id, created:x.created, expires:x.expires, count:x.wines})));
   $("lsListH").hidden = !rows.length;
-  $("lsList").innerHTML = rows.sort((a,b)=>b.created-a.created).map(s=>`<li><span>${esc(s.key ? (s.title||tr("A shared wine list")) : tr("A list shared from another device"))}<small>${esc(nWines(s.count))} · ${esc(tr("open until {0}", new Date(s.expires).toLocaleDateString()))}</small></span>`
+  $("lsList").innerHTML = rows.sort((a,b)=>b.created-a.created).map(s=>`<li><span>${esc(window.BIZ && BIZ.cardShare() && BIZ.cardShare().id===s.id ? tr("The wine card online (its QR code)") : s.key ? (s.title||tr("A shared wine list")) : tr("A list shared from another device"))}<small>${esc(nWines(s.count))} · ${esc(tr("open until {0}", new Date(s.expires).toLocaleDateString()))}</small></span>`
     +`<span class="btns">${s.key ? `<button type="button" class="btn quiet" data-copy="${esc(s.id)}">${esc(tr("Copy link"))}</button>` : ""}<button type="button" class="btn quiet" data-del="${esc(s.id)}">${esc(tr("Withdraw"))}</button></span></li>`).join("");
 }
 async function lsCopy(text){

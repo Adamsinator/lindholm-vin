@@ -32,11 +32,13 @@ const FLAGS = {
 };
 const LANGS = [{id:"en", n:"English"}, {id:"da", n:"Dansk"}, {id:"de", n:"Deutsch"}, {id:"fr", n:"Français"}];
 
-const FILES = {da: "i18n-da.js?v=14", fr: "i18n-fr.js?v=14", de: "i18n-de.js?v=14"};
+const FILES = {da: "i18n-da.js?v=16", fr: "i18n-fr.js?v=16", de: "i18n-de.js?v=16"};
 const DICT = window.I18N_DICT = window.I18N_DICT || {};
 const known = l => l === "en" || !!FILES[l];
 // the page's own files for a language: the meta tag's entry that ends in -<lang>.js
-const extras = l => { const m = document.querySelector('meta[name="i18n-extra"]'); return m ? m.content.split(/\s+/).filter(f => new RegExp("-" + l + "\\.js(\\?|$)").test(f)) : []; };
+const MORE = []; // files a script asks for once it's loaded (I18N.more), e.g. business.js's words, which only a business needs
+const extras = l => { const m = document.querySelector('meta[name="i18n-extra"]'); return (m ? m.content.split(/\s+/).filter(f => new RegExp("-" + l + "\\.js(\\?|$)").test(f)) : [])
+  .concat(MORE.map(([b, v]) => `${b}-${l}.js${v}`)); };
 const filesFor = l => l === "en" ? [] : [FILES[l], ...extras(l)];
 const loaded = new Set();
 const fetchJs = src => loaded.has(src) ? Promise.resolve() : new Promise((ok, no) => { const s = document.createElement("script"); s.src = src;
@@ -84,6 +86,12 @@ function picker(el){
     ["pointerenter", "pointerdown", "focus"].forEach(t => b.addEventListener(t, () => { need(b.dataset.lang).catch(() => {}); }, {once: true})); });
   syncPicker(el);
 }
-window.I18N = {t, apply, setLang, picker, onChange: f => listeners.push(f), get lang(){ return lang; }, LANGS};
+// a script loaded later adds its own dictionary files, "<base>-<lang>.js<v>": fetched for this language now (and the page
+// told, so it can redraw in it) and for any language picked later
+function more(base, v = ""){
+  if(MORE.some(m => m[0] === base)) return Promise.resolve(); MORE.push([base, v]);
+  return lang === "en" ? Promise.resolve() : need(lang).then(() => { apply(); listeners.forEach(f => f(lang)); }).catch(() => {});
+}
+window.I18N = {t, apply, setLang, picker, more, onChange: f => listeners.push(f), get lang(){ return lang; }, LANGS};
 document.addEventListener("DOMContentLoaded", () => { document.querySelectorAll("[data-langpick]").forEach(picker); apply(); });
 })();
