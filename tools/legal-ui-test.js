@@ -14,7 +14,8 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
     await c.route(require("./api-route"), r => r.fulfill({ contentType: "application/json", body: JSON.stringify({ ok: false, error: "offline" }) })); // no real API in a test
     if (opt.lang) await c.addInitScript(l => localStorage.setItem("lang", l), opt.lang);
     if (opt.info) await c.route(/site-info\.js/, r => r.fulfill({ contentType: "application/javascript", body: "window.SITE_INFO = " + JSON.stringify(opt.info) + ";" }));
-    const p = await c.newPage(); p.on("pageerror", e => errs.push(e.message)); p.on("console", m => m.type() === "error" && errs.push(m.text())); return p; };
+    const p = await c.newPage(); p.on("pageerror", e => errs.push(e.message)); p.on("console", m => m.type() === "error" && !/^Failed to load resource/.test(m.text()) && errs.push(m.text()));
+    p.on("response", r => r.status() >= 400 && errs.push(`HTTP ${r.status()} ${r.url()}`)); return p; }; // a failed load names its URL
 
   // English reader, the site as it is (a CVR number, no name or address on the page)
   let p = await page({ lang: "en" }); await p.goto(BASE + "legal.html"); await p.waitForTimeout(500);
