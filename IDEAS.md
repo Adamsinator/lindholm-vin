@@ -42,6 +42,27 @@ left edges are gone, the business buttons have words, not emoji. Still to do:
 - **Fewer em dashes** in the interface (about 33 strings in app.js): a full stop or a colon reads more like a person.
 - **Calmer motion:** the bottles' slide-in on the rack is fine once; check nothing else fades in by default.
 
+## Business accounts as their own app, and smoother editing (raised 2 November 2026)
+
+The personal setup is right as it is. A business shouldn't feel like a personal cellar with a chart or two more:
+
+- **Pages by kind.** Enjoyed, Wishlist and Journal are for personal accounts only. A business gets its own pages:
+  1. **Inventory** as the first page: the stock list, built for counting and selling (stock, cost, card price, glass
+     price, supplier, minimum, reorder), not the collector's list.
+  2. **Statistics & accounts** as a page of its own, not the right-hand pane: sales by day/week/month, margin, stock
+     value, best sellers and slow movers, the month's CSV for the bookkeeping, the reorder list. It should look
+     professional and dedicated, not like the personal overview.
+  3. The wine card / price list (online + QR) as its own page too.
+- **Stock vs minimum.** In a wine's details the business shows "Minimum in stock" (the reorder threshold), but the
+  actual stock (bottles on hand) isn't an editable field there, so it reads as if the minimum were the stock. Show
+  "In stock" first and editable, the minimum beside it, clearly labelled.
+- **Editing a wine is awkward** (personal and business):
+  - Fields save on their own the moment one changes, which is slow and badly timed. Setting a drink window saves
+    after the first year, before the second can be typed. Better: edit freely, then one Save (or save once the whole
+    group is left), with a clear "saved" state.
+  - Changing a wine's name doesn't seem to carry through everywhere (list, rack, card, atlas match). Check each place
+    that shows or keys on the name.
+
 ## Account kinds, the next steps (raised 1 November 2026; the first slice is built)
 
 Built: Account (and sign-up) asks what kind of account it is: private, restaurant or wine bar, wine merchant or shop,
