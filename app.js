@@ -8,6 +8,19 @@ function trSet(key, el){ if(!el) return; el.setAttribute("data-i18n", key); el.d
 const I18N_LOCALE = () => ({en:"en-GB", fr:"fr-FR", de:"de-DE"})[window.I18N && I18N.lang] || "da-DK";
 
 const TIER_LABEL = {legend:"Icon", top:"Top tier", solid:"Well regarded"};
+// the wine's style, kept as "s:dry;b:full;a:high;o:some": read from and written to the forms' four lists, and shown
+const TASTE_LABEL = {s:{dry:"Dry", offdry:"Off-dry", medium:"Medium sweet", sweet:"Sweet"}, b:{light:"Light-bodied", medium:"Medium-bodied", full:"Full-bodied"},
+  a:{low:"Low acidity", medium:"Medium acidity", high:"High acidity"}, o:{none:"Unoaked", some:"Some oak", lots:"Oaked"}};
+// the four lists, made here for both forms (each with its heading as the first, empty choice)
+const TASTE_HEAD = {s:"Sweetness", b:"Body", a:"Acidity", o:"Oak"};
+function buildTaste(){ ["aTaste","iTaste"].forEach(id=>{ const keep = $(id).children.length ? tasteRead(id) : "";
+  $(id).innerHTML = Object.keys(TASTE_HEAD).map(k=>`<select data-k="${k}" aria-label="${esc(tr(TASTE_HEAD[k]))}"><option value="">${esc(tr(TASTE_HEAD[k]))}</option>`
+    + Object.entries(TASTE_LABEL[k]).map(([v,l])=>`<option value="${v}">${esc(tr(l))}</option>`).join("") + `</select>`).join("");
+  if(keep) tasteSet(id, keep); }); }
+const tasteRead = id => [...$(id).querySelectorAll("select[data-k]")].filter(x=>x.value).map(x=>x.dataset.k+":"+x.value).join(";");
+function tasteSet(id, v){ const m = Object.fromEntries(String(v||"").split(";").filter(Boolean).map(p=>p.split(":")));
+  $(id).querySelectorAll("select[data-k]").forEach(x=>{ x.value = m[x.dataset.k] || ""; }); $(id).closest("details").open = !!v; }
+const tasteText = v => String(v||"").split(";").filter(Boolean).map(p=>{ const [k,x] = p.split(":"); return TASTE_LABEL[k] && TASTE_LABEL[k][x] ? tr(TASTE_LABEL[k][x]) : ""; }).filter(Boolean).join(" · ");
 const FARM_LABEL = {"Økologisk":"Organic", "Biodynamisk":"Biodynamic", "Naturvin":"Natural wine"}; // how the vines are farmed, as the sheet keeps it
 // what each badge means (help.html#ratings): on hover, beside the badge
 const TIER_TIP = {legend:"Icon: one of the few most sought-after producers of its region, a benchmark whose bottles trade well above their release price.",
@@ -108,6 +121,15 @@ function baseWindow(w){
     return (grand||cls.includes("classe"))?span(6,32):span(4,18);
   if(has(reg,["rhone","rhône","cornas","hermitage","cote rotie","côte rôtie","gigondas","chateauneuf","châteauneuf"]) || grape.includes("syrah"))
     return has(reg,["hermitage","cornas","cote rotie","côte rôtie"]) ? span(5,28) : span(4,20);
+  // the German and Austrian ripeness levels say much about how long a wine keeps, whatever its grape or region (a
+  // Franken Silvaner Spätlese too): a Kabinett is lighter, a TBA nearly immortal; the Wachau's three levels likewise
+  if(has(cls,["trockenbeerenauslese","beerenauslese","eiswein","tba"]) || /\bba\b/.test(cls)) return span(8,50);
+  if(cls.includes("auslese")) return span(5,30);
+  if(cls.includes("spatlese")) return span(3,25);
+  if(cls.includes("kabinett")) return span(2,15);
+  if(cls.includes("smaragd")) return span(3,20);
+  if(cls.includes("federspiel")) return span(1,8);
+  if(cls.includes("steinfeder")) return span(0,4);
   // Riesling — Mosel/Saar & German/Alsace whites age superbly, often 20–40 yrs
   if(grape.includes("riesling") || has(reg,["mosel","saar","ruwer","rheingau","nahe","pfalz","rheinhessen","alsace"])){
     // the German ripeness level says much about how long it keeps: a Kabinett is lighter, a TBA nearly immortal
@@ -250,6 +272,7 @@ function normalize(rows){
       // a business account's columns (business.js): the price on the card or price list, and by the glass
       gift: Number(r.gift) > 0, // a bottle given: no price
       farm: String(r.farm||"").trim(), // Økologisk, Biodynamisk or Naturvin
+      taste: String(r.taste||"").trim(), // the style: "s:dry;b:full;a:high;o:some"
       menuPrice: (r.menuPrice===null||r.menuPrice===""||r.menuPrice===undefined) ? null : Number(r.menuPrice),
       glassPrice: (r.glassPrice===null||r.glassPrice===""||r.glassPrice===undefined) ? null : Number(r.glassPrice),
       par: Number(r.par)>0 ? Math.round(Number(r.par)) : 0, // the minimum to keep in stock (business.js's reorder list)
@@ -597,11 +620,21 @@ function renderOverview(){
   $("locList").innerHTML = [...new Set(WINES.map(w=>w.location).filter(Boolean))].sort().map(l=>`<option>${esc(l)}</option>`).join("");
 
   /* datalists in the add form */
-  $("regionsList").innerHTML = [...new Set(WINES.map(w=>w.region).filter(Boolean))].sort().map(r=>`<option>${esc(r)}</option>`).join("");
-  $("countries").innerHTML = [...new Set(WINES.map(w=>w.country).filter(Boolean))].sort().map(r=>`<option>${esc(r)}</option>`).join("");
-  $("grapes").innerHTML = [...new Set(WINES.map(w=>w.grape).filter(Boolean))].sort().map(r=>`<option>${esc(r)}</option>`).join("");
+  fillSuggestLists();
   renderQuickPicks();
 }
+// what the add and edit forms suggest: your own countries, regions and grapes first, then wine-kb.js's (the countries,
+// the regions of the country being typed, and the main grapes), so a new cellar has suggestions too
+function fillSuggestLists(country){
+  const K = window.WINE_KB, own = f => [...new Set(WINES.map(w=>w[f]).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  const opts = list => [...new Set(list)].map(r=>`<option>${esc(r)}</option>`).join("");
+  const c = K && country ? K.countries.find(x => [x.n, ...Object.values(x.names||{}), ...(x.alias||[])].some(n => normName(n) === normName(country))) : null;
+  const kbReg = K ? K.regions.filter(r => !c || r.country === c.n).map(r => r.n).sort((a,b)=>a.localeCompare(b)) : [];
+  $("regionsList").innerHTML = opts(own("region").concat(kbReg));
+  $("countries").innerHTML = opts(own("country").concat(K ? K.countries.map(x=>x.n) : []));
+  $("grapes").innerHTML = opts(own("grape").concat(K ? K.grapes.map(g=>g.n).sort((a,b)=>a.localeCompare(b)) : []));
+}
+["aCountry","iCountry"].forEach(id=>{ const el = $(id); if(el) el.addEventListener("input", ()=>fillSuggestLists(el.value)); });
 
 /* ---------- style pie ---------- */
 function donutArc(cx,cy,R,r,a0,a1){
@@ -1156,6 +1189,7 @@ function journalHTML(w){
     const bits = [fmtDate(e.date)];
     if(e.place) bits.push(svgi("pin")+" "+esc(e.place));
     if(e.rating) bits.push(e.rating+"/10");
+    if(e.food) bits.push(tr("with {0}", e.food) + (PAIR_LABEL[e.pairing] ? " (" + tr(PAIR_LABEL[e.pairing]).toLowerCase() + ")" : ""));
     const head = bits.join(" · ");
     return `<div class="wj"><span class="wj-h">${head}</span>${e.note?`<span class="wj-n">${esc(e.note)}</span>`:""}</div>`;
   }).join("");
@@ -1170,7 +1204,7 @@ function detailHTML(w){
     ["Format", isStdBottle(w) ? "" : tr(formatOf(w).key)+" · "+formatOf(w).note],
     ["Bought", btl(w.qty)],["Enjoyed", w.drunk?btl(w.drunk):""],["Source", w.source],
     [KIND==="private" ? "Price" : "Cost price", SHOW_PRICES && w.price ? kr(w.price) : w.gift ? tr("A gift") : ""],
-    ["Farming", w.farm ? tr(FARM_LABEL[w.farm] || w.farm) : ""],["Location", w.location],
+    ["Farming", w.farm ? tr(FARM_LABEL[w.farm] || w.farm) : ""],["Style", tasteText(w.taste)],["Location", w.location],
   ].filter(c=>c[1]).map(([k,v])=>`<div><div class="k">${esc(tr(k))}</div>${esc(v)}</div>`).join("");
   return `<div class="dgrid">${cells}</div>
     ${w.note?`<div class="unote">“${esc(w.note)}” — ${esc(tr("cellar note"))}</div>`:""}
@@ -1285,7 +1319,7 @@ function renderTable(){
       else if(!(rd && rd.k===state.ready)) return false;
     }
     if(q){
-      const hay = [w.producer,w.name,w.commune,w.region,w.grape,w.classification,String(w.vintage),w.note,w.location,w.farm,w.farm?tr(FARM_LABEL[w.farm]||w.farm):""].join(" ").toLowerCase();
+      const hay = [w.producer,w.name,w.commune,w.region,w.grape,w.classification,String(w.vintage),w.note,w.location,w.farm,w.farm?tr(FARM_LABEL[w.farm]||w.farm):"",tasteText(w.taste)].join(" ").toLowerCase();
       if(!hay.includes(q)) return false;
     }
     return true;
@@ -1459,7 +1493,7 @@ async function loadData(quiet){
     renderOverview(); renderTable(); renderEnjoyed();
     LOADED_AT = new Date(); stampText();
     $("spin").hidden = true; $("content").hidden = false;
-    loadJournalSilently(); loadFeedSilently(); refreshDeleted(); checkOwner(); takePrefill();
+    loadJournalSilently(); refreshDeleted(); checkOwner(); takePrefill(); // checkOwner asks "me", which says if the feed is on
   }catch(err){
     if(AUTH_ERRORS.has(err.message)){ forgetAuth(); setGateMode("login"); showGate(tr("Your session expired: log in again.")); }
     else { $("spin").classList.remove("skel"); $("spin").textContent = tr("Could not reach the cellar API ({0}). Check your connection and refresh.", errText(err)); }
@@ -1622,7 +1656,7 @@ async function addWine(e){
     vintage: /^\d{4}$/.test(v("aVintage")) ? Number(v("aVintage")) : v("aVintage"),
     qty: Number(v("aQty"))||1,
     price: $("aGift").checked || v("aPrice")==="" ? "" : perBottle(Number(v("aPrice")), $("aPriceMode").value, Number(v("aQty"))||1), gift: $("aGift").checked ? 1 : "",
-    farm: $("aFarm").value,
+    farm: $("aFarm").value, taste: tasteRead("aTaste"),
     acquired: v("aAcquired"), source:v("aSource"), note:v("aNote"), location:v("aLocation"),
   };
   try{
@@ -3196,7 +3230,10 @@ async function loadJournal(force){
   $("jSpin").hidden = true;
 }
 
+const PAIR_LABEL = {good:"Worked well", ok:"Fine", bad:"Didn't work"}; // a journal entry's food pairing
 function renderJournal(){
+  // the foods already written, offered again
+  $("jFoods").innerHTML = [...new Set((JENTRIES||[]).map(e=>String(e.food||"").trim()).filter(Boolean))].sort().map(f=>`<option>${esc(f)}</option>`).join("");
   const list = [...(JENTRIES||[])].sort((a,b)=>String(b.date).localeCompare(String(a.date)) || b.row-a.row);
   $("jCount").textContent = list.length ? (list.length===1 ? tr("1 entry") : tr("{0} entries", list.length)) : "";
   $("jList").innerHTML = list.length ? list.map(e=>{
@@ -3215,6 +3252,7 @@ function renderJournal(){
       <div class="jwine">${esc(e.producer)}${e.wine?" · "+esc(e.wine):""}${e.vintage?" · "+esc(e.vintage):""}${classChip(e)}
         ${glasses?`<span class="jglasses">${glasses}</span>`:""}${price}</div>
       ${(e.commune||e.region||e.country||e.grape)?`<div class="jmeta">${[e.commune,e.region,e.country,e.grape].filter(Boolean).map(esc).join(" · ")}</div>`:""}
+      ${e.food?`<div class="jfood">${esc(tr("With {0}", e.food))}${PAIR_LABEL[e.pairing]?` · <span class="pair ${esc(e.pairing)}">${esc(tr(PAIR_LABEL[e.pairing]))}</span>`:""}</div>`:""}
       ${e.note?`<div class="jnote">${esc(e.note)}</div>`:""}
       ${photo}
     </div>`;
@@ -3435,6 +3473,7 @@ function clsValue(id){
   const sel = $(id); if(sel.value !== "__other") return sel.value;
   const box = sel.parentNode.querySelector(".clsother"); return box ? box.value.trim() : "";
 }
+buildTaste(); if(window.I18N) I18N.onChange(buildTaste); // the style lists, in the page's language, and again when it changes
 document.querySelectorAll("select[data-country]").forEach(sel=>{
   fillClassSelect(sel);
   sel.addEventListener("change", ()=>{ sel.dataset.auto = ""; otherBox(sel); });
@@ -3582,7 +3621,7 @@ const perBottle = (n, mode, bottles) => mode==="all" ? Math.round(n / Math.max(1
 // a gift has no price: ticking it empties the price and sets it aside
 $("aGift").addEventListener("change", ()=>{ $("aPrice").disabled = $("aGift").checked; if($("aGift").checked) $("aPrice").value = ""; });
 function addReset(){
-  $("addForm").reset(); $("aQty").value = 1; $("aPrice").disabled = false;
+  $("addForm").reset(); $("aQty").value = 1; $("aPrice").disabled = false; tasteSet("aTaste", "");
   ADD_SUGGEST.reset();
   $("aType").dataset.touched = ""; $("aClass").dataset.auto = "1";
   $("aFillNote").hidden = true; $("aClassHint").textContent = "";
@@ -3653,7 +3692,7 @@ function openJournalEdit(e){
   $("jPlace").value = e.place || "";
   $("jRating").value = e.rating ? String(e.rating) : "";
   $("jPrice").value = (e.price===""||e.price==null) ? "" : e.price;
-  $("jNote").value = e.note || "";
+  $("jNote").value = e.note || ""; $("jFood").value = e.food || ""; $("jPairing").value = e.pairing || "";
   if(e.photo){
     $("jPhotoRemoveBtn").hidden = false;
     loadPhoto(e.photo).then(src=>{ if(J_EDIT===e.row && !J_PHOTO_REMOVE && !$("jPhoto").files[0]){
@@ -3690,7 +3729,7 @@ $("jForm").addEventListener("submit", async e=>{
     country: v("jCountry"), region: v("jRegion"), grape: v("jGrape"),
     commune: v("jCommune"), classification: clsValue("jClass"),
     place: v("jPlace"), rating: v("jRating") ? Number(v("jRating")) : "",
-    price: v("jPrice") === "" ? "" : Math.max(0, Number(v("jPrice")) || 0), note: v("jNote"),
+    price: v("jPrice") === "" ? "" : Math.max(0, Number(v("jPrice")) || 0), note: v("jNote"), food: v("jFood"), pairing: $("jPairing").value,
   };
   const file = $("jPhoto").files[0];
   if(file){
@@ -4057,7 +4096,7 @@ function openInfo(w){
   $("iProducer").value = w.producer; $("iName").value = w.name; $("iVintage").value = w.vintage ?? "";
   $("iCommune").value = w.commune; $("iCountry").value = w.country; $("iRegion").value = w.region; $("iGrape").value = w.grape;
   $("iLocation").value = w.location; $("iSource").value = w.source; $("iNote").value = w.note; $("iGift").checked = !!w.gift;
-  $("iFarm").value = w.farm || ""; $("iLeft").value = w.left; $("iPrice").value = w.price ?? ""; $("iPriceMode").value = "one";
+  $("iFarm").value = w.farm || ""; tasteSet("iTaste", w.taste); $("iLeft").value = w.left; $("iPrice").value = w.price ?? ""; $("iPriceMode").value = "one";
   $("iStockRow").hidden = isElsewhere(w); // a wine drunk elsewhere has no bottles here
   if(w.classification) $("iClass").value = matchOpt($("iClass"), w.classification);
   const ty = ({"Rød":"Rød","Hvid":"Hvid","Rosé":"Rose","Bobler":"Bobler","Hedvin":"Hedvin"})[w.style] || "Rød";
@@ -4080,10 +4119,10 @@ $("iForm").addEventListener("submit", async e=>{
   const vint = /^\d{4}$/.test(v("iVintage")) ? Number(v("iVintage")) : v("iVintage");
   const next = {producer:v("iProducer"), name:v("iName"), vintage:vint, commune:v("iCommune"), classification:clsValue("iClass"),
     country:v("iCountry"), region:v("iRegion"), grape:v("iGrape"), type:$("iType").value,
-    location:v("iLocation"), source:v("iSource"), note:v("iNote"), gift:$("iGift").checked ? 1 : "", farm:$("iFarm").value};
+    location:v("iLocation"), source:v("iSource"), note:v("iNote"), gift:$("iGift").checked ? 1 : "", farm:$("iFarm").value, taste:tasteRead("iTaste")};
   const was = {producer:w.producer, name:w.name, vintage:w.vintage??"", commune:w.commune, classification:w.classification,
     country:w.country, region:w.region, grape:w.grape, type:({"Rød":"Rød","Hvid":"Hvid","Rosé":"Rose","Bobler":"Bobler","Hedvin":"Hedvin"})[w.style]||"Rød",
-    location:w.location, source:w.source, note:w.note, gift:w.gift ? 1 : "", farm:w.farm || ""};
+    location:w.location, source:w.source, note:w.note, gift:w.gift ? 1 : "", farm:w.farm || "", taste:w.taste || ""};
   // only what changed is sent, so a field the sheet spells its own way isn't rewritten for nothing
   const fields = {}; Object.keys(next).forEach(k=>{ if(jKey(next[k])!==jKey(was[k])) fields[k] = next[k]; });
   // the bottles in the cellar, and the price: per bottle, or for all of them (split over the bottles bought)
@@ -4269,8 +4308,10 @@ function setSocial(on){
 // The owner gets an Admin button: who has an account (name, email, signed up, last seen) and the invite codes
 async function checkOwner(){
   try{ const r = await api({action:"me"}); $("adminBtn").hidden = !(r && r.owner === true); $("acctTest").hidden = !(r && r.test === true);
+    // the feed only when the server has it on ("me" says so; an older API without the flag: ask the feed itself)
+    if(r && r.social === true || (r && r.social === undefined)) loadFeedSilently(); else setSocial(false);
     const may = !!(r && (r.owner === true || r.test === true)); $("acctKindWrap").hidden = !(BIZ_OPEN || may);
-    if(may !== MAY_BIZ){ MAY_BIZ = may; loadKind(); if(WINES.length){ renderOverview(); renderTable(); } } askForHelp(r && r.help); }catch(e){ $("adminBtn").hidden = true; }
+    if(may !== MAY_BIZ){ MAY_BIZ = may; loadKind(); if(WINES.length){ renderOverview(); renderTable(); } } askForHelp(r && r.help); }catch(e){ $("adminBtn").hidden = true; loadFeedSilently(); } // no "me" (an older API): the feed says itself whether it is on
 }
 // account help: a member whose session came back without the password (a kept key) types it once, so the key can be
 // wrapped to the owner's; asked once a visit, "Later" until the next

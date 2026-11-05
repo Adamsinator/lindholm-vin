@@ -42,6 +42,11 @@ left edges are gone, the business buttons have words, not emoji. Still to do:
 - **Fewer em dashes** in the interface (about 33 strings in app.js): a full stop or a colon reads more like a person.
 - **Calmer motion:** the bottles' slide-in on the rack is fine once; check nothing else fades in by default.
 
+## Housekeeping: index.html's size (raised 5 November 2026)
+
+index.html is at its 280 KB budget (gzipped, everything needed before the cellar shows). Move the owner's admin code
+(the admin panel, usage, account help, test users) out of app.js into admin.js, loaded only when the owner opens Admin.
+
 ## Feedback after testing (5 November 2026) — to work through before the business pages
 
 1. Kom i gang: "Tilføj vin" in quotation marks, so the sentence reads right.

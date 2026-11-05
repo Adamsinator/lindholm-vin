@@ -58,6 +58,11 @@ const HEAD = ["Producent", "Land", "Område", "Kommune", "Mark/Navn", "Klassifik
   check("saved as a Spätlese, in its place", prum && prum.cls === "Spätlese" && prum.loc === "Kælder, reol 1", JSON.stringify(prum));
   check("…and its window comes from the Prädikat (a 2015 Spätlese: 2018–2040)", prum && prum.win.from === 2018 && prum.win.to === 2040, JSON.stringify(prum && prum.win));
 
+  const pw = await p.evaluate(() => [baseWindow({ style: "Hvid", region: "Franken", grape: "Silvaner", classification: "Spätlese", vintage: 2018 }),
+    baseWindow({ style: "Hvid", region: "Wachau", grape: "Grüner Veltliner", classification: "Smaragd", vintage: 2019 })]);
+  check("the ripeness level counts whatever the grape: a Franken Silvaner Spätlese 2018 2021–2043, a Wachau Smaragd 2019 2022–2039",
+    pw[0].from === 2021 && pw[0].to === 2043 && pw[1].from === 2022 && pw[1].to === 2039, JSON.stringify(pw));
+
   // Other…: anything as text
   await p.click("#addBtn"); await p.waitForTimeout(200);
   await p.fill("#aProducer", "Château Lynch-Bages"); await p.fill("#aVintage", "2010"); await p.fill("#aRegion", "Bordeaux"); await p.press("#aRegion", "Tab");
@@ -72,6 +77,8 @@ const HEAD = ["Producent", "Land", "Område", "Kommune", "Mark/Navn", "Klassifik
   await p.fill("#aCountry", ""); await p.type("#aCountry", "Italien"); await p.waitForTimeout(400);
   const it = await opts();
   check("typing Italien (not leaving the field) brings Italy's list: DOCG, DOC, IGT, Gran Selezione", ["DOCG", "DOC", "IGT", "Gran Selezione"].every(x => it.includes(x)), it.join(", "));
+  check("…and the region suggestions are Italy's (Piemonte, Toscana), with no cellar wines from there yet", await p.evaluate(() => { const o = [...document.querySelectorAll("#regionsList option")].map(x => x.value); return o.includes("Piemonte") && o.includes("Toscana") && !o.includes("Rioja"); }));
+  check("the grape suggestions include the main grapes, not only the cellar's", await p.evaluate(() => { const o = [...document.querySelectorAll("#grapes option")].map(x => x.value); return ["Nebbiolo", "Sangiovese", "Tempranillo", "Chenin Blanc"].every(g => o.includes(g)); }));
   await p.fill("#aCountry", "Portugal"); await p.press("#aCountry", "Tab");
   const pt = await opts();
   check("Portugal: Vintage, LBV, Colheita and the tawnies", ["Vintage", "LBV", "Colheita", "Tawny 20"].every(x => pt.includes(x)), pt.join(", "));
