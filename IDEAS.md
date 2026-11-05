@@ -65,6 +65,10 @@ index.html is at its 280 KB budget (gzipped, everything needed before the cellar
 14. winefolly.com: what it does well that we could do too.
 15. Sommelier: fewer suggestions at first and when it doesn't know; more varied replies; more knowledge; small
     talk (the time); remember the conversation, so a follow-up question builds on the last.
+    *Done (round E):* three suggestions to start and two when it doesn't know, chips that follow the last answer
+    (each checked to give one), three ways of not knowing, small talk (hello, thanks, the time with a thought for the
+    hour, goodbye), "it/den/le" meaning the wine of the last answers, "yes" taking up an offer, the dishes for a wine,
+    the journal's food pairings, a few more terms and dishes. The chat is cleared when someone logs out.
 16. "Kælderoversigt" by the flags: why is it there?
 17. Terms: the owner is in control and may remove accounts (misuse, or at their discretion).
 18. "Om bedømmelser" and "Nuværende værdi" at the foot of the cellar: to Help, or side by side at least.

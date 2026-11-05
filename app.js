@@ -1773,6 +1773,8 @@ function forgetAuth(){
   // Drop the previous user's cached data so the next login can't see it (the
   // journal/wishlist loaders short-circuit on these).
   WINES=[]; JENTRIES=null; WITEMS=null; KEEP_OPEN=null; FEED=null; FEED_USERS=[]; FEED_FOLLOWS=[]; FEED_VIEW="all"; FEED_OPEN.clear();
+  // and the sommelier's chat: the next user starts a fresh conversation
+  try{ Object.assign(SOMM, {prev:"", hist:[], offer:"", lastLead:"", turn:0}); $("sommLog").innerHTML=""; }catch(e){ /* not set up yet */ }
   const b=$("feedBadge"); if(b) b.hidden=true;
 }
 // the site's service worker (atlas-sw.js): the cellar app opens at once on a second visit, installs on a phone's home
@@ -2313,9 +2315,9 @@ function sommLoad(){
   if(SOMM.ready && SOMM.lang === lang) return SOMM.ready;
   const need = [];
   if(!window.WINE_KB) need.push("wine-kb.js?v=2");
-  if(!window.SOMM_DATA) need.push("sommelier-data.js?v=5");
+  if(!window.SOMM_DATA) need.push("sommelier-data.js?v=6");
   if(!window.SOMM_WORLD) need.push("sommelier-world.js?v=2");
-  if(!window.SOMMELIER) need.push("sommelier.js?v=7");
+  if(!window.SOMMELIER) need.push("sommelier.js?v=8");
   if(!window.BURG_VINTAGES) need.push("burgundy-vintages.js?v=5");
   if(["da","fr","de"].includes(lang) && !(window.BURG_I18N && BURG_I18N[lang])) need.push(`burgundy-i18n-${lang}.js?v=${lang==="de"?1:5}`);
   SOMM.lang = lang;
@@ -2324,7 +2326,8 @@ function sommLoad(){
 function sommCtx(){
   const lang = (window.I18N && I18N.lang) || "en";
   return {lang, wines:WINES, burg:window.BURG, vint:window.BURG_VINTAGES, burgI18n:(window.BURG_I18N||{})[lang] || null,
-    readiness, window:drinkWindow, prev:SOMM.prev || "", notes:Object.fromEntries(Object.entries(window.PRODUCER_NOTES||{}).map(([k,v])=>[k,[v[0],noteText(v[1])]]))};
+    readiness, window:drinkWindow, prev:SOMM.prev || "", hist:SOMM.hist || [], offer:SOMM.offer || "", lastLead:SOMM.lastLead || "",
+    journal:JENTRIES || [], notes:Object.fromEntries(Object.entries(window.PRODUCER_NOTES||{}).map(([k,v])=>[k,[v[0],noteText(v[1])]]))};
 }
 function sommSay(html, who){
   const d = document.createElement("div"); d.className = who === "q" ? "sm-q" : "sm-a";
@@ -2356,7 +2359,10 @@ async function sommAsk(q){
     const r = SOMMELIER.chat ? SOMMELIER.chat(q, Object.assign(sommCtx(), {turn:SOMM.turn})) : SOMMELIER.answer(q, sommCtx());
     const wait = Math.min(SOMM_THINK[1], SOMM_THINK[0] + r.html.length / 4) - (Date.now() - t0);
     if(wait > 0) await new Promise(res => setTimeout(res, wait));
-    SOMM.prev = r.asked || q; think.remove();
+    // what the chat remembers: the last few questions and what they were about, and an offer "yes" can take up
+    SOMM.prev = r.asked || q; SOMM.offer = r.offer || ""; SOMM.lastLead = r.lead || "";
+    SOMM.hist = (SOMM.hist || []).concat({asked:r.asked || q, subject:r.subject || ""}).slice(-6);
+    think.remove();
     const ans = sommSay(r.html); sommChips(r.chips);
     // question and answer together if they fit; otherwise from the question down
     const log = $("sommLog"), span = ans.offsetTop + ans.offsetHeight - asked.offsetTop;

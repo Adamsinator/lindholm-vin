@@ -99,9 +99,11 @@ t("oldest", "en", "what's my oldest wine", /oldest vintages.*Lynch-Bages 2005/);
 t("value", "en", "what is my cellar worth", /14 bottles; at what you paid that is 27.350 kr\.$/);
 t("not logged in", "en", "where is my rousseau", /Log in to your cellar/, { wines: null });
 // help, unknown
-t("greeting", "da", "hej", /Jeg er kælderens sommelier/);
+t("greeting: a short hello, not the whole menu", "da", "hej", /^(Hej! Hvad skal vi drikke\?|Hej\. Spørg mig om vin, eller om din kælder\.|Godt at se dig\..*)$/);
 t("empty question", "fr", "", /Je suis le sommelier/);
-t("unknown", "en", "qwertyuiop", /don't know that one yet.*Try asking/);
+t("unknown", "en", "qwertyuiop", /(don't know that one yet|beyond me for now|not sure what you mean).*Try asking/);
+check("…with two suggestions, not eleven", (ask("en", "qwertyuiop").match(/<li>/g) || []).length === 2);
+check("…and the first greeting offers three", (ask("en", "").match(/<li>/g) || []).length === 3);
 
 // how long wines keep
 t("ageing", "en", "how long can I keep Barolo?", /Barolo.*8–30 years after the vintage/);
@@ -244,6 +246,66 @@ check("…in the asked language", da.filter(r => /sm-lead/.test(r.html)).every(r
 check("…never hints 'what to open tonight?' after 'what should I drink now'", en.filter((r, i) => i % 4 === 2).every(r => !/sm-hint/.test(r.html)));
 check("…and the knowledge is the same as answer() gives", text(S.chat("what grape is sancerre", ctx("en", { turn: 3 })).html).includes(text(ask("en", "what grape is sancerre"))));
 check("…while the greeting stays a greeting", !/sm-lead|sm-hint/.test(S.chat("", ctx("en")).html));
+
+// ── round E: small talk, memory, chips that follow the answer, wine → food, the journal ──
+const NOW = "2026-11-05T18:42:00";
+t("the time", "en", "what time is it?", /It's 18:42 on Thursday 5 November\. Dinner time/, { now: NOW });
+t("…in Danish", "da", "hvad er klokken?", /Klokken er 18:42, torsdag 5\. november\. Middagstid/, { now: NOW });
+t("…in German, in the morning", "de", "Wie spät ist es?", /Es ist 08:05 Uhr.*Etwas früh für ein Glas/, { now: "2026-11-05T08:05:00" });
+t("…in French, late", "fr", "quelle heure est-il ?", /Il est 23:30.*porto/, { now: "2026-11-05T23:30:00" });
+t("thanks", "da", "tusind tak", /Det var så lidt|Selv tak|Når som helst/);
+t("how are you", "fr", "ça va ?", /Très bien|Bien, merci|Tout va bien/);
+t("bye", "de", "tschüss", /Prost|Auf Wiedersehen/);
+t("who are you: the introduction", "en", "who are you?", /I'm the cellar's sommelier.*Try asking/);
+check("small talk varies with the turn", new Set(Array.from({ length: 12 }, (_, i) => S.answer("thanks", ctx("en", { turn: i })).html)).size >= 2);
+check("'ça va avec le poulet' is a pairing, not small talk", /With|Avec le poulet/.test(text(ask("fr", "ça va avec le poulet ?"))) && !/Très bien/.test(text(ask("fr", "ça va avec le poulet ?"))), text(ask("fr", "ça va avec le poulet ?")).slice(0, 80));
+// memory: "it" is the wine of the last answers
+const conv = (lang, qs, extra) => { let hist = [], prev = "", offer = "", r; qs.forEach((q, turn) => { r = S.chat(q, ctx(lang, Object.assign({ hist, prev, offer, turn }, extra || {})));
+  hist = hist.concat({ asked: r.asked, subject: r.subject }); prev = r.asked; offer = r.offer || ""; }); return r; };
+let r = conv("en", ["tell me about barolo", "how long does it keep?"]);
+check("'how long does it keep?' after Barolo is about Barolo", r.kind === "age" && /Barolo.*8–30 years/.test(text(r.html)), r.asked + " → " + text(r.html).slice(0, 100));
+r = conv("en", ["tell me about barolo", "how long does it keep?", "should I decant it?"]);
+check("…and still two questions later", /Barolo/.test(r.asked) && /decanter/.test(text(r.html)), r.asked);
+r = conv("da", ["fortæl om chablis", "hvor længe kan jeg gemme den?"]);
+check("…in Danish ('gemme den' is neither Ghemme nor anything else)", /Chablis.*3–10 år/.test(text(r.html)), r.asked + " → " + text(r.html).slice(0, 100));
+r = conv("fr", ["parle-moi du barolo", "faut-il le carafer ?"]);
+check("…in French ('le carafer')", /Barolo/.test(r.asked) && /carafe/.test(text(r.html)), r.asked);
+r = conv("en", ["tell me about chablis", "and the soil?"]);
+check("a bare 'and the soil?' builds on the last answer", /Kimmeridgian/.test(text(r.html)), text(r.html).slice(0, 100));
+r = conv("en", ["tell me about barolo", "qwertyuiop"]);
+check("…but gibberish stays gibberish", r.kind === "unknown", r.kind);
+r = conv("en", ["what is a monopole", "how long does it keep?"]);
+check("…and with no wine to remember, 'it' isn't invented", !/Barolo|Chablis/.test(r.asked), r.asked);
+// yes to an offer
+{ const off = Array.from({ length: 40 }, (_, i) => S.chat("do I have any Barolo", ctx("en", { turn: i }))).find(x => x.offer);
+  check("a hint that offers something carries the offer", off && /What should I drink now/.test(off.offer), off && off.offer);
+  const y = S.chat("yes please", ctx("en", { offer: off && off.offer, turn: 1 }));
+  check("…and 'yes please' takes it up", y.kind === "cellar" && /Ready to drink/.test(text(y.html)), text(y.html).slice(0, 80));
+  check("…while 'yes' with nothing offered is just friendly", S.chat("yes", ctx("en")).kind === "talk"); }
+// chips
+r = S.chat("tell me about barolo", ctx("en", { turn: 0 }));
+check("chips follow the answer: Barolo's next questions first", r.chips.length === 3 && /Barolo/.test(r.chips[0]) && /Barolo/.test(r.chips[1]), JSON.stringify(r.chips));
+check("…and every chip gives an answer", r.chips.every(c => !["unknown", "help"].includes(S.answer(c, ctx("en", { prev: r.asked })).kind)), JSON.stringify(r.chips));
+r = S.chat("is 2015 a good year for red cote de nuits", ctx("en", { turn: 0 }));
+check("…a vintage offers the year before", r.chips[0] === "And 2014?", JSON.stringify(r.chips));
+check("…never the question just asked", !S.chat("Should I decant Barolo?", ctx("en")).chips.some(c => /decant Barolo/.test(c)));
+// a wine's dishes
+t("which dishes suit a wine", "en", "what food goes with barolo?", /Barolo goes well with game.*mushrooms and truffle/);
+t("…a grape, in German", "de", "Welches Essen passt zu Riesling?", /Riesling passt gut zu .*Sushi/);
+t("…a sweet wine to dessert and blue cheese", "en", "what goes with sauternes", /Sauternes goes well with (blue cheese|dessert)/);
+t("new dishes: charcuterie", "da", "hvad passer til pålæg", /Til pålæg og tapas: fino/);
+t("…vegetarian", "en", "wine with vegetarian food", /With vegetarian dishes: Grüner Veltliner/);
+// the journal
+const journal = [{ producer: "Conterno", wine: "Barolo", vintage: 2010, food: "Lammekølle", pairing: "good", date: "2026-01-01" },
+  { producer: "Bad Idea", wine: "Riesling", food: "lamb chops", pairing: "bad", date: "2026-02-01" }, { producer: "Other", wine: "X", food: "fish", pairing: "good" }];
+{ const h = text(ask("en", "what goes with lamb?", { journal }));
+  check("pairing shows what the journal says about the dish", /From your journal: Conterno Barolo 2010 · Lammekølle · worked well Bad Idea Riesling · lamb chops · didn't work/.test(h), h);
+  check("…only for that dish", !/Other X/.test(h)); }
+// knowledge
+t("organic", "da", "hvad er økologisk vin", /grønne blad/);
+t("Champagne sweetness", "en", "what is extra brut", /Extra Brut up to 6, Brut up to 12/);
+t("German dryness", "de", "was bedeutet feinherb", /halbtrocken/);
+t("Madeira", "fr", "qu'est-ce que le madère", /Sercial, Verdelho/);
 
 const n = results.filter(Boolean).length;
 console.log(`\n${n}/${results.length} passed`);
