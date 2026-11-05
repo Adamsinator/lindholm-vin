@@ -22,6 +22,7 @@ window.I18N_DICT.fr = {
   "Goes with": "Accords",
   "The cellar by body and acidity": "La cave selon le corps et l'acidité",
   "{0} bottles: {1} body, {2} acidity": "{0} bouteilles : corps {1}, acidité {2}",
+  "1 bottle: {1} body, {2} acidity": "1 bouteille : corps {1}, acidité {2}",
   "{0} bottles without a known grape aren't placed.": "{0} bouteilles sans cépage connu ne sont pas placées.",
   "{0} body, {1} acidity": "corps {0}, acidité {1}",
   "Cellar by taste": "La cave par le goût",

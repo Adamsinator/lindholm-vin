@@ -22,6 +22,7 @@ window.I18N_DICT.de = {
   "Goes with": "Passt zu",
   "The cellar by body and acidity": "Der Keller nach Körper und Säure",
   "{0} bottles: {1} body, {2} acidity": "{0} Flaschen: Körper {1}, Säure {2}",
+  "1 bottle: {1} body, {2} acidity": "1 Flasche: Körper {1}, Säure {2}",
   "{0} bottles without a known grape aren't placed.": "{0} Flaschen ohne bekannte Rebsorte sind nicht eingetragen.",
   "{0} body, {1} acidity": "Körper {0}, Säure {1}",
   "Cellar by taste": "Keller nach Geschmack",

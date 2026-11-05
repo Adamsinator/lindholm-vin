@@ -37,6 +37,10 @@ t("…German vintage", "de", "Ist 2005 ein guter Jahrgang für rote Côte de Nui
 // spelling slips
 t("typo in an appellation", "da", "hvilken drue er sancere", /Sancerre er en appellation/);
 t("typo in a grape", "en", "tell me about nebiolo", /Nebbiolo is a red grape from Piedmont/);
+t("a typo in Beaujolais", "en", "tell me about beaujolias", /Beaujolais is an appellation in Beaujolais/);
+t("a typo in Chablis", "en", "what goes with chabils", /Chablis/);
+t("a typo in Barolo", "da", "fortæl om barollo", /Barolo/);
+t("a budget in kroner is answered in kroner too", "en", "recommend a wine under 100 kr", /up to €13 \(≈ 100 kr\.\)/);
 // Burgundy colours and côtes
 t("white Burgundy", "en", "2014 white burgundy", /White Côte de Beaune 2014/);
 t("a commune picks its côte", "en", "how was 2010 in Volnay", /Red Côte de Beaune 2010/);
