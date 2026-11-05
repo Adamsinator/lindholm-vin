@@ -58,6 +58,11 @@ const HEAD = ["Producent", "Land", "Område", "Kommune", "Mark/Navn", "Klassifik
   check("saved as a Spätlese, in its place", prum && prum.cls === "Spätlese" && prum.loc === "Kælder, reol 1", JSON.stringify(prum));
   check("…and its window comes from the Prädikat (a 2015 Spätlese: 2018–2040)", prum && prum.win.from === 2018 && prum.win.to === 2040, JSON.stringify(prum && prum.win));
 
+  const pw = await p.evaluate(() => [baseWindow({ style: "Hvid", region: "Franken", grape: "Silvaner", classification: "Spätlese", vintage: 2018 }),
+    baseWindow({ style: "Hvid", region: "Wachau", grape: "Grüner Veltliner", classification: "Smaragd", vintage: 2019 })]);
+  check("the ripeness level counts whatever the grape: a Franken Silvaner Spätlese 2018 2021–2043, a Wachau Smaragd 2019 2022–2039",
+    pw[0].from === 2021 && pw[0].to === 2043 && pw[1].from === 2022 && pw[1].to === 2039, JSON.stringify(pw));
+
   // Other…: anything as text
   await p.click("#addBtn"); await p.waitForTimeout(200);
   await p.fill("#aProducer", "Château Lynch-Bages"); await p.fill("#aVintage", "2010"); await p.fill("#aRegion", "Bordeaux"); await p.press("#aRegion", "Tab");

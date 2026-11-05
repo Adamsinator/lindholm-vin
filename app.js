@@ -121,6 +121,15 @@ function baseWindow(w){
     return (grand||cls.includes("classe"))?span(6,32):span(4,18);
   if(has(reg,["rhone","rhône","cornas","hermitage","cote rotie","côte rôtie","gigondas","chateauneuf","châteauneuf"]) || grape.includes("syrah"))
     return has(reg,["hermitage","cornas","cote rotie","côte rôtie"]) ? span(5,28) : span(4,20);
+  // the German and Austrian ripeness levels say much about how long a wine keeps, whatever its grape or region (a
+  // Franken Silvaner Spätlese too): a Kabinett is lighter, a TBA nearly immortal; the Wachau's three levels likewise
+  if(has(cls,["trockenbeerenauslese","beerenauslese","eiswein","tba"]) || /\bba\b/.test(cls)) return span(8,50);
+  if(cls.includes("auslese")) return span(5,30);
+  if(cls.includes("spatlese")) return span(3,25);
+  if(cls.includes("kabinett")) return span(2,15);
+  if(cls.includes("smaragd")) return span(3,20);
+  if(cls.includes("federspiel")) return span(1,8);
+  if(cls.includes("steinfeder")) return span(0,4);
   // Riesling — Mosel/Saar & German/Alsace whites age superbly, often 20–40 yrs
   if(grape.includes("riesling") || has(reg,["mosel","saar","ruwer","rheingau","nahe","pfalz","rheinhessen","alsace"])){
     // the German ripeness level says much about how long it keeps: a Kabinett is lighter, a TBA nearly immortal
@@ -1180,6 +1189,7 @@ function journalHTML(w){
     const bits = [fmtDate(e.date)];
     if(e.place) bits.push(svgi("pin")+" "+esc(e.place));
     if(e.rating) bits.push(e.rating+"/10");
+    if(e.food) bits.push(tr("with {0}", e.food) + (PAIR_LABEL[e.pairing] ? " (" + tr(PAIR_LABEL[e.pairing]).toLowerCase() + ")" : ""));
     const head = bits.join(" · ");
     return `<div class="wj"><span class="wj-h">${head}</span>${e.note?`<span class="wj-n">${esc(e.note)}</span>`:""}</div>`;
   }).join("");
@@ -1483,7 +1493,7 @@ async function loadData(quiet){
     renderOverview(); renderTable(); renderEnjoyed();
     LOADED_AT = new Date(); stampText();
     $("spin").hidden = true; $("content").hidden = false;
-    loadJournalSilently(); loadFeedSilently(); refreshDeleted(); checkOwner(); takePrefill();
+    loadJournalSilently(); refreshDeleted(); checkOwner(); takePrefill(); // checkOwner asks "me", which says if the feed is on
   }catch(err){
     if(AUTH_ERRORS.has(err.message)){ forgetAuth(); setGateMode("login"); showGate(tr("Your session expired: log in again.")); }
     else { $("spin").classList.remove("skel"); $("spin").textContent = tr("Could not reach the cellar API ({0}). Check your connection and refresh.", errText(err)); }
@@ -3220,7 +3230,10 @@ async function loadJournal(force){
   $("jSpin").hidden = true;
 }
 
+const PAIR_LABEL = {good:"Worked well", ok:"Fine", bad:"Didn't work"}; // a journal entry's food pairing
 function renderJournal(){
+  // the foods already written, offered again
+  $("jFoods").innerHTML = [...new Set((JENTRIES||[]).map(e=>String(e.food||"").trim()).filter(Boolean))].sort().map(f=>`<option>${esc(f)}</option>`).join("");
   const list = [...(JENTRIES||[])].sort((a,b)=>String(b.date).localeCompare(String(a.date)) || b.row-a.row);
   $("jCount").textContent = list.length ? (list.length===1 ? tr("1 entry") : tr("{0} entries", list.length)) : "";
   $("jList").innerHTML = list.length ? list.map(e=>{
@@ -3239,6 +3252,7 @@ function renderJournal(){
       <div class="jwine">${esc(e.producer)}${e.wine?" · "+esc(e.wine):""}${e.vintage?" · "+esc(e.vintage):""}${classChip(e)}
         ${glasses?`<span class="jglasses">${glasses}</span>`:""}${price}</div>
       ${(e.commune||e.region||e.country||e.grape)?`<div class="jmeta">${[e.commune,e.region,e.country,e.grape].filter(Boolean).map(esc).join(" · ")}</div>`:""}
+      ${e.food?`<div class="jfood">${esc(tr("With {0}", e.food))}${PAIR_LABEL[e.pairing]?` · <span class="pair ${esc(e.pairing)}">${esc(tr(PAIR_LABEL[e.pairing]))}</span>`:""}</div>`:""}
       ${e.note?`<div class="jnote">${esc(e.note)}</div>`:""}
       ${photo}
     </div>`;
@@ -3678,7 +3692,7 @@ function openJournalEdit(e){
   $("jPlace").value = e.place || "";
   $("jRating").value = e.rating ? String(e.rating) : "";
   $("jPrice").value = (e.price===""||e.price==null) ? "" : e.price;
-  $("jNote").value = e.note || "";
+  $("jNote").value = e.note || ""; $("jFood").value = e.food || ""; $("jPairing").value = e.pairing || "";
   if(e.photo){
     $("jPhotoRemoveBtn").hidden = false;
     loadPhoto(e.photo).then(src=>{ if(J_EDIT===e.row && !J_PHOTO_REMOVE && !$("jPhoto").files[0]){
@@ -3715,7 +3729,7 @@ $("jForm").addEventListener("submit", async e=>{
     country: v("jCountry"), region: v("jRegion"), grape: v("jGrape"),
     commune: v("jCommune"), classification: clsValue("jClass"),
     place: v("jPlace"), rating: v("jRating") ? Number(v("jRating")) : "",
-    price: v("jPrice") === "" ? "" : Math.max(0, Number(v("jPrice")) || 0), note: v("jNote"),
+    price: v("jPrice") === "" ? "" : Math.max(0, Number(v("jPrice")) || 0), note: v("jNote"), food: v("jFood"), pairing: $("jPairing").value,
   };
   const file = $("jPhoto").files[0];
   if(file){
@@ -4294,6 +4308,8 @@ function setSocial(on){
 // The owner gets an Admin button: who has an account (name, email, signed up, last seen) and the invite codes
 async function checkOwner(){
   try{ const r = await api({action:"me"}); $("adminBtn").hidden = !(r && r.owner === true); $("acctTest").hidden = !(r && r.test === true);
+    // the feed only when the server has it on ("me" says so; an older API without the flag: ask the feed itself)
+    if(r && r.social === true || (r && r.social === undefined)) loadFeedSilently(); else setSocial(false);
     const may = !!(r && (r.owner === true || r.test === true)); $("acctKindWrap").hidden = !(BIZ_OPEN || may);
     if(may !== MAY_BIZ){ MAY_BIZ = may; loadKind(); if(WINES.length){ renderOverview(); renderTable(); } } askForHelp(r && r.help); }catch(e){ $("adminBtn").hidden = true; }
 }

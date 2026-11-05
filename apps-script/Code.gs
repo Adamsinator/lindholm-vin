@@ -42,7 +42,7 @@ function setting(key) {
 // The legacy code only works once you've set a real one: the placeholder from the template is public.
 function accessCode() { const c = setting('ACCESS_CODE'); return c === 'CHANGE-ME' ? '' : c; }
 
-const API_VERSION = 51; // returned in every response; used to verify deployments
+const API_VERSION = 52; // returned in every response; used to verify deployments
 
 // Per-request spreadsheet for the authenticated user. Set in handle(); every
 // sheet helper reads it via ss(). Falls back to the bound (owner's) spreadsheet.
@@ -327,7 +327,7 @@ function handle(p) {
         return json({ ok: true, wines: readAll() });
       // who you are: the page shows the admin page only to the owner
       case 'me':
-        return json({ ok: true, user: CTX_USER, owner: isOwnerAccount(CTX_ACCOUNT), help: helpFor(CTX_ACCOUNT), test: !!(CTX_ACCOUNT && CTX_ACCOUNT.test) });
+        return json({ ok: true, user: CTX_USER, owner: isOwnerAccount(CTX_ACCOUNT), help: helpFor(CTX_ACCOUNT), test: !!(CTX_ACCOUNT && CTX_ACCOUNT.test), social: setting('SOCIAL') === 'on' });
       // this account's data key wrapped to the admin's public key (done in the browser): the admin can help it back in
       case 'escrow': {
         const u = CTX_ACCOUNT, h = adminHelpKey();
@@ -1978,7 +1978,8 @@ function setDate(rowNum, field, value) {
 const JOURNAL_SHEET = 'Journal';
 const JHEADERS = { date: 'Dato', producer: 'Producent', wine: 'Vin', vintage: 'Årgang',
                    country: 'Land', region: 'Område', commune: 'Kommune', classification: 'Klassifikation', grape: 'Drue',
-                   place: 'Sted', rating: 'Rating', price: 'Pris', note: 'Note', photo: 'Foto' };
+                   place: 'Sted', rating: 'Rating', price: 'Pris', note: 'Note', photo: 'Foto',
+                   food: 'Mad', pairing: 'Parring' }; // food: what it was drunk with; pairing: good, ok or bad
 
 function journalSheet() {
   const book = ss();

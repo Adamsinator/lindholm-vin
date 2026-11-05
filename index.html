@@ -493,7 +493,7 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch} foote
 .jmeta{font-size:12.5px;color:var(--muted);margin-top:1px}
 .jerr{margin-top:12px;font-size:13px;color:var(--accent);background:var(--chip);border:1px solid var(--accent);
   border-radius:var(--r);padding:8px 10px;line-height:1.4}
-.jnote{font-size:15px;margin-top:6px;color:var(--ink);max-width:70ch;white-space:pre-wrap;font-family:var(--serif);font-style:italic}
+.jfood{font-size:13.5px;margin-top:5px;color:var(--muted)} .pair{font-weight:600} .pair.good{color:var(--ok,#3f7a4a)} .pair.bad{color:var(--c-red)} .jnote{font-size:15px;margin-top:6px;color:var(--ink);max-width:70ch;white-space:pre-wrap;font-family:var(--serif);font-style:italic}
 .wedit{margin-left:auto;border:0;background:none;cursor:pointer;font-size:13px;opacity:.45}
 .wdel{border:0;background:none;cursor:pointer;font-size:13px;opacity:.45}
 .wedit:hover,.wdel:hover{opacity:1}
@@ -1741,6 +1741,10 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
     </select>
     <label for="jPrice"><span data-i18n>Price</span> <span class="lopt" id="jPriceOpt">(optional: what the bottle cost)</span></label>
     <input id="jPrice" type="number" min="0" step="1" inputmode="numeric" placeholder="kr.">
+    <div class="row2">
+      <div><label for="jFood"><span data-i18n>Food</span> <span class="lopt" data-i18n>(optional: what you ate with it)</span></label><input id="jFood" list="jFoods" data-i18n-ph placeholder="e.g. roast lamb"><datalist id="jFoods"></datalist></div>
+      <div><label for="jPairing" data-i18n>How the pairing went</label><select id="jPairing"><option value="">—</option><option value="good" data-i18n>Worked well</option><option value="ok" data-i18n>Fine</option><option value="bad" data-i18n>Didn't work</option></select></div>
+    </div>
     <label for="jNote" data-i18n>Note</label><textarea id="jNote" rows="3" placeholder="How was it?" data-i18n-ph></textarea>
     <label for="jPhoto"><span data-i18n>Photo</span> <span class="lopt" data-i18n>(optional: label, bottle, the moment)</span></label>
     <input id="jPhoto" type="file" accept="image/*">

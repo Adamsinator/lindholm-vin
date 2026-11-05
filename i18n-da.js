@@ -1,6 +1,15 @@
 // Danish for allwine.dk: i18n.js loads the one dictionary the page's language needs (English is the source text).
 window.I18N_DICT = window.I18N_DICT || {};
 window.I18N_DICT.da = {
+  "Food": "Mad",
+  "(optional: what you ate with it)": "(valgfrit: hvad du spiste til)",
+  "e.g. roast lamb": "fx lammesteg",
+  "How the pairing went": "Hvordan det passede",
+  "Worked well": "Passede godt",
+  "Fine": "Fint",
+  "Didn't work": "Passede ikke",
+  "With {0}": "Til {0}",
+  "with {0}": "til {0}",
   "Style (optional)": "Stil (valgfrit)",
   "Sweetness": "Sødme",
   "Dry": "Tør",

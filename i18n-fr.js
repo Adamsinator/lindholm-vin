@@ -1,6 +1,15 @@
 // French for allwine.dk: i18n.js loads the one dictionary the page's language needs (English is the source text).
 window.I18N_DICT = window.I18N_DICT || {};
 window.I18N_DICT.fr = {
+  "Food": "Plat",
+  "(optional: what you ate with it)": "(facultatif : ce que vous avez mangé avec)",
+  "e.g. roast lamb": "p. ex. gigot d'agneau",
+  "How the pairing went": "L'accord",
+  "Worked well": "Très réussi",
+  "Fine": "Correct",
+  "Didn't work": "Raté",
+  "With {0}": "Avec {0}",
+  "with {0}": "avec {0}",
   "Style (optional)": "Style (facultatif)",
   "Sweetness": "Sucrosité",
   "Dry": "Sec",

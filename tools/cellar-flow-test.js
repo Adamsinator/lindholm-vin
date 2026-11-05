@@ -176,8 +176,12 @@ const W = async (prod, name) => (await (await wines())).find(w => w.producer ===
   // 10. editing an old entry for a cellar bottle doesn't drink another one
   const drunk0 = (await W("Armand Rousseau")).drunk;
   await p.click('.jentry:has-text("Armand Rousseau") .jedit'); await p.waitForTimeout(300);
-  await p.fill("#jNote", "Lovely. Better the next day."); await p.click("#jSave"); await p.waitForTimeout(900);
+  await p.fill("#jNote", "Lovely. Better the next day."); await p.fill("#jFood", "roast lamb"); await p.selectOption("#jPairing", "good");
+  await p.click("#jSave"); await p.waitForTimeout(900);
   check("editing a cellar entry keeps the bottle count", (await W("Armand Rousseau")).drunk === drunk0, `${drunk0} → ${(await W("Armand Rousseau")).drunk}`);
+  const je = (await journal()).find(e => e.producer === "Armand Rousseau");
+  check("…the food and how the pairing went are kept, and shown on the entry", je && je.food === "roast lamb" && je.pairing === "good"
+    && /With roast lamb · Worked well/.test(await p.textContent('.jentry:has-text("Armand Rousseau")')), JSON.stringify(je && { food: je.food, pairing: je.pairing }));
 
   // 11. add a wine I've had (Enjoyed page) with classification + country
   await go("enjoyed"); await p.click("#eAddBtn"); await p.waitForTimeout(300);
