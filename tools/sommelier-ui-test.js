@@ -32,7 +32,7 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   check("its data isn't loaded until it opens", !loaded.some(u => /sommelier/.test(u)));
   await p.click("#sommBtn");
   await p.waitForSelector("#sommLog .sm-a", { timeout: 10000 });
-  check("it opens with a greeting and suggestions", /sommelier/i.test(await p.textContent("#sommLog")) && (await p.$$("#sommChips button")).length === 4);
+  check("it opens with a greeting and suggestions", /sommelier/i.test(await p.textContent("#sommLog")) && (await p.$$("#sommChips button")).length === 3);
   const before = calls;
   // asking: the question, "Thinking…" for about two seconds, then the answer (its opening and hint aside)
   const ask = async q => { const n = (await p.$$("#sommLog .sm-a:not(.sm-think)")).length, t0 = Date.now();
@@ -46,12 +46,20 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   check("answers an appellation", /Sauvignon Blanc/.test(await last()) && /Pinot Noir/.test(await last()));
   await ask("where is my rousseau");
   check("answers about the cellar, with the location", /Clos St-Jacques 2016.*Kælder, reol 3/.test(await last()), await last());
+  const chip = await p.textContent("#sommChips button:nth-child(2)");
   await p.click("#sommChips button:nth-child(2)"); await p.waitForFunction(() => !document.querySelector("#sommLog .sm-think") && document.querySelectorAll("#sommLog .sm-q").length === document.querySelectorAll("#sommLog .sm-a:not(.sm-think)").length - 1, null, { timeout: 8000 });
-  check("a suggestion can be clicked", /Côte de Nuits 2005: 98\/100/.test(await last()), await last());
+  const chipQ = await p.evaluate(() => [...document.querySelectorAll("#sommLog .sm-q")].pop().textContent);
+  check("a suggestion can be clicked, and it is answered", chipQ === chip && !/know that one yet|beyond me|not sure what you mean/.test(await last()), chip + " → " + (await last()).slice(0, 100));
   // a follow-up: the page hands the sommelier the previous question
   await ask("how long can I keep Barolo?");
   await ask("and Barbaresco?");
   check("a follow-up ('and Barbaresco?') answers from the question before", /^Barbaresco: typically at its best/.test((await last()).trim()), (await last()).slice(0, 120));
+  // memory: "it" is the wine of the last answers, kept by the page between questions
+  await ask("tell me about Chablis");
+  await ask("how long does it keep?");
+  check("…and 'how long does it keep?' remembers it was Chablis", /Chablis.*3–10 years/.test(await last()), (await last()).slice(0, 120));
+  await ask("what time is it?");
+  check("small talk: the time, then back to wine", /It's \d\d:\d\d on /.test(await last()), (await last()).slice(0, 80));
   await ask("tell me about Egon Müller");
   check("…and it knows producers beyond Burgundy (sommelier-world.js loads)", /Scharzhofberger/.test(await last()));
   // a long answer is shown from the question down, not scrolled to its end

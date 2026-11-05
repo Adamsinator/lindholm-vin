@@ -27,10 +27,23 @@ const SAY = {
     "Je suis le sommelier de la cave. Je connais cépages et appellations, les climats bourguignons et leurs propriétaires, les millésimes, le service et les accords, et votre cave. Rien de ce que vous demandez ne quitte cette page.",
     "Ich bin der Sommelier des Kellers. Ich kenne Rebsorten und Appellationen, Burgunds Lagen und Besitzer, Jahrgänge, Service und Speisen – und Ihren eigenen Keller. Nichts, was Sie fragen, verlässt diese Seite."],
   tryAsk: ["Try asking:", "Prøv at spørge:", "Essayez :", "Fragen Sie zum Beispiel:"],
-  unknown: ["I don't know that one yet. I can answer about grapes, appellations, Burgundy vineyards, vintages, serving, food pairing and your cellar.",
-    "Det kender jeg ikke endnu. Jeg kan svare om druer, appellationer, Bourgognes marker, årgange, servering, mad og vin, og din kælder.",
-    "Je ne connais pas encore cela. Je peux répondre sur les cépages, les appellations, les climats de Bourgogne, les millésimes, le service, les accords et votre cave.",
-    "Das weiß ich noch nicht. Ich kann Fragen zu Rebsorten, Appellationen, Burgunder Lagen, Jahrgängen, Service, Speisen und Ihrem Keller beantworten."],
+  pairJournal: ["From your journal:", "Fra din journal:", "D'après votre journal :", "Aus Ihrem Journal:"],
+  pair_good: ["worked well", "passede godt", "bel accord", "hat gut gepasst"], pair_ok: ["fine", "fint", "correct", "ganz gut"], pair_bad: ["didn't work", "passede ikke", "raté", "hat nicht gepasst"],
+  foodsFor: ["{0} goes well with {1}.", "{0} passer godt til {1}.", "{0} va bien avec {1}.", "{0} passt gut zu {1}."],
+  foodsTell: ["Tell me the dish and I'll look in your cellar too.", "Sig retten, så kigger jeg også i din kælder.", "Dites-moi le plat et je regarde aussi dans votre cave.", "Nennen Sie das Gericht, dann schaue ich auch in Ihren Keller."],
+  // three ways of not knowing, so the same shrug doesn't come back every time
+  unknown: [["I don't know that one yet. I can answer about grapes, appellations, Burgundy vineyards, vintages, serving, food pairing and your cellar.",
+      "That's beyond me for now. Ask me about a grape, a place, a vintage, a dish or your own bottles.",
+      "I'm not sure what you mean. Try naming a wine, a region, a year or a dish."],
+    ["Det kender jeg ikke endnu. Jeg kan svare om druer, appellationer, Bourgognes marker, årgange, servering, mad og vin, og din kælder.",
+      "Det ligger uden for, hvad jeg ved lige nu. Spørg mig om en drue, et sted, en årgang, en ret eller dine egne flasker.",
+      "Jeg er ikke sikker på, hvad du mener. Prøv at nævne en vin, et område, et år eller en ret."],
+    ["Je ne connais pas encore cela. Je peux répondre sur les cépages, les appellations, les climats de Bourgogne, les millésimes, le service, les accords et votre cave.",
+      "Cela me dépasse pour l'instant. Demandez-moi un cépage, un lieu, un millésime, un plat ou vos propres bouteilles.",
+      "Je ne suis pas sûr de comprendre. Essayez de nommer un vin, une région, une année ou un plat."],
+    ["Das weiß ich noch nicht. Ich kann Fragen zu Rebsorten, Appellationen, Burgunder Lagen, Jahrgängen, Service, Speisen und Ihrem Keller beantworten.",
+      "Das übersteigt mein Wissen im Moment. Fragen Sie mich nach einer Rebsorte, einem Ort, einem Jahrgang, einem Gericht oder Ihren Flaschen.",
+      "Ich bin nicht sicher, was Sie meinen. Nennen Sie einen Wein, eine Region, ein Jahr oder ein Gericht."]],
   red: ["red", "rød", "rouge", "rot"], white: ["white", "hvid", "blanc", "weiß"], fortified: ["fortified", "hedvin", "vin muté", "Likörwein"], rose: ["rosé", "rosé", "rosé", "Rosé"],
   sparkling: ["sparkling", "mousserende", "effervescent", "Schaumwein"], sweet: ["sweet", "sød", "liquoreux", "süß"], fortified: ["fortified", "hedvin", "muté", "Likörwein"],
   appIs: ["<b>{0}</b> is an appellation in {1}.", "<b>{0}</b> er en appellation i {1}.", "<b>{0}</b> est une appellation de {1}.", "<b>{0}</b> ist eine Appellation in {1}."],
@@ -103,7 +116,7 @@ const SAY = {
   pairFor: ["With {0}: {1}.", "Til {0}: {1}.", "Avec {0} : {1}.", "Zu {0}: {1}."],
   pairCellar: ["From your cellar, ready now:", "Fra din kælder, klar nu:", "De votre cave, prêt à boire :", "Aus Ihrem Keller, jetzt trinkreif:"],
   pairCellarAny: ["From your cellar:", "Fra din kælder:", "De votre cave :", "Aus Ihrem Keller:"],
-  pairWhich: ["Which dish? I know beef, lamb, game, duck, roast pork, chicken, fish, salmon, shellfish, sushi, spicy food, pasta, mushrooms, cheese, blue cheese, desserts and Christmas dinner.", "Hvilken ret? Jeg kender oksekød, lam, vildt, and, flæskesteg, kylling, fisk, laks, skaldyr, sushi, stærk mad, pasta, svampe, ost, blåskimmelost, dessert og julemiddag.", "Quel plat ? Je connais le bœuf, l'agneau, le gibier, le canard, le porc, le poulet, le poisson, le saumon, les fruits de mer, les sushis, l'épicé, les pâtes, les champignons, le fromage, le bleu, les desserts et Noël.", "Welches Gericht? Ich kenne Rind, Lamm, Wild, Ente, Schweinebraten, Huhn, Fisch, Lachs, Meeresfrüchte, Sushi, Scharfes, Pasta, Pilze, Käse, Blauschimmelkäse, Desserts und das Weihnachtsessen."],
+  pairWhich: ["Which dish? I know beef, lamb, game, duck, roast pork, chicken, fish, salmon, shellfish, sushi, spicy food, pasta, mushrooms, vegetarian dishes, charcuterie, cheese, blue cheese, desserts and Christmas dinner.", "Hvilken ret? Jeg kender oksekød, lam, vildt, and, flæskesteg, kylling, fisk, laks, skaldyr, sushi, stærk mad, pasta, svampe, vegetarretter, pålæg, ost, blåskimmelost, dessert og julemiddag.", "Quel plat ? Je connais le bœuf, l'agneau, le gibier, le canard, le porc, le poulet, le poisson, le saumon, les fruits de mer, les sushis, l'épicé, les pâtes, les champignons, les plats végétariens, la charcuterie, le fromage, le bleu, les desserts et Noël.", "Welches Gericht? Ich kenne Rind, Lamm, Wild, Ente, Schweinebraten, Huhn, Fisch, Lachs, Meeresfrüchte, Sushi, Scharfes, Pasta, Pilze, vegetarische Gerichte, Aufschnitt, Käse, Blauschimmelkäse, Desserts und das Weihnachtsessen."],
   drinkNow: ["Ready to drink from your cellar ({0}):", "Klar til at drikke fra din kælder ({0}):", "Prêts à boire dans votre cave ({0}) :", "Jetzt trinkreif aus Ihrem Keller ({0}):"],
   pastPeak: ["past its window", "forbi vinduet", "après sa fenêtre", "über dem Fenster"], soon: ["drink soon", "drik snart", "à boire bientôt", "bald trinken"],
   nothingReady: ["Nothing is in its drinking window right now. The next to open: {0}.", "Intet er i sit drikkevindue lige nu. De næste at åbne: {0}.", "Rien n'est dans sa fenêtre en ce moment. Les prochains à ouvrir : {0}.", "Gerade ist nichts im Trinkfenster. Als Nächstes: {0}."],
@@ -219,7 +232,7 @@ const hasW = (t, key) => W[key].some(p => (" " + t + " ").includes(" " + p + " "
 
 // ── an index of everything that can be named ──
 let IDX = null, IDX_FOR = null, IDX_NOTES = -1;
-const NOMATCH = new Set(["langhe", "rolle", "steen", "melon", "breton", "bouchet", "cot", "morillon", "favorita", "pigato", "listan", "mansois", "jaen", "calabrese", "auxerrois", "naturé", "nature", "meunier", "macabeu", "malvoisie", "sercial", "boal", "bual",
+const NOMATCH = new Set(["ghemme", "langhe", "rolle", "steen", "melon", "breton", "bouchet", "cot", "morillon", "favorita", "pigato", "listan", "mansois", "jaen", "calabrese", "auxerrois", "naturé", "nature", "meunier", "macabeu", "malvoisie", "sercial", "boal", "bual",
   "port", "porto", "sherry", "asti", "toro", "etna", "cava", "nahe", "ahr", "wien", "graves", "baden", "franken", "jura", "corse", "marche", "puglia", "vaud", "washington", "oregon", "santorini", "madeira", "navarra", "alsace", "loire", "champagne", "beaujolais", "bordeaux", "bourgogne", "chablis", "rioja", "mosel", "douro", "barolo", "napa"]);
 // "Danish white", "dansk hvidvin", "vin danois": a country by its adjective
 const ADJ = { Danmark: ["danish", "dansk", "danske", "danois", "danoise", "danish wine", "danischer", "danisch", "danische"],
@@ -488,18 +501,22 @@ function yourYears(lang, ctx, ys, test) {
 }
 
 // ── the question → an answer ──
+function ensureIdx(ctx) {
+  const nKey = Object.keys(ctx.notes || {}).length;
+  if (IDX_FOR !== ctx.burg || IDX_NOTES !== nKey || !IDX) { IDX = buildIndex(ctx.burg, ctx.notes); IDX_FOR = ctx.burg; IDX_NOTES = nKey; }
+  return IDX;
+}
 function answer(q, ctx) {
   ctx = ctx || {};
   const lang = L.includes(ctx.lang) ? ctx.lang : "en";
   const text = norm(q).replace(/\b(st|ste)\b/g, "saint");
-  const nKey = Object.keys(ctx.notes || {}).length;
-  if (IDX_FOR !== ctx.burg || IDX_NOTES !== nKey || !IDX) { IDX = buildIndex(ctx.burg, ctx.notes); IDX_FOR = ctx.burg; IDX_NOTES = nKey; }
+  ensureIdx(ctx);
   const ents = findEntities(text, IDX);
   ents.forEach(e => { if (e.type === "app" && ctx.burg) { e.__vid = appVillage(ctx.burg, e.ref.n); e.__cote = e.__vid && villageCote(ctx.burg, e.__vid); }
     if (e.type === "climat" && ctx.burg) e.__cote = villageCote(ctx.burg, e.ref.v); if (e.type === "village" && ctx.burg) e.__cote = villageCote(ctx.burg, e.ref.id); });
   const years = yearsOf(q);
   const wines = ctx.wines || null;
-  const res = (html, kind) => ({ html, kind: kind || "about", chips: chips(lang, ctx) });
+  const res = (html, kind) => ({ html, kind: kind || "about", chips: chips(lang, ctx), subject: subjectOf(ents), year: years[0] || null });
   if (!text) return res(help(lang, ctx), "help");
   // a Burgundy appellation that is also a grand cru (Musigny, Chambertin) is the vineyard
   if (ctx.burg) ents.forEach(e => { if (e.type !== "app" || e.ref.region !== "Bourgogne") return;
@@ -592,6 +609,7 @@ function answer(q, ctx) {
   if (hasW(text, "opened")) return res(p(say(lang, "opened")), "serve");
   if (hasW(text, "storage")) return res(p(say(lang, "storage")), "serve");
   const food = foodOf(text);
+  if (!food && hasW(text, "pair")) { const fw = named.find(e => ["app", "grape", "region"].includes(e.type)); const h = fw && foodsFor(lang, fw, ctx); if (h) return res(h, "food"); }
   if (food || hasW(text, "pair")) return res(pairing(lang, food, ctx), "food");
 
   // something named
@@ -616,7 +634,8 @@ function answer(q, ctx) {
   if (village && ctx.burg) { const v = village.ref, tx = (ctx.burgI18n && ctx.burgI18n.villages && ctx.burgI18n.villages[v.id]) || {};
     return res(p(`<b>${esc(v.n)}</b>`) + p(esc(tx.note || v.note || "")) + p(`<span class="sm-m">${esc(tx.aoc || v.aoc || "")}</span> <a href="burgundy.html#v=${esc(v.id)}" target="_blank" rel="noopener">${esc(say(lang, "openAtlas"))}</a>`), "about"); }
   if (hasW(text, "help")) return res(help(lang, ctx), "help");
-  return res(p(say(lang, "unknown")) + p(say(lang, "tryAsk")) + ul(examples(lang, ctx).map(esc)), "unknown");
+  const uk = SAY.unknown[Math.max(0, L.indexOf(lang))], pick2 = hash(text) % uk.length;
+  return res(p(esc(uk[pick2])) + p(say(lang, "tryAsk")) + ul(rotate(examples(lang, ctx), (ctx.turn || 0) + pick2).slice(0, 2).map(esc)), "unknown");
 }
 
 // ── the way it talks: a short opening for the kind of answer, and now and then a hint at what to ask next. Which
@@ -665,28 +684,148 @@ const HINT = {
   about: ["Ask \u201cwhat about …?\u201d and I'll do another.", "Spørg \u201chvad med …?\u201d, så tager jeg en til.", "Demandez « et … ? » et j'en présente un autre.", "Fragen Sie \u201eund …?\u201c, dann nehme ich den nächsten."],
 };
 function hash(str) { let h = 2166136261; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
-// the answer as the chat shows it: { html, chips, kind, asked } with the opening and hint added
+// the answer as the chat shows it: { html, chips, kind, asked, subject, offer } with the opening and hint added
 function chat(q, ctx) {
   ctx = ctx || {};
   const r = answerWithFollowUp(q, ctx), lang = L.includes(ctx.lang) ? ctx.lang : "en", i = Math.max(0, L.indexOf(lang));
-  if (!String(q || "").trim()) return r; // the greeting is already a greeting
+  if (!String(q || "").trim() || r.kind === "talk") return r; // a greeting or small talk is already conversational
   const h = hash(norm(q) + "|" + (ctx.turn || 0)), leads = LEAD[r.kind] && LEAD[r.kind][i];
   const t = norm(r.asked || q), repeats = r.kind === "cellar" && (hasW(t, "drinkNow") || hasW(t, "urgent"));
-  const lead = leads && h % 10 < 7 ? leads[(h >> 4) % leads.length] : "", hint = HINT[r.kind] && !repeats && (h >> 8) % 10 < 4 ? HINT[r.kind][i] : "";
+  // the same opening never twice in a row
+  let lead = leads && h % 10 < 7 ? leads[(h >> 4) % leads.length] : "";
+  if (lead && lead === ctx.lastLead) lead = leads[((h >> 4) + 1) % leads.length];
+  const hint = HINT[r.kind] && !repeats && (h >> 8) % 10 < 4 ? HINT[r.kind][i] : "";
   r.html = (lead ? `<p class="sm-lead">${esc(lead)}</p>` : "") + r.html + (hint ? `<p class="sm-hint">${esc(hint)}</p>` : "");
+  r.lead = lead;
+  // a hint that offers something: "yes" next takes it up
+  if (hint && OFFER[r.kind]) r.offer = examples(lang, ctx)[OFFER[r.kind]];
   return r;
 }
+const OFFER = { cellar: 2, age: 2 }; // index into examples(): "What should I drink now?"
 
-// ── a follow-up: "and 2013?", "hvad med Barbaresco?" — the previous question with the year or the place swapped ──
-const FOLLOW = /^(and|what about|how about|and what about|same for|og|og hvad med|hvad med|hvad sa med|samme for|et|et pour|et le|et la|et les|et en|und|und was ist mit|und wie ist|was ist mit|wie ist es mit|und bei)\b/;
-function answerWithFollowUp(q, ctx) {
-  ctx = ctx || {};
-  const prev = ctx.prev && String(ctx.prev), t = norm(q);
-  if (prev && t && t.split(" ").length <= 6 && (FOLLOW.test(t) || t.split(" ").length <= 2)) {
-    const merged = followUp(prev, q, ctx);
-    if (merged) { const r = answer(merged, ctx); r.asked = merged; return r; }
+// ── what an answer was about, so "how long does it keep?" knows what "it" is ──
+const SUBJ = ["climat", "app", "wproducer", "nproducer", "producer", "grape", "region", "village", "country"];
+function subjectOf(ents) {
+  const e = SUBJ.map(t => ents.find(x => x.type === t)).find(Boolean);
+  return e && e.ref && e.ref.n ? String(e.ref.n).split(" · ")[0] : "";
+}
+const lastSubject = ctx => { const h = (ctx.hist || []).slice(-3).reverse().find(x => x && x.subject); return h ? h.subject : ""; };
+// a word standing in for the wine of the last answer: it, den, le (garder), ihn …
+const PRON = /\b(it|its|them|that one|this one|that wine|this wine|denne|dens|dem|ihn|ihm|diesen|dieser|diesem|ca|celui ci|celui la|cela)\b|\b(den|det)$|\b(le|la|les|l) (garder|conserver|carafer|decanter|servir|boire|ouvrir|marier|accorder)\b/;
+
+// ── small talk: greetings, thanks, the time. Short, varied, and back to wine ──
+const TALK = {
+  hi: [["Hello! What are we drinking?", "Hi there. Ask me anything about wine, or about your cellar.", "Good to see you. What's on your mind: a bottle, a vintage, a dish?"],
+    ["Hej! Hvad skal vi drikke?", "Hej. Spørg mig om vin, eller om din kælder.", "Godt at se dig. Hvad tænker du på: en flaske, en årgang, en ret?"],
+    ["Bonjour ! Que boit-on ?", "Bonjour. Demandez-moi tout sur le vin, ou sur votre cave.", "Ravi de vous voir. Une bouteille, un millésime, un plat ?"],
+    ["Hallo! Was trinken wir?", "Hallo. Fragen Sie mich alles über Wein oder über Ihren Keller.", "Schön, Sie zu sehen. Eine Flasche, ein Jahrgang, ein Gericht?"]],
+  thanks: [["You're welcome. Skål!", "My pleasure.", "Any time: enjoy the bottle."],
+    ["Det var så lidt. Skål!", "Selv tak.", "Når som helst: nyd flasken."],
+    ["Avec plaisir. Santé !", "Je vous en prie.", "Quand vous voulez : bonne dégustation."],
+    ["Gern geschehen. Prost!", "Sehr gern.", "Jederzeit: Genießen Sie die Flasche."]],
+  how: [["Very well, thank you: the cellar is at a steady 12 °C, and so am I.", "Fine, thanks. Better after a glass, like most of us.", "All good here. And you: what are you in the mood for?"],
+    ["Rigtig godt, tak: kælderen holder stabile 12 °C, og det gør jeg også.", "Fint, tak. Bedre efter et glas, som de fleste af os.", "Alt vel her. Og du: hvad har du lyst til?"],
+    ["Très bien, merci : la cave est à 12 °C bien stables, et moi aussi.", "Bien, merci. Mieux après un verre, comme la plupart d'entre nous.", "Tout va bien. Et vous : qu'est-ce qui vous ferait plaisir ?"],
+    ["Sehr gut, danke: Der Keller hat konstante 12 °C, und ich auch.", "Gut, danke. Nach einem Glas noch besser, wie bei den meisten.", "Alles bestens. Und Sie: Worauf haben Sie Lust?"]],
+  bye: [["Cheers! I'll be here when you need a bottle picked.", "Goodbye, and enjoy whatever you open.", "Skål, and see you soon."],
+    ["Skål! Jeg er her, når du skal have valgt en flaske.", "Farvel, og nyd det, du åbner.", "Skål, og på gensyn."],
+    ["Santé ! Je serai là quand il faudra choisir une bouteille.", "Au revoir, et profitez de ce que vous ouvrirez.", "Santé, et à bientôt."],
+    ["Prost! Ich bin da, wenn eine Flasche ausgesucht werden soll.", "Auf Wiedersehen, und genießen Sie, was Sie öffnen.", "Prost, und bis bald."]],
+  cheers: [["Skål! What's in the glass?", "Cheers! I hope it's a good one.", "Skål! Tell me what you opened."],
+    ["Skål! Hvad er der i glasset?", "Skål! Jeg håber, den er god.", "Skål! Fortæl mig, hvad du har åbnet."],
+    ["Santé ! Qu'y a-t-il dans le verre ?", "Santé ! J'espère qu'il est bon.", "Santé ! Dites-moi ce que vous avez ouvert."],
+    ["Prost! Was ist im Glas?", "Prost! Ich hoffe, er ist gut.", "Prost! Erzählen Sie, was Sie geöffnet haben."]],
+  yes: [["Happy to. What would you like to know?"], ["Gerne. Hvad vil du vide?"], ["Volontiers. Que voulez-vous savoir ?"], ["Gern. Was möchten Sie wissen?"]],
+  no: [["Fine. Ask me anything else whenever you like."], ["Fint. Spørg om noget andet, når du vil."], ["Très bien. Demandez-moi autre chose quand vous voulez."], ["Gut. Fragen Sie mich gern etwas anderes."]],
+  time: ["It's {0} on {1}.", "Klokken er {0}, {1}.", "Il est {0}, {1}.", "Es ist {0} Uhr, {1}."],
+  // what the hour suggests: morning, lunch, aperitif, dinner, late
+  hour: [["A bit early for a glass, but a fine time to plan tonight's bottle.", "Lunchtime: something light and fresh, like Chablis, Muscadet or a dry Riesling.", "Nearly aperitif hour: Champagne, a fino sherry or a crisp white.", "Dinner time. Tell me what you're eating and I'll find a bottle.", "Late: a small glass of port or something sweet, or water and bed."],
+    ["Lidt tidligt for et glas, men et fint tidspunkt at planlægge aftenens flaske.", "Frokosttid: noget let og friskt, som Chablis, Muscadet eller en tør Riesling.", "Snart tid til aperitif: champagne, en fino-sherry eller en sprød hvidvin.", "Middagstid. Sig, hvad du spiser, så finder jeg en flaske.", "Sent: et lille glas portvin eller noget sødt, eller vand og seng."],
+    ["Un peu tôt pour un verre, mais le bon moment pour prévoir la bouteille de ce soir.", "L'heure du déjeuner : quelque chose de léger et frais, Chablis, Muscadet ou un Riesling sec.", "Bientôt l'apéritif : Champagne, un xérès fino ou un blanc vif.", "L'heure du dîner. Dites-moi ce que vous mangez et je trouve une bouteille.", "Tard : un petit verre de porto ou de vin doux, ou de l'eau et au lit."],
+    ["Etwas früh für ein Glas, aber eine gute Zeit, die Flasche für heute Abend zu planen.", "Mittagszeit: etwas Leichtes und Frisches, Chablis, Muscadet oder ein trockener Riesling.", "Bald Aperitifzeit: Champagner, ein Fino-Sherry oder ein frischer Weißer.", "Zeit fürs Abendessen. Sagen Sie mir, was es gibt, und ich finde eine Flasche.", "Spät: ein kleines Glas Port oder etwas Süßes, oder Wasser und ab ins Bett."]],
+};
+const LOCALE = { en: "en-GB", da: "da-DK", fr: "fr-FR", de: "de-DE" };
+const TALK_RE = {
+  time: /\b(what time|whats the time|what s the time|time is it|the time now|what day|what date|whats the date|what s the date|todays date|klokken|hvad tid|hvilken dag|hvad dato|hvilken dato|dagens dato|quelle heure|quel jour|quelle date|wie spat|uhrzeit|wie viel uhr|wieviel uhr|welcher tag|welches datum|welchen tag)\b/,
+  who: /\b(who are you|what are you|what can you do|hvem er du|hvad er du|hvad kan du|qui es tu|qui etes vous|que sais tu faire|que peux tu faire|wer bist du|wer sind sie|was kannst du|was bist du)\b/,
+  bye: /^(bye|bye bye|goodbye|good night|goodnight|see you|see ya|farvel|vi ses|godnat|hej hej|hej hej sa|au revoir|bonne nuit|a bientot|a plus|tschuss|auf wiedersehen|gute nacht|bis bald|ciao)( (now|then|sommelier|tak|merci|danke))?$/,
+  hi: /^(hi|hello|hey|hiya|hej|hejsa|hejhej|halloj|goddag|godmorgen|god morgen|godaften|god aften|bonjour|bonsoir|salut|coucou|hallo|guten tag|guten morgen|guten abend|servus|moin|good morning|good evening|good afternoon)( (there|sommelier|du|you|again|igen|toi|zusammen))?$/,
+  thanks: /^(thanks|thank you|thank you very much|thanks a lot|many thanks|thx|ty|tak|mange tak|tusind tak|tak skal du have|tak for det|tak for hjaelpen|merci|merci beaucoup|merci bien|danke|danke schon|vielen dank|danke sehr)( (so much|again|igen|sommelier))?$/,
+  how: /^(how are you|how are you doing|how s it going|hows it going|how do you do|hvordan gar det|hvordan har du det|har du det godt|ca va|comment ca va|comment allez vous|comment vas tu|wie geht s|wie gehts|wie geht es dir|wie geht es ihnen)( (today|i dag|aujourd hui|heute))?$/,
+  cheers: /^(cheers|skal|sante|a la votre|prost|salud|chin chin|zum wohl)$/,
+  yes: /^(yes|yes please|yeah|yep|sure|ok|okay|please|go on|go ahead|ja|ja tak|ja gerne|ja gerne tak|ja da|gerne|jo|oui|oui merci|oui s il te plait|oui s il vous plait|volontiers|d accord|ja bitte|gern|klar|gerne doch)$/,
+  no: /^(no|no thanks|no thank you|nope|nej|nej tak|ellers tak|non|non merci|nein|nein danke)$/,
+};
+function talk(q, ctx) {
+  const lang = L.includes(ctx.lang) ? ctx.lang : "en", i = Math.max(0, L.indexOf(lang));
+  const t = norm(q).replace(/\b(st|ste)\b/g, "saint").trim();
+  if (!t || t.split(" ").length > 8) return null;
+  const pick = (key) => { const a = TALK[key][i]; return a[hash(t + "|" + (ctx.turn || 0)) % a.length]; };
+  const out = (html, extra) => Object.assign({ html, kind: "talk", chips: chips(lang, ctx), subject: "" }, extra || {});
+  if (TALK_RE.time.test(t)) {
+    const now = ctx.now ? new Date(ctx.now) : new Date(), hh = now.getHours();
+    const time = String(hh).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0");
+    let day; try { day = now.toLocaleDateString(LOCALE[lang], { weekday: "long", day: "numeric", month: "long" }); } catch (e) { day = now.toDateString(); }
+    const slot = hh >= 5 && hh < 11 ? 0 : hh < 15 ? 1 : hh < 18 ? 2 : hh < 23 ? 3 : 4;
+    return out(p(esc(TALK.time[i].replace("{0}", time).replace("{1}", day))) + p(esc(TALK.hour[i][slot])));
   }
-  const r = answer(q, ctx); r.asked = q; return r;
+  if (TALK_RE.who.test(t)) return out(help(lang, ctx));
+  for (const k of ["bye", "hi", "thanks", "how", "cheers"]) if (TALK_RE[k].test(t)) return out(p(esc(pick(k))));
+  if (TALK_RE.yes.test(t)) return ctx.offer ? null : out(p(esc(pick("yes"))));
+  if (TALK_RE.no.test(t)) return out(p(esc(pick("no"))));
+  return null;
+}
+
+// ── chips after an answer: a next step about the same thing, then the usual examples; each one checked to give an answer ──
+const NEXT = {
+  keep: ["How long can I keep {0}?", "Hvor længe kan jeg lagre {0}?", "Combien de temps garder {0} ?", "Wie lange kann ich {0} lagern?"],
+  food: ["What food goes with {0}?", "Hvilken mad passer til {0}?", "Quel plat avec {0} ?", "Welches Essen passt zu {0}?"],
+  best: ["Best vintages for {0}?", "Bedste årgange for {0}?", "Meilleurs millésimes pour {0} ?", "Beste Jahrgänge für {0}?"],
+  decant: ["Should I decant {0}?", "Skal {0} dekanteres?", "Faut-il carafer {0} ?", "Soll ich {0} dekantieren?"],
+  year: ["And {0}?", "Og {0}?", "Et {0} ?", "Und {0}?"],
+};
+const NEXT_BY = { about: ["keep", "food", "best"], age: ["decant", "food", "best"], vintage: ["year", "best"], serve: ["food", "keep"], opinion: ["keep", "food"] };
+function nextChips(lang, r, ctx) {
+  const i = Math.max(0, L.indexOf(lang)), out = [], asked = norm(r.asked || "");
+  const ok = (qq) => { if (out.length >= 2 || norm(qq) === asked) return;
+    const c = Object.assign({}, ctx, { prev: r.asked || "" }), a = answerWithFollowUp(qq, c, true);
+    if (a.kind !== "unknown" && a.kind !== "help" && a.kind !== "talk" && a.html !== r.html) out.push(qq); };
+  (NEXT_BY[r.kind] || []).forEach(k => {
+    if (k === "year") { if (r.year) ok(NEXT.year[i].replace("{0}", r.year - 1)); return; }
+    if (r.subject) ok(NEXT[k][i].replace("{0}", r.subject));
+  });
+  const seen = new Set(out.map(norm).concat(asked));
+  // then the usual examples, skipping one that would only repeat this answer
+  rotate(examples(lang, ctx), (ctx.turn || 0) + 3).forEach(e => { if (out.length < 3 && !seen.has(norm(e)) && answer(e, ctx).html !== r.html) { out.push(e); seen.add(norm(e)); } });
+  return out;
+}
+
+// ── a follow-up: "and 2013?", "hvad med Barolo?", "how long does it keep?", "yes" to an offer; or the next step after the last answer ──
+const FOLLOW = /^(and|what about|how about|and what about|same for|og|og hvad med|hvad med|hvad sa med|samme for|et|et pour|et le|et la|et les|et en|und|und was ist mit|und wie ist|was ist mit|wie ist es mit|und bei)\b/;
+function answerWithFollowUp(q, ctx, noChips) {
+  ctx = ctx || {};
+  const lang = L.includes(ctx.lang) ? ctx.lang : "en";
+  const done = r => { if (!noChips && r.kind !== "help") r.chips = nextChips(lang, r, ctx); return r; };
+  const prev = ctx.prev && String(ctx.prev), t = norm(q);
+  const tk = talk(q, ctx); if (tk) { tk.asked = q; return tk; }
+  // "yes" to "Want me to suggest what to open tonight?"
+  if (ctx.offer && TALK_RE.yes.test(t)) { const r = answer(ctx.offer, ctx); r.asked = ctx.offer; return done(r); }
+  ensureIdx(ctx);
+  const words = t ? t.split(" ").length : 0, named = () => findEntities(t, IDX).some(e => e.type !== "term");
+  if (prev && t && words <= 6 && (FOLLOW.test(t) || words <= 2)) {
+    const merged = followUp(prev, q, ctx);
+    if (merged) { const r = answer(merged, ctx); r.asked = merged; return done(r); }
+  }
+  // "should I decant it?": it is what the last answers were about
+  const subj = lastSubject(ctx);
+  if (subj && t && words <= 10 && PRON.test(t) && !named()) { const q2 = q.replace(/\s*[?!.]+\s*$/, "") + " " + subj, r = answer(q2, ctx);
+    if (r.kind !== "unknown") { r.asked = q2; return done(r); } }
+  const r = answer(q, ctx); r.asked = q;
+  // a short question that means nothing alone ("and the soil?", "best vintages?") may mean the last subject
+  if (r.kind === "unknown" && subj && words <= 6 && !named()) { const q2 = q.replace(/\s*[?!.]+\s*$/, "") + " " + subj, r2 = answer(q2, ctx);
+    // only when the question added something: gibberish plus "Barolo" is just Barolo, and still gibberish
+    if (r2.kind !== "unknown" && r2.html !== answer(subj, ctx).html) { r2.asked = q2; return done(r2); } }
+  return done(r);
 }
 function followUp(prev, q, ctx) {
   const t = norm(q).replace(FOLLOW, "").trim(), pt = norm(prev).replace(/\b(st|ste)\b/g, "saint");
@@ -1053,6 +1192,19 @@ function foodOf(text) {
   if (/jul|christmas|noel|weihnacht/.test(text)) best = D.food.find(f => f.keys.includes("christmas"));
   return best;
 }
+// the other way round: the dishes that suit a grape, an appellation or a region
+function foodsFor(lang, e, ctx) {
+  let grapes = [], regions = [], cols = [];
+  if (e.type === "grape") { grapes = [e.ref.n].concat(e.ref.syn || []); cols = [e.ref.col]; }
+  else if (e.type === "app") { grapes = e.ref.wines.flatMap(w => w.grapes); regions = [e.ref.region]; cols = e.ref.wines.flatMap(w => w.cols); }
+  else if (e.type === "region") regions = [e.ref.n];
+  else return null;
+  const G = new Set(grapes.map(norm)), sweet = cols.includes("d");
+  const scored = D.food.map(f => ({ f, s: (f.match.g || []).filter(g => G.has(norm(g))).length * 2 + ((f.match.r || []).some(r => regions.includes(r)) ? 1 : 0) }))
+    .filter(x => x.s > 0 && (x.f.match.s !== "D" || sweet || x.s >= 2)).sort((a, b) => b.s - a.s).slice(0, 4);
+  if (!scored.length) return null;
+  return p(say(lang, "foodsFor", `<b>${esc(e.ref.n)}</b>`, esc(listJoin(lang, scored.map(x => x.f.label[lang]))))) + p(`<span class="sm-m">${esc(say(lang, "foodsTell"))}</span>`);
+}
 function pairing(lang, f, ctx) {
   if (!f) return p(say(lang, "pairWhich"));
   let html = p(say(lang, "pairFor", esc(f.label[lang]), esc(f.wines[lang])));
@@ -1064,6 +1216,12 @@ function pairing(lang, f, ctx) {
     const pickList = (ready.length ? ready : fits).slice(0, 5);
     if (pickList.length) html += p(say(lang, ready.length ? "pairCellar" : "pairCellarAny", "")) + ul(pickList.map(w => wineLine(lang, w)));
   }
+  // what you drank with it before, from the journal: the ones that worked first
+  const ORDER = { good: 0, ok: 1, "": 2, bad: 3 };
+  const js = (ctx.journal || []).filter(e => e && e.food && foodOf(norm(e.food)) === f)
+    .sort((a, b) => (ORDER[a.pairing || ""] ?? 2) - (ORDER[b.pairing || ""] ?? 2) || String(b.date || "").localeCompare(String(a.date || ""))).slice(0, 3);
+  if (js.length) html += p(say(lang, "pairJournal")) + ul(js.map(e => `<b>${esc(e.producer || "")}</b> ${esc([e.wine, e.vintage].filter(Boolean).join(" "))} <span class="sm-m">· ${esc(e.food)}${
+    { good: 1, ok: 1, bad: 1 }[e.pairing] ? " · " + esc(say(lang, "pair_" + e.pairing)) : ""}</span>`));
   return html;
 }
 const styleOk = (s, w) => ({ R: "Rød", W: "Hvid", S: "Bobler", P: "Rosé" })[s] ? w.style === ({ R: "Rød", W: "Hvid", S: "Bobler", P: "Rosé" })[s] : true;
@@ -1078,8 +1236,9 @@ function examples(lang, ctx) {
   };
   return E[lang] || E.en;
 }
-function help(lang, ctx) { return p(say(lang, "hello")) + p(say(lang, "tryAsk")) + ul(examples(lang, ctx).map(esc)); }
-function chips(lang, ctx) { return examples(lang, ctx).slice(0, 4); }
+const rotate = (a, k) => { k = ((k % a.length) + a.length) % a.length; return a.slice(k).concat(a.slice(0, k)); };
+function help(lang, ctx) { return p(say(lang, "hello")) + p(say(lang, "tryAsk")) + ul(rotate(examples(lang, ctx), ctx.turn || 0).slice(0, 3).map(esc)); }
+function chips(lang, ctx) { return rotate(examples(lang, ctx), (ctx.turn || 0) + 3).slice(0, 3); }
 
 const api = { answer: answerWithFollowUp, chat, findEntities: (q, burg) => findEntities(norm(q), buildIndex(burg)), SAY, examples };
 if (node) module.exports = api;
