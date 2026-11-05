@@ -1813,11 +1813,11 @@ function showRecoveryCode(code){
     $("recDone").onclick = ()=>{ $("recModal").classList.remove("open"); done(); };
   });
 }
-async function openVault(user, token, dek){
+async function openVault(user, token, dek, records){
   cfg.user = user; cfg.token = token;
   localStorage.setItem("vinUser", user); localStorage.setItem("vinToken", token); localStorage.setItem("vinVault", "1");
   await VCRYPTO.keep(user, dek);
-  await VAULT.start({post, user, token, dek, ...VAULT_HOOKS});
+  await VAULT.start({post, user, token, dek, records, ...VAULT_HOOKS}); // records: the vault, if the login brought it
   $("acctBtn").hidden = false;
 }
 // The vault opens from the device's encrypted copy; when the server's copy turns out newer, redraw from it
@@ -1883,7 +1883,7 @@ async function gateEncrypted(mode, user, pass){
     return true;
   }
   if(li.state==="migrating") await migrateNow(li.user, li.token, li.dek); // an upgrade that was interrupted
-  await openVault(li.user, li.token, li.dek);
+  await openVault(li.user, li.token, li.dek, li.state==="migrating" ? null : li.records);
   return true;
 }
 
