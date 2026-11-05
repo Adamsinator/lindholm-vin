@@ -243,7 +243,8 @@ window.BIZ = (() => {
       ${g.map(([k, ws]) => `<h4>${esc(k || tr("No supplier"))}</h4><ul class="bz-sup">${ws.map(w => `<li><span>${esc(wname(w))}<small class="bz-have">${esc(tr("{0} of a minimum of {1}", fmt(w.left), fmt(w.par)))}</small></span><b>${esc(tr("order {0}", fmt(w.par - w.left)))}</b></li>`).join("")}</ul>`).join("")}
       <p class="bz-btns"><button type="button" class="btn" id="bzReorderCopy">${esc(tr("Copy the list"))}</button>
         ${g.map(([k]) => `<a class="btn" href="${esc(orderMail(k))}">${esc(tr("Email the order to {0}", k || tr("No supplier")))}</a>`).join("")}
-        <button type="button" class="btn" id="bzOrderPrint">${esc(tr("Print the orders"))}</button></p>`;
+        <button type="button" class="btn" id="bzOrderPrint">${esc(tr("Print the orders"))}</button></p>
+      <p class="bz-btns">${g.map(([k]) => `<button type="button" class="btn quiet" data-recv="${esc(k)}">${esc(tr("{0}'s order has come", k || tr("No supplier")))}</button>`).join("")}</p>`;
   }
   // an order for one supplier, as an email to finish and send (the address is the business's to add: we don't keep it)
   function orderText(k) {
@@ -315,6 +316,7 @@ window.BIZ = (() => {
     const rc = $("bzReorderCopy"); if (rc) rc.onclick = async () => {
       try { await navigator.clipboard.writeText(reorderText(reorder())); toast(tr("Copied")); } catch (e) { toast(tr("Could not copy")); } };
     const op = $("bzOrderPrint"); if (op) op.onclick = printOrders;
+    p.querySelectorAll("[data-recv]").forEach(b => b.onclick = () => receiveOrder(b.dataset.recv, b));
     const sc = $("bzSalesCsv"); if (sc) sc.onclick = () => salesCsv($("bzMonth").value);
     syncCard();
     const pe = $("bzPeriod"); if (pe) pe.onchange = () => { PERIOD = Number(pe.value) || 30; overview(WINES.filter(w => w.left > 0)); };
@@ -351,7 +353,7 @@ window.BIZ = (() => {
     if (box.dataset.kind !== KIND) {
       box.dataset.kind = KIND;
       box.innerHTML = `<section class="panel bz-inv"><div class="bz-h"><h2>${esc(tr("Inventory"))}</h2>
-          <span class="bz-btns"><button type="button" class="btn primary" data-bz="till">${esc(tr("Quick sell"))}</button><button type="button" class="btn" data-bz="add">${esc(tr("＋ Add wine"))}</button><button type="button" class="btn" data-bz="card2">${esc(tr(W.card))}</button></span></div>
+          <span class="bz-btns"><button type="button" class="btn primary" data-bz="till">${esc(tr("Quick sell"))}</button><button type="button" class="btn" data-bz="goods">${esc(tr("Goods in"))}</button><button type="button" class="btn" data-bz="count">${esc(tr("Count stock"))}</button><button type="button" class="btn" data-bz="add">${esc(tr("＋ Add wine"))}</button><button type="button" class="btn" data-bz="card2">${esc(tr(W.card))}</button></span></div>
         <div class="bz-ks" id="bzInvKs"></div>
         <div class="bz-tools"><input type="search" id="bzInvQ" placeholder="${esc(tr("Search the stock"))}" aria-label="${esc(tr("Search the stock"))}">
           <select id="bzInvShow" aria-label="${esc(tr("Show"))}">${SHOWS.map(([k, l]) => `<option value="${k}">${esc(tr(l))}</option>`).join("")}</select>
@@ -367,6 +369,8 @@ window.BIZ = (() => {
       $("bzInvLoc").onchange = () => { INV.loc = $("bzInvLoc").value; invBody(); };
       box.querySelector('[data-bz="add"]').onclick = () => $("addBtn").click();
       box.querySelector('[data-bz="till"]').onclick = openTill;
+      box.querySelector('[data-bz="goods"]').onclick = openGoods;
+      box.querySelector('[data-bz="count"]').onclick = openCount;
       box.querySelector('[data-bz="card2"]').onclick = openCard;
       box.addEventListener("click", e => { const o = e.target.closest("[data-open]"); if (!o) return;
         KEEP_OPEN = Number(o.dataset.open); location.hash = "cellar"; renderTable();
@@ -407,6 +411,87 @@ window.BIZ = (() => {
     if (keep) { const el = body.querySelector(`[data-row="${keep[0]}"][data-f="${keep[1]}"]`); if (el) el.focus(); }
   }
   const lowc = s => low(s);
+
+  /* ---------- goods in, and counting the stock ---------- */
+  // the stock set to a number of bottles (setstock keeps what was sold as sold); one wine after another, then redrawn
+  async function setStocks(list) { // [{row, left, price?}]
+    let res = null, failed = [];
+    for (const x of list) {
+      try { res = await api({ action: "setstock", row: x.row, left: x.left });
+        if (x.price != null) res = await api({ action: "setprice", row: x.row, value: x.price }); }
+      catch (e) { failed.push([x.row, String(e && e.message || e)]); }
+    }
+    if (res) { WINES = normalize(res.wines); renderOverview(); renderTable(); renderEnjoyed(); }
+    return failed;
+  }
+  const failText = f => f.length ? tr("Not saved for {0} wines: {1}", f.length, f.map(([r, m]) => { const w = WINES.find(x => x.row === r); return (w ? w.producer : r) + (/zero-stock/.test(m) ? " (" + tr("nothing sold yet: delete it instead") + ")" : ""); }).join(", ")) : "";
+  // an order from a supplier has come: every wine on its reorder line gets what was ordered
+  async function receiveOrder(k, btn) {
+    const g = reorder().find(([x]) => x === k); if (!g) return;
+    const n = g[1].reduce((s, w) => s + (w.par - w.left), 0);
+    if (!(await ask(tr("Add the {0} bottles ordered from {1} to the stock?", fmt(n), k || tr("No supplier")), { ok: tr("Add to stock") }))) return;
+    btn.disabled = true;
+    const failed = await setStocks(g[1].map(w => ({ row: w.row, left: w.par })));
+    toast(failed.length ? failText(failed) : tr("{0} bottles added to the stock", fmt(n)));
+  }
+  // a modal of our own, shared by goods in and the count
+  function sheet(id, title, body) {
+    let m = $(id);
+    if (!m) { m = document.createElement("div"); m.id = id; m.className = "modal bz-till"; m.setAttribute("role", "dialog"); m.setAttribute("aria-modal", "true"); document.body.appendChild(m);
+      m.addEventListener("keydown", e => { if (e.key === "Escape") m.classList.remove("open"); }); }
+    m.innerHTML = `<div class="card"><div class="bz-h"><h2>${esc(tr(title))}</h2><button type="button" class="btn" data-bz="mclose">${esc(tr("Close"))}</button></div>${body}</div>`;
+    m.querySelector('[data-bz="mclose"]').onclick = () => m.classList.remove("open");
+    m.classList.add("open"); return m;
+  }
+  // goods in: find the wine, the bottles that came, and the cost if it changed
+  function openGoods() {
+    const m = sheet("bzGoods", "Goods in", `<p class="note">${esc(tr("A delivery: find each wine, type the bottles that came (and the cost price if it changed), then Add."))}</p>
+      <input type="search" id="bzGoodsQ" placeholder="${esc(tr("A few letters of the wine"))}" aria-label="${esc(tr("A few letters of the wine"))}" autocomplete="off">
+      <div class="bz-scroll"><table class="bz-tab2 bz-gin"><thead><tr><th>${esc(tr("Wine"))}</th><th>${esc(tr("In stock"))}</th><th>${esc(tr("Came"))}</th><th>${esc(tr("Cost price"))}</th><th></th></tr></thead><tbody id="bzGoodsB"></tbody></table></div>
+      <p class="note">${esc(tr("A wine that isn't here yet: add it with ＋ Add wine."))}</p>`);
+    const draw = () => { const q = fold($("bzGoodsQ").value).trim();
+      const list = WINES.filter(w => !w.elsewhere).filter(w => !q || fold([w.producer, w.name, w.vintage, w.source].join(" ")).includes(q))
+        .sort((a, b) => a.producer.localeCompare(b.producer)).slice(0, 40);
+      $("bzGoodsB").innerHTML = list.map(w => `<tr><td><b>${esc(w.producer)}</b> ${esc([w.name, w.vintage || "NV"].filter(Boolean).join(" "))}<small>${esc(w.source || "")}</small></td>
+        <td>${esc(fmt(Math.max(0, w.left)))}</td><td><input class="bz-n" type="number" min="1" step="1" inputmode="numeric" data-gin="${w.row}" aria-label="${esc(tr("Came"))}"></td>
+        <td><input class="bz-n" type="number" min="0" step="1" inputmode="decimal" data-gcost="${w.row}" placeholder="${esc(w.price ? fmt(w.price) : "—")}" aria-label="${esc(tr("Cost price"))}"></td>
+        <td><button type="button" class="btn primary" data-gadd="${w.row}">${esc(tr("Add"))}</button></td></tr>`).join("") || `<tr><td colspan="5" class="note">${esc(tr("No wines match."))}</td></tr>`; };
+    $("bzGoodsQ").oninput = draw; draw(); setTimeout(() => $("bzGoodsQ").focus(), 30);
+    m.onclick = async e => { const b = e.target.closest("[data-gadd]"); if (!b) return;
+      const row = Number(b.dataset.gadd), w = WINES.find(x => x.row === row), n = Math.round(Number(m.querySelector(`[data-gin="${row}"]`).value)), c = m.querySelector(`[data-gcost="${row}"]`).value;
+      if (!(n >= 1)) { toast(tr("Type how many bottles came")); return; }
+      b.disabled = true;
+      const failed = await setStocks([{ row, left: Math.max(0, w.left) + n, price: c === "" ? null : Number(c) }]);
+      toast(failed.length ? failText(failed) : tr("{0} bottles of {1} added to the stock", fmt(n), w.producer)); draw(); };
+  }
+  // the count: what's on the shelf, beside what the stock says; the differences in bottles and at cost; saved in one go
+  let COUNT = {};
+  function openCount() {
+    COUNT = {};
+    const list = WINES.filter(w => !w.elsewhere && (w.left > 0 || w.par > 0)).sort((a, b) => placeOf(a).localeCompare(placeOf(b)) || a.producer.localeCompare(b.producer));
+    const m = sheet("bzCount", "Count stock", `<p class="note">${esc(tr("Type what's on the shelf; a line left empty isn't counted. Nothing is saved until Save the count."))}</p>
+      <div class="bz-scroll" style="max-height:52vh"><table class="bz-tab2 bz-cnt"><thead><tr><th>${esc(tr("Location"))}</th><th>${esc(tr("Wine"))}</th><th>${esc(tr("In stock"))}</th><th>${esc(tr("Counted"))}</th><th>${esc(tr("Difference"))}</th></tr></thead>
+      <tbody>${list.map(w => `<tr><td>${esc(placeOf(w) || "—")}</td><td><b>${esc(w.producer)}</b> ${esc([w.name, w.vintage || "NV"].filter(Boolean).join(" "))}</td><td>${esc(fmt(Math.max(0, w.left)))}</td>
+        <td><input class="bz-n" type="number" min="0" step="1" inputmode="numeric" data-cnt="${w.row}" aria-label="${esc(tr("Counted"))}"></td><td class="bz-dif" data-dif="${w.row}"></td></tr>`).join("")}</tbody></table></div>
+      <p id="bzCountSum" class="bz-csum"></p>
+      <p class="bz-btns"><button type="button" class="btn primary" data-bz="csave">${esc(tr("Save the count"))}</button><button type="button" class="btn" data-bz="ccsv">${esc(tr("Download the count as CSV"))}</button></p>`);
+    const sum = () => { const rows = Object.entries(COUNT).map(([r, n]) => { const w = WINES.find(x => x.row === Number(r)); return { w, d: n - Math.max(0, w.left) }; });
+      const off = rows.filter(x => x.d), b = off.reduce((s, x) => s + x.d, 0), v = off.reduce((s, x) => s + x.d * (x.w.price || 0), 0);
+      $("bzCountSum").textContent = !rows.length ? "" : tr("{0} counted · {1} differ · {2} bottles · {3} at cost", fmt(rows.length), fmt(off.length), (b > 0 ? "+" : "") + fmt(b), SHOW_PRICES ? (v > 0 ? "+" : "") + kr(Math.round(v)) : "···"); };
+    m.oninput = e => { const i = e.target.closest("[data-cnt]"); if (!i) return; const row = Number(i.dataset.cnt), w = WINES.find(x => x.row === row), cell = m.querySelector(`[data-dif="${row}"]`);
+      if (i.value === "") { delete COUNT[row]; cell.textContent = ""; } else { COUNT[row] = Math.max(0, Math.round(Number(i.value))); const d = COUNT[row] - Math.max(0, w.left);
+        cell.textContent = d ? (d > 0 ? "+" : "") + fmt(d) : "✓"; cell.className = "bz-dif" + (d < 0 ? " neg" : d > 0 ? " pos" : ""); }
+      sum(); };
+    m.querySelector('[data-bz="csave"]').onclick = async e => { const ch = Object.entries(COUNT).map(([r, n]) => ({ row: Number(r), left: n })).filter(x => x.left !== Math.max(0, WINES.find(w => w.row === x.row).left));
+      if (!ch.length) { toast(tr("The count matches the stock")); m.classList.remove("open"); return; }
+      e.target.disabled = true; const failed = await setStocks(ch); e.target.disabled = false;
+      toast(failed.length ? failText(failed) : tr("The count is saved: {0} wines changed", fmt(ch.length))); if (!failed.length) m.classList.remove("open"); };
+    m.querySelector('[data-bz="ccsv"]').onclick = () => { const rows = [[tr("Location"), tr("Producer"), tr("Wine"), tr("Vintage"), tr("In stock"), tr("Counted"), tr("Difference"), tr("Cost price")]]
+      .concat(list.filter(w => COUNT[w.row] != null).map(w => [placeOf(w), w.producer, w.name || "", w.vintage || "", Math.max(0, w.left), COUNT[w.row], COUNT[w.row] - Math.max(0, w.left), w.price || ""]));
+      const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([EXPORT.csv(rows)], { type: "text/csv;charset=utf-8" }));
+      a.download = `allwine-${tr("count")}-${new Date().toISOString().slice(0, 10)}.csv`; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000); };
+    setTimeout(() => { const i = m.querySelector("[data-cnt]"); if (i) i.focus(); }, 30);
+  }
 
   // Quick sell: a till for service. Type a few letters (or nothing, for the wines by the glass first), tap Bottle or Glass;
   // the sale is saved as from the inventory (sell, with Undo in the bar) and the tiles follow the stock.
@@ -615,6 +700,8 @@ window.BIZ = (() => {
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 /* a page's wide tables scroll or fold inside it, never widening the page (the body is a flex column) */
 .bz-till .card{max-width:860px;width:100%} .bz-till input[type=search]{width:100%;box-sizing:border-box;font:inherit;font-size:18px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);margin:8px 0 12px}
+.bz-gin small{display:block;font-size:11.5px;color:var(--muted)} .bz-gin td,.bz-cnt td{vertical-align:middle} .bz-gin .bz-n,.bz-cnt .bz-n{width:80px}
+.bz-dif{font-variant-numeric:tabular-nums;font-weight:600} .bz-dif.neg{color:#B3261E} .bz-dif.pos{color:#2E7D32} .bz-csum{font-weight:600;margin:8px 0 0}
 .bz-tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;max-height:60vh;overflow:auto}
 .bz-tile{display:grid;gap:3px;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--card,transparent)} .bz-tile span{font-size:13.5px} .bz-tile small{color:var(--muted);font-size:12px}
 .bz-tb{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px} .bz-tb .btn{padding:10px 12px;font-size:14px;flex:1}
@@ -654,6 +741,6 @@ window.BIZ = (() => {
 </style>`);
   setTimeout(apply, 0);
   // its words: only a business needs them, so they come now, not with every page (i18n.js redraws the page in them)
-  if (window.I18N) { I18N.onChange(apply); if (I18N.more) I18N.more("business-i18n", "?v=4"); }
+  if (window.I18N) { I18N.onChange(apply); if (I18N.more) I18N.more("business-i18n", "?v=5"); }
   return { refreshSales: () => loadSales(true), apply, detail, priceCell, overview, page, inventory, cardLabel, margin, openCard, salesRows, reorder, reorderText, cardData, publishCard, cardShare };
 })();
