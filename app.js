@@ -4311,7 +4311,7 @@ async function checkOwner(){
     // the feed only when the server has it on ("me" says so; an older API without the flag: ask the feed itself)
     if(r && r.social === true || (r && r.social === undefined)) loadFeedSilently(); else setSocial(false);
     const may = !!(r && (r.owner === true || r.test === true)); $("acctKindWrap").hidden = !(BIZ_OPEN || may);
-    if(may !== MAY_BIZ){ MAY_BIZ = may; loadKind(); if(WINES.length){ renderOverview(); renderTable(); } } askForHelp(r && r.help); }catch(e){ $("adminBtn").hidden = true; }
+    if(may !== MAY_BIZ){ MAY_BIZ = may; loadKind(); if(WINES.length){ renderOverview(); renderTable(); } } askForHelp(r && r.help); }catch(e){ $("adminBtn").hidden = true; loadFeedSilently(); } // no "me" (an older API): the feed says itself whether it is on
 }
 // account help: a member whose session came back without the password (a kept key) types it once, so the key can be
 // wrapped to the owner's; asked once a visit, "Later" until the next
