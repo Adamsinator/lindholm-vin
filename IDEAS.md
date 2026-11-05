@@ -150,3 +150,11 @@ own wines by vintage. Still to do, roughly in order:
   - several people on one account (staff with roles, an audit trail): today one person's password unlocks one cellar,
     so each member's key would have to wrap a shared key; a real change to the encryption model;
   - pricing and plans per kind, if it's ever sold, so a private member never pays for business features.
+
+## The business page (business.html, 5 November 2026)
+
+A page to show a restaurant, a wine merchant or a winemaker what they get: the features for their kind, a tour through
+ten real screens of a made-up wine bar ("Vinbaren Demo", tools/shot-demo.js writes img/business/), the prices and the
+questions they ask. In four languages (business-page-i18n-*.js). Kept out of search engines (noindex) and not linked
+from the site until business accounts open (app.js BIZ_OPEN) and **the prices are settled: 149 / 199 / 99 kr. a month
+excl. VAT, the first three months free and a year for ten months are drafts** to change in business.html.
