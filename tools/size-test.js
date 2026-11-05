@@ -12,8 +12,9 @@ const KB = n => Math.round(n / 1024);
 
 // KB gzipped (2026-11: index 245, atlas 76, burgundy 468, domaine 329, privacy 37, 404 1)
 // index.html 280 KB (270 → 275 → 280, November 2026): the cellar app keeps growing; business-only words load on their own.
-// Next saving: the owner's admin code out of app.js, loaded only for the owner (IDEAS.md)
-const PAGES = { "index.html": 280, "atlas.html": 90, "burgundy.html": 520, "domaine.html": 360, "privacy.html": 50, "help.html": 60, "share.html": 50, "404.html": 5 };
+// Done: the owner's admin code moved out of app.js into admin.js (5 November 2026)
+const PAGES = { "index.html": 280, "atlas.html": 95, "burgundy.html": 520, "domaine.html": 360, "privacy.html": 50, "help.html": 60, "share.html": 50, "404.html": 5 };
+// atlas.html raised 90 → 95 KB (5 November 2026): the shared dictionaries grew with the style card, the cellar map and the business words; the atlas itself did not
 for (const [page, budget] of Object.entries(PAGES)) {
   const html = fs.readFileSync(path.join(R, page), "utf8");
   const files = [...html.matchAll(/<script src="([^"?]+)/g)].map(m => m[1]);
