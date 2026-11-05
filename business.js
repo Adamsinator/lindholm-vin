@@ -241,7 +241,23 @@ window.BIZ = (() => {
     const g = reorder(); if (!g.length) return "";
     return `<h3>${esc(tr("To reorder"))}</h3>
       ${g.map(([k, ws]) => `<h4>${esc(k || tr("No supplier"))}</h4><ul class="bz-sup">${ws.map(w => `<li><span>${esc(wname(w))}<small class="bz-have">${esc(tr("{0} of a minimum of {1}", fmt(w.left), fmt(w.par)))}</small></span><b>${esc(tr("order {0}", fmt(w.par - w.left)))}</b></li>`).join("")}</ul>`).join("")}
-      <p><button type="button" class="btn" id="bzReorderCopy">${esc(tr("Copy the list"))}</button></p>`;
+      <p class="bz-btns"><button type="button" class="btn" id="bzReorderCopy">${esc(tr("Copy the list"))}</button>
+        ${g.map(([k]) => `<a class="btn" href="${esc(orderMail(k))}">${esc(tr("Email the order to {0}", k || tr("No supplier")))}</a>`).join("")}
+        <button type="button" class="btn" id="bzOrderPrint">${esc(tr("Print the orders"))}</button></p>`;
+  }
+  // an order for one supplier, as an email to finish and send (the address is the business's to add: we don't keep it)
+  function orderText(k) {
+    const g = reorder().find(([x]) => x === k); if (!g) return "";
+    return tr("Order from {0}", cardTitle()) + "\n\n" + g[1].map(w => `${w.par - w.left} × ${wname(w)}`).join("\n") + "\n\n" + tr("Thank you.");
+  }
+  const orderMail = k => "mailto:?subject=" + encodeURIComponent(tr("Order from {0}", cardTitle())) + "&body=" + encodeURIComponent(orderText(k));
+  function printOrders() {
+    let c = $("bzOrders"); if (!c) { c = document.createElement("div"); c.id = "bzOrders"; document.body.appendChild(c); }
+    const day = new Date().toLocaleDateString(window.I18N ? (I18N.lang === "en" ? "en-GB" : I18N.lang) : "en-GB");
+    c.innerHTML = reorder().map(([k, ws]) => `<article class="bz-po"><h2>${esc(tr("Order"))}: ${esc(k || tr("No supplier"))}</h2>
+      <p>${esc(cardTitle())} · ${esc(day)}</p><table><thead><tr><th>${esc(tr("Wine"))}</th><th>${esc(tr("Bottles"))}</th></tr></thead>
+      <tbody>${ws.map(w => `<tr><td>${esc(wname(w))}</td><td>${esc(fmt(w.par - w.left))}</td></tr>`).join("")}</tbody></table></article>`).join("");
+    document.body.classList.add("bz-orderprint"); window.print(); setTimeout(() => document.body.classList.remove("bz-orderprint"), 500);
   }
   const priceCell = w => on() && w.menuPrice > 0 ? `<small class="bz-mp" title="${esc(tr(words().sell))}">${esc(kr(w.menuPrice))}</small>` : "";
 
@@ -253,6 +269,7 @@ window.BIZ = (() => {
     p.hidden = false;
     if (SHOWN === "inventory") inventory();
     if (SHOWN === "winecard") renderCard();
+    tillDraw();
     const W = words(), sum = (a, f) => a.reduce((n, w) => n + f(w), 0);
     const cost = sum(cellar, w => (w.price || 0) * w.left), sale = sum(cellar, w => (w.menuPrice || 0) * w.left);
     const both = cellar.filter(w => margin(w)), net = sum(both, w => margin(w).net * w.left), gross = sum(both, w => margin(w).gross * w.left);
@@ -289,6 +306,7 @@ window.BIZ = (() => {
       ${noPrice.length ? `<p class="note">${esc(tr(noPrice.length === 1 ? "1 wine in stock has no {1} yet: it's left off the {2}." : "{0} wines in stock have no {1} yet: they're left off the {2}.", fmt(noPrice.length), low(tr(W.sell)), low(tr(W.card))))}</p>` : ""}
       ${styles.length ? `<div class="bz-scroll"><table class="bz-tab2"><thead><tr><th>${esc(tr("Style"))}</th><th>${esc(tr("Wines"))}</th><th>${esc(tr("Bottles"))}</th><th>${esc(tr("At cost"))}</th><th>${esc(tr("At {0}", low(tr(W.sell))))}</th></tr></thead>
         <tbody>${styles.map(([s, n, b, c, v]) => `<tr><td>${esc(tr(STYLE_NAME[s] || s || "—"))}</td><td>${esc(fmt(n))}</td><td>${esc(fmt(b))}</td><td>${money(c)}</td><td>${money(v)}</td></tr>`).join("")}</tbody></table></div>` : ""}
+      ${locHTML(cellar, money)}
       ${reorderHTML()}
       ${sups.length ? `<h3>${esc(tr("Suppliers"))}</h3><ul class="bz-sup">${sups.map(([k, n]) => `<li><span>${esc(k)}</span><b>${esc(btl(fmt(n)))} <small>${money(supCost(k))}</small></b></li>`).join("")}</ul>` : ""}
       ${own}
@@ -296,14 +314,26 @@ window.BIZ = (() => {
     p.querySelector('[data-bz="card"]').onclick = openCard;
     const rc = $("bzReorderCopy"); if (rc) rc.onclick = async () => {
       try { await navigator.clipboard.writeText(reorderText(reorder())); toast(tr("Copied")); } catch (e) { toast(tr("Could not copy")); } };
+    const op = $("bzOrderPrint"); if (op) op.onclick = printOrders;
     const sc = $("bzSalesCsv"); if (sc) sc.onclick = () => salesCsv($("bzMonth").value);
     syncCard();
     const pe = $("bzPeriod"); if (pe) pe.onchange = () => { PERIOD = Number(pe.value) || 30; overview(WINES.filter(w => w.left > 0)); };
     const g = $("bzGlasses"); if (g) g.onchange = () => { setPerBottle(Number(g.value)); overview(WINES.filter(w => w.left > 0)); };
     const d = $("bzDom"); if (d) d.onchange = () => { setDomaine(d.value.trim()); overview(WINES.filter(w => w.left > 0)); };
   }
+  // where the stock is: each place (the part of "Location" before a comma: "Cellar, shelf 3" is the cellar), its wines,
+  // bottles and value at cost
+  const placeOf = w => String(w.location || "").split(/[,;/·|]/)[0].trim();
+  function locHTML(cellar, money) {
+    const by = {}; cellar.forEach(w => { const k = placeOf(w), o = by[k] ??= { n: 0, b: 0, c: 0 }; o.n++; o.b += w.left; o.c += (w.price || 0) * w.left; });
+    const rows = Object.entries(by).sort((a, b) => (!a[0]) - (!b[0]) || b[1].b - a[1].b);
+    if (rows.length < 2 && !rows.some(([k]) => k)) return "";
+    return `<h3>${esc(tr("Stock by location"))}</h3><div class="bz-scroll"><table class="bz-tab2"><thead><tr><th>${esc(tr("Location"))}</th><th>${esc(tr("Wines"))}</th><th>${esc(tr("Bottles"))}</th><th>${esc(tr("At cost"))}</th></tr></thead>
+      <tbody>${rows.map(([k, o]) => `<tr><td>${esc(k || tr("No location"))}</td><td>${esc(fmt(o.n))}</td><td>${esc(fmt(o.b))}</td><td>${money(o.c)}</td></tr>`).join("")}</tbody></table></div>`;
+  }
+
   /* ---------- Inventory: the first page. Every wine as a line to count and sell from ---------- */
-  const INV = { q: "", show: "stock", sort: "producer" };
+  const INV = { q: "", show: "stock", sort: "producer", loc: "" };
   const SHOWS = [["stock", "In stock"], ["low", "Below the minimum"], ["out", "Sold out"], ["noprice", "No selling price"], ["all", "All wines"]];
   const SORTS = [["producer", "Producer"], ["stock", "Most in stock"], ["value", "Highest value"], ["margin", "Best margin"]];
   const fold = s => String(s == null ? "" : s).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
@@ -313,7 +343,7 @@ window.BIZ = (() => {
     const val = w => (w.menuPrice || w.price || 0) * Math.max(0, w.left), mg = w => (margin(w) || { pct: -1 }).pct;
     const cmp = { producer: (a, b) => a.producer.localeCompare(b.producer) || (a.vintage || 0) - (b.vintage || 0), stock: (a, b) => b.left - a.left,
       value: (a, b) => val(b) - val(a), margin: (a, b) => mg(b) - mg(a) }[INV.sort];
-    return WINES.filter(pick).filter(w => !q || fold([w.producer, w.name, w.vintage, w.region, w.country, w.source, w.grape].join(" ")).includes(q)).sort(cmp);
+    return WINES.filter(pick).filter(w => !INV.loc || placeOf(w) === INV.loc).filter(w => !q || fold([w.producer, w.name, w.vintage, w.region, w.country, w.source, w.grape].join(" ")).includes(q)).sort(cmp);
   }
   function inventory() {
     const box = $("pageInventory"); if (!box || !on()) return;
@@ -321,11 +351,12 @@ window.BIZ = (() => {
     if (box.dataset.kind !== KIND) {
       box.dataset.kind = KIND;
       box.innerHTML = `<section class="panel bz-inv"><div class="bz-h"><h2>${esc(tr("Inventory"))}</h2>
-          <span class="bz-btns"><button type="button" class="btn primary" data-bz="add">${esc(tr("＋ Add wine"))}</button><button type="button" class="btn" data-bz="card2">${esc(tr(W.card))}</button></span></div>
+          <span class="bz-btns"><button type="button" class="btn primary" data-bz="till">${esc(tr("Quick sell"))}</button><button type="button" class="btn" data-bz="add">${esc(tr("＋ Add wine"))}</button><button type="button" class="btn" data-bz="card2">${esc(tr(W.card))}</button></span></div>
         <div class="bz-ks" id="bzInvKs"></div>
         <div class="bz-tools"><input type="search" id="bzInvQ" placeholder="${esc(tr("Search the stock"))}" aria-label="${esc(tr("Search the stock"))}">
           <select id="bzInvShow" aria-label="${esc(tr("Show"))}">${SHOWS.map(([k, l]) => `<option value="${k}">${esc(tr(l))}</option>`).join("")}</select>
-          <select id="bzInvSort" aria-label="${esc(tr("Sort by"))}">${SORTS.map(([k, l]) => `<option value="${k}">${esc(tr(l))}</option>`).join("")}</select></div>
+          <select id="bzInvSort" aria-label="${esc(tr("Sort by"))}">${SORTS.map(([k, l]) => `<option value="${k}">${esc(tr(l))}</option>`).join("")}</select>
+          <select id="bzInvLoc" aria-label="${esc(tr("Location"))}"></select></div>
         <div class="bz-scroll"><table class="bz-inv-t"><thead><tr><th>${esc(tr("Wine"))}</th><th>${esc(tr("In stock"))}</th><th>${esc(tr("Minimum"))}</th><th>${esc(tr("Cost price"))}</th>
           <th>${esc(tr(W.sell))}</th>${W.glass ? `<th>${esc(tr("By the glass"))}</th>` : ""}<th>${esc(tr("Supplier"))}</th><th>${esc(tr("Margin"))}</th><th><span class="sr">${esc(tr("Sell"))}</span></th></tr></thead>
           <tbody id="bzInvBody"></tbody></table></div><p class="note" id="bzInvNote"></p></section>`;
@@ -333,7 +364,9 @@ window.BIZ = (() => {
       $("bzInvQ").oninput = () => { INV.q = $("bzInvQ").value; invBody(); };
       $("bzInvShow").onchange = () => { INV.show = $("bzInvShow").value; invBody(); };
       $("bzInvSort").onchange = () => { INV.sort = $("bzInvSort").value; invBody(); };
+      $("bzInvLoc").onchange = () => { INV.loc = $("bzInvLoc").value; invBody(); };
       box.querySelector('[data-bz="add"]').onclick = () => $("addBtn").click();
+      box.querySelector('[data-bz="till"]').onclick = openTill;
       box.querySelector('[data-bz="card2"]').onclick = openCard;
       box.addEventListener("click", e => { const o = e.target.closest("[data-open]"); if (!o) return;
         KEEP_OPEN = Number(o.dataset.open); location.hash = "cellar"; renderTable();
@@ -344,6 +377,11 @@ window.BIZ = (() => {
     $("bzInvKs").innerHTML = [[fmt(cellar.length), tr("Wines in stock")], [fmt(sum(cellar, w => w.left)), tr("Bottles")],
       [money(sum(cellar, w => (w.price || 0) * w.left)), tr("Stock at cost")], [money(sum(cellar, w => (w.menuPrice || 0) * w.left)), tr("Stock at {0}", lowc(tr(W.sell)))],
       [fmt(low), tr("Below the minimum")]].map(([n, l], i) => `<div class="bz-k${i === 4 && low ? " bz-warn" : ""}"${i === 4 ? ' data-bz="low"' : ""}><b>${n}</b><span>${esc(l)}</span></div>`).join("");
+    // the places the stock is kept, for the location filter (hidden while there's only one)
+    const places = [...new Set(WINES.map(placeOf).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+    if (INV.loc && !places.includes(INV.loc)) INV.loc = "";
+    $("bzInvLoc").innerHTML = `<option value="">${esc(tr("All locations"))}</option>` + places.map(p => `<option${p === INV.loc ? " selected" : ""}>${esc(p)}</option>`).join("");
+    $("bzInvLoc").hidden = places.length < 2;
     const lk = $("bzInvKs").querySelector('[data-bz="low"]'); if (lk && low) { lk.tabIndex = 0; lk.onclick = () => { INV.show = "low"; $("bzInvShow").value = "low"; invBody(); }; }
     invBody();
   }
@@ -369,6 +407,32 @@ window.BIZ = (() => {
     if (keep) { const el = body.querySelector(`[data-row="${keep[0]}"][data-f="${keep[1]}"]`); if (el) el.focus(); }
   }
   const lowc = s => low(s);
+
+  // Quick sell: a till for service. Type a few letters (or nothing, for the wines by the glass first), tap Bottle or Glass;
+  // the sale is saved as from the inventory (sell, with Undo in the bar) and the tiles follow the stock.
+  function openTill() {
+    let t = $("bzTill");
+    if (!t) { t = document.createElement("div"); t.id = "bzTill"; t.className = "modal bz-till"; t.setAttribute("role", "dialog"); t.setAttribute("aria-modal", "true");
+      t.innerHTML = `<div class="card"><div class="bz-h"><h2>${esc(tr("Quick sell"))}</h2><button type="button" class="btn" data-bz="tclose">${esc(tr("Close"))}</button></div>
+        <input type="search" id="bzTillQ" placeholder="${esc(tr("A few letters of the wine"))}" aria-label="${esc(tr("A few letters of the wine"))}" autocomplete="off">
+        <div class="bz-tiles" id="bzTiles"></div></div>`;
+      document.body.appendChild(t);
+      t.querySelector('[data-bz="tclose"]').onclick = () => t.classList.remove("open");
+      t.addEventListener("keydown", e => { if (e.key === "Escape") t.classList.remove("open"); });
+      $("bzTillQ").oninput = tillDraw; }
+    t.classList.add("open"); $("bzTillQ").value = ""; tillDraw(); setTimeout(() => $("bzTillQ").focus(), 30);
+  }
+  function tillDraw() {
+    const box = $("bzTiles"); if (!box || !$("bzTill").classList.contains("open")) return;
+    const W = words(), q = fold($("bzTillQ").value).trim();
+    const list = WINES.filter(w => w.left > 0 || w.openGlasses > 0).filter(w => !q || fold([w.producer, w.name, w.vintage].join(" ")).includes(q))
+      .sort((a, b) => (b.glassPrice > 0) - (a.glassPrice > 0) || a.producer.localeCompare(b.producer)).slice(0, 24);
+    box.innerHTML = list.map(w => `<div class="bz-tile"><b>${esc(w.producer)}</b><span>${esc([w.name, w.vintage || "NV"].filter(Boolean).join(" "))}</span>
+        <small>${esc(btl(fmt(w.left)))}${w.openGlasses > 0 ? " · " + esc(tr(w.openGlasses === 1 ? "+ 1 glass open" : "+ {0} glasses open", w.openGlasses)) : ""}</small>
+        <span class="bz-tb">${w.left > 0 ? `<button type="button" class="btn primary" data-sell="bottle" data-row="${w.row}">${esc(tr("Bottle"))}${w.menuPrice > 0 ? " · " + esc(fmt(w.menuPrice)) : ""}</button>` : ""}
+        ${W.glass && (w.left > 0 || w.openGlasses > 0) ? `<button type="button" class="btn" data-sell="glass" data-row="${w.row}">${esc(tr("Glass"))}${w.glassPrice > 0 ? " · " + esc(fmt(w.glassPrice)) : ""}</button>` : ""}</span></div>`).join("")
+      || `<p class="note">${esc(tr("No wines match."))}</p>`;
+  }
 
   const domKey = () => "vinDomaine:" + String(cfg.user || "").toLowerCase();
   function domaine() {
@@ -550,6 +614,14 @@ window.BIZ = (() => {
 .bz-sl{white-space:nowrap} .bz-sl .btn{padding:4px 9px;font-size:12.5px;margin-right:4px}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 /* a page's wide tables scroll or fold inside it, never widening the page (the body is a flex column) */
+.bz-till .card{max-width:860px;width:100%} .bz-till input[type=search]{width:100%;box-sizing:border-box;font:inherit;font-size:18px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);margin:8px 0 12px}
+.bz-tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;max-height:60vh;overflow:auto}
+.bz-tile{display:grid;gap:3px;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--card,transparent)} .bz-tile span{font-size:13.5px} .bz-tile small{color:var(--muted);font-size:12px}
+.bz-tb{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px} .bz-tb .btn{padding:10px 12px;font-size:14px;flex:1}
+#bzOrders{display:none}
+@media print{ body.bz-orderprint > *:not(#bzOrders){display:none !important} body.bz-orderprint #bzOrders{display:block}
+  .bz-po{break-after:page;font-family:system-ui,sans-serif;color:#111} .bz-po h2{font-size:18pt;margin:0 0 4pt} .bz-po table{width:100%;border-collapse:collapse;margin-top:10pt}
+  .bz-po th,.bz-po td{text-align:left;border-bottom:1px solid #bbb;padding:5pt 4pt} .bz-po td+td,.bz-po th+th{text-align:right} }
 .bz-page{display:grid;grid-template-columns:minmax(0,1fr)} .bz-page[hidden]{display:none!important}
 /* a phone: each wine a card, its fields labelled */
 @media (max-width:640px){ .bz-inv-t thead{display:none} .bz-inv-t,.bz-inv-t tbody{display:block}
@@ -582,6 +654,6 @@ window.BIZ = (() => {
 </style>`);
   setTimeout(apply, 0);
   // its words: only a business needs them, so they come now, not with every page (i18n.js redraws the page in them)
-  if (window.I18N) { I18N.onChange(apply); if (I18N.more) I18N.more("business-i18n", "?v=3"); }
+  if (window.I18N) { I18N.onChange(apply); if (I18N.more) I18N.more("business-i18n", "?v=4"); }
   return { refreshSales: () => loadSales(true), apply, detail, priceCell, overview, page, inventory, cardLabel, margin, openCard, salesRows, reorder, reorderText, cardData, publishCard, cardShare };
 })();

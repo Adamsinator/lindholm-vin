@@ -69,7 +69,7 @@ let SRC = null;
 async function codeSource(url) {
   if (SRC) return SRC;
   if (node) SRC = require("fs").readFileSync(require("path").join(__dirname, "apps-script", "Code.gs"), "utf8");
-  else { const res = await fetch(url || "apps-script/Code.gs?v=52"); if (!res.ok) throw new Error("engine-load " + res.status); SRC = await res.text(); }
+  else { const res = await fetch(url || "apps-script/Code.gs?v=53"); if (!res.ok) throw new Error("engine-load " + res.status); SRC = await res.text(); }
   return SRC;
 }
 const keepTabs = (all, sheetName) => Object.fromEntries(Object.entries(all).filter(([n]) => n === sheetName || SHARED_TABS.includes(n)));
@@ -100,11 +100,13 @@ async function put(post, user, token, dek, vers, key, value) {
 // Open the vault: from the device's copy when there is one (and o.fresh isn't set), then the server's copy in the
 // background; otherwise from the server.
 async function start(o) {
-  const cached = o.fresh ? null : await cacheGet(o.user);
-  let v = null;
+  // the records the login brought (API 53) are the server's own, as fresh as a vget: no device copy, no second request
+  let v = null, fresh = false;
+  if (o.records) { try { v = await decode(o.user, o.dek, o.records); fresh = true; } catch (e) { v = null; } }
+  const cached = v || o.fresh ? null : await cacheGet(o.user);
   if (cached && cached.records) { try { v = await decode(o.user, o.dek, cached.records); } catch (e) { v = null; } } // another key: ignore it
-  const fromCache = !!v;
-  const [src] = await Promise.all([codeSource(o.codeUrl), fromCache ? null : load(o.post, o.user, o.token, o.dek).then(x => { v = x; })]);
+  const fromCache = !!v && !fresh;
+  const [src] = await Promise.all([codeSource(o.codeUrl), v ? null : load(o.post, o.user, o.token, o.dek).then(x => { v = x; })]);
   openWith(o, v, src);
   if (!fromCache) cachePut(o.user, v.records);
   if (!S.vers["meta:cellar"]) await put(S.post, S.user, S.token, S.dek, S.vers, "meta:cellar", { sheetName: S.sheetName });
@@ -292,10 +294,11 @@ async function login(o) {
   }
   const attempt = async p => {
     const pk = await VC.fromPassword(pass, p.kdfSalt, p.kdf);
-    const r = await srv(post, { action: "login", user, auth: pk.auth });
+    // vault: 1 brings the vault's (sealed) records with the login (API 53), one request fewer on a new device
+    const r = await srv(post, { action: "login", user, auth: pk.auth, vault: 1 });
     saltPut(user, p);
     if (r.help) await escrow({ post, user: r.user, token: r.token, dekX: await VC.unwrap(r.wrapKey, pk.kek, true), help: r.help });
-    return { token: r.token, user: r.user, state: r.state, dek: await VC.unwrap(r.wrapKey, pk.kek, false) };
+    return { token: r.token, user: r.user, state: r.state, records: r.records || null, dek: await VC.unwrap(r.wrapKey, pk.kek, false) };
   };
   try { return await attempt(pre); }
   catch (err) {

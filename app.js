@@ -452,6 +452,7 @@ function renderOverview(){
   const cellar = WINES.filter(w=>w.left>0);
   renderRack(cellar);
   if(window.BIZ) BIZ.overview(cellar); // a business account's figures (business.js); gone again for a private one
+  renderTaste(cellar);
   const bottlesLeft = cellar.reduce((s,w)=>s+w.left,0);
   const drunk = WINES.reduce((s,w)=>s+w.drunk,0);
   const iconWines = cellar.filter(w=>PRODUCER_NOTES[w.producer]?.[0]==="legend");
@@ -961,7 +962,7 @@ syncOverview();
 /* The overview's panels: which show, and in what order. A calm default of a few; "Customise" moves, removes and adds
    them. Saved per account on this device and, for an encrypted account, in its vault (encrypted), so the layout follows
    to the phone. Only what shows changes: the wines don't. */
-const PANEL_DEFAULT = { overview: ["rack","insights","press","regions","map","vintages","worth"], eOverview: ["estyles","eproducers","etime"] };
+const PANEL_DEFAULT = { overview: ["rack","insights","press","regions","map","taste","vintages","worth"], eOverview: ["estyles","eproducers","etime"] };
 let LAYOUT = {}, layoutT = null;
 const layoutKey = () => "vinLayout:" + String(cfg.user||"").toLowerCase();
 // the overview's panels; the rack is one of them even while a narrow screen shows it above the figures
@@ -1033,7 +1034,7 @@ function loadKind(){
 function setKindLocal(k, keepStored){
   KIND = k; document.documentElement.dataset.kind = k; $("acctKind").value = k;
   if(!keepStored) try{ localStorage.setItem(kindKey(), k); }catch(e){}
-  if(k!=="private" && !window.BIZ){ const s = document.createElement("script"); s.src = "business.js?v=7";
+  if(k!=="private" && !window.BIZ){ const s = document.createElement("script"); s.src = "business.js?v=8";
     s.onload = ()=>{ if(WINES.length){ renderOverview(); renderTable(); } }; document.head.appendChild(s); }
   else if(window.BIZ) BIZ.apply();
 }
@@ -1209,6 +1210,7 @@ function detailHTML(w){
   return `<div class="dgrid">${cells}</div>
     ${w.note?`<div class="unote">“${esc(w.note)}” — ${esc(tr("cellar note"))}</div>`:""}
     ${pn?`<div class="pnote"><b>${esc(w.producer)}</b> · ${esc(tr(TIER_LABEL[pn[0]]))} — ${esc(noteText(pn[1]))}</div>`:""}
+    <div class="wstyle" data-row="${w.row}"></div>
     ${isBiz() ? "" : journalHTML(w)}
     ${isBiz() ? BIZ.detail(w) : ""}
     <div class="links">
@@ -1312,6 +1314,7 @@ function renderTable(){
     if(state.region && w.region!==state.region) return false;
     if(state.closes && !closesIn(w, state.closes)) return false;
     if(state.style && w.style!==state.style) return false;
+    if(state.tasteRows && !state.tasteRows.has(w.row)) return false;
     if(state.loc && (state.loc==="-" ? w.location : locPlace(w.location)!==state.loc)) return false;
     if(state.ready){
       const rd = readiness(w);
@@ -1348,7 +1351,7 @@ function renderTable(){
   if(state.closes){ const b = closeBuckets(new Date().getFullYear()).find(x=>x.k===state.closes);
     countTxt += " · " + tr("window closes {0}", b ? (/^\d/.test(b.label) ? b.label : b.label.toLowerCase()) : state.closes); }
   $("count").textContent = countTxt;
-  $("clear").classList.toggle("show", !!(q||state.country||state.region||state.style||state.ready||state.loc||state.closes||state.status!=="cellar"));
+  $("clear").classList.toggle("show", !!(q||state.country||state.region||state.style||state.ready||state.loc||state.closes||state.tasteRows||state.status!=="cellar"));
   document.querySelectorAll("#press .kbar[data-closes]").forEach(el=>el.classList.toggle("active", el.dataset.closes===state.closes));
   drawDrinkTimeline(list);
 
@@ -1444,7 +1447,29 @@ function moreRow(total, shown, cols, tbl){
     <button type="button" class="btn" data-tbl="${tbl}">${esc(tr("Show {0} more", fmt(step)))}</button>
     <button type="button" class="btn quiet" data-tbl="${tbl}" data-all="1">${esc(tr("Show all"))}</button></td></tr>`;
 }
+// a wine's style at a glance, wines like it, a serving card; and the cellar by taste (style.js, with the sommelier's
+// grape data): fetched the first time a wine's details open or the panel comes into view, not with the page
+let STYLE_LOAD = null;
+function styleReady(){
+  return STYLE_LOAD = STYLE_LOAD || [!window.WINE_KB && "wine-kb.js?v=2", !window.SOMM_DATA && "sommelier-data.js?v=6", !window.STYLE && "style.js?v=1"]
+    .filter(Boolean).reduce((p, src)=>p.then(()=>loadJS(src)), Promise.resolve()).catch(e=>{ STYLE_LOAD = null; throw e; });
+}
+function styleFill(root){
+  const box = root.querySelector(".wstyle:empty"); if(!box) return;
+  styleReady().then(()=>{ if(box.isConnected) STYLE.fill(box); }).catch(()=>box.remove());
+}
+let TASTE_SEEN = false;
+function renderTaste(cellar){
+  const el = $("tasteMap"); if(!el) return;
+  const draw = ()=>styleReady().then(()=>STYLE.tasteMap(el, WINES)).catch(()=>{});
+  if(TASTE_SEEN) return draw();
+  // drawn when it scrolls into view (the grape data isn't fetched for a panel nobody looks at)
+  if(!("IntersectionObserver" in window)){ TASTE_SEEN = true; return draw(); }
+  const io = new IntersectionObserver(es=>{ if(es.some(e=>e.isIntersecting)){ io.disconnect(); TASTE_SEEN = true; draw(); } });
+  io.observe(el);
+}
 function bindDetail(root){
+  styleFill(root);
   root.querySelectorAll("button.drink").forEach(b=>
     b.addEventListener("click",()=>rowAction(b.dataset.act, Number(b.dataset.row), b)));
   root.querySelectorAll("select.rate").forEach(sel=>
@@ -1813,11 +1838,11 @@ function showRecoveryCode(code){
     $("recDone").onclick = ()=>{ $("recModal").classList.remove("open"); done(); };
   });
 }
-async function openVault(user, token, dek){
+async function openVault(user, token, dek, records){
   cfg.user = user; cfg.token = token;
   localStorage.setItem("vinUser", user); localStorage.setItem("vinToken", token); localStorage.setItem("vinVault", "1");
   await VCRYPTO.keep(user, dek);
-  await VAULT.start({post, user, token, dek, ...VAULT_HOOKS});
+  await VAULT.start({post, user, token, dek, records, ...VAULT_HOOKS}); // records: the vault, if the login brought it
   $("acctBtn").hidden = false;
 }
 // The vault opens from the device's encrypted copy; when the server's copy turns out newer, redraw from it
@@ -1883,7 +1908,7 @@ async function gateEncrypted(mode, user, pass){
     return true;
   }
   if(li.state==="migrating") await migrateNow(li.user, li.token, li.dek); // an upgrade that was interrupted
-  await openVault(li.user, li.token, li.dek);
+  await openVault(li.user, li.token, li.dek, li.state==="migrating" ? null : li.records);
   return true;
 }
 
@@ -2613,7 +2638,8 @@ $("fStyle").addEventListener("change",e=>{ state.style=e.target.value; renderTab
 $("fStatus").addEventListener("change",e=>{ state.status=e.target.value; renderTable(); });
 $("fReady").addEventListener("change",e=>{ state.ready=e.target.value; renderTable(); });
 $("clear").addEventListener("click",()=>{
-  state.q=state.country=state.region=state.style=state.ready=state.loc=state.closes=""; state.status="cellar";
+  state.q=state.country=state.region=state.style=state.ready=state.loc=state.closes=""; state.status="cellar"; state.tasteRows=null; state.tasteKey="";
+  document.querySelectorAll("#tasteMap .tc.on").forEach(x=>x.classList.remove("on"));
   $("q").value=""; $("fCountry").value=""; $("fRegion").value=""; $("fStyle").value=""; $("fStatus").value="cellar"; $("fReady").value=""; $("fLoc").value=""; renderTable(); });
 document.querySelectorAll("th[data-k]").forEach(th=>th.addEventListener("click",()=>{
   const k=th.dataset.k;
@@ -4400,117 +4426,18 @@ $("helpForm").addEventListener("submit", async e=>{
   }catch(err){ $("helpErr").textContent = /bad-login|locked/.test(errText(err)) ? tr("That password didn't match.") : tr("Could not set it up just now ({0}).", errText(err)); }
   finally{ $("helpGo").disabled = false; $("helpPass").value = ""; }
 });
-let ADMIN = null;
-async function openAdmin(){
-  $("adminErr").textContent = tr("Fetching…"); $("adminModal").classList.add("open");
-  try{ ADMIN = await api({action:"admin"}); $("adminErr").textContent = ""; renderAdmin(); }
-  catch(err){ $("adminErr").textContent = err.message === "not-owner" ? tr("Only the owner can open this.") : tr("Could not reach the cellar API ({0}).", errText(err)); }
-}
-// the last 30 days: active members a day as bars, and each count's total
-const USAGE_LABEL = {active:"Active members", login:"Logins", signup:"Sign-ups", save:"Cellar saves", atlas:"Atlas visits",
-  cellar:"Cellar page", enjoyed:"Enjoyed page", wishlist:"Wishlist page", journal:"Journal page", import:"Imports",
-  sommelier:"Sommelier questions", export:"Exports"};
-function renderUsage(days, users){
-  if(!days || !days.length){ $("adminUsage").innerHTML = `<p class="ph">${esc(tr("No usage counted yet."))}</p>`; return; }
-  // bars with a y axis (0, half, the most) and an x axis with a date each week, the last day always labelled
-  const top = Math.max(1, ...days.map(d=>d.active)), max = top <= 4 ? top : Math.ceil(top / 2) * 2, L = 22, Rp = 10, T = 6, W = 320, H = 92, B = 16, ph = H - T - B, bw = (W - L - Rp) / days.length;
-  const y = v => T + ph - v / max * ph, dm = s => { const [, m, d] = String(s).split("-"); return `${+d}/${+m}`; };
-  const grid = [...new Set([0, max / 2, max])].filter(v => Number.isInteger(v)).map(v => `<line class="gl" x1="${L}" x2="${W - Rp}" y1="${y(v)}" y2="${y(v)}"/><text class="ax" x="${L - 4}" y="${y(v) + 3}" text-anchor="end">${v}</text>`).join("");
-  const bars = days.map((d,i)=>{ const h = d.active / max * ph; return `<rect x="${(L + i*bw + 1).toFixed(1)}" y="${(T + ph - h).toFixed(1)}" width="${(bw-2).toFixed(1)}" height="${h.toFixed(1)}" rx="1.5"><title>${esc(d.day)}: ${d.active}</title></rect>`; }).join("");
-  const ticks = days.map((d,i)=>(days.length - 1 - i) % 7 === 0 ? `<line class="tk" x1="${L + (i + .5) * bw}" x2="${L + (i + .5) * bw}" y1="${T + ph}" y2="${T + ph + 3}"/><text class="ax" x="${L + (i + .5) * bw}" y="${H - 3}" text-anchor="middle">${dm(d.day)}</text>` : "").join("");
-  const bars0 = `${grid}${bars}<line class="xl" x1="${L}" x2="${W - Rp}" y1="${T + ph}" y2="${T + ph}"/>${ticks}`;
-  const sum = k => days.reduce((s,d)=>s + (d[k]||0), 0);
-  // "Active members" is people, not member-days: the daily counts add up the same person once a day, so the tile counts
-  // the members last seen within these days instead (the bars keep the per-day counts)
-  const from = String(days[0].day || ""), people = (users||[]).filter(u=>u.lastSeen && String(u.lastSeen) >= from).length;
-  const total = k => k==="active" && users ? people : sum(k);
-  $("adminUsage").innerHTML = `<div class="ususp"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(tr("Active members a day, last 30 days"))}">${bars0}</svg>
-      <span class="ph">${esc(tr("Active members a day, last 30 days"))} · ${esc(tr("most {0}", top))}</span></div>
-    <dl class="usgrid">${Object.keys(USAGE_LABEL).map(k=>`<div><dt>${esc(tr(USAGE_LABEL[k]))}</dt><dd>${fmt(total(k))}</dd></div>`).join("")}</dl>`;
-}
-function renderHelp(A){
-  const members = A.users.filter(u=>!u.owner), ready = members.filter(u=>u.helpReady).length;
-  $("adminHelp").innerHTML = !A.adminKid
-    ? `<div class="adhelp"><p class="ph">${esc(tr("Turn this on to be able to help a member who has lost both their password and their recovery code. Each member's key is then also locked to a key only you hold: the private half stays in your browser, encrypted with your own cellar key. The server still can't read any cellar."))}</p>
-        <p><button type="button" class="btn primary" id="helpSetup">${esc(tr("Turn on account help"))}</button></p></div>`
-    : `<div class="adhelp"><p>${esc(tr("On. {0} of {1} members are ready; the others are ready after their next login.", fmt(ready), fmt(members.length)))}</p>
-        <p class="ph">${esc(tr("Key fingerprint"))}: <span class="code" style="font-size:12px;padding:2px 6px">${esc(A.adminKid)}</span></p>
-        <div id="helpOut"></div></div>`;
-}
-function renderAdmin(){
-  const A = ADMIN || {users:[], invites:[]};
-  renderUsage(A.stats, A.users); renderHelp(A);
-  $("adminCount").textContent = tr("{0} of at most {1}", fmt(A.users.length), fmt(A.max || 50));
-  $("adminUsers").innerHTML = A.users.map(u=>`<li><span class="a1"><b>${esc(u.user)}</b> · ${u.test ? `<span class="tchip">${esc(tr("test user"))}</span>` : u.email ? `<a href="mailto:${esc(u.email)}">${esc(u.email)}</a>` : "—"}</span>
-      ${u.owner ? `<span class="ph adrm">${esc(tr("you (owner)"))}</span>` : `${A.adminKid ? (u.helpReady ? `<button type="button" data-help="${esc(u.user)}">${esc(tr("Help back in"))}</button>` : `<span class="hwait">${esc(tr("help: after next login"))}</span>`) : ""}
-        <button type="button" class="adrm" data-remove="${esc(u.user)}">${esc(tr("Remove"))}</button>`}
-      <span class="a2">${esc(tr("Signed up"))} ${esc(u.created || "—")} · ${esc(tr("Last seen"))} ${esc(u.lastSeen || "—")}</span></li>`).join("");
-  const open = A.invites.filter(i=>!i.usedBy), done = A.invites.filter(i=>i.usedBy);
-  $("adminInvites").innerHTML =
-    open.map(i=>`<li><span class="a1"><span class="code">${esc(i.code)}</span>${i.note ? " · " + esc(i.note) : ""}</span>
-      <span><button type="button" data-copy="${esc(i.code)}">${esc(tr("Copy invitation"))}</button> <button type="button" data-revoke="${esc(i.code)}">${esc(tr("Withdraw"))}</button></span>
-      <span class="a2">${esc(tr("Made"))} ${esc(i.created)}</span></li>`).join("") +
-    done.slice().reverse().map(i=>`<li class="used"><span class="a1"><span class="code">${esc(i.code)}</span>${i.note ? " · " + esc(i.note) : ""}</span>
-      <span class="a2">${esc(i.usedBy==="(revoked)" ? tr("withdrawn {0}", i.usedAt) : tr("used by {0}, {1}", i.usedBy, i.usedAt))}</span></li>`).join("") +
-    (A.invites.length ? "" : `<li class="used">${esc(tr("No codes yet: make some above."))}</li>`);
-}
-$("adminBtn").addEventListener("click", openAdmin);
+// the owner's admin page (admin.js: members, invites, usage, account help, test users), fetched the first time it's
+// opened, so a member's page never carries it
+let ADMIN_LOAD = null;
+$("adminBtn").addEventListener("click", ()=>{
+  (ADMIN_LOAD = ADMIN_LOAD || loadJS("admin.js?v=1").catch(e=>{ ADMIN_LOAD = null; throw e; }))
+    .then(()=>openAdmin()).catch(err=>toast(tr("Could not reach the cellar API ({0}).", errText(err))));
+});
 // test users and test wines (test-data.js, loaded the first time one of these is used)
 const testTools = () => window.TESTDATA && TESTDATA.ui ? Promise.resolve(TESTDATA) : new Promise((ok, no)=>{ const el = document.createElement("script");
   el.src = "test-data.js?v=2"; el.onload = ()=>ok(window.TESTDATA); el.onerror = ()=>no(new Error("load test-data.js")); document.head.appendChild(el); });
-$("adminTestMake").addEventListener("click", ()=>testTools().then(T=>T.ui.makeUser($("adminTestKind").value)).catch(err=>{ $("adminErr").textContent = errText(err); }));
-$("adminTestClear").addEventListener("click", ()=>testTools().then(T=>T.ui.clearUsers()).catch(err=>{ $("adminErr").textContent = errText(err); }));
 $("acctTest").addEventListener("click", e=>{ const b = e.target.closest("button[data-testwines]"); if(!b) return;
   testTools().then(T=>T.ui.addWines(Number(b.dataset.testwines))).catch(err=>{ $("acctTestMsg").textContent = errText(err); }); });
-$("adminClose").addEventListener("click", ()=>$("adminModal").classList.remove("open"));
-$("adminNew").addEventListener("submit", async e=>{
-  e.preventDefault(); $("adminErr").textContent = tr("Making…");
-  try{ ADMIN = await api({action:"admininvites", n:Number($("adminN").value), note:$("adminNote").value.trim()}); $("adminNote").value = ""; $("adminErr").textContent = ""; renderAdmin(); }
-  catch(err){ $("adminErr").textContent = tr("Could not reach the cellar API ({0}).", errText(err)); }
-});
-$("adminHelp").addEventListener("click", async e=>{
-  if(!e.target.closest("#helpSetup")) return;
-  $("adminErr").textContent = tr("Making the key…");
-  try{ await VAULT.adminSetup(); ADMIN = await api({action:"admin"}); $("adminErr").textContent = ""; renderAdmin(); toast(tr("Account help is on")); }
-  catch(err){ $("adminErr").textContent = tr("Could not reach the cellar API ({0}).", errText(err)); }
-});
-// helping a member back in: a fresh recovery code, made here, shown once; their own old code stops working
-$("adminUsers").addEventListener("click", async e=>{
-  const b = e.target.closest("button[data-help]"); if(!b) return;
-  const who = b.dataset.help;
-  if(!(await ask(tr("Make a new recovery code for {0}? Their old recovery code stops working. Only do this when they've asked you to.", who), {ok:tr("Make a new code")}))) return;
-  $("adminErr").textContent = tr("Unlocking…");
-  try{
-    const r = await VAULT.adminHelp(who); ADMIN = r.admin; $("adminErr").textContent = ""; renderAdmin();
-    const msg = tr("Your new AllWine recovery code: {0}: on the login page choose 'Forgot password?', type your username, this code and a new password.", r.code);
-    $("helpOut").innerHTML = `<p>${esc(tr("New recovery code for {0} (shown only now):", who))}</p><p class="code" id="helpCode">${esc(r.code)}</p>
-      <p><button type="button" class="btn" id="helpCopy">${esc(tr("Copy a message for {0}", who))}</button></p>`;
-    $("helpCopy").onclick = async ()=>{ try{ await navigator.clipboard.writeText(msg); toast(tr("Copied")); }catch(err){ window.prompt(tr("Copy"), msg); } };
-  }catch(err){ $("adminErr").textContent = /no-help-yet/.test(errText(err)) ? tr("{0} isn't ready yet: it happens at their next login.", who) : tr("Could not reach the cellar API ({0}).", errText(err)); }
-});
-// removing a member: as permanent as them deleting their own account, so the name is typed to confirm it
-$("adminUsers").addEventListener("click", async e=>{
-  const b = e.target.closest("button[data-remove]"); if(!b) return;
-  const who = b.dataset.remove;
-  if(!(await ask(tr("Remove {0} and everything in their account: cellar, journal, wishlist and photos? It can't be undone, and nobody (you included) can read or restore the cellar afterwards. Type the username to confirm:", who), {ok:tr("Remove"), danger:true, typed:who}))) return;
-  $("adminErr").textContent = tr("Removing…");
-  try{ ADMIN = await api({action:"admindelete", member:who}); $("adminErr").textContent = ""; renderAdmin(); toast(tr("{0} was removed", who)); }
-  catch(err){ $("adminErr").textContent = /owner-account/.test(errText(err)) ? tr("The owner's account can't be removed.")
-    : /no-user/.test(errText(err)) ? tr("There's no member called {0} any more.", who) : tr("Could not reach the cellar API ({0}).", errText(err)); }
-});
-$("adminInvites").addEventListener("click", async e=>{
-  const c = e.target.closest("button[data-copy]"), r = e.target.closest("button[data-revoke]");
-  if(c){ // a ready-made message: where to sign up, and the code
-    const msg = tr("You're invited to AllWine, a private wine cellar. Sign up at {0} with the invite code {1} (it works once).", location.origin + location.pathname, c.dataset.copy);
-    try{ await navigator.clipboard.writeText(msg); toast(tr("Invitation copied")); }catch(err){ window.prompt(tr("Copy the invitation"), msg); }
-  }
-  if(r){
-    if(!(await ask(tr("Withdraw the code {0}? It stops working.", r.dataset.revoke), {ok:tr("Withdraw")}))) return;
-    try{ ADMIN = await api({action:"adminrevoke", code:r.dataset.revoke}); renderAdmin(); }
-    catch(err){ $("adminErr").textContent = tr("Could not reach the cellar API ({0}).", errText(err)); }
-  }
-});
-
 async function loadFeedSilently(){
   if(!document.body.classList.contains("social")) FEED = null;
   else { feedRecall(); if(FEED && location.hash==="#feed") renderFeed(); }

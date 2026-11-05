@@ -42,7 +42,7 @@ function setting(key) {
 // The legacy code only works once you've set a real one: the placeholder from the template is public.
 function accessCode() { const c = setting('ACCESS_CODE'); return c === 'CHANGE-ME' ? '' : c; }
 
-const API_VERSION = 52; // returned in every response; used to verify deployments
+const API_VERSION = 53; // returned in every response; used to verify deployments
 
 // Per-request spreadsheet for the authenticated user. Set in handle(); every
 // sheet helper reads it via ss(). Falls back to the bound (owner's) spreadsheet.
@@ -934,7 +934,11 @@ function doLogin(p) {
     if (!ok) return failed(p.user, 'bad-login');
     cleared(p.user);
     countStats({ login: 1 });
-    return json({ ok: true, user: u.username, token: addSession(u), wrapKey: u.wrapKey, state: u.state || 'done', help: helpFor(u), test: !!u.test });
+    const out = { ok: true, user: u.username, token: addSession(u), wrapKey: u.wrapKey, state: u.state || 'done', help: helpFor(u), test: !!u.test };
+    // API 53: the vault's records with the login (still sealed: only the browser's key opens them), so a new device
+    // needn't ask for them in a request of its own; asked for with vault: 1
+    if (p.vault && u.vaultId && out.state === 'done') { try { out.records = readVault(SpreadsheetApp.openById(u.vaultId)); } catch (e) { /* asked for again */ } }
+    return json(out);
   }
   const ok = u && p.pass !== undefined && safeEqual(hashPass(salt, p.pass || ''), u.hash);
   hashPass(salt, String(p.auth || ''));

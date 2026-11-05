@@ -99,6 +99,8 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
     .catch(async e => { console.log("state when it timed out:", JSON.stringify({ err: await p.textContent("#gateErr"), app: await p.isVisible("#app"), seen: A.seen, tbl: (await p.textContent("#tbl")).slice(0, 300), errs: A.errs })); throw e; });
   const loginMs = Date.now() - t1, before = A.seen.slice();
   check(`a login on this device needs one request before the cellar shows (${loginMs} ms, ${LAG} a request)`, before[0] === "login" && !before.includes("prelogin"), JSON.stringify(before) + " " + loginMs + " ms");
+  await p.waitForTimeout(4 * LAG + 500);
+  check("…the vault comes with the login (API 53): no vget of its own, not even in the background", !A.seen.includes("vget"), JSON.stringify(A.seen));
 
   // ── the password changed on the other device: the remembered salt is stale, the login still works ──
   await B.p.click("#acctBtn"); await B.p.fill("#acctPass", "anna-pass-1"); await B.p.fill("#acctNew", "anna-pass-2"); await B.p.fill("#acctNew2", "anna-pass-2");

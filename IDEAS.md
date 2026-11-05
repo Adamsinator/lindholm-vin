@@ -44,7 +44,7 @@ left edges are gone, the business buttons have words, not emoji. Still to do:
 
 ## Housekeeping: index.html's size (raised 5 November 2026)
 
-index.html is at its 280 KB budget (gzipped, everything needed before the cellar shows). Move the owner's admin code
+index.html was at its 280 KB budget; the owner's admin code now lives in admin.js, loaded when Admin is opened (271 KB).
 (the admin panel, usage, account help, test users) out of app.js into admin.js, loaded only when the owner opens Admin.
 
 ## Feedback after testing (5 November 2026) — to work through before the business pages
@@ -150,3 +150,11 @@ own wines by vintage. Still to do, roughly in order:
   - several people on one account (staff with roles, an audit trail): today one person's password unlocks one cellar,
     so each member's key would have to wrap a shared key; a real change to the encryption model;
   - pricing and plans per kind, if it's ever sold, so a private member never pays for business features.
+
+## The business page (business.html, 5 November 2026)
+
+A page to show a restaurant, a wine merchant or a winemaker what they get: the features for their kind, a tour through
+ten real screens of a made-up wine bar ("Vinbaren Demo", tools/shot-demo.js writes img/business/), the prices and the
+questions they ask. In four languages (business-page-i18n-*.js). Kept out of search engines (noindex) and not linked
+from the site until business accounts open (app.js BIZ_OPEN). Prices are "on request": a business writes, and gets an
+offer.
