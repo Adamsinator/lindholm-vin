@@ -1,6 +1,21 @@
 // German for allwine.dk: i18n.js loads the one dictionary the page's language needs (English is the source text).
 window.I18N_DICT = window.I18N_DICT || {};
 window.I18N_DICT.de = {
+  "The Apps Script needs the latest version (50) for this: paste apps-script/Code.gs into it and redeploy.": "Das Apps Script braucht dafür die neueste Version (50): apps-script/Code.gs einfügen und neu bereitstellen.",
+  "None of it has been drunk yet, so it can't go to 0 bottles: delete the wine instead.": "Davon wurde noch nichts getrunken, daher kann er nicht auf 0 Flaschen: Löschen Sie den Wein stattdessen.",
+  "Price (kr.)": "Preis (kr.)",
+  "Price for": "Preis für",
+  "per bottle": "pro Flasche",
+  "for all of them": "für alle zusammen",
+  "Bottles in the cellar": "Flaschen im Keller",
+  "Farming": "Anbau",
+  "Organic": "Bio",
+  "Biodynamic": "Biodynamisch",
+  "Natural wine": "Naturwein",
+  "Fortified": "Likörwein",
+  "A gift (no price)": "Ein Geschenk (ohne Preis)",
+  "Gift": "Geschenk",
+  "A gift": "Ein Geschenk",
   "Producer badges (Icon, Top tier, Well regarded), ratings and the cellar's value:": "Erzeuger-Abzeichen (Ikone, Spitzenklasse, Angesehen), Bewertungen und der Wert des Kellers:",
   "how they work ↗": "so funktionieren sie ↗",
   "Icon: one of the few most sought-after producers of its region, a benchmark whose bottles trade well above their release price.": "Ikone: einer der wenigen gefragtesten Erzeuger seiner Region, ein Maßstab, dessen Flaschen weit über dem Erstverkaufspreis gehandelt werden.",

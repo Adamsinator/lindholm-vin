@@ -1,6 +1,21 @@
 // Danish for allwine.dk: i18n.js loads the one dictionary the page's language needs (English is the source text).
 window.I18N_DICT = window.I18N_DICT || {};
 window.I18N_DICT.da = {
+  "The Apps Script needs the latest version (50) for this: paste apps-script/Code.gs into it and redeploy.": "Apps Script skal have den nyeste version (50) til dette: sæt apps-script/Code.gs ind og udrul igen.",
+  "None of it has been drunk yet, so it can't go to 0 bottles: delete the wine instead.": "Der er ikke drukket noget af den endnu, så den kan ikke komme ned på 0 flasker: slet vinen i stedet.",
+  "Price (kr.)": "Pris (kr.)",
+  "Price for": "Pris for",
+  "per bottle": "pr. flaske",
+  "for all of them": "for dem alle",
+  "Bottles in the cellar": "Flasker i kælderen",
+  "Farming": "Dyrkning",
+  "Organic": "Økologisk",
+  "Biodynamic": "Biodynamisk",
+  "Natural wine": "Naturvin",
+  "Fortified": "Hedvin",
+  "A gift (no price)": "En gave (ingen pris)",
+  "Gift": "Gave",
+  "A gift": "En gave",
   "Producer badges (Icon, Top tier, Well regarded), ratings and the cellar's value:": "Producentmærker (Ikon, Topklasse, Velanset), bedømmelser og kælderens værdi:",
   "how they work ↗": "sådan virker de ↗",
   "Icon: one of the few most sought-after producers of its region, a benchmark whose bottles trade well above their release price.": "Ikon: en af de få mest eftertragtede producenter i sit område, et pejlemærke, hvis flasker handles langt over udgivelsesprisen.",

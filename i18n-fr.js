@@ -1,6 +1,21 @@
 // French for allwine.dk: i18n.js loads the one dictionary the page's language needs (English is the source text).
 window.I18N_DICT = window.I18N_DICT || {};
 window.I18N_DICT.fr = {
+  "The Apps Script needs the latest version (50) for this: paste apps-script/Code.gs into it and redeploy.": "L'Apps Script doit être à jour (version 50) pour cela : collez-y apps-script/Code.gs et redéployez.",
+  "None of it has been drunk yet, so it can't go to 0 bottles: delete the wine instead.": "Rien n'en a encore été bu, il ne peut donc pas passer à 0 bouteille : supprimez plutôt le vin.",
+  "Price (kr.)": "Prix (kr.)",
+  "Price for": "Prix pour",
+  "per bottle": "par bouteille",
+  "for all of them": "pour toutes",
+  "Bottles in the cellar": "Bouteilles en cave",
+  "Farming": "Culture",
+  "Organic": "Bio",
+  "Biodynamic": "Biodynamie",
+  "Natural wine": "Vin nature",
+  "Fortified": "Vin muté",
+  "A gift (no price)": "Un cadeau (sans prix)",
+  "Gift": "Cadeau",
+  "A gift": "Un cadeau",
   "Producer badges (Icon, Top tier, Well regarded), ratings and the cellar's value:": "Badges des producteurs (Mythique, Haut de gamme, Réputé), notes et valeur de la cave :",
   "how they work ↗": "comment ça marche ↗",
   "Icon: one of the few most sought-after producers of its region, a benchmark whose bottles trade well above their release price.": "Mythique : l'un des rares producteurs les plus recherchés de sa région, une référence dont les bouteilles s'échangent bien au-dessus de leur prix de sortie.",

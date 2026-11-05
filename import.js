@@ -343,6 +343,7 @@ function wineType(c) {
   const s = norm(c);
   if (!s) return "";
   if (has(s, ["mousserende", "sparkling", "champagne", "cremant", "cava", "prosecco", "bobler", "petillant", "sekt", "spumante", "franciacorta", "mousseux", "petnat", "pet nat", "fizz", "perlwein", "schaumwein"])) return "Bobler";
+  if (has(s, ["hedvin", "fortified", "port", "porto", "portvin", "sherry", "jerez", "madeira", "marsala", "banyuls", "maury", "vin doux naturel", "vdn"])) return "Hedvin";
   if (has(s, ["rose", "rosado", "rosato", "rosevin", "blush"])) return "Rose";
   if (has(s, ["rod", "rodvin", "red", "rouge", "rosso", "tinto", "rot", "rotwein"])) return "Rød";
   if (has(s, ["hvid", "hvidvin", "white", "blanc", "bianco", "blanco", "weiss", "weisswein", "branco"])) return "Hvid";

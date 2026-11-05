@@ -323,7 +323,7 @@ window.BIZ = (() => {
   }
 
   /* ---------- the wine card / price list: on the page, printable ---------- */
-  const STYLE_ORDER = ["Bobler", "Hvid", "Rosé", "Rød"], STYLE_NAME = { Bobler: "Sparkling", Hvid: "White", "Rosé": "Rosé", "Rød": "Red" };
+  const STYLE_ORDER = ["Bobler", "Hvid", "Rosé", "Rød", "Hedvin"], STYLE_NAME = { Bobler: "Sparkling", Hvid: "White", "Rosé": "Rosé", "Rød": "Red", Hedvin: "Fortified" };
   const titleKey = () => "vinCardTitle:" + String(cfg.user || "").toLowerCase();
   function openCard() {
     const W = words(), list = WINES.filter(w => w.left > 0 && w.menuPrice > 0);

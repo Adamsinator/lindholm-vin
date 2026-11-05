@@ -67,6 +67,28 @@ const HEAD = ["Producent", "Land", "Område", "Kommune", "Mark/Navn", "Klassifik
   await p.fill("#aClass ~ .clsother", "5ème cru classé"); await p.click('#addForm button[type="submit"]'); await p.waitForTimeout(1200);
   check("…and the text is what's saved", (await p.evaluate(() => (WINES.find(x => /Lynch/.test(x.producer)) || {}).classification)) === "5ème cru classé");
 
+  // the list follows the country as it's typed; a gift has no price; port is a fortified wine
+  await p.click("#addBtn"); await p.waitForTimeout(200);
+  await p.fill("#aCountry", ""); await p.type("#aCountry", "Italien"); await p.waitForTimeout(400);
+  const it = await opts();
+  check("typing Italien (not leaving the field) brings Italy's list: DOCG, DOC, IGT, Gran Selezione", ["DOCG", "DOC", "IGT", "Gran Selezione"].every(x => it.includes(x)), it.join(", "));
+  await p.fill("#aCountry", "Portugal"); await p.press("#aCountry", "Tab");
+  const pt = await opts();
+  check("Portugal: Vintage, LBV, Colheita and the tawnies", ["Vintage", "LBV", "Colheita", "Tawny 20"].every(x => pt.includes(x)), pt.join(", "));
+  check("the type list has Fortified", await p.$$eval("#aType option", os => os.some(o => o.value === "Hedvin" && /Fortified/.test(o.textContent))));
+  await p.fill("#aProducer", "Quinta do Noval"); await p.fill("#aName", "Vintage Port"); await p.fill("#aVintage", "2011"); await p.selectOption("#aType", "Hedvin");
+  await p.fill("#aPrice", "900"); await p.check("#aGift");
+  check("ticking 'A gift' empties and sets aside the price", (await p.inputValue("#aPrice")) === "" && await p.isDisabled("#aPrice"));
+  await p.click('#addForm button[type="submit"]'); await p.waitForTimeout(1200);
+  const nov = await p.evaluate(() => { const w = WINES.find(x => /Noval/.test(x.producer)); return w && { gift: w.gift, price: w.price, style: w.style, win: drinkWindow(w) }; });
+  check("…saved as a gift with no price, a fortified wine with a port's long window (2021–2061)", nov && nov.gift === true && !nov.price && nov.style === "Hedvin" && nov.win.from === 2021 && nov.win.to === 2061, JSON.stringify(nov));
+  check("…and the list says Gift where the price would be", /Gift/.test(await p.textContent('#tbl tr.main:has-text("Quinta do Noval") .c-price')));
+
+  await p.click("#addBtn"); await p.waitForTimeout(200);
+  await p.fill("#aProducer", "Domaine Tempier"); await p.fill("#aName", "Bandol Rouge"); await p.fill("#aQty", "6"); await p.fill("#aPrice", "1200"); await p.selectOption("#aPriceMode", "all");
+  await p.click('#addForm button[type="submit"]'); await p.waitForTimeout(1200);
+  check("a price for all 6 bottles (1 200 kr.) is saved as 200 kr. a bottle", (await p.evaluate(() => (WINES.find(x => /Tempier/.test(x.producer)) || {}).price)) === 200);
+
   // an old value stays: the Krug's Special club in its edit form
   await p.evaluate(() => openInfo(WINES.find(x => x.producer === "Krug")));
   await p.waitForTimeout(300);
