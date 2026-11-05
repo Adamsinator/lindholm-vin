@@ -170,6 +170,38 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   await p.click('#bzInvBody tr:has-text("Armand Rousseau") [data-open]'); await p.waitForTimeout(500);
   check("…and a wine's name opens it in the cellar", await p.isVisible("#pageCellar") && await p.isVisible('#tbl tr.detail:not([hidden]) .bz-in[data-f="menuPrice"]'));
 
+  // where the stock is: by location on the accounts page, and a filter for it in the inventory
+  await p.evaluate(async () => { for (const [pr, loc] of [["Armand Rousseau", "Cellar, shelf 3"], ["Domaine Leflaive", "Cellar, shelf 1"], ["Bollinger", "Bar fridge"]]) {
+    const w = WINES.find(x => x.producer === pr); await api({ action: "setinfo", row: w.row, fields: { location: loc } }); }
+    WINES = normalize((await api({ action: "data" })).wines); renderOverview(); renderTable(); });
+  await p.click('.tab[data-page="accounts"]'); await p.waitForTimeout(400);
+  const lt = await p.textContent("#bizPanel");
+  check("Stock by location: the cellar (its shelves together) and the bar fridge, with bottles", /Stock by location/.test(lt) && /Cellar\s*2\s*\d+/.test(lt) && /Bar fridge\s*1\s*2/.test(lt), lt.slice(lt.indexOf("Stock by location"), lt.indexOf("Stock by location") + 160));
+  await p.click('.tab[data-page="inventory"]'); await p.waitForTimeout(300);
+  await p.selectOption("#bzInvLoc", "Bar fridge"); await p.waitForTimeout(150);
+  check("…and the inventory filters by it", (await p.$$("#bzInvBody tr")).length === 1 && /Bollinger/.test(await p.textContent("#bzInvBody")));
+  await p.selectOption("#bzInvLoc", ""); await p.waitForTimeout(150);
+  // Quick sell: a till with big buttons and a search
+  await p.click('[data-bz="till"]'); await p.waitForSelector("#bzTill.open", { timeout: 3000 });
+  await p.fill("#bzTillQ", "rouss"); await p.waitForTimeout(150);
+  check("Quick sell: a search for a few letters finds the wine, with Bottle and Glass at their prices", (await p.$$("#bzTiles .bz-tile")).length === 1
+    && /Bottle · 9[05]0/.test(await p.textContent("#bzTiles")) && /Glass · 150/.test(await p.textContent("#bzTiles")), await p.innerHTML("#bzTiles"));
+  const gl0 = await p.evaluate(() => { const w = WINES.find(w => w.producer === "Armand Rousseau"); return [w.left, w.openGlasses]; });
+  await p.click('#bzTiles button[data-sell="glass"]'); await p.waitForTimeout(900);
+  const gl1 = await p.evaluate(() => { const w = WINES.find(w => w.producer === "Armand Rousseau"); return [w.left, w.openGlasses]; });
+  check("…a tap sells a glass, and the tile follows the stock", (gl1[1] === gl0[1] - 1 || (gl1[0] === gl0[0] - 1)) && /Sold a glass of Armand Rousseau/.test(await p.textContent("#actMsg")), JSON.stringify([gl0, gl1]));
+  await p.click("#actBtns button"); await p.waitForTimeout(900);
+  await p.keyboard.press("Escape"); await p.waitForTimeout(200);
+  check("…and Escape closes it", !(await p.isVisible("#bzTill")));
+  // orders to suppliers: an email ready to send, and a printout per supplier
+  await p.click('.tab[data-page="accounts"]'); await p.waitForTimeout(300);
+  const mail = await p.getAttribute('#bizPanel a[href^="mailto:"]', "href");
+  check("an order to the supplier as an email, ready to send: 5 × the wine", /^mailto:\?subject=/.test(mail) && decodeURIComponent(mail).includes("5 × Armand Rousseau Clos St-Jacques 2016"), decodeURIComponent(mail || ""));
+  await p.evaluate(() => { window.print = () => { window.__po = document.getElementById("bzOrders").textContent; }; });
+  await p.click("#bzOrderPrint"); await p.waitForTimeout(200);
+  check("…and printed, a page per supplier", /Order: Vinimportøren/.test(await p.evaluate(() => window.__po || "")) && /Armand Rousseau Clos St-Jacques 2016\s*5/.test(await p.evaluate(() => window.__po || "")));
+  await p.click('.tab[data-page="cellar"]'); await p.waitForTimeout(300);
+
   // the card online, behind a QR code: it follows the prices by itself, under the same link
   await p.click("#bizCardBtn"); await p.waitForTimeout(300);
   await p.click('#bizCard [data-bz="online"]'); await p.waitForSelector("#bzQr svg", { timeout: 10000 });
