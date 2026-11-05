@@ -4220,7 +4220,7 @@ function setSocial(on){
 }
 // The owner gets an Admin button: who has an account (name, email, signed up, last seen) and the invite codes
 async function checkOwner(){
-  try{ const r = await api({action:"me"}); $("adminBtn").hidden = !(r && r.owner === true); askForHelp(r && r.help); }catch(e){ $("adminBtn").hidden = true; }
+  try{ const r = await api({action:"me"}); $("adminBtn").hidden = !(r && r.owner === true); $("acctTest").hidden = !(r && r.test === true); askForHelp(r && r.help); }catch(e){ $("adminBtn").hidden = true; }
 }
 // account help: a member whose session came back without the password (a kept key) types it once, so the key can be
 // wrapped to the owner's; asked once a visit, "Later" until the next
@@ -4283,7 +4283,7 @@ function renderAdmin(){
   const A = ADMIN || {users:[], invites:[]};
   renderUsage(A.stats, A.users); renderHelp(A);
   $("adminCount").textContent = tr("{0} of at most {1}", fmt(A.users.length), fmt(A.max || 50));
-  $("adminUsers").innerHTML = A.users.map(u=>`<li><span class="a1"><b>${esc(u.user)}</b> · ${u.email ? `<a href="mailto:${esc(u.email)}">${esc(u.email)}</a>` : "—"}</span>
+  $("adminUsers").innerHTML = A.users.map(u=>`<li><span class="a1"><b>${esc(u.user)}</b> · ${u.test ? `<span class="tchip">${esc(tr("test user"))}</span>` : u.email ? `<a href="mailto:${esc(u.email)}">${esc(u.email)}</a>` : "—"}</span>
       ${u.owner ? `<span class="ph adrm">${esc(tr("you (owner)"))}</span>` : `${A.adminKid ? (u.helpReady ? `<button type="button" data-help="${esc(u.user)}">${esc(tr("Help back in"))}</button>` : `<span class="hwait">${esc(tr("help: after next login"))}</span>`) : ""}
         <button type="button" class="adrm" data-remove="${esc(u.user)}">${esc(tr("Remove"))}</button>`}
       <span class="a2">${esc(tr("Signed up"))} ${esc(u.created || "—")} · ${esc(tr("Last seen"))} ${esc(u.lastSeen || "—")}</span></li>`).join("");
@@ -4297,6 +4297,13 @@ function renderAdmin(){
     (A.invites.length ? "" : `<li class="used">${esc(tr("No codes yet: make some above."))}</li>`);
 }
 $("adminBtn").addEventListener("click", openAdmin);
+// test users and test wines (test-data.js, loaded the first time one of these is used)
+const testTools = () => window.TESTDATA && TESTDATA.ui ? Promise.resolve(TESTDATA) : new Promise((ok, no)=>{ const el = document.createElement("script");
+  el.src = "test-data.js?v=1"; el.onload = ()=>ok(window.TESTDATA); el.onerror = ()=>no(new Error("load test-data.js")); document.head.appendChild(el); });
+$("adminTestMake").addEventListener("click", ()=>testTools().then(T=>T.ui.makeUser($("adminTestKind").value)).catch(err=>{ $("adminErr").textContent = errText(err); }));
+$("adminTestClear").addEventListener("click", ()=>testTools().then(T=>T.ui.clearUsers()).catch(err=>{ $("adminErr").textContent = errText(err); }));
+$("acctTest").addEventListener("click", e=>{ const b = e.target.closest("button[data-testwines]"); if(!b) return;
+  testTools().then(T=>T.ui.addWines(Number(b.dataset.testwines))).catch(err=>{ $("acctTestMsg").textContent = errText(err); }); });
 $("adminClose").addEventListener("click", ()=>$("adminModal").classList.remove("open"));
 $("adminNew").addEventListener("submit", async e=>{
   e.preventDefault(); $("adminErr").textContent = tr("Making…");

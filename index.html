@@ -538,7 +538,7 @@ body:not(.social) .fshare{display:none!important}
 .adlist a{color:var(--accent)} .adlist .code{font-family:ui-monospace,Menlo,monospace;letter-spacing:.03em;font-weight:600}
 .adlist li.used{color:var(--muted)} .adlist li.used .code{font-weight:400}
 .adlist button{border:1px solid var(--line);background:none;color:var(--ink);border-radius:999px;padding:3px 10px;font:inherit;font-size:12px;cursor:pointer}
-.adnew{display:flex;gap:8px;align-items:center;margin:0 0 6px}
+.adnew{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 6px} .tchip{font-size:11.5px;padding:1px 7px;border-radius:999px;background:var(--chip,rgba(0,0,0,.06));color:var(--muted)}
 .adnew select{width:auto;flex:none} .adnew input{flex:1;min-width:0}
 /* several wines in a table: inputs in a grid, the whole thing scrolls sideways on a phone */
 .gridcta{margin:14px 0 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap;color:var(--muted)}
@@ -1014,6 +1014,10 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
       <option value="winemaker" data-i18n>A winemaker or domaine</option>
     </select>
     <p class="hint" data-i18n>It changes the words, fields and overviews; your wines stay as they are. Saved at once.</p>
+    <div id="acctTest" hidden><h3 class="adh" data-i18n>Test data</h3>
+      <p class="hint" data-i18n>A test account (made from Admin): fill it with made-up wines to try things out.</p>
+      <p class="adnew"><button type="button" class="btn" data-testwines="10" data-i18n>Add 10 test wines</button> <button type="button" class="btn" data-testwines="100" data-i18n>Add 100</button> <button type="button" class="btn" data-testwines="1000" data-i18n>Add 1,000</button></p>
+      <p class="err" id="acctTestMsg" role="status" aria-live="polite"></p></div>
     <label for="acctPass" data-i18n>Current password</label>
     <input id="acctPass" type="password" autocomplete="current-password">
     <label for="acctNew" data-i18n>New password (to change it)</label>
@@ -1369,6 +1373,14 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
       <button class="btn primary" type="submit" data-i18n>Make codes</button>
     </form>
     <ul class="adlist" id="adminInvites"></ul>
+    <h3 class="adh" data-i18n>Test users</h3>
+    <p class="ph" data-i18n>Accounts to try things in, without an invite code. Log in with one in a private window; fill it from its Account with test wines.</p>
+    <div class="adnew"><select id="adminTestKind" aria-label="What kind of account" data-i18n-aria>
+        <option value="private" data-i18n>A private cellar</option><option value="restaurant" data-i18n>A restaurant or wine bar</option>
+        <option value="merchant" data-i18n>A wine merchant or shop</option><option value="winemaker" data-i18n>A winemaker or domaine</option></select>
+      <button class="btn primary" type="button" id="adminTestMake" data-i18n>Make a test user</button>
+      <button class="btn quiet" type="button" id="adminTestClear" data-i18n>Remove all test users</button></div>
+    <div id="adminTestOut"></div>
     <div class="err" id="adminErr" role="status" aria-live="polite"></div>
     <div class="mact"><button class="btn" type="button" id="adminClose" data-i18n>Close</button></div>
   </div>
@@ -1783,7 +1795,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 
 <!-- Pages serves these with max-age=600 and no revalidation, so a merged change can
      sit invisible behind a stale app.js for ten minutes. Bump v on every deploy. -->
-<script src="i18n.js?v=79"></script>
+<script src="i18n.js?v=80"></script>
 <script src="site-info.js?v=2"></script>
 <script src="site-foot.js?v=2"></script>
 <script src="notes.js?v=5"></script>
@@ -1803,6 +1815,6 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 <script src="export.js?v=3"></script>
 <script src="europe-lands.js?v=1"></script>
 <script src="share-crypto.js?v=2"></script>
-<script src="app.js?v=78"></script>
+<script src="app.js?v=79"></script>
 </body>
 </html>
