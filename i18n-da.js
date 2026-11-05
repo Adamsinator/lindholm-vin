@@ -1,6 +1,14 @@
 // Danish for allwine.dk: i18n.js loads the one dictionary the page's language needs (English is the source text).
 window.I18N_DICT = window.I18N_DICT || {};
 window.I18N_DICT.da = {
+  "Type the 6-digit code from the email.": "Skriv den 6-cifrede kode fra mailen.",
+  "Sending a code to {0}…": "Sender en kode til {0}…",
+  "We sent a 6-digit code to {0}. It can take a minute; look in spam too.": "Vi har sendt en 6-cifret kode til {0}. Det kan tage et minut; se også i spam.",
+  "Only the owner sees it, to know who signed up. A code is mailed to it, to check it's yours.": "Kun ejeren ser den, for at vide hvem der har tilmeldt sig. Der sendes en kode til den, for at se at den er din.",
+  "The code from the email": "Koden fra mailen",
+  "Send a new code": "Send en ny kode",
+  "Several codes have gone to that address in the last hour: wait a while, and look in spam too.": "Der er sendt flere koder til den adresse inden for den seneste time: vent lidt, og se også i spam.",
+  "That code isn't right, or it has run out: send a new one.": "Koden er ikke rigtig, eller den er udløbet: send en ny.",
   "1 bottle without a known grape isn't placed.": "1 flaske uden kendt drue er ikke placeret.",
   "Style at a glance": "Stil i korte træk",
   "Serve at {0}": "Serveres ved {0}",

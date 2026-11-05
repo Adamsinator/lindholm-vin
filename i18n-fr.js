@@ -1,6 +1,14 @@
 // French for allwine.dk: i18n.js loads the one dictionary the page's language needs (English is the source text).
 window.I18N_DICT = window.I18N_DICT || {};
 window.I18N_DICT.fr = {
+  "Type the 6-digit code from the email.": "Saisissez le code à 6 chiffres reçu par e-mail.",
+  "Sending a code to {0}…": "Envoi d'un code à {0}…",
+  "We sent a 6-digit code to {0}. It can take a minute; look in spam too.": "Nous avons envoyé un code à 6 chiffres à {0}. Cela peut prendre une minute ; regardez aussi dans les spams.",
+  "Only the owner sees it, to know who signed up. A code is mailed to it, to check it's yours.": "Seul le propriétaire la voit, pour savoir qui s'est inscrit. Un code y est envoyé, pour vérifier qu'elle est à vous.",
+  "The code from the email": "Le code reçu par e-mail",
+  "Send a new code": "Envoyer un nouveau code",
+  "Several codes have gone to that address in the last hour: wait a while, and look in spam too.": "Plusieurs codes ont été envoyés à cette adresse dans l'heure : patientez un peu, et regardez aussi dans les spams.",
+  "That code isn't right, or it has run out: send a new one.": "Ce code n'est pas bon, ou il a expiré : envoyez-en un nouveau.",
   "1 bottle without a known grape isn't placed.": "1 bouteille sans cépage connu n'est pas placée.",
   "Style at a glance": "Le style en bref",
   "Serve at {0}": "Servir à {0}",

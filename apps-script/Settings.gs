@@ -38,6 +38,10 @@ var SETTINGS = {
   // Where the daily check (run installDailyReport once) sends its alerts: '' = the Google account that owns the script.
   REPORT_EMAIL: '',
 
+  // Sign-up proves the email address (API 54): a 6-digit code is mailed to it, from the Google account that owns the
+  // script (a free Gmail account may send about 100 a day). '' = on; 'off' = sign up without it.
+  VERIFY_EMAIL: '',
+
   // Who may correct vineyard holdings in the Burgundy atlas: '' = anyone signed in,
   // or a comma-separated list of usernames, e.g. 'adam,anna'.
   ATLAS_EDITORS: '',

@@ -16,8 +16,8 @@
 
 const MAX_BODY = 12000000;                                        // as REQUEST_MAX in Code.gs
 const LIMITS = { all: [120, 60], auth: [10, 60] };                // [requests, seconds] per IP, as in wrangler.toml
-const AUTH_ACTIONS = new Set(["prelogin", "login", "signup", "recoverstart", "recover"]);
-const HUMAN_ACTIONS = new Set(["signup", "recover"]);             // the ones that create or take over an account
+const AUTH_ACTIONS = new Set(["prelogin", "login", "emailcode", "signup", "recoverstart", "recover"]);
+const HUMAN_ACTIONS = new Set(["emailcode", "signup", "recover"]); // the ones that create or take over an account, or send mail
 const DEFAULT_ORIGINS = "https://allwine.dk,https://www.allwine.dk";
 
 // the fallback limiter: a fixed window per key, in this instance's memory

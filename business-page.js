@@ -16,17 +16,20 @@
   // the tour
   const slides = [...$("slides").content.children].map(d => ({ img: d.dataset.img, phone: d.hasAttribute("data-phone"), title: d.querySelector("b").textContent.trim(), text: d.querySelector("i").textContent.trim() }));
   let at = 0;
+  // the screens in the page's language where we have them (img/business/da), else the English ones
+  const SHOTS = ["da"], src = u => { const l = window.I18N ? I18N.lang : "en"; return SHOTS.includes(l) ? u.replace("img/business/", "img/business/" + l + "/") : u; };
   function show(i, focus) {
     at = (i + slides.length) % slides.length; const s = slides[at], img = $("slideImg");
     img.classList.add("fade");
-    const swap = () => { img.src = s.img; img.alt = t(s.title) + ": " + t(s.text); img.className = s.phone ? "phone" : ""; };
+    const swap = () => { img.src = src(s.img); img.alt = t(s.title) + ": " + t(s.text); img.className = s.phone ? "phone" : ""; };
     if (matchMedia("(prefers-reduced-motion: reduce)").matches) swap(); else setTimeout(swap, 120);
     $("slideN").textContent = t("{0} of {1}").replace("{0}", at + 1).replace("{1}", slides.length);
     $("slideT").textContent = t(s.title); $("slideP").textContent = t(s.text);
     $("steps").innerHTML = slides.map((x, k) => `<li><button type="button" data-k="${k}"${k === at ? ' aria-current="true"' : ""}>${k + 1}. ${t(x.title).replace(/[<&]/g, c => c === "<" ? "&lt;" : "&amp;")}</button></li>`).join("");
     if (focus) { const b = $("steps").querySelector(`[data-k="${at}"]`); if (b) b.focus(); }
     // the next screen, fetched ahead so the click shows it at once
-    const n = new Image(); n.src = slides[(at + 1) % slides.length].img;
+    const n = new Image(); n.src = src(slides[(at + 1) % slides.length].img);
+    const hero = document.querySelector(".hero img"); if (hero) hero.src = src("img/business/inventory.jpg");
   }
   $("slideImg").addEventListener("load", () => $("slideImg").classList.remove("fade"));
   $("prev").onclick = () => show(at - 1); $("next").onclick = () => show(at + 1);

@@ -32,7 +32,7 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 const DEFAULT_SETTINGS = { ACCESS_CODE: '', SHEET_NAME: 'Ark1', SIGNUP_CODE: '', ATLAS_EDITORS: '', OWNER_USER: '', OWNER_PASSWORD: '',
-  MAX_USERS: '50', SESSION_DAYS: '30', SOCIAL: '', BACKUP_KEEP: '8', RESTORE_USER: '', RESTORE_FROM: '', GATEWAY_SECRET: '', REPORT_EMAIL: '' };
+  MAX_USERS: '50', SESSION_DAYS: '30', SOCIAL: '', BACKUP_KEEP: '8', RESTORE_USER: '', RESTORE_FROM: '', GATEWAY_SECRET: '', REPORT_EMAIL: '', VERIFY_EMAIL: '' };
 // Read at call time (not load time), so it doesn't matter in which order Apps Script loads the two files.
 function setting(key) {
   const s = (typeof SETTINGS === 'object' && SETTINGS) || {};
@@ -42,7 +42,7 @@ function setting(key) {
 // The legacy code only works once you've set a real one: the placeholder from the template is public.
 function accessCode() { const c = setting('ACCESS_CODE'); return c === 'CHANGE-ME' ? '' : c; }
 
-const API_VERSION = 53; // returned in every response; used to verify deployments
+const API_VERSION = 54; // returned in every response; used to verify deployments
 
 // Per-request spreadsheet for the authenticated user. Set in handle(); every
 // sheet helper reads it via ss(). Falls back to the bound (owner's) spreadsheet.
@@ -217,7 +217,7 @@ function handle(p) {
   CTX = null;
 
   // Account actions need no session.
-  const open = { signup: doSignup, login: doLogin, prelogin: doPrelogin, recoverstart: doRecoverStart, recover: doRecover };
+  const open = { emailcode: doEmailCode, signup: doSignup, login: doLogin, prelogin: doPrelogin, recoverstart: doRecoverStart, recover: doRecover };
   // counts from the page (which pages, how often): no session needed, nothing that names anyone
   if (p.action === 'hits') { countStats(pageHits(p.ev)); return json({ ok: true }); }
   // an error in a visitor's browser (API 44): which page, file and line, and the message, never who or anything from a cellar
@@ -327,7 +327,8 @@ function handle(p) {
         return json({ ok: true, wines: readAll() });
       // who you are: the page shows the admin page only to the owner
       case 'me':
-        return json({ ok: true, user: CTX_USER, owner: isOwnerAccount(CTX_ACCOUNT), help: helpFor(CTX_ACCOUNT), test: !!(CTX_ACCOUNT && CTX_ACCOUNT.test), social: setting('SOCIAL') === 'on' });
+        return json({ ok: true, user: CTX_USER, owner: isOwnerAccount(CTX_ACCOUNT), help: helpFor(CTX_ACCOUNT), test: !!(CTX_ACCOUNT && CTX_ACCOUNT.test), social: setting('SOCIAL') === 'on',
+          role: CTX_ACCOUNT && CTX_ACCOUNT.parent ? (CTX_ACCOUNT.role || 'staff') : '', parent: (CTX_ACCOUNT && CTX_ACCOUNT.parent) || '' });
       // this account's data key wrapped to the admin's public key (done in the browser): the admin can help it back in
       case 'escrow': {
         const u = CTX_ACCOUNT, h = adminHelpKey();
@@ -397,8 +398,14 @@ function handle(p) {
         return json({ ok: true, edits: readAtlas(true) });
       case 'upgrade':   return doUpgrade(p);
       case 'changepw':  return doChangePw(p);
-      case 'newrec':    return doNewRecovery(p);
-      case 'deleteaccount': return doDeleteAccount(p);
+      case 'newrec':    return CTX_ACCOUNT && CTX_ACCOUNT.parent ? json({ ok: false, error: 'staff-account' }) : doNewRecovery(p);
+      case 'deleteaccount': return CTX_ACCOUNT && CTX_ACCOUNT.parent ? json({ ok: false, error: 'staff-account' }) : doDeleteAccount(p);
+      case 'staffadd':  return staffAdd(p);
+      case 'stafflist': return staffList();
+      case 'staffdel':  return staffDel(p);
+      case 'staffrole': return staffRole(p);
+      // the vault's versions only (API 54): another device can ask cheaply whether anything changed
+      case 'vver':      { const r = readVault(vaultBook()), v = {}; Object.keys(r).forEach(k => { v[k] = r[k].ver; }); return json({ ok: true, vers: v }); }
       case 'shareput':  return json(sharePut(p));
       case 'shareupdate': return json(shareUpdate(p));
       case 'sharelist': return json({ ok: true, shares: shareList() });
@@ -598,7 +605,10 @@ const USERS_SHEET = 'Users';
 // hashed, the vault spreadsheet, and the migration state ('' plain, 'migrating', 'done') with the plain sheet it left.
 const USER_COLS = ['Username', 'Salt', 'Hash', 'SpreadsheetId', 'Token', 'Created',
                    'Kdf', 'KdfSalt', 'WrapKey', 'WrapRec', 'RecSalt', 'RecHash', 'VaultId', 'State', 'OldSheet', 'Email', 'LastSeen',
-                   'WrapAdmin', 'AdminKid', 'AdminPub', 'AdminKey'];
+                   'WrapAdmin', 'AdminKid', 'AdminPub', 'AdminKey', 'Role', 'Parent'];
+// Role and Parent (API 54): a staff login of a business account. Parent is the business's username; the login opens the
+// business's vault with its own password (the data key wrapped to it in the owner's browser); Role is 'staff' or
+// 'manager', which the page uses to show less (the server can't tell what's in the vault, so it can't hold it to more).
 const UCOL = {}; USER_COLS.forEach((c, i) => { UCOL[c] = i + 1; });
 
 function usersSheet() {
@@ -630,7 +640,8 @@ function findUser(username) {
                token: String(rows[i][4]), kdf: c('Kdf'), kdfSalt: c('KdfSalt'), wrapKey: c('WrapKey'), test: c('Email') === TEST_EMAIL,
                wrapRec: c('WrapRec'), recSalt: c('RecSalt'), recHash: c('RecHash'), vaultId: c('VaultId'),
                state: c('State'), oldSheet: c('OldSheet'), email: c('Email'), lastSeen: c('LastSeen'),
-               wrapAdmin: c('WrapAdmin'), adminKid: c('AdminKid'), adminPub: c('AdminPub'), adminKey: c('AdminKey') };
+               wrapAdmin: c('WrapAdmin'), adminKid: c('AdminKid'), adminPub: c('AdminPub'), adminKey: c('AdminKey'),
+               role: c('Role'), parent: c('Parent') };
     }
   }
   return null;
@@ -724,6 +735,8 @@ function signupLocked(p) {
   if (p.email === undefined) return json({ ok: false, error: 'update-site' }); // a page from before the email field
   const email = String(p.email || '').trim();
   if (email.length > 120 || !/^[^\s@]{1,64}@[^\s@]+\.[^\s@]{2,}$/.test(email)) return json({ ok: false, error: 'bad-email' });
+  // API 54: the address is proven by the code mailed to it (doEmailCode); VERIFY_EMAIL = off turns that off
+  if (verifyEmail() && !emailCodeOk(email, p.emailCode)) return json({ ok: false, error: p.emailCode ? 'bad-email-code' : 'email-code-needed' });
   if (!validKeys(p)) return json({ ok: false, error: 'bad-keys' });
   if (findUser(username)) return json({ ok: false, error: 'user-taken' });
   if (listUsers().length >= Math.max(1, Number(setting('MAX_USERS')) || 50)) return json({ ok: false, error: 'signup-full' });
@@ -733,6 +746,40 @@ function signupLocked(p) {
   if (invite) useInvite(invite, username);
   logEvent('signup', username, invite ? 'invite' : 'shared code');
   return json({ ok: true, user: username, token: token, state: 'done' });
+}
+// Sign-up's email code (API 54): six digits mailed to the address given, typed back into the sign-up form. Only with a
+// valid invite or sign-up code (so the form can't be used to mail strangers), at most 3 codes an hour to one address and
+// EMAIL_CODES_PER_HOUR in all; a code lasts 15 minutes and allows 5 tries. Mailed by MailApp from the account that runs
+// the script (a free Gmail account may send about 100 a day).
+const EMAIL_CODES_PER_HOUR = 20;
+const verifyEmail = () => setting('VERIFY_EMAIL') !== 'off';
+const evKey = email => 'ev:' + String(email).trim().toLowerCase();
+function doEmailCode(p) {
+  if (!verifyEmail()) return json({ ok: true, needed: false });
+  const shared = setting('SIGNUP_CODE'), code = String(p.code || '').trim();
+  if (!findInvite(code) && !(shared && code === shared)) { bumpCount('badinvites', 3600); return json({ ok: false, error: 'bad-invite' }); }
+  const email = String(p.email || '').trim();
+  if (email.length > 120 || !/^[^\s@]{1,64}@[^\s@]+\.[^\s@]{2,}$/.test(email)) return json({ ok: false, error: 'bad-email' });
+  if (peekCount('emailcodes') >= EMAIL_CODES_PER_HOUR || peekCount('ec' + evKey(email)) >= 3) { logEvent('rate-limit', p.user, 'email codes'); return json({ ok: false, error: 'email-busy' }); }
+  const c = scriptCache(); if (!c) return json({ ok: false, error: 'no-cache' });
+  bumpCount('emailcodes', 3600); bumpCount('ec' + evKey(email), 3600);
+  const n = String(100000 + parseInt(randToken().slice(0, 8), 16) % 900000);
+  c.put(evKey(email), JSON.stringify({ h: hashPass('ev', n), tries: 0 }), 900);
+  const L = String(p.lang || 'en');
+  const T = { da: ['AllWine: din kode er {0}', 'Din kode til AllWine er {0}.\n\nSkriv den i tilmeldingen. Den gælder i 15 minutter.\n\nHar du ikke bedt om den, kan du se bort fra denne mail.'],
+    fr: ['AllWine : votre code est {0}', 'Votre code AllWine est {0}.\n\nSaisissez-le dans l\'inscription. Il est valable 15 minutes.\n\nSi vous ne l\'avez pas demandé, ignorez ce message.'],
+    de: ['AllWine: Ihr Code ist {0}', 'Ihr AllWine-Code ist {0}.\n\nGeben Sie ihn in der Anmeldung ein. Er gilt 15 Minuten.\n\nWenn Sie ihn nicht angefordert haben, ignorieren Sie diese E-Mail.'],
+    en: ['AllWine: your code is {0}', 'Your AllWine code is {0}.\n\nType it into the sign-up. It is valid for 15 minutes.\n\nIf you did not ask for it, ignore this email.'] }[L] || null;
+  const t = T || ['AllWine: your code is {0}', 'Your AllWine code is {0}.\n\nType it into the sign-up. It is valid for 15 minutes.\n\nIf you did not ask for it, ignore this email.'];
+  MailApp.sendEmail(email, t[0].replace('{0}', n), t[1].replace('{0}', n));
+  return json({ ok: true, needed: true });
+}
+function emailCodeOk(email, given) {
+  const c = scriptCache(), k = evKey(email), raw = c && c.get(k); if (!raw || !given) return false;
+  const v = JSON.parse(raw);
+  if (v.tries >= 5) { c.remove(k); return false; }
+  if (!safeEqual(hashPass('ev', String(given).trim()), v.h)) { v.tries++; c.put(k, JSON.stringify(v), 900); return false; }
+  c.remove(k); return true;
 }
 // A new account's row and its own encrypted vault, from the keys the browser made (sign-up, and the owner's test users)
 function createAccount(username, email, p) {
@@ -863,6 +910,7 @@ function ownerRow() {
 function adminHelpKey() { const o = ownerRow(); return o && o.adminPub && o.adminKid ? { pub: o.adminPub, kid: o.adminKid } : null; }
 // what a member's browser needs to (re)wrap its key: nothing for the owner, nor once it's wrapped to the current key
 function helpFor(u) {
+  if (u && u.parent) return null;
   if (!u || !u.kdf || isOwnerAccount(u)) return undefined;
   const h = adminHelpKey();
   return h && u.adminKid !== h.kid ? h : undefined;
@@ -934,7 +982,8 @@ function doLogin(p) {
     if (!ok) return failed(p.user, 'bad-login');
     cleared(p.user);
     countStats({ login: 1 });
-    const out = { ok: true, user: u.username, token: addSession(u), wrapKey: u.wrapKey, state: u.state || 'done', help: helpFor(u), test: !!u.test };
+    const out = { ok: true, user: u.username, token: addSession(u), wrapKey: u.wrapKey, state: u.state || 'done', help: helpFor(u), test: !!u.test,
+      role: u.parent ? (u.role || 'staff') : '', parent: u.parent || '' };
     // API 53: the vault's records with the login (still sealed: only the browser's key opens them), so a new device
     // needn't ask for them in a request of its own; asked for with vault: 1
     if (p.vault && u.vaultId && out.state === 'done') { try { out.records = readVault(SpreadsheetApp.openById(u.vaultId)); } catch (e) { /* asked for again */ } }
@@ -1023,6 +1072,11 @@ function doDeleteAccount(p) {
 // An account and everything it left behind: its Drive files (trashed, so 30 days in the bin), its feed posts and
 // follows, and its name on its invite code and in the atlas. The Users row goes last.
 function removeAccount(u) {
+  // a staff login shares its business's vault: only its row goes, never the files
+  if (u.parent) { const lock0 = typeof LockService !== 'undefined' ? LockService.getScriptLock() : null; if (lock0) lock0.waitLock(20000);
+    try { const now = findUser(u.username); if (now) usersSheet().deleteRow(now.row); } finally { if (lock0) lock0.releaseLock(); }
+    return; }
+  staffOf(u.username).forEach(s => removeAccount(s));
   const masterId = SpreadsheetApp.getActiveSpreadsheet().getId();
   const lock = typeof LockService !== 'undefined' ? LockService.getScriptLock() : null;
   if (lock) lock.waitLock(20000);
@@ -1052,6 +1106,58 @@ function removeAccount(u) {
     const now = findUser(u.username); // the row may have moved while we waited for the lock
     if (now) usersSheet().deleteRow(now.row);
   } finally { if (lock) lock.releaseLock(); }
+}
+
+// ── staff logins of a business account (API 54) ──
+// The owner of a business account adds them from its Sales & accounts page: the browser, holding the owner's password,
+// unwraps the business's data key and wraps it to the new login's password, so the vault stays readable only in a
+// browser. A staff login has no recovery code (the owner adds it again) and no account of its own to delete.
+const STAFF_MAX = 10;
+const STAFF_ROLES = ['staff', 'manager'];
+const staffOf = parent => readUsers().filter(x => normUser(x.parent) === normUser(parent));
+function staffOwner(p) {
+  const u = CTX_ACCOUNT;
+  if (!u || !u.kdf || u.state !== 'done') return [null, 'no-account'];
+  if (u.parent) return [null, 'staff-account'];
+  if (lockedOut(u.username)) return [null, 'locked'];
+  if (!p.oldAuth || !safeEqual(hashPass(u.salt, p.oldAuth), u.hash)) { failed(u.username, 'bad-login'); return [null, 'bad-login']; }
+  return [u, ''];
+}
+function staffAdd(p) {
+  const [u, err] = staffOwner(p); if (!u) return json({ ok: false, error: err });
+  const name = String(p.member || '').trim();
+  if (!/^[a-zA-Z0-9_.-]{3,24}$/.test(name)) return json({ ok: false, error: 'bad-username' });
+  if (!STAFF_ROLES.includes(String(p.role))) return json({ ok: false, error: 'bad-role' });
+  const ok = v => /^[A-Za-z0-9+/=]{16,200}$/.test(String(v || ''));
+  if (!ok(p.auth) || !ok(p.wrapKey) || !ok(p.kdfSalt) || !p.kdf) return json({ ok: false, error: 'bad-keys' });
+  const lock = typeof LockService !== 'undefined' ? LockService.getScriptLock() : null; if (lock) lock.waitLock(20000);
+  try {
+    if (findUser(name)) return json({ ok: false, error: 'user-taken' });
+    if (staffOf(u.username).length >= STAFF_MAX) return json({ ok: false, error: 'staff-full' });
+    const salt = randToken(), row = new Array(USER_COLS.length).fill(''), put = (k, v) => { row[UCOL[k] - 1] = v; };
+    put('Username', name); put('Salt', salt); put('Hash', hashPass(salt, p.auth)); put('SpreadsheetId', u.vaultId); put('Created', today());
+    put('Kdf', String(p.kdf)); put('KdfSalt', String(p.kdfSalt)); put('WrapKey', String(p.wrapKey)); put('VaultId', u.vaultId); put('State', 'done');
+    put('Role', String(p.role)); put('Parent', u.username);
+    usersSheet().appendRow(row);
+  } finally { if (lock) lock.releaseLock(); }
+  logEvent('staff', u.username, 'added ' + name);
+  return staffList();
+}
+function staffList() {
+  const u = CTX_ACCOUNT; if (!u || u.parent) return json({ ok: false, error: u ? 'staff-account' : 'no-account' });
+  return json({ ok: true, staff: staffOf(u.username).map(s => ({ user: s.username, role: s.role || 'staff', lastSeen: String(s.lastSeen || '').slice(0, 10) })) });
+}
+function staffMember(p) { const u = CTX_ACCOUNT, s = findUser(p.member); return u && !u.parent && s && normUser(s.parent) === normUser(u.username) ? s : null; }
+function staffDel(p) {
+  const s = staffMember(p); if (!s) return json({ ok: false, error: 'no-member' });
+  removeAccount(s); logEvent('staff', CTX_USER, 'removed ' + s.username);
+  return staffList();
+}
+function staffRole(p) {
+  const s = staffMember(p); if (!s) return json({ ok: false, error: 'no-member' });
+  if (!STAFF_ROLES.includes(String(p.role))) return json({ ok: false, error: 'bad-role' });
+  setUser(s, 'Role', String(p.role));
+  return staffList();
 }
 
 // Forgotten password: the recovery code unwraps the data key in the browser (the server hands out the wrapped key
@@ -1146,7 +1252,7 @@ function authToken(p) {
 // The owner: the account whose cellar is (or was, before encryption) this bound spreadsheet
 function isOwnerAccount(u) {
   const master = SpreadsheetApp.getActiveSpreadsheet().getId();
-  return !!u && (u.spreadsheetId === master || u.oldSheet === master);
+  return !!u && !u.parent && (u.spreadsheetId === master || u.oldSheet === master); // a staff login is never the owner
 }
 
 // Run ONCE from the editor to give yourself an account whose cellar is THIS (the bound) spreadsheet, so your
@@ -2260,6 +2366,7 @@ function backupNow() {
   copy(masterId, 'master');
   let n = 0, failed = 0;
   readUsers().forEach(u => {
+    if (u.parent) return; // a staff login's vault is its business's, copied with it
     const ids = {};
     if (u.vaultId) ids[u.vaultId] = 'vault';
     if (u.spreadsheetId && u.spreadsheetId !== masterId && !ids[u.spreadsheetId]) ids[u.spreadsheetId] = 'cellar';

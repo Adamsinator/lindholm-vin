@@ -200,6 +200,32 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   await p.evaluate(() => { window.print = () => { window.__po = document.getElementById("bzOrders").textContent; }; });
   await p.click("#bzOrderPrint"); await p.waitForTimeout(200);
   check("…and printed, a page per supplier", /Order: Vinimportøren/.test(await p.evaluate(() => window.__po || "")) && /Armand Rousseau Clos St-Jacques 2016\s*5/.test(await p.evaluate(() => window.__po || "")));
+  // the order has come: the bottles ordered are added to the stock
+  await p.click('#bizPanel [data-recv="Vinimportøren"]'); await p.waitForTimeout(1500);
+  check("an order that has come: Rousseau back to its minimum of 6", await p.evaluate(() => WINES.find(w => w.producer === "Armand Rousseau").left === 6) && !/To reorder/.test(await p.textContent("#bizPanel")));
+  await p.evaluate(async () => { const w = WINES.find(x => x.producer === "Armand Rousseau"); WINES = normalize((await api({ action: "setstock", row: w.row, left: 1 })).wines); renderOverview(); });
+  // goods in: a delivery, wine by wine, with the new cost price
+  await p.click('.tab[data-page="inventory"]'); await p.waitForTimeout(300);
+  await p.click('[data-bz="goods"]'); await p.waitForSelector("#bzGoods.open", { timeout: 3000 });
+  await p.fill("#bzGoodsQ", "bolli"); await p.waitForTimeout(150);
+  check("Goods in: a search finds the wine", (await p.$$("#bzGoodsB tr")).length === 1 && /Bollinger/.test(await p.textContent("#bzGoodsB")));
+  const bo = await p.evaluate(() => WINES.find(w => w.producer === "Bollinger").row);
+  await p.fill(`[data-gin="${bo}"]`, "6"); await p.fill(`[data-gcost="${bo}"]`, "420"); await p.click(`[data-gadd="${bo}"]`); await p.waitForTimeout(1500);
+  const bw = await p.evaluate(async () => normalize((await api({ action: "data" })).wines).find(w => w.producer === "Bollinger"));
+  check("…6 bottles came at 420: 8 in stock, the cost 420", bw.left === 8 && bw.price === 420, JSON.stringify([bw.left, bw.price]));
+  await p.keyboard.press("Escape"); await p.waitForTimeout(150);
+  // the count: what's on the shelf, the differences, then saved
+  await p.click('[data-bz="count"]'); await p.waitForSelector("#bzCount.open", { timeout: 3000 });
+  await p.fill(`[data-cnt="${bo}"]`, "7"); await p.waitForTimeout(100);
+  const lf = await p.evaluate(() => WINES.find(w => w.producer === "Domaine Leflaive").row);
+  await p.fill(`[data-cnt="${lf}"]`, String(await p.evaluate(() => WINES.find(w => w.producer === "Domaine Leflaive").left)));
+  check("the count shows each difference and the sum: Bollinger 1 short (−420 kr. at cost), Leflaive right", /^-1$|^−1$/.test((await p.textContent(`[data-dif="${bo}"]`)).trim().replace("−", "-")) && (await p.textContent(`[data-dif="${lf}"]`)).trim() === "✓"
+    && /2 counted · 1 differ · -1 bottles · -420 kr\./.test(await p.textContent("#bzCountSum")), await p.textContent("#bzCountSum"));
+  const [cdl] = await Promise.all([p.waitForEvent("download", { timeout: 5000 }), p.click('[data-bz="ccsv"]')]);
+  const ccsv = require("fs").readFileSync(await cdl.path(), "utf8");
+  check("…downloaded as a CSV", /Bollinger;.*;8;7;-1;420/.test(ccsv), ccsv.slice(0, 300));
+  await p.click('[data-bz="csave"]'); await p.waitForTimeout(1500);
+  check("…and saved: Bollinger 7 in stock", (await p.evaluate(async () => normalize((await api({ action: "data" })).wines).find(w => w.producer === "Bollinger").left)) === 7 && !(await p.isVisible("#bzCount")));
   await p.click('.tab[data-page="cellar"]'); await p.waitForTimeout(300);
 
   // the card online, behind a QR code: it follows the prices by itself, under the same link
