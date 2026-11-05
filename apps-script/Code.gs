@@ -42,7 +42,7 @@ function setting(key) {
 // The legacy code only works once you've set a real one: the placeholder from the template is public.
 function accessCode() { const c = setting('ACCESS_CODE'); return c === 'CHANGE-ME' ? '' : c; }
 
-const API_VERSION = 54; // returned in every response; used to verify deployments
+const API_VERSION = 55; // returned in every response; used to verify deployments
 
 // Per-request spreadsheet for the authenticated user. Set in handle(); every
 // sheet helper reads it via ss(). Falls back to the bound (owner's) spreadsheet.
@@ -735,7 +735,7 @@ function signupLocked(p) {
   if (p.email === undefined) return json({ ok: false, error: 'update-site' }); // a page from before the email field
   const email = String(p.email || '').trim();
   if (email.length > 120 || !/^[^\s@]{1,64}@[^\s@]+\.[^\s@]{2,}$/.test(email)) return json({ ok: false, error: 'bad-email' });
-  // API 54: the address is proven by the code mailed to it (doEmailCode); VERIFY_EMAIL = off turns that off
+  // API 54: with VERIFY_EMAIL 'on', the address is proven by the code mailed to it (doEmailCode)
   if (verifyEmail() && !emailCodeOk(email, p.emailCode)) return json({ ok: false, error: p.emailCode ? 'bad-email-code' : 'email-code-needed' });
   if (!validKeys(p)) return json({ ok: false, error: 'bad-keys' });
   if (findUser(username)) return json({ ok: false, error: 'user-taken' });
@@ -752,7 +752,7 @@ function signupLocked(p) {
 // EMAIL_CODES_PER_HOUR in all; a code lasts 15 minutes and allows 5 tries. Mailed by MailApp from the account that runs
 // the script (a free Gmail account may send about 100 a day).
 const EMAIL_CODES_PER_HOUR = 20;
-const verifyEmail = () => setting('VERIFY_EMAIL') !== 'off';
+const verifyEmail = () => setting('VERIFY_EMAIL') === 'on'; // off unless switched on: no mail goes out from the owner's account by itself
 const evKey = email => 'ev:' + String(email).trim().toLowerCase();
 function doEmailCode(p) {
   if (!verifyEmail()) return json({ ok: true, needed: false });

@@ -38,8 +38,8 @@ var SETTINGS = {
   // Where the daily check (run installDailyReport once) sends its alerts: '' = the Google account that owns the script.
   REPORT_EMAIL: '',
 
-  // Sign-up proves the email address (API 54): a 6-digit code is mailed to it, from the Google account that owns the
-  // script (a free Gmail account may send about 100 a day). '' = on; 'off' = sign up without it.
+  // Sign-up can prove the email address (API 54): with 'on', a 6-digit code is mailed to it from the Google account that
+  // owns the script (a free Gmail account may send about 100 a day). '' = off: no code, and no mail sent.
   VERIFY_EMAIL: '',
 
   // Who may correct vineyard holdings in the Burgundy atlas: '' = anyone signed in,
