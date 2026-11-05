@@ -44,7 +44,7 @@ left edges are gone, the business buttons have words, not emoji. Still to do:
 
 ## Housekeeping: index.html's size (raised 5 November 2026)
 
-index.html is at its 280 KB budget (gzipped, everything needed before the cellar shows). Move the owner's admin code
+index.html was at its 280 KB budget; the owner's admin code now lives in admin.js, loaded when Admin is opened (271 KB).
 (the admin panel, usage, account help, test users) out of app.js into admin.js, loaded only when the owner opens Admin.
 
 ## Feedback after testing (5 November 2026) — to work through before the business pages
