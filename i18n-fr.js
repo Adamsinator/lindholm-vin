@@ -1,6 +1,16 @@
 // French for allwine.dk: i18n.js loads the one dictionary the page's language needs (English is the source text).
 window.I18N_DICT = window.I18N_DICT || {};
 window.I18N_DICT.fr = {
+  "Keeps, typically, in years after the vintage: {0}.": "Garde, en général, en années après le millésime : {0}.",
+  "The wines": "Les vins",
+  "Tannin": "Tanins",
+  "poor": "faible",
+  "mixed": "inégal",
+  "good": "bon",
+  "very good": "très bon",
+  "outstanding": "exceptionnel",
+  "Keeps: typically {0}–{1} years after the vintage ({2}).": "Garde : en général {0} à {1} ans après le millésime ({2}).",
+  "1–5: AllWine's rough consensus of the published vintage charts; a guide to the year, not to a bottle.": "1 à 5 : le consensus approximatif d'AllWine des tableaux de millésimes publiés ; un repère pour l'année, pas pour une bouteille.",
   "Hungary": "Hongrie",
   "Slovenia": "Slovénie",
   "Greece": "Grèce",

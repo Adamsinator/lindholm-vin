@@ -1,6 +1,16 @@
 // German for allwine.dk: i18n.js loads the one dictionary the page's language needs (English is the source text).
 window.I18N_DICT = window.I18N_DICT || {};
 window.I18N_DICT.de = {
+  "Keeps, typically, in years after the vintage: {0}.": "Haltbarkeit, meist, in Jahren nach dem Jahrgang: {0}.",
+  "The wines": "Die Weine",
+  "Tannin": "Tannin",
+  "poor": "schwach",
+  "mixed": "gemischt",
+  "good": "gut",
+  "very good": "sehr gut",
+  "outstanding": "herausragend",
+  "Keeps: typically {0}–{1} years after the vintage ({2}).": "Haltbarkeit: meist {0}–{1} Jahre nach dem Jahrgang ({2}).",
+  "1–5: AllWine's rough consensus of the published vintage charts; a guide to the year, not to a bottle.": "1–5: AllWines grober Konsens der veröffentlichten Jahrgangstabellen; ein Anhaltspunkt für das Jahr, nicht für eine Flasche.",
   "Hungary": "Ungarn",
   "Slovenia": "Slowenien",
   "Greece": "Griechenland",

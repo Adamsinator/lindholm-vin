@@ -52,6 +52,12 @@ index.html is at its 280 KB budget (gzipped, everything needed before the cellar
 1. Kom i gang: "Tilføj vin" in quotation marks, so the sentence reads right.
 2. "Pas på din gendannelseskode": rewrite now that the owner can help a member back in.
 3. The region atlases closer to the Côte d'Or one (more of its tools on every region).
+   *Done (round F, 5 November 2026):* each region's panel now has "The wines": the grapes of the appellations on its
+   map, each with body, acidity and tannin as bars and its typical aromas; how long the longest-lived appellations
+   on the map keep; and, where AllWine has a chart for the region itself, its last 16 vintages as a strip (Bordeaux's
+   Left and Right Bank and Sauternes, Champagne, the northern and southern Rhône, German Riesling). The atlases
+   already had the vineyard comparison, the terrain search, the slope profile and the geology. Still the Côte d'Or's
+   own: owners and producers (no open data for the other regions), the vintage chart per côte, the rotating map.
 4. Add wine: classifications beyond the French, by country/region.
 5. Add wine: port (and other fortified wines) as a choice.
 6. Add wine: "a gift" (no price).
@@ -62,7 +68,13 @@ index.html is at its 280 KB budget (gzipped, everything needed before the cellar
 11. Natural wine: a mark/check.
 12. Wine style: sweet/dry, acidity, oak and so on.
 13. Enjoyed: the food with it, and how the pairing went.
-14. winefolly.com: what it does well that we could do too.
+14. winefolly.com: what it does well that we could do too. (Looked at for ideas only; nothing is copied, and what we
+    build is drawn from our own data.) What it does well is make a wine's style visible at a glance: a few graded
+    traits as bars, aromas as words, maps that say what grows where, and food matches by style. Taken up so far: the
+    atlas's grape bars and aromas (round F), the sommelier's dishes for a wine (round E). Still open: a wine's style
+    card in its details in the cellar (from its grape and region), a "find wines like this one" from those traits, a
+    simple chart of the cellar by style (light to full, dry to sweet), and serving cards (glass, temperature, decant)
+    printable for a dinner.
 15. Sommelier: fewer suggestions at first and when it doesn't know; more varied replies; more knowledge; small
     talk (the time); remember the conversation, so a follow-up question builds on the last.
     *Done (round E):* three suggestions to start and two when it doesn't know, chips that follow the last answer
