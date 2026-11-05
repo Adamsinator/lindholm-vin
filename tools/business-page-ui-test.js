@@ -39,7 +39,7 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   // Danish
   await p.evaluate(() => I18N.setLang("da")); await p.waitForTimeout(600);
   check("in Danish: the page, the tour and the prices", /Jeres vin, fra kælderen til glasset/.test(await p.textContent("h1")) && /^(Vinkortet|Lager|Hurtigsalg|På en telefon|Det gæsten ser)$/.test((await slide())[0])
-    && /om måneden, ekskl\. moms/.test(await p.textContent("#plans")) && /af 10/.test((await slide())[2]), (await slide()).join(" | "));
+    && /Pris efter aftale/.test(await p.textContent("#plans")) && /af 10/.test((await slide())[2]), (await slide()).join(" | "));
   await p.evaluate(() => I18N.setLang("en")); await p.waitForTimeout(300);
   // a phone
   await p.setViewportSize({ width: 390, height: 844 }); await p.waitForTimeout(300);

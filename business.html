@@ -7,10 +7,10 @@
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <!-- not in the menus or search engines until business accounts open (app.js BIZ_OPEN) and the prices are settled -->
 <meta name="robots" content="noindex">
-<meta name="i18n-extra" content="business-page-i18n-da.js?v=1 business-page-i18n-fr.js?v=1 business-page-i18n-de.js?v=1">
+<meta name="i18n-extra" content="business-page-i18n-da.js?v=2 business-page-i18n-fr.js?v=2 business-page-i18n-de.js?v=2">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>AllWine for business</title>
-<meta name="description" content="AllWine for restaurants, wine bars, wine merchants and winemakers: the stock, the sales and the wine card in one place.">
+<meta name="description" content="AllWine for restaurants, wine bars, wine merchants and winemakers: the stock, the sales and the wine card in one place. Price on request.">
 <link rel="icon" href="logo.svg" type="image/svg+xml">
 <style>
 :root{--bg:#F7F4F1;--card:#FFFFFF;--ink:#2A2126;--muted:#756A70;--line:#E7DFDD;--accent:#7C2D3E;--gold:#A87E2F;--chip:#F1EBE6}
@@ -54,7 +54,7 @@ h2{font-size:28px;margin:44px 0 6px} .sub{color:var(--muted);margin:0 0 16px}
 .plans{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
 .plan{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:6px}
 .plan.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
-.plan h3{margin:0;font-size:17px} .plan .price{font-family:"Iowan Old Style",Georgia,serif;font-size:32px;font-weight:600;line-height:1.1}
+.plan h3{margin:0;font-size:17px} .plan .price{font-family:"Iowan Old Style",Georgia,serif;font-size:26px;font-weight:600;line-height:1.1}
 .plan .price small{font:14px system-ui,sans-serif;color:var(--muted)} .plan ul{margin:6px 0 0;padding-left:18px;font-size:14.5px} .plan li{margin:3px 0}
 .note{color:var(--muted);font-size:13.5px}
 .faq{display:grid;gap:8px} .faq details{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 14px} .faq summary{cursor:pointer;font-weight:600}
@@ -130,19 +130,19 @@ h2{font-size:28px;margin:44px 0 6px} .sub{color:var(--muted);margin:0 0 16px}
 </template>
 
 <h2 id="prices" data-i18n>Prices</h2>
-<p class="sub" data-i18n>One price a month per business, everything included. No set-up fee, no binding: stop when you like and take your data with you.</p>
+<p class="sub" data-i18n>A price for your business, everything included: tell us what you need and we'll make you an offer. No set-up fee, no binding, and your data is always yours to take with you.</p>
 <div class="plans" id="plans">
   <div class="plan" data-plan="private"><h3 data-i18n>Private cellar</h3><div class="price"><span data-i18n>Free</span></div>
     <ul><li data-i18n>The cellar, the journal and the wishlist</li><li data-i18n>The sommelier and the wine atlas</li><li data-i18n>Encrypted, exportable</li></ul></div>
-  <div class="plan on" data-plan="restaurant"><h3 data-i18n>Restaurant or wine bar</h3><div class="price">149 kr. <small data-i18n>a month, VAT excluded</small></div>
+  <div class="plan on" data-plan="restaurant"><h3 data-i18n>Restaurant or wine bar</h3><div class="price"><span data-i18n>Price on request</span></div>
     <ul><li data-i18n>Inventory and quick sell, by the bottle and the glass</li><li data-i18n>Sales and accounts, the month's CSV</li><li data-i18n>The wine card, printed and online with QR</li><li data-i18n>Reorder lists and orders by supplier</li></ul></div>
-  <div class="plan" data-plan="merchant"><h3 data-i18n>Wine merchant</h3><div class="price">199 kr. <small data-i18n>a month, VAT excluded</small></div>
+  <div class="plan" data-plan="merchant"><h3 data-i18n>Wine merchant</h3><div class="price"><span data-i18n>Price on request</span></div>
     <ul><li data-i18n>Inventory and sales</li><li data-i18n>Sales and accounts, the month's CSV</li><li data-i18n>The price list, printed and online with QR</li><li data-i18n>Reorder lists and orders by supplier</li></ul></div>
-  <div class="plan" data-plan="winemaker"><h3 data-i18n>Winemaker</h3><div class="price">99 kr. <small data-i18n>a month, VAT excluded</small></div>
+  <div class="plan" data-plan="winemaker"><h3 data-i18n>Winemaker</h3><div class="price"><span data-i18n>Price on request</span></div>
     <ul><li data-i18n>Your own wines by vintage</li><li data-i18n>Cellar-door sales and accounts</li><li data-i18n>The price list, printed and online with QR</li><li data-i18n>Stock by location</li></ul></div>
 </div>
-<p class="note" data-i18n>Introductory prices: the first three months are free, and a year paid at once costs ten months. Business accounts open soon: write to us and we'll set yours up.</p>
-<div class="cta"><a class="btn primary" id="mailUs" href="mailto:info@allwine.dk?subject=AllWine%20for%20business" data-i18n>Write to us</a><a class="btn" href="./" data-i18n>Open AllWine</a></div>
+<p class="note" data-i18n>Business accounts open soon. Write to us with a word about your business, and we'll send you a price and set your account up.</p>
+<div class="cta"><a class="btn primary" id="mailUs" href="mailto:info@allwine.dk?subject=AllWine%20for%20business" data-i18n>Ask for a price</a><a class="btn" href="./" data-i18n>Open AllWine</a></div>
 
 <h2 data-i18n>Questions</h2>
 <div class="faq">
