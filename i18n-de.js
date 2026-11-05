@@ -1,6 +1,22 @@
 // German for allwine.dk: i18n.js loads the one dictionary the page's language needs (English is the source text).
 window.I18N_DICT = window.I18N_DICT || {};
 window.I18N_DICT.de = {
+  "Hungary": "Ungarn",
+  "Slovenia": "Slowenien",
+  "Greece": "Griechenland",
+  "Slovakia": "Slowakei",
+  "Luxembourg": "Luxemburg",
+  "Romania": "Rumänien",
+  "Bulgaria": "Bulgarien",
+  "Serbia": "Serbien",
+  "North Macedonia": "Nordmazedonien",
+  "Moldova": "Moldau",
+  "Montenegro": "Montenegro",
+  "Bosnia and Herzegovina": "Bosnien und Herzegowina",
+  "Albania": "Albanien",
+  "Beyond the map:": "Außerhalb der Karte:",
+  "No country": "Kein Land",
+  "wines with no country set": "Weine ohne angegebenes Land",
   "Food": "Essen",
   "(optional: what you ate with it)": "(optional: was Sie dazu gegessen haben)",
   "e.g. roast lamb": "z. B. Lammbraten",
