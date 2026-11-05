@@ -452,6 +452,7 @@ function renderOverview(){
   const cellar = WINES.filter(w=>w.left>0);
   renderRack(cellar);
   if(window.BIZ) BIZ.overview(cellar); // a business account's figures (business.js); gone again for a private one
+  renderTaste(cellar);
   const bottlesLeft = cellar.reduce((s,w)=>s+w.left,0);
   const drunk = WINES.reduce((s,w)=>s+w.drunk,0);
   const iconWines = cellar.filter(w=>PRODUCER_NOTES[w.producer]?.[0]==="legend");
@@ -961,7 +962,7 @@ syncOverview();
 /* The overview's panels: which show, and in what order. A calm default of a few; "Customise" moves, removes and adds
    them. Saved per account on this device and, for an encrypted account, in its vault (encrypted), so the layout follows
    to the phone. Only what shows changes: the wines don't. */
-const PANEL_DEFAULT = { overview: ["rack","insights","press","regions","map","vintages","worth"], eOverview: ["estyles","eproducers","etime"] };
+const PANEL_DEFAULT = { overview: ["rack","insights","press","regions","map","taste","vintages","worth"], eOverview: ["estyles","eproducers","etime"] };
 let LAYOUT = {}, layoutT = null;
 const layoutKey = () => "vinLayout:" + String(cfg.user||"").toLowerCase();
 // the overview's panels; the rack is one of them even while a narrow screen shows it above the figures
@@ -1209,6 +1210,7 @@ function detailHTML(w){
   return `<div class="dgrid">${cells}</div>
     ${w.note?`<div class="unote">“${esc(w.note)}” — ${esc(tr("cellar note"))}</div>`:""}
     ${pn?`<div class="pnote"><b>${esc(w.producer)}</b> · ${esc(tr(TIER_LABEL[pn[0]]))} — ${esc(noteText(pn[1]))}</div>`:""}
+    <div class="wstyle" data-row="${w.row}"></div>
     ${isBiz() ? "" : journalHTML(w)}
     ${isBiz() ? BIZ.detail(w) : ""}
     <div class="links">
@@ -1312,6 +1314,7 @@ function renderTable(){
     if(state.region && w.region!==state.region) return false;
     if(state.closes && !closesIn(w, state.closes)) return false;
     if(state.style && w.style!==state.style) return false;
+    if(state.tasteRows && !state.tasteRows.has(w.row)) return false;
     if(state.loc && (state.loc==="-" ? w.location : locPlace(w.location)!==state.loc)) return false;
     if(state.ready){
       const rd = readiness(w);
@@ -1348,7 +1351,7 @@ function renderTable(){
   if(state.closes){ const b = closeBuckets(new Date().getFullYear()).find(x=>x.k===state.closes);
     countTxt += " · " + tr("window closes {0}", b ? (/^\d/.test(b.label) ? b.label : b.label.toLowerCase()) : state.closes); }
   $("count").textContent = countTxt;
-  $("clear").classList.toggle("show", !!(q||state.country||state.region||state.style||state.ready||state.loc||state.closes||state.status!=="cellar"));
+  $("clear").classList.toggle("show", !!(q||state.country||state.region||state.style||state.ready||state.loc||state.closes||state.tasteRows||state.status!=="cellar"));
   document.querySelectorAll("#press .kbar[data-closes]").forEach(el=>el.classList.toggle("active", el.dataset.closes===state.closes));
   drawDrinkTimeline(list);
 
@@ -1444,7 +1447,29 @@ function moreRow(total, shown, cols, tbl){
     <button type="button" class="btn" data-tbl="${tbl}">${esc(tr("Show {0} more", fmt(step)))}</button>
     <button type="button" class="btn quiet" data-tbl="${tbl}" data-all="1">${esc(tr("Show all"))}</button></td></tr>`;
 }
+// a wine's style at a glance, wines like it, a serving card; and the cellar by taste (style.js, with the sommelier's
+// grape data): fetched the first time a wine's details open or the panel comes into view, not with the page
+let STYLE_LOAD = null;
+function styleReady(){
+  return STYLE_LOAD = STYLE_LOAD || [!window.WINE_KB && "wine-kb.js?v=2", !window.SOMM_DATA && "sommelier-data.js?v=6", !window.STYLE && "style.js?v=1"]
+    .filter(Boolean).reduce((p, src)=>p.then(()=>loadJS(src)), Promise.resolve()).catch(e=>{ STYLE_LOAD = null; throw e; });
+}
+function styleFill(root){
+  const box = root.querySelector(".wstyle:empty"); if(!box) return;
+  styleReady().then(()=>{ if(box.isConnected) STYLE.fill(box); }).catch(()=>box.remove());
+}
+let TASTE_SEEN = false;
+function renderTaste(cellar){
+  const el = $("tasteMap"); if(!el) return;
+  const draw = ()=>styleReady().then(()=>STYLE.tasteMap(el, WINES)).catch(()=>{});
+  if(TASTE_SEEN) return draw();
+  // drawn when it scrolls into view (the grape data isn't fetched for a panel nobody looks at)
+  if(!("IntersectionObserver" in window)){ TASTE_SEEN = true; return draw(); }
+  const io = new IntersectionObserver(es=>{ if(es.some(e=>e.isIntersecting)){ io.disconnect(); TASTE_SEEN = true; draw(); } });
+  io.observe(el);
+}
 function bindDetail(root){
+  styleFill(root);
   root.querySelectorAll("button.drink").forEach(b=>
     b.addEventListener("click",()=>rowAction(b.dataset.act, Number(b.dataset.row), b)));
   root.querySelectorAll("select.rate").forEach(sel=>
@@ -2613,7 +2638,8 @@ $("fStyle").addEventListener("change",e=>{ state.style=e.target.value; renderTab
 $("fStatus").addEventListener("change",e=>{ state.status=e.target.value; renderTable(); });
 $("fReady").addEventListener("change",e=>{ state.ready=e.target.value; renderTable(); });
 $("clear").addEventListener("click",()=>{
-  state.q=state.country=state.region=state.style=state.ready=state.loc=state.closes=""; state.status="cellar";
+  state.q=state.country=state.region=state.style=state.ready=state.loc=state.closes=""; state.status="cellar"; state.tasteRows=null; state.tasteKey="";
+  document.querySelectorAll("#tasteMap .tc.on").forEach(x=>x.classList.remove("on"));
   $("q").value=""; $("fCountry").value=""; $("fRegion").value=""; $("fStyle").value=""; $("fStatus").value="cellar"; $("fReady").value=""; $("fLoc").value=""; renderTable(); });
 document.querySelectorAll("th[data-k]").forEach(th=>th.addEventListener("click",()=>{
   const k=th.dataset.k;
