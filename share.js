@@ -12,7 +12,7 @@ const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": 
 const main = document.getElementById("main");
 const lang = () => (window.I18N ? I18N.lang : "en");
 const day = ms => new Date(ms).toLocaleDateString(lang() === "en" ? "en-GB" : lang(), { day: "numeric", month: "long", year: "numeric" });
-const STYLE = { "Rød": "Red", "Hvid": "White", "Rosé": "Rosé", "Bobler": "Sparkling" }; // as app.js names them
+const STYLE = { "Rød": "Red", "Hvid": "White", "Rosé": "Rosé", "Bobler": "Sparkling", "Hedvin": "Fortified" }; // as app.js names them
 // the cellar keeps countries in Danish, as the spreadsheet has them; shown here in the page's language
 const CTRY = { "Frankrig": "France", "Italien": "Italy", "Tyskland": "Germany", "Spanien": "Spain", "Portugal": "Portugal", "Østrig": "Austria", "Danmark": "Denmark" };
 const kr = n => n == null || n === "" || isNaN(n) ? "" : new Intl.NumberFormat("da-DK", { maximumFractionDigits: 0 }).format(Number(n)) + " kr."; // as the cellar writes it
@@ -22,7 +22,7 @@ let LIST = null, META = null;
 
 function state(msg) { main.innerHTML = `<div class="state">${esc(msg)}</div>`; }
 // the card as a guest sees it: by colour, then region, with the prices; a search on top for a long list
-const ORDER = ["Bobler", "Hvid", "Rosé", "Rød"];
+const ORDER = ["Bobler", "Hvid", "Rosé", "Rød", "Hedvin"];
 function renderCard() {
   const q = (document.getElementById("q") || {}).value || "", k = q.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
   const w = LIST.w.filter(r => !k || r.slice(0, 5).join(" ").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").includes(k));

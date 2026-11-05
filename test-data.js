@@ -43,7 +43,7 @@
     ["Tenuta San Guido", "Sassicaia", "Italien", "Toscana", "Bolgheri", "", "Rød", "Cabernet Sauvignon", 1800, 2800],
     ["López de Heredia", "Viña Tondonia Reserva", "Spanien", "Rioja", "Haro", "Reserva", "Rød", "Tempranillo", 350, 550],
     ["Vega Sicilia", "Valbuena 5°", "Spanien", "Ribera del Duero", "Valbuena de Duero", "", "Rød", "Tempranillo", 1000, 1500],
-    ["Quinta do Noval", "Vintage Port", "Portugal", "Douro", "Pinhão", "", "Rød", "Touriga Nacional", 700, 1200],
+    ["Quinta do Noval", "Vintage Port", "Portugal", "Douro", "Pinhão", "Vintage", "Hedvin", "Touriga Nacional", 700, 1200],
     ["F.X. Pichler", "Kellerberg Smaragd", "Østrig", "Wachau", "Dürnstein", "Smaragd", "Hvid", "Grüner Veltliner", 450, 700],
   ];
   const SUPPLIERS = ["Vinimportøren", "Kjærgaard", "Philipson Wine", "Laudrup Vin", "Juul's Vin", "Direkte fra producenten"];

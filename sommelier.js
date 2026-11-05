@@ -31,7 +31,7 @@ const SAY = {
     "Det kender jeg ikke endnu. Jeg kan svare om druer, appellationer, Bourgognes marker, årgange, servering, mad og vin, og din kælder.",
     "Je ne connais pas encore cela. Je peux répondre sur les cépages, les appellations, les climats de Bourgogne, les millésimes, le service, les accords et votre cave.",
     "Das weiß ich noch nicht. Ich kann Fragen zu Rebsorten, Appellationen, Burgunder Lagen, Jahrgängen, Service, Speisen und Ihrem Keller beantworten."],
-  red: ["red", "rød", "rouge", "rot"], white: ["white", "hvid", "blanc", "weiß"], rose: ["rosé", "rosé", "rosé", "Rosé"],
+  red: ["red", "rød", "rouge", "rot"], white: ["white", "hvid", "blanc", "weiß"], fortified: ["fortified", "hedvin", "vin muté", "Likörwein"], rose: ["rosé", "rosé", "rosé", "Rosé"],
   sparkling: ["sparkling", "mousserende", "effervescent", "Schaumwein"], sweet: ["sweet", "sød", "liquoreux", "süß"], fortified: ["fortified", "hedvin", "muté", "Likörwein"],
   appIs: ["<b>{0}</b> is an appellation in {1}.", "<b>{0}</b> er en appellation i {1}.", "<b>{0}</b> est une appellation de {1}.", "<b>{0}</b> ist eine Appellation in {1}."],
   madeFrom: ["{0}: {1}", "{0}: {1}", "{0} : {1}", "{0}: {1}"],
@@ -952,7 +952,7 @@ function bestVintages(lang, ents, text, ctx) {
     return p(say(lang, "bestFor", esc(c.names[lang]))) + p(top.sort((a, b) => b - a).slice(0, 10).map(y => `<b>${y}</b>`).join(" · ")); }).join("")
     + p(`<span class="sm-m">${esc(say(lang, "roughChart"))}</span>`);
 }
-function styleWord(lang, s) { return ({ "Rød": say(lang, "red"), "Hvid": say(lang, "white"), "Bobler": say(lang, "sparkling"), "Rosé": say(lang, "rose") })[s] || s; }
+function styleWord(lang, s) { return ({ "Rød": say(lang, "red"), "Hvid": say(lang, "white"), "Bobler": say(lang, "sparkling"), "Rosé": say(lang, "rose"), "Hedvin": say(lang, "fortified") })[s] || s; }
 // which wines a cellar question is about: named things, colours, a vintage, or words from producers and names
 function selectWines(text, ents, years, list, lang) {
   let out = list, label = [];

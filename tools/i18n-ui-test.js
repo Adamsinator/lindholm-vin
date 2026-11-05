@@ -73,7 +73,7 @@ const EN = /\b(the|and|your|you|with|from|click|bottles?|wines|enjoyed|cellar|(?
   // French: the Add form, and what is saved stays in the sheet's words
   await p.evaluate(() => I18N.setLang("fr")); await p.waitForTimeout(200);
   await p.click("#addBtn"); await p.waitForTimeout(200);
-  check("French: the Add form", /Producteur \*/.test(await txt("#addForm")) && (await p.$eval("#aType", s => [...s.options].map(o => o.textContent + "=" + o.value).join())) === "Rouge=Rød,Blanc=Hvid,Rosé=Rose,Effervescent=Bobler",
+  check("French: the Add form", /Producteur \*/.test(await txt("#addForm")) && (await p.$eval("#aType", s => [...s.options].map(o => o.textContent + "=" + o.value).join())) === "Rouge=Rød,Blanc=Hvid,Rosé=Rose,Effervescent=Bobler,Vin muté=Hedvin",
     await p.$eval("#aType", s => [...s.options].map(o => o.textContent + "=" + o.value).join()));
   left = await leftovers();
   check("French: no English left in the Add form", !left.length, left.slice(0, 6).join(" | "));

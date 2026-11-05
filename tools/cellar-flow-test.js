@@ -142,6 +142,17 @@ const W = async (prod, name) => (await (await wines())).find(w => w.producer ===
   check("…Enter on the second saves both, once, and the wine stays open", JSON.stringify(await ws()) === JSON.stringify([["2025", "2045"]]) && await detail("#tbl", "Giacomo Conterno").isVisible()
     && (await W("Giacomo Conterno")).drinkFrom == 2025 && (await W("Giacomo Conterno")).drinkTo == 2045, JSON.stringify(await ws()));
 
+  // 7c. the edit form counts the bottles and takes a price for all of them, split per bottle; farming too
+  await openRow("#tbl", "Giacomo Conterno"); await detail("#tbl", "Giacomo Conterno").locator("button.winfo").click(); await p.waitForTimeout(300);
+  const before = await W("Giacomo Conterno");
+  await p.fill("#iLeft", "6"); await p.fill("#iPrice", "3000"); await p.selectOption("#iPriceMode", "all"); await p.selectOption("#iFarm", "Økologisk");
+  await p.click("#iSave"); await p.waitForTimeout(1500);
+  const gc = await W("Giacomo Conterno"), gcl = await p.evaluate(() => WINES.find(w => w.producer === "Giacomo Conterno").left);
+  check("edit: 6 bottles in the cellar, 3 000 kr. for all of them is 500 kr. a bottle, organic", gcl === 6 && Number(gc.price) === 3000 / (6 + (Number(before.drunk) || 0)) && gc.farm === "Økologisk",
+    JSON.stringify({ left: gcl, price: gc.price, farm: gc.farm, drunk: before.drunk }));
+  check("…the list shows it's organic, and a search for 'organic' finds it", /Organic/.test(await p.textContent('#tbl tr.main:has-text("Giacomo Conterno")'))
+    && await p.evaluate(() => { $("q").value = state.q = "organic"; renderTable(); const n = document.querySelectorAll("#tbl tr.main").length; $("q").value = state.q = ""; renderTable(); return n === 1; }));
+
   // 8. fill in classifications the app can tell from names (and leave others alone)
   await go("enjoyed");
   const fillShown = await p.isVisible("#eFill");

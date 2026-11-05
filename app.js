@@ -8,11 +8,15 @@ function trSet(key, el){ if(!el) return; el.setAttribute("data-i18n", key); el.d
 const I18N_LOCALE = () => ({en:"en-GB", fr:"fr-FR", de:"de-DE"})[window.I18N && I18N.lang] || "da-DK";
 
 const TIER_LABEL = {legend:"Icon", top:"Top tier", solid:"Well regarded"};
-const STYLES = ["Rød","Hvid","Bobler","Rosé"];
-const STYLE_EN = {"Rød":"Red","Hvid":"White","Bobler":"Sparkling","Rosé":"Rosé"};
-const STYLE_VAR = {"Rød":"--c-red","Hvid":"--c-white","Bobler":"--c-spark","Rosé":"--c-rose"};
+const FARM_LABEL = {"Økologisk":"Organic", "Biodynamisk":"Biodynamic", "Naturvin":"Natural wine"}; // how the vines are farmed, as the sheet keeps it
+// what each badge means (help.html#ratings): on hover, beside the badge
+const TIER_TIP = {legend:"Icon: one of the few most sought-after producers of its region, a benchmark whose bottles trade well above their release price.",
+  top:"Top tier: consistently among the best of its region, rated highly by critics year after year.", solid:"Well regarded: a reliable, well-reviewed producer, often good value."};
+const STYLES = ["Rød","Hvid","Bobler","Rosé","Hedvin"]; // Hedvin: fortified (port, sherry, madeira…)
+const STYLE_EN = {"Rød":"Red","Hvid":"White","Bobler":"Sparkling","Rosé":"Rosé","Hedvin":"Fortified"};
+const STYLE_VAR = {"Rød":"--c-red","Hvid":"--c-white","Bobler":"--c-spark","Rosé":"--c-rose","Hedvin":"--c-fort"};
 // history markers coloured by wine: red = red, white = white, gold = sparkling, pink = rosé
-const HIST_COLOR = {"Rød":"var(--h-red)","Hvid":"var(--h-white)","Bobler":"var(--h-gold)","Rosé":"var(--h-rose)"};
+const HIST_COLOR = {"Rød":"var(--h-red)","Hvid":"var(--h-white)","Bobler":"var(--h-gold)","Rosé":"var(--h-rose)","Hedvin":"var(--h-fort)"};
 const COUNTRY_FIX = {"Franrkig":"Frankrig","Fankrig":"Frankrig"};
 const REGION_FIX = {"Cote-de-Rhone":"Rhône","Cotes du Rhone":"Rhône","Laungedoc":"Languedoc","Bearn":"Béarn"};
 const CLASS_FIX = {"1. Cru":"1. cru","1. cr":"1. cru"};
@@ -71,6 +75,8 @@ function baseWindow(w){
   const has=(s,arr)=>arr.some(a=>s.includes(a));
   const grand = cls.includes("grand"), premier = cls.includes("1") && cls.includes("cru");
   const span=(lo,hi)=>({from:v+lo, to:v+hi});
+  // fortified: a vintage port (or a vintage madeira) ages for decades; the rest are ready when bottled
+  if(style==="Hedvin") return v!=null ? span(10,50) : null;
   // sparkling / champagne
   if(style==="Bobler" || has(reg,["champagne"])){
     if(v==null){ // NV: no vintage to age from, so estimate from the purchase year
@@ -224,7 +230,7 @@ function normalize(rows){
     drunk = Math.min(drunk, qty);
     const type = String(r.type).trim();
     // "Mousserende" is how the edit form used to save a sparkling wine; any spelling of it is sparkling
-    const style = region==="Champagne" ? "Bobler" : ({"Rød":"Rød","Hvid":"Hvid","Rose":"Rosé","Rosé":"Rosé","Bobler":"Bobler","Mousserende":"Bobler"}[type] || type || "Rød");
+    const style = region==="Champagne" ? "Bobler" : ({"Rød":"Rød","Hvid":"Hvid","Rose":"Rosé","Rosé":"Rosé","Bobler":"Bobler","Mousserende":"Bobler","Hedvin":"Hedvin"}[type] || type || "Rød");
     return {
       row:r.row, producer:String(r.producer).trim(), country, region,
       commune:String(r.commune).trim(), name:String(r.name).trim(),
@@ -242,6 +248,8 @@ function normalize(rows){
       elsewhere: r.elsewhere===true,
       location:String(r.location||"").trim(),
       // a business account's columns (business.js): the price on the card or price list, and by the glass
+      gift: Number(r.gift) > 0, // a bottle given: no price
+      farm: String(r.farm||"").trim(), // Økologisk, Biodynamisk or Naturvin
       menuPrice: (r.menuPrice===null||r.menuPrice===""||r.menuPrice===undefined) ? null : Number(r.menuPrice),
       glassPrice: (r.glassPrice===null||r.glassPrice===""||r.glassPrice===undefined) ? null : Number(r.glassPrice),
       par: Number(r.par)>0 ? Math.round(Number(r.par)) : 0, // the minimum to keep in stock (business.js's reorder list)
@@ -679,7 +687,7 @@ function showWine(w){
 /* ---------- the wine rack: a bottle for each bottle in the cellar, coloured by type, the most pressing first (past their
    window, then closing soon, in it, too young); the capsule is amber when it's time. A tap opens the wine. A big cellar
    shows a few rows and "+ N more". ---------- */
-const RACK_COL = {"Rød":"var(--b-red)","Hvid":"var(--b-white)","Rosé":"var(--b-rose)","Bobler":"var(--b-spark)"};
+const RACK_COL = {"Rød":"var(--b-red)","Hvid":"var(--b-white)","Rosé":"var(--b-rose)","Bobler":"var(--b-spark)","Hedvin":"var(--b-fort)"};
 const BOTTLE_SVG = `<svg viewBox="0 0 64 20" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><path class="gl" d="M3 3.5h33c4 0 6.5 2.6 9.5 4.3h6V12h-6c-3 1.9-5.5 4.5-9.5 4.5H3C1.6 16.5 1 15.4 1 14V6c0-1.4.6-2.5 2-2.5z"/><rect class="cp" x="51" y="7.3" width="11" height="5.4" rx="1.4"/><path d="M5 6.5h28" stroke="rgba(255,255,255,.35)" stroke-width="1.4" stroke-linecap="round"/></svg>`;
 let RACK_ALL = false, RACK_CASES = [];
 const rackKey = w => { const r = readiness(w); return !r ? "none" : r.k==="now" ? (r.soon?"soon":"now") : r.k; };
@@ -992,7 +1000,7 @@ function loadKind(){
 function setKindLocal(k, keepStored){
   KIND = k; document.documentElement.dataset.kind = k; $("acctKind").value = k;
   if(!keepStored) try{ localStorage.setItem(kindKey(), k); }catch(e){}
-  if(k!=="private" && !window.BIZ){ const s = document.createElement("script"); s.src = "business.js?v=5";
+  if(k!=="private" && !window.BIZ){ const s = document.createElement("script"); s.src = "business.js?v=6";
     s.onload = ()=>{ if(WINES.length){ renderOverview(); renderTable(); } }; document.head.appendChild(s); }
   else if(window.BIZ) BIZ.apply();
 }
@@ -1161,7 +1169,8 @@ function detailHTML(w){
     ["Commune", w.commune],["Classification", w.classification || (suggestClass(w) ? "≈ "+suggestClass(w).cls+" ("+tr("suggested")+")" : "")],["Grape", w.grape],
     ["Format", isStdBottle(w) ? "" : tr(formatOf(w).key)+" · "+formatOf(w).note],
     ["Bought", btl(w.qty)],["Enjoyed", w.drunk?btl(w.drunk):""],["Source", w.source],
-    [KIND==="private" ? "Price" : "Cost price", SHOW_PRICES && w.price ? kr(w.price) : ""],["Location", w.location],
+    [KIND==="private" ? "Price" : "Cost price", SHOW_PRICES && w.price ? kr(w.price) : w.gift ? tr("A gift") : ""],
+    ["Farming", w.farm ? tr(FARM_LABEL[w.farm] || w.farm) : ""],["Location", w.location],
   ].filter(c=>c[1]).map(([k,v])=>`<div><div class="k">${esc(tr(k))}</div>${esc(v)}</div>`).join("");
   return `<div class="dgrid">${cells}</div>
     ${w.note?`<div class="unote">“${esc(w.note)}” — ${esc(tr("cellar note"))}</div>`:""}
@@ -1276,7 +1285,7 @@ function renderTable(){
       else if(!(rd && rd.k===state.ready)) return false;
     }
     if(q){
-      const hay = [w.producer,w.name,w.commune,w.region,w.grape,w.classification,String(w.vintage),w.note,w.location].join(" ").toLowerCase();
+      const hay = [w.producer,w.name,w.commune,w.region,w.grape,w.classification,String(w.vintage),w.note,w.location,w.farm,w.farm?tr(FARM_LABEL[w.farm]||w.farm):""].join(" ").toLowerCase();
       if(!hay.includes(q)) return false;
     }
     return true;
@@ -1318,7 +1327,8 @@ function renderTable(){
   const shown = pageOf(list, "cellar");
   $("rows").innerHTML = shown.map((w,i)=>{
     const pn = PRODUCER_NOTES[w.producer];
-    const badge = pn?`<span class="badge ${pn[0]}">${tr(TIER_LABEL[pn[0]])}</span>`:"";
+    const badge = (pn?`<span class="badge ${pn[0]}" title="${esc(tr(TIER_TIP[pn[0]]))}">${tr(TIER_LABEL[pn[0]])}</span>`:"")
+      + (w.farm ? `<span class="farmchip">${esc(tr(FARM_LABEL[w.farm] || w.farm))}</span>` : "");
     const rd = w.left>0 ? readiness(w) : null;
     const rwin = rd ? drinkWindow(w) : null;
     const rbadge = rd?`<span class="rbadge ${rd.k}${rd.est?" est":""}" title="${esc(rd.est ? tr("Estimated drink window {0}: set your own in the wine", `${rwin.from??"?"}–${rwin.to??"?"}`) : tr("Your drink window {0}", `${rwin.from??"?"}–${rwin.to??"?"}`))}">${esc(rd.label)}</span>`:"";
@@ -1335,13 +1345,13 @@ function renderTable(){
       <td class="num c-vint">${esc(w.vintage||"—")}</td>
       <td class="c-reg">${where}</td>
       <td class="num c-qty">${state.status==="drunk"?w.drunk:w.left}</td>
-      <td class="num c-price">${SHOW_PRICES ? (w.price?kr(w.price):"—") + (isBiz() ? BIZ.priceCell(w) : "") : "···"}</td>
+      <td class="num c-price">${SHOW_PRICES ? (w.price?kr(w.price):w.gift?`<span class="ph">${esc(tr("Gift"))}</span>`:"—") + (isBiz() ? BIZ.priceCell(w) : "") : "···"}</td>
     </tr>
     <tr class="detail" aria-level="2" hidden><td colspan="7"></td></tr>`;
   }).join("") + moreRow(list.length, shown.length, 7, "cellar");
   if(!list.length){
     const anyWines = WINES.some(w=>w.left>0);
-    const msg = !anyWines ? esc(tr("Your cellar is empty: press ＋ Add wine to start building it."))
+    const msg = !anyWines ? esc(tr("Your cellar is empty: press “＋ Add wine” to start building it."))
               : esc(tr("No wines match these filters."));
     // an empty cellar gets its picture (art/fig-rack.svg); a filter that finds nothing only says so
     $("rows").innerHTML = `<tr><td colspan="7" class="emptyrow">${!anyWines ? fig("rack") : ""}${msg}</td></tr>`;
@@ -1611,7 +1621,8 @@ async function addWine(e){
     type:v("aType"), grape:v("aGrape"), size:$("aSize").value,
     vintage: /^\d{4}$/.test(v("aVintage")) ? Number(v("aVintage")) : v("aVintage"),
     qty: Number(v("aQty"))||1,
-    price: v("aPrice")===""? "" : Number(v("aPrice")),
+    price: $("aGift").checked || v("aPrice")==="" ? "" : perBottle(Number(v("aPrice")), $("aPriceMode").value, Number(v("aQty"))||1), gift: $("aGift").checked ? 1 : "",
+    farm: $("aFarm").value,
     acquired: v("aAcquired"), source:v("aSource"), note:v("aNote"), location:v("aLocation"),
   };
   try{
@@ -2161,7 +2172,7 @@ const GRID_COLS = [["producer","p","Producer *","jProducers"], ["name","p","Vine
   ["type","m","Type","gridTypes"], ["grape","m","Grape","grapes"], ["vintage","n","Vintage",null,"2022"], ["qty","n","Bottles",null,"1"],
   ["size","m","Format","gridSizes"], ["price","n","Price per bottle (kr.)"], ["source","m","Source / bought at"],
   ["acquired","m","Acquired",null,"2026-10-27"], ["location","m","Location","locList"], ["note","p","Note"]];
-const GRID_TYPES = [["Rød","Red"],["Hvid","White"],["Rose","Rosé"],["Bobler","Sparkling"]];
+const GRID_TYPES = [["Rød","Red"],["Hvid","White"],["Rose","Rosé"],["Bobler","Sparkling"],["Hedvin","Fortified"]];
 const GRID_SIZES = [["","Bottle · 75 cl"],["Piccolo"],["Half","Half"],["Magnum"],["Jeroboam"],["Rehoboam"],["Methuselah"],["Salmanazar"],["Balthazar"],["Nebuchadnezzar"]];
 // what's typed back to what's stored: "Rot"/"Red" → Rød, "Bottle · 75 cl" → "" (the import reads the rest itself)
 const gridWord = (list, v) => { const t = v.toLowerCase(), hit = list.find(([code, label]) => [code, label, label && tr(label)].some(x => x && x.toLowerCase() === t)); return hit ? hit[0] : v; };
@@ -2270,7 +2281,7 @@ function sommLoad(){
   if(!window.WINE_KB) need.push("wine-kb.js?v=2");
   if(!window.SOMM_DATA) need.push("sommelier-data.js?v=5");
   if(!window.SOMM_WORLD) need.push("sommelier-world.js?v=2");
-  if(!window.SOMMELIER) need.push("sommelier.js?v=6");
+  if(!window.SOMMELIER) need.push("sommelier.js?v=7");
   if(!window.BURG_VINTAGES) need.push("burgundy-vintages.js?v=5");
   if(["da","fr","de"].includes(lang) && !(window.BURG_I18N && BURG_I18N[lang])) need.push(`burgundy-i18n-${lang}.js?v=${lang==="de"?1:5}`);
   SOMM.lang = lang;
@@ -3299,7 +3310,7 @@ function knownWine(producer, wine){
   const p = jKey(producer), n = jKey(wine); if(!p || !n) return null;
   const w = [...WINES].sort((a,b)=>b.row-a.row).find(x=>jKey(x.producer)===p && jKey(x.name)===n);
   if(w) return {from:tr("your {0}", `${w.name}${w.vintage?" "+w.vintage:""}`), country:w.country, region:w.region, commune:w.commune, grape:w.grape,
-    classification:w.classification, type:({"Rød":"Rød","Hvid":"Hvid","Rosé":"Rose","Bobler":"Bobler"})[w.style]||""};
+    classification:w.classification, type:({"Rød":"Rød","Hvid":"Hvid","Rosé":"Rose","Bobler":"Bobler","Hedvin":"Hedvin"})[w.style]||""};
   const e = [...(JENTRIES||[])].sort((a,b)=>String(b.date).localeCompare(String(a.date))).find(x=>jKey(x.producer)===p && jKey(x.wine)===n);
   if(e) return {from:tr("your journal entry of {0}", fmtDate(e.date)), country:e.country, region:e.region, commune:e.commune, grape:e.grape, classification:e.classification};
   return null;
@@ -3379,15 +3390,28 @@ function autofill(ids){
 // stays selectable (Special club, Cru classé…).
 function classOptions(country, region){
   const c = normName(country||""), r = normName(region||"");
-  if(/^(tyskland|germany|allemagne|deutschland)$/.test(c) || /mosel|rheingau|nahe|pfalz|rheinhessen|franken|baden/.test(r))
-    return ["Kabinett","Spätlese","Auslese","Beerenauslese","Trockenbeerenauslese","Eiswein","Grosses Gewächs","Erste Lage"];
-  if(/^(ostrig|austria|autriche|osterreich)$/.test(c) || /wachau|kamptal|kremstal|burgenland/.test(r))
-    return ["Smaragd","Federspiel","Steinfeder","Erste Lage","Grosse Lage","Kabinett","Spätlese","Auslese","Beerenauslese","Trockenbeerenauslese","Eiswein"];
-  if(/^(italien|italy|italie)$/.test(c) || /piemonte|toscana|veneto|sicilia/.test(r)) return ["DOCG","DOC","Riserva","IGT"];
-  if(/^(spanien|spain|espagne)$/.test(c) || /rioja|ribera|priorat/.test(r)) return ["DOCa","DO","Crianza","Reserva","Gran Reserva"];
-  if(/^(portugal)$/.test(c) || /douro|porto/.test(r)) return ["DOC","Reserva","Vintage","LBV"];
+  if(/^(tyskland|germany|allemagne|deutschland)$/.test(c) || /mosel|rheingau|nahe|pfalz|rheinhessen|franken|baden|ahr|mittelrhein|wurttemberg/.test(r))
+    return ["Kabinett","Spätlese","Auslese","Beerenauslese","Trockenbeerenauslese","Eiswein","Qualitätswein","Grosses Gewächs","Grosse Lage","Erste Lage","Ortswein","Gutswein"];
+  if(/^(ostrig|austria|autriche|osterreich)$/.test(c) || /wachau|kamptal|kremstal|burgenland|traisental|weinviertel/.test(r))
+    return ["DAC","Smaragd","Federspiel","Steinfeder","Erste Lage","Grosse Lage","Kabinett","Spätlese","Auslese","Beerenauslese","Trockenbeerenauslese","Eiswein"];
+  if(/^(italien|italy|italie|italia)$/.test(c) || /piemonte|toscana|veneto|sicilia|friuli|alto adige|campania|puglia|abruzzo|umbria|marche/.test(r))
+    return ["DOCG","DOC","IGT","Gran Selezione","Riserva","Superiore","Classico"];
+  if(/^(spanien|spain|espagne|espana)$/.test(c) || /rioja|ribera|priorat|rias baixas|jerez|penedes|toro|rueda/.test(r))
+    return ["DOCa","DO","Vino de Pago","Gran Reserva","Reserva","Crianza","Joven"];
+  if(/^(portugal)$/.test(c) || /douro|porto|dao|alentejo|vinho verde|madeira|bairrada/.test(r))
+    return ["DOC","Reserva","Garrafeira","Vintage","LBV","Colheita","Tawny 10","Tawny 20","Tawny 30","Tawny 40","Ruby"];
+  if(/^(ungarn|hungary|hongrie|ungarn)$/.test(c) || /tokaj/.test(r))
+    return ["Aszú 5 puttonyos","Aszú 6 puttonyos","Eszencia","Szamorodni","Late harvest","OEM"];
+  if(/^(usa|united states|etats unis|vereinigte staaten|amerika)$/.test(c) || /california|napa|sonoma|oregon|washington/.test(r)) return ["AVA","Reserve"];
+  if(/^(sydafrika|south africa|afrique du sud|sudafrika)$/.test(c)) return ["WO"];
+  if(/^(australien|australia|australie|new zealand|new zealand|nyzealand|newzealand|chile|argentina|argentinien)$/.test(c)) return ["GI","Reserve"];
   const fr = ["AOC","1. cru","Grand cru"];
-  return /bordeaux/.test(r) ? fr.concat(["Cru classé","Cru bourgeois"]) : fr;
+  if(/bordeaux/.test(r)) return fr.concat(["Cru classé","Cru bourgeois"]);
+  if(/rhone/.test(r)) return ["AOC","Villages","Cru"];
+  if(/beaujolais/.test(r)) return ["AOC","Villages","Cru"];
+  if(/bourgogne|burgundy|chablis/.test(r)) return ["AOC","Village","1. cru","Grand cru"];
+  if(c && !/^(frankrig|france|frankreich)$/.test(c)) return ["PDO","PGI"]; // the EU's own names, for anywhere else
+  return fr;
 }
 const CLS_LABEL = {"1. cru": "Premier cru"};
 function fillClassSelect(sel){
@@ -3414,7 +3438,9 @@ function clsValue(id){
 document.querySelectorAll("select[data-country]").forEach(sel=>{
   fillClassSelect(sel);
   sel.addEventListener("change", ()=>{ sel.dataset.auto = ""; otherBox(sel); });
-  [sel.dataset.country, sel.dataset.region].forEach(id=>{ const el = $(id); if(el) el.addEventListener("change", ()=>fillClassSelect(sel)); });
+  // the list follows the country and region as they're typed, not only once the field is left
+  let t = 0; const refill = ()=>{ clearTimeout(t); t = setTimeout(()=>fillClassSelect(sel), 250); };
+  [sel.dataset.country, sel.dataset.region].forEach(id=>{ const el = $(id); if(el){ el.addEventListener("change", ()=>fillClassSelect(sel)); el.addEventListener("input", refill); } });
 });
 // Quick picks under Country and Location: the usual countries and your own, the places you use most
 const QP_COUNTRIES = ["Frankrig","Italien","Spanien","Tyskland","Østrig","Portugal"];
@@ -3551,8 +3577,12 @@ const addSuggest = () => ADD_SUGGEST.run();
 function addProducers(){
   $("jProducers").innerHTML = [...new Set(WINES.map(w=>w.producer).filter(Boolean))].sort().map(x=>`<option>${esc(x)}</option>`).join("");
 }
+// a price for all the bottles is split between them (a case at 1 200 kr. is 200 kr. a bottle), to the øre
+const perBottle = (n, mode, bottles) => mode==="all" ? Math.round(n / Math.max(1, bottles) * 100) / 100 : n;
+// a gift has no price: ticking it empties the price and sets it aside
+$("aGift").addEventListener("change", ()=>{ $("aPrice").disabled = $("aGift").checked; if($("aGift").checked) $("aPrice").value = ""; });
 function addReset(){
-  $("addForm").reset(); $("aQty").value = 1;
+  $("addForm").reset(); $("aQty").value = 1; $("aPrice").disabled = false;
   ADD_SUGGEST.reset();
   $("aType").dataset.touched = ""; $("aClass").dataset.auto = "1";
   $("aFillNote").hidden = true; $("aClassHint").textContent = "";
@@ -3826,7 +3856,7 @@ function renderEnjoyed(){
   const shown = pageOf(list, "enjoyed");
   $("eRows").innerHTML = shown.map((w,i)=>{
     const pn = PRODUCER_NOTES[w.producer];
-    const badge = pn?`<span class="badge ${pn[0]}">${tr(TIER_LABEL[pn[0]])}</span>`:"";
+    const badge = pn?`<span class="badge ${pn[0]}" title="${esc(tr(TIER_TIP[pn[0]]))}">${tr(TIER_LABEL[pn[0]])}</span>`:"";
     const nm = [w.name, w.commune && w.commune!==w.name ? w.commune : ""].filter(Boolean).join(" · ");
     return `<tr class="main" data-i="${i}" data-row="${w.row}" tabindex="0" aria-level="1" aria-expanded="false">
       <td><span class="prod">${esc(w.producer)}</span>${badge}<br><span class="wname">${fmtChip(w)}${esc(nm)}${classChip(w)}${w.rating?` · <span class="myscore">${w.rating}/10</span>`:""}${w.drunkDate?`<span class="ponly"> · ${esc(fmtDate(w.drunkDate))}</span>`:""}</span></td>
@@ -4026,9 +4056,11 @@ function openInfo(w){
   if(isElsewhere(w)) trSet("Edit this Enjoyed wine", $("iTitle")); else trSet("Edit wine details", $("iTitle"));
   $("iProducer").value = w.producer; $("iName").value = w.name; $("iVintage").value = w.vintage ?? "";
   $("iCommune").value = w.commune; $("iCountry").value = w.country; $("iRegion").value = w.region; $("iGrape").value = w.grape;
-  $("iLocation").value = w.location; $("iSource").value = w.source; $("iNote").value = w.note;
+  $("iLocation").value = w.location; $("iSource").value = w.source; $("iNote").value = w.note; $("iGift").checked = !!w.gift;
+  $("iFarm").value = w.farm || ""; $("iLeft").value = w.left; $("iPrice").value = w.price ?? ""; $("iPriceMode").value = "one";
+  $("iStockRow").hidden = isElsewhere(w); // a wine drunk elsewhere has no bottles here
   if(w.classification) $("iClass").value = matchOpt($("iClass"), w.classification);
-  const ty = ({"Rød":"Rød","Hvid":"Hvid","Rosé":"Rose","Bobler":"Bobler"})[w.style] || "Rød";
+  const ty = ({"Rød":"Rød","Hvid":"Hvid","Rosé":"Rose","Bobler":"Bobler","Hedvin":"Hedvin"})[w.style] || "Rød";
   $("iType").value = ty;
   classHint(I_IDS);
   const js = journalSameName(w);
@@ -4048,24 +4080,34 @@ $("iForm").addEventListener("submit", async e=>{
   const vint = /^\d{4}$/.test(v("iVintage")) ? Number(v("iVintage")) : v("iVintage");
   const next = {producer:v("iProducer"), name:v("iName"), vintage:vint, commune:v("iCommune"), classification:clsValue("iClass"),
     country:v("iCountry"), region:v("iRegion"), grape:v("iGrape"), type:$("iType").value,
-    location:v("iLocation"), source:v("iSource"), note:v("iNote")};
+    location:v("iLocation"), source:v("iSource"), note:v("iNote"), gift:$("iGift").checked ? 1 : "", farm:$("iFarm").value};
   const was = {producer:w.producer, name:w.name, vintage:w.vintage??"", commune:w.commune, classification:w.classification,
-    country:w.country, region:w.region, grape:w.grape, type:({"Rød":"Rød","Hvid":"Hvid","Rosé":"Rose","Bobler":"Bobler"})[w.style]||"Rød",
-    location:w.location, source:w.source, note:w.note};
+    country:w.country, region:w.region, grape:w.grape, type:({"Rød":"Rød","Hvid":"Hvid","Rosé":"Rose","Bobler":"Bobler","Hedvin":"Hedvin"})[w.style]||"Rød",
+    location:w.location, source:w.source, note:w.note, gift:w.gift ? 1 : "", farm:w.farm || ""};
   // only what changed is sent, so a field the sheet spells its own way isn't rewritten for nothing
   const fields = {}; Object.keys(next).forEach(k=>{ if(jKey(next[k])!==jKey(was[k])) fields[k] = next[k]; });
-  if(!Object.keys(fields).length){ $("iModal").classList.remove("open"); return; }
+  // the bottles in the cellar, and the price: per bottle, or for all of them (split over the bottles bought)
+  const stockRow = !$("iStockRow").hidden, left = Math.round(Number(v("iLeft")));
+  const newLeft = stockRow && v("iLeft") !== "" && left >= 0 && left !== w.left ? left : null;
+  const bought = w.drunk + (newLeft ?? w.left);
+  const pIn = v("iPrice"), price = !stockRow || $("iGift").checked ? null : pIn === "" ? "" : perBottle(Number(pIn), $("iPriceMode").value, bought);
+  const newPrice = price !== null && String(price) !== String(w.price ?? "") ? price : null;
+  if(!Object.keys(fields).length && newLeft === null && newPrice === null){ $("iModal").classList.remove("open"); return; }
   const renamed = ["producer","name","vintage"].some(k=>k in fields);
   const btn = $("iSave"); btn.disabled = true; btn.textContent = tr("Saving…");
   try{
-    const res = await api({action:"setinfo", row:w.row, fields, old:{producer:w.producer, wine:w.name, vintage:w.vintage??""},
+    let res = null;
+    if(Object.keys(fields).length) res = await api({action:"setinfo", row:w.row, fields, old:{producer:w.producer, wine:w.name, vintage:w.vintage??""},
       journal: !$("iJWrap").hidden && $("iJournal").checked});
-    WINES = normalize(res.wines); if(res.entries) JENTRIES = res.entries;
+    if(newLeft !== null) res = await api({action:"setstock", row:w.row, left:newLeft});
+    if(newPrice !== null) res = await api({action:"setprice", row:w.row, value:newPrice});
+    WINES = normalize(res.wines); if(res.entries) JENTRIES = res.entries; KEEP_OPEN = w.row;
     $("iModal").classList.remove("open");
     renderOverview(); renderTable(); renderEnjoyed(); if(JENTRIES) renderJournal();
     toast(renamed ? tr("Renamed") : tr("Details saved"));
   }catch(err){
-    $("iErr").textContent = err.message==="bad-action" ? tr("The Apps Script needs the latest version (26) for this: paste apps-script/Code.gs into it and redeploy.") : tr("Could not save: {0}", errText(err));
+    $("iErr").textContent = err.message==="bad-action" ? tr("The Apps Script needs the latest version (50) for this: paste apps-script/Code.gs into it and redeploy.")
+      : /zero-stock/.test(err.message) ? tr("None of it has been drunk yet, so it can't go to 0 bottles: delete the wine instead.") : tr("Could not save: {0}", errText(err));
     $("iErr").hidden = false;
   }
   btn.disabled = false; btn.textContent = tr("Save details");
@@ -4307,7 +4349,7 @@ function renderAdmin(){
 $("adminBtn").addEventListener("click", openAdmin);
 // test users and test wines (test-data.js, loaded the first time one of these is used)
 const testTools = () => window.TESTDATA && TESTDATA.ui ? Promise.resolve(TESTDATA) : new Promise((ok, no)=>{ const el = document.createElement("script");
-  el.src = "test-data.js?v=1"; el.onload = ()=>ok(window.TESTDATA); el.onerror = ()=>no(new Error("load test-data.js")); document.head.appendChild(el); });
+  el.src = "test-data.js?v=2"; el.onload = ()=>ok(window.TESTDATA); el.onerror = ()=>no(new Error("load test-data.js")); document.head.appendChild(el); });
 $("adminTestMake").addEventListener("click", ()=>testTools().then(T=>T.ui.makeUser($("adminTestKind").value)).catch(err=>{ $("adminErr").textContent = errText(err); }));
 $("adminTestClear").addEventListener("click", ()=>testTools().then(T=>T.ui.clearUsers()).catch(err=>{ $("adminErr").textContent = errText(err); }));
 $("acctTest").addEventListener("click", e=>{ const b = e.target.closest("button[data-testwines]"); if(!b) return;

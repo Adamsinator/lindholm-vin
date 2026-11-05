@@ -30,8 +30,8 @@
   --line:#D9CFC0; --accent:#7A1F2B; --accent-ink:#FFFFFF; --gold:#94702F;
   --serif:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
   --ok:#3E7F58; --young:#3D6A97;
-  --c-red:#9C3352; --c-white:#A87E2F; --c-spark:#3F7CB6; --c-rose:#C7758B;
-  --h-red:#AE3A4D; --h-white:#EFE7CC; --h-gold:#B07E24; --h-rose:#C56F8A;
+  --c-red:#9C3352; --c-white:#A87E2F; --c-spark:#3F7CB6; --c-rose:#C7758B; --c-fort:#7A4A1E;
+  --h-red:#AE3A4D; --h-white:#EFE7CC; --h-gold:#B07E24; --h-rose:#C56F8A; --h-fort:#8B5A2B;
   --shadow:none;
   --chip:#E9E1D4;
 }
@@ -40,8 +40,8 @@
     --bg:#18130F; --card:#18130F; --card2:#221B16; --ink:#EDE5D8; --muted:#A79A8B;
     --line:#3A3029; --accent:#CF7480; --accent-ink:#1B1210; --gold:#C9A15A;
     --ok:#6DB389; --young:#7CA6D3;
-    --c-red:#C25B76; --c-white:#B8862C; --c-spark:#4E8AC0; --c-rose:#CE6E92;
-    --h-red:#CD6274; --h-white:#F1EAD2; --h-gold:#CE9F45; --h-rose:#D585A1;
+    --c-red:#C25B76; --c-white:#B8862C; --c-spark:#4E8AC0; --c-rose:#CE6E92; --c-fort:#C08A55;
+    --h-red:#CD6274; --h-white:#F1EAD2; --h-gold:#CE9F45; --h-rose:#D585A1; --h-fort:#B9824D;
     --shadow:none;
     --chip:#2A221C;
   }
@@ -262,7 +262,7 @@ td.emptyrow{text-align:center;color:var(--muted);padding:34px 16px;font-size:14p
 .links button.del{color:var(--muted);margin-left:auto}
 .links button.del:hover{color:var(--accent);border-color:var(--accent)}
 
-footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
+footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch} footer a{color:var(--accent)}
 
 /* gate + modal */
 .gate{position:fixed;inset:0;background:var(--bg);z-index:100;overflow-y:auto;padding:20px 16px 40px}
@@ -509,7 +509,7 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
 .jphoto-ph.err{font-size:11px;color:var(--muted);text-align:center;padding:0 8px}
 .jphoto-prev{display:block;margin-top:8px;max-width:100%;max-height:200px;border-radius:var(--r);border:1px solid var(--line);object-fit:contain}
 .lopt{text-transform:none;letter-spacing:0;font-weight:400;opacity:.7}
-.modal label.jcheck{display:flex;align-items:center;gap:7px;margin-top:12px;font-size:13.5px;text-transform:none;letter-spacing:0;color:var(--ink);cursor:pointer}
+.modal label.giftck{margin-top:6px} .pricewrap{display:flex;gap:6px} .pricewrap input{flex:1;min-width:0} .pricewrap select{width:auto} .farmchip{font-size:11px;padding:0 6px;border-radius:999px;border:1px solid var(--ok,#4c7a4c);color:var(--ok,#4c7a4c);margin-left:6px;white-space:nowrap} .modal label.jcheck{display:flex;align-items:center;gap:7px;margin-top:12px;font-size:13.5px;text-transform:none;letter-spacing:0;color:var(--ink);cursor:pointer}
 .jcheck input{width:auto;margin:0}
 /* quick picks under a field: the usual countries, your own places — one tap fills it, typing still works */
 .qpick{display:flex;flex-wrap:nowrap;gap:5px;margin-top:6px;width:0;min-width:100%;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding-bottom:2px}
@@ -735,7 +735,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 .gstat .refresh:hover{text-decoration:underline}
 .gstat .tablink{margin:0}
 @media (max-width:700px){
-  /* phones: logo and name with Account and 🔒 on the first line, "Cellar overview" and the flags on the second;
+  /* phones: logo and name with Account and 🔒 on the first line, the flags on the second;
      the status line under the tabs, the atlas link at its right */
   header.top{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;row-gap:6px}
   header.top .topright{display:contents}
@@ -749,7 +749,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
   .gstat .tablink{margin-left:auto;white-space:nowrap} .gstat .tablink + .tablink{margin-left:0}
 }
 /* ---------- the wine rack (renderRack) ---------- */
-:root{--b-red:#7B1E33;--b-white:#E6CF7E;--b-rose:#E8A09B;--b-spark:#D7C68E;--b-amber:#C98A2E}
+:root{--b-red:#7B1E33;--b-white:#E6CF7E;--b-rose:#E8A09B;--b-spark:#D7C68E;--b-fort:#A0622D;--b-amber:#C98A2E}
 .wall{border-radius:20px;background:radial-gradient(120% 90% at 50% 0%,#2A1D22,#1C1316 70%);color:#F3E7E3;padding:16px 16px 14px;margin:0 0 16px;position:relative;overflow:hidden}
 .wall::before{content:"";position:absolute;inset:-40% -20% auto;height:70%;background:radial-gradient(closest-side,rgba(255,190,120,.12),transparent);pointer-events:none}
 .wall h2{font:600 12px/1.2 var(--sans,system-ui);letter-spacing:.14em;text-transform:uppercase;color:#B9A3AA;margin:0}
@@ -1043,7 +1043,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
     <h1><a href="./" id="brandHome" title="Your cellar" data-i18n-title><img class="brandmark" src="logo.svg" alt="" width="34" height="34">All<em>Wine</em></a></h1>
     <span class="who" id="who" hidden></span>
   </div>
-  <div class="topright"><span class="sub" data-i18n>Cellar overview</span><span data-langpick></span>
+  <div class="topright"><span data-langpick></span>
     <span class="acct">
       <button class="btn quiet" id="adminBtn" hidden data-i18n>Admin</button>
       <button class="btn quiet" id="acctBtn" title="Password and recovery code" hidden data-i18n data-i18n-title>Account</button>
@@ -1080,9 +1080,9 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
     <a class="tips-more" href="help.html" target="_blank" rel="noopener" data-i18n>All help and tips →</a>
     <button class="btn quiet" type="button" id="tipsClose" data-i18n>Hide these tips</button></div>
   <ol>
-    <li data-tip="wines"><b data-i18n>Add your wines</b> <span data-i18n>＋ Add wine for a few, Import for a list from a spreadsheet.</span></li>
+    <li data-tip="wines"><b data-i18n>Add your wines</b> <span data-i18n>“＋ Add wine” for a few, “Import” for a list from a spreadsheet.</span></li>
     <li data-tip="windows"><b data-i18n>Set drink windows</b> <span data-i18n>Tap a wine and fill in from and to, so the cellar can tell you what to open and when.</span></li>
-    <li data-tip="code"><b data-i18n>Keep your recovery code safe</b> <span data-i18n>With your password it's the only way into your encrypted cellar. Lost it? Account makes a new one.</span></li>
+    <li data-tip="code"><b data-i18n>Keep your recovery code safe</b> <span data-i18n>It gets you back in if you forget your password. Lost both? The site's owner can usually help.</span></li>
   </ol>
 </section>
 
@@ -1110,7 +1110,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
   <p class="rack-unit" id="rackUnit" hidden></p>
   <button type="button" class="rack-more" id="rackMore" hidden></button>
   <div class="rackcard" id="rackCard" role="dialog" aria-label="The wine" data-i18n-aria hidden></div>
-  <div class="wall-leg"><span><i style="--c:var(--b-red)"></i><span data-i18n>Red</span></span><span><i style="--c:var(--b-white)"></i><span data-i18n>White</span></span><span><i style="--c:var(--b-rose)"></i>Rosé</span><span><i style="--c:var(--b-spark)"></i><span data-i18n>Sparkling</span></span><span><i class="cap"></i><span data-i18n>Amber cap: drink soon</span></span><span><i class="dim"></i><span data-i18n>Dim: too young</span></span></div>
+  <div class="wall-leg"><span><i style="--c:var(--b-red)"></i><span data-i18n>Red</span></span><span><i style="--c:var(--b-white)"></i><span data-i18n>White</span></span><span><i style="--c:var(--b-rose)"></i>Rosé</span><span><i style="--c:var(--b-spark)"></i><span data-i18n>Sparkling</span></span><span><i style="--c:var(--b-fort)"></i><span data-i18n>Fortified</span></span><span><i class="cap"></i><span data-i18n>Amber cap: drink soon</span></span><span><i class="dim"></i><span data-i18n>Dim: too young</span></span></div>
   <div class="wall-stats" id="wallStats"></div>
   <div class="rack-shelves" id="rackShelves" aria-label="Bottles by region" data-i18n-aria hidden></div>
 </section>
@@ -1259,8 +1259,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 </div><!-- /cellar-layout -->
 
 <footer>
-  <p><strong data-i18n>About ratings:</strong> <span data-i18n>Badges and producer profiles are general critic-reputation summaries (Icon &gt; Top tier &gt; Well regarded), not bottle-level scores. Open a wine and use the Vivino / Wine-Searcher links for live ratings and market prices.</span></p>
-  <p><strong data-i18n>Current value:</strong> <span data-i18n>Open a wine and type today's worth in the “Value kr” box. The overview then shows the cellar's current value and the unrealised gain or loss vs. what you paid, over the wines you've valued. Leave it blank for wines you're not tracking.</span></p>
+  <p><span data-i18n>Producer badges (Icon, Top tier, Well regarded), ratings and the cellar's value:</span> <a href="help.html#ratings" data-i18n>how they work ↗</a></p>
 </footer>
 </div><!-- /content -->
 </div><!-- /pageCellar -->
@@ -1404,7 +1403,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
       <div><label for="aClass"><span data-i18n>Classification</span> <span class="lopt clshint" id="aClassHint"></span></label>
         <select id="aClass" data-country="aCountry" data-region="aRegion"></select></div>
       <div><label for="aType" data-i18n>Type</label>
-        <select id="aType"><option value="Rød" data-i18n>Red</option><option value="Hvid" data-i18n>White</option><option value="Rose">Rosé</option><option value="Bobler" data-i18n>Sparkling</option></select></div>
+        <select id="aType"><option value="Rød" data-i18n>Red</option><option value="Hvid" data-i18n>White</option><option value="Rose">Rosé</option><option value="Bobler" data-i18n>Sparkling</option><option value="Hedvin" data-i18n>Fortified</option></select></div>
     </div>
     <div class="row2">
       <div><label for="aGrape" data-i18n>Grape</label><input id="aGrape" list="grapes"><datalist id="grapes"></datalist></div>
@@ -1416,13 +1415,15 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
         <select id="aSize"><option value="" data-i18n>Bottle · 75 cl</option><option>Piccolo</option><option value="Half" data-i18n>Half</option><option>Magnum</option><option>Jeroboam</option><option>Rehoboam</option><option>Methuselah</option><option>Salmanazar</option><option>Balthazar</option><option>Nebuchadnezzar</option></select></div>
     </div>
     <div class="row2">
-      <div><label for="aPrice" data-i18n>Price per bottle (kr.)</label><input id="aPrice" type="number" min="0" step="1"></div>
+      <div><label for="aPrice" data-i18n>Price (kr.)</label><div class="pricewrap"><input id="aPrice" type="number" min="0" step="1"><select id="aPriceMode" aria-label="Price for" data-i18n-aria><option value="one" data-i18n>per bottle</option><option value="all" data-i18n>for all of them</option></select></div>
+        <label class="jcheck giftck"><input type="checkbox" id="aGift"> <span data-i18n>A gift (no price)</span></label></div>
       <div><label for="aSource" data-i18n>Source / bought at</label><input id="aSource"></div>
     </div>
     <div class="row2">
       <div><label for="aAcquired" data-i18n>Acquired</label><input id="aAcquired" type="date"></div>
       <div><label for="aLocation" data-i18n>Location</label><input id="aLocation" list="locList" data-i18n-ph placeholder="e.g. Cellar, shelf 2"><datalist id="locList"></datalist><div class="qpick" data-for="aLocation" data-kind="location"></div></div>
     </div>
+    <div><label for="aFarm" data-i18n>Farming</label><select id="aFarm"><option value="" data-i18n>—</option><option value="Økologisk" data-i18n>Organic</option><option value="Biodynamisk" data-i18n>Biodynamic</option><option value="Naturvin" data-i18n>Natural wine</option></select></div>
     <label for="aNote" data-i18n>Note</label><input id="aNote">
     <p class="lopt jfill" id="aFillNote" hidden></p>
     <p class="lopt jfill sgnote" id="aSuggest" hidden></p>
@@ -1567,7 +1568,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
     </div>
     <div class="row2">
       <div><label for="eaType" data-i18n>Type</label>
-        <select id="eaType"><option value="Rød" data-i18n>Red</option><option value="Hvid" data-i18n>White</option><option value="Bobler" data-i18n>Sparkling</option><option value="Rose">Rosé</option></select></div>
+        <select id="eaType"><option value="Rød" data-i18n>Red</option><option value="Hvid" data-i18n>White</option><option value="Bobler" data-i18n>Sparkling</option><option value="Hedvin" data-i18n>Fortified</option><option value="Rose">Rosé</option></select></div>
       <div><label for="eaCountry" data-i18n>Country</label><input id="eaCountry" list="countries"><div class="qpick" data-for="eaCountry" data-kind="country"></div></div>
     </div>
     <div class="row2">
@@ -1625,12 +1626,18 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
     <div class="row2">
       <div><label for="iGrape" data-i18n>Grape</label><input id="iGrape" list="grapes"></div>
       <div><label for="iType" data-i18n>Type</label>
-        <select id="iType"><option value="Rød" data-i18n>Red</option><option value="Hvid" data-i18n>White</option><option value="Bobler" data-i18n>Sparkling</option><option value="Rose">Rosé</option></select></div>
+        <select id="iType"><option value="Rød" data-i18n>Red</option><option value="Hvid" data-i18n>White</option><option value="Bobler" data-i18n>Sparkling</option><option value="Hedvin" data-i18n>Fortified</option><option value="Rose">Rosé</option></select></div>
     </div>
     <div class="row2">
       <div><label for="iLocation" data-i18n>Location</label><input id="iLocation" list="locList" data-i18n-ph placeholder="e.g. Cellar, shelf 2"><div class="qpick" data-for="iLocation" data-kind="location"></div></div>
-      <div><label for="iSource" data-i18n>Source / bought at</label><input id="iSource"></div>
+      <div><label for="iSource" data-i18n>Source / bought at</label><input id="iSource">
+        <label class="jcheck giftck"><input type="checkbox" id="iGift"> <span data-i18n>A gift (no price)</span></label></div>
     </div>
+    <div class="row2" id="iStockRow">
+      <div><label for="iLeft" data-i18n>Bottles in the cellar</label><input id="iLeft" type="number" min="0" step="1" inputmode="numeric"></div>
+      <div><label for="iPrice" data-i18n>Price (kr.)</label><div class="pricewrap"><input id="iPrice" type="number" min="0" step="1"><select id="iPriceMode" aria-label="Price for" data-i18n-aria><option value="one" data-i18n>per bottle</option><option value="all" data-i18n>for all of them</option></select></div></div>
+    </div>
+    <div><label for="iFarm" data-i18n>Farming</label><select id="iFarm"><option value="" data-i18n>—</option><option value="Økologisk" data-i18n>Organic</option><option value="Biodynamisk" data-i18n>Biodynamic</option><option value="Naturvin" data-i18n>Natural wine</option></select></div>
     <label for="iNote" data-i18n>Note</label><input id="iNote">
     <label class="jcheck" id="iJWrap" hidden><input type="checkbox" id="iJournal" checked>
       <span id="iJLabel"></span></label>
@@ -1795,7 +1802,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 
 <!-- Pages serves these with max-age=600 and no revalidation, so a merged change can
      sit invisible behind a stale app.js for ten minutes. Bump v on every deploy. -->
-<script src="i18n.js?v=80"></script>
+<script src="i18n.js?v=81"></script>
 <script src="site-info.js?v=2"></script>
 <script src="site-foot.js?v=2"></script>
 <script src="notes.js?v=5"></script>
@@ -1807,14 +1814,14 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 <script src="gas-fake.js?v=7"></script>
 <script src="vault-crypto.js?v=3"></script>
 <script src="vault-engine.js?v=1"></script>
-<script src="vault.js?v=26"></script>
+<script src="vault.js?v=27"></script>
 <script src="wine-kb.js?v=2"></script>
 <script src="piemonte-mga.js?v=1"></script>
 <script src="tidy.js?v=3"></script>
-<script src="import.js?v=6"></script>
+<script src="import.js?v=7"></script>
 <script src="export.js?v=3"></script>
 <script src="europe-lands.js?v=1"></script>
 <script src="share-crypto.js?v=2"></script>
-<script src="app.js?v=80"></script>
+<script src="app.js?v=81"></script>
 </body>
 </html>

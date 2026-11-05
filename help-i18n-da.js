@@ -1,7 +1,11 @@
 // The help page's texts in Danish (help.html; English is the source there). Loaded after i18n-da.js,
 // which i18n.js makes sure of, and added to its dictionary.
 Object.assign(window.I18N_DICT.da, {
-  "Add your wines: ＋ Add wine for a few, Import for a whole list from a spreadsheet.": "Tilføj dine vine: ＋ Tilføj vin til nogle få, Importér til en hel liste fra et regneark.",
+  "Ratings, badges and value": "Bedømmelser, mærker og værdi",
+  "Producer badges sum up a producer's general reputation with critics and collectors, not the score of a bottle. AllWine gives them to about 70 producers so far, and more are added over time.": "Producentmærkerne opsummerer en producents generelle ry blandt kritikere og samlere, ikke en flaskes karakter. AllWine har indtil videre givet dem til omkring 70 producenter, og flere kommer til.",
+  "For live ratings and market prices of a bottle, open the wine and use the Vivino and Wine-Searcher links.": "For aktuelle bedømmelser og markedspriser på en flaske: åbn vinen og brug linkene til Vivino og Wine-Searcher.",
+  "Current value: open a wine and type today's worth in the \"Value kr\" box. The overview then shows the cellar's value and the gain or loss against what you paid, over the wines you've valued. Leave it empty for wines you're not following.": "Nuværende værdi: åbn en vin og skriv dens værdi i dag i feltet »Værdi kr«. Oversigten viser så kælderens værdi og gevinsten eller tabet i forhold til, hvad du gav, for de vine, du har vurderet. Lad feltet stå tomt for vine, du ikke følger.",
+  "Add your wines: “＋ Add wine” for a few, “Import” for a whole list from a spreadsheet.": "Tilføj dine vine: »＋ Tilføj vin« til nogle få, »Importér« til en hel liste fra et regneark.",
   "Import reads Excel (.xlsx), CSV or plain text, up to 10,000 wines. It finds the columns itself and shows what it will do before anything is saved.": "Importér læser Excel (.xlsx), CSV eller almindelig tekst, op til 10.000 vine. Den finder selv kolonnerne og viser, hvad den vil gøre, før noget gemmes.",
   "Tidy up looks through the whole cellar for spellings to fix and wines entered twice, and lists every change first.": "Ryd op gennemgår hele kælderen for stavning, der kan rettes, og vine, der er tastet to gange, og viser hver ændring først.",
   "Tonight picks a bottle for you, favouring wines in their window and those that should be drunk soon.": "I aften vælger en flaske for dig og foretrækker vine i deres vindue og dem, der bør drikkes snart.",
@@ -13,7 +17,7 @@ Object.assign(window.I18N_DICT.da, {
   "Getting started": "Kom i gang",
   
   "Give your best bottles a drink window, so the cellar can tell you what to open and when.": "Giv dine bedste flasker et drikkevindue, så kælderen kan fortælle dig, hvad du skal åbne og hvornår.",
-  "Keep your recovery code safe (Account → recovery code). With your password it's the only way into your encrypted cellar: nobody else can open it for you.": "Pas godt på din gendannelseskode (Konto → gendannelseskode). Sammen med din adgangskode er den den eneste vej ind i din krypterede kælder: ingen andre kan åbne den for dig.",
+  "Keep your recovery code safe (Account → recovery code). If you forget your password, it gets you back into your encrypted cellar. If you lose both, the site's owner can usually help you back in with a new code; even the owner can't read your cellar.": "Pas godt på din gendannelseskode (Konto → gendannelseskode). Glemmer du din adgangskode, bringer den dig ind i din krypterede kælder igen. Mister du begge, kan sidens ejer som regel hjælpe dig ind igen med en ny kode; heller ikke ejeren kan læse din kælder.",
   "Adding wines": "Tilføj vine",
   "＋ Add wine suggests producers, regions and grapes as you type. Only the producer is needed; the rest can come later.": "＋ Tilføj vin foreslår producenter, områder og druer, mens du skriver. Kun producenten er nødvendig; resten kan komme senere.",
   "Many at once: the grid in the add form takes a row per wine, like a spreadsheet.": "Mange på én gang: gitteret i tilføj-formularen tager en række pr. vin, som et regneark.",
