@@ -8,6 +8,8 @@
 //    by itself; and online, behind a QR code: sealed in the browser like a shared list (share-crypto.js), and sealed
 //    again under the same key when it changes, so the code on the table keeps showing what's on the shelf;
 //  · a minimum per wine, and the reorder list it makes, by supplier; the sales of a month as a CSV for the accounts.
+// Its own pages, in place of a private cellar's Enjoyed, Wishlist and Journal: Inventory (the first page: the stock to
+// count and sell from), the cellar itself, Sales & accounts (the figures, by period) and the wine card or price list.
 // Uses app.js's globals (WINES, KIND, api, normalize, tr, esc, kr, fmt…), like the other scripts of the page.
 "use strict";
 window.BIZ = (() => {
@@ -37,8 +39,50 @@ window.BIZ = (() => {
     if (!b) { b = document.createElement("button"); b.className = "btn"; b.id = "bizCardBtn"; b.type = "button";
       $("addBtn").after(b); b.addEventListener("click", openCard); }
     b.hidden = !on(); b.textContent = tr(words().card);
+    pages();
     if (!on()) { const p = $("bizPanel"); if (p) p.hidden = true; }
+    if (typeof route === "function") route();
   }
+
+  /* ---------- the pages: tabs at the top and on a phone's bar, and a page for each ---------- */
+  const PAGES = () => [["inventory", "Inventory", '<path d="M4 7h16M4 12h16M4 17h10"/><circle cx="19" cy="17" r="1.6"/>'],
+    ["accounts", KIND === "winemaker" ? "Accounts" : "Sales & accounts", '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>'],
+    ["winecard", words().card, '<path d="M6 3h12v18H6z"/><path d="M9 8h6M9 12h6M9 16h4"/>']];
+  const PERSONAL = ["enjoyed", "wishlist", "journal"];
+  function pages() {
+    const tabs = document.querySelector(".gbar .tabs"), pt = $("ptabs"); if (!tabs) return;
+    const cellarTab = tabs.querySelector('.tab[data-page="cellar"]'), cellarP = pt && pt.querySelector('button[data-page="cellar"]');
+    PAGES().forEach(([id, label, icon], i) => {
+      let t = tabs.querySelector(`.tab[data-page="${id}"]`);
+      if (!t) { t = document.createElement("button"); t.className = "tab bz-tab"; t.dataset.page = id; t.type = "button";
+        i === 0 ? cellarTab.before(t) : (tabs.querySelector('.bz-tab[data-page="accounts"]') || cellarTab).after(t); }
+      t.textContent = tr(label); t.hidden = !on();
+      if (pt) { let q = pt.querySelector(`button[data-page="${id}"]`);
+        if (!q) { q = document.createElement("button"); q.type = "button"; q.dataset.page = id; q.className = "bz-ptab";
+          i === 0 ? cellarP.before(q) : (pt.querySelector('.bz-ptab[data-page="accounts"]') || cellarP).after(q); }
+        q.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">${icon}</svg><span>${esc(tr(label))}</span>`; q.hidden = !on(); }
+      const pid = "page" + id[0].toUpperCase() + id.slice(1);
+      if (!$(pid)) { const d = document.createElement("div"); d.id = pid; d.hidden = true; d.className = "bz-page"; $("pageCellar").after(d); }
+    });
+    // a business keeps its stock here, not a collector's diary
+    PERSONAL.forEach(p => { const a = tabs.querySelector(`.tab[data-page="${p}"]`); if (a) a.hidden = on();
+      const q = pt && pt.querySelector(`button[data-page="${p}"]`); if (q) q.hidden = on(); });
+    document.documentElement.classList.toggle("bz-on", on());
+    if (!$("bizPanel")) { const p = document.createElement("section"); p.id = "bizPanel"; p.className = "panel bz-p"; p.hidden = true; $("pageAccounts").appendChild(p); }
+    if (!$("bizCard")) { const c = document.createElement("div"); c.id = "bizCard"; c.className = "bz-card"; $("pageWinecard").appendChild(c); }
+  }
+  // the page app.js's router shows: drawn now, and the wine card printable while it's on screen
+  let SHOWN = "";
+  function page(name) {
+    SHOWN = on() ? name : "";
+    document.body.classList.toggle("bz-printcard", SHOWN === "winecard");
+    if (SHOWN === "inventory") inventory();
+    if (SHOWN === "accounts") { overview(WINES.filter(w => w.left > 0));
+      // sales made on another device (or a till) since: fetched again when the page is opened, at most once a minute
+      if (SALES && Date.now() - salesAt > 60e3) loadSales(true); }
+    if (SHOWN === "winecard") renderCard();
+  }
+  const go = name => { location.hash = name; };
   const cardLabel = () => tr(words().card);
 
   /* ---------- a wine's business fields, in its details ---------- */
@@ -63,12 +107,14 @@ window.BIZ = (() => {
   document.addEventListener("change", async e => {
     const inp = e.target.closest && e.target.closest(".bz-in"); if (!inp) return;
     const row = Number(inp.dataset.row), f = inp.dataset.f, v = inp.value.trim();
+    if (f === "cost" && v === "") { inp.value = inp.defaultValue; return; }
     if (f !== "source" && v !== "" && !(Number(v) >= 0)) { toast(tr(f === "par" || f === "left" ? "The minimum is a number of bottles, 0 or more" : "A price is a number of 0 or more")); return; }
     if (f === "left" && v === "") { inp.value = inp.defaultValue; return; }
     inp.disabled = true;
     try {
       // the stock is the bottles on hand (bought less drunk or sold); the rest are the wine's own fields
       const res = f === "left" ? await api({ action: "setstock", row, left: Math.round(Number(v)) })
+        : f === "cost" ? await api({ action: "setprice", row, value: Number(v) })
         : await api({ action: "setinfo", row, fields: { [f]: f === "source" ? v : (v === "" ? "" : Number(v)) } });
       KEEP_OPEN = row; WINES = normalize(res.wines); renderOverview(); renderTable(); renderEnjoyed();
       toast(tr("Saved"));
@@ -85,9 +131,10 @@ window.BIZ = (() => {
   }
   function setPerBottle(n) { n = Math.max(2, Math.min(12, Math.round(n) || 5)); try { localStorage.setItem(glassesKey(), n); } catch (e) {}
     if (window.VAULT && VAULT.active()) savePrefs({ glasses: n }).catch(() => {}); }
-  function loadSales() {
-    if (SALES || salesBusy) return salesBusy;
-    salesBusy = api({ action: "sales" }).then(r => { SALES = r.sales || []; salesBusy = null; overview(WINES.filter(w => w.left > 0)); })
+  let salesAt = 0;
+  function loadSales(fresh) {
+    if ((SALES && !fresh) || salesBusy) return salesBusy;
+    salesBusy = api({ action: "sales" }).then(r => { SALES = r.sales || []; salesAt = Date.now(); salesBusy = null; overview(WINES.filter(w => w.left > 0)); })
       .catch(() => { SALES = []; salesBusy = null; });
     return salesBusy;
   }
@@ -105,32 +152,56 @@ window.BIZ = (() => {
         catch (err) { toast(tr("Could not undo: {0}", errText(err))); } } }]);
     } catch (err) { toast(/None left/.test(String(err && err.message || err)) ? tr("None left in stock") : tr("Could not save: {0}", errText(err))); b.disabled = false; }
   });
-  // what the sales say: this week, the last eight weeks, best sellers and slow movers (90 days)
+  // what the sales say, over a period chosen on the page: what was sold and taken, the profit on it, a chart, the best
+  // sellers; and the slow movers (in stock, nothing sold in 90 days)
+  let PERIOD = 30;
+  const PERIODS = [[7, "Last 7 days"], [30, "Last 30 days"], [90, "Last 90 days"], [365, "Last 12 months"]];
   function salesHTML(cellar) {
     if (!SALES) { loadSales(); return `<h3>${esc(tr("Sales"))}</h3><p class="note">${esc(tr("Loading…"))}</p>`; }
     const per = perBottle(), day = d => new Date(d + "T12:00:00").getTime(), now = Date.now(), D = 864e5;
     const since = n => SALES.filter(s => now - day(s.date) < n * D), eq = s => s.unit === "glass" ? 1 / per : 1;
-    const wk = since(7), money = l => l.reduce((n, s) => n + (s.price || 0), 0);
-    const nB = wk.filter(s => s.unit === "bottle").length, nG = wk.length - nB;
-    // eight weeks, oldest first
-    const weeks = Array.from({ length: 8 }, (_, i) => SALES.filter(s => { const a = (now - day(s.date)) / D; return a >= (7 - i) * 7 && a < (8 - i) * 7; }));
-    const wmax = Math.max(1, ...weeks.map(l => l.reduce((n, s) => n + eq(s), 0)));
-    const by = {}; since(90).forEach(s => { const k = s.row + "|" + s.producer; (by[k] = by[k] || { s, n: 0, kr: 0 }); by[k].n += eq(s); by[k].kr += s.price || 0; });
-    const best = Object.values(by).sort((a, b) => b.n - a.n).slice(0, 5);
+    const inP = since(PERIOD), money = l => l.reduce((n, s) => n + (s.price || 0), 0), hide = v => SHOW_PRICES ? esc(kr(Math.round(v))) : "···";
+    const nB = inP.filter(s => s.unit === "bottle").length, nG = inP.length - nB, eqN = inP.reduce((n, s) => n + eq(s), 0);
+    // the profit: the sale without VAT, less what the bottle (or its share, for a glass) cost; sales of a wine with no
+    // cost price are left out of it, and said so
+    const costOf = s => { const w = WINES.find(x => x.row === s.row); return w && w.price > 0 ? w.price * eq(s) : null; };
+    const priced = inP.filter(s => s.price > 0 && costOf(s) != null), netP = priced.reduce((n, s) => n + s.price / (1 + VAT), 0);
+    const profit = netP - priced.reduce((n, s) => n + costOf(s), 0), rev = money(inP);
+    // the chart: days for a week or a month, weeks for 90 days, months for a year; bottles (glasses as their share)
+    const lang = window.I18N ? (I18N.lang === "en" ? "en-GB" : I18N.lang) : "en-GB";
+    let buckets;
+    if (PERIOD === 365) {
+      const m0 = new Date(); buckets = Array.from({ length: 12 }, (_, i) => { const d = new Date(m0.getFullYear(), m0.getMonth() - 11 + i, 15), k = d.toISOString().slice(0, 7);
+        return { l: inP.filter(s => s.date.slice(0, 7) === k), t: d.toLocaleDateString(lang, { month: "short" }) }; });
+    } else {
+      const size = PERIOD === 90 ? 7 : 1, nb = Math.ceil(PERIOD / size);
+      buckets = Array.from({ length: nb }, (_, i) => { const lo = (nb - 1 - i) * size, hi = lo + size;
+        return { l: inP.filter(s => { const a = (now - day(s.date)) / D; return a >= lo && a < hi; }), t: i === nb - 1 ? tr(size === 7 ? "this week" : "today") : "" }; });
+    }
+    const n1 = x => x.toLocaleString(window.I18N ? I18N.lang : "en", { maximumFractionDigits: 1 });
+    const bmax = Math.max(1, ...buckets.map(b => b.l.reduce((n, s) => n + eq(s), 0)));
+    const by = {}; inP.forEach(s => { const k = s.row + "|" + s.producer; (by[k] = by[k] || { s, n: 0, kr: 0 }); by[k].n += eq(s); by[k].kr += s.price || 0; });
+    const best = Object.values(by).sort((a, b) => b.n - a.n).slice(0, 8);
     const soldRows = new Set(since(90).map(s => s.row));
     const old = w => !w.acquired || now - new Date(w.acquired + "T12:00:00").getTime() > 90 * D;
-    const slow = cellar.filter(w => !soldRows.has(w.row) && old(w)).sort((a, b) => (b.price || 0) * b.left - (a.price || 0) * a.left).slice(0, 5);
+    const slow = cellar.filter(w => !soldRows.has(w.row) && old(w)).sort((a, b) => (b.price || 0) * b.left - (a.price || 0) * a.left).slice(0, 8);
     const nm = s => `${esc(s.producer)}${s.name ? " · " + esc(s.name) : ""}${s.vintage ? " " + esc(s.vintage) : ""}`;
-    const n1 = x => x.toLocaleString(window.I18N ? I18N.lang : "en", { maximumFractionDigits: 1 });
-    return `<h3>${esc(tr("Sales"))}</h3>
+    const fig = (n, l, sub) => `<div class="bz-k"><b>${n}</b><span>${esc(l)}</span>${sub ? `<em>${esc(sub)}</em>` : ""}</div>`;
+    return `<div class="bz-h"><h3>${esc(tr("Sales"))}</h3>
+        <label class="bz-f">${esc(tr("Period"))}<select id="bzPeriod">${PERIODS.map(([d, l]) => `<option value="${d}"${d === PERIOD ? " selected" : ""}>${esc(tr(l))}</option>`).join("")}</select></label></div>
       <div class="bz-ks">
-        <div class="bz-k"><b>${esc(fmt(nB))}${KIND === "restaurant" ? ` <small>+ ${esc(fmt(nG))} ${esc(tr("glasses"))}</small>` : ""}</b><span>${esc(tr(KIND === "restaurant" ? "Bottles and glasses sold, last 7 days" : "Bottles sold, last 7 days"))}</span></div>
-        <div class="bz-k"><b>${SHOW_PRICES ? esc(kr(Math.round(money(wk)))) : "···"}</b><span>${esc(tr("Sales, last 7 days, VAT included"))}</span></div>
+        <div class="bz-k"><b>${esc(fmt(nB))}${KIND === "restaurant" ? ` <small>+ ${esc(fmt(nG))} ${esc(tr("glasses"))}</small>` : ""}</b><span>${esc(tr(KIND === "restaurant" ? "Bottles and glasses sold" : "Bottles sold"))}</span></div>
+        ${fig(hide(rev), tr("Sales, VAT included"), SHOW_PRICES ? tr("{0} without VAT", kr(Math.round(rev / (1 + VAT)))) : "")}
+        ${fig(priced.length ? hide(profit) : "—", tr("Gross profit, VAT excluded"), priced.length && netP > 0 ? tr("margin {0}", pct(profit / netP)) : "")}
+        ${fig(eqN > 0 ? hide(rev / eqN) : "—", tr("Average a bottle sold"))}
       </div>
-      <div class="bz-wk" role="img" aria-label="${esc(tr("Bottles sold a week, the last eight weeks"))}">${weeks.map((l, i) => { const n = l.reduce((t, s) => t + eq(s), 0);
-        return `<span title="${esc(tr("{0} bottles", n1(n)))}"><i style="height:${(n / wmax * 100).toFixed(0)}%"></i><em>${i === 7 ? esc(tr("this week")) : ""}</em></span>`; }).join("")}</div>
-      ${best.length ? `<h4>${esc(tr("Best sellers, 90 days"))}</h4><ul class="bz-sup">${best.map(x => `<li><span>${nm(x.s)}</span><b>${esc(tr("{0} bottles", n1(x.n)))}</b></li>`).join("")}</ul>` : `<p class="note">${esc(tr("Nothing sold yet: open a wine and press Sold."))}</p>`}
-      ${SALES.length && slow.length ? `<h4>${esc(tr("Slow movers: in stock, nothing sold in 90 days"))}</h4><ul class="bz-sup">${slow.map(w => `<li><span>${nm(w)}</span><b>${esc(btl(fmt(w.left)))}</b></li>`).join("")}</ul>` : ""}
+      ${priced.length < inP.length ? `<p class="note">${esc(tr("{0} of the sales are of wines with no cost price: they're left out of the profit.", fmt(inP.length - priced.length)))}</p>` : ""}
+      <div class="bz-wk" style="grid-template-columns:repeat(${buckets.length},minmax(0,1fr))" role="img" aria-label="${esc(tr("Bottles sold over the period"))}">${buckets.map(b => { const n = b.l.reduce((t, s) => t + eq(s), 0);
+        return `<span title="${esc(tr("{0} bottles", n1(n)) + (SHOW_PRICES ? " · " + kr(Math.round(money(b.l))) : ""))}"><i style="height:${(n / bmax * 100).toFixed(0)}%"></i><em>${esc(b.t)}</em></span>`; }).join("")}</div>
+      <div class="bz-cols">
+        <div>${best.length ? `<h4>${esc(tr("Best sellers"))}</h4><ul class="bz-sup">${best.map(x => `<li><span>${nm(x.s)}</span><b>${esc(x.n === 1 ? tr("1 bottle") : tr("{0} bottles", n1(x.n)))}${SHOW_PRICES ? ` <small>${esc(kr(Math.round(x.kr)))}</small>` : ""}</b></li>`).join("")}</ul>` : `<p class="note">${esc(tr("No sales in this period."))}</p>`}</div>
+        <div>${SALES.length && slow.length ? `<h4>${esc(tr("Slow movers: in stock, nothing sold in 90 days"))}</h4><ul class="bz-sup">${slow.map(w => `<li><span>${nm(w)}</span><b>${esc(btl(fmt(w.left)))}</b></li>`).join("")}</ul>` : ""}</div>
+      </div>
       ${SALES.length ? `<p class="bz-exp"><label class="bz-f">${esc(tr("Sales of the month"))}<select id="bzMonth">${months().map(m => `<option value="${m}">${esc(monthName(m))}</option>`).join("")}</select></label>
         <button type="button" class="btn" id="bzSalesCsv">${esc(tr("Download as CSV"))}</button></p>` : ""}
       ${KIND === "restaurant" ? `<label class="bz-f bz-gl">${esc(tr("Glasses in a bottle"))}<input id="bzGlasses" type="number" min="2" max="12" step="1" value="${per}"></label>` : ""}`;
@@ -176,16 +247,24 @@ window.BIZ = (() => {
 
   /* ---------- the overview: money, what's missing, suppliers; a winemaker's own wines ---------- */
   function overview(cellar) {
-    let p = $("bizPanel");
+    if (on()) pages();
+    const p = $("bizPanel");
     if (!on()) { if (p) p.hidden = true; return; }
-    if (!p) { p = document.createElement("section"); p.id = "bizPanel"; p.className = "panel bz-p"; $("wall").after(p); }
     p.hidden = false;
+    if (SHOWN === "inventory") inventory();
+    if (SHOWN === "winecard") renderCard();
     const W = words(), sum = (a, f) => a.reduce((n, w) => n + f(w), 0);
     const cost = sum(cellar, w => (w.price || 0) * w.left), sale = sum(cellar, w => (w.menuPrice || 0) * w.left);
     const both = cellar.filter(w => margin(w)), net = sum(both, w => margin(w).net * w.left), gross = sum(both, w => margin(w).gross * w.left);
     const noPrice = cellar.filter(w => !(w.menuPrice > 0)), glass = cellar.filter(w => w.glassPrice > 0);
     const sup = {}; cellar.forEach(w => { const k = w.source || ""; if (k) sup[k] = (sup[k] || 0) + w.left; });
-    const sups = Object.entries(sup).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    const sups = Object.entries(sup).sort((a, b) => b[1] - a[1]).slice(0, 10);
+    const supCost = k => sum(cellar.filter(w => w.source === k), w => (w.price || 0) * w.left);
+    // the stock by style: wines, bottles, at cost and at the selling price
+    const styles = STYLE_ORDER.concat([...new Set(cellar.map(w => w.style))].filter(s => !STYLE_ORDER.includes(s)))
+      .map(s => { const ws = cellar.filter(w => w.style === s); return [s, ws.length, sum(ws, w => w.left), sum(ws, w => (w.price || 0) * w.left), sum(ws, w => (w.menuPrice || 0) * w.left)]; })
+      .filter(r => r[1]);
+    const money = v => SHOW_PRICES ? esc(kr(Math.round(v))) : "···";
     $("bzSup") || document.body.insertAdjacentHTML("beforeend", '<datalist id="bzSup"></datalist>');
     $("bzSup").innerHTML = Object.keys(sup).sort().map(s => `<option>${esc(s)}</option>`).join("");
     const fig = (n, l) => `<div class="bz-k"><b>${n}</b><span>${esc(l)}</span></div>`;
@@ -199,6 +278,8 @@ window.BIZ = (() => {
           : `<p class="note">${esc(tr("No wines from {0} in the cellar yet.", dom))}</p>`) : ""}`;
     }
     p.innerHTML = `<h2>${esc(tr(KIND === "restaurant" ? "The business" : KIND === "merchant" ? "The shop" : "The domaine"))}</h2>
+      ${KIND !== "winemaker" ? salesHTML(cellar) : ""}
+      <h3>${esc(tr("The stock"))}</h3>
       <div class="bz-ks">
         ${fig(SHOW_PRICES ? kr(Math.round(cost)) : "···", tr("Stock at cost"))}
         ${fig(SHOW_PRICES ? kr(Math.round(sale)) : "···", tr("Stock at {0}", low(tr(W.sell))))}
@@ -206,9 +287,10 @@ window.BIZ = (() => {
         ${W.glass ? fig(fmt(glass.length), tr("Wines by the glass")) : ""}
       </div>
       ${noPrice.length ? `<p class="note">${esc(tr(noPrice.length === 1 ? "1 wine in stock has no {1} yet: it's left off the {2}." : "{0} wines in stock have no {1} yet: they're left off the {2}.", fmt(noPrice.length), low(tr(W.sell)), low(tr(W.card))))}</p>` : ""}
+      ${styles.length ? `<div class="bz-scroll"><table class="bz-tab2"><thead><tr><th>${esc(tr("Style"))}</th><th>${esc(tr("Wines"))}</th><th>${esc(tr("Bottles"))}</th><th>${esc(tr("At cost"))}</th><th>${esc(tr("At {0}", low(tr(W.sell))))}</th></tr></thead>
+        <tbody>${styles.map(([s, n, b, c, v]) => `<tr><td>${esc(tr(STYLE_NAME[s] || s || "—"))}</td><td>${esc(fmt(n))}</td><td>${esc(fmt(b))}</td><td>${money(c)}</td><td>${money(v)}</td></tr>`).join("")}</tbody></table></div>` : ""}
       ${reorderHTML()}
-      ${KIND !== "winemaker" ? salesHTML(cellar) : ""}
-      ${sups.length ? `<h3>${esc(tr("Suppliers"))}</h3><ul class="bz-sup">${sups.map(([k, n]) => `<li><span>${esc(k)}</span><b>${esc(btl(fmt(n)))}</b></li>`).join("")}</ul>` : ""}
+      ${sups.length ? `<h3>${esc(tr("Suppliers"))}</h3><ul class="bz-sup">${sups.map(([k, n]) => `<li><span>${esc(k)}</span><b>${esc(btl(fmt(n)))} <small>${money(supCost(k))}</small></b></li>`).join("")}</ul>` : ""}
       ${own}
       <p class="bz-foot"><button type="button" class="btn" data-bz="card">${esc(tr(W.card))}</button> <span class="note">${esc(tr("Prices include VAT (moms 25 %); the margin is worked out without it."))}</span></p>`;
     p.querySelector('[data-bz="card"]').onclick = openCard;
@@ -216,9 +298,78 @@ window.BIZ = (() => {
       try { await navigator.clipboard.writeText(reorderText(reorder())); toast(tr("Copied")); } catch (e) { toast(tr("Could not copy")); } };
     const sc = $("bzSalesCsv"); if (sc) sc.onclick = () => salesCsv($("bzMonth").value);
     syncCard();
+    const pe = $("bzPeriod"); if (pe) pe.onchange = () => { PERIOD = Number(pe.value) || 30; overview(WINES.filter(w => w.left > 0)); };
     const g = $("bzGlasses"); if (g) g.onchange = () => { setPerBottle(Number(g.value)); overview(WINES.filter(w => w.left > 0)); };
     const d = $("bzDom"); if (d) d.onchange = () => { setDomaine(d.value.trim()); overview(WINES.filter(w => w.left > 0)); };
   }
+  /* ---------- Inventory: the first page. Every wine as a line to count and sell from ---------- */
+  const INV = { q: "", show: "stock", sort: "producer" };
+  const SHOWS = [["stock", "In stock"], ["low", "Below the minimum"], ["out", "Sold out"], ["noprice", "No selling price"], ["all", "All wines"]];
+  const SORTS = [["producer", "Producer"], ["stock", "Most in stock"], ["value", "Highest value"], ["margin", "Best margin"]];
+  const fold = s => String(s == null ? "" : s).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  function invList() {
+    const q = fold(INV.q).trim();
+    const pick = { stock: w => w.left > 0 || w.openGlasses > 0, low: w => w.par > 0 && w.left < w.par, out: w => !(w.left > 0), noprice: w => w.left > 0 && !(w.menuPrice > 0), all: () => true }[INV.show] || (() => true);
+    const val = w => (w.menuPrice || w.price || 0) * Math.max(0, w.left), mg = w => (margin(w) || { pct: -1 }).pct;
+    const cmp = { producer: (a, b) => a.producer.localeCompare(b.producer) || (a.vintage || 0) - (b.vintage || 0), stock: (a, b) => b.left - a.left,
+      value: (a, b) => val(b) - val(a), margin: (a, b) => mg(b) - mg(a) }[INV.sort];
+    return WINES.filter(pick).filter(w => !q || fold([w.producer, w.name, w.vintage, w.region, w.country, w.source, w.grape].join(" ")).includes(q)).sort(cmp);
+  }
+  function inventory() {
+    const box = $("pageInventory"); if (!box || !on()) return;
+    const W = words();
+    if (box.dataset.kind !== KIND) {
+      box.dataset.kind = KIND;
+      box.innerHTML = `<section class="panel bz-inv"><div class="bz-h"><h2>${esc(tr("Inventory"))}</h2>
+          <span class="bz-btns"><button type="button" class="btn primary" data-bz="add">${esc(tr("＋ Add wine"))}</button><button type="button" class="btn" data-bz="card2">${esc(tr(W.card))}</button></span></div>
+        <div class="bz-ks" id="bzInvKs"></div>
+        <div class="bz-tools"><input type="search" id="bzInvQ" placeholder="${esc(tr("Search the stock"))}" aria-label="${esc(tr("Search the stock"))}">
+          <select id="bzInvShow" aria-label="${esc(tr("Show"))}">${SHOWS.map(([k, l]) => `<option value="${k}">${esc(tr(l))}</option>`).join("")}</select>
+          <select id="bzInvSort" aria-label="${esc(tr("Sort by"))}">${SORTS.map(([k, l]) => `<option value="${k}">${esc(tr(l))}</option>`).join("")}</select></div>
+        <div class="bz-scroll"><table class="bz-inv-t"><thead><tr><th>${esc(tr("Wine"))}</th><th>${esc(tr("In stock"))}</th><th>${esc(tr("Minimum"))}</th><th>${esc(tr("Cost price"))}</th>
+          <th>${esc(tr(W.sell))}</th>${W.glass ? `<th>${esc(tr("By the glass"))}</th>` : ""}<th>${esc(tr("Supplier"))}</th><th>${esc(tr("Margin"))}</th><th><span class="sr">${esc(tr("Sell"))}</span></th></tr></thead>
+          <tbody id="bzInvBody"></tbody></table></div><p class="note" id="bzInvNote"></p></section>`;
+      $("bzInvQ").value = INV.q; $("bzInvShow").value = INV.show; $("bzInvSort").value = INV.sort;
+      $("bzInvQ").oninput = () => { INV.q = $("bzInvQ").value; invBody(); };
+      $("bzInvShow").onchange = () => { INV.show = $("bzInvShow").value; invBody(); };
+      $("bzInvSort").onchange = () => { INV.sort = $("bzInvSort").value; invBody(); };
+      box.querySelector('[data-bz="add"]').onclick = () => $("addBtn").click();
+      box.querySelector('[data-bz="card2"]').onclick = openCard;
+      box.addEventListener("click", e => { const o = e.target.closest("[data-open]"); if (!o) return;
+        KEEP_OPEN = Number(o.dataset.open); location.hash = "cellar"; renderTable();
+        setTimeout(() => { const r = document.querySelector(`#tbl tr.main[data-row="${o.dataset.open}"]`); if (r) r.scrollIntoView({ block: "center" }); }, 60); });
+    }
+    const cellar = WINES.filter(w => w.left > 0), sum = (a, f) => a.reduce((n, w) => n + f(w), 0);
+    const low = WINES.filter(w => w.par > 0 && w.left < w.par).length, money = v => SHOW_PRICES ? esc(kr(Math.round(v))) : "···";
+    $("bzInvKs").innerHTML = [[fmt(cellar.length), tr("Wines in stock")], [fmt(sum(cellar, w => w.left)), tr("Bottles")],
+      [money(sum(cellar, w => (w.price || 0) * w.left)), tr("Stock at cost")], [money(sum(cellar, w => (w.menuPrice || 0) * w.left)), tr("Stock at {0}", lowc(tr(W.sell)))],
+      [fmt(low), tr("Below the minimum")]].map(([n, l], i) => `<div class="bz-k${i === 4 && low ? " bz-warn" : ""}"${i === 4 ? ' data-bz="low"' : ""}><b>${n}</b><span>${esc(l)}</span></div>`).join("");
+    const lk = $("bzInvKs").querySelector('[data-bz="low"]'); if (lk && low) { lk.tabIndex = 0; lk.onclick = () => { INV.show = "low"; $("bzInvShow").value = "low"; invBody(); }; }
+    invBody();
+  }
+  function invBody() {
+    const body = $("bzInvBody"); if (!body) return;
+    const W = words(), list = invList();
+    // keep the field being typed in (a save redraws the table): found again by its wine and field
+    const a = document.activeElement, keep = a && a.dataset && a.dataset.row && body.contains(a) ? [a.dataset.row, a.dataset.f] : null;
+    const num = (w, f, v, cls) => `<input class="bz-in bz-n${cls ? " " + cls : ""}" type="number" min="0" step="1" inputmode="decimal" data-f="${f}" data-row="${w.row}" value="${v != null ? v : ""}" placeholder="—" aria-label="${esc(tr({ left: "In stock", par: "Minimum", cost: "Cost price", menuPrice: W.sell, glassPrice: "By the glass" }[f]))}">`;
+    body.innerHTML = list.map(w => { const m = margin(w), under = w.par > 0 && w.left < w.par;
+      return `<tr class="${under ? "bz-under" : ""}${w.left > 0 ? "" : " bz-out"}">
+        <td class="bz-wn"><button type="button" class="linkish" data-open="${w.row}"><b>${esc(w.producer)}</b> ${esc([w.name, w.vintage || "NV"].filter(Boolean).join(" "))}</button><small>${esc([w.region, w.country].filter(Boolean).join(", "))}</small></td>
+        <td data-l="${esc(tr("In stock"))}">${num(w, "left", w.left)}${w.openGlasses > 0 ? `<small>${esc(tr(w.openGlasses === 1 ? "+ 1 glass open" : "+ {0} glasses open", w.openGlasses))}</small>` : ""}</td>
+        <td data-l="${esc(tr("Minimum"))}">${num(w, "par", w.par || null)}</td>
+        <td data-l="${esc(tr("Cost price"))}">${SHOW_PRICES ? num(w, "cost", w.price || null) : "···"}</td>
+        <td data-l="${esc(tr(W.sell))}">${num(w, "menuPrice", w.menuPrice)}</td>
+        ${W.glass ? `<td data-l="${esc(tr("By the glass"))}">${num(w, "glassPrice", w.glassPrice)}</td>` : ""}
+        <td data-l="${esc(tr("Supplier"))}"><input class="bz-in bz-sp" data-f="source" data-row="${w.row}" list="bzSup" value="${esc(w.source)}" placeholder="—" aria-label="${esc(tr("Supplier"))}"></td>
+        <td class="bz-mg" data-l="${esc(tr("Margin"))}">${m ? `${esc(pct(m.pct))}<small>${esc(times(m.x))}</small>` : "—"}</td>
+        <td class="bz-sl">${w.left > 0 ? `<button type="button" class="btn" data-sell="bottle" data-row="${w.row}" title="${esc(tr("Sold a bottle"))}">${esc(tr("Bottle"))}</button>` : ""}${W.glass && (w.left > 0 || w.openGlasses > 0) ? `<button type="button" class="btn" data-sell="glass" data-row="${w.row}" title="${esc(tr("Sold a glass"))}">${esc(tr("Glass"))}</button>` : ""}</td></tr>`; }).join("")
+      || `<tr><td colspan="9" class="note">${esc(tr(WINES.length ? "No wines match." : "No wines yet: add the first with ＋ Add wine."))}</td></tr>`;
+    $("bzInvNote").textContent = tr(list.length === 1 ? "1 wine. Changes are saved when you leave a field." : "{0} wines. Changes are saved when you leave a field.", fmt(list.length));
+    if (keep) { const el = body.querySelector(`[data-row="${keep[0]}"][data-f="${keep[1]}"]`); if (el) el.focus(); }
+  }
+  const lowc = s => low(s);
+
   const domKey = () => "vinDomaine:" + String(cfg.user || "").toLowerCase();
   function domaine() {
     try { const x = window.VAULT && VAULT.active() && VAULT.prefs(); if (x && typeof x.domaine === "string") return x.domaine; } catch (e) {}
@@ -325,16 +476,19 @@ window.BIZ = (() => {
   /* ---------- the wine card / price list: on the page, printable ---------- */
   const STYLE_ORDER = ["Bobler", "Hvid", "Rosé", "Rød", "Hedvin"], STYLE_NAME = { Bobler: "Sparkling", Hvid: "White", "Rosé": "Rosé", "Rød": "Red", Hedvin: "Fortified" };
   const titleKey = () => "vinCardTitle:" + String(cfg.user || "").toLowerCase();
-  function openCard() {
+  function openCard() { go("winecard"); scrollTo({ top: 0 }); }
+  function renderCard() {
+    if (!on()) return;
+    pages();
     const W = words(), list = WINES.filter(w => w.left > 0 && w.menuPrice > 0);
-    let c = $("bizCard");
-    if (!c) { c = document.createElement("div"); c.id = "bizCard"; c.className = "bz-card"; c.setAttribute("role", "dialog"); c.setAttribute("aria-modal", "true"); document.body.appendChild(c); }
+    const c = $("bizCard");
+    // not while the title is being typed
+    if (document.activeElement && document.activeElement.id === "bzTitle") return;
     const groups = STYLE_ORDER.concat([...new Set(list.map(w => w.style))].filter(s => !STYLE_ORDER.includes(s)))
       .map(s => [s, list.filter(w => w.style === s).sort((a, b) => (a.country || "").localeCompare(b.country || "") || (a.region || "").localeCompare(b.region || "")
         || a.producer.localeCompare(b.producer) || (a.vintage || 0) - (b.vintage || 0))]).filter(g => g[1].length);
     const title = localStorage.getItem(titleKey()) || tr(W.card);
     c.innerHTML = `<div class="bz-bar"><button type="button" class="btn primary" data-bz="print">${esc(tr("Print or save as PDF"))}</button>
-        <button type="button" class="btn" data-bz="close">${esc(tr("Close"))}</button>
         <span class="note">${esc(tr(list.length === 1 ? "1 wine: in stock and priced. Click the title to change it." : "{0} wines: in stock and priced. Click the title to change it.", fmt(list.length)))}</span></div>
       <div class="bz-online" id="bzOnline"></div>
       <article class="bz-sheet">
@@ -351,15 +505,10 @@ window.BIZ = (() => {
         }).join("") : `<p class="note">${esc(tr("No wines with a {0} yet: set one in a wine's details.", low(tr(W.sell))))}</p>`}
         <p class="bz-fine">${esc(tr("Prices in kr. including VAT."))}${W.glass ? " " + esc(tr("The first price is by the glass.")) : ""}</p>
       </article>`;
-    c.hidden = false; document.body.classList.add("bz-open");
-    const close = () => { c.hidden = true; document.body.classList.remove("bz-open"); };
-    c.querySelector('[data-bz="close"]').onclick = close;
     c.querySelector('[data-bz="print"]').onclick = () => window.print();
     const h = $("bzTitle"); h.onblur = () => { const v = h.textContent.trim(); try { v ? localStorage.setItem(titleKey(), v) : localStorage.removeItem(titleKey()); } catch (e) {} syncCard(); };
     onlineHTML($("bzOnline"));
     h.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); h.blur(); } };
-    c.onkeydown = e => { if (e.key === "Escape" && e.target !== h) close(); };
-    c.querySelector('[data-bz="print"]').focus();
   }
 
   // the styles, once
@@ -381,7 +530,34 @@ window.BIZ = (() => {
 .bz-sup{list-style:none;padding:0;margin:0 0 8px} .bz-sup li{display:flex;justify-content:space-between;border-bottom:1px solid var(--line);padding:4px 0;font-size:13.5px}
 .bz-own div{margin:4px 0;font-size:13.5px} .bz-v{display:inline-block;margin:2px 6px 2px 0;padding:1px 7px;border-radius:999px;background:var(--chip,rgba(0,0,0,.05));font-size:12px}
 .bz-foot{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.bz-card{position:fixed;inset:0;z-index:60;overflow:auto;background:var(--bg);padding:16px} .bz-card[hidden]{display:none}
+.bz-card{padding:4px 0 16px}
+.bz-h{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:end;justify-content:space-between} .bz-h h2,.bz-h h3{margin:0}
+.bz-k em{display:block;font-style:normal;font-size:11.5px;color:var(--muted)} .bz-warn b{color:var(--accent,#7C2D3E)} .bz-warn{cursor:pointer;outline-offset:2px}
+.bz-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:4px 24px}
+.bz-tab2{width:100%;border-collapse:collapse;font-size:13.5px;margin:4px 0 10px} .bz-tab2 th{text-align:left;font-weight:600;font-size:12px;color:var(--muted);border-bottom:1px solid var(--line);padding:4px 6px}
+.bz-tab2 th{white-space:normal;letter-spacing:.02em} .bz-tab2 td{border-bottom:1px solid var(--line);padding:4px 6px;font-variant-numeric:tabular-nums} .bz-tab2 td+td,.bz-tab2 th+th{text-align:right}
+.bz-select,.bz-tools select,.bz-f select{font:inherit;font-size:14px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
+.bz-tools{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 10px} .bz-tools input{flex:1;min-width:180px;font:inherit;font-size:14px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
+.bz-scroll{overflow-x:auto} .bz-inv-t{width:100%;border-collapse:collapse;font-size:13.5px} .bz-tab2,.bz-inv-t{min-width:0}
+@media (min-width:641px){ .bz-inv-t{min-width:880px} }
+.bz-inv-t th{text-align:left;font-size:12px;font-weight:600;color:var(--muted);padding:6px;border-bottom:1px solid var(--line);white-space:nowrap}
+.bz-inv-t td{padding:5px 6px;border-bottom:1px solid var(--line);vertical-align:middle}
+.bz-inv-t small{display:block;font-size:11.5px;color:var(--muted)} .bz-wn{min-width:200px} .bz-wn .linkish{background:none;border:0;padding:0;font:inherit;color:inherit;text-align:left;cursor:pointer}
+.bz-wn .linkish:hover b{text-decoration:underline}
+.bz-n{width:78px;font:inherit;font-size:13.5px;padding:5px 6px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink);font-variant-numeric:tabular-nums}
+.bz-sp{width:140px;text-align:left;font:inherit;font-size:13.5px;padding:5px 6px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink)}
+.bz-under td:first-child{box-shadow:inset 3px 0 var(--accent,#7C2D3E)} .bz-out{opacity:.7} .bz-mg{white-space:nowrap;font-variant-numeric:tabular-nums}
+.bz-sl{white-space:nowrap} .bz-sl .btn{padding:4px 9px;font-size:12.5px;margin-right:4px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+/* a page's wide tables scroll or fold inside it, never widening the page (the body is a flex column) */
+.bz-page{display:grid;grid-template-columns:minmax(0,1fr)} .bz-page[hidden]{display:none!important}
+/* a phone: each wine a card, its fields labelled */
+@media (max-width:640px){ .bz-inv-t thead{display:none} .bz-inv-t,.bz-inv-t tbody{display:block}
+  .bz-inv-t tr{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:10px 0;border-bottom:1px solid var(--line)}
+  .bz-inv-t td{border:0;padding:0;min-width:0} .bz-inv-t td.bz-wn,.bz-inv-t td.bz-sl{grid-column:1/-1} .bz-wn{min-width:0}
+  .bz-inv-t td[data-l]::before{content:attr(data-l);display:block;font-size:11px;color:var(--muted);margin-bottom:2px}
+  .bz-n,.bz-sp{width:100%;box-sizing:border-box} .bz-under td:first-child{box-shadow:none} .bz-under{box-shadow:inset 3px 0 var(--accent,#7C2D3E);padding-left:8px}
+  .bz-sl .btn{padding:8px 14px} .bz-tools select{flex:1} }
 .bz-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;max-width:720px;margin:0 auto 12px}
 .bz-sheet{max-width:720px;margin:0 auto;background:#fff;color:#1c1416;padding:40px 48px;border-radius:6px;box-shadow:0 6px 30px rgba(0,0,0,.12);font-family:var(--serif,Georgia),serif}
 .bz-sheet h1{text-align:center;font-size:30px;font-weight:600;letter-spacing:.04em;margin:0 0 24px;outline:none} .bz-sheet h1:focus{background:#faf6ef}
@@ -399,12 +575,13 @@ window.BIZ = (() => {
   body.bz-qrprint .bz-online{display:block;border:0;max-width:none} body.bz-qrprint .bz-qr{width:auto;margin:30mm auto 0}
   body.bz-qrprint .bz-qr svg{width:90mm;height:90mm;margin:0 auto} body.bz-qrprint .bz-qrt{display:block;font:600 26px var(--serif,Georgia),serif;margin:10mm 0 2mm}
   body.bz-qrprint .bz-qrn{display:block;font:14px system-ui,sans-serif;color:#555}
-  body.bz-open:not(.bz-qrprint) .bz-online{display:none !important}
-  body.bz-open > *:not(#bizCard){display:none !important} body.bz-open .bz-card{position:static;padding:0;overflow:visible;background:#fff}
-  body.bz-open .bz-bar{display:none} body.bz-open .bz-sheet{box-shadow:none;max-width:none;padding:0} body.bz-open .bz-l{break-inside:avoid} }
+  body.bz-printcard:not(.bz-qrprint) .bz-online{display:none !important}
+  body.bz-printcard > *:not(#app), body.bz-printcard #app > *:not(#pageWinecard){display:none !important}
+  body.bz-printcard .bz-card{padding:0;background:#fff}
+  body.bz-printcard .bz-bar{display:none} body.bz-printcard .bz-sheet{box-shadow:none;max-width:none;padding:0} body.bz-printcard .bz-l{break-inside:avoid} }
 </style>`);
   setTimeout(apply, 0);
   // its words: only a business needs them, so they come now, not with every page (i18n.js redraws the page in them)
-  if (window.I18N) { I18N.onChange(apply); if (I18N.more) I18N.more("business-i18n", "?v=2"); }
-  return { apply, detail, priceCell, overview, cardLabel, margin, openCard, salesRows, reorder, reorderText, cardData, publishCard, cardShare };
+  if (window.I18N) { I18N.onChange(apply); if (I18N.more) I18N.more("business-i18n", "?v=3"); }
+  return { refreshSales: () => loadSales(true), apply, detail, priceCell, overview, page, inventory, cardLabel, margin, openCard, salesRows, reorder, reorderText, cardData, publishCard, cardShare };
 })();

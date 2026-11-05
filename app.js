@@ -1033,7 +1033,7 @@ function loadKind(){
 function setKindLocal(k, keepStored){
   KIND = k; document.documentElement.dataset.kind = k; $("acctKind").value = k;
   if(!keepStored) try{ localStorage.setItem(kindKey(), k); }catch(e){}
-  if(k!=="private" && !window.BIZ){ const s = document.createElement("script"); s.src = "business.js?v=6";
+  if(k!=="private" && !window.BIZ){ const s = document.createElement("script"); s.src = "business.js?v=7";
     s.onload = ()=>{ if(WINES.length){ renderOverview(); renderTable(); } }; document.head.appendChild(s); }
   else if(window.BIZ) BIZ.apply();
 }
@@ -1209,7 +1209,7 @@ function detailHTML(w){
   return `<div class="dgrid">${cells}</div>
     ${w.note?`<div class="unote">“${esc(w.note)}” — ${esc(tr("cellar note"))}</div>`:""}
     ${pn?`<div class="pnote"><b>${esc(w.producer)}</b> · ${esc(tr(TIER_LABEL[pn[0]]))} — ${esc(noteText(pn[1]))}</div>`:""}
-    ${journalHTML(w)}
+    ${isBiz() ? "" : journalHTML(w)}
     ${isBiz() ? BIZ.detail(w) : ""}
     <div class="links">
       ${w.left>0?`<button class="drink" data-act="drink" data-row="${w.row}">${svgi("glass")} ${esc(tr("Mark 1 bottle as drunk"))}</button>`:""}
@@ -1241,7 +1241,7 @@ function detailHTML(w){
         ${r?`<span class="rbadge ${r.k}${r.est?" est":""}">${r.label}</span>`:""}
         ${r&&r.est&&est&&est.from!=null&&est.to!=null?`<button type="button" class="usewin" data-row="${w.row}" data-from="${est.from}" data-to="${est.to}">✓ ${esc(tr("Use {0}–{1}", est.from, est.to))}</button>`:""}
         ${r&&r.est?`<span class="est-note">${esc(tr("estimated · type to set your own"))}</span>`:""}</span>`;})()}
-      <button class="jlog" data-row="${w.row}">${svgi("book")} ${esc(tr("Log in journal"))}</button>
+      ${isBiz() ? "" : `<button class="jlog" data-row="${w.row}">${svgi("book")} ${esc(tr("Log in journal"))}</button>`}
       <button class="fshare" data-row="${w.row}">${svgi("send")} ${esc(tr("Share"))}</button>
       ${atlasLink(w)}
       ${searchLinks(w)}
@@ -1969,7 +1969,7 @@ $("acctDelete").addEventListener("click", async ()=>{
 });
 
 /* ---------- header actions ---------- */
-$("refreshBtn").addEventListener("click", loadData);
+$("refreshBtn").addEventListener("click", ()=>{ loadData(); if(isBiz()) BIZ.refreshSales(); }); // a business's sales too
 $("lockBtn").addEventListener("click", ()=>{ if(window.VAULT) VAULT.forgetCache(cfg.user); feedForgetAll(); forgetAuth(); setGateMode("login"); showGate(tr("Signed out. Log in to reopen.")); });
 $("priceBtn").addEventListener("click", ()=>{
   SHOW_PRICES = !SHOW_PRICES;
@@ -2574,7 +2574,8 @@ $("lsModal").addEventListener("click", e=>{ if(e.target===$("lsModal")) $("lsMod
 
 /* ---------- phones: the pages as tabs at the bottom, ＋ adds to the page you're on, and two menus for the rest: ⋯ for the
    cellar's tools, your initial for the account, language and help. Each item presses the same button as on a wide screen. ---------- */
-document.querySelectorAll("#ptabs button").forEach(t=>t.addEventListener("click", ()=>{ location.hash = t.dataset.page==="cellar" ? "" : t.dataset.page; scrollTo({top:0}); }));
+$("ptabs").addEventListener("click", e=>{ const t = e.target.closest("button[data-page]"); if(!t) return;
+  location.hash = t.dataset.page===homePage() ? "" : t.dataset.page; scrollTo({top:0}); });
 $("pFab").addEventListener("click", ()=>{
   const page = ["enjoyed","wishlist","journal"].find(p=>!$("page"+p[0].toUpperCase()+p.slice(1)).hidden);
   $({enjoyed:"eAddBtn", wishlist:"wAddBtn", journal:"jAddBtn"}[page] || "addBtn").click();
@@ -4599,10 +4600,16 @@ async function toggleFollow(user, follow){
   catch(err){ toast(tr("Could not update follow: {0}", errText(err))); }
 }
 
+// a business has pages of its own (business.js): Inventory first, then the cellar, Sales & accounts and the wine card;
+// Enjoyed, Wishlist and Journal are a private cellar's
+const BIZ_PAGES = ["inventory","accounts","winecard"];
+const homePage = () => isBiz() ? "inventory" : "cellar";
 function route(){
-  const h = location.hash;
-  const page = h==="#journal" ? "journal" : h==="#enjoyed" ? "enjoyed" : h==="#wishlist" ? "wishlist"
-             : h==="#feed" && document.body.classList.contains("social") ? "feed" : "cellar";
+  const h = location.hash, raw = h.slice(1), social = document.body.classList.contains("social");
+  let page = h==="#journal" ? "journal" : h==="#enjoyed" ? "enjoyed" : h==="#wishlist" ? "wishlist"
+             : h==="#feed" && social ? "feed" : "cellar";
+  if(isBiz()) page = BIZ_PAGES.includes(raw) ? raw : raw==="cellar" ? "cellar" : raw==="feed" && social ? "feed" : "inventory";
+  BIZ_PAGES.forEach(n=>{ const el = $("page"+n[0].toUpperCase()+n.slice(1)); if(el) el.hidden = page!==n; });
   $("pageCellar").hidden = page!=="cellar";
   $("pageEnjoyed").hidden = page!=="enjoyed";
   $("pageWishlist").hidden = page!=="wishlist";
@@ -4616,10 +4623,12 @@ function route(){
   if(page==="wishlist" && cfg.token) loadWishlist();
   if(page==="feed" && cfg.token) loadFeed();
   if(page==="enjoyed") renderEnjoyed();
+  if(window.BIZ) BIZ.page(page);
   hit(page);
 }
-document.querySelectorAll(".tab").forEach(t=>
-  t.addEventListener("click", ()=>{ location.hash = t.dataset.page==="cellar" ? "" : t.dataset.page; }));
+// the tabs, the ones business.js adds included
+document.querySelector(".gbar .tabs").addEventListener("click", e=>{ const t = e.target.closest(".tab"); if(!t) return;
+  location.hash = t.dataset.page===homePage() ? "" : t.dataset.page; });
 window.addEventListener("hashchange", route);
 
 /* ---------- inactivity auto-logout ---------- */

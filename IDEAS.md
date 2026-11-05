@@ -85,6 +85,15 @@ The personal setup is right as it is. A business shouldn't feel like a personal 
      value, best sellers and slow movers, the month's CSV for the bookkeeping, the reorder list. It should look
      professional and dedicated, not like the personal overview.
   3. The wine card / price list (online + QR) as its own page too.
+
+  *Done (5 November 2026):* a business opens on **Inventory** (search, filters for below the minimum, sold out and
+  no price, sorting; stock, minimum, cost, selling and glass price and supplier edited in the line, margin beside
+  it, Bottle/Glass to sell; folded into cards on a phone), then **Cellar**, **Sales & accounts** (a period of 7, 30,
+  90 days or 12 months: sold, taken with and without VAT, gross profit and margin on what was sold, average a bottle,
+  a chart by day/week/month, best sellers and slow movers, the stock at cost and selling price by style, the reorder
+  list, suppliers with their stock value, the month's CSV) and the **Wine card** page (print, online with QR).
+  Enjoyed, Wishlist and Journal are gone for a business, and so is the journal in a wine's details. Still to come:
+  a till-like quick sell, stock counts by location, purchase orders sent to a supplier.
 - **Stock vs minimum.** In a wine's details the business shows "Minimum in stock" (the reorder threshold), but the
   actual stock (bottles on hand) isn't an editable field there, so it reads as if the minimum were the stock. Show
   "In stock" first and editable, the minimum beside it, clearly labelled.
