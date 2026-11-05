@@ -1,7 +1,11 @@
 // The help page's texts in French (help.html; English is the source there). Loaded after i18n-fr.js,
 // which i18n.js makes sure of, and added to its dictionary.
 Object.assign(window.I18N_DICT.fr, {
-  "Add your wines: ＋ Add wine for a few, Import for a whole list from a spreadsheet.": "Ajoutez vos vins: ＋ Ajouter un vin pour quelques-uns, Importer pour toute une liste depuis un tableur.",
+  "Ratings, badges and value": "Notes, badges et valeur",
+  "Producer badges sum up a producer's general reputation with critics and collectors, not the score of a bottle. AllWine gives them to about 70 producers so far, and more are added over time.": "Les badges résument la réputation générale d'un producteur auprès des critiques et des collectionneurs, pas la note d'une bouteille. AllWine en attribue pour l'instant à environ 70 producteurs, et d'autres s'ajoutent.",
+  "For live ratings and market prices of a bottle, open the wine and use the Vivino and Wine-Searcher links.": "Pour les notes et prix du marché d'une bouteille, ouvrez le vin et utilisez les liens Vivino et Wine-Searcher.",
+  "Current value: open a wine and type today's worth in the \"Value kr\" box. The overview then shows the cellar's value and the gain or loss against what you paid, over the wines you've valued. Leave it empty for wines you're not following.": "Valeur actuelle : ouvrez un vin et saisissez sa valeur du jour dans la case « Valeur kr ». La vue d'ensemble montre alors la valeur de la cave et le gain ou la perte par rapport au prix payé, sur les vins évalués. Laissez vide pour les vins que vous ne suivez pas.",
+  "Add your wines: “＋ Add wine” for a few, “Import” for a whole list from a spreadsheet.": "Ajoutez vos vins : « ＋ Ajouter un vin » pour quelques-uns, « Importer » pour toute une liste depuis un tableur.",
   "Import reads Excel (.xlsx), CSV or plain text, up to 10,000 wines. It finds the columns itself and shows what it will do before anything is saved.": "Importer lit Excel (.xlsx), CSV ou du texte simple, jusqu'à 10 000 vins. Il trouve les colonnes lui-même et montre ce qu'il va faire avant tout enregistrement.",
   "Tidy up looks through the whole cellar for spellings to fix and wines entered twice, and lists every change first.": "Ranger parcourt toute la cave à la recherche d'orthographes à corriger et de vins saisis deux fois, et liste chaque changement d'abord.",
   "Tonight picks a bottle for you, favouring wines in their window and those that should be drunk soon.": "Ce soir choisit une bouteille pour vous, en privilégiant les vins dans leur fenêtre et ceux à boire bientôt.",
@@ -13,7 +17,7 @@ Object.assign(window.I18N_DICT.fr, {
   "Getting started": "Pour commencer",
   
   "Give your best bottles a drink window, so the cellar can tell you what to open and when.": "Donnez une fenêtre de dégustation à vos meilleures bouteilles, pour que la cave vous dise quoi ouvrir et quand.",
-  "Keep your recovery code safe (Account → recovery code). With your password it's the only way into your encrypted cellar: nobody else can open it for you.": "Gardez votre code de récupération en lieu sûr (Compte → code de récupération). Avec votre mot de passe, c'est le seul moyen d'entrer dans votre cave chiffrée : personne d'autre ne peut l'ouvrir pour vous.",
+  "Keep your recovery code safe (Account → recovery code). If you forget your password, it gets you back into your encrypted cellar. If you lose both, the site's owner can usually help you back in with a new code; even the owner can't read your cellar.": "Gardez votre code de récupération en lieu sûr (Compte → code de récupération). Si vous oubliez votre mot de passe, il vous ramène dans votre cave chiffrée. Si vous perdez les deux, le propriétaire du site peut en général vous aider à revenir avec un nouveau code ; même lui ne peut pas lire votre cave.",
   "Adding wines": "Ajouter des vins",
   "＋ Add wine suggests producers, regions and grapes as you type. Only the producer is needed; the rest can come later.": "＋ Ajouter un vin propose producteurs, régions et cépages pendant la saisie. Seul le producteur est nécessaire ; le reste peut venir plus tard.",
   "Many at once: the grid in the add form takes a row per wine, like a spreadsheet.": "Plusieurs à la fois : la grille du formulaire d'ajout prend une ligne par vin, comme un tableur.",

@@ -8,6 +8,9 @@ function trSet(key, el){ if(!el) return; el.setAttribute("data-i18n", key); el.d
 const I18N_LOCALE = () => ({en:"en-GB", fr:"fr-FR", de:"de-DE"})[window.I18N && I18N.lang] || "da-DK";
 
 const TIER_LABEL = {legend:"Icon", top:"Top tier", solid:"Well regarded"};
+// what each badge means (help.html#ratings): on hover, beside the badge
+const TIER_TIP = {legend:"Icon: one of the few most sought-after producers of its region, a benchmark whose bottles trade well above their release price.",
+  top:"Top tier: consistently among the best of its region, rated highly by critics year after year.", solid:"Well regarded: a reliable, well-reviewed producer, often good value."};
 const STYLES = ["Rød","Hvid","Bobler","Rosé"];
 const STYLE_EN = {"Rød":"Red","Hvid":"White","Bobler":"Sparkling","Rosé":"Rosé"};
 const STYLE_VAR = {"Rød":"--c-red","Hvid":"--c-white","Bobler":"--c-spark","Rosé":"--c-rose"};
@@ -1318,7 +1321,7 @@ function renderTable(){
   const shown = pageOf(list, "cellar");
   $("rows").innerHTML = shown.map((w,i)=>{
     const pn = PRODUCER_NOTES[w.producer];
-    const badge = pn?`<span class="badge ${pn[0]}">${tr(TIER_LABEL[pn[0]])}</span>`:"";
+    const badge = pn?`<span class="badge ${pn[0]}" title="${esc(tr(TIER_TIP[pn[0]]))}">${tr(TIER_LABEL[pn[0]])}</span>`:"";
     const rd = w.left>0 ? readiness(w) : null;
     const rwin = rd ? drinkWindow(w) : null;
     const rbadge = rd?`<span class="rbadge ${rd.k}${rd.est?" est":""}" title="${esc(rd.est ? tr("Estimated drink window {0}: set your own in the wine", `${rwin.from??"?"}–${rwin.to??"?"}`) : tr("Your drink window {0}", `${rwin.from??"?"}–${rwin.to??"?"}`))}">${esc(rd.label)}</span>`:"";
@@ -1341,7 +1344,7 @@ function renderTable(){
   }).join("") + moreRow(list.length, shown.length, 7, "cellar");
   if(!list.length){
     const anyWines = WINES.some(w=>w.left>0);
-    const msg = !anyWines ? esc(tr("Your cellar is empty: press ＋ Add wine to start building it."))
+    const msg = !anyWines ? esc(tr("Your cellar is empty: press “＋ Add wine” to start building it."))
               : esc(tr("No wines match these filters."));
     // an empty cellar gets its picture (art/fig-rack.svg); a filter that finds nothing only says so
     $("rows").innerHTML = `<tr><td colspan="7" class="emptyrow">${!anyWines ? fig("rack") : ""}${msg}</td></tr>`;
@@ -3826,7 +3829,7 @@ function renderEnjoyed(){
   const shown = pageOf(list, "enjoyed");
   $("eRows").innerHTML = shown.map((w,i)=>{
     const pn = PRODUCER_NOTES[w.producer];
-    const badge = pn?`<span class="badge ${pn[0]}">${tr(TIER_LABEL[pn[0]])}</span>`:"";
+    const badge = pn?`<span class="badge ${pn[0]}" title="${esc(tr(TIER_TIP[pn[0]]))}">${tr(TIER_LABEL[pn[0]])}</span>`:"";
     const nm = [w.name, w.commune && w.commune!==w.name ? w.commune : ""].filter(Boolean).join(" · ");
     return `<tr class="main" data-i="${i}" data-row="${w.row}" tabindex="0" aria-level="1" aria-expanded="false">
       <td><span class="prod">${esc(w.producer)}</span>${badge}<br><span class="wname">${fmtChip(w)}${esc(nm)}${classChip(w)}${w.rating?` · <span class="myscore">${w.rating}/10</span>`:""}${w.drunkDate?`<span class="ponly"> · ${esc(fmtDate(w.drunkDate))}</span>`:""}</span></td>

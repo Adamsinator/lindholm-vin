@@ -1,6 +1,11 @@
 // Danish for allwine.dk: i18n.js loads the one dictionary the page's language needs (English is the source text).
 window.I18N_DICT = window.I18N_DICT || {};
 window.I18N_DICT.da = {
+  "Producer badges (Icon, Top tier, Well regarded), ratings and the cellar's value:": "Producentmærker (Ikon, Topklasse, Velanset), bedømmelser og kælderens værdi:",
+  "how they work ↗": "sådan virker de ↗",
+  "Icon: one of the few most sought-after producers of its region, a benchmark whose bottles trade well above their release price.": "Ikon: en af de få mest eftertragtede producenter i sit område, et pejlemærke, hvis flasker handles langt over udgivelsesprisen.",
+  "Top tier: consistently among the best of its region, rated highly by critics year after year.": "Topklasse: år efter år blandt de bedste i sit område og højt vurderet af kritikerne.",
+  "Well regarded: a reliable, well-reviewed producer, often good value.": "Velanset: en pålidelig producent med gode anmeldelser, ofte god værdi for pengene.",
   "Test data": "Testdata",
   "A test account (made from Admin): fill it with made-up wines to try things out.": "En testkonto (lavet fra Admin): fyld den med opdigtede vine for at prøve tingene af.",
   "Add 10 test wines": "Tilføj 10 testvine",
@@ -56,7 +61,7 @@ window.I18N_DICT.da = {
   "Import": "Importér",
   "Share list": "Del liste",
   "Tonight": "I aften",
-  "＋ Add wine for a few, Import for a list from a spreadsheet.": "＋ Tilføj vin til nogle få, Importér til en liste fra et regneark.",
+  "“＋ Add wine” for a few, “Import” for a list from a spreadsheet.": "»＋ Tilføj vin« til nogle få, »Importér« til en liste fra et regneark.",
   "Your cellar is encrypted on this device before it's saved; the server only ever holds the locked copy.": "Din kælder krypteres på denne enhed, før den gemmes; serveren har kun den låste kopi.",
   "About & terms": "Om og vilkår",
   "Privacy & cookies": "Privatliv og cookies",
@@ -110,7 +115,7 @@ window.I18N_DICT.da = {
   "{0} regions": "{0} områder", "{0} vineyards": "{0} marker", "Automatic": "Automatisk", "Light": "Lys", "Dark": "Mørk", "Aerial photo": "Luftfoto", "Aerial photos: IGN, France only.": "Luftfotos: IGN, kun Frankrig.", "Map style and layers": "Kortets udseende og lag", "Map style": "Kortets udseende", "Where you are": "Hvor du er", "Menu": "Menu", "Aerial photos: IGN (Géoplateforme, Licence Ouverte).": "Luftfotos: IGN (Géoplateforme, Licence Ouverte).",
   "Every bottle in the cellar": "Hver flaske i kælderen", "Amber cap: drink soon": "Ravgul kapsel: drik snart", "Dim: too young": "Mat: for ung", "Show fewer": "Vis færre", "+ {0} more bottles": "+ {0} flasker mere", "bottle": "flaske", "ready now": "klar nu", "closing soon": "lukker snart", "past their best": "over toppen", "still too young": "stadig for unge", "More: import, export, share, tidy up…": "Mere: importér, eksportér, del, ryd op…", "Account, language and help": "Konto, sprog og hjælp", "Add": "Tilføj", "Import a list": "Importér en liste", "Export": "Eksportér", "Share a list": "Del en liste", "Tidy up": "Ryd op", "Pick tonight's bottle": "Vælg aftenens flaske", "password, recovery code": "adgangskode, gendannelseskode", "members, invites": "medlemmer, invitationer",
   "1 different wine": "1 forskellig vin", "OK": "OK", "Delete my account": "Slet min konto", "Yes": "Ja", "No": "Nej", "Move to cellar": "Flyt til kælderen", "Make a new code": "Lav en ny kode", "{0} of 10": "{0} ud af 10", "Rated {0} of 10": "Givet {0} ud af 10", "Could not save rating: {0}": "Kunne ikke gemme karakteren: {0}", "Undo": "Fortryd", "Write a tasting note": "Skriv en smagsnote", "Removed {0} from Enjoyed": "Fjernede {0} fra Nydt", "Deleted {0}": "Slettede {0}", "Put back": "Sat tilbage", "Could not put it back: {0}": "Kunne ikke sætte den tilbage: {0}", "Use {0}–{1}": "Brug {0}–{1}", "the atlas ({0})": "atlasset ({0})", "the atlas": "atlasset",
-  "Help": "Hjælp", "Help and tips": "Hjælp og tips", "How this works": "Sådan virker det", "Welcome to your cellar": "Velkommen til din kælder", "Hide these tips": "Skjul disse tips", "Add your wines": "Tilføj dine vine", "Set drink windows": "Sæt drikkevinduer", "Tap a wine and fill in from and to, so the cellar can tell you what to open and when.": "Tryk på en vin, og udfyld fra og til, så kælderen kan fortælle dig, hvad du skal åbne og hvornår.", "Keep your recovery code safe": "Pas godt på din gendannelseskode", "With your password it's the only way into your encrypted cellar. Lost it? Account makes a new one.": "Sammen med din adgangskode er den den eneste vej ind i din krypterede kælder. Mistet den? Konto laver en ny.", "All help and tips →": "Al hjælp og alle tips →",
+  "Help": "Hjælp", "Help and tips": "Hjælp og tips", "How this works": "Sådan virker det", "Welcome to your cellar": "Velkommen til din kælder", "Hide these tips": "Skjul disse tips", "Add your wines": "Tilføj dine vine", "Set drink windows": "Sæt drikkevinduer", "Tap a wine and fill in from and to, so the cellar can tell you what to open and when.": "Tryk på en vin, og udfyld fra og til, så kælderen kan fortælle dig, hvad du skal åbne og hvornår.", "Keep your recovery code safe": "Pas godt på din gendannelseskode", "It gets you back in if you forget your password. Lost both? The site's owner can usually help.": "Den bringer dig ind igen, hvis du glemmer din adgangskode. Mistet begge? Sidens ejer kan som regel hjælpe.", "All help and tips →": "Al hjælp og alle tips →",
   "A list shared from another device": "En liste delt fra en anden enhed",
   "Sharing needs the updated Apps Script (version 44): redeploy Code.gs.": "Deling kræver det opdaterede Apps Script (version 44): udgiv Code.gs igen.",
   
@@ -219,7 +224,7 @@ window.I18N_DICT.da = {
   "Delete wine": "Slet vin",
   "Estimated drink window {0}: set your own in the wine": "Skønnet drikkevindue {0}: sæt dit eget i vinen",
   "Your drink window {0}": "Dit drikkevindue {0}",
-  "Your cellar is empty: press ＋ Add wine to start building it.": "Din kælder er tom: tryk ＋ Tilføj vin for at komme i gang.",
+  "Your cellar is empty: press “＋ Add wine” to start building it.": "Din kælder er tom: tryk på »＋ Tilføj vin« for at komme i gang.",
   "No wines match these filters.": "Ingen vine passer til filtrene.",
   "Updated {0}": "Opdateret {0}",
   "Hide prices": "Skjul priser",

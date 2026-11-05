@@ -1,6 +1,11 @@
 // German for allwine.dk: i18n.js loads the one dictionary the page's language needs (English is the source text).
 window.I18N_DICT = window.I18N_DICT || {};
 window.I18N_DICT.de = {
+  "Producer badges (Icon, Top tier, Well regarded), ratings and the cellar's value:": "Erzeuger-Abzeichen (Ikone, Spitzenklasse, Angesehen), Bewertungen und der Wert des Kellers:",
+  "how they work ↗": "so funktionieren sie ↗",
+  "Icon: one of the few most sought-after producers of its region, a benchmark whose bottles trade well above their release price.": "Ikone: einer der wenigen gefragtesten Erzeuger seiner Region, ein Maßstab, dessen Flaschen weit über dem Erstverkaufspreis gehandelt werden.",
+  "Top tier: consistently among the best of its region, rated highly by critics year after year.": "Spitzenklasse: beständig unter den Besten seiner Region, Jahr für Jahr von der Kritik hoch bewertet.",
+  "Well regarded: a reliable, well-reviewed producer, often good value.": "Angesehen: ein verlässlicher, gut bewerteter Erzeuger, oft mit gutem Preis-Leistungs-Verhältnis.",
   "Test data": "Testdaten",
   "A test account (made from Admin): fill it with made-up wines to try things out.": "Ein Testkonto (aus Admin angelegt): Füllen Sie es mit erfundenen Weinen, um alles auszuprobieren.",
   "Add 10 test wines": "10 Testweine hinzufügen",
@@ -56,7 +61,7 @@ window.I18N_DICT.de = {
   "Import": "Importieren",
   "Share list": "Liste teilen",
   "Tonight": "Heute Abend",
-  "＋ Add wine for a few, Import for a list from a spreadsheet.": "＋ Wein hinzufügen für einige, Importieren für eine Liste aus einer Tabelle.",
+  "“＋ Add wine” for a few, “Import” for a list from a spreadsheet.": "„＋ Wein hinzufügen“ für einige, „Importieren“ für eine Liste aus einer Tabelle.",
   "Your cellar is encrypted on this device before it's saved; the server only ever holds the locked copy.": "Ihr Keller wird auf diesem Gerät verschlüsselt, bevor er gespeichert wird; der Server hat nur die verschlüsselte Kopie.",
   "About & terms": "Impressum & Bedingungen",
   "Privacy & cookies": "Datenschutz & Cookies",
@@ -110,7 +115,7 @@ window.I18N_DICT.de = {
   "{0} regions": "{0} Regionen", "{0} vineyards": "{0} Lagen", "Automatic": "Automatisch", "Light": "Hell", "Dark": "Dunkel", "Aerial photo": "Luftbild", "Aerial photos: IGN, France only.": "Luftbilder: IGN, nur Frankreich.", "Map style and layers": "Kartenstil und Ebenen", "Map style": "Kartenstil", "Where you are": "Wo Sie sind", "Menu": "Menü", "Aerial photos: IGN (Géoplateforme, Licence Ouverte).": "Luftbilder: IGN (Géoplateforme, Licence Ouverte).",
   "Every bottle in the cellar": "Jede Flasche im Keller", "Amber cap: drink soon": "Bernsteinkapsel: bald trinken", "Dim: too young": "Blass: zu jung", "Show fewer": "Weniger zeigen", "+ {0} more bottles": "+ {0} weitere Flaschen", "bottle": "Flasche", "ready now": "trinkreif", "closing soon": "schließt bald", "past their best": "über dem Höhepunkt", "still too young": "noch zu jung", "More: import, export, share, tidy up…": "Mehr: importieren, exportieren, teilen, aufräumen…", "Account, language and help": "Konto, Sprache und Hilfe", "Add": "Hinzufügen", "Import a list": "Liste importieren", "Export": "Exportieren", "Share a list": "Liste teilen", "Tidy up": "Aufräumen", "Pick tonight's bottle": "Flasche für heute Abend wählen", "password, recovery code": "Passwort, Wiederherstellungscode", "members, invites": "Mitglieder, Einladungen",
   "1 different wine": "1 verschiedener Wein", "OK": "OK", "Delete my account": "Mein Konto löschen", "Yes": "Ja", "No": "Nein", "Move to cellar": "In den Keller", "Make a new code": "Neuen Code erstellen", "{0} of 10": "{0} von 10", "Rated {0} of 10": "Mit {0} von 10 bewertet", "Could not save rating: {0}": "Bewertung konnte nicht gespeichert werden: {0}", "Undo": "Rückgängig", "Write a tasting note": "Verkostungsnotiz schreiben", "Removed {0} from Enjoyed": "{0} aus Genossen entfernt", "Deleted {0}": "{0} gelöscht", "Put back": "Wiederhergestellt", "Could not put it back: {0}": "Konnte nicht wiederhergestellt werden: {0}", "Use {0}–{1}": "{0}–{1} übernehmen", "the atlas ({0})": "dem Atlas ({0})", "the atlas": "dem Atlas",
-  "Help": "Hilfe", "Help and tips": "Hilfe und Tipps", "How this works": "So funktioniert es", "Welcome to your cellar": "Willkommen in Ihrem Keller", "Hide these tips": "Diese Tipps ausblenden", "Add your wines": "Fügen Sie Ihre Weine hinzu", "Set drink windows": "Trinkfenster setzen", "Tap a wine and fill in from and to, so the cellar can tell you what to open and when.": "Tippen Sie auf einen Wein und füllen Sie ab und bis aus, damit der Keller Ihnen sagt, was Sie wann öffnen sollten.", "Keep your recovery code safe": "Bewahren Sie Ihren Wiederherstellungscode sicher auf", "With your password it's the only way into your encrypted cellar. Lost it? Account makes a new one.": "Zusammen mit Ihrem Passwort ist er der einzige Weg in Ihren verschlüsselten Keller. Verloren? Konto erstellt einen neuen.", "All help and tips →": "Alle Hilfe und Tipps →",
+  "Help": "Hilfe", "Help and tips": "Hilfe und Tipps", "How this works": "So funktioniert es", "Welcome to your cellar": "Willkommen in Ihrem Keller", "Hide these tips": "Diese Tipps ausblenden", "Add your wines": "Fügen Sie Ihre Weine hinzu", "Set drink windows": "Trinkfenster setzen", "Tap a wine and fill in from and to, so the cellar can tell you what to open and when.": "Tippen Sie auf einen Wein und füllen Sie ab und bis aus, damit der Keller Ihnen sagt, was Sie wann öffnen sollten.", "Keep your recovery code safe": "Bewahren Sie Ihren Wiederherstellungscode sicher auf", "It gets you back in if you forget your password. Lost both? The site's owner can usually help.": "Er bringt Sie zurück, wenn Sie Ihr Passwort vergessen. Beides verloren? Der Betreiber der Seite kann meist helfen.", "All help and tips →": "Alle Hilfe und Tipps →",
   "A list shared from another device": "Eine von einem anderen Gerät geteilte Liste",
   "Sharing needs the updated Apps Script (version 44): redeploy Code.gs.": "Teilen braucht das aktualisierte Apps Script (Version 44): Code.gs neu bereitstellen.",
   
@@ -219,7 +224,7 @@ window.I18N_DICT.de = {
   "Delete wine": "Wein löschen",
   "Estimated drink window {0}: set your own in the wine": "Geschätztes Trinkfenster {0}: legen Sie Ihr eigenes im Wein fest",
   "Your drink window {0}": "Ihr Trinkfenster {0}",
-  "Your cellar is empty: press ＋ Add wine to start building it.": "Ihr Keller ist leer: drücken Sie ＋ Wein hinzufügen, um zu beginnen.",
+  "Your cellar is empty: press “＋ Add wine” to start building it.": "Ihr Keller ist leer: Drücken Sie „＋ Wein hinzufügen“, um zu beginnen.",
   "No wines match these filters.": "Keine Weine passen zu diesen Filtern.",
   "Updated {0}": "Aktualisiert {0}",
   "Hide prices": "Preise ausblenden",

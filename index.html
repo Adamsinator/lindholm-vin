@@ -262,7 +262,7 @@ td.emptyrow{text-align:center;color:var(--muted);padding:34px 16px;font-size:14p
 .links button.del{color:var(--muted);margin-left:auto}
 .links button.del:hover{color:var(--accent);border-color:var(--accent)}
 
-footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch}
+footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch} footer a{color:var(--accent)}
 
 /* gate + modal */
 .gate{position:fixed;inset:0;background:var(--bg);z-index:100;overflow-y:auto;padding:20px 16px 40px}
@@ -735,7 +735,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 .gstat .refresh:hover{text-decoration:underline}
 .gstat .tablink{margin:0}
 @media (max-width:700px){
-  /* phones: logo and name with Account and 🔒 on the first line, "Cellar overview" and the flags on the second;
+  /* phones: logo and name with Account and 🔒 on the first line, the flags on the second;
      the status line under the tabs, the atlas link at its right */
   header.top{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;row-gap:6px}
   header.top .topright{display:contents}
@@ -1043,7 +1043,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
     <h1><a href="./" id="brandHome" title="Your cellar" data-i18n-title><img class="brandmark" src="logo.svg" alt="" width="34" height="34">All<em>Wine</em></a></h1>
     <span class="who" id="who" hidden></span>
   </div>
-  <div class="topright"><span class="sub" data-i18n>Cellar overview</span><span data-langpick></span>
+  <div class="topright"><span data-langpick></span>
     <span class="acct">
       <button class="btn quiet" id="adminBtn" hidden data-i18n>Admin</button>
       <button class="btn quiet" id="acctBtn" title="Password and recovery code" hidden data-i18n data-i18n-title>Account</button>
@@ -1080,9 +1080,9 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
     <a class="tips-more" href="help.html" target="_blank" rel="noopener" data-i18n>All help and tips →</a>
     <button class="btn quiet" type="button" id="tipsClose" data-i18n>Hide these tips</button></div>
   <ol>
-    <li data-tip="wines"><b data-i18n>Add your wines</b> <span data-i18n>＋ Add wine for a few, Import for a list from a spreadsheet.</span></li>
+    <li data-tip="wines"><b data-i18n>Add your wines</b> <span data-i18n>“＋ Add wine” for a few, “Import” for a list from a spreadsheet.</span></li>
     <li data-tip="windows"><b data-i18n>Set drink windows</b> <span data-i18n>Tap a wine and fill in from and to, so the cellar can tell you what to open and when.</span></li>
-    <li data-tip="code"><b data-i18n>Keep your recovery code safe</b> <span data-i18n>With your password it's the only way into your encrypted cellar. Lost it? Account makes a new one.</span></li>
+    <li data-tip="code"><b data-i18n>Keep your recovery code safe</b> <span data-i18n>It gets you back in if you forget your password. Lost both? The site's owner can usually help.</span></li>
   </ol>
 </section>
 
@@ -1259,8 +1259,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 </div><!-- /cellar-layout -->
 
 <footer>
-  <p><strong data-i18n>About ratings:</strong> <span data-i18n>Badges and producer profiles are general critic-reputation summaries (Icon &gt; Top tier &gt; Well regarded), not bottle-level scores. Open a wine and use the Vivino / Wine-Searcher links for live ratings and market prices.</span></p>
-  <p><strong data-i18n>Current value:</strong> <span data-i18n>Open a wine and type today's worth in the “Value kr” box. The overview then shows the cellar's current value and the unrealised gain or loss vs. what you paid, over the wines you've valued. Leave it blank for wines you're not tracking.</span></p>
+  <p><span data-i18n>Producer badges (Icon, Top tier, Well regarded), ratings and the cellar's value:</span> <a href="help.html#ratings" data-i18n>how they work ↗</a></p>
 </footer>
 </div><!-- /content -->
 </div><!-- /pageCellar -->
@@ -1795,7 +1794,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 
 <!-- Pages serves these with max-age=600 and no revalidation, so a merged change can
      sit invisible behind a stale app.js for ten minutes. Bump v on every deploy. -->
-<script src="i18n.js?v=80"></script>
+<script src="i18n.js?v=81"></script>
 <script src="site-info.js?v=2"></script>
 <script src="site-foot.js?v=2"></script>
 <script src="notes.js?v=5"></script>
@@ -1815,6 +1814,6 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 <script src="export.js?v=3"></script>
 <script src="europe-lands.js?v=1"></script>
 <script src="share-crypto.js?v=2"></script>
-<script src="app.js?v=80"></script>
+<script src="app.js?v=81"></script>
 </body>
 </html>
