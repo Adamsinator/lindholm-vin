@@ -145,11 +145,13 @@ const W = async (prod, name) => (await (await wines())).find(w => w.producer ===
   // 7c. the edit form counts the bottles and takes a price for all of them, split per bottle; farming too
   await openRow("#tbl", "Giacomo Conterno"); await detail("#tbl", "Giacomo Conterno").locator("button.winfo").click(); await p.waitForTimeout(300);
   const before = await W("Giacomo Conterno");
-  await p.fill("#iLeft", "6"); await p.fill("#iPrice", "3000"); await p.selectOption("#iPriceMode", "all"); await p.selectOption("#iFarm", "Økologisk");
+  await p.fill("#iLeft", "6"); await p.fill("#iPrice", "3000"); await p.selectOption("#iPriceMode", "all"); await p.selectOption("#iFarm", "Økologisk"); await p.evaluate(() => document.querySelector("#iTaste").closest("details").open = true);
+  await p.selectOption('#iTaste select[data-k="s"]', "dry"); await p.selectOption('#iTaste select[data-k="b"]', "full"); await p.selectOption('#iTaste select[data-k="a"]', "high");
   await p.click("#iSave"); await p.waitForTimeout(1500);
   const gc = await W("Giacomo Conterno"), gcl = await p.evaluate(() => WINES.find(w => w.producer === "Giacomo Conterno").left);
   check("edit: 6 bottles in the cellar, 3 000 kr. for all of them is 500 kr. a bottle, organic", gcl === 6 && Number(gc.price) === 3000 / (6 + (Number(before.drunk) || 0)) && gc.farm === "Økologisk",
     JSON.stringify({ left: gcl, price: gc.price, farm: gc.farm, drunk: before.drunk }));
+  check("…its style is kept (dry, full-bodied, high acidity) and shown in its details", gc.taste === "s:dry;b:full;a:high" && /Dry · Full-bodied · High acidity/.test(await detail("#tbl", "Giacomo Conterno").textContent()), String(gc.taste));
   check("…the list shows it's organic, and a search for 'organic' finds it", /Organic/.test(await p.textContent('#tbl tr.main:has-text("Giacomo Conterno")'))
     && await p.evaluate(() => { $("q").value = state.q = "organic"; renderTable(); const n = document.querySelectorAll("#tbl tr.main").length; $("q").value = state.q = ""; renderTable(); return n === 1; }));
 

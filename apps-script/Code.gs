@@ -42,7 +42,7 @@ function setting(key) {
 // The legacy code only works once you've set a real one: the placeholder from the template is public.
 function accessCode() { const c = setting('ACCESS_CODE'); return c === 'CHANGE-ME' ? '' : c; }
 
-const API_VERSION = 50; // returned in every response; used to verify deployments
+const API_VERSION = 51; // returned in every response; used to verify deployments
 
 // Per-request spreadsheet for the authenticated user. Set in handle(); every
 // sheet helper reads it via ss(). Falls back to the bound (owner's) spreadsheet.
@@ -109,11 +109,13 @@ const LOCATION_HEADER = 'Placering';
 
 // A business account (a restaurant, a shop, a domaine): the price on the wine card or price list and the price by the
 // glass (the supplier is the Kilde column). Optional columns, auto-created on first use, so a private cellar never sees them.
-const BIZ_HEADERS = { menuPrice: 'Menupris', glassPrice: 'Glaspris', par: 'Minimum', gift: 'Gave', farm: 'Dyrkning' }; // gift: a bottle given, no price; farm: Økologisk, Biodynamisk or Naturvin (any account) // par: the fewest bottles to keep (the reorder list)
+const BIZ_HEADERS = { menuPrice: 'Menupris', glassPrice: 'Glaspris', par: 'Minimum', gift: 'Gave', farm: 'Dyrkning', taste: 'Smag' }; // gift: a bottle given, no price; farm: Økologisk, Biodynamisk or Naturvin (any account) // par: the fewest bottles to keep (the reorder list)
 const BIZ_NUM = ['menuPrice', 'glassPrice', 'par', 'gift'];
 // a price as stored: blank, or a number of 0 or more (anything else is refused, not guessed at)
 function bizValue(f, v) {
   if (v === undefined || v === null || String(v).trim() === '') return '';
+  // taste: the wine's style, as the form writes it, "s:dry;b:full;a:high;o:some" (sweetness, body, acidity, oak)
+  if (f === 'taste') return /^([sbao]:[a-z]{2,8})(;[sbao]:[a-z]{2,8}){0,3}$/.test(String(v).trim()) ? String(v).trim() : '';
   if (f === 'farm') return ['Økologisk', 'Biodynamisk', 'Naturvin'].indexOf(String(v).trim()) >= 0 ? String(v).trim() : '';
   if (BIZ_NUM.indexOf(f) === -1) return plainText(v);
   const n = Number(String(v).replace(',', '.')); if (!isFinite(n) || n < 0) throw new Error('Bad price');
@@ -175,7 +177,7 @@ function readSales() {
 function ensureBiz(sh, fields) { Object.keys(BIZ_HEADERS).forEach(f => { if (fields.some(x => x && f in x && String(x[f] == null ? '' : x[f]).trim() !== '')) ensureCol(sh, BIZ_HEADERS[f]); }); }
 
 // The wine fields the site may edit in place (rename, fix a commune, set a classification…).
-const INFO_FIELDS = ['producer', 'name', 'commune', 'classification', 'region', 'country', 'grape', 'type', 'vintage', 'source', 'note', 'location', 'menuPrice', 'glassPrice', 'par', 'gift', 'farm'];
+const INFO_FIELDS = ['producer', 'name', 'commune', 'classification', 'region', 'country', 'grape', 'type', 'vintage', 'source', 'note', 'location', 'menuPrice', 'glassPrice', 'par', 'gift', 'farm', 'taste'];
 
 function today() { return Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd'); }
 function ymd(v) {

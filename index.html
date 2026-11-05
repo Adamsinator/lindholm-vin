@@ -509,7 +509,7 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch} foote
 .jphoto-ph.err{font-size:11px;color:var(--muted);text-align:center;padding:0 8px}
 .jphoto-prev{display:block;margin-top:8px;max-width:100%;max-height:200px;border-radius:var(--r);border:1px solid var(--line);object-fit:contain}
 .lopt{text-transform:none;letter-spacing:0;font-weight:400;opacity:.7}
-.modal label.giftck{margin-top:6px} .pricewrap{display:flex;gap:6px} .pricewrap input{flex:1;min-width:0} .pricewrap select{width:auto} .farmchip{font-size:11px;padding:0 6px;border-radius:999px;border:1px solid var(--ok,#4c7a4c);color:var(--ok,#4c7a4c);margin-left:6px;white-space:nowrap} .modal label.jcheck{display:flex;align-items:center;gap:7px;margin-top:12px;font-size:13.5px;text-transform:none;letter-spacing:0;color:var(--ink);cursor:pointer}
+.modal label.giftck{margin-top:6px} .tastebox{margin-top:12px} .tastebox summary{cursor:pointer;font-size:13px;color:var(--muted)} .tastegrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:6px;margin-top:6px} .pricewrap{display:flex;gap:6px} .pricewrap input{flex:1;min-width:0} .pricewrap select{width:auto} .farmchip{font-size:11px;padding:0 6px;border-radius:999px;border:1px solid var(--ok,#4c7a4c);color:var(--ok,#4c7a4c);margin-left:6px;white-space:nowrap} .modal label.jcheck{display:flex;align-items:center;gap:7px;margin-top:12px;font-size:13.5px;text-transform:none;letter-spacing:0;color:var(--ink);cursor:pointer}
 .jcheck input{width:auto;margin:0}
 /* quick picks under a field: the usual countries, your own places — one tap fills it, typing still works */
 .qpick{display:flex;flex-wrap:nowrap;gap:5px;margin-top:6px;width:0;min-width:100%;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding-bottom:2px}
@@ -1424,6 +1424,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
       <div><label for="aLocation" data-i18n>Location</label><input id="aLocation" list="locList" data-i18n-ph placeholder="e.g. Cellar, shelf 2"><datalist id="locList"></datalist><div class="qpick" data-for="aLocation" data-kind="location"></div></div>
     </div>
     <div><label for="aFarm" data-i18n>Farming</label><select id="aFarm"><option value="" data-i18n>—</option><option value="Økologisk" data-i18n>Organic</option><option value="Biodynamisk" data-i18n>Biodynamic</option><option value="Naturvin" data-i18n>Natural wine</option></select></div>
+    <details class="tastebox"><summary data-i18n>Style (optional)</summary><div class="tastegrid" id="aTaste"></div></details>
     <label for="aNote" data-i18n>Note</label><input id="aNote">
     <p class="lopt jfill" id="aFillNote" hidden></p>
     <p class="lopt jfill sgnote" id="aSuggest" hidden></p>
@@ -1638,6 +1639,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
       <div><label for="iPrice" data-i18n>Price (kr.)</label><div class="pricewrap"><input id="iPrice" type="number" min="0" step="1"><select id="iPriceMode" aria-label="Price for" data-i18n-aria><option value="one" data-i18n>per bottle</option><option value="all" data-i18n>for all of them</option></select></div></div>
     </div>
     <div><label for="iFarm" data-i18n>Farming</label><select id="iFarm"><option value="" data-i18n>—</option><option value="Økologisk" data-i18n>Organic</option><option value="Biodynamisk" data-i18n>Biodynamic</option><option value="Naturvin" data-i18n>Natural wine</option></select></div>
+    <details class="tastebox"><summary data-i18n>Style (optional)</summary><div class="tastegrid" id="iTaste"></div></details>
     <label for="iNote" data-i18n>Note</label><input id="iNote">
     <label class="jcheck" id="iJWrap" hidden><input type="checkbox" id="iJournal" checked>
       <span id="iJLabel"></span></label>
@@ -1802,7 +1804,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 
 <!-- Pages serves these with max-age=600 and no revalidation, so a merged change can
      sit invisible behind a stale app.js for ten minutes. Bump v on every deploy. -->
-<script src="i18n.js?v=81"></script>
+<script src="i18n.js?v=82"></script>
 <script src="site-info.js?v=2"></script>
 <script src="site-foot.js?v=2"></script>
 <script src="notes.js?v=5"></script>
@@ -1814,7 +1816,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 <script src="gas-fake.js?v=7"></script>
 <script src="vault-crypto.js?v=3"></script>
 <script src="vault-engine.js?v=1"></script>
-<script src="vault.js?v=27"></script>
+<script src="vault.js?v=28"></script>
 <script src="wine-kb.js?v=2"></script>
 <script src="piemonte-mga.js?v=1"></script>
 <script src="tidy.js?v=3"></script>
@@ -1822,6 +1824,6 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 <script src="export.js?v=3"></script>
 <script src="europe-lands.js?v=1"></script>
 <script src="share-crypto.js?v=2"></script>
-<script src="app.js?v=81"></script>
+<script src="app.js?v=82"></script>
 </body>
 </html>

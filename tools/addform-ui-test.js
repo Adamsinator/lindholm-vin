@@ -72,6 +72,8 @@ const HEAD = ["Producent", "Land", "Område", "Kommune", "Mark/Navn", "Klassifik
   await p.fill("#aCountry", ""); await p.type("#aCountry", "Italien"); await p.waitForTimeout(400);
   const it = await opts();
   check("typing Italien (not leaving the field) brings Italy's list: DOCG, DOC, IGT, Gran Selezione", ["DOCG", "DOC", "IGT", "Gran Selezione"].every(x => it.includes(x)), it.join(", "));
+  check("…and the region suggestions are Italy's (Piemonte, Toscana), with no cellar wines from there yet", await p.evaluate(() => { const o = [...document.querySelectorAll("#regionsList option")].map(x => x.value); return o.includes("Piemonte") && o.includes("Toscana") && !o.includes("Rioja"); }));
+  check("the grape suggestions include the main grapes, not only the cellar's", await p.evaluate(() => { const o = [...document.querySelectorAll("#grapes option")].map(x => x.value); return ["Nebbiolo", "Sangiovese", "Tempranillo", "Chenin Blanc"].every(g => o.includes(g)); }));
   await p.fill("#aCountry", "Portugal"); await p.press("#aCountry", "Tab");
   const pt = await opts();
   check("Portugal: Vintage, LBV, Colheita and the tawnies", ["Vintage", "LBV", "Colheita", "Tawny 20"].every(x => pt.includes(x)), pt.join(", "));
