@@ -49,6 +49,7 @@ window.BIZ = (() => {
     return `<div class="bz-d">
       ${num("menuPrice", W.sell, w.menuPrice)}
       ${W.glass ? num("glassPrice", "By the glass", w.glassPrice) : ""}
+      ${num("left", "In stock", w.left)}
       ${num("par", "Minimum in stock", w.par || null)}
       <label class="bz-f">${esc(tr("Supplier"))}<input class="bz-in" data-f="source" data-row="${w.row}" list="bzSup" value="${esc(w.source)}" placeholder="—"></label>
       <span class="bz-sell">${w.left > 0 || w.openGlasses > 0 ? `<button type="button" class="btn primary" data-sell="bottle" data-row="${w.row}"${w.left > 0 ? "" : " disabled"}>${esc(tr("Sold a bottle"))}</button>` : ""}
@@ -62,13 +63,18 @@ window.BIZ = (() => {
   document.addEventListener("change", async e => {
     const inp = e.target.closest && e.target.closest(".bz-in"); if (!inp) return;
     const row = Number(inp.dataset.row), f = inp.dataset.f, v = inp.value.trim();
-    if (f !== "source" && v !== "" && !(Number(v) >= 0)) { toast(tr(f === "par" ? "The minimum is a number of bottles, 0 or more" : "A price is a number of 0 or more")); return; }
+    if (f !== "source" && v !== "" && !(Number(v) >= 0)) { toast(tr(f === "par" || f === "left" ? "The minimum is a number of bottles, 0 or more" : "A price is a number of 0 or more")); return; }
+    if (f === "left" && v === "") { inp.value = inp.defaultValue; return; }
     inp.disabled = true;
     try {
-      const res = await api({ action: "setinfo", row, fields: { [f]: f === "source" ? v : (v === "" ? "" : Number(v)) } });
+      // the stock is the bottles on hand (bought less drunk or sold); the rest are the wine's own fields
+      const res = f === "left" ? await api({ action: "setstock", row, left: Math.round(Number(v)) })
+        : await api({ action: "setinfo", row, fields: { [f]: f === "source" ? v : (v === "" ? "" : Number(v)) } });
       KEEP_OPEN = row; WINES = normalize(res.wines); renderOverview(); renderTable(); renderEnjoyed();
       toast(tr("Saved"));
-    } catch (err) { toast(tr("Could not save: {0}", errText(err))); inp.disabled = false; }
+    } catch (err) { const m = String(err && err.message || err);
+      toast(/zero-stock/.test(m) ? tr("Nothing's been sold of it yet: to take it off the stock, delete it") : /bad-action/.test(m) ? tr("Counting stock needs the updated Apps Script (version 49): redeploy Code.gs.") : tr("Could not save: {0}", errText(err)));
+      inp.value = inp.defaultValue; inp.disabled = false; }
   });
   /* ---------- "Sold": a bottle, or a glass (a bottle is opened for the first glass), with Undo ---------- */
   let SALES = null, salesBusy = null;
@@ -399,6 +405,6 @@ window.BIZ = (() => {
 </style>`);
   setTimeout(apply, 0);
   // its words: only a business needs them, so they come now, not with every page (i18n.js redraws the page in them)
-  if (window.I18N) { I18N.onChange(apply); if (I18N.more) I18N.more("business-i18n", "?v=1"); }
+  if (window.I18N) { I18N.onChange(apply); if (I18N.more) I18N.more("business-i18n", "?v=2"); }
   return { apply, detail, priceCell, overview, cardLabel, margin, openCard, salesRows, reorder, reorderText, cardData, publishCard, cardShare };
 })();

@@ -81,6 +81,16 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   check("…and printing shows only the card", await p.evaluate(() => getComputedStyle(document.getElementById("app")).display === "none" && getComputedStyle(document.querySelector(".bz-sheet")).display !== "none"));
   await p.emulateMedia({ media: "screen" }); await p.keyboard.press("Escape"); await p.click('#bizCard [data-bz="close"]').catch(() => {});
 
+  // the stock itself, counted: the bottles on hand, set straight in the details
+  await p.click('#tbl tr.main:has-text("Armand Rousseau")').catch(() => {}); await p.waitForTimeout(300);
+  if (!(await p.isVisible(`${det} .bz-in[data-f="left"]`))) { await p.click('#tbl tr.main:has-text("Armand Rousseau")'); await p.waitForTimeout(300); }
+  check("the details show what's in stock, before the minimum", (await p.inputValue(`${det} .bz-in[data-f="left"]`)) === "1"
+    && await p.evaluate(() => { const d = document.querySelector('#tbl tr.detail:not([hidden])'); const a = d.querySelector('[data-f="left"]'), b = d.querySelector('[data-f="par"]'); return !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING); }));
+  await p.fill(`${det} .bz-in[data-f="left"]`, "4"); await p.press(`${det} .bz-in[data-f="left"]`, "Tab"); await p.waitForTimeout(900);
+  check("…counting 4 bottles: 4 in stock, the bottle and glasses sold still sold", await p.evaluate(() => { const w = WINES.find(w => w.producer === "Armand Rousseau"); return w.left === 4 && w.drunk === 2; }),
+    JSON.stringify(await p.evaluate(() => { const w = WINES.find(w => w.producer === "Armand Rousseau"); return [w.qty, w.drunk, w.left]; })));
+  await p.fill(`${det} .bz-in[data-f="left"]`, "1"); await p.press(`${det} .bz-in[data-f="left"]`, "Tab"); await p.waitForTimeout(900);
+
   // a minimum, and the reorder list it makes, by supplier
   await p.click('#tbl tr.main:has-text("Armand Rousseau")').catch(() => {}); await p.waitForTimeout(300);
   if (!(await p.isVisible(`${det} .bz-in[data-f="par"]`))) { await p.click('#tbl tr.main:has-text("Armand Rousseau")'); await p.waitForTimeout(300); }

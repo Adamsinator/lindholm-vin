@@ -973,6 +973,11 @@ const savePrefs = o => VAULT.setPrefs(Object.assign({}, VAULT.prefs() || {}, o))
    stay the same whatever the kind; only what's shown changes. */
 const KINDS = ["private","restaurant","merchant","winemaker"];
 let KIND = "private";
+// business accounts aren't open to members yet: only the owner and test users choose a kind; everyone else is a
+// private cellar (what they have stored is left alone, for when BIZ_OPEN is turned on)
+const BIZ_OPEN = false;
+let MAY_BIZ = false;
+const bizAllowed = () => BIZ_OPEN || MAY_BIZ;
 const kindKey = () => "vinKind:" + String(cfg.user||"").toLowerCase();
 const isBiz = () => KIND!=="private" && !!window.BIZ;
 function loadKind(){
@@ -980,18 +985,19 @@ function loadKind(){
   try{ const x = window.VAULT && VAULT.active() && VAULT.prefs(); if(x && KINDS.includes(x.kind)) k = x.kind; }catch(e){}
   if(!k){ k = localStorage.getItem(kindKey());
     // chosen at sign-up (or on this device before the vault had it): the vault keeps it from now on
-    if(KINDS.includes(k) && k!=="private" && window.VAULT && VAULT.active()) savePrefs({kind:k}).catch(()=>{}); }
+    if(KINDS.includes(k) && k!=="private" && bizAllowed() && window.VAULT && VAULT.active()) savePrefs({kind:k}).catch(()=>{}); }
+  if(!bizAllowed()) return setKindLocal("private", true); // shown as private, nothing stored is changed
   setKindLocal(KINDS.includes(k) ? k : "private");
 }
-function setKindLocal(k){
+function setKindLocal(k, keepStored){
   KIND = k; document.documentElement.dataset.kind = k; $("acctKind").value = k;
-  try{ localStorage.setItem(kindKey(), k); }catch(e){}
-  if(k!=="private" && !window.BIZ){ const s = document.createElement("script"); s.src = "business.js?v=4";
+  if(!keepStored) try{ localStorage.setItem(kindKey(), k); }catch(e){}
+  if(k!=="private" && !window.BIZ){ const s = document.createElement("script"); s.src = "business.js?v=5";
     s.onload = ()=>{ if(WINES.length){ renderOverview(); renderTable(); } }; document.head.appendChild(s); }
   else if(window.BIZ) BIZ.apply();
 }
 async function setKind(k){
-  if(!KINDS.includes(k)) return;
+  if(!KINDS.includes(k) || (k!=="private" && !bizAllowed())) return;
   setKindLocal(k);
   if(window.VAULT && VAULT.active()) await savePrefs({kind:k}).catch(()=>{});
   // an open wine is drawn again with the new kind's fields
@@ -1405,8 +1411,7 @@ function bindDetail(root){
     inp.addEventListener("change",()=>setValueApi(Number(inp.dataset.row), inp.value, inp)));
   root.querySelectorAll("input.setdate").forEach(inp=>
     inp.addEventListener("change",()=>setDateApi(Number(inp.dataset.row), inp.dataset.field, inp.value, inp)));
-  root.querySelectorAll("input.setwin").forEach(inp=>
-    inp.addEventListener("change",()=>setWindowApi(inp)));
+  root.querySelectorAll(".winwrap").forEach(bindWindow);
   root.querySelectorAll("input.setloc").forEach(inp=>
     inp.addEventListener("change",()=>setLocationApi(Number(inp.dataset.row), inp.value, inp)));
   root.querySelectorAll(".wj-more").forEach(b=>
@@ -1502,6 +1507,15 @@ document.addEventListener("click", e=>{
   wrap.querySelector('.setwin[data-end="from"]').value = b.dataset.from; wrap.querySelector('.setwin[data-end="to"]').value = b.dataset.to;
   b.disabled = true; setWindowApi(wrap.querySelector(".setwin"));
 });
+// the drink window is one thing, two years: it's saved when both have been typed, that is when the keyboard leaves
+// the pair (or Enter), not after the first year
+function bindWindow(wrap){
+  const ins = [...wrap.querySelectorAll("input.setwin")]; if(!ins.length) return;
+  const was = () => ins.map(x=>x.defaultValue).join("|"), now = () => ins.map(x=>x.value.trim()).join("|");
+  const save = () => { if(now() !== was()) setWindowApi(ins[0]); };
+  wrap.addEventListener("focusout", e=>{ if(!wrap.contains(e.relatedTarget)) save(); });
+  ins.forEach(x=>x.addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); x.blur(); } })); // leaving saves
+}
 async function setWindowApi(inp){
   const row = Number(inp.dataset.row);
   const wrap = inp.closest(".winwrap");
@@ -1511,7 +1525,7 @@ async function setWindowApi(inp){
   ins.forEach(x=>x.disabled=true);
   try{
     const res = await api({action:"setwindow", row, from, to});
-    WINES = normalize(res.wines);
+    KEEP_OPEN = row; WINES = normalize(res.wines);
     renderOverview(); renderTable(); renderEnjoyed();
     toast((from||to) ? tr("Drink window saved") : tr("Drink window cleared"));
   }catch(err){ toast(tr("Could not save window: {0}", errText(err))); }
@@ -1628,7 +1642,7 @@ function showGate(msg){
 function setGateMode(mode){
   GATE_MODE = mode;
   const signup = mode==="signup", recover = mode==="recover";
-  $("gateInviteWrap").hidden = !signup; $("gateKindWrap").hidden = !signup;
+  $("gateInviteWrap").hidden = !signup; $("gateKindWrap").hidden = !signup || !BIZ_OPEN;
   $("gateRecWrap").hidden = !recover;
   $("gateForgot").hidden = mode!=="login";
   trSet(signup ? "Create your own cellar. You'll need an invite code."
@@ -1783,7 +1797,7 @@ async function gateEncrypted(mode, user, pass){
     const data = await post({action:"signup", user, email:$("gateEmail").value.trim(), code:$("gateInvite").value.trim(), turnstile:humanToken(), ...k.fields});
     if(!data.ok) throw new Error(data.error);
     cfg.user = data.user; VAULT.rememberSalt(data.user, k.fields);
-    try{ localStorage.setItem(kindKey(), $("gateKind").value); }catch(e){} // what kind of account: into the vault's prefs on first load
+    try{ localStorage.setItem(kindKey(), BIZ_OPEN ? $("gateKind").value : "private"); }catch(e){} // what kind of account: into the vault's prefs on first load
     await VAULT.escrow({post, user:data.user, token:data.token, dekX:k.dekX}); // account help, when the owner has it on
     // the account exists from here: if the phone reloads the page while the code is on screen (a trip to the
     // password manager), the login says so instead of looking like nothing happened
@@ -3108,8 +3122,7 @@ function pickTonight(){
     inp.addEventListener("change",()=>setValueApi(Number(inp.dataset.row), inp.value, inp)));
   m.querySelectorAll("input.setdate").forEach(inp=>
     inp.addEventListener("change",()=>setDateApi(Number(inp.dataset.row), inp.dataset.field, inp.value, inp)));
-  m.querySelectorAll("input.setwin").forEach(inp=>
-    inp.addEventListener("change",()=>setWindowApi(inp)));
+  m.querySelectorAll(".winwrap").forEach(bindWindow);
 }
 $("tonightBtn").addEventListener("click", pickTonight);
 
@@ -4213,7 +4226,9 @@ function setSocial(on){
 }
 // The owner gets an Admin button: who has an account (name, email, signed up, last seen) and the invite codes
 async function checkOwner(){
-  try{ const r = await api({action:"me"}); $("adminBtn").hidden = !(r && r.owner === true); askForHelp(r && r.help); }catch(e){ $("adminBtn").hidden = true; }
+  try{ const r = await api({action:"me"}); $("adminBtn").hidden = !(r && r.owner === true); $("acctTest").hidden = !(r && r.test === true);
+    const may = !!(r && (r.owner === true || r.test === true)); $("acctKindWrap").hidden = !(BIZ_OPEN || may);
+    if(may !== MAY_BIZ){ MAY_BIZ = may; loadKind(); if(WINES.length){ renderOverview(); renderTable(); } } askForHelp(r && r.help); }catch(e){ $("adminBtn").hidden = true; }
 }
 // account help: a member whose session came back without the password (a kept key) types it once, so the key can be
 // wrapped to the owner's; asked once a visit, "Later" until the next
@@ -4276,7 +4291,7 @@ function renderAdmin(){
   const A = ADMIN || {users:[], invites:[]};
   renderUsage(A.stats, A.users); renderHelp(A);
   $("adminCount").textContent = tr("{0} of at most {1}", fmt(A.users.length), fmt(A.max || 50));
-  $("adminUsers").innerHTML = A.users.map(u=>`<li><span class="a1"><b>${esc(u.user)}</b> · ${u.email ? `<a href="mailto:${esc(u.email)}">${esc(u.email)}</a>` : "—"}</span>
+  $("adminUsers").innerHTML = A.users.map(u=>`<li><span class="a1"><b>${esc(u.user)}</b> · ${u.test ? `<span class="tchip">${esc(tr("test user"))}</span>` : u.email ? `<a href="mailto:${esc(u.email)}">${esc(u.email)}</a>` : "—"}</span>
       ${u.owner ? `<span class="ph adrm">${esc(tr("you (owner)"))}</span>` : `${A.adminKid ? (u.helpReady ? `<button type="button" data-help="${esc(u.user)}">${esc(tr("Help back in"))}</button>` : `<span class="hwait">${esc(tr("help: after next login"))}</span>`) : ""}
         <button type="button" class="adrm" data-remove="${esc(u.user)}">${esc(tr("Remove"))}</button>`}
       <span class="a2">${esc(tr("Signed up"))} ${esc(u.created || "—")} · ${esc(tr("Last seen"))} ${esc(u.lastSeen || "—")}</span></li>`).join("");
@@ -4290,6 +4305,13 @@ function renderAdmin(){
     (A.invites.length ? "" : `<li class="used">${esc(tr("No codes yet: make some above."))}</li>`);
 }
 $("adminBtn").addEventListener("click", openAdmin);
+// test users and test wines (test-data.js, loaded the first time one of these is used)
+const testTools = () => window.TESTDATA && TESTDATA.ui ? Promise.resolve(TESTDATA) : new Promise((ok, no)=>{ const el = document.createElement("script");
+  el.src = "test-data.js?v=1"; el.onload = ()=>ok(window.TESTDATA); el.onerror = ()=>no(new Error("load test-data.js")); document.head.appendChild(el); });
+$("adminTestMake").addEventListener("click", ()=>testTools().then(T=>T.ui.makeUser($("adminTestKind").value)).catch(err=>{ $("adminErr").textContent = errText(err); }));
+$("adminTestClear").addEventListener("click", ()=>testTools().then(T=>T.ui.clearUsers()).catch(err=>{ $("adminErr").textContent = errText(err); }));
+$("acctTest").addEventListener("click", e=>{ const b = e.target.closest("button[data-testwines]"); if(!b) return;
+  testTools().then(T=>T.ui.addWines(Number(b.dataset.testwines))).catch(err=>{ $("acctTestMsg").textContent = errText(err); }); });
 $("adminClose").addEventListener("click", ()=>$("adminModal").classList.remove("open"));
 $("adminNew").addEventListener("submit", async e=>{
   e.preventDefault(); $("adminErr").textContent = tr("Making…");

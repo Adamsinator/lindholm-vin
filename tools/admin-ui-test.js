@@ -40,6 +40,12 @@ const HEAD = ["Producent", "Land", "Område", "Kommune", "Mark/Navn", "Klassifik
   await p.reload(); await p.waitForSelector("#app:not([hidden])", { timeout: 20000 }); await p.waitForTimeout(800);
   check("the owner has one", await p.isVisible("#adminBtn"));
   check("…and pia still doesn't", await B.p.isHidden("#adminBtn"));
+  // business accounts aren't open yet: a member can't choose one, at sign-up or in Account; the owner can
+  await B.p.click("#acctBtn"); await B.p.waitForSelector("#acctModal.open");
+  check("a member's Account has no 'what kind of account' (a private cellar only, for now)", await B.p.isHidden("#acctKindWrap") && await B.p.evaluate(() => KIND === "private"));
+  await B.p.keyboard.press("Escape");
+  await p.click("#acctBtn"); await p.waitForSelector("#acctModal.open");
+  check("…the owner's has", await p.isVisible("#acctKindWrap")); await p.keyboard.press("Escape");
 
   await p.click("#adminBtn"); await p.waitForFunction(() => document.querySelectorAll("#adminUsers li").length >= 2, null, { timeout: 10000 });
   const rows = await p.$$eval("#adminUsers li", rs => rs.map(r => r.textContent.replace(/\s+/g, " ").trim()));
@@ -92,6 +98,29 @@ const HEAD = ["Producent", "Land", "Område", "Kommune", "Mark/Navn", "Klassifik
   check("…and trashes their files", gas.run(`DriveApp.getFolderById(${JSON.stringify(piaFolder)}).isTrashed()`) === true);
   await B.p.reload(); await B.p.waitForTimeout(1500);
   check("…and pia is logged out", await B.p.isHidden("#app"), await B.p.isVisible("#app"));
+  // test users: made here without an invite, logged into elsewhere, filled with test wines, all removed at once
+  ASK = true;
+  await p.selectOption("#adminTestKind", "restaurant"); await p.click("#adminTestMake");
+  await p.waitForSelector("#adminTestOut .code", { timeout: 20000 });
+  const [tu, tp] = (await p.innerText("#adminTestOut .code")).split("\n").map(x => x.trim());
+  check("Make a test user: a name and a password, no invite code used", /^test-restaurant-[a-z0-9]{4}$/.test(tu) && tp.length === 14
+    && gas.rows("Users").some(r => r[0] === tu) && (gas.rows("Invites") || []).every(r => r[3] !== tu), tu);
+  check("…listed as a test user", /test user/.test(await p.textContent(`#adminUsers li:has-text("${tu}")`)));
+  const anon = gas.call({ action: "admintestuser", member: "test-private-zzzz" });
+  check("…and only the owner can make one", !anon.ok, JSON.stringify(anon));
+  const C = await device(), q = C.p;
+  await q.goto(BASE); await q.waitForTimeout(400); await q.fill("#gateUser", tu); await q.fill("#gatePass", tp); await q.click("#gateSubmit");
+  await q.waitForSelector("#app:not([hidden])", { timeout: 20000 }); await q.waitForTimeout(800);
+  await q.click("#acctBtn"); await q.waitForSelector("#acctModal.open");
+  check("the test user logs in, and its Account offers test data and the kinds of account", await q.isVisible("#acctTest") && await q.isVisible("#acctKindWrap"));
+  await q.click('#acctTest button[data-testwines="10"]'); await q.waitForFunction(() => /10 test wines added/.test(document.getElementById("acctTestMsg").textContent), null, { timeout: 20000 });
+  const tw = await q.evaluate(() => ({ n: WINES.length, regions: [...new Set(WINES.map(w => w.region))], left: WINES.map(w => w.left) }));
+  check("…Add 10 test wines: ten varied wines in its cellar", tw.n === 10 && tw.regions.length >= 4 && tw.left.every(x => x > 0), JSON.stringify(tw));
+  check("a real member's Account has no test data", await p.evaluate(() => document.getElementById("acctTest").hidden));
+  await p.click("#adminTestClear"); await p.waitForFunction(t => !document.querySelector(`#adminUsers button[data-remove="${t}"]`), tu, { timeout: 20000 });
+  check("Remove all test users: gone, the owner stays", !gas.rows("Users").some(r => r[0] === tu) && gas.rows("Users").some(r => r[0] === "ole"));
+  A.errs.push(...C.errs);
+
   check("nothing from a cellar is on the page", !/Krug|Ark1|wrapKey/.test(await p.textContent("#adminModal")));
 
   check("no console errors", !A.errs.length && !B.errs.length, A.errs.concat(B.errs).join(" | "));

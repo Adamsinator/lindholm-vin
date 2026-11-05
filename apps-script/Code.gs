@@ -42,7 +42,7 @@ function setting(key) {
 // The legacy code only works once you've set a real one: the placeholder from the template is public.
 function accessCode() { const c = setting('ACCESS_CODE'); return c === 'CHANGE-ME' ? '' : c; }
 
-const API_VERSION = 48; // returned in every response; used to verify deployments
+const API_VERSION = 49; // returned in every response; used to verify deployments
 
 // Per-request spreadsheet for the authenticated user. Set in handle(); every
 // sheet helper reads it via ss(). Falls back to the bound (owner's) spreadsheet.
@@ -296,6 +296,9 @@ function handle(p) {
       case 'setwindow':
         setWindow(Number(p.row), p.from, p.to);
         return json({ ok: true, wines: readAll() });
+      case 'setstock':
+        setStock(Number(p.row), p.left);
+        return json({ ok: true, wines: readAll() });
       case 'setinfo':
         setInfo(Number(p.row), p.fields || {});
         if (p.old && p.journal) renameJournal(p.old, p.fields || {});
@@ -320,7 +323,7 @@ function handle(p) {
         return json({ ok: true, wines: readAll() });
       // who you are: the page shows the admin page only to the owner
       case 'me':
-        return json({ ok: true, user: CTX_USER, owner: isOwnerAccount(CTX_ACCOUNT), help: helpFor(CTX_ACCOUNT) });
+        return json({ ok: true, user: CTX_USER, owner: isOwnerAccount(CTX_ACCOUNT), help: helpFor(CTX_ACCOUNT), test: !!(CTX_ACCOUNT && CTX_ACCOUNT.test) });
       // this account's data key wrapped to the admin's public key (done in the browser): the admin can help it back in
       case 'escrow': {
         const u = CTX_ACCOUNT, h = adminHelpKey();
@@ -332,8 +335,9 @@ function handle(p) {
       }
       // the owner's admin page: the members and the invite codes, never anything from a cellar
       case 'admin': case 'admininvites': case 'adminrevoke': case 'admindelete':
-      case 'adminkeyset': case 'adminkeyget': case 'adminescrow': case 'adminrecovery':
+      case 'adminkeyset': case 'adminkeyget': case 'adminescrow': case 'adminrecovery': case 'admintestuser':
         if (!isOwnerAccount(CTX_ACCOUNT)) return json({ ok: false, error: 'not-owner' });
+        if (p.action === 'admintestuser') return adminTestUser(p);
         if (p.action === 'adminkeyset') return adminKeySet(p);
         if (p.action === 'adminkeyget') return json({ ok: true, pub: CTX_ACCOUNT.adminPub || '', key: CTX_ACCOUNT.adminKey || '', kid: CTX_ACCOUNT.adminKid || '' });
         if (p.action === 'adminescrow') {
@@ -619,7 +623,7 @@ function findUser(username) {
       const c = k => String(rows[i][UCOL[k] - 1] === undefined ? '' : rows[i][UCOL[k] - 1]);
       return { row: i + 2, username: rows[i][0], salt: String(rows[i][1]),
                hash: String(rows[i][2]), spreadsheetId: String(rows[i][3]),
-               token: String(rows[i][4]), kdf: c('Kdf'), kdfSalt: c('KdfSalt'), wrapKey: c('WrapKey'),
+               token: String(rows[i][4]), kdf: c('Kdf'), kdfSalt: c('KdfSalt'), wrapKey: c('WrapKey'), test: c('Email') === TEST_EMAIL,
                wrapRec: c('WrapRec'), recSalt: c('RecSalt'), recHash: c('RecHash'), vaultId: c('VaultId'),
                state: c('State'), oldSheet: c('OldSheet'), email: c('Email'), lastSeen: c('LastSeen'),
                wrapAdmin: c('WrapAdmin'), adminKid: c('AdminKid'), adminPub: c('AdminPub'), adminKey: c('AdminKey') };
@@ -720,7 +724,14 @@ function signupLocked(p) {
   if (findUser(username)) return json({ ok: false, error: 'user-taken' });
   if (listUsers().length >= Math.max(1, Number(setting('MAX_USERS')) || 50)) return json({ ok: false, error: 'signup-full' });
   bumpCount('signups', 3600);
-
+  const token = createAccount(username, email, p);
+  SIGNED_UP = true;
+  if (invite) useInvite(invite, username);
+  logEvent('signup', username, invite ? 'invite' : 'shared code');
+  return json({ ok: true, user: username, token: token, state: 'done' });
+}
+// A new account's row and its own encrypted vault, from the keys the browser made (sign-up, and the owner's test users)
+function createAccount(username, email, p) {
   const salt = randToken(), token = randToken();
   const folder = masterFolder().createFolder('AllWine — ' + username);
   const vaultId = createVaultBook(username, folder);
@@ -731,10 +742,24 @@ function signupLocked(p) {
   put('WrapKey', String(p.wrapKey)); put('WrapRec', String(p.wrapRec)); put('RecSalt', String(p.recSalt));
   put('RecHash', hashPass(salt, p.recAuth)); put('VaultId', vaultId); put('State', 'done'); put('Email', email);
   usersSheet().appendRow(row);
-  SIGNED_UP = true;
-  if (invite) useInvite(invite, username);
-  logEvent('signup', username, invite ? 'invite' : 'shared code');
-  return json({ ok: true, user: username, token: token, state: 'done' });
+  return token;
+}
+// The owner's test users (Admin → Test users): no invite, no Turnstile, a name like test-restaurant-k3p9 and this
+// address, so the admin page can tell them apart and remove them all at once
+const TEST_EMAIL = 'test@allwine.invalid';
+function adminTestUser(p) {
+  const username = String(p.member || '');
+  if (!/^test-[a-z]{3,12}-[a-z0-9]{4}$/.test(username)) return json({ ok: false, error: 'bad-username' });
+  if (!validKeys(p)) return json({ ok: false, error: 'bad-keys' });
+  const lock = typeof LockService !== 'undefined' ? LockService.getScriptLock() : null;
+  if (lock) lock.waitLock(20000);
+  try {
+    if (findUser(username)) return json({ ok: false, error: 'user-taken' });
+    if (listUsers().length >= Math.max(1, Number(setting('MAX_USERS')) || 50)) return json({ ok: false, error: 'signup-full' });
+    createAccount(username, TEST_EMAIL, p);
+    logEvent('signup', username, 'test user');
+  } finally { if (lock) lock.releaseLock(); }
+  return json(Object.assign(adminView(), { made: username }));
 }
 
 // The feed and follows (only with the SOCIAL setting on)
@@ -811,7 +836,7 @@ function adminView() {
   const users = rows.filter(r => String(r[0]).trim()).map(r => ({ user: String(r[0]), email: String(c(r, 'Email') || ''), created: fmtDay(c(r, 'Created')),
     lastSeen: fmtDay(c(r, 'LastSeen')), encrypted: String(c(r, 'State')) === 'done', invite: used[normUser(r[0])] || '',
     owner: isOwnerAccount({ spreadsheetId: String(c(r, 'SpreadsheetId')), oldSheet: String(c(r, 'OldSheet') || '') }),
-    helpReady: !!adminKid && String(c(r, 'AdminKid') || '') === adminKid && !!String(c(r, 'WrapAdmin') || '') }));
+    helpReady: !!adminKid && String(c(r, 'AdminKid') || '') === adminKid && !!String(c(r, 'WrapAdmin') || ''), test: String(c(r, 'Email') || '') === TEST_EMAIL }));
   const ish = invitesSheet(false), ilast = ish ? ish.getLastRow() : 0;
   const invites = ilast >= 2 ? ish.getRange(2, 1, ilast - 1, INVITE_COLS.length).getValues().filter(r => String(r[0]).trim())
     .map(r => ({ code: String(r[0]), note: String(r[1] || ''), created: fmtDay(r[2]), usedBy: String(r[3] || ''), usedAt: fmtDay(r[4]) })) : [];
@@ -905,7 +930,7 @@ function doLogin(p) {
     if (!ok) return failed(p.user, 'bad-login');
     cleared(p.user);
     countStats({ login: 1 });
-    return json({ ok: true, user: u.username, token: addSession(u), wrapKey: u.wrapKey, state: u.state || 'done', help: helpFor(u) });
+    return json({ ok: true, user: u.username, token: addSession(u), wrapKey: u.wrapKey, state: u.state || 'done', help: helpFor(u), test: !!u.test });
   }
   const ok = u && p.pass !== undefined && safeEqual(hashPass(salt, p.pass || ''), u.hash);
   hashPass(salt, String(p.auth || ''));
@@ -1880,6 +1905,21 @@ function setValue(rowNum, value) {
   const empty = value === '' || value === null || value === undefined;
   const v = empty ? '' : Math.max(0, Number(value) || 0);
   sh.getRange(rowNum, i + 1).setValue(v);
+}
+
+// Set how many bottles are left (a business counting its stock): bought becomes what was drunk or sold plus that.
+// A wine with nothing drunk can't go to 0 this way (that's a sale, or a delete), so the row always means something.
+function setStock(rowNum, left) {
+  const n = Math.round(Number(left));
+  if (!(n >= 0 && n <= MAX_BOTTLES) || left === '' || left === null) throw new Error('Bad stock');
+  const sh = sheet();
+  if (!rowNum || rowNum < 2 || rowNum > sh.getLastRow()) throw new Error('Bad row');
+  const idx = colIndexes(sh), cell = f => sh.getRange(rowNum, idx[f] + 1);
+  const qty = Number(cell('qty').getValue()) || 1, drunkRaw = String(cell('drunk').getValue()).trim().toLowerCase();
+  const drunk = drunkRaw === 'x' ? qty : Number(drunkRaw) || 0;
+  if (drunk + n < 1) throw new Error('zero-stock');
+  cell('qty').setValue(drunk + n);
+  if (drunkRaw === 'x') cell('drunk').setValue(drunk); // "x" meant all of them; now there are more
 }
 
 // Set what a bottle cost. Needed because a wine can reach the sheet through a

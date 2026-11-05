@@ -25,6 +25,7 @@ const HEAD = ["Producent", "Land", "Område", "Kommune", "Mark/Navn", "Klassifik
   await p.goto(BASE); await p.waitForTimeout(400);
   check("logging in asks only for username and password", await p.isHidden("#gateEmailWrap") && await p.isHidden("#gatePass2Wrap") && await p.isHidden("#gatePassHint"));
   await p.click("#gateToggle"); await p.waitForTimeout(150);
+  check("sign-up offers no kind of account yet: every new member gets a private cellar", await p.isHidden("#gateKindWrap"));
   check("sign-up asks for an email and the password twice, with the rules shown",
     await p.isVisible("#gateEmail") && await p.isVisible("#gatePass2") && /At least 10 characters/.test(await p.textContent("#gatePassHint")) && /3–24 letters/.test(await p.textContent("#gateUserHint")));
   check("…and says only the owner sees the email", /Only the owner sees it/.test(await p.textContent("#gateEmailHint")));

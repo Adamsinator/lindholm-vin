@@ -131,6 +131,17 @@ const W = async (prod, name) => (await (await wines())).find(w => w.producer ===
   check("…wine renamed", !!(await W("Armand Rousseau", "Clos Saint-Jacques")));
   check("…journal entry renamed with it", (await journal()).some(e => e.producer === "Armand Rousseau" && e.wine === "Clos Saint-Jacques"));
 
+  // 7b. a drink window is saved once, with both years: not after the first, while the second is being typed
+  await openRow("#tbl", "Giacomo Conterno"); const gd = detail("#tbl", "Giacomo Conterno");
+  // count the page's own saves (an encrypted cellar saves in the page, not over the network)
+  await p.evaluate(() => { window.__ws = []; const o = window.api; window.api = x => { if (x && x.action === "setwindow") __ws.push([x.from, x.to]); return o(x); }; });
+  const ws = () => p.evaluate(() => __ws);
+  await gd.locator('.setwin[data-end="from"]').fill("2025"); await gd.locator('.setwin[data-end="from"]').press("Tab"); await p.waitForTimeout(700);
+  check("drink window: typing the first year and moving to the second saves nothing yet", (await ws()).length === 0, JSON.stringify(await ws()));
+  await gd.locator('.setwin[data-end="to"]').fill("2045"); await gd.locator('.setwin[data-end="to"]').press("Enter"); await p.waitForTimeout(1200);
+  check("…Enter on the second saves both, once, and the wine stays open", JSON.stringify(await ws()) === JSON.stringify([["2025", "2045"]]) && await detail("#tbl", "Giacomo Conterno").isVisible()
+    && (await W("Giacomo Conterno")).drinkFrom == 2025 && (await W("Giacomo Conterno")).drinkTo == 2045, JSON.stringify(await ws()));
+
   // 8. fill in classifications the app can tell from names (and leave others alone)
   await go("enjoyed");
   const fillShown = await p.isVisible("#eFill");

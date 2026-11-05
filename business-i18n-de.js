@@ -1,6 +1,9 @@
 // business.js's words in German: only a business account needs them, so i18n.js fetches this when business.js
 // asks for it (I18N.more), not with every page.
 Object.assign(window.I18N_DICT.de = window.I18N_DICT.de || {}, {
+  "In stock": "Auf Lager",
+  "Nothing's been sold of it yet: to take it off the stock, delete it": "Davon wurde noch nichts verkauft: Zum Entfernen aus dem Bestand löschen Sie ihn",
+  "Counting stock needs the updated Apps Script (version 49): redeploy Code.gs.": "Die Bestandszählung braucht das aktuelle Apps Script (Version 49): Code.gs neu bereitstellen.",
   "Minimum in stock": "Mindestbestand",
   "The minimum is a number of bottles, 0 or more": "Der Mindestbestand ist eine Anzahl Flaschen, 0 oder mehr",
   "Sales of the month": "Verkäufe des Monats",
