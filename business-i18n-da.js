@@ -1,6 +1,9 @@
 // business.js's words in Danish: only a business account needs them, so i18n.js fetches this when business.js
 // asks for it (I18N.more), not with every page.
 Object.assign(window.I18N_DICT.da = window.I18N_DICT.da || {}, {
+  "In stock": "På lager",
+  "Nothing's been sold of it yet: to take it off the stock, delete it": "Der er ikke solgt noget af den endnu: slet den for at fjerne den fra lageret",
+  "Counting stock needs the updated Apps Script (version 49): redeploy Code.gs.": "Lageroptælling kræver det opdaterede Apps Script (version 49): udrul Code.gs igen.",
   "Minimum in stock": "Minimum på lager",
   "The minimum is a number of bottles, 0 or more": "Minimum er et antal flasker, 0 eller flere",
   "Sales of the month": "Månedens salg",

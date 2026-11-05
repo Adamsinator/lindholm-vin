@@ -986,7 +986,7 @@ function loadKind(){
 function setKindLocal(k){
   KIND = k; document.documentElement.dataset.kind = k; $("acctKind").value = k;
   try{ localStorage.setItem(kindKey(), k); }catch(e){}
-  if(k!=="private" && !window.BIZ){ const s = document.createElement("script"); s.src = "business.js?v=4";
+  if(k!=="private" && !window.BIZ){ const s = document.createElement("script"); s.src = "business.js?v=5";
     s.onload = ()=>{ if(WINES.length){ renderOverview(); renderTable(); } }; document.head.appendChild(s); }
   else if(window.BIZ) BIZ.apply();
 }
@@ -1405,8 +1405,7 @@ function bindDetail(root){
     inp.addEventListener("change",()=>setValueApi(Number(inp.dataset.row), inp.value, inp)));
   root.querySelectorAll("input.setdate").forEach(inp=>
     inp.addEventListener("change",()=>setDateApi(Number(inp.dataset.row), inp.dataset.field, inp.value, inp)));
-  root.querySelectorAll("input.setwin").forEach(inp=>
-    inp.addEventListener("change",()=>setWindowApi(inp)));
+  root.querySelectorAll(".winwrap").forEach(bindWindow);
   root.querySelectorAll("input.setloc").forEach(inp=>
     inp.addEventListener("change",()=>setLocationApi(Number(inp.dataset.row), inp.value, inp)));
   root.querySelectorAll(".wj-more").forEach(b=>
@@ -1502,6 +1501,15 @@ document.addEventListener("click", e=>{
   wrap.querySelector('.setwin[data-end="from"]').value = b.dataset.from; wrap.querySelector('.setwin[data-end="to"]').value = b.dataset.to;
   b.disabled = true; setWindowApi(wrap.querySelector(".setwin"));
 });
+// the drink window is one thing, two years: it's saved when both have been typed, that is when the keyboard leaves
+// the pair (or Enter), not after the first year
+function bindWindow(wrap){
+  const ins = [...wrap.querySelectorAll("input.setwin")]; if(!ins.length) return;
+  const was = () => ins.map(x=>x.defaultValue).join("|"), now = () => ins.map(x=>x.value.trim()).join("|");
+  const save = () => { if(now() !== was()) setWindowApi(ins[0]); };
+  wrap.addEventListener("focusout", e=>{ if(!wrap.contains(e.relatedTarget)) save(); });
+  ins.forEach(x=>x.addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); x.blur(); } })); // leaving saves
+}
 async function setWindowApi(inp){
   const row = Number(inp.dataset.row);
   const wrap = inp.closest(".winwrap");
@@ -1511,7 +1519,7 @@ async function setWindowApi(inp){
   ins.forEach(x=>x.disabled=true);
   try{
     const res = await api({action:"setwindow", row, from, to});
-    WINES = normalize(res.wines);
+    KEEP_OPEN = row; WINES = normalize(res.wines);
     renderOverview(); renderTable(); renderEnjoyed();
     toast((from||to) ? tr("Drink window saved") : tr("Drink window cleared"));
   }catch(err){ toast(tr("Could not save window: {0}", errText(err))); }
@@ -3108,8 +3116,7 @@ function pickTonight(){
     inp.addEventListener("change",()=>setValueApi(Number(inp.dataset.row), inp.value, inp)));
   m.querySelectorAll("input.setdate").forEach(inp=>
     inp.addEventListener("change",()=>setDateApi(Number(inp.dataset.row), inp.dataset.field, inp.value, inp)));
-  m.querySelectorAll("input.setwin").forEach(inp=>
-    inp.addEventListener("change",()=>setWindowApi(inp)));
+  m.querySelectorAll(".winwrap").forEach(bindWindow);
 }
 $("tonightBtn").addEventListener("click", pickTonight);
 

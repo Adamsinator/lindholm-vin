@@ -42,7 +42,7 @@ function setting(key) {
 // The legacy code only works once you've set a real one: the placeholder from the template is public.
 function accessCode() { const c = setting('ACCESS_CODE'); return c === 'CHANGE-ME' ? '' : c; }
 
-const API_VERSION = 48; // returned in every response; used to verify deployments
+const API_VERSION = 49; // returned in every response; used to verify deployments
 
 // Per-request spreadsheet for the authenticated user. Set in handle(); every
 // sheet helper reads it via ss(). Falls back to the bound (owner's) spreadsheet.
@@ -295,6 +295,9 @@ function handle(p) {
         return json({ ok: true, wines: readAll() });
       case 'setwindow':
         setWindow(Number(p.row), p.from, p.to);
+        return json({ ok: true, wines: readAll() });
+      case 'setstock':
+        setStock(Number(p.row), p.left);
         return json({ ok: true, wines: readAll() });
       case 'setinfo':
         setInfo(Number(p.row), p.fields || {});
@@ -1880,6 +1883,21 @@ function setValue(rowNum, value) {
   const empty = value === '' || value === null || value === undefined;
   const v = empty ? '' : Math.max(0, Number(value) || 0);
   sh.getRange(rowNum, i + 1).setValue(v);
+}
+
+// Set how many bottles are left (a business counting its stock): bought becomes what was drunk or sold plus that.
+// A wine with nothing drunk can't go to 0 this way (that's a sale, or a delete), so the row always means something.
+function setStock(rowNum, left) {
+  const n = Math.round(Number(left));
+  if (!(n >= 0 && n <= MAX_BOTTLES) || left === '' || left === null) throw new Error('Bad stock');
+  const sh = sheet();
+  if (!rowNum || rowNum < 2 || rowNum > sh.getLastRow()) throw new Error('Bad row');
+  const idx = colIndexes(sh), cell = f => sh.getRange(rowNum, idx[f] + 1);
+  const qty = Number(cell('qty').getValue()) || 1, drunkRaw = String(cell('drunk').getValue()).trim().toLowerCase();
+  const drunk = drunkRaw === 'x' ? qty : Number(drunkRaw) || 0;
+  if (drunk + n < 1) throw new Error('zero-stock');
+  cell('qty').setValue(drunk + n);
+  if (drunkRaw === 'x') cell('drunk').setValue(drunk); // "x" meant all of them; now there are more
 }
 
 // Set what a bottle cost. Needed because a wine can reach the sheet through a
