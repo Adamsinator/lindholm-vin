@@ -42,6 +42,29 @@ left edges are gone, the business buttons have words, not emoji. Still to do:
 - **Fewer em dashes** in the interface (about 33 strings in app.js): a full stop or a colon reads more like a person.
 - **Calmer motion:** the bottles' slide-in on the rack is fine once; check nothing else fades in by default.
 
+## Feedback after testing (5 November 2026) — to work through before the business pages
+
+1. Kom i gang: "Tilføj vin" in quotation marks, so the sentence reads right.
+2. "Pas på din gendannelseskode": rewrite now that the owner can help a member back in.
+3. The region atlases closer to the Côte d'Or one (more of its tools on every region).
+4. Add wine: classifications beyond the French, by country/region.
+5. Add wine: port (and other fortified wines) as a choice.
+6. Add wine: "a gift" (no price).
+7. The cellar's map: wines from countries without a region shape (Croatia…) should show too.
+8. Define "icon producers" (what makes one, shown where it's used).
+9. Edit wine: change the number of bottles; price per bottle or for all (multiplied), for businesses above all.
+10. Add wine: more drop-downs (grapes, areas…), cf. tannino.dk/vinguide/lande.
+11. Natural wine: a mark/check.
+12. Wine style: sweet/dry, acidity, oak and so on.
+13. Enjoyed: the food with it, and how the pairing went.
+14. winefolly.com: what it does well that we could do too.
+15. Sommelier: fewer suggestions at first and when it doesn't know; more varied replies; more knowledge; small
+    talk (the time); remember the conversation, so a follow-up question builds on the last.
+16. "Kælderoversigt" by the flags: why is it there?
+17. Terms: the owner is in control and may remove accounts (misuse, or at their discretion).
+18. "Om bedømmelser" and "Nuværende værdi" at the foot of the cellar: to Help, or side by side at least.
+19. Fonts: checked: none are shipped (system fonts only), so nothing to license.
+
 ## Business accounts as their own app, and smoother editing (raised 2 November 2026)
 
 The personal setup is right as it is. A business shouldn't feel like a personal cellar with a chart or two more:
