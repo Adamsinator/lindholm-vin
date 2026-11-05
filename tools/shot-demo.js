@@ -1,12 +1,13 @@
 // The screenshots for the business page (business.html): a made-up wine bar, "Vinbaren Demo", with made-up wines and
 // sales, taken in a browser against the real Apps Script (gas-harness.js). Writes img/business/*.jpg.
-//   (cd .. && python3 -m http.server 8765) & node tools/shot-demo.js
+//   (cd .. && python3 -m http.server 8765) & node tools/shot-demo.js [da]   (da: the Danish screens, into img/business/da)
 "use strict";
 const path = require("path"), fs = require("fs");
 const { chromium } = require("./pw");
 const H = require("./gas-harness");
 const BASE = process.env.BASE || "http://localhost:8765/";
-const OUT = path.join(__dirname, "..", "img", "business"); fs.mkdirSync(OUT, { recursive: true });
+const LANG = process.argv[2] || "en";
+const OUT = path.join(__dirname, "..", "img", "business", ...(LANG === "en" ? [] : [LANG])); fs.mkdirSync(OUT, { recursive: true });
 const HEAD = ["Producent", "Land", "Område", "Kommune", "Mark/Navn", "Klassifikation", "Type", "Drue", "Årgang", "Antal", "Pris kr (WS)", "Drukket", "Kilde", "Note", "Anskaffet"];
 const row = o => HEAD.map(h => o[h] ?? "");
 // producer, country, region, commune, name, type, grape, vintage, bottles, cost, supplier, [menu, glass, minimum], location
@@ -36,6 +37,7 @@ gas.run("makeOwner()");
   const p = await ctx.newPage(), errs = []; p.on("pageerror", e => errs.push(e.message));
   const shot = async (name, el) => { await p.evaluate(() => { const h = document.getElementById("adminBtn"); if (h) h.hidden = true; document.querySelectorAll("#toast").forEach(t => t.style.display = "none"); });
     await (el ? (await p.$(el)).screenshot({ path: path.join(OUT, name + ".jpg"), type: "jpeg", quality: 78 }) : p.screenshot({ path: path.join(OUT, name + ".jpg"), type: "jpeg", quality: 78 })); console.log("wrote", name); };
+  await ctx.addInitScript(l => { try { localStorage.setItem("lang", l); } catch (e) {} }, LANG);
   await p.goto(BASE); await p.waitForTimeout(500);
   await p.fill("#gateUser", "demo"); await p.fill("#gatePass", "demo-pass-1"); await p.click("#gateSubmit");
   await p.waitForSelector("#recModal.open", { timeout: 20000 }); await p.check("#recOk"); await p.click("#recDone");
@@ -70,7 +72,7 @@ gas.run("makeOwner()");
   await p.click('#tbl tr.main:has-text("Léoville Barton")'); await p.waitForSelector('tr.detail:not([hidden]) .wstyle .ssb', { timeout: 10000 }).catch(() => {});
   await p.evaluate(() => document.querySelector('tr.detail:not([hidden])').scrollIntoView({ block: "center" })); await p.waitForTimeout(300);
   await shot("details");
-  await p.click("#sommBtn"); await p.waitForSelector("#sommLog .sm-a"); await p.fill("#sommQ", "What goes with lamb?"); await p.press("#sommQ", "Enter");
+  await p.click("#sommBtn"); await p.waitForSelector("#sommLog .sm-a"); await p.fill("#sommQ", LANG === "da" ? "Hvad passer til lam?" : "What goes with lamb?"); await p.press("#sommQ", "Enter");
   await p.waitForFunction(() => !document.querySelector("#sommLog .sm-think") && document.querySelectorAll("#sommLog .sm-a").length >= 2, null, { timeout: 10000 }); await p.waitForTimeout(400);
   await shot("sommelier"); await p.keyboard.press("Escape");
   // a guest's phone, scanning the code; and the inventory on a phone
