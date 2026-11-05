@@ -32,7 +32,7 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 const DEFAULT_SETTINGS = { ACCESS_CODE: '', SHEET_NAME: 'Ark1', SIGNUP_CODE: '', ATLAS_EDITORS: '', OWNER_USER: '', OWNER_PASSWORD: '',
-  MAX_USERS: '50', SESSION_DAYS: '30', SOCIAL: '', BACKUP_KEEP: '8', RESTORE_USER: '', RESTORE_FROM: '', GATEWAY_SECRET: '', REPORT_EMAIL: '' };
+  MAX_USERS: '50', SESSION_DAYS: '30', SOCIAL: '', BACKUP_KEEP: '8', RESTORE_USER: '', RESTORE_FROM: '', GATEWAY_SECRET: '', REPORT_EMAIL: '', VERIFY_EMAIL: '' };
 // Read at call time (not load time), so it doesn't matter in which order Apps Script loads the two files.
 function setting(key) {
   const s = (typeof SETTINGS === 'object' && SETTINGS) || {};
@@ -42,7 +42,7 @@ function setting(key) {
 // The legacy code only works once you've set a real one: the placeholder from the template is public.
 function accessCode() { const c = setting('ACCESS_CODE'); return c === 'CHANGE-ME' ? '' : c; }
 
-const API_VERSION = 53; // returned in every response; used to verify deployments
+const API_VERSION = 54; // returned in every response; used to verify deployments
 
 // Per-request spreadsheet for the authenticated user. Set in handle(); every
 // sheet helper reads it via ss(). Falls back to the bound (owner's) spreadsheet.
@@ -217,7 +217,7 @@ function handle(p) {
   CTX = null;
 
   // Account actions need no session.
-  const open = { signup: doSignup, login: doLogin, prelogin: doPrelogin, recoverstart: doRecoverStart, recover: doRecover };
+  const open = { emailcode: doEmailCode, signup: doSignup, login: doLogin, prelogin: doPrelogin, recoverstart: doRecoverStart, recover: doRecover };
   // counts from the page (which pages, how often): no session needed, nothing that names anyone
   if (p.action === 'hits') { countStats(pageHits(p.ev)); return json({ ok: true }); }
   // an error in a visitor's browser (API 44): which page, file and line, and the message, never who or anything from a cellar
@@ -724,6 +724,8 @@ function signupLocked(p) {
   if (p.email === undefined) return json({ ok: false, error: 'update-site' }); // a page from before the email field
   const email = String(p.email || '').trim();
   if (email.length > 120 || !/^[^\s@]{1,64}@[^\s@]+\.[^\s@]{2,}$/.test(email)) return json({ ok: false, error: 'bad-email' });
+  // API 54: the address is proven by the code mailed to it (doEmailCode); VERIFY_EMAIL = off turns that off
+  if (verifyEmail() && !emailCodeOk(email, p.emailCode)) return json({ ok: false, error: p.emailCode ? 'bad-email-code' : 'email-code-needed' });
   if (!validKeys(p)) return json({ ok: false, error: 'bad-keys' });
   if (findUser(username)) return json({ ok: false, error: 'user-taken' });
   if (listUsers().length >= Math.max(1, Number(setting('MAX_USERS')) || 50)) return json({ ok: false, error: 'signup-full' });
@@ -733,6 +735,40 @@ function signupLocked(p) {
   if (invite) useInvite(invite, username);
   logEvent('signup', username, invite ? 'invite' : 'shared code');
   return json({ ok: true, user: username, token: token, state: 'done' });
+}
+// Sign-up's email code (API 54): six digits mailed to the address given, typed back into the sign-up form. Only with a
+// valid invite or sign-up code (so the form can't be used to mail strangers), at most 3 codes an hour to one address and
+// EMAIL_CODES_PER_HOUR in all; a code lasts 15 minutes and allows 5 tries. Mailed by MailApp from the account that runs
+// the script (a free Gmail account may send about 100 a day).
+const EMAIL_CODES_PER_HOUR = 20;
+const verifyEmail = () => setting('VERIFY_EMAIL') !== 'off';
+const evKey = email => 'ev:' + String(email).trim().toLowerCase();
+function doEmailCode(p) {
+  if (!verifyEmail()) return json({ ok: true, needed: false });
+  const shared = setting('SIGNUP_CODE'), code = String(p.code || '').trim();
+  if (!findInvite(code) && !(shared && code === shared)) { bumpCount('badinvites', 3600); return json({ ok: false, error: 'bad-invite' }); }
+  const email = String(p.email || '').trim();
+  if (email.length > 120 || !/^[^\s@]{1,64}@[^\s@]+\.[^\s@]{2,}$/.test(email)) return json({ ok: false, error: 'bad-email' });
+  if (peekCount('emailcodes') >= EMAIL_CODES_PER_HOUR || peekCount('ec' + evKey(email)) >= 3) { logEvent('rate-limit', p.user, 'email codes'); return json({ ok: false, error: 'email-busy' }); }
+  const c = scriptCache(); if (!c) return json({ ok: false, error: 'no-cache' });
+  bumpCount('emailcodes', 3600); bumpCount('ec' + evKey(email), 3600);
+  const n = String(100000 + parseInt(randToken().slice(0, 8), 16) % 900000);
+  c.put(evKey(email), JSON.stringify({ h: hashPass('ev', n), tries: 0 }), 900);
+  const L = String(p.lang || 'en');
+  const T = { da: ['AllWine: din kode er {0}', 'Din kode til AllWine er {0}.\n\nSkriv den i tilmeldingen. Den gælder i 15 minutter.\n\nHar du ikke bedt om den, kan du se bort fra denne mail.'],
+    fr: ['AllWine : votre code est {0}', 'Votre code AllWine est {0}.\n\nSaisissez-le dans l\'inscription. Il est valable 15 minutes.\n\nSi vous ne l\'avez pas demandé, ignorez ce message.'],
+    de: ['AllWine: Ihr Code ist {0}', 'Ihr AllWine-Code ist {0}.\n\nGeben Sie ihn in der Anmeldung ein. Er gilt 15 Minuten.\n\nWenn Sie ihn nicht angefordert haben, ignorieren Sie diese E-Mail.'],
+    en: ['AllWine: your code is {0}', 'Your AllWine code is {0}.\n\nType it into the sign-up. It is valid for 15 minutes.\n\nIf you did not ask for it, ignore this email.'] }[L] || null;
+  const t = T || ['AllWine: your code is {0}', 'Your AllWine code is {0}.\n\nType it into the sign-up. It is valid for 15 minutes.\n\nIf you did not ask for it, ignore this email.'];
+  MailApp.sendEmail(email, t[0].replace('{0}', n), t[1].replace('{0}', n));
+  return json({ ok: true, needed: true });
+}
+function emailCodeOk(email, given) {
+  const c = scriptCache(), k = evKey(email), raw = c && c.get(k); if (!raw || !given) return false;
+  const v = JSON.parse(raw);
+  if (v.tries >= 5) { c.remove(k); return false; }
+  if (!safeEqual(hashPass('ev', String(given).trim()), v.h)) { v.tries++; c.put(k, JSON.stringify(v), 900); return false; }
+  c.remove(k); return true;
 }
 // A new account's row and its own encrypted vault, from the keys the browser made (sign-up, and the owner's test users)
 function createAccount(username, email, p) {

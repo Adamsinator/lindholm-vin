@@ -27,6 +27,9 @@ module.exports = function harness(tabs, opts = {}) {
   vm.runInContext(read("Code.gs") + "\n;globalThis.__handle = handle; globalThis.__doPost = doPost; globalThis.__doGet = doGet;", ctx);
   vm.runInContext(read("Settings.gs"), ctx);
   vm.runInContext(`SETTINGS.ACCESS_CODE = ${JSON.stringify("code" in opts ? opts.code : "test-code")};`, ctx);
+  // sign-up's email code (API 54) is off unless a test asks for it (settings: { VERIFY_EMAIL: "on" }): the tests that
+  // sign up to get somewhere else needn't read the mail
+  vm.runInContext(`SETTINGS.VERIFY_EMAIL = "off";`, ctx);
   if (opts.settings) vm.runInContext(`Object.assign(SETTINGS, ${JSON.stringify(opts.settings)});`, ctx);
   return {
     call: p => JSON.parse(ctx.__handle(JSON.parse(JSON.stringify(p))).s),

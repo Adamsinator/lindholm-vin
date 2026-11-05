@@ -1786,6 +1786,8 @@ const AUTH_MSG = {
   "bad-recovery":"That recovery code doesn't match this account.", "update-site":"Reload the page: the site has been updated.",
   "vaulted":"This cellar is encrypted: log in with your username and password.",
   "bad-keys":"Something went wrong preparing your keys. Reload and try again.",
+  "email-busy":"Several codes have gone to that address in the last hour: wait a while, and look in spam too.",
+  "bad-email-code":"That code isn't right, or it has run out: send a new one.", "email-code-needed":"Type the 6-digit code from the email.",
 };
 const authMsg = code => AUTH_MSG[code] ? tr(AUTH_MSG[code]) : tr("Could not sign in ({0}).", code);
 function forgetAuth(){
@@ -1866,7 +1868,7 @@ async function gateEncrypted(mode, user, pass){
     if(!pre.ok || (pre.v||0) < 28) return false; // an older Apps Script: the plain sign-up below
     $("gateErr").textContent = tr("Creating your keys…");
     const k = await VAULT.newKeys(pass);
-    const data = await post({action:"signup", user, email:$("gateEmail").value.trim(), code:$("gateInvite").value.trim(), turnstile:humanToken(), ...k.fields});
+    const data = await post({action:"signup", user, email:$("gateEmail").value.trim(), code:$("gateInvite").value.trim(), emailCode:$("gateCode").value.trim(), turnstile:humanToken(), ...k.fields});
     if(!data.ok) throw new Error(data.error);
     cfg.user = data.user; VAULT.rememberSalt(data.user, k.fields);
     try{ localStorage.setItem(kindKey(), BIZ_OPEN ? $("gateKind").value : "private"); }catch(e){} // what kind of account: into the vault's prefs on first load
@@ -1912,6 +1914,28 @@ async function gateEncrypted(mode, user, pass){
   return true;
 }
 
+// the email code: asked for once per address; an older Apps Script (no "emailcode") signs up as before
+const EV = {for:"", off:false};
+async function emailStep(again){
+  const email = $("gateEmail").value.trim();
+  if(EV.off) return true;
+  if(!again && EV.for===email && /^\d{6}$/.test($("gateCode").value.trim())) return true;
+  if(!again && EV.for===email){ $("gateErr").textContent = tr("Type the 6-digit code from the email."); $("gateCode").focus(); return false; }
+  $("gateSubmit").disabled = true; $("gateErr").textContent = tr("Sending a code to {0}…", email);
+  try{
+    const r = await post({action:"emailcode", email, code:$("gateInvite").value.trim(), lang:(window.I18N && I18N.lang) || "en", turnstile:humanToken()});
+    humanReset(); // the "are you human" token is spent: the sign-up gets a fresh one
+    if((r.v||0) < 54 && !r.needed){ EV.off = true; return true; } // an Apps Script from before email codes: sign up as before
+    if(!r.ok){ $("gateErr").textContent = authMsg(r.error); return false; }
+    if(!r.needed){ EV.off = true; return true; }
+    EV.for = email; $("gateCodeWrap").hidden = false; $("gateCode").value = "";
+    $("gateCodeHint").textContent = tr("We sent a 6-digit code to {0}. It can take a minute; look in spam too.", email);
+    $("gateErr").textContent = ""; $("gateCode").focus(); return false;
+  }catch(err){ $("gateErr").textContent = tr("Could not reach the cellar API ({0}).", errText(err)); return false; }
+  finally{ $("gateSubmit").disabled = false; }
+}
+$("gateEmail").addEventListener("input", ()=>{ if(EV.for && $("gateEmail").value.trim()!==EV.for){ EV.for = ""; $("gateCodeWrap").hidden = true; } });
+$("gateCodeAgain").addEventListener("click", ()=>{ if(HUMAN.key && !humanToken()){ $("gateErr").textContent = tr("Wait for the \"are you human\" check to finish."); return; } emailStep(true); });
 $("gateForm").addEventListener("submit", async e=>{
   e.preventDefault();
   const apiIn = $("gateApi").value.trim();
@@ -1928,6 +1952,8 @@ $("gateForm").addEventListener("submit", async e=>{
   }
   if(GATE_MODE!=="login" && HUMAN.key && !humanToken()){ $("gateErr").textContent = tr("Wait for the \"are you human\" check to finish."); return; }
   const signup = GATE_MODE==="signup";
+  // sign-up proves the email address (API 54): first a code is mailed to it, then the sign-up carries it
+  if(signup && !(await emailStep())) return;
   localStorage.setItem("vinStay", $("gateStay").checked ? "1" : "0");
   $("gateSubmit").disabled = true; $("gateErr").textContent = tr(signup ? "Creating…" : "Signing in…");
   try{
