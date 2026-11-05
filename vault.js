@@ -59,7 +59,13 @@ function saltGet(user) { try { const v = JSON.parse(localStorage.getItem(saltKey
 function saltPut(user, pre) { try { localStorage.setItem(saltKey(user), JSON.stringify({ kdf: pre.kdf, kdfSalt: pre.kdfSalt })); } catch (e) {} }
 function saltDrop(user) { try { localStorage.removeItem(saltKey(user)); } catch (e) {} }
 
-const aad = (user, key) => String(user).toLowerCase() + "|" + key;
+// Each record is bound to the cellar's owner (its username), so a record can't be passed off as another's. A staff login
+// of a business (API 54) opens the business's cellar, so its records are bound to the business's name: remembered here
+// when it logs in (and on the device, for a reload that keeps the session).
+const parentKey = user => "vinParent:" + String(user).toLowerCase();
+function parentOf(user) { try { return localStorage.getItem(parentKey(user)) || ""; } catch (e) { return ""; } }
+function setParent(user, parent) { try { parent ? localStorage.setItem(parentKey(user), parent) : localStorage.removeItem(parentKey(user)); } catch (e) {} }
+const aad = (user, key) => String(parentOf(user) || user).toLowerCase() + "|" + key;
 async function srv(post, params) {
   const r = await post(params);
   if (!r.ok) { const e = new Error(String(r.error || "unknown-error").replace(/^Error: /, "")); e.data = r; throw e; }
@@ -258,6 +264,25 @@ async function newRecovery(o) {
   await srv(post, { user, token, action: "newrec", oldAuth: pk.auth, wrapRec: await VC.wrap(dekX, rk.kek), recSalt, recAuth: rk.auth });
   return code;
 }
+// A staff login for a business (API 54): the business's data key, unwrapped with the owner's password, wrapped again
+// to the new login's own password; the server keeps that and the login key, and never the key itself.
+async function addStaff(o) {
+  const { post, user, pass, member, memberPass, role } = o;
+  const { pk, dekX, token } = await unlockFor(post, user, pass);
+  const kdfSalt = VC.newSalt(), nk = await VC.fromPassword(memberPass, kdfSalt);
+  return srv(post, { user, token, action: "staffadd", oldAuth: pk.auth, member, role, auth: nk.auth, kdf: VC.KDF, kdfSalt, wrapKey: await VC.wrap(dekX, nk.kek) });
+}
+// Has another device saved since? The vault's versions only (API 54), compared with this copy's; if so, the server's
+// copy is fetched and swapped in as after opening (refresh). → true when the cellar changed
+async function checkFresh() {
+  if (!S || S.busy) return false;
+  const mine = S;
+  let r; try { r = await srv(mine.post, { user: mine.user, token: mine.token, action: "vver" }); } catch (e) { return false; }
+  if (S !== mine) return false;
+  const a = r.vers || {}, b = mine.recs || {};
+  const same = Object.keys(a).length === Object.keys(b).length && Object.keys(a).every(k => b[k] && b[k].ver === a[k]);
+  return same ? false : refresh({ post: mine.post, user: mine.user, token: mine.token, dek: mine.dek, today: mine.today }, mine);
+}
 // Delete the account, proven with the password once more; then nothing of it is left on this device either
 async function deleteAccount(o) {
   const { post, user, token, pass } = o;
@@ -296,9 +321,9 @@ async function login(o) {
     const pk = await VC.fromPassword(pass, p.kdfSalt, p.kdf);
     // vault: 1 brings the vault's (sealed) records with the login (API 53), one request fewer on a new device
     const r = await srv(post, { action: "login", user, auth: pk.auth, vault: 1 });
-    saltPut(user, p);
+    saltPut(user, p); setParent(r.user || user, r.parent || "");
     if (r.help) await escrow({ post, user: r.user, token: r.token, dekX: await VC.unwrap(r.wrapKey, pk.kek, true), help: r.help });
-    return { token: r.token, user: r.user, state: r.state, records: r.records || null, dek: await VC.unwrap(r.wrapKey, pk.kek, false) };
+    return { token: r.token, user: r.user, state: r.state, records: r.records || null, role: r.role || "", parent: r.parent || "", dek: await VC.unwrap(r.wrapKey, pk.kek, false) };
   };
   try { return await attempt(pre); }
   catch (err) {
@@ -412,7 +437,7 @@ async function adminHelp(member) {
   return { code, admin: r };
 }
 
-const api = { start, stop, active, prefs, setPrefs, call, newKeys, migrate, login, recover, changePassword, newRecovery, forgetCache, rememberSalt, deleteAccount, synced, PRIVATE,
+const api = { start, stop, active, prefs, setPrefs, call, newKeys, migrate, login, recover, changePassword, newRecovery, forgetCache, rememberSalt, deleteAccount, synced, PRIVATE, addStaff, checkFresh,
   escrow, escrowWithPassword, adminSetup, adminHelp, trustedHelp,
   user: () => S && S.user };
 if (node) module.exports = api;

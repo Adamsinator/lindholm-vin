@@ -56,11 +56,12 @@ window.BIZ = (() => {
       let t = tabs.querySelector(`.tab[data-page="${id}"]`);
       if (!t) { t = document.createElement("button"); t.className = "tab bz-tab"; t.dataset.page = id; t.type = "button";
         i === 0 ? cellarTab.before(t) : (tabs.querySelector('.bz-tab[data-page="accounts"]') || cellarTab).after(t); }
-      t.textContent = tr(label); t.hidden = !on();
+      const staffOff = id === "accounts" && window.ROLE === "staff"; // staff sell and count; the figures are the owner's and the managers'
+      t.textContent = tr(label); t.hidden = !on() || staffOff;
       if (pt) { let q = pt.querySelector(`button[data-page="${id}"]`);
         if (!q) { q = document.createElement("button"); q.type = "button"; q.dataset.page = id; q.className = "bz-ptab";
           i === 0 ? cellarP.before(q) : (pt.querySelector('.bz-ptab[data-page="accounts"]') || cellarP).after(q); }
-        q.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">${icon}</svg><span>${esc(tr(label))}</span>`; q.hidden = !on(); }
+        q.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">${icon}</svg><span>${esc(tr(label))}</span>`; q.hidden = !on() || staffOff; }
       const pid = "page" + id[0].toUpperCase() + id.slice(1);
       if (!$(pid)) { const d = document.createElement("div"); d.id = pid; d.hidden = true; d.className = "bz-page"; $("pageCellar").after(d); }
     });
@@ -74,6 +75,7 @@ window.BIZ = (() => {
   // the page app.js's router shows: drawn now, and the wine card printable while it's on screen
   let SHOWN = "";
   function page(name) {
+    if (name === "accounts" && window.ROLE === "staff") { location.hash = "inventory"; return; }
     SHOWN = on() ? name : "";
     document.body.classList.toggle("bz-printcard", SHOWN === "winecard");
     if (SHOWN === "inventory") inventory();
@@ -311,6 +313,7 @@ window.BIZ = (() => {
       ${reorderHTML()}
       ${sups.length ? `<h3>${esc(tr("Suppliers"))}</h3><ul class="bz-sup">${sups.map(([k, n]) => `<li><span>${esc(k)}</span><b>${esc(btl(fmt(n)))} <small>${money(supCost(k))}</small></b></li>`).join("")}</ul>` : ""}
       ${own}
+      ${window.ROLE ? "" : `<h3>${esc(tr("Staff logins"))}</h3><div id="bzStaff"><p class="note">${esc(tr("Loading…"))}</p></div>`}
       <p class="bz-foot"><button type="button" class="btn" data-bz="card">${esc(tr(W.card))}</button> <span class="note">${esc(tr("Prices include VAT (moms 25 %); the margin is worked out without it."))}</span></p>`;
     p.querySelector('[data-bz="card"]').onclick = openCard;
     const rc = $("bzReorderCopy"); if (rc) rc.onclick = async () => {
@@ -319,6 +322,7 @@ window.BIZ = (() => {
     p.querySelectorAll("[data-recv]").forEach(b => b.onclick = () => receiveOrder(b.dataset.recv, b));
     const sc = $("bzSalesCsv"); if (sc) sc.onclick = () => salesCsv($("bzMonth").value);
     syncCard();
+    if (!window.ROLE) staffDraw();
     const pe = $("bzPeriod"); if (pe) pe.onchange = () => { PERIOD = Number(pe.value) || 30; overview(WINES.filter(w => w.left > 0)); };
     const g = $("bzGlasses"); if (g) g.onchange = () => { setPerBottle(Number(g.value)); overview(WINES.filter(w => w.left > 0)); };
     const d = $("bzDom"); if (d) d.onchange = () => { setDomaine(d.value.trim()); overview(WINES.filter(w => w.left > 0)); };
@@ -400,7 +404,7 @@ window.BIZ = (() => {
         <td class="bz-wn"><button type="button" class="linkish" data-open="${w.row}"><b>${esc(w.producer)}</b> ${esc([w.name, w.vintage || "NV"].filter(Boolean).join(" "))}</button><small>${esc([w.region, w.country].filter(Boolean).join(", "))}</small></td>
         <td data-l="${esc(tr("In stock"))}">${num(w, "left", w.left)}${w.openGlasses > 0 ? `<small>${esc(tr(w.openGlasses === 1 ? "+ 1 glass open" : "+ {0} glasses open", w.openGlasses))}</small>` : ""}</td>
         <td data-l="${esc(tr("Minimum"))}">${num(w, "par", w.par || null)}</td>
-        <td data-l="${esc(tr("Cost price"))}">${SHOW_PRICES ? num(w, "cost", w.price || null) : "···"}</td>
+        <td data-l="${esc(tr("Cost price"))}">${SHOW_PRICES && window.ROLE !== "staff" ? num(w, "cost", w.price || null) : "···"}</td>
         <td data-l="${esc(tr(W.sell))}">${num(w, "menuPrice", w.menuPrice)}</td>
         ${W.glass ? `<td data-l="${esc(tr("By the glass"))}">${num(w, "glassPrice", w.glassPrice)}</td>` : ""}
         <td data-l="${esc(tr("Supplier"))}"><input class="bz-in bz-sp" data-f="source" data-row="${w.row}" list="bzSup" value="${esc(w.source)}" placeholder="—" aria-label="${esc(tr("Supplier"))}"></td>
@@ -517,6 +521,40 @@ window.BIZ = (() => {
         <span class="bz-tb">${w.left > 0 ? `<button type="button" class="btn primary" data-sell="bottle" data-row="${w.row}">${esc(tr("Bottle"))}${w.menuPrice > 0 ? " · " + esc(fmt(w.menuPrice)) : ""}</button>` : ""}
         ${W.glass && (w.left > 0 || w.openGlasses > 0) ? `<button type="button" class="btn" data-sell="glass" data-row="${w.row}">${esc(tr("Glass"))}${w.glassPrice > 0 ? " · " + esc(fmt(w.glassPrice)) : ""}</button>` : ""}</span></div>`).join("")
       || `<p class="note">${esc(tr("No wines match."))}</p>`;
+  }
+
+  // staff logins: each with its own password, opening this business's cellar; "staff" sells and counts, "manager" also
+  // sees the figures. Adding one asks for the owner's password: it unwraps the cellar's key in this browser, to wrap it
+  // to the new login's password (VAULT.addStaff); the server never sees the key.
+  let STAFF = null;
+  async function staffDraw(fresh) {
+    const box = $("bzStaff"); if (!box) return;
+    if (!STAFF || fresh) { try { STAFF = (await api({ action: "stafflist" })).staff || []; }
+      catch (e) { box.innerHTML = `<p class="note">${esc(/bad-action|staff-account/.test(String(e && e.message)) ? tr("Staff logins need the updated Apps Script (version 54): redeploy Code.gs.") : tr("Could not reach the cellar API ({0}).", errText(e)))}</p>`; return; } }
+    const RO = { staff: "Staff: sells, counts, takes goods in", manager: "Manager: also sees sales, prices and accounts" };
+    const box2 = $("bzStaff"); if (!box2) return;
+    box2.innerHTML = `<p class="note">${esc(tr("Your staff log in with their own name and password and work in this cellar. The site shows staff less, but they hold the cellar's key, so add only people you trust."))}</p>
+      ${STAFF.length ? `<ul class="bz-sup">${STAFF.map(m => `<li><span><b>${esc(m.user)}</b><small class="bz-have">${esc(m.lastSeen ? tr("last seen {0}", m.lastSeen) : tr("not logged in yet"))}</small></span>
+        <span class="bz-btns"><select data-srole="${esc(m.user)}" aria-label="${esc(tr("Role"))}">${Object.keys(RO).map(k => `<option value="${k}"${m.role === k ? " selected" : ""}>${esc(tr(RO[k]))}</option>`).join("")}</select>
+        <button type="button" class="btn quiet" data-sdel="${esc(m.user)}">${esc(tr("Remove"))}</button></span></li>`).join("")}</ul>` : ""}
+      <form class="bz-staffadd" id="bzStaffAdd"><label class="bz-f">${esc(tr("Username"))}<input id="bzSUser" autocomplete="off" required minlength="3" maxlength="24" pattern="[A-Za-z0-9_.\\-]{3,24}"></label>
+        <label class="bz-f">${esc(tr("Their password"))}<input id="bzSPass" type="password" autocomplete="new-password" required minlength="10"></label>
+        <label class="bz-f">${esc(tr("Role"))}<select id="bzSRole">${Object.keys(RO).map(k => `<option value="${k}">${esc(tr(RO[k]))}</option>`).join("")}</select></label>
+        <label class="bz-f">${esc(tr("Your password"))}<input id="bzSOwn" type="password" autocomplete="current-password" required></label>
+        <button type="submit" class="btn primary">${esc(tr("Add a staff login"))}</button><span class="note" id="bzSMsg"></span></form>`;
+    $("bzStaffAdd").onsubmit = async e => { e.preventDefault();
+      const member = $("bzSUser").value.trim(), memberPass = $("bzSPass").value, role = $("bzSRole").value, pass = $("bzSOwn").value, msg = $("bzSMsg");
+      if (memberPass.length < 10) { msg.textContent = tr("Their password: at least 10 characters."); return; }
+      const btn = e.target.querySelector("button[type=submit]"); btn.disabled = true; msg.textContent = tr("Adding…");
+      try { const r = await VAULT.addStaff({ post, user: cfg.user, pass, member, memberPass, role }); STAFF = r.staff || []; staffDraw(); toast(tr("{0} can log in now", member)); }
+      catch (err) { const m = String(err && err.message || err); msg.textContent = /bad-login/.test(m) ? tr("That isn't your password.") : /user-taken/.test(m) ? tr("That username is taken: choose another.")
+        : /staff-full/.test(m) ? tr("Ten staff logins is the most.") : /bad-username/.test(m) ? tr("Username: 3–24 letters, numbers, . _ or -.") : tr("Could not save: {0}", m); btn.disabled = false; }
+      finally { $("bzSOwn") && ($("bzSOwn").value = ""); } };
+    box2.querySelectorAll("[data-sdel]").forEach(b => b.onclick = async () => {
+      if (!(await ask(tr("Remove the login {0}? They can no longer open the cellar; the cellar itself isn't touched.", b.dataset.sdel), { ok: tr("Remove"), danger: true }))) return;
+      try { STAFF = (await api({ action: "staffdel", member: b.dataset.sdel })).staff || []; staffDraw(); } catch (err) { toast(tr("Could not save: {0}", errText(err))); } });
+    box2.querySelectorAll("[data-srole]").forEach(sel => sel.onchange = async () => {
+      try { STAFF = (await api({ action: "staffrole", member: sel.dataset.srole, role: sel.value })).staff || []; toast(tr("Saved")); } catch (err) { toast(tr("Could not save: {0}", errText(err))); } });
   }
 
   const domKey = () => "vinDomaine:" + String(cfg.user || "").toLowerCase();
@@ -702,6 +740,8 @@ window.BIZ = (() => {
 .bz-till .card{max-width:860px;width:100%} .bz-till input[type=search]{width:100%;box-sizing:border-box;font:inherit;font-size:18px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);margin:8px 0 12px}
 .bz-gin small{display:block;font-size:11.5px;color:var(--muted)} .bz-gin td,.bz-cnt td{vertical-align:middle} .bz-gin .bz-n,.bz-cnt .bz-n{width:80px}
 .bz-dif{font-variant-numeric:tabular-nums;font-weight:600} .bz-dif.neg{color:#B3261E} .bz-dif.pos{color:#2E7D32} .bz-csum{font-weight:600;margin:8px 0 0}
+.bz-staffadd{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:end;margin-top:8px} .bz-staffadd select{font:inherit;font-size:14px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
+.bz-sup select{font:inherit;font-size:13px;padding:4px 6px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink)}
 .bz-tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;max-height:60vh;overflow:auto}
 .bz-tile{display:grid;gap:3px;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--card,transparent)} .bz-tile span{font-size:13.5px} .bz-tile small{color:var(--muted);font-size:12px}
 .bz-tb{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px} .bz-tb .btn{padding:10px 12px;font-size:14px;flex:1}
@@ -741,6 +781,6 @@ window.BIZ = (() => {
 </style>`);
   setTimeout(apply, 0);
   // its words: only a business needs them, so they come now, not with every page (i18n.js redraws the page in them)
-  if (window.I18N) { I18N.onChange(apply); if (I18N.more) I18N.more("business-i18n", "?v=5"); }
+  if (window.I18N) { I18N.onChange(apply); if (I18N.more) I18N.more("business-i18n", "?v=6"); }
   return { refreshSales: () => loadSales(true), apply, detail, priceCell, overview, page, inventory, cardLabel, margin, openCard, salesRows, reorder, reorderText, cardData, publishCard, cardShare };
 })();

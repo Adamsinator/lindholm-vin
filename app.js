@@ -1034,7 +1034,7 @@ function loadKind(){
 function setKindLocal(k, keepStored){
   KIND = k; document.documentElement.dataset.kind = k; $("acctKind").value = k;
   if(!keepStored) try{ localStorage.setItem(kindKey(), k); }catch(e){}
-  if(k!=="private" && !window.BIZ){ const s = document.createElement("script"); s.src = "business.js?v=9";
+  if(k!=="private" && !window.BIZ){ const s = document.createElement("script"); s.src = "business.js?v=10";
     s.onload = ()=>{ if(WINES.length){ renderOverview(); renderTable(); } }; document.head.appendChild(s); }
   else if(window.BIZ) BIZ.apply();
 }
@@ -1799,6 +1799,7 @@ function forgetAuth(){
   cfg.user=""; cfg.token="";
   // Drop the previous user's cached data so the next login can't see it (the
   // journal/wishlist loaders short-circuit on these).
+  setRole("");
   WINES=[]; JENTRIES=null; WITEMS=null; KEEP_OPEN=null; FEED=null; FEED_USERS=[]; FEED_FOLLOWS=[]; FEED_VIEW="all"; FEED_OPEN.clear();
   // and the sommelier's chat: the next user starts a fresh conversation
   try{ Object.assign(SOMM, {prev:"", hist:[], offer:"", lastLead:"", turn:0}); $("sommLog").innerHTML=""; }catch(e){ /* not set up yet */ }
@@ -4425,11 +4426,19 @@ function setSocial(on){
   if(!on){ feedForgetAll(); FEED = null; FEED_USERS = []; if(location.hash==="#feed") location.hash = ""; }
 }
 // The owner gets an Admin button: who has an account (name, email, signed up, last seen) and the invite codes
+// a staff login of a business (API 54): "staff" sells, counts and looks things up; "manager" sees the figures too;
+// neither has the account itself (its kind, its recovery code, deleting it). The page holds to that; the server only
+// can for the account (it can't read the vault)
+let ROLE = "";
+function setRole(r){ ROLE = window.ROLE = r || ""; document.documentElement.dataset.role = ROLE;
+  ["acctDelete","acctRec"].forEach(id=>{ const e = $(id); if(e) e.hidden = !!ROLE; });
+  if(window.BIZ && isBiz()) BIZ.apply(); } // the tabs and pages a role sees
 async function checkOwner(){
   try{ const r = await api({action:"me"}); $("adminBtn").hidden = !(r && r.owner === true); $("acctTest").hidden = !(r && r.test === true);
+    setRole(r && r.role);
     // the feed only when the server has it on ("me" says so; an older API without the flag: ask the feed itself)
     if(r && r.social === true || (r && r.social === undefined)) loadFeedSilently(); else setSocial(false);
-    const may = !!(r && (r.owner === true || r.test === true)); $("acctKindWrap").hidden = !(BIZ_OPEN || may);
+    const may = !!(r && (r.owner === true || r.test === true || r.parent)); $("acctKindWrap").hidden = !(BIZ_OPEN || may) || !!ROLE;
     if(may !== MAY_BIZ){ MAY_BIZ = may; loadKind(); if(WINES.length){ renderOverview(); renderTable(); } } askForHelp(r && r.help); }catch(e){ $("adminBtn").hidden = true; loadFeedSilently(); } // no "me" (an older API): the feed says itself whether it is on
 }
 // account help: a member whose session came back without the password (a kept key) types it once, so the key can be
@@ -4643,6 +4652,20 @@ function route(){
 document.querySelector(".gbar .tabs").addEventListener("click", e=>{ const t = e.target.closest(".tab"); if(!t) return;
   location.hash = t.dataset.page===homePage() ? "" : t.dataset.page; });
 window.addEventListener("hashchange", route);
+
+/* ---------- another device's saves (API 54): a business checks now and then, and when the page comes back ---------- */
+// Only the vault's version numbers are asked for; the cellar is fetched only when they differ (VAULT.checkFresh), and
+// the page redraws as after opening (VAULT_HOOKS.onRefresh). Not while typing in a field, so nothing is swapped under it.
+const FRESH_MS = 3 * 60e3;
+let freshAt = 0;
+function freshCheck(){
+  if(!window.VAULT || !VAULT.active() || !isBiz() || document.visibilityState !== "visible") return;
+  const a = document.activeElement; if(a && /^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName) && a.closest(".bz-page, .modal.open, tr.detail")) return;
+  if(Date.now() - freshAt < 20e3) return; freshAt = Date.now();
+  VAULT.checkFresh().catch(()=>{});
+}
+setInterval(freshCheck, FRESH_MS);
+document.addEventListener("visibilitychange", freshCheck);
 
 /* ---------- inactivity auto-logout ---------- */
 // Sign out after 60 minutes with no interaction — and don't carry a session over
