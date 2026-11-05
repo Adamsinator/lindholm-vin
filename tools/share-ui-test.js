@@ -44,7 +44,8 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   check("a link comes back: share.html#<id>.<key>", /\/share\.html#[0-9a-f]{32}\.[A-Za-z0-9_-]{43}$/.test(link), link);
   const sheet = gas.rows("Shares"), blob = sheet[1] ? sheet[1].slice(5).join("") : "";
   check("the server keeps ciphertext only: no title, wine, price or key in the sheet", sheet.length === 2 && blob.length > 50
-    && !/Til fredag|Rousseau|4500/.test(JSON.stringify(sheet)) && !JSON.stringify(sheet).includes(link.split(".").pop()), JSON.stringify(sheet).slice(0, 200));
+    // the encrypted columns only: the row's timestamps are digits too, and an expiry like 1794500744515 contains "4500"
+    && !/Til fredag|Rousseau|4500/.test(blob) && !/Til fredag|Rousseau/.test(JSON.stringify(sheet)) && !JSON.stringify(sheet).includes(link.split(".").pop()), JSON.stringify(sheet).slice(0, 200));
   check("the dialog lists it under Your shared lists", (await p.textContent("#lsList")).includes("Til fredag") && !(await p.isHidden("#lsListH")));
 
   const s = await ctx.newPage(); watch(s);
