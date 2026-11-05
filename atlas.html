@@ -158,6 +158,20 @@ aside#side{background:var(--card);border:1px solid var(--line);border-radius:var
 #side .note{font-size:13px;color:var(--muted)} #side .cw{font-size:13.5px;padding:3px 0;border-top:1px solid var(--line)} #side .cw b{color:var(--gold)}
 #side ul.list{list-style:none;margin:0;padding:0} #side ul.list li{padding:5px 0;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:8px;font-size:14px}
 #side ul.list button{border:0;background:none;color:var(--accent);font:inherit;cursor:pointer;padding:0;text-align:left}
+/* the region's wines (atlas.js, regionWines): grapes with body, acidity and tannin as three-step bars; vintages as a
+   strip of cells, darker the better the year */
+#side .grp{list-style:none;margin:6px 0 8px;padding:0} #side .grp li{display:grid;grid-template-columns:12px 1fr;gap:2px 8px;align-items:center;padding:7px 0;border-top:1px solid var(--line);font-size:14px}
+#side .gdot{width:10px;height:10px;border-radius:50%;background:#7C2D3E} #side .gdot.w{background:#D8B45A}
+#side .sbs,#side .aro{grid-column:2} #side .sbs{display:flex;flex-wrap:wrap;gap:4px 14px}
+#side .sb{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:var(--muted)} #side .sb i{font-style:normal}
+#side .sb b{display:inline-flex;gap:2px} #side .sb u{display:inline-block;width:14px;height:6px;border-radius:2px;background:var(--line)} #side .sb u.on{background:var(--accent)}
+#side .aro{font-size:12.5px;color:var(--muted)}
+#side .vch{margin:6px 0 10px} #side .vcn{font-size:12.5px;margin-bottom:3px}
+#side .vrow{display:grid;grid-template-columns:repeat(16,minmax(0,1fr));gap:2px}
+#side .vc{display:flex;flex-direction:column;align-items:center;font-size:10.5px;line-height:1.2}
+#side .vc b{display:block;width:100%;text-align:center;padding:3px 0;border-radius:3px;font-weight:600;color:#fff;background:var(--accent)}
+#side .vc.s1 b{background:color-mix(in srgb,var(--accent) 18%,transparent);color:var(--ink)} #side .vc.s2 b{background:color-mix(in srgb,var(--accent) 36%,transparent);color:var(--ink)}
+#side .vc.s3 b{background:color-mix(in srgb,var(--accent) 58%,transparent)} #side .vc.s4 b{background:color-mix(in srgb,var(--accent) 80%,transparent)} #side .vc em{font-style:normal;color:var(--muted)}
 /* a finger needs at least 24 px (WCAG 2.5.8): the flags and the lists' names, on a touch screen */
 @media(pointer:coarse){.langpick button{width:36px;height:24px} #side ul.list button{min-height:28px} #side .plink{min-height:24px}}
 .btn{font:inherit;font-size:14px;font-weight:600;padding:8px 12px;border-radius:var(--r);border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
@@ -311,8 +325,8 @@ html[data-map="dark"] #map .shade{mix-blend-mode:screen;opacity:.16} html[data-m
   <nav class="pmenu"><a href="./"><span aria-hidden="true"><svg class="svgi" aria-hidden="true" focusable="false"><use href="icons.svg#bottle"/></svg></span><span data-i18n>Your cellar</span></a><a href="burgundy.html"><span aria-hidden="true"><svg class="svgi" aria-hidden="true" focusable="false"><use href="icons.svg#map"/></svg></span><span data-i18n>Côte d'Or atlas</span></a><a href="help.html#atlas"><span aria-hidden="true">?</span><span data-i18n>Help and tips</span></a><a href="privacy.html"><span aria-hidden="true"><svg class="svgi" aria-hidden="true" focusable="false"><use href="icons.svg#lock"/></svg></span><span data-i18n>Privacy</span></a><a href="legal.html"><span aria-hidden="true">§</span><span data-i18n>About & terms</span></a></nav>
   <div class="mlang" data-langpick></div>
 </div>
-<script src="i18n.js?v=82"></script>
-<script src="europe-lands.js?v=1"></script>
-<script src="atlas.js?v=30"></script>
+<script src="i18n.js?v=83"></script>
+<script src="europe-lands.js?v=2"></script>
+<script src="atlas.js?v=31"></script>
 </body>
 </html>

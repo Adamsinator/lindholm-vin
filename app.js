@@ -2644,11 +2644,30 @@ const REGION_GEO = {  // [lat, lng]
   // Austria
   "Wachau":[48.37,15.42], "Kamptal":[48.65,15.67], "Kremstal":[48.42,15.60],
   "Burgenland":[47.75,16.70], "Steiermark":[46.90,15.50], "Weinviertel":[48.60,16.40], "Thermenregion":[48.00,16.25],
+  "Württemberg":[48.90,9.30], "Wien":[48.25,16.37], "Trentino":[46.10,11.10], "Marche":[43.40,13.20], "Abruzzo":[42.20,13.90],
+  "Campania":[41.00,14.80], "Puglia":[40.80,16.80], "Sicilia":[37.50,14.10], "Sardegna":[40.10,9.00], "Umbria":[42.90,12.50],
+  "Jerez":[36.70,-6.10], "Galicia":[42.60,-7.90], "Castilla y León":[41.60,-4.70], "Catalunya":[41.60,1.50], "Navarra":[42.70,-1.70],
+  // Switzerland, Hungary, Croatia, Slovenia, Greece, England and their neighbours (Madeira isn't placed: too far out)
+  "Valais":[46.25,7.50], "Vaud":[46.55,6.65], "Ticino":[46.20,8.95], "Genève":[46.20,6.10], "Neuchâtel":[47.00,6.90],
+  "Tokaj":[48.12,21.40], "Eger":[47.90,20.37], "Villány":[45.87,18.45], "Somló":[47.15,17.37], "Balaton":[46.80,17.70], "Szekszárd":[46.35,18.70],
+  "Istria":[45.20,13.90], "Istra":[45.20,13.90], "Dalmatia":[43.50,16.40], "Dalmacija":[43.50,16.40], "Pelješac":[42.95,17.30], "Slavonia":[45.40,18.00], "Slavonija":[45.40,18.00], "Plešivica":[45.73,15.60],
+  "Goriška Brda":[46.00,13.53], "Brda":[46.00,13.53], "Vipava":[45.85,13.95], "Kras":[45.75,13.75], "Štajerska":[46.50,15.90], "Podravje":[46.50,15.90],
+  "Santorini":[36.40,25.43], "Naoussa":[40.63,22.07], "Nemea":[37.82,22.66], "Kreta":[35.24,24.80], "Crete":[35.24,24.80], "Amyntaio":[40.69,21.68],
+  "Sussex":[50.92,-0.30], "Kent":[51.20,0.80], "Hampshire":[51.05,-1.30], "Cornwall":[50.40,-4.90], "Essex":[51.80,0.60],
+  "Morava":[48.90,16.70], "Moravia":[48.90,16.70], "Mähren":[48.90,16.70], "Moselle Luxembourgeoise":[49.60,6.35],
+  "Dealu Mare":[45.00,26.30], "Cotnari":[47.35,26.93], "Thracian Valley":[42.15,24.75], "Codru":[47.00,28.60],
   // Denmark (loosely placed — Danish wine regions aren't formalized)
   "Jylland":[56.20,9.50], "Fyn":[55.30,10.40], "Sjælland":[55.50,11.80], "Bornholm":[55.15,15.00],
 };
 // Country outlines from Natural Earth (50m), simplified — [lng,lat].
-const LANDS = window.EUROPE_LANDS || {}; // europe-lands.js
+// europe-lands.js, fetched once the cellar is showing (it isn't needed to open it); the map is drawn again when it's here
+let LANDS = window.EUROPE_LANDS || {};
+let LANDS_LOAD = null;
+function needLands(){
+  if(Object.keys(LANDS).length || LANDS_LOAD) return;
+  LANDS_LOAD = new Promise((ok, no)=>{ const sc = document.createElement("script"); sc.src = "europe-lands.js?v=2"; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); })
+    .then(()=>{ LANDS = window.EUROPE_LANDS || {}; if(LAST_CELLAR) renderMap(); }).catch(()=>{ LANDS_LOAD = null; });
+}
 // Faint English labels for the backdrop (non-wine) countries. [name, [lat,lng]].
 const NEIGHBOR_LABELS = [
   ["United Kingdom",[53.4,-1.8]], ["Ireland",[53.3,-8.3]], ["Netherlands",[52.4,5.6]],
@@ -2665,8 +2684,28 @@ const COUNTRIES = [
   {key:"Portugal", geo:[39.80,-8.10], match:["portugal"]},
   {key:"Austria",  geo:[47.60,14.60], match:["ostrig","oestrig","austria","osterreich","oesterreich"]},
   {key:"Denmark",  geo:[56.00,9.40],  match:["danmark","denmark"]},
+  {key:"Switzerland", geo:[46.75,8.10], match:["schweiz","switzerland","suisse","svizzera"]},
+  {key:"Hungary",  geo:[47.10,19.40], match:["ungarn","hungary","magyarorszag","hongrie"]},
+  {key:"Croatia",  geo:[45.30,15.80], match:["kroatien","croatia","hrvatska","croatie"]},
+  {key:"Slovenia", geo:[46.10,14.80], match:["slovenien","slovenia","slovenija","slovenie","slowenien"]},
+  {key:"Greece",   geo:[39.40,21.90], match:["graekenland","greece","hellas","ellada","grece","griechenland"]},
+  {key:"United Kingdom", geo:[52.40,-1.50], match:["england","storbritannien","united kingdom","great britain","wales","scotland","angleterre","grossbritannien"]},
+  {key:"Czechia",  geo:[49.80,15.40], match:["tjekkiet","czech","cesko","tchequie","tschechien"]},
+  {key:"Slovakia", geo:[48.70,19.50], match:["slovakiet","slovakia","slovensko","slovaquie","slowakei"]},
+  {key:"Luxembourg", geo:[49.75,6.10], match:["luxembourg","luxemburg"]},
+  {key:"Romania",  geo:[45.90,24.90], match:["rumaenien","romania","roumanie","rumanien"]},
+  {key:"Bulgaria", geo:[42.70,25.30], match:["bulgarien","bulgaria","bulgarie"]},
+  {key:"Serbia",   geo:[44.00,20.80], match:["serbien","serbia","srbija","serbie"]},
+  {key:"North Macedonia", geo:[41.60,21.70], match:["nordmakedonien","north macedonia","macedonia","makedonien","macedoine"]},
+  {key:"Moldova",  geo:[47.20,28.50], match:["moldova","moldavien","moldavie","moldau"]},
+  {key:"Montenegro", geo:[42.80,19.30], match:["montenegro"]},
+  {key:"Bosnia",   geo:[44.20,17.80], match:["bosnien","bosnia","bosnie"]},
+  {key:"Albania",  geo:[41.10,20.10], match:["albanien","albania","albanie"]},
 ];
-const COUNTRY_EN = {France:"France",Italy:"Italy",Germany:"Germany",Spain:"Spain",Portugal:"Portugal",Austria:"Austria",Denmark:"Denmark"};
+const COUNTRY_EN = {France:"France",Italy:"Italy",Germany:"Germany",Spain:"Spain",Portugal:"Portugal",Austria:"Austria",Denmark:"Denmark",
+  Switzerland:"Switzerland",Hungary:"Hungary",Croatia:"Croatia",Slovenia:"Slovenia",Greece:"Greece","United Kingdom":"United Kingdom",Czechia:"Czechia",
+  Slovakia:"Slovakia",Luxembourg:"Luxembourg",Romania:"Romania",Bulgaria:"Bulgaria",Serbia:"Serbia","North Macedonia":"North Macedonia",Moldova:"Moldova",
+  Montenegro:"Montenegro",Bosnia:"Bosnia and Herzegovina",Albania:"Albania"};
 function countryOf(w){ const c=normName(w.country); return COUNTRIES.find(k=>k.match.some(m=>c.includes(m))) || null; }
 // Which country a drill-down region lives in (for the map's back button).
 const REGION_COUNTRY = {Bourgogne:"France",Champagne:"France",Mosel:"Germany",Piemonte:"Italy"};
@@ -2805,6 +2844,7 @@ function updateMap(cellar){ LAST_CELLAR = cellar; renderMap(); }
 
 function renderMap(){
   const svg=$("map"); if(!svg) return;
+  if(!Object.keys(LANDS).length){ needLands(); return; } // drawn when the outlines are here
   hideTip(); // re-rendering replaces the dots; any hover tip would otherwise be orphaned
   $("mapbar").hidden = MAP_VIEW==="europe";
   $("mapAtlas").hidden = MAP_VIEW!=="Bourgogne";
@@ -2838,10 +2878,14 @@ const countryLabel = k => tr(COUNTRY_EN[k] || k);            // any country, in 
 function renderEuropeMap(svg){
   const {W,H,proj,r}=buildProjector(600,24,null,null,61); // crop above ~61°N (empty far north)
   const agg={};
-  LAST_CELLAR.forEach(w=>{ const k=countryOf(w); if(!k) return; const a=agg[k.key] ??= {b:0,n:0}; a.b+=w.left; a.n++; });
+  // wines from beyond the map (the USA, Australia…), and those with no country, by the country as written
+  const far={};
+  LAST_CELLAR.forEach(w=>{ const k=countryOf(w);
+    if(!k){ const c=String(w.country||"").trim(), f=far[c] ??= {b:0,n:0}; f.b+=w.left; f.n++; return; }
+    const a=agg[k.key] ??= {b:0,n:0}; a.b+=w.left; a.n++; });
   let html = Object.entries(LANDS).map(([k,poly])=>`<path class="land clickable" data-country="${esc(baseCountry(k))}" d="${landPath(poly,proj)}"/>`).join("");
   // faint English names for the backdrop countries
-  html += NEIGHBOR_LABELS.map(([name,g])=>{
+  html += NEIGHBOR_LABELS.filter(([name])=>!agg[name]).map(([name,g])=>{
     const [x,y]=proj([g[1],g[0]]);
     return `<text class="cname" text-anchor="middle" x="${x.toFixed(1)}" y="${y.toFixed(1)}">${esc(tr(name))}</text>`;
   }).join("");
@@ -2856,15 +2900,31 @@ function renderEuropeMap(svg){
     return `<text class="dlabel" text-anchor="${anc}" x="${lx}" y="${(y-1).toFixed(1)}">${esc(countryLabel(c.key))}</text>
       <text class="dsub" text-anchor="${anc}" x="${lx}" y="${(y+10).toFixed(1)}">${btl(a.b)}</text>`;
   }).join("");
-  svg.setAttribute("viewBox",`0 0 ${W} ${Math.round(H)}`);
+  // beyond the map: a row (or two) along the bottom, each country a dot that filters the list
+  const farList = Object.entries(far).sort((a,b)=>(!a[0])-(!b[0]) || b[1].b-a[1].b);
+  let HB = 0;
+  if(farList.length){
+    const label = c => c ? (window.WINE_KB && WINE_KB.countries ? ((WINE_KB.countries.find(k=>k.n===c)||{}).names||{})[I18N.lang] || c : c) : tr("No country");
+    let bx = 34, by = H + 26; HB = 40;
+    html += `<text class="dsub" x="30" y="${(H+8).toFixed(1)}">${esc(tr("Beyond the map:"))}</text>`;
+    farList.forEach(([c,f])=>{ const rad=r(f.b), txt=`${label(c)} · ${f.b}`, wdt=rad*2+10+txt.length*6.6+18;
+      if(bx+wdt>W-10){ bx=34; by+=26; HB+=26; }
+      html += `<g class="far" data-far="${esc(c)}"><circle class="dot" cx="${(bx+rad).toFixed(1)}" cy="${by.toFixed(1)}" r="${rad.toFixed(1)}"/>
+        <text class="dlabel" x="${(bx+rad*2+6).toFixed(1)}" y="${(by+4).toFixed(1)}">${esc(txt)}</text></g>`;
+      bx += wdt; });
+  }
+  svg.setAttribute("viewBox",`0 0 ${W} ${Math.round(H+HB)}`);
   svg.innerHTML = html;
+  svg.querySelectorAll(".far").forEach(g=>{ const c=g.dataset.far, f=far[c];
+    bindDot(g, `<b>${esc(c || tr("No country"))}</b><br>${esc(nBottles(f.b))} · ${esc(nWines(f.n))}<br><i>${esc(tr(c ? "click to filter the list" : "wines with no country set"))}</i>`,
+      ()=>{ if(!c) return; state.country = state.country===c ? "" : c; state.region=""; $("fCountry").value=state.country; $("fRegion").value=""; renderTable(); }); });
   const openCountry = key => { MAP_VIEW="country:"+key; state.q=""; $("q").value=""; renderMap(); };
   svg.querySelectorAll(".land.clickable").forEach(p=>{
     const key=p.dataset.country, a=agg[key];
     bindDot(p, `<b>${esc(countryLabel(key))}</b>${a?`<br>${esc(nBottles(a.b))} · ${esc(nWines(a.n))}`:""}<br><i>${esc(tr("click to explore"))}</i>`,
       ()=>openCountry(key));
   });
-  svg.querySelectorAll(".dot").forEach(c=>{
+  svg.querySelectorAll(".dot[data-country]").forEach(c=>{
     const key=c.dataset.country, a=agg[key];
     bindDot(c, `<b>${esc(countryLabel(key))}</b><br>${esc(nBottles(a.b))} · ${esc(nWines(a.n))}<br><i>${esc(tr("click to explore"))}</i>`,
       ()=>openCountry(key));

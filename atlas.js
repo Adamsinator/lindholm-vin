@@ -565,6 +565,7 @@ function renderSide() {
       ${(P.meta.absent || []).length ? `<p class="note">${esc(t("Not drawn: {0}. INAO's parcel map doesn't have it yet.", P.meta.absent.join(", ")))}</p>` : ""}
       ${terrNote()}
       ${cellarSummary()}
+      <div id="rWines" class="rwines"></div>
       ${gc.length ? groups(gc, "Grand cru") : ""}${pc.length ? groups(pc, "Premier cru") : ""}
       ${aoc.length ? `<h3>${esc(t("Cru appellation"))}</h3><ul class="list">${aoc.map(x => row(x)).join("")}</ul>` : ""}
       ${Object.entries(el.reduce((o, x) => ((o[x.area] ??= []).push(x), o), {})).map(([k, l]) => `<h3>${esc(t("Bereich {0}", k))}</h3><ul class="list">${l.sort((a, b) => shown(a).localeCompare(shown(b), "de")).map(x => row(x)).join("")}</ul>`).join("")}
@@ -612,6 +613,55 @@ function renderSide() {
     const ce = $("cmpEnd"); if (ce) ce.onclick = () => { st.cmpWith = null; renderSide(); };
   }
   side.querySelectorAll("button[data-c]").forEach(b => b.onclick = () => select(b.dataset.c, true));
+  if (!c) regionWines();
+}
+
+/* ---------- the region's wines: its grapes' style and aromas, how long they keep, its vintages ---------- */
+// From the sommelier's own data (sommelier-data.js: grape profiles, ageing, vintage charts; wine-kb.js: what grows in
+// each appellation), fetched when a region opens, not with the page. The grapes are those of the appellations on the
+// region's map; the charts only where there is one for the region itself, never a neighbour's.
+const KB_REGION = { chablis: "Bourgogne", chalonnaise: "Bourgogne", maconnais: "Bourgogne", champagne: "Champagne", alsace: "Alsace",
+  bordeaux: "Bordeaux", mosel: "Mosel", nahe: "Nahe", pfalz: "Pfalz", rheinhessen: "Rheinhessen", mittelrhein: "Mosel", ahr: "Ahr",
+  rhone: "Rhône", rhonesud: "Rhône", beaujolais: "Beaujolais", centreloire: "Loire", touraine: "Loire", anjou: "Loire", jura: "Jura", provence: "Provence" };
+const CHARTS_OF = { bordeaux: ["bdx_left", "bdx_right", "sauternes"], champagne: ["champagne"], rhone: ["rhone_n"], rhonesud: ["rhone_s"],
+  mosel: ["riesling_de"], nahe: ["riesling_de"], pfalz: ["riesling_de"], rheinhessen: ["riesling_de"], mittelrhein: ["riesling_de"] };
+const AGE_OF = { chablis: "Chablis", champagne: "Champagne", alsace: "Alsace", bordeaux: "Bordeaux", mosel: "Mosel", beaujolais: "Beaujolais",
+  rhone: "Côte-Rôtie", rhonesud: "Châteauneuf-du-Pape", centreloire: "Sancerre", touraine: "Vouvray", anjou: "Savennières", jura: "Arbois", provence: "Bandol" };
+let WINES_LOAD = null;
+const winesData = () => window.SOMM_DATA && window.WINE_KB ? Promise.resolve()
+  : (WINES_LOAD = WINES_LOAD || Promise.all([window.WINE_KB ? 0 : loadScript("wine-kb.js?v=2"), window.SOMM_DATA ? 0 : loadScript("sommelier-data.js?v=6")]).catch(e => { WINES_LOAD = null; throw e; }));
+function regionGrapes(P, R) {
+  const KB = window.WINE_KB, D = window.SOMM_DATA, n = {};
+  const add = a => a && a.wines.forEach(w => w.grapes.forEach(g => { n[g] = (n[g] || 0) + 1; }));
+  [...new Set(P.climats.map(c => c.ap).filter(Boolean))].forEach(ap => add(KB.findApp(ap)));
+  if (!Object.keys(n).length) KB.apps.filter(a => a.region === KB_REGION[R.id]).forEach(add);
+  if (R.country === "de" && !n.Riesling) n.Riesling = 99; // the Einzellagen carry no appellation: the Rhine and Mosel are Riesling's
+  return Object.entries(n).sort((a, b) => b[1] - a[1]).map(([g]) => D.profiles.find(p => p.n === g)).filter(Boolean).slice(0, 4);
+}
+async function regionWines() {
+  const box = $("rWines"), R = st.region, P = st.pack; if (!box || !R) return;
+  try { await winesData(); } catch (e) { return; }
+  if (st.region !== R || !box.isConnected) return;
+  const D = window.SOMM_DATA, lang = window.I18N ? I18N.lang : "en", grapes = regionGrapes(P, R);
+  const bar = (label, v, max) => `<span class="sb"><i>${esc(label)}</i><b>${Array.from({ length: max }, (_, k) => `<u class="${k < v ? "on" : ""}"></u>`).join("")}</b></span>`;
+  const red = g => g.t > 0;
+  // how long they keep: the appellations on the map that the sommelier has a figure for, longest-lived first (Bordeaux's
+  // own AOC keeps 1–6 years, its Pauillac 10–30); else the region's signature wine
+  const ages = [...new Set(P.climats.map(c => c.ap).filter(Boolean))].map(ap => [ap, D.ageing.find(a => a.keys.includes(ap))]).filter(x => x[1])
+    .sort((a, b) => b[1].hi - a[1].hi).slice(0, 4);
+  const age = !ages.length && D.ageing.find(a => a.keys.includes(AGE_OF[R.id]));
+  const charts = (CHARTS_OF[R.id] || []).map(id => D.charts.find(c => c.id === id)).filter(Boolean);
+  const STARS = ["", "poor", "mixed", "good", "very good", "outstanding"];
+  box.innerHTML = (grapes.length ? `<h3>${esc(t("The wines"))}</h3>
+      <ul class="grp">${grapes.map(g => `<li><span class="gdot ${red(g) ? "r" : "w"}" aria-hidden="true"></span><b>${esc(g.n)}</b>
+        <span class="sbs">${bar(t("Body"), g.b, 3)}${bar(t("Acidity"), g.a, 3)}${red(g) ? bar(t("Tannin"), g.t, 3) : ""}</span>
+        <span class="aro">${esc(g.ar.slice(0, 4).map(k => (D.AROMA[k] || {})[lang] || k).join(" · "))}</span></li>`).join("")}</ul>` : "")
+    + (ages.length ? `<p class="note">${esc(t("Keeps, typically, in years after the vintage: {0}.", ages.map(([ap, a]) => `${ap} ${a.lo}–${a.hi}`).join(" · ")))}</p>`
+      : age ? `<p class="note">${esc(t("Keeps: typically {0}–{1} years after the vintage ({2}).", age.lo, age.hi, AGE_OF[R.id]))}</p>` : "")
+    + (charts.length ? `<h3>${esc(t("Vintages"))}</h3>` + charts.map(c => { const ys = Object.keys(c.years).map(Number).sort((a, b) => a - b).slice(-16);
+        return `<div class="vch"><div class="vcn">${esc(c.names[lang] || c.names.en)}</div><div class="vrow">${ys.map(y => { const v = c.years[y];
+          return `<span class="vc s${v}" title="${esc(y + ": " + "★".repeat(v) + "☆".repeat(5 - v) + " · " + t(STARS[v]))}"><b>${v}</b><em>${String(y).slice(2)}</em></span>`; }).join("")}</div></div>`; }).join("")
+      + `<p class="note">${esc(t("1–5: AllWine's rough consensus of the published vintage charts; a guide to the year, not to a bottle."))}</p>` : "");
 }
 // measured terrain (atlas-<id>-dem.js, tools/region-dem.js): [alt p5, alt p95, mean alt, slope %, aspect °, consistency %, samples, grid step m]
 const demOf = id => window.ATLAS_DEM && ATLAS_DEM[id];

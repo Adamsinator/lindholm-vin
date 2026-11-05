@@ -78,6 +78,9 @@ const gas = H({ Ark1: [HEAD,
   await p.goBack(); await p.waitForTimeout(600);
   check("…and Back returns to Europe", await p.evaluate(() => document.body.classList.contains("home") && document.querySelectorAll("#map .hd").length > 0));
   await p.goto(BASE + "atlas.html#r=chablis"); await p.reload(); await p.waitForTimeout(1200);
+  await p.waitForSelector("#rWines .grp li", { timeout: 10000 }).catch(() => {});
+  check("Chablis's wines: Chardonnay, a white (no tannin bar); no vintage chart borrowed from another region", (await p.textContent("#rWines .grp li b").catch(() => "")) === "Chardonnay"
+    && (await p.$$("#rWines .grp li:first-child .sb")).length === 2 && !(await p.$("#rWines .vch")));
   const n = await p.evaluate(() => ({ gc: document.querySelectorAll("#map .cl.GC").length, pc: document.querySelectorAll("#map .cl.p1").length, list: [...document.querySelectorAll("#side ul.list")].map(u => u.children.length) }));
   check("Chablis draws: seven grands crus and its premiers crus", n.gc === 7 && n.pc >= 10 && n.list[0] === 7, JSON.stringify(n));
   check("…with its area totals", /107[.,]9 ha/.test(await p.textContent("#side")), (await p.textContent("#side")).slice(0, 200));
@@ -273,6 +276,13 @@ const gas = H({ Ark1: [HEAD,
     && bx.firsts === "Château Lafite Rothschild,Château Latour,Château Margaux,Château Haut-Brion,Château Mouton Rothschild", JSON.stringify(bx).slice(0, 300));
   check("…the Latour on Latour, the Lamothe Guignard not on Lamothe, the Pomerol on Pomerol", /Latour[^\n]*in your cellar: 1/.test(bx.side) && /Lamothe Guignard °[^\n]*in your cellar: 2/.test(bx.side) && !/Lamothe[^ ][^\n]*in your cellar/.test(bx.side.replace(/Lamothe Guignard[^\n]*/g, ""))
     && /Pomerol[^\n]*in your cellar: 1/.test(bx.side), bx.side.match(/[^\n]*in your cellar[^\n]*/g));
+  // the region's wines: its grapes' style and aromas, how long they keep, and the vintages, from the sommelier's own data
+  await p.waitForSelector("#rWines .grp li", { timeout: 10000 }).catch(() => {});
+  const rw = await p.evaluate(() => ({ g: [...document.querySelectorAll("#rWines .grp li b")].map(b => b.textContent), bars: document.querySelectorAll("#rWines .grp li:first-child .sb").length,
+    charts: [...document.querySelectorAll("#rWines .vcn")].map(x => x.textContent), cells: document.querySelectorAll("#rWines .vch:first-of-type .vc").length, txt: document.getElementById("rWines").textContent }));
+  check("…the region's wines: Bordeaux's grapes, a red with body, acidity and tannin, its aromas; how long it keeps",
+    rw.g.includes("Cabernet Sauvignon") && rw.g.includes("Merlot") && rw.bars === 3 && /blackcurrant|cedar/.test(rw.txt) && /Keeps, typically, in years after the vintage: .*Pauillac \d+–\d+/.test(rw.txt), JSON.stringify(rw).slice(0, 300));
+  check("…and its three vintage charts, the last 16 years each", rw.charts.length === 3 && /Left Bank/.test(rw.charts[0]) && /Sauternes/.test(rw.charts[2]) && rw.cells === 16, JSON.stringify(rw.charts));
   await p.click('#side button[data-c="saint_emilion_grand_cru"]'); await p.waitForTimeout(600);
   check("…and a big appellation's slope comes with a word on what it means", /lie of the land/.test(await p.textContent("#side")));
   await p.goto(BASE + "atlas.html#r=bordeaux&c=chateau_latour"); await p.waitForTimeout(2000);
@@ -287,6 +297,9 @@ const gas = H({ Ark1: [HEAD,
     side: [...document.querySelectorAll("#side h3, #side li")].map(e => e.textContent).join("\n"), src: st.pack.meta.source }));
   check("the Mosel: its 450-odd Einzellagen by Bereich, with their own filter, credited to the Landwirtschaftskammer", mo.n > 440 && mo.n < 462 && mo.el && mo.gc && /Bereich Bernkastel/.test(mo.side)
     && /©Landwirtschaftskammer RLP \(\d{4}\), dl-de\/by-2-0/.test(mo.src), JSON.stringify({ n: mo.n, el: mo.el, src: mo.src }));
+  await p.waitForSelector("#rWines .grp li", { timeout: 10000 }).catch(() => {});
+  check("…its wines: Riesling first (the Einzellagen carry no appellation), and German Riesling's vintages",
+    (await p.textContent("#rWines .grp li b").catch(() => "")) === "Riesling" && /German Riesling/.test(await p.textContent("#rWines").catch(() => "")));
   // Germany's ground: basemap.de's relief (in its own level numbering: standard zoom − 5) and the Basis-DLM's villages
   await p.waitForTimeout(1200);
   const mg = await p.evaluate(() => ({ tiles: [...document.querySelectorAll("#map .shade image")].map(i => i.getAttribute("href")),
