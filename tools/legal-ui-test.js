@@ -14,8 +14,10 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
     await c.route(require("./api-route"), r => r.fulfill({ contentType: "application/json", body: JSON.stringify({ ok: false, error: "offline" }) })); // no real API in a test
     if (opt.lang) await c.addInitScript(l => localStorage.setItem("lang", l), opt.lang);
     if (opt.info) await c.route(/site-info\.js/, r => r.fulfill({ contentType: "application/javascript", body: "window.SITE_INFO = " + JSON.stringify(opt.info) + ";" }));
-    const p = await c.newPage(); p.on("pageerror", e => errs.push(e.message)); p.on("console", m => m.type() === "error" && !/^Failed to load resource: the server responded with a status/.test(m.text()) && errs.push(m.text()));
-    p.on("response", r => r.status() >= 400 && errs.push(`HTTP ${r.status()} ${r.url()}`)); return p; }; // a failed load names its URL
+    const p = await c.newPage(); p.on("pageerror", e => errs.push(e.message)); p.on("console", m => m.type() === "error" && !/^Failed to load resource: the server responded with a status/.test(m.text()) && errs.push(m.text())); // (counted above, by URL)
+    // a failed load of the site's own files names its URL; a third party's map tile that isn't there (IGN's relief has
+    // gaps; the map simply shows none) is not the site's error
+    p.on("response", r => r.status() >= 400 && r.url().startsWith(BASE) && errs.push(`HTTP ${r.status()} ${r.url()}`)); return p; };
 
   // English reader, the site as it is (a CVR number, no name or address on the page)
   let p = await page({ lang: "en" }); await p.goto(BASE + "legal.html"); await p.waitForTimeout(500);
