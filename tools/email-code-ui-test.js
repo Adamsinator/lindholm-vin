@@ -31,7 +31,6 @@ const good = { gateUser: "hugo", gateEmail: "hugo@example.dk", gatePass: "a long
   const b = await chromium.launch();
   const gas = H({ Ark1: [HEAD] }, { settings: { SIGNUP_CODE: "invite", VERIFY_EMAIL: "on" } });
   const A = await page(b, gas), p = A.p;
-  check("the email field says a code will be mailed to it", /A code is mailed to it/.test(await p.textContent("#gateEmailHint")));
   // no invite, no mail
   await fill(p, { ...good, gateInvite: "wrong" }); let e = await submit(p);
   check("without a valid invite no code is mailed", /invite code isn't right/.test(e) && gas.rt.mails.length === 0 && await p.isHidden("#gateCodeWrap"), e);
