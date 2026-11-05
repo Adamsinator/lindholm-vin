@@ -1006,14 +1006,14 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
   <form class="card" id="acctForm">
     <h2 id="acctTitle" data-i18n>Account</h2>
     <p data-i18n>Your cellar, journal, wishlist and journal photos are encrypted in this browser before they're saved.</p>
-    <label for="acctKind" data-i18n>What kind of account</label>
+    <div id="acctKindWrap" hidden><label for="acctKind" data-i18n>What kind of account</label>
     <select id="acctKind">
       <option value="private" data-i18n>A private cellar</option>
       <option value="restaurant" data-i18n>A restaurant or wine bar</option>
       <option value="merchant" data-i18n>A wine merchant or shop</option>
       <option value="winemaker" data-i18n>A winemaker or domaine</option>
     </select>
-    <p class="hint" data-i18n>It changes the words, fields and overviews; your wines stay as they are. Saved at once.</p>
+    <p class="hint" data-i18n>It changes the words, fields and overviews; your wines stay as they are. Saved at once.</p></div>
     <div id="acctTest" hidden><h3 class="adh" data-i18n>Test data</h3>
       <p class="hint" data-i18n>A test account (made from Admin): fill it with made-up wines to try things out.</p>
       <p class="adnew"><button type="button" class="btn" data-testwines="10" data-i18n>Add 10 test wines</button> <button type="button" class="btn" data-testwines="100" data-i18n>Add 100</button> <button type="button" class="btn" data-testwines="1000" data-i18n>Add 1,000</button></p>
@@ -1815,6 +1815,6 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 <script src="export.js?v=3"></script>
 <script src="europe-lands.js?v=1"></script>
 <script src="share-crypto.js?v=2"></script>
-<script src="app.js?v=79"></script>
+<script src="app.js?v=80"></script>
 </body>
 </html>

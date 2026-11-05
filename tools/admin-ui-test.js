@@ -40,6 +40,12 @@ const HEAD = ["Producent", "Land", "Område", "Kommune", "Mark/Navn", "Klassifik
   await p.reload(); await p.waitForSelector("#app:not([hidden])", { timeout: 20000 }); await p.waitForTimeout(800);
   check("the owner has one", await p.isVisible("#adminBtn"));
   check("…and pia still doesn't", await B.p.isHidden("#adminBtn"));
+  // business accounts aren't open yet: a member can't choose one, at sign-up or in Account; the owner can
+  await B.p.click("#acctBtn"); await B.p.waitForSelector("#acctModal.open");
+  check("a member's Account has no 'what kind of account' (a private cellar only, for now)", await B.p.isHidden("#acctKindWrap") && await B.p.evaluate(() => KIND === "private"));
+  await B.p.keyboard.press("Escape");
+  await p.click("#acctBtn"); await p.waitForSelector("#acctModal.open");
+  check("…the owner's has", await p.isVisible("#acctKindWrap")); await p.keyboard.press("Escape");
 
   await p.click("#adminBtn"); await p.waitForFunction(() => document.querySelectorAll("#adminUsers li").length >= 2, null, { timeout: 10000 });
   const rows = await p.$$eval("#adminUsers li", rs => rs.map(r => r.textContent.replace(/\s+/g, " ").trim()));
@@ -106,7 +112,7 @@ const HEAD = ["Producent", "Land", "Område", "Kommune", "Mark/Navn", "Klassifik
   await q.goto(BASE); await q.waitForTimeout(400); await q.fill("#gateUser", tu); await q.fill("#gatePass", tp); await q.click("#gateSubmit");
   await q.waitForSelector("#app:not([hidden])", { timeout: 20000 }); await q.waitForTimeout(800);
   await q.click("#acctBtn"); await q.waitForSelector("#acctModal.open");
-  check("the test user logs in, and its Account offers test data", await q.isVisible("#acctTest"));
+  check("the test user logs in, and its Account offers test data and the kinds of account", await q.isVisible("#acctTest") && await q.isVisible("#acctKindWrap"));
   await q.click('#acctTest button[data-testwines="10"]'); await q.waitForFunction(() => /10 test wines added/.test(document.getElementById("acctTestMsg").textContent), null, { timeout: 20000 });
   const tw = await q.evaluate(() => ({ n: WINES.length, regions: [...new Set(WINES.map(w => w.region))], left: WINES.map(w => w.left) }));
   check("…Add 10 test wines: ten varied wines in its cellar", tw.n === 10 && tw.regions.length >= 4 && tw.left.every(x => x > 0), JSON.stringify(tw));

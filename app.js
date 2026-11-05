@@ -973,6 +973,11 @@ const savePrefs = o => VAULT.setPrefs(Object.assign({}, VAULT.prefs() || {}, o))
    stay the same whatever the kind; only what's shown changes. */
 const KINDS = ["private","restaurant","merchant","winemaker"];
 let KIND = "private";
+// business accounts aren't open to members yet: only the owner and test users choose a kind; everyone else is a
+// private cellar (what they have stored is left alone, for when BIZ_OPEN is turned on)
+const BIZ_OPEN = false;
+let MAY_BIZ = false;
+const bizAllowed = () => BIZ_OPEN || MAY_BIZ;
 const kindKey = () => "vinKind:" + String(cfg.user||"").toLowerCase();
 const isBiz = () => KIND!=="private" && !!window.BIZ;
 function loadKind(){
@@ -980,18 +985,19 @@ function loadKind(){
   try{ const x = window.VAULT && VAULT.active() && VAULT.prefs(); if(x && KINDS.includes(x.kind)) k = x.kind; }catch(e){}
   if(!k){ k = localStorage.getItem(kindKey());
     // chosen at sign-up (or on this device before the vault had it): the vault keeps it from now on
-    if(KINDS.includes(k) && k!=="private" && window.VAULT && VAULT.active()) savePrefs({kind:k}).catch(()=>{}); }
+    if(KINDS.includes(k) && k!=="private" && bizAllowed() && window.VAULT && VAULT.active()) savePrefs({kind:k}).catch(()=>{}); }
+  if(!bizAllowed()) return setKindLocal("private", true); // shown as private, nothing stored is changed
   setKindLocal(KINDS.includes(k) ? k : "private");
 }
-function setKindLocal(k){
+function setKindLocal(k, keepStored){
   KIND = k; document.documentElement.dataset.kind = k; $("acctKind").value = k;
-  try{ localStorage.setItem(kindKey(), k); }catch(e){}
+  if(!keepStored) try{ localStorage.setItem(kindKey(), k); }catch(e){}
   if(k!=="private" && !window.BIZ){ const s = document.createElement("script"); s.src = "business.js?v=5";
     s.onload = ()=>{ if(WINES.length){ renderOverview(); renderTable(); } }; document.head.appendChild(s); }
   else if(window.BIZ) BIZ.apply();
 }
 async function setKind(k){
-  if(!KINDS.includes(k)) return;
+  if(!KINDS.includes(k) || (k!=="private" && !bizAllowed())) return;
   setKindLocal(k);
   if(window.VAULT && VAULT.active()) await savePrefs({kind:k}).catch(()=>{});
   // an open wine is drawn again with the new kind's fields
@@ -1636,7 +1642,7 @@ function showGate(msg){
 function setGateMode(mode){
   GATE_MODE = mode;
   const signup = mode==="signup", recover = mode==="recover";
-  $("gateInviteWrap").hidden = !signup; $("gateKindWrap").hidden = !signup;
+  $("gateInviteWrap").hidden = !signup; $("gateKindWrap").hidden = !signup || !BIZ_OPEN;
   $("gateRecWrap").hidden = !recover;
   $("gateForgot").hidden = mode!=="login";
   trSet(signup ? "Create your own cellar. You'll need an invite code."
@@ -1791,7 +1797,7 @@ async function gateEncrypted(mode, user, pass){
     const data = await post({action:"signup", user, email:$("gateEmail").value.trim(), code:$("gateInvite").value.trim(), turnstile:humanToken(), ...k.fields});
     if(!data.ok) throw new Error(data.error);
     cfg.user = data.user; VAULT.rememberSalt(data.user, k.fields);
-    try{ localStorage.setItem(kindKey(), $("gateKind").value); }catch(e){} // what kind of account: into the vault's prefs on first load
+    try{ localStorage.setItem(kindKey(), BIZ_OPEN ? $("gateKind").value : "private"); }catch(e){} // what kind of account: into the vault's prefs on first load
     await VAULT.escrow({post, user:data.user, token:data.token, dekX:k.dekX}); // account help, when the owner has it on
     // the account exists from here: if the phone reloads the page while the code is on screen (a trip to the
     // password manager), the login says so instead of looking like nothing happened
@@ -4220,7 +4226,9 @@ function setSocial(on){
 }
 // The owner gets an Admin button: who has an account (name, email, signed up, last seen) and the invite codes
 async function checkOwner(){
-  try{ const r = await api({action:"me"}); $("adminBtn").hidden = !(r && r.owner === true); $("acctTest").hidden = !(r && r.test === true); askForHelp(r && r.help); }catch(e){ $("adminBtn").hidden = true; }
+  try{ const r = await api({action:"me"}); $("adminBtn").hidden = !(r && r.owner === true); $("acctTest").hidden = !(r && r.test === true);
+    const may = !!(r && (r.owner === true || r.test === true)); $("acctKindWrap").hidden = !(BIZ_OPEN || may);
+    if(may !== MAY_BIZ){ MAY_BIZ = may; loadKind(); if(WINES.length){ renderOverview(); renderTable(); } } askForHelp(r && r.help); }catch(e){ $("adminBtn").hidden = true; }
 }
 // account help: a member whose session came back without the password (a kept key) types it once, so the key can be
 // wrapped to the owner's; asked once a visit, "Later" until the next
