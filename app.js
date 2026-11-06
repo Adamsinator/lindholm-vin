@@ -196,6 +196,24 @@ let WINES = [];          // normalized
 let KEEP_OPEN = null;    // row number of the expanded detail, kept open across re-renders
 let SHOW_PRICES = localStorage.getItem("vinHidePrices") !== "1"; // prices shown by default
 const state = {q:"", country:"", region:"", style:"", status:"cellar", ready:"", loc:"", closes:"", sortK:"price", sortDir:-1};
+// the list as you left it on this device: its filters and its sort, per user (not the search: a list cut down by a
+// search you've forgotten looks like missing wines)
+const LIST_KEYS = ["country","region","style","status","ready","loc","sortK","sortDir"], LIST_CTL = {country:"fCountry", region:"fRegion", style:"fStyle", status:"fStatus", ready:"fReady", loc:"fLoc"};
+const listKey = () => "vinList:" + (cfg.user || "");
+let LIST_RESTORED = false;
+function saveList(){ if(!LIST_RESTORED) return; try{ localStorage.setItem(listKey(), JSON.stringify(Object.fromEntries(LIST_KEYS.map(k=>[k, state[k]])))); }catch(e){} }
+function restoreList(){
+  let o = null; try{ o = JSON.parse(localStorage.getItem(listKey()) || "null"); }catch(e){}
+  if(o && typeof o === "object") LIST_KEYS.forEach(k=>{ if(k in o && typeof o[k] === typeof state[k]) state[k] = o[k]; });
+}
+// after the first drawing: the controls show what's remembered; a value the cellar no longer has is let go
+function syncListControls(){
+  let gone = false;
+  Object.entries(LIST_CTL).forEach(([k, id])=>{ const el = $(id); if(!el) return;
+    if(state[k] && ![...el.options].some(o=>o.value===state[k])){ state[k] = k==="status" ? "cellar" : ""; gone = true; }
+    el.value = state[k]; });
+  return gone;
+}
 // a location's first part ("Kælder" of "Kælder, reol 3, hylde 2") is the place the filter offers
 const locPlace = l => String(l||"").split(/[,;/·|]/)[0].trim();
 
@@ -730,8 +748,10 @@ let RACK_ALL = false, RACK_CASES = [];
 const rackKey = w => { const r = readiness(w); return !r ? "none" : r.k==="now" ? (r.soon?"soon":"now") : r.k; };
 function placeWall(){
   const wall = $("wall"), side = document.querySelector("#overview .side-body"); if(!wall || !side) return;
-  // wide: one of the overview's panels, where the customizer puts it (first, unless moved); narrow: above the figures
-  if(matchMedia("(min-width:1181px)").matches){ if(wall.parentNode !== side){ side.appendChild(wall); applyLayout("overview"); } }
+  // one of the overview's panels, where the customizer puts it; on a narrow screen, while it's first, it sits above the
+  // figures as it always has, and once moved (or taken away) it goes where the customizer says, as on a computer
+  const top = !matchMedia("(min-width:1181px)").matches && layoutOf("overview")[0] === "rack";
+  if(!top){ if(wall.parentNode !== side){ side.appendChild(wall); applyLayout("overview"); } }
   else if(wall.nextElementSibling !== $("kpis")) $("kpis").parentNode.insertBefore(wall, $("kpis"));
 }
 matchMedia("(min-width:1181px)").addEventListener("change", ()=>{ placeWall(); renderRack(WINES.filter(w=>w.left>0)); });
@@ -994,7 +1014,7 @@ function applyLayout(id){
   on.forEach(k=>body.appendChild(at[k]));
   els.filter(e=>!on.includes(e.dataset.panel)).forEach(e=>body.appendChild(e));
   els.forEach(e=>e.classList.toggle("off", !on.includes(e.dataset.panel)));
-  if(id==="overview") placeWall(); // a narrow screen keeps the rack above the figures
+  if(id==="overview") placeWall(); // a narrow screen keeps the rack above the figures while it's first
   renderCustom(id);
 }
 function setLayout(id, list){
@@ -1309,6 +1329,7 @@ function takePrefill(){
 
 let SHOWN = []; // the wines the list shows now (the share dialog offers them)
 function renderTable(){
+  saveList();
   const q = state.q.trim().toLowerCase();
   let list = WINES.filter(w=>{
     if(state.status==="cellar" && w.left===0) return false;
@@ -1405,7 +1426,8 @@ function bindWineRows(scope){
   document.querySelectorAll(`${scope} tr.main`).forEach(row=>{
     const open = ()=>{ const d=row.nextElementSibling; const show=d.hidden; if(show) fillDetail(d, row); d.hidden=!show;
       row.setAttribute("aria-expanded",String(show)); KEEP_OPEN = show ? Number(row.dataset.row) : null; };
-    row.addEventListener("click",e=>{ if(e.target.closest("a,button,select,input,label")) return; open(); });
+    row.addEventListener("click",e=>{ if(e.target.closest("a,button,select,input,label")) return; if(SELECTING) return selToggle(row); open(); });
+    if(SELECTING) row.classList.toggle("sel", SEL.has(Number(row.dataset.row)));
     row.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); open(); } });
   });
   // keep the actively-edited row expanded through re-renders
@@ -1518,9 +1540,12 @@ async function loadData(quiet){
     WINES = normalize(res.wines);
     loadLayout(); loadKind();
     $("priceBtn").textContent = SHOW_PRICES ? tr("Hide prices") : tr("Show prices");
+    if(!LIST_RESTORED) restoreList();
     renderOverview(); renderTable(); renderEnjoyed();
+    if(!LIST_RESTORED){ LIST_RESTORED = true; if(syncListControls()) renderTable(); if(syncListControls()) renderTable(); saveList(); }
     LOADED_AT = new Date(); stampText();
     $("spin").hidden = true; $("content").hidden = false;
+    if(!window.CELLAR_QOL) loadJS("cellar-qol.js?v=1").catch(()=>{}); // the conveniences: swipes, keys, several wines at once
     loadJournalSilently(); refreshDeleted(); checkOwner(); takePrefill(); // checkOwner asks "me", which says if the feed is on
   }catch(err){
     if(AUTH_ERRORS.has(err.message)){ forgetAuth(); setGateMode("login"); showGate(tr("Your session expired: log in again.")); }
@@ -1646,6 +1671,7 @@ async function rowAction(act, row, btn){
 }
 // Drunk: Undo, and how was it (the wine's 1–10 rating, as five stars); the last bottle offers a tasting note
 function afterDrink(row, w, wasLast){
+  if(navigator.vibrate) try{ navigator.vibrate(12); }catch(e){} // a little buzz where the phone allows it (Android)
   const nw = WINES.find(x=>x.row===row) || w;
   const nm = `${nw.producer}${nw.name?" "+nw.name:""}${nw.vintage?" "+nw.vintage:""}`;
   const stars = document.createElement("span"); stars.className = "stars"; stars.setAttribute("role", "group"); stars.setAttribute("aria-label", tr("How was it?"));
@@ -1794,6 +1820,8 @@ const AUTH_MSG = {
 };
 const authMsg = code => AUTH_MSG[code] ? tr(AUTH_MSG[code]) : tr("Could not sign in ({0}).", code);
 function forgetAuth(){
+  // the next one to log in here gets their own list as they left it, not this one's
+  LIST_RESTORED = false; Object.assign(state, {q:"", country:"", region:"", style:"", status:"cellar", ready:"", loc:"", closes:"", sortK:"price", sortDir:-1});
   if(window.VCRYPTO) VCRYPTO.forget(cfg.user); // the session's unlocked key goes with the session
   try{ localStorage.removeItem("vinShares:" + String(cfg.user||"").toLowerCase()); }catch(e){} // and the shared lists' links
   if(window.VAULT) VAULT.stop();
@@ -2663,6 +2691,8 @@ function closeSheets(){ $("moreSheet").classList.remove("open"); $("meSheet").cl
 ["moreMenu","meMenu"].forEach(id=>$(id).addEventListener("click", e=>{ const b = e.target.closest("[data-press]"); if(!b) return;
   closeSheets(); setTimeout(()=>$(b.dataset.press).click(), 60); }));
 ["moreSheet","meSheet"].forEach(id=>$(id).addEventListener("click", e=>{ if(e.target===$(id)) closeSheets(); }));
+// choosing several wines (cellar-qol.js does the rest)
+let SELECTING = false; const SEL = new Set();
 $("pMore").addEventListener("click", ()=>{
   sheetMenu("moreMenu", [isBiz() ? ["card", BIZ.cardLabel(), "bizCardBtn"] : null, ["upload", tr("Import a list"), "impBtn"], ["download", tr("Export"), "expBtn"], ["link", tr("Share a list"), "lsBtn"], ["tidy", tr("Tidy up"), "tidyBtn"],
     ["dice", tr("Pick tonight's bottle"), "tonightBtn"], ["eye", $("priceBtn").textContent, "priceBtn"],
