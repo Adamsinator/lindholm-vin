@@ -48,6 +48,10 @@ const polyHa = mp => mp.reduce((s, p) => s + Math.abs(ringArea(p[0])) - p.slice(
 
 // ── the pack: every climat with an outline, its owners and notes; the village appellations as the land around ──
 const V = Object.fromEntries(B.villages.map(v => [v.id, v]));
+// each village's Côte (Nuits or Beaune), as burgundy.js works it out: the villages run north to south, and each Côte
+// begins at its "first" village; the vintage ratings are per Côte and colour
+{ const COTES = B.cotes || [{ id: "nuits", first: B.villages[0].id }]; let cur = COTES[0].id;
+  B.villages.forEach(v => { const k = COTES.find(x => x.first === v.id); if (k) cur = k.id; v.cote = cur; }); }
 const vname = id => (V[id] && V[id].n) || id;
 const COLS = { R: "R", W: "W", RW: "RW" };
 const climats = [], missing = [];
@@ -55,7 +59,7 @@ B.climats.forEach(c => {
   const g0 = GEO.climats[c.id]; if (!g0) { missing.push(c.id); return; }
   const g = mpP(g0), app = vname(c.v);
   const ap = c.c === "GC" ? c.n : c.c === "1er" ? `${app} 1er Cru ${c.n}` : app;
-  climats.push(Object.assign({ id: c.id, n: c.n, c: c.c === "V" ? "V" : c.c, ap, app, col: COLS[c.col] || c.col || "R", ha: c.ha, haMap: +polyHa(g).toFixed(2), lp: label(g), g, v: c.v },
+  climats.push(Object.assign({ id: c.id, n: c.n, c: c.c === "V" ? "V" : c.c, ap, app, col: COLS[c.col] || c.col || "R", ha: c.ha, haMap: +polyHa(g).toFixed(2), lp: label(g), g, v: c.v, cote: (V[c.v] || {}).cote },
     c.p && c.p.length ? { own: c.p } : {}, c.mono ? { mono: c.mono } : {}, c.d ? { d: c.d } : {}, c.detail ? { detail: c.detail } : {}));
 });
 // INAO's other named climats (premiers crus and village climats burgundy-data.js doesn't describe), with the holdings
@@ -63,12 +67,12 @@ B.climats.forEach(c => {
 Object.entries(GEO.extra || {}).forEach(([id, x]) => {
   const g = mpP(x.mp), app = vname(x.v), c = x.c === "GC" ? "GC" : x.c === "1er" ? "1er" : "V";
   const hold = (EX.holdings || {})[id];
-  climats.push(Object.assign({ id, n: x.n, c, ap: x.ap || (c === "1er" ? `${app} 1er Cru ${x.n}` : app), app, col: "R", ha: +polyHa(g).toFixed(2), lp: label(g), g, v: x.v, x: 1 },
+  climats.push(Object.assign({ id, n: x.n, c, ap: x.ap || (c === "1er" ? `${app} 1er Cru ${x.n}` : app), app, col: "R", ha: +polyHa(g).toFixed(2), lp: label(g), g, v: x.v, cote: (V[x.v] || {}).cote, x: 1 },
     hold && hold.length ? { own: hold } : {}));
 });
 const RANK = { GC: 0, "1er": 1, V: 2 };
 climats.sort((a, b) => RANK[a.c] - RANK[b.c] || a.n.localeCompare(b.n, "fr"));
-const villages = Object.entries(GEO.villages || {}).map(([id, mp]) => ({ id, n: vname(id), g: mpP(mp) }));
+const villages = Object.entries(GEO.villages || {}).map(([id, mp]) => ({ id, n: vname(id), cote: (V[id] || {}).cote, g: mpP(mp) }));
 const all = climats.flatMap(c => c.g).concat(...villages.map(v => v.g)).flatMap(p => p[0]);
 const bb = all.reduce((b, [x, y]) => [Math.min(b[0], x), Math.min(b[1], y), Math.max(b[2], x), Math.max(b[3], y)], [Infinity, Infinity, -Infinity, -Infinity]);
 const today = new Date().toISOString().slice(0, 10);

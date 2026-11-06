@@ -52,6 +52,22 @@ check("the pack was made after its sources last changed (else: node tools/cotedo
   await p.evaluate(() => select("latache", true)); await p.waitForFunction(() => /Historic rankings/.test(document.getElementById("side").textContent), null, { timeout: 15000 }).catch(() => {});
   const hs = (await p.textContent("#side")).replace(/\s+/g, " ");
   check("historic rankings in the panel: La Tâche, tête de cuvée in 1855 and 1920, 1ère classe in 1860", /Lavalle 1855\s*tête de cuvée/i.test(hs) && /Comité de Beaune 1860\s*1ère classe/i.test(hs) && /Rodier 1920\s*tête de cuvée/i.test(hs), hs.slice(0, 300));
+  // vintages and "colour the vineyards by"
+  await p.evaluate(() => select("chambertin", true)); await p.waitForFunction(() => /Vintages · Côte de Nuits red/.test(document.getElementById("side").textContent), null, { timeout: 15000 }).catch(() => {});
+  check("a climat's panel has its Côte's vintage chart (Chambertin: Côte de Nuits red), best years first", /Vintages · Côte de Nuits red/.test(await p.textContent("#side")) && !!(await p.$("#side .vchart .vbar")));
+  await p.click("#styleBtn"); await p.waitForFunction(() => document.querySelectorAll("#fColor option").length > 6, null, { timeout: 10000 }).catch(() => {});
+  const opts = await p.$$eval("#fColor option", o => o.map(x => x.value));
+  check("Colour the vineyards by: the generic measures and the Côte d'Or's own", ["class", "alt", "slope", "faces", "size", "cellar", "commune", "owners", "history", "vintage"].every(k => opts.includes(k)), opts.join(","));
+  await p.selectOption("#fColor", "vintage"); await p.keyboard.press("Escape"); await p.waitForTimeout(500);
+  await p.click('#side [data-vy="2005"]'); await p.waitForTimeout(500);
+  const yb = (await p.textContent("#side .vyearbox").catch(() => "")).replace(/\s+/g, " ");
+  check("by vintage: a year picked from the chart colours the map, and the panel tells its story (2005: 98, drought)", await p.evaluate(() => st.vy === 2005 && st.color === "vintage") && /2005/.test(yb) && /98/.test(yb) && /Drought/.test(yb), yb.slice(0, 200));
+  const f1 = await p.evaluate(() => byId("chambertin").el.style.fill), f2 = await p.evaluate(() => byId("montrachet").el.style.fill);
+  check("…each climat by its own Côte and colour's rating, with ◀ ▶ in the legend", !!f1 && !!f2 && /2005/.test(await p.textContent("#legend")));
+  await p.click('#legend [data-vstep="1"]'); await p.waitForTimeout(300);
+  check("…and ▶ steps to the next vintage", await p.evaluate(() => st.vy === 2006));
+  await p.click("#styleBtn"); await p.selectOption("#fColor", "class"); await p.keyboard.press("Escape"); await p.waitForTimeout(300);
+  check("…and Classification puts the usual colours back", await p.evaluate(() => !byId("chambertin").el.style.fill));
   // lieux-dits: listed inside a climat; outlines and names zoomed in; a tap on land outside the climats opens one
   await p.evaluate(() => select("echezeaux", true)); await p.waitForFunction(() => !!document.querySelector("#side .ldlist"), null, { timeout: 15000 }).catch(() => {});
   const ldl = await p.textContent("#side .ldlist").catch(() => "");

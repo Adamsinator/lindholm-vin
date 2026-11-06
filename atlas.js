@@ -47,7 +47,7 @@ const REGIONS = [
 ];
 // the Côte d'Or on this engine (tools/cotedor-pack.js, from the burgundy-*.js files): reached by its address only
 // (#r=cotedor) while it's checked against burgundy.html, which stays the Côte d'Or's page until this matches it
-const PREVIEW = [{ id: "cotedor", name: "Côte d'Or", file: "atlas-cotedor.js?v=1", topo: "atlas-cotedor-topo.js?v=1", dem: "atlas-cotedor-dem.js?v=1", geol: "atlas-cotedor-geol.js?v=1", ui: "atlas-cotedor-ui.js?v=1", ld: "atlas-cotedor-ld.js?v=1",
+const PREVIEW = [{ id: "cotedor", name: "Côte d'Or", file: "atlas-cotedor.js?v=2", topo: "atlas-cotedor-topo.js?v=1", dem: "atlas-cotedor-dem.js?v=1", geol: "atlas-cotedor-geol.js?v=1", ui: "atlas-cotedor-ui.js?v=2", ld: "atlas-cotedor-ld.js?v=1",
   ll: [47.15, 4.86], country: "fr", kind: "Grand cru · premier cru · village climats, with their owners", kw: [], regional: "" }];
 // the start page's other places: the Côte d'Or's own, richer atlas, and Piedmont, whose MGA have pages but no map
 const ELSEWHERE = [{ id: "burgundy", name: "Côte d'Or", ll: [47.058, 4.839], country: "fr", kind: "The detailed atlas: owners, terrain, geology", href: "burgundy.html" },
@@ -127,6 +127,7 @@ function paint() {
   svg.classList.toggle("geolon", geolShown());
   pts().forEach(q => { if (!q.el) return; q.el.classList.toggle("sel", st.sel === q.id); q.el.classList.toggle("has", !!CELLAR.by[q.id]);
     q.el.classList.toggle("dim", !st.show.PT || (st.mine && !CELLAR.by[q.id])); });
+  if (window.ATLAS_COLOR) ATLAS_COLOR.apply(); // "colour the vineyards by…"
   layoutLabels();
 }
 // labels and bottle dots keep their size on screen: scaled by the zoom, hidden where they'd crowd
@@ -636,6 +637,7 @@ function renderSide() {
       ${(P.meta.absent || []).length ? `<p class="note">${esc(t("Not drawn: {0}. INAO's parcel map doesn't have it yet.", P.meta.absent.join(", ")))}</p>` : ""}
       ${terrNote()}
       ${cellarSummary()}
+      ${window.ATLAS_CD && R.ui ? ATLAS_CD.regionHtml() : ""}
       <div id="rWines" class="rwines"></div>
       ${gc.length ? groups(gc, "Grand cru") : ""}${pc.length ? groups(pc, "Premier cru") : ""}
       ${aoc.length ? `<h3>${esc(t("Cru appellation"))}</h3><ul class="list">${aoc.map(x => row(x)).join("")}</ul>` : ""}
@@ -671,7 +673,7 @@ function renderSide() {
       ${st.cmpWith === c.id ? `<p class="note">${esc(t("Now pick another vineyard to compare with."))}</p>` : ""}
       ${c.d ? `<p class="desc">${esc(c.d)}</p>` : ""}
       ${ownersHtml(c)}
-      ${window.ATLAS_CD ? ATLAS_CD.histHtml(c) : ""}
+      ${window.ATLAS_CD ? ATLAS_CD.histHtml(c) + ATLAS_CD.vintageHtml(c) : ""}
       ${window.ATLAS_LDUI ? ATLAS_LDUI.listHtml(c) : ""}
       ${terrainHtml(c)}
       ${geolHtml(c)}
@@ -980,6 +982,7 @@ async function openRegion(id, sel) {
   place(); draw(); fit(st.home); renderLegend();
   $("fRelief").parentNode.hidden = !st.pack.meta.l93 && st.pack.meta.proj !== "eq";
   $("fTopo").parentNode.hidden = !R.topo; $("fGeol").parentNode.hidden = !R.geol; if (st.geol) ensureGeol();
+  if (window.ATLAS_COLOR && !ATLAS_COLOR.modes()[st.color]) st.color = "class";
   st.cmpWith = null; st.prod = null; terrClear(); $("terrbar").hidden = true; $("terrChip").hidden = !R.dem; terrSync();
   $("profBtn").hidden = !st.pack.meta.l93; $("locBtn").hidden = !navigator.geolocation; if (PROF.on) profToggle(false); // the profile needs IGN's elevation service: France only
   if (R.topo && !topoOf()) loadScript(R.topo).then(() => { if (st.region === R) drawTopo(); }).catch(() => {});
@@ -992,8 +995,9 @@ function renderLegend() {
     P.climats.filter(c => st.show[c.c] && G.under[c.id]).forEach(c => G.under[c.id].forEach(([k, p]) => tot[k] = (tot[k] || 0) + p * c.ha));
     $("legend").innerHTML = `<b>${esc(t("Geology (BRGM 1:50 000)"))}</b>` + Object.entries(tot).sort((a, b) => b[1] - a[1]).slice(0, 8)
       .map(([k]) => `<span class="gl"><i style="background:${G.legend[k][2]}"></i><em>${geolLabel(G, k)}</em></span>`).join(""); return; }
+  const cl = window.ATLAS_COLOR && st.color !== "class" && ATLAS_COLOR.legend(); if (cl) { $("legend").innerHTML = cl; return; }
   const has = k => P.climats.some(c => c.c === k);
-  $("legend").innerHTML = [has("GC") && ["var(--gc)", "Grand cru"], has("1er") && ["var(--pc)", "Premier cru"], has("AOC") && ["var(--ac)", "Cru appellation"], has("EL") && ["var(--pc)", "Einzellage"], has("V") && ["var(--pv,#e9d9c2)", "Village climat"],
+  $("legend").innerHTML = [has("GC") && ["var(--gc)", "Grand cru"], has("1er") && ["var(--pc)", "Premier cru"], has("AOC") && ["var(--ac)", "Cru appellation"], has("EL") && ["var(--pc)", "Einzellage"], has("V") && ["var(--vc)", "Village climat"],
     P.climats.some(c => c.unnamed) && ["var(--pcx)", "Premier cru, unnamed by INAO"],
     P.villages.length && ["var(--vc)", st.region.village || (P.villages.length > 1 ? "Village appellations" : P.villages[0].ap)], P.regional.ha && ["var(--rg)", st.region.regional],
     pts().length && ["var(--ink)", "Classified château (1855)"]].filter(Boolean)
@@ -1103,7 +1107,14 @@ function applyStyle(v) {
 }
 $("styles").addEventListener("click", e => { const b = e.target.closest("button[data-style]"); if (b && !b.disabled) { applyStyle(b.dataset.style); if (st.pack) renderSide(); } });
 // panels: one open at a time; Escape, ✕ or a tap on the map closes them
-function openPanel(id) { ["stylePanel", "menuPanel"].forEach(p => $(p).hidden = p !== id); if (id === "stylePanel") applyStyle(); }
+function openPanel(id) { ["stylePanel", "menuPanel"].forEach(p => $(p).hidden = p !== id); if (id === "stylePanel") { applyStyle(); colorChoice(); } }
+// "Colour the vineyards by": its module (atlas-color.js) comes the first time the Map panel opens on a region
+st.color = "class";
+function colorChoice() {
+  const w = $("colorWrap"); w.hidden = !st.pack; if (!st.pack) return;
+  (window.ATLAS_COLOR ? Promise.resolve() : loadScript("atlas-color.js?v=1")).then(() => { $("fColor").innerHTML = ATLAS_COLOR.options(); }).catch(() => { w.hidden = true; });
+}
+$("fColor").onchange = e => { st.color = e.target.value; paint(); renderLegend(); renderSide(); };
 function closePanels() { $("stylePanel").hidden = true; $("menuPanel").hidden = true; }
 $("styleBtn").onclick = () => $("stylePanel").hidden ? openPanel("stylePanel") : closePanels();
 $("menuBtn").onclick = () => $("menuPanel").hidden ? openPanel("menuPanel") : closePanels();
