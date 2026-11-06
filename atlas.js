@@ -1002,7 +1002,7 @@ async function openRegion(id, sel) {
   st.cmpWith = null; st.prod = null; st.vsel = null; terrClear(); $("terrbar").hidden = true; $("terrChip").hidden = !R.dem; terrSync();
   $("profBtn").hidden = !st.pack.meta.l93; $("locBtn").hidden = !navigator.geolocation; if (PROF.on) profToggle(false); // the profile needs IGN's elevation service: France only
   if (R.topo && !topoOf()) loadScript(R.topo).then(() => { if (st.region === R) drawTopo(); }).catch(() => {});
-  st.wy = null; if (R.wx && !(window.ATLAS_WX && ATLAS_WX[R.id])) Promise.all([window.ATLAS_WXUI ? 0 : loadScript("atlas-wx.js?v=1"), window.ATLAS_WX_I18N ? 0 : loadScript("atlas-wx-i18n.js?v=1"), loadScript(R.wx)]).then(() => { if (st.region === R && !st.sel) renderSide(); }).catch(() => {});
+  st.wy = null; if (R.wx && !(window.ATLAS_WX && ATLAS_WX[R.id])) Promise.all([window.ATLAS_WXUI ? 0 : loadScript("atlas-wx.js?v=2"), window.ATLAS_WX_I18N ? 0 : loadScript("atlas-wx-i18n.js?v=1"), loadScript(R.wx)]).then(() => { if (st.region === R && !st.sel) renderSide(); }).catch(() => {});
   if (R.dem && !demOf(R.id)) loadScript(R.dem).then(() => { if (st.region === R) { renderSide(); paint(); } }).catch(() => {});
   if (sel && byId(sel)) select(sel, true); else { renderSide(); syncHash(); }
 }

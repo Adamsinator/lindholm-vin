@@ -74,6 +74,6 @@ window.ATLAS_WXUI = (() => {
     .vyear{display:inline-flex;align-items:center;gap:6px} .vyear button{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:6px;padding:2px 8px;cursor:pointer;font:inherit}
     .vyear button:disabled{opacity:.35;cursor:default} .warmchart{width:100%;height:auto;display:block} .warmchart rect{cursor:pointer}
     .warmchart .pgrid{stroke:var(--line)} .warmchart .pax{font-size:12px;fill:var(--muted)} .warmchart .htrend{stroke:var(--ink);stroke-width:1.4;stroke-dasharray:5 3}
-    .wxtab{width:100%} .wxtab td,.wxtab th{padding:3px 2px} .wxtab tr.on td{background:var(--chip)} .wxa{display:inline-block;min-width:38px;padding:1px 5px;border-radius:6px;color:var(--ink);text-align:center}</style>`);
+    .wxtab{width:100%} .wxtab td,.wxtab th{padding:3px 2px} .wxtab tr.on td{background:var(--chip)} .wxtab tr.on .plink{color:var(--ink);font-weight:700} .wxa{display:inline-block;min-width:38px;padding:1px 5px;border-radius:6px;color:var(--ink);text-align:center}</style>`);
   return { html };
 })();
