@@ -1545,7 +1545,7 @@ async function loadData(quiet){
     if(!LIST_RESTORED){ LIST_RESTORED = true; if(syncListControls()) renderTable(); if(syncListControls()) renderTable(); saveList(); }
     LOADED_AT = new Date(); stampText();
     $("spin").hidden = true; $("content").hidden = false;
-    if(!window.CELLAR_QOL) loadJS("cellar-qol.js?v=1").catch(()=>{}); // the conveniences: swipes, keys, several wines at once
+    if(!window.CELLAR_QOL) loadJS("cellar-qol.js?v=2").catch(()=>{}); // the conveniences: swipes, keys, several wines at once
     loadJournalSilently(); refreshDeleted(); checkOwner(); takePrefill(); // checkOwner asks "me", which says if the feed is on
   }catch(err){
     if(AUTH_ERRORS.has(err.message)){ forgetAuth(); setGateMode("login"); showGate(tr("Your session expired: log in again.")); }
@@ -2578,6 +2578,7 @@ async function expRun(kind){
     setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 2000);
     $("expModal").classList.remove("open");
     toast(tr("Saved {0}", a.download)); hit("export");
+    try{ localStorage.setItem("vinCopy:" + (cfg.user||""), String(Date.now())); }catch(e){} // for the reminder (cellar-qol.js)
   }catch(err){
     const m = String(err && err.message || err);
     $("expErr").textContent = tr("Could not export: {0}", m);
@@ -4315,7 +4316,17 @@ $("iForm").addEventListener("submit", async e=>{
     WINES = normalize(res.wines); if(res.entries) JENTRIES = res.entries; KEEP_OPEN = w.row;
     $("iModal").classList.remove("open");
     renderOverview(); renderTable(); renderEnjoyed(); if(JENTRIES) renderJournal();
-    toast(renamed ? tr("Renamed") : tr("Details saved"));
+    // Undo: what changed goes back (the fields, the bottles, the price), under the names it has now
+    const back = Object.fromEntries(Object.keys(fields).map(k=>[k, was[k]]));
+    notify(renamed ? tr("Renamed") : tr("Details saved"), [{label:tr("Undo"), fn: async ()=>{
+      try{ let r = null;
+        if(Object.keys(back).length) r = await api({action:"setinfo", row:w.row, fields:back, old:{producer:next.producer, wine:next.name, vintage:next.vintage??""},
+          journal: !$("iJWrap").hidden && $("iJournal").checked});
+        if(newLeft !== null) r = await api({action:"setstock", row:w.row, left:w.left});
+        if(newPrice !== null) r = await api({action:"setprice", row:w.row, value:w.price ?? ""});
+        WINES = normalize(r.wines); if(r.entries) JENTRIES = r.entries; renderOverview(); renderTable(); renderEnjoyed(); if(JENTRIES) renderJournal();
+        toast(tr("Changes undone")); }
+      catch(err){ toast(tr("Could not undo: {0}", errText(err))); } }}], {ms:10000});
   }catch(err){
     $("iErr").textContent = err.message==="bad-action" ? tr("The Apps Script needs the latest version (50) for this: paste apps-script/Code.gs into it and redeploy.")
       : /zero-stock/.test(err.message) ? tr("None of it has been drunk yet, so it can't go to 0 bottles: delete the wine instead.") : tr("Could not save: {0}", errText(err));

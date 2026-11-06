@@ -143,3 +143,40 @@ $("selDrink").addEventListener("click", async ()=>{
   };
   document.addEventListener("touchend", end); document.addEventListener("touchcancel", end);
 })();
+/* On a phone, pull the cellar down from the top of the page to fetch it again (as ↻ Refresh): a round arrow follows
+   the finger and turns; let go once it's full to refresh, before that and nothing happens. */
+(()=>{
+  const PHONE = matchMedia("(max-width:700px)"), FULL = 80; let pull = null;
+  const ind = document.createElement("div"); ind.id = "ptr"; ind.setAttribute("aria-hidden", "true"); ind.textContent = "↻"; document.body.appendChild(ind);
+  document.head.insertAdjacentHTML("beforeend", `<style>#ptr{position:fixed;left:50%;top:calc(6px + env(safe-area-inset-top));width:38px;height:38px;margin-left:-19px;border-radius:50%;
+    display:grid;place-items:center;background:var(--card);color:var(--accent);border:1px solid var(--line);box-shadow:0 4px 14px rgba(0,0,0,.15);font-size:20px;z-index:130;
+    opacity:0;transform:translateY(-50px);pointer-events:none} #ptr.full{background:var(--accent);color:var(--accent-ink,#fff)} #ptr.back{transition:transform .2s,opacity .2s}</style>`);
+  const show = (d, full) => { ind.classList.toggle("full", full); ind.style.opacity = Math.min(1, d / FULL); ind.style.transform = `translateY(${Math.min(d, FULL + 20) - 50}px) rotate(${d * 3}deg)`; };
+  const hide = () => { ind.classList.add("back"); ind.style.opacity = 0; ind.style.transform = "translateY(-50px)"; setTimeout(()=>ind.classList.remove("back", "full"), 220); };
+  document.addEventListener("touchstart", e=>{
+    if(!PHONE.matches || e.touches.length !== 1 || window.scrollY > 0 || $("app").hidden || document.querySelector(".modal.open")) return;
+    if(!$("pageCellar") || $("pageCellar").hidden || e.target.closest("#rows tr.main, input, textarea, select, .modal")) return; // a wine row swipes; fields are fields
+    pull = {y0:e.touches[0].clientY, x0:e.touches[0].clientX, d:0, on:false};
+  }, {passive:true});
+  document.addEventListener("touchmove", e=>{
+    if(!pull) return; const t = e.touches[0], dy = t.clientY - pull.y0, dx = t.clientX - pull.x0;
+    if(!pull.on){ if(dy < 10) { if(dy < -5 || Math.abs(dx) > 10) pull = null; return; } if(window.scrollY > 0 || Math.abs(dx) > dy){ pull = null; return; } pull.on = true; }
+    pull.d = dy * .6; show(pull.d, pull.d >= FULL); if(e.cancelable) e.preventDefault();
+  }, {passive:false});
+  const end = ()=>{ if(!pull) return; const p = pull; pull = null; if(!p.on) return;
+    if(p.d >= FULL){ ind.classList.add("back"); ind.style.transform = "translateY(10px) rotate(720deg)"; $("refreshBtn").click(); setTimeout(hide, 700); } else hide(); };
+  document.addEventListener("touchend", end); document.addEventListener("touchcancel", end);
+})();
+/* A copy of your own: the server keeps daily backups, but a file on your device is yours. With ten wines or more and
+   no export from this device for 90 days (or ever), a quiet note offers one, at most once a month. */
+(()=>{
+  const k = s => s + (cfg.user || ""), now = Date.now(), DAY = 864e5;
+  let last = 0, asked = 0; try{ last = Number(localStorage.getItem(k("vinCopy:"))) || 0; asked = Number(localStorage.getItem(k("vinCopyAsk:"))) || 0; }catch(e){ return; }
+  if(WINES.length < 10 || now - last < 90 * DAY || now - asked < 30 * DAY) return;
+  setTimeout(()=>{
+    if($("app").hidden || document.querySelector(".modal.open") || !$("actbar").hidden) return; // not over something else
+    try{ localStorage.setItem(k("vinCopyAsk:"), String(Date.now())); }catch(e){}
+    notify(last ? tr("It's been a while since you kept a copy of your cellar on this device. Save one?") : tr("Keep a copy of your cellar on this device? A file of your own, beside the daily backups."),
+      [{label:tr("Export"), fn:()=>$("expBtn").click()}, {label:tr("Not now"), fn:()=>{}}], {ms:15000});
+  }, 5000);
+})();
