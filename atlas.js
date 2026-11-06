@@ -47,7 +47,7 @@ const REGIONS = [
 ];
 // the Côte d'Or on this engine (tools/cotedor-pack.js, from the burgundy-*.js files): reached by its address only
 // (#r=cotedor) while it's checked against burgundy.html, which stays the Côte d'Or's page until this matches it
-const PREVIEW = [{ id: "cotedor", name: "Côte d'Or", file: "atlas-cotedor.js?v=1", topo: "atlas-cotedor-topo.js?v=1", dem: "atlas-cotedor-dem.js?v=1", geol: "atlas-cotedor-geol.js?v=1", ui: "atlas-cotedor-ui.js?v=1",
+const PREVIEW = [{ id: "cotedor", name: "Côte d'Or", file: "atlas-cotedor.js?v=1", topo: "atlas-cotedor-topo.js?v=1", dem: "atlas-cotedor-dem.js?v=1", geol: "atlas-cotedor-geol.js?v=1", ui: "atlas-cotedor-ui.js?v=1", ld: "atlas-cotedor-ld.js?v=1",
   ll: [47.15, 4.86], country: "fr", kind: "Grand cru · premier cru · village climats, with their owners", kw: [], regional: "" }];
 // the start page's other places: the Côte d'Or's own, richer atlas, and Piedmont, whose MGA have pages but no map
 const ELSEWHERE = [{ id: "burgundy", name: "Côte d'Or", ll: [47.058, 4.839], country: "fr", kind: "The detailed atlas: owners, terrain, geology", href: "burgundy.html" },
@@ -115,6 +115,7 @@ function draw() {
   if (topoOf()) drawTopo();
   if (geolOf()) drawGeol();
   paint(); compassSync(); locatorDraw();
+  if (window.ATLAS_LDUI && ATLAS_LDUI.loaded()) ATLAS_LDUI.draw();
 }
 function paint() {
   const P = st.pack; if (!P) return;
@@ -159,6 +160,7 @@ const mapview = $("mapview");
 // the map's place on the page as laid out, not as the gesture's transform shows it (measured while none is on)
 const mapRect = () => mapview.style.transform && rectC ? rectC : (rectC = svg.getBoundingClientRect());
 function relayout() { const v = st.view; if (!v) return; layoutLabels(); topoLod(); shadeSoon(); drawMe(); locatorView();
+  if (window.ATLAS_LDUI && st.region && st.region.ld) { if (v[2] < ATLAS_LDUI.NEAR) ATLAS_LDUI.want(); ATLAS_LDUI.lod(); }
   if (PROF.a && TG.prof) TG.prof.querySelectorAll("circle").forEach(c => c.setAttribute("r", 5 * v[2] / (svg.clientWidth || 800))); }
 // while a finger, the wheel or a glide is moving the map, the drawing already on screen is moved and scaled as a picture
 // (a CSS transform the compositor does, cheap), and redrawn at the new view once the movement pauses: redrawing a
@@ -398,7 +400,9 @@ svg.addEventListener("pointerup", e => { const tgt = document.elementFromPoint(e
     if (lastTap && now - lastTap[0] < 320 && Math.hypot(e.clientX - lastTap[1], e.clientY - lastTap[2]) < 32) { lastTap = null; const [cx, cy] = toSvg(e); zoomAt(.5, cx, cy, 260); return; }
     lastTap = [now, e.clientX, e.clientY]; }
   if (PROF.on) { profClick(unrotP(toSvg(e))); return; }
-  const q = tgt && tgt.closest && tgt.closest(".pt"), c = tgt && tgt.closest && tgt.closest(".cl"); select(q ? q.dataset.pt : c ? c.dataset.id : null); });
+  const q = tgt && tgt.closest && tgt.closest(".pt"), c = tgt && tgt.closest && tgt.closest(".cl");
+  if (!q && !c && window.ATLAS_LDUI && st.region && st.region.ld) { const i = ATLAS_LDUI.at(unrotP(toSvg(e))); if (i >= 0) return ATLAS_LDUI.pick(i); } // a lieu-dit outside the climats
+  select(q ? q.dataset.pt : c ? c.dataset.id : null); });
 svg.addEventListener("pointercancel", up);
 svg.addEventListener("dblclick", e => { if (!st.pack || PROF.on) return; e.preventDefault(); const [cx, cy] = toSvg(e); zoomAt(.5, cx, cy, 260); });
 // Safari's own page pinch would fight the map's
@@ -602,13 +606,14 @@ addEventListener("resize", () => { if (st.view) layoutLabels(); });
 /* ---------- the side panel ---------- */
 const byId = id => st.pack && (st.pack.climats.find(c => c.id === id) || pts().find(q => q.id === id));
 function select(id, fly) {
-  st.sel = byId(id) ? id : null; if (st.sel) ensureGeol(); paint(); renderSide(); syncHash();
+  st.ld = null; st.sel = byId(id) ? id : null; if (st.sel) ensureGeol(); paint(); renderSide(); syncHash();
   document.body.classList.toggle("side-open", !!st.sel); // a phone: the vineyard's details slide up
   const c = st.sel && byId(st.sel);
   if (c && fly) { if (c.g) fit(bbOf(c.g), .6, 360); else if (c.p) fit([c.p[0] - 900, c.p[1] - 900, c.p[0] + 900, c.p[1] + 900], .1, 360); }
 }
 function renderSide() {
   const P = st.pack, side = $("side"); if (!P) return renderHomeSide();
+  if (st.ld != null && window.ATLAS_LDUI && ATLAS_LDUI.loaded()) return ATLAS_LDUI.side(); // a lieu-dit
   const c = st.sel && byId(st.sel), R = st.region;
   if (!c) {
     const gc = P.climats.filter(x => x.c === "GC"), pc = P.climats.filter(x => x.c === "1er" && !x.unnamed), aoc = P.climats.filter(x => x.c === "AOC"), many = P.villages.length > 1;
@@ -666,6 +671,8 @@ function renderSide() {
       ${st.cmpWith === c.id ? `<p class="note">${esc(t("Now pick another vineyard to compare with."))}</p>` : ""}
       ${c.d ? `<p class="desc">${esc(c.d)}</p>` : ""}
       ${ownersHtml(c)}
+      ${window.ATLAS_CD ? ATLAS_CD.histHtml(c) : ""}
+      ${window.ATLAS_LDUI ? ATLAS_LDUI.listHtml(c) : ""}
       ${terrainHtml(c)}
       ${geolHtml(c)}
       ${noteOf(c) ? `<p class="note">${esc(noteOf(c))}</p>` : ""}
@@ -682,6 +689,7 @@ function renderSide() {
   }
   side.querySelectorAll("button[data-c]").forEach(b => b.onclick = () => select(b.dataset.c, true));
   if (st.prod) { side.insertAdjacentHTML("afterbegin", prodBar()); $("prodX").onclick = () => setProd(null); }
+  if (window.ATLAS_LDUI) ATLAS_LDUI.wire(side);
   side.querySelectorAll("button[data-prod]").forEach(b => b.onclick = () => setProd(st.prod === b.dataset.prod ? null : b.dataset.prod));
   if (!c) regionWines();
 }
@@ -950,6 +958,8 @@ function syncHash() {
 async function openRegion(id, sel) {
   const R = REGIONS.concat(PREVIEW).find(r => r.id === id) || REGIONS[0];
   if (R.ui && !window.ATLAS_CD) await loadScript(R.ui).catch(() => {}); // the region's own tools (the Côte d'Or: owners)
+  if (R.ld && !window.ATLAS_LDUI) await loadScript("atlas-ld.js?v=1").catch(() => {}); // lieux-dits: their data comes when zoomed in
+  if (window.ATLAS_LDUI) ATLAS_LDUI.reset();
   if (!(window.ATLAS_PACKS && ATLAS_PACKS[R.id])) {
     // a pack that doesn't come (GitHub Pages answers 503 now and then): once more after a moment, then say so
     try { await loadScript(R.file).catch(() => new Promise(r => setTimeout(r, 1500)).then(() => loadScript(R.file))); }

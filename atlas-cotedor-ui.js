@@ -2,6 +2,10 @@
 // and the map of one owner's holdings. It runs in atlas.js's scope (a classic script: st, t, esc, fmtHa, paint, fit…).
 "use strict";
 window.ATLAS_CD = (() => {
+  document.head.insertAdjacentHTML("beforeend", `<style>.sharebar{display:flex;height:10px;border-radius:5px;overflow:hidden;background:var(--line);margin:6px 0 8px} .sharebar span{background:var(--gc);border-right:1px solid var(--card)}
+table.own{width:100%;border-collapse:collapse;font-size:13.5px} table.own td{padding:5px 0;border-bottom:1px solid var(--line);vertical-align:top} table.own td.n{text-align:right;white-space:nowrap;padding-left:8px}
+table.own .pb{display:block;height:3px;margin-top:4px;border-radius:2px;background:var(--gc);opacity:.55} .ktag{font-size:11.5px;color:var(--muted)} .plink{border:0;background:none;padding:0;font:inherit;color:var(--accent);cursor:pointer;text-align:left} .plink:hover,.plink.on{text-decoration:underline}
+.prodbar{display:flex;align-items:center;gap:8px;margin:0 0 12px;padding:8px 10px;border-radius:10px;background:color-mix(in srgb,var(--gc) 12%,var(--card));font-size:13.5px} .prodbar span{flex:1} .hsw{display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--gc);margin-right:6px;vertical-align:-1px}</style>`); // its own styles, with it
 /* ---------- who owns it (the Côte d'Or's pack: owners from AllWine's compiled list, approximate) ---------- */
 const OWN_KIND = { f: "leased", s: "buys grapes" }; // a holding's 3rd element; absent = owned
 // one owner's holdings: a click on a name keeps only the climats they hold on the map, with the total in the panel
@@ -28,5 +32,18 @@ function ownersHtml(c) {
     : t("Notable owners; individual holdings not listed.");
   return `<h3>${esc(t("Owners"))}</h3>${known ? `<div class="sharebar" aria-hidden="true">${seg}</div>` : ""}<p class="note">${esc(cover)}</p>${rows.length ? `<table class="own">${body}</table>` : ""}`;
 }
-  return { holds, ownersHtml, prodBar, setProd };
+  /* ---------- historic rankings (burgundy-history.js: Lavalle 1855, the Beaune committee 1860, Rodier 1920), fetched
+     the first time a climat's panel opens ---------- */
+  const HSRC = { lavalle1855: "Lavalle 1855", comite1860: "Comité de Beaune 1860", rodier1920: "Rodier 1920" };
+  // each source has its own ladder (the 1860 committee had no tête de cuvée: its 1ère classe is the top), rank → 0 (top) … 3
+  const HLADDER = { lavalle1855: [/hors|tête|tete/, /^1/, /^2/, /^3|^4/], comite1860: [/^1/, /^2/, /^3/], rodier1920: [/tête|tete/, /premi/, /deux/, /trois/] };
+  const hRank = (src, r) => { const s0 = String(r || "").toLowerCase(), i = (HLADDER[src] || []).findIndex(re => re.test(s0)); return i < 0 ? null : i; };
+  let HIST = window.BURG_HISTORY || null, histP = null;
+  function histHtml(c) {
+    if (!HIST) { histP = histP || loadScript("burgundy-history.js?v=2").then(() => { HIST = window.BURG_HISTORY || null; if (st.sel) renderSide(); }).catch(() => { histP = null; }); return ""; }
+    const rows = Object.keys(HSRC).map(k => [k, HIST[k] && HIST[k][c.id]]).filter(([, v]) => v); if (!rows.length) return "";
+    return `<h3>${esc(t("Historic rankings"))}</h3><table class="own">${rows.map(([k, v]) => { const r = hRank(k, v.rank);
+      return `<tr><td>${esc(HSRC[k])}</td><td><span class="hsw" style="opacity:${r == null ? .15 : [1, .7, .45, .25][r]}"></span>${esc(v.rank)}${v.as && norm(v.as) !== norm(c.n) ? ` <span class="note">(« ${esc(v.as)} »)</span>` : ""}</td></tr>`; }).join("")}</table>`;
+  }
+  return { holds, ownersHtml, prodBar, setProd, histHtml };
 })();

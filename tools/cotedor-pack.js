@@ -13,7 +13,7 @@ const fs = require("fs"), path = require("path");
 const ROOT = path.resolve(__dirname, "..");
 global.window = {};
 ["burgundy-data.js", "burgundy-data-beaune.js", "burgundy-detail.js", "burgundy-geo.js", "burgundy-extras.js", "burgundy-names.js",
-  "burgundy-dem.js", "burgundy-geol.js", "burgundy-topo.js"].forEach(f => require(path.join(ROOT, f)));
+  "burgundy-dem.js", "burgundy-geol.js", "burgundy-topo.js", "burgundy-lieuxdits.js"].forEach(f => require(path.join(ROOT, f)));
 const B = window.BURG, GEO = window.BURG_GEO, EX = window.BURG_EXTRAS || {}, DEM = window.BURG_DEM, GEOL = window.BURG_GEOL, TOPO = window.BURG_TOPO;
 
 // ── from the Côte d'Or grid to Lambert-93 ──
@@ -96,4 +96,8 @@ const topo = { meta: { id: "cotedor", source: TOPO.meta.source, built: today, de
   lakes: [], woods: TOPO.woods.map(reline), towns: [],
   names: TOPO.names.filter(([k]) => k in NAMEK).map(([k, n, x, y]) => [NAMEK[k], n, ...P([x, y])]) };
 write("atlas-cotedor-topo.js", "ATLAS_TOPO", topo);
+// ── the cadastre's lieux-dits: label point and outline moved, the commune code and the measured terrain as they were ──
+const LDX = window.BURG_LIEUXDITS;
+write("atlas-cotedor-ld.js", "ATLAS_LD", { meta: Object.assign({}, LDX.meta, { id: "cotedor" }),
+  ld: LDX.ld.map(([insee, n, x, y, ring, ...rest]) => [insee, n, ...P([x, y]), reline(ring), ...rest]) });
 console.log(`${climats.length} climats (${climats.filter(c => c.x).length} INAO extras), ${villages.length} villages; no outline for: ${missing.join(", ") || "none"}`);

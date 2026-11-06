@@ -2,7 +2,8 @@
 // the pack has every climat burgundy.html draws, with the same owners and areas, moved to the frame the other French
 // regions use; it opens at #r=cotedor (and isn't on the start page yet, while it's checked against burgundy.html); a
 // climat's panel lists its owners with their shares; a click on an owner keeps only their climats on the map, and the
-// total; the map turns and the terrain and geology are there.
+// total; the cadastre's lieux-dits are listed in a climat's panel, drawn when zoomed in and open with a tap; the map
+// turns and the terrain and geology are there.
 //   (cd .. && python3 -m http.server 8765) & node tools/cotedor-atlas-ui-test.js
 "use strict";
 const fs = require("fs"), path = require("path");
@@ -48,6 +49,23 @@ check("the pack was made after its sources last changed (else: node tools/cotedo
   await p.click("#prodX"); await p.waitForTimeout(300);
   check("…and ✕ shows every owner again", await p.evaluate(() => st.prod === null && !document.querySelector(".prodbar") && !st.pack.climats.some(c => c.el.classList.contains("dim") && c.c === "GC")));
   check("terrain and geology for the climat, as on burgundy.html", await p.evaluate(() => !!document.querySelector("#side")) && /Altitude/.test(side) && /Geology/.test(side));
+  await p.evaluate(() => select("latache", true)); await p.waitForFunction(() => /Historic rankings/.test(document.getElementById("side").textContent), null, { timeout: 15000 }).catch(() => {});
+  const hs = (await p.textContent("#side")).replace(/\s+/g, " ");
+  check("historic rankings in the panel: La Tâche, tête de cuvée in 1855 and 1920, 1ère classe in 1860", /Lavalle 1855\s*tête de cuvée/i.test(hs) && /Comité de Beaune 1860\s*1ère classe/i.test(hs) && /Rodier 1920\s*tête de cuvée/i.test(hs), hs.slice(0, 300));
+  // lieux-dits: listed inside a climat; outlines and names zoomed in; a tap on land outside the climats opens one
+  await p.evaluate(() => select("echezeaux", true)); await p.waitForFunction(() => !!document.querySelector("#side .ldlist"), null, { timeout: 15000 }).catch(() => {});
+  const ldl = await p.textContent("#side .ldlist").catch(() => "");
+  check("a climat's panel lists the cadastre's lieux-dits inside it (Échezeaux: Les Poulaillères, En Orveaux…)", /En Orveaux/.test(ldl) && /Les Treux/.test(ldl) && !/^Echezeaux\b/.test(ldl), ldl);
+  check("…drawn on the map with their names, zoomed in", await p.evaluate(() => !!document.querySelector("#map .ldo path.ld") && [...document.querySelectorAll("#map .tn-ld")].some(e => e.style.display !== "none")));
+  const pt = await p.evaluate(() => { const L = ATLAS_LD.cotedor.ld; for (let i = 0; i < L.length; i++) { const l = L[i]; if (!climatAt([l[2], l[3]]) && l._a > 30000) return [i, l[1], l[2], l[3]]; } });
+  await p.waitForTimeout(600); // the flight to Échezeaux has ended (else it carries the view back)
+  await p.evaluate(([, , x, y]) => fit([x - 400, y - 400, x + 400, y + 400]), pt); await p.waitForTimeout(700);
+  const sc = await p.evaluate(([, , x, y]) => { const [vx, vy] = rotP([x, y]), r = document.getElementById("map").getBoundingClientRect(), [a, b2, w, h] = st.view; return [r.left + (vx - a) / w * r.width, r.top + (vy - b2) / h * r.height]; }, pt);
+  await p.mouse.click(sc[0], sc[1]); await p.waitForTimeout(500);
+  const lds = (await p.textContent("#side")).replace(/\s+/g, " ");
+  check("a tap on village land, zoomed in, opens the lieu-dit there: area, terrain, appellation", new RegExp("Lieu-dit\\s*" + pt[1]).test(lds) && /Area/.test(lds) && /Village appellation|Regional appellations|Appellation/.test(lds), pt[1] + " · " + lds.slice(0, 200));
+  await p.click("#back"); await p.waitForTimeout(200);
+  check("…and ← goes back to the region", /Côte d'Or/.test(await p.textContent("#side h2")) && await p.evaluate(() => st.ld === null));
   await p.keyboard.press("]"); await p.waitForTimeout(300);
   check("the map turns here too", await p.evaluate(() => ROT.a === 15));
   await p.evaluate(() => { try { localStorage.removeItem("atlasRot"); } catch (e) {} });
