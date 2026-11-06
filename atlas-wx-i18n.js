@@ -1,4 +1,5 @@
-// The growing-seasons panel's texts in Danish, French and German (atlas-wx.js merges them into the page's dictionary).
+// The atlas panels' own texts in Danish, French and German, loaded with a region (atlas.js adds them to the page's
+// dictionary): the growing seasons (atlas-wx.js) and the owners (atlas-owners.js).
 window.ATLAS_WX_I18N = {
  "da": {
   "Apr–Sep {0} °C": "apr.–sep. {0} °C",
@@ -34,7 +35,13 @@ window.ATLAS_WX_I18N = {
   "temperate": "tempereret",
   "warm temperate": "lunt tempereret",
   "warm": "varmt",
-  "very warm": "meget varmt"
+  "very warm": "meget varmt",
+  "Source: {0}": "Kilde: {0}",
+  "Owners with a published figure account for {0} of {1} ha ({2}%); the rest belongs to the holders listed without a figure and to growers not listed here.": "Ejere med et offentliggjort tal står for {0} af {1} ha ({2} %); resten tilhører ejerne uden tal og avlere, der ikke står her.",
+  "The domaines listed say on their own websites that they own vines here; none gives an area.": "De nævnte domæner skriver på deres egne hjemmesider, at de ejer vinstokke her; ingen oplyser et areal.",
+  "Only what each domaine's own website says, checked {0}; ↗ opens the page.": "Kun hvad hvert domænes egen hjemmeside siger, kontrolleret {0}; ↗ åbner siden.",
+  "Owners on file for {0} climat, from the domaines' own websites.": "Ejere registreret for {0} climat, fra domænernes egne hjemmesider.",
+  "Owners on file for {0} climats, from the domaines' own websites.": "Ejere registreret for {0} climats, fra domænernes egne hjemmesider."
  },
  "fr": {
   "Apr–Sep {0} °C": "avr.–sept. {0} °C",
@@ -70,7 +77,13 @@ window.ATLAS_WX_I18N = {
   "temperate": "tempéré",
   "warm temperate": "tempéré chaud",
   "warm": "chaud",
-  "very warm": "très chaud"
+  "very warm": "très chaud",
+  "Source: {0}": "Source : {0}",
+  "Owners with a published figure account for {0} of {1} ha ({2}%); the rest belongs to the holders listed without a figure and to growers not listed here.": "Les propriétaires dont la surface est publiée représentent {0} sur {1} ha ({2} %) ; le reste appartient aux propriétaires listés sans surface et à des vignerons absents de cette liste.",
+  "The domaines listed say on their own websites that they own vines here; none gives an area.": "Les domaines listés indiquent sur leur propre site qu'ils possèdent des vignes ici ; aucun ne donne de surface.",
+  "Only what each domaine's own website says, checked {0}; ↗ opens the page.": "Uniquement ce que dit le site de chaque domaine, vérifié le {0} ; ↗ ouvre la page.",
+  "Owners on file for {0} climat, from the domaines' own websites.": "Propriétaires connus pour {0} climat, d'après les sites des domaines.",
+  "Owners on file for {0} climats, from the domaines' own websites.": "Propriétaires connus pour {0} climats, d'après les sites des domaines."
  },
  "de": {
   "Apr–Sep {0} °C": "Apr.–Sep. {0} °C",
@@ -106,6 +119,12 @@ window.ATLAS_WX_I18N = {
   "temperate": "gemäßigt",
   "warm temperate": "warm gemäßigt",
   "warm": "warm",
-  "very warm": "sehr warm"
+  "very warm": "sehr warm",
+  "Source: {0}": "Quelle: {0}",
+  "Owners with a published figure account for {0} of {1} ha ({2}%); the rest belongs to the holders listed without a figure and to growers not listed here.": "Eigentümer mit veröffentlichter Fläche halten {0} von {1} ha ({2} %); der Rest gehört den Eigentümern ohne Angabe und hier nicht genannten Winzern.",
+  "The domaines listed say on their own websites that they own vines here; none gives an area.": "Die genannten Weingüter schreiben auf ihren eigenen Websites, dass sie hier Reben besitzen; keines nennt eine Fläche.",
+  "Only what each domaine's own website says, checked {0}; ↗ opens the page.": "Nur was die eigene Website jedes Weinguts sagt, geprüft am {0}; ↗ öffnet die Seite.",
+  "Owners on file for {0} climat, from the domaines' own websites.": "Eigentümer für {0} Lage erfasst, nach den Websites der Weingüter.",
+  "Owners on file for {0} climats, from the domaines' own websites.": "Eigentümer für {0} Lagen erfasst, nach den Websites der Weingüter."
  }
 };

@@ -1,0 +1,61 @@
+{
+  "region": "chablis",
+  "checked": "2026-11-06",
+  "rule": "Only what a domaine's own website says it owns or farms as its own vines. ha is the figure the page gives, or null when it lists the wine as its own vineyard without an area. Bought-in grapes and figures from merchants or the press are left out.",
+  "producers": {
+    "long_depaquit": { "n": "Domaine Long-Depaquit (Albert Bichot)", "site": "https://www.albert-bichot.com/en/domaine-long-depaquit_22.html" },
+    "laroche": { "n": "Domaine Laroche", "site": "https://larochewines.com/chablis-en-bourgogne/" },
+    "chablisienne": { "n": "La Chablisienne", "site": "https://chablisienne.com/" },
+    "billaud_simon": { "n": "Domaine Billaud-Simon", "site": "https://billaud-simon.com/le-vignoble/" },
+    "christian_moreau": { "n": "Domaine Christian Moreau Père & Fils", "site": "https://www.domainechristianmoreau.com/vineyards-overview/" },
+    "louis_michel": { "n": "Domaine Louis Michel & Fils", "site": "https://www.louismicheletfils.com/chablis-grand-cru" },
+    "drouhin_vaudon": { "n": "Drouhin Vaudon (Joseph Drouhin)", "site": "https://www.drouhin.com/fr_FR/nos-vins" }
+  },
+  "holdings": {
+    "blanchot": [
+      ["laroche", 4.34, "https://larochewines.com/cuvee/la-reserve-de-lobediencerie/", "« Le Domaine Laroche possède 4,34 hectares de ce Grand Cru »"],
+      ["long_depaquit", 1.65, "https://www.albert-bichot.com/en/chablis-grand-cru-les-blanchots_133", "Parcel size: 1,65 ha"],
+      ["billaud_simon", null, "https://billaud-simon.com/le-vignoble/chablis-grand-cru-les-blanchots/", "in the domaine's vineyard pages"],
+      ["christian_moreau", null, "https://www.domainechristianmoreau.com/vineyards-overview/", "in the domaine's vineyards overview"]
+    ],
+    "bougros": [
+      ["long_depaquit", 0.5, "https://www.albert-bichot.com/en/chablis-grand-cru-bougros_132", "Parcel size: 0.5 ha"],
+      ["laroche", null, "https://larochewines.com/cuvee/les-bouguerots/", "Les Bouguerots, its part of Bougros"],
+      ["billaud_simon", null, "https://billaud-simon.com/le-vignoble/chablis-grand-cru-bougros/", "in the domaine's vineyard pages"],
+      ["drouhin_vaudon", null, "https://www.drouhin.com/fr_FR/vin/chablis-grand-cru-bougros/2021", "the family's own vines"]
+    ],
+    "grenouilles": [
+      ["chablisienne", 7.2, "https://chablisienne.com/chateau-grenouilles.html", "Château Grenouilles: « Le domaine de 7,2 hectares d'un seul tenant »"],
+      ["louis_michel", null, "https://www.louismicheletfils.com/chablis-grand-cru", "« Notre parcelle est située dans le haut du coteau »"]
+    ],
+    "les_clos": [
+      ["long_depaquit", 1.54, "https://www.albert-bichot.com/en/chablis-grand-cru-les-clos_134", "Parcel size: 1,54 ha"],
+      ["christian_moreau", null, "https://www.domainechristianmoreau.com/vineyards-overview/", "Les Clos and the Clos des Hospices, the family's since 1904"],
+      ["laroche", null, "https://larochewines.com/cuvee/les-clos/", "in the domaine's cuvées"],
+      ["billaud_simon", null, "https://billaud-simon.com/le-vignoble/chablis-grand-cru-les-clos/", "in the domaine's vineyard pages"],
+      ["louis_michel", null, "https://www.louismicheletfils.com/chablis-grand-cru", "planted 1968"],
+      ["drouhin_vaudon", null, "https://www.drouhin.com/fr_FR/vin/chablis-grand-cru-les-clos/2021", "the family's own vines since the 1960s"]
+    ],
+    "preuses": [
+      ["long_depaquit", 0.37, "https://www.albert-bichot.com/en/chablis-grand-cru-les-preuses_135", "Parcel size: 0,25 ha, plus La Moutonne's 5 % (0.12 ha) of its 2.35 ha monopole"],
+      ["billaud_simon", null, "https://billaud-simon.com/le-vignoble/chablis-grand-cru-les-preuses/", "in the domaine's vineyard pages"],
+      ["drouhin_vaudon", null, "https://www.drouhin.com/fr_FR/vin/chablis-grand-cru-les-preuses/2021", "« la parcelle, replantée en 2007 »"]
+    ],
+    "valmur": [
+      ["billaud_simon", null, "https://billaud-simon.com/le-vignoble/chablis-grand-cru-valmur/", "in the domaine's vineyard pages"],
+      ["christian_moreau", null, "https://www.domainechristianmoreau.com/vineyards-overview/", "in the domaine's vineyards overview"]
+    ],
+    "vaudesir": [
+      ["long_depaquit", 4.83, "https://www.albert-bichot.com/en/chablis-grand-cru-moutonne-monopole_137", "Les Vaudésirs 2,6 ha (…/chablis-grand-cru-les-vaudesirs_136) plus La Moutonne's 95 % (2.23 ha) of its 2.35 ha monopole"],
+      ["billaud_simon", null, "https://billaud-simon.com/le-vignoble/chablis-grand-cru-vaudesir/", "in the domaine's vineyard pages"],
+      ["christian_moreau", null, "https://www.domainechristianmoreau.com/vineyards-overview/", "in the domaine's vineyards overview"],
+      ["louis_michel", null, "https://www.louismicheletfils.com/chablis-grand-cru", "in the domaine's grands crus"],
+      ["drouhin_vaudon", null, "https://www.drouhin.com/fr_FR/vin/chablis-grand-cru-vaudesir/2021", "the family's own vines"]
+    ]
+  },
+  "to_verify": [
+    "Domaine William Fèvre — the biggest owner of grand cru land (Bougros with Côte de Bouguerots, Les Clos, Preuses, Valmur, Vaudésir, Grenouilles); its site (williamfevre.com, now lafite.com) couldn't be read from here",
+    "Domaine François Raveneau and Domaine Vincent Dauvissat — no websites of their own",
+    "Domaine Jean-Paul & Benoît Droin, Domaine Pinson, Samuel Billaud, Domaine des Malandes, Jean-Marc Brocard — not yet looked at"
+  ]
+}

@@ -17,7 +17,7 @@ const norm = s => " " + String(s || "").toLowerCase().normalize("NFD").replace(/
 const REGIONS = [
   { id: "cotedor", name: "Côte d'Or", file: "atlas-cotedor.js?v=4", topo: "atlas-cotedor-topo.js?v=1", dem: "atlas-cotedor-dem.js?v=1", geol: "atlas-cotedor-geol.js?v=1", ui: "atlas-cotedor-ui.js?v=6", ld: "atlas-cotedor-ld.js?v=2", match: "burgundy-match.js?v=3",
   ll: [47.15, 4.86], country: "fr", kind: "Grands crus, premiers crus and village climats, with their owners", kw: [], regional: "" },
-  { id: "chablis", name: "Chablis", file: "atlas-chablis.js?v=1", wx: "atlas-chablis-wx.js?v=1", topo: "atlas-chablis-topo.js?v=1", dem: "atlas-chablis-dem.js?v=1", geol: "atlas-chablis-geol.js?v=1", ld: "atlas-chablis-ld.js?v=1", ll: [47.811, 3.796], country: "fr", kind: "Grand cru · premier cru", kw: ["chablis"], regional: "Regional (Petit Chablis…)" },
+  { id: "chablis", name: "Chablis", file: "atlas-chablis.js?v=1", wx: "atlas-chablis-wx.js?v=1", topo: "atlas-chablis-topo.js?v=1", dem: "atlas-chablis-dem.js?v=1", geol: "atlas-chablis-geol.js?v=1", ld: "atlas-chablis-ld.js?v=1", own: "atlas-chablis-own.js?v=1", ll: [47.811, 3.796], country: "fr", kind: "Grand cru · premier cru", kw: ["chablis"], regional: "Regional (Petit Chablis…)" },
   { id: "chalonnaise", name: "Côte Chalonnaise", file: "atlas-chalonnaise.js?v=1", wx: "atlas-chalonnaise-wx.js?v=1", topo: "atlas-chalonnaise-topo.js?v=1", dem: "atlas-chalonnaise-dem.js?v=1", geol: "atlas-chalonnaise-geol.js?v=1", ld: "atlas-chalonnaise-ld.js?v=1", ll: [46.782, 4.711], country: "fr", kind: "Premier cru", kw: ["mercurey", "givry", "rully", "montagny", "bouzeron", "chalonnaise"], regional: "Regional (Bourgogne Côte Chalonnaise)" },
   { id: "maconnais", name: "Mâconnais", file: "atlas-maconnais.js?v=1", wx: "atlas-maconnais-wx.js?v=1", topo: "atlas-maconnais-topo.js?v=1", dem: "atlas-maconnais-dem.js?v=1", geol: "atlas-maconnais-geol.js?v=1", ld: "atlas-maconnais-ld.js?v=1", ll: [46.288, 4.739], country: "fr", kind: "Premier cru", kw: ["pouilly fuisse", "pouilly vinzelles", "pouilly loche", "saint veran", "st veran", "vire clesse", "macon"], regional: "Regional (Mâcon…)" },
   { id: "champagne", name: "Champagne", file: "atlas-champagne.js?v=1", wx: "atlas-champagne-wx.js?v=1", topo: "atlas-champagne-topo.js?v=1", dem: "atlas-champagne-dem.js?v=1", geol: "atlas-champagne-geol.js?v=1", ld: "atlas-champagne-ld.js?v=1", ll: [49.096, 4.035], country: "fr", kind: "Grand and premier cru villages", kw: ["champagne"], village: "Other villages' vines" },
@@ -647,6 +647,7 @@ function renderSide() {
       ${terrNote()}
       ${cellarSummary()}
       ${window.ATLAS_CD && R.ui ? ATLAS_CD.regionHtml() : ""}
+      ${R.own && window.ATLAS_OWN ? ATLAS_OWN.regionNote() : ""}
       ${!R.ui && window.ATLAS_WXUI ? ATLAS_WXUI.html() : ""}
       <div id="rWines" class="rwines"></div>
       ${gc.length ? groups(gc, "Grand cru") : ""}${pc.length ? groups(pc, "Premier cru") : ""}
@@ -711,7 +712,7 @@ function renderSide() {
    that region only (the other regions have no owners on file) ---------- */
 const prodOk = c => (!st.prod || !window.ATLAS_CD || ATLAS_CD.shown(c, st.prod)) && (!window.ATLAS_CD || !st.region || !st.region.ui || ATLAS_CD.ok(c));
 const holds = (c, k) => !!window.ATLAS_CD && ATLAS_CD.holds(c, k);
-const ownersHtml = c => window.ATLAS_CD ? ATLAS_CD.ownersHtml(c) : "";
+const ownersHtml = c => st.region.ui && window.ATLAS_CD ? ATLAS_CD.ownersHtml(c) : st.region.own && window.ATLAS_OWN ? ATLAS_OWN.html(c) : "";
 const prodBar = () => window.ATLAS_CD ? ATLAS_CD.prodBar() : "";
 const setProd = k => window.ATLAS_CD && ATLAS_CD.setProd(k);
 /* ---------- the region's wines: its grapes' style and aromas, how long they keep, its vintages ---------- */
@@ -1002,7 +1003,8 @@ async function openRegion(id, sel) {
   st.cmpWith = null; st.prod = null; st.vsel = null; terrClear(); $("terrbar").hidden = true; $("terrChip").hidden = !R.dem; terrSync();
   $("profBtn").hidden = !st.pack.meta.l93; $("locBtn").hidden = !navigator.geolocation; if (PROF.on) profToggle(false); // the profile needs IGN's elevation service: France only
   if (R.topo && !topoOf()) loadScript(R.topo).then(() => { if (st.region === R) drawTopo(); }).catch(() => {});
-  st.wy = null; if (R.wx && !(window.ATLAS_WX && ATLAS_WX[R.id])) Promise.all([window.ATLAS_WXUI ? 0 : loadScript("atlas-wx.js?v=2"), window.ATLAS_WX_I18N ? 0 : loadScript("atlas-wx-i18n.js?v=1"), loadScript(R.wx)]).then(() => { if (st.region === R && !st.sel) renderSide(); }).catch(() => {});
+  if (R.own && !(window.ATLAS_OWN_DATA && ATLAS_OWN_DATA[R.id])) Promise.all([window.ATLAS_OWN ? 0 : loadScript("atlas-owners.js?v=1"), window.ATLAS_WX_I18N ? 0 : loadScript("atlas-wx-i18n.js?v=2"), loadScript(R.own)]).then(() => { if (st.region === R) renderSide(); }).catch(() => {});
+  st.wy = null; if (R.wx && !(window.ATLAS_WX && ATLAS_WX[R.id])) Promise.all([window.ATLAS_WXUI ? 0 : loadScript("atlas-wx.js?v=3"), window.ATLAS_WX_I18N ? 0 : loadScript("atlas-wx-i18n.js?v=2"), loadScript(R.wx)]).then(() => { if (st.region === R && !st.sel) renderSide(); }).catch(() => {});
   if (R.dem && !demOf(R.id)) loadScript(R.dem).then(() => { if (st.region === R) { renderSide(); paint(); } }).catch(() => {});
   if (sel && byId(sel)) select(sel, true); else { renderSide(); syncHash(); }
 }
