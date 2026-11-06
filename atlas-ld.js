@@ -71,7 +71,7 @@ window.ATLAS_LDUI = (() => {
       ${cls.length ? `<ul class="list">${cls.map(c => `<li><button type="button" class="plink" data-c="${esc(c.id)}">${esc(c.n)}</button> <span class="note">${esc(CN[c.c] || "")}</span></li>`).join("")}</ul>`
         : vil ? `<p>${esc(t("Village appellation ({0}); no premier or grand cru here.", vil.n))}</p>` : `<p>${esc(t("Regional appellations only."))}</p>`}
       <p class="note">${esc(t("A lieu-dit is a named place on the land register (cadastre); a climat is a named vineyard of an appellation. They often match, but one climat can hold several lieux-dits, and a lieu-dit can straddle two climats."))}</p>
-      <p class="src">${esc(t("Outline: cadastre (Etalab). Terrain: IGN RGE ALTI®, sampled inside the outline."))}</p>`;
+      <p class="src">${esc(m ? t("Outline: cadastre (Etalab). Terrain: IGN RGE ALTI®, sampled inside the outline.") : t("Outline: cadastre (Etalab, Licence Ouverte)."))}</p>`;
   }
   function side() { const s = $("side"); s.innerHTML = html(); $("back").onclick = () => { st.ld = null; sel(); renderSide(); };
     s.querySelectorAll("button[data-c]").forEach(b => b.onclick = () => { st.ld = null; sel(); select(b.dataset.c, true); }); }
