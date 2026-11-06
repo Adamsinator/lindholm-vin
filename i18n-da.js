@@ -1,6 +1,11 @@
 // Danish for allwine.dk: i18n.js loads the one dictionary the page's language needs (English is the source text).
 window.I18N_DICT = window.I18N_DICT || {};
 window.I18N_DICT.da = {
+  "Changes undone": "Ændringerne er fortrudt",
+  "Could not undo: {0}": "Kunne ikke fortryde: {0}",
+  "It's been a while since you kept a copy of your cellar on this device. Save one?": "Det er et stykke tid siden, du gemte en kopi af din kælder på denne enhed. Gem en nu?",
+  "Keep a copy of your cellar on this device? A file of your own, beside the daily backups.": "Gem en kopi af din kælder på denne enhed? En fil, der er din egen, ud over de daglige sikkerhedskopier.",
+  "Not now": "Ikke nu",
   "Select": "Vælg",
   "Selected wines": "Valgte vine",
   "Move to…": "Flyt til…",

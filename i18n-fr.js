@@ -1,6 +1,11 @@
 // French for allwine.dk: i18n.js loads the one dictionary the page's language needs (English is the source text).
 window.I18N_DICT = window.I18N_DICT || {};
 window.I18N_DICT.fr = {
+  "Changes undone": "Modifications annulées",
+  "Could not undo: {0}": "Impossible d'annuler : {0}",
+  "It's been a while since you kept a copy of your cellar on this device. Save one?": "Cela fait un moment que vous n'avez pas gardé de copie de votre cave sur cet appareil. En enregistrer une ?",
+  "Keep a copy of your cellar on this device? A file of your own, beside the daily backups.": "Garder une copie de votre cave sur cet appareil ? Un fichier à vous, en plus des sauvegardes quotidiennes.",
+  "Not now": "Pas maintenant",
   "Select": "Sélectionner",
   "Selected wines": "Vins sélectionnés",
   "Move to…": "Déplacer vers…",
