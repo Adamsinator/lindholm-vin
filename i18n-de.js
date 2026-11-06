@@ -1,6 +1,15 @@
 // German for allwine.dk: i18n.js loads the one dictionary the page's language needs (English is the source text).
 window.I18N_DICT = window.I18N_DICT || {};
 window.I18N_DICT.de = {
+  "Another like this": "Noch einen wie diesen",
+  "Put the closing windows in my calendar": "Die schließenden Trinkfenster in meinen Kalender",
+  "Drink: {0}": "Trinken: {0}",
+  "Its drink window ends in {0}. {1} left in your cellar.": "Sein Trinkfenster schließt {0}. {1} noch in Ihrem Keller.",
+  "Location: {0}": "Lagerort: {0}",
+  "AllWine: windows closing": "AllWine: schließende Trinkfenster",
+  "No wine's window closes in the next three years.": "Kein Trinkfenster schließt in den nächsten drei Jahren.",
+  "{0} wine in the calendar file: open it to add the reminder": "{0} Wein in der Kalenderdatei: öffnen Sie sie, um die Erinnerung hinzuzufügen",
+  "{0} wines in the calendar file: open it to add the reminders": "{0} Weine in der Kalenderdatei: öffnen Sie sie, um die Erinnerungen hinzuzufügen",
   "Changes undone": "Änderungen rückgängig gemacht",
   "Could not undo: {0}": "Konnte nicht rückgängig machen: {0}",
   "It's been a while since you kept a copy of your cellar on this device. Save one?": "Es ist eine Weile her, dass Sie eine Kopie Ihres Kellers auf diesem Gerät gespeichert haben. Jetzt eine speichern?",

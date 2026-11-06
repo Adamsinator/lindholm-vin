@@ -32,7 +32,7 @@ const FLAGS = {
 };
 const LANGS = [{id:"en", n:"English"}, {id:"da", n:"Dansk"}, {id:"de", n:"Deutsch"}, {id:"fr", n:"Français"}];
 
-const FILES = {da: "i18n-da.js?v=32", fr: "i18n-fr.js?v=32", de: "i18n-de.js?v=32"};
+const FILES = {da: "i18n-da.js?v=33", fr: "i18n-fr.js?v=33", de: "i18n-de.js?v=33"};
 const DICT = window.I18N_DICT = window.I18N_DICT || {};
 const known = l => l === "en" || !!FILES[l];
 // the page's own files for a language: the meta tag's entry that ends in -<lang>.js
