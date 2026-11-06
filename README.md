@@ -245,136 +245,40 @@ wine, so the memory is captured before it leaves the cellar.
 
 ## Front page
 
-allwine.dk opens on a front page with two ways in: the **Burgundy atlas**,
+allwine.dk opens on a front page with two ways in: the **Wine atlas**,
 open to everyone with no login, and **Your cellar**, the login form. Logging
 in goes to the cellar as before, and anyone already logged in skips the front
 page and lands straight in their cellar. The atlas preview picture is
 `atlas-preview.jpg`; re-shoot it if the map's look changes a lot.
 
-## Burgundy atlas
+## The Côte d'Or (in the Wine atlas)
 
-**Burgundy atlas ↗** in the tab bar opens `burgundy.html`, a separate page with a
-clickable map of the Côte de Nuits from Marsannay to Corgoloin. It covers every
-grand cru, around a hundred premiers crus and the notable village climats.
+The Côte d'Or is one of the Wine atlas's regions: `atlas.html#r=cotedor`, on the same engine as the others, with its
+own tools on top. `burgundy.html`, its old page, only forwards there now (`burgundy-fwd.js`), keeping `?lang=` and every
+link it took: `#c=` a climat, `#v=` a commune, `#p=` an owner, `#l=` a lieu-dit (by its old key), `#color=…&y=…`.
 
-- **Click a vineyard** to see its classification, area, monopole status, a short
-  note, and its owners with their hectares and share of the climat.
-- **Cellar and atlas, both ways:** a Burgundy bottle in the cellar has **🗺 On the map** (to its vineyard, or its
-  village when the label names no climat; `BURG_MATCH.where`); the overview's Burgundy map has **Open the Burgundy
-  atlas ↗**; and a vineyard in the atlas has **＋ Add a bottle from here**, which opens the cellar's add form filled in
-  with the vineyard, its commune, classification and colour, and the producer being mapped, if any (handed over in
-  `localStorage`, used once, within ten minutes). Tested in `tools/atlas-link-ui-test.js`.
-- **Filters:** grand cru / premier cru / village, monopoles only, a climat search
-  and a producer box. Picking a producer, or clicking a name in a vineyard's
-  holdings, highlights everything they own, coloured by their share.
-- **Colour by** classification, commune, producer's share, size or number of
-  owners. With **my cellar** selected, the vineyards you hold bottles from are
-  coloured by how many you have.
-- **Your cellar:** if you're logged in on the Cellar page in the same browser, the
-  atlas reads your wines (the same API call the cellar uses) and puts a gold dot
-  on each climat you own. It matches the wine name and commune to the climat, so
-  "Gevrey-Chambertin" stays a village wine and doesn't count as Chambertin.
-- Drag to pan, scroll or pinch to zoom, use the commune buttons to jump. The URL
-  hash remembers the selection (`#c=latache`, `#p=drc`), so a view can be shared.
-
-**The Vosne-Romanée domaines** panel under the map has a card for each of the
-big Vosne names: DRC, Liger-Belair, Leroy, Méo-Camuzet, Grivot, Cathiard,
-Arnoux-Lachaux, Rouget, Lamarche, Bizot, Pacalet and more. Each card shows the
-hectares it holds in Vosne and Flagey, its grands crus and monopoles. Clicking
-a card maps everything that producer holds, and opens a profile with:
-
-- its full Côte de Nuits holdings
-- what it holds that isn't on the map (village wine, Côte de Beaune)
-- links to the sources the figures came from
-
-A holding is one of three kinds:
-
-- **owned**, the default
-- **leased**, for vines farmed under a fermage or métayage, such as
-  Liger-Belair's ex-Lamarche parcels from 2022
-- **buys grapes**, for négociant sourcing, such as Pacalet, who owns no vines.
-  These are drawn dotted gold and never counted as ownership or as a share of
-  the climat.
-
-The map also has stone walls around genuine clos, vine rows when zoomed in,
-contour lines, the Route des Grands Crus, village streets and houses, and
-landmarks such as the Croix de Romanée-Conti and the Château du Clos de
-Vougeot.
-
-It covers the whole Côte d'Or: the Côte de Nuits and, from Corton southwards,
-the Côte de Beaune down to Maranges. The commune bar has a button for each Côte.
-Below the map are a **domaines** panel (tabs for Vosne-Romanée and the Côte de
-Beaune), **Compare two producers** (climat by climat), and **Who owns the
-grands crus** (one bar per grand cru, split by owner). Grands crus and key
-premiers crus also show their altitude band, which way they face, soil, and the
-lieux-dits within them.
-
-**On a phone** the map handles like a phone map:
-- a flick keeps gliding and slows down;
-- a pinch keeps the spot under your fingers under them as you zoom;
-- lifting one finger carries on as a pan;
-- double-tap zooms in where you tapped, and a two-finger tap zooms out;
-- a deliberate two-finger twist turns the surveyed map.
-
-Tapping a vineyard opens its details in a **bottom sheet** over the map, holders first. Drag the grip up for full
-height, or down to shrink and close. Commune borders are drawn as a dark dash-dot line on a pale casing, so they
-read over vineyards of any colour.
-
-**Search.** One box finds communes, vineyards, domaines and lieux-dits. Each word you type must start a word
-of the name ("gr rue" → La Grande Rue). The same rule filters the map and the Domaines list. With the box
-empty, it offers **Near me** and your recent picks. Recent picks are kept in this browser only. Near me uses
-the phone's location to put a blue dot on the surveyed map and open the vineyard you're standing in. If you're
-more than 3 km from the nearest vineyard, it only says how far away that is.
-
-**Domaine pages.** `domaine.html?p=<key>` is a shareable page for one domaine:
-- its holdings, numbered, with hectares, share of each climat, leased or bought, and since when;
-- hectares by class;
-- its communes;
-- small surveyed maps, one for each stretch of the Côte it holds in, numbered like the table;
-- sources.
-
-It assembles holdings exactly as the atlas does, including INAO's extra premiers crus and the shared
-corrections. `domaine.html` alone lists every domaine, and the atlas's producer panel links to each page.
-
-### Correcting a holding
-
-Holdings drift: parcels get bought, swapped and leased. Anyone logged in to the
-cellar in the same browser gets a **✎ Correct the holdings** button on each
-vineyard. You can:
-
-- set a producer's hectares, kind (owned, leased, buys grapes) and first
-  vintage
-- add a producer who isn't listed yet
-- remove a producer
-
-Each correction needs a source note. Corrections are stored in an
-**AtlasEdits** tab in the master spreadsheet, shared with everyone who opens the
-atlas, and logged with the editor's username, which is never shown publicly.
-The newest correction for a vineyard and producer wins. Deleting the row in the
-sheet brings back the figure shipped in the code.
-
-To restrict who may edit, set `ATLAS_EDITORS` at the top of `Code.gs` to a
-comma-separated list of usernames; blank lets any signed-in user edit.
-
-**This needs the updated `Code.gs` redeployed** (API version 25), the same way
-as any other Apps Script change. Until then the button explains that a
-redeploy is needed.
-
-The data lives in `burgundy-data.js` (Côte de Nuits), `burgundy-data-beaune.js`
-(Côte de Beaune) and `burgundy-detail.js` (altitude, aspect, soil, lieux-dits). **The map is schematic:** each commune is
-drawn on its own grid, so neighbours, slope position and rough size are right,
-but it is not a survey. Vosne's smallest grands crus are drawn larger than life
-so they stay clickable. Holdings are approximate figures from published
-ownership lists, domaine sites and trade press. To correct one, edit the `p:` list of
-that climat; a third element `"f"` marks a lease, `"s"` bought grapes. Domaine
-profiles and their sources are in `PROFILES`. When you change the JS, bump the
-`?v=` on the `<script>` tags in `burgundy.html`.
+- **The data** is still kept in the `burgundy-*.js` files (climats, owners and notes in `burgundy-data*.js`, INAO
+  outlines in `burgundy-geo.js`, IGN roads and names in `burgundy-topo*.js`, BRGM geology, IGN terrain, the cadastre's
+  lieux-dits, the vintages). `tools/cotedor-pack.js` turns them into the region's packs (`atlas-cotedor*.js`), moved
+  into Lambert-93 like the other French regions. **Re-run it after changing any `burgundy-*.js` file**;
+  `tools/cotedor-atlas-ui-test.js` checks the packs against their sources.
+- **Owners** (`atlas-cotedor-ui.js`, loaded with this region only): each climat's owners with their hectares and share,
+  leased / buys grapes, monopoles; a click on a name shows everything they hold, and **Compare with** another owner;
+  who owns the grands crus. To correct a figure, edit the `p:` list of that climat in `burgundy-data*.js`
+  (a third element `"f"` marks a lease, `"s"` bought grapes) and re-run the pack, or use **✎** on the page when logged
+  in: corrections go to the cellar's sheet (`ATLAS_EDITORS`) and show for everyone.
+- **Colour by** (the Map panel, `atlas-color.js`): classification, altitude, slope, the way it faces, size, your
+  bottles, and here also commune, number of owners, Lavalle 1855 and vintage (with ◀ ▶ through the years).
+- **Vintages and weather**: each climat's Côte and colour's ratings, the frost, hail and heat that hit its commune,
+  Météo-France's weather at Dijon-Longvic and the warming chart.
+- **Lieux-dits** (`atlas-ld.js`): drawn and named zoomed in, listed in a climat's panel, opened with a tap.
+- **Your cellar**: if you're logged in on the Cellar page in the same browser, your bottles land on their climats
+  through `burgundy-match.js`, the matcher the cellar uses (a premier cru needs its commune on the label).
 
 ## Region atlas (Burgundy beyond the Côte d'Or, Champagne, Alsace, the Rhône, the Loire, the Jura, Provence, Bordeaux, Germany)
 
-**More regions ↗** (tab bar, and in the Burgundy atlas) opens `atlas.html`: one wine region at a time, from INAO's own
-vineyard outlines. The Côte d'Or keeps its richer atlas (`burgundy.html`); the region atlas is lighter and generic, so a
-new region is a data file, not new code.
+**More regions ↗** (tab bar) opens `atlas.html`: one wine region at a time, from INAO's own vineyard outlines. The
+engine is generic, so a new region is a data file, not new code; a region's own tools come as a module (the Côte d'Or).
 
 - **On the map:** grands crus, premiers crus, the village appellations and the regional land; pan, zoom (wheel, pinch,
   ＋ − ⌂), click a vineyard for its classification, appellation and INAO area. Filters for grand / premier cru and
@@ -458,7 +362,7 @@ climats and INAO's other premiers crus, plus the region packs), in English, Fren
 `v/<lang>/index.html` listing them all. A page shows the vineyard's outline from INAO's map among its neighbours
 (each a link), its appellation, commune, area, colour, altitude, slope and aspect, the atlas note and soil, the
 owners on file, its nearest neighbours, and a button into the interactive map in the same language
-(`burgundy.html?lang=fr#c=…`, `atlas.html?lang=fr#r=…&c=…`; `?lang=` sets the language on any page).
+(`atlas.html?lang=fr#r=…&c=…`; `?lang=` sets the language on any page).
 
 They carry no scripts: a strict CSP of their own, one shared `v/page.css`, a canonical link, hreflang links to the
 other three languages, and schema.org `Place` data with the coordinates (Lambert-93 or the atlas's metres turned
@@ -1062,7 +966,7 @@ Cloudflare's runtime, `workerd`.
 
 ### Content-Security-Policy
 
-`index.html`, `burgundy.html` and `domaine.html` each carry a policy as a `<meta http-equiv>` tag (GitHub Pages can't
+`index.html`, `atlas.html` and `domaine.html` each carry a policy as a `<meta http-equiv>` tag (GitHub Pages can't
 send headers), plus `referrer: strict-origin-when-cross-origin`.
 
 - **Scripts:** only the site's own files; Turnstile's script on the cellar page.

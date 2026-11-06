@@ -13,7 +13,7 @@ const KB = n => Math.round(n / 1024);
 // KB gzipped (2026-11: index 245, atlas 76, burgundy 468, domaine 329, privacy 37, 404 1)
 // index.html 280 KB (270 → 275 → 280, November 2026): the cellar app keeps growing; business-only words load on their own.
 // Done: the owner's admin code moved out of app.js into admin.js (5 November 2026)
-const PAGES = { "index.html": 280, "atlas.html": 97, "burgundy.html": 520, "domaine.html": 360, "privacy.html": 52, "help.html": 60, "share.html": 50, "404.html": 5 };
+const PAGES = { "index.html": 280, "atlas.html": 97, "burgundy.html": 5, "domaine.html": 360, "privacy.html": 52, "help.html": 60, "share.html": 50, "404.html": 5 };
 // atlas.html raised 90 → 95 KB (5 November 2026): the shared dictionaries grew with the style card, the cellar map and the business words; the atlas itself did not
 // atlas.html 95 → 97 and privacy.html 50 → 52 KB (6 November 2026): again the shared dictionary (i18n-da.js, 36 KB of the
 // 96), now with the map tools' words; the atlas's own new code loads with the region that uses it. The lasting fix is

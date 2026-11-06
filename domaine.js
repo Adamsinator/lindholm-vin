@@ -98,7 +98,7 @@ function mapSvg(parts, hold){
   // context: the communes' village land and every other climat in view, faint
   const ctx = Object.values(GEO.villages).filter(inBox).map(mp => `<path class="mv" d="${mp.map(p => p.map(ring).join("")).join("")}"/>`).join("")
     + C.filter(c => !hold.some(h => h.c===c)).map(c => geomOf(c.id)).filter(mp => mp && inBox(mp)).map(mp => `<path class="mc" d="${mp.map(p => ring(p[0])).join("")}"/>`).join("");
-  const shapes = parts.map(({h, mp}) => `<a href="burgundy.html#c=${encodeURIComponent(h.c.id)}"><path class="mh ${h.c.c==="1er"?"p1":h.c.c} ${h.kind==="s"?"buys":""}" d="${mp.map(p => p.map(ring).join("")).join("")}" fill-rule="evenodd"><title>${esc(h.c.n)}${h.ha!=null&&h.kind!=="s" ? " · " + fmtHa(h.ha) + " ha" : ""}</title></path></a>`).join("");
+  const shapes = parts.map(({h, mp}) => `<a href="atlas.html#r=cotedor&c=${encodeURIComponent(h.c.id)}"><path class="mh ${h.c.c==="1er"?"p1":h.c.c} ${h.kind==="s"?"buys":""}" d="${mp.map(p => p.map(ring).join("")).join("")}" fill-rule="evenodd"><title>${esc(h.c.n)}${h.ha!=null&&h.kind!=="s" ? " · " + fmtHa(h.ha) + " ha" : ""}</title></path></a>`).join("");
   // number badges at the point deepest inside each holding's largest piece
   const badges = parts.map(({i, mp}) => { const big = mp.reduce((a, p) => area(p[0]) > area(a[0]) ? p : a, mp[0]);
     const [bx, by] = pole(big);
@@ -154,7 +154,7 @@ function domaineHtml(r){
       <h1>${esc(r.name)}</h1>
       ${psz ? `<div class="meta">${t("{0} in all", esc(psz))}</div>` : ""}
       <div class="acts">
-        <a class="btn primary" href="burgundy.html#p=${encodeURIComponent(r.key)}">${t("Open in the atlas")} →</a>
+        <a class="btn primary" href="atlas.html#r=cotedor&p=${encodeURIComponent(r.key)}">${t("Open in the atlas")} →</a>
         <button class="btn" id="shareBtn" type="button">${t("Share")}</button>
         <button class="btn quiet" id="printBtn" type="button">${t("Print")}</button>
       </div>
@@ -175,7 +175,7 @@ function domaineHtml(r){
           <thead><tr><th>#</th><th>${t("Climat")}</th><th class="n">ha</th><th class="n">${t("Share")}</th></tr></thead>
           <tbody>${hold.map(({c, ha, kind, since}, i) => `<tr${kind==="s" ? ' class="buys"' : ""}>
             <td class="num">${i+1}</td>
-            <td><span class="cls ${c.c==="1er"?"p1":c.c}"></span><a href="burgundy.html#c=${encodeURIComponent(c.id)}">${esc(c.n)}</a>
+            <td><span class="cls ${c.c==="1er"?"p1":c.c}"></span><a href="atlas.html#r=cotedor&c=${encodeURIComponent(c.id)}">${esc(c.n)}</a>
               ${kind||since ? ` <span class="ktag ${kind}">${[kind && t(KIND[kind]), since && t("since {0}", since)].filter(Boolean).map(esc).join(" · ")}</span>` : ""}
               <div class="sub">${esc(t(CLASS[c.c]))} · ${esc(VIL[c.v].n)}${c.mono ? " · " + esc(t("Monopole")) : ""}</div></td>
             <td class="n">${kind==="s" ? "" : ha!=null ? `<b>${fmtHa(ha)}</b>` : t("holder")}</td>

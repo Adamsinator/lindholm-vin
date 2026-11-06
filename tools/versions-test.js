@@ -10,12 +10,12 @@ const read = f => fs.readFileSync(path.join(R, f), "utf8");
 
 const seen = {}; // file → { version: [where] }
 const note = (file, v, where) => { ((seen[file] ??= {})[v] ??= []).push(where); };
-for (const page of ["index.html", "burgundy.html", "domaine.html", "privacy.html", "atlas.html"]) {
+for (const page of ["index.html", "burgundy.html", "domaine.html", "privacy.html", "atlas.html"]) { // burgundy.html: its forwarder only
   for (const m of read(page).matchAll(/<script src="([\w./-]+\.js)\?v=(\d+)"/g)) note(m[1], m[2], page);
   // a page's texts in each language, loaded by i18n.js from <meta name="i18n-extra">
   for (const m of read(page).matchAll(/<meta name="i18n-extra" content="([^"]*)"/g)) for (const f of m[1].split(/\s+/)) { const x = f.match(/^([\w./-]+\.js)\?v=(\d+)$/); if (x) note(x[1], x[2], page); }
 }
-for (const js of ["burgundy.js", "atlas.js", "i18n.js"]) for (const m of read(js).matchAll(/"([\w.-]+\.js)\?v=(\d+)"/g)) note(m[1], m[2], js);
+for (const js of ["atlas.js", "i18n.js"]) for (const m of read(js).matchAll(/"([\w.-]+\.js)\?v=(\d+)"/g)) note(m[1], m[2], js);
 for (const [file, vs] of Object.entries(seen)) {
   const keys = Object.keys(vs);
   check(`${file} is asked for at one version everywhere`, keys.length === 1, keys.map(k => `v${k} in ${vs[k].join(", ")}`).join(" · "));

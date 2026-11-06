@@ -96,75 +96,66 @@ const overflow=async(p,where)=>{ const o=await p.evaluate(()=>document.documentE
     catch(e){ note(tag,'tab '+pg+' '+e.message); }
   }
   // atlas link from app
-  // the tab goes to the Wine atlas's Europe page; the Côte d'Or atlas is one of its regions
+  // the tab goes to the Wine atlas's Europe page; the Côte d'Or is one of its regions
   try{ await p.click('.tablink'); await p.waitForURL(/atlas\.html/,{timeout:15000}).catch(()=>note(tag,'tablink did not navigate'));
     if(!(await p.locator('#map .hd').count())) note(tag,'wine atlas: no regions on the Europe map');
-    await p.click((await p.isVisible('#rchips')) ? '#rchips button[data-r="burgundy"]' : '#side button[data-go="burgundy"]'); /* a phone: the region chips */ await p.waitForURL(/burgundy/,{timeout:15000}).catch(()=>note(tag,'Côte d\'Or link did not navigate')); await mapReady(p); }catch(e){note(tag,'tablink '+e.message)}
+    if(await p.isVisible('#rchips')) await p.click('#rchips button[data-r="cotedor"]'); else await p.click('#side button[data-go="cotedor"]'); /* a phone: the region chips */
+    await p.waitForURL(/#r=cotedor/,{timeout:15000}).catch(()=>note(tag,'Côte d\'Or did not open')); await mapReady(p); }catch(e){note(tag,'tablink '+e.message)}
   await overflow(p,tag+' atlas');
-  // atlas: every colour mode, chips, search, sorting, compare, cote buttons
-  // phones fold the filters behind a button: open them first
-  if(await p.isVisible('#tbToggle')) await p.click('#tbToggle');
-  for(const col of ['commune','producer','size','owners','cellar','class']){ await p.selectOption('#fColor',col); await p.waitForTimeout(80); }
-  for(const ch of ['[data-cls="GC"]','[data-cls="1er"]','[data-cls="V"]','#monoChip','#monoChip','[data-cls="GC"]','[data-cls="1er"]','[data-cls="V"]']) { try{ await p.click(ch);}catch(e){note(tag,'chip '+ch+' '+e.message)} }
-  await p.fill('#fSearch','suchots'); await p.press('#fSearch','Enter'); await p.waitForTimeout(500);
-  await p.fill('#fSearch','leroy'); await p.waitForTimeout(300); await p.press('#fSearch','Enter'); await p.waitForTimeout(500);
-  if(!(await p.isVisible('#prodChip'))) note(tag,'producer chip not shown after producer search');
-  if(!(await p.isVisible('#side'))) note(tag,'drawer not open in producer view');
-  await p.click('#prodChip'); await p.waitForTimeout(300);
-  if(await p.isVisible('#side')) note(tag,'drawer still open after clearing producer');
-  if(!(await p.isVisible('#zInfo'))) await p.click('#moreBtn'); // the rarer tools sit behind ⋯
-  await p.click('#zInfo'); await p.waitForTimeout(200); if(!/Marsannay/.test(await p.textContent('#side'))) note(tag,'overview not shown');
-  await p.keyboard.press('Escape'); await p.waitForTimeout(200); if(await p.isVisible('#side')) note(tag,'Escape did not close overview');
-  await p.selectOption('#fCommune','gevrey'); await p.waitForTimeout(500);
-  if(!/Gevrey/.test(await p.textContent('#side'))) note(tag,'commune select did not open Gevrey');
-  for(const x of ['list','gc','cmp','domaines']){ await p.click('.xtabs [data-x='+x+']'); await p.waitForTimeout(100);
-    if(!(await p.isVisible('.xpane[data-x='+x+']'))) note(tag,'tab '+x+' pane not visible'); if(x==='list') await overflow(p,tag+' list tab'); }
-  for(const th of ['n','v','c','ha','own']) await p.evaluate(k=>document.querySelector('#list th[data-k='+k+']').click(), th);
-  await p.click('#coteSeg [data-cote=beaune]'); await p.waitForTimeout(500);
-  await p.click('#dtabs [data-t=beaune]'); await p.click('#dtabs [data-t=vosne]');
-  // orientation: rotate, compass back to north, locator jump, where-am-I pill, wine colour filter
-  if(await p.isVisible('#rotR')){ await p.click('#rotR'); await p.click('#rotR'); await p.waitForTimeout(300);
-    if(await p.evaluate(()=>localStorage.getItem('atlasRot'))!=='30') note(tag,'rotation not applied');
-    await p.click('#compass'); await p.waitForTimeout(300); if(await p.evaluate(()=>localStorage.getItem('atlasRot'))!=='0') note(tag,'compass did not reset north'); }
-  await p.click('#zIn'); await p.click('#zIn'); await p.waitForTimeout(300);
-  if(!(await p.isVisible('#here'))) note(tag,'where-am-I pill hidden when zoomed in');
-  else { await p.click('#here'); await p.waitForTimeout(300); if(!(await p.isVisible('#side'))) note(tag,'pill click did not open the commune'); }
+  // the Côte d'Or: every colour mode, the filters, search, an owner, a commune, the Côtes
+  const cd = (f, ...a) => p.evaluate(f, ...a);
+  try{ await p.click('#styleBtn'); await p.waitForFunction(()=>document.querySelectorAll('#fColor option').length>6,null,{timeout:10000});
+    for(const col of ['commune','owners','history','size','alt','slope','faces','cellar','vintage','class']){ await p.selectOption('#fColor',col); await p.waitForTimeout(120); }
+    await p.click('#rotR'); await p.click('#rotR'); await p.waitForTimeout(200);
+    if(await cd(()=>localStorage.getItem('atlasRot'))!=='30') note(tag,'rotation not applied');
+    await p.keyboard.press('Escape'); await p.click('#compass'); await p.waitForTimeout(300); if(await cd(()=>localStorage.getItem('atlasRot'))!=='0') note(tag,'compass did not reset north');
+  }catch(e){ note(tag,'map panel '+e.message); await p.keyboard.press('Escape').catch(()=>{}); }
+  for(const ch of ['#fGC','#f1er','#fV','#cdMono','#cdMono','#fGC','#f1er','#fV']){ try{ if(await p.isVisible(ch)) await p.click(ch); else if(tag!=='mob') note(tag,'filter '+ch+' hidden'); }catch(e){note(tag,'filter '+ch+' '+e.message)} }
+  if(await p.isVisible('#cdFilters')){ await p.click('#cdFilters [data-cdcol=W]'); await p.waitForTimeout(150);
+    if(!(await cd(()=>byId('montrachet') && !byId('montrachet').el.classList.contains('dim') && byId('chambertin').el.classList.contains('dim')))) note(tag,'white filter did not keep only white'); await p.click('#cdFilters [data-cdcol=""]'); }
+  const box = (await p.isVisible('#fSearch')) ? '#fSearch' : null;
+  if(box){ await p.fill(box,'suchots'); await p.waitForTimeout(250); await p.press(box,'Enter'); await p.waitForTimeout(400);
+    if(await cd(()=>st.sel)!=='suchots') note(tag,'search did not open Les Suchots');
+    await p.fill(box,'domaine leroy'); await p.waitForTimeout(250); await p.press(box,'Enter'); await p.waitForTimeout(400);
+    if(!(await p.isVisible('.prodbar'))) note(tag,'owner bar not shown after an owner search');
+    else { await cd(()=>$('prodX').click()); await p.waitForTimeout(200); if(await cd(()=>st.prod)) note(tag,'owner still set after ✕'); } }
+  await cd(()=>select(null)); await p.waitForTimeout(300);
+  if(await p.isVisible('#cdVil')){ await p.selectOption('#cdVil','gevrey'); await p.waitForTimeout(400); if(!/Gevrey/.test(await p.textContent('#side h2'))) note(tag,'commune select did not open Gevrey');
+    await cd(()=>{ st.vsel=null; renderSide(); }); await p.waitForTimeout(200); }
+  else note(tag,'no commune menu in the region panel');
+  if(await p.isVisible('.cdjump [data-cote=beaune]')){ await cd(()=>document.querySelector('.cdjump [data-cote=beaune]').click()); await p.waitForTimeout(400); }
+  // orientation: the locator jump, zoomed in
+  await cd(()=>{ const [x,y,w,h]=st.view; zoomAt(.2,x+w/2,y+h/2); }); await p.waitForTimeout(600);
   if(await p.isVisible('#locator')){ const bx=await p.$eval('#locator', e=>{const r=e.getBoundingClientRect(); return [r.left+r.width/2, r.top+r.height*.8];}); await p.mouse.click(bx[0],bx[1]); await p.waitForTimeout(500); }
-  await p.click('#wineSeg [data-wc=W]'); await p.waitForTimeout(200);
-  if(!/of \d+ vineyards match/.test(await p.textContent('#legend'))) note(tag,'legend count missing with white filter');
-  await p.click('#wineSeg [data-wc=""]');
+  else if(tag!=='mob') note(tag,'locator hidden when zoomed in');
   // vintages: colour by vintage, step the year, the table drives the map, the vineyard panel has a chart
-  if(await p.$('#fColor option[value=vintage]')){
-    await p.selectOption('#fColor','vintage'); await p.waitForTimeout(200);
-    const y0 = await p.textContent('#legend .vyear b'); if(!y0) note(tag,'vintage legend has no year');
-    else { await p.evaluate(()=>document.querySelector('#legend [data-vstep="-1"]').click()); await p.waitForTimeout(200); if((await p.textContent('#legend .vyear b'))===y0) note(tag,'vintage step did not change the year'); }
-    await p.click('.xtabs [data-x=vint]'); await p.waitForTimeout(150);
-    const rows = await p.$$('#vintages tr[data-vy]'); if(rows.length < 20) note(tag,'vintage table has only '+rows.length+' rows');
-    else { await rows[3].click(); await p.waitForTimeout(300); }
-    await p.evaluate(()=>window.__atlas.CL.latache.el.dispatchEvent(new MouseEvent('click',{bubbles:true}))); await p.waitForTimeout(200);
-    if(!(await p.$('#side .vchart'))) note(tag,'no vintage chart in the vineyard panel');
-    await p.selectOption('#fColor','class');
-  }
-  // language: Danish and French re-render the legend and panel, English comes back
-  for(const [lg, word] of [['da','Klassifikation'],['fr','Classement'],['en','Classification']]){
-    // a language's dictionary may have to be fetched first (i18n.js): wait for the switch, not a fixed time
-    await p.click(`.langpick [data-lang=${lg}]`); await p.waitForFunction(l => document.documentElement.lang === l, lg, { timeout: 5000 }).catch(() => {}); await p.waitForTimeout(150);
-    if(!(await p.textContent('#legend')).includes(word)) note(tag, `legend not in ${lg} after switching language`); }
-  await p.click('#reset'); await p.waitForTimeout(400);
+  await cd(()=>select(null)); await p.waitForFunction(()=>document.querySelectorAll('.vtab tbody tr').length>=20,null,{timeout:15000}).catch(()=>note(tag,'no vintage table in the region panel'));
+  const vrow = await p.$('.vtab tbody tr:nth-child(4) [data-vy]'); if(vrow){ await vrow.evaluate(e=>e.click()); await p.waitForTimeout(300); /* a phone: below the sheet's fold */ if(await cd(()=>st.color)!=='vintage') note(tag,'a vintage table year did not colour the map'); }
+  const y0 = await p.textContent('#legend .vyear b').catch(()=>null); if(!y0) note(tag,'vintage legend has no year');
+  else { await cd(()=>document.querySelector('#legend [data-vstep="-1"]').click()); await p.waitForTimeout(200); if((await p.textContent('#legend .vyear b'))===y0) note(tag,'vintage step did not change the year'); }
+  await cd(()=>select('latache')); await p.waitForTimeout(300); if(!(await p.$('#side .vchart'))) note(tag,'no vintage chart in the vineyard panel');
+  await cd(()=>{ st.color='class'; paint(); renderLegend(); });
+  // language: Danish and French re-render the panel, English comes back
+  for(const [lg, word] of [['da','Ejere'],['fr','Propriétaires'],['en','Owners']]){
+    const pick = await p.$(`.langpick [data-lang=${lg}]`); if(!pick || !(await pick.isVisible())) continue;
+    await pick.click(); await p.waitForFunction(l => document.documentElement.lang === l, lg, { timeout: 5000 }).catch(() => {}); await p.waitForTimeout(300);
+    if(!(await p.textContent('#side')).includes(word)) note(tag, `panel not in ${lg} after switching language`); }
   await p.screenshot({path:OUT+tag+'_atlas.png'});
-  // every climat, village and producer panel renders
-  const ids=await p.evaluate(()=>({c:Object.keys(window.__atlas.CL), p:Object.keys(window.__atlas.PROD)}));
+  // every climat's panel renders, with its description; every owner's holdings
+  const ids=await cd(()=>({c:st.pack.climats.map(c=>c.id), p:Object.keys(st.pack.producers).filter(k=>st.pack.climats.some(c=>holds(c,k)))}));
   for(const id of ids.c){
-    const bad = await p.evaluate(id=>{ const c=window.__atlas.CL[id]; c.el.dispatchEvent(new MouseEvent('click',{bubbles:true}));
-      const t=document.getElementById('side').textContent; return /M-?\d+(\.\d+)? -?\d+(\.\d+)?L/.test(t) || (c.d && !t.includes(c.d.slice(0,25))); }, id);
-    if(bad) note(tag,'side panel for '+id+' does not show its description');
+    const bad = await cd(id=>{ select(id); const c=byId(id), t=document.getElementById('side').textContent; return /M-?\d+(\.\d+)? -?\d+(\.\d+)?L/.test(t) || (c.d && !t.includes(c.d.slice(0,25))) || !t.includes(c.n); }, id);
+    if(bad) note(tag,'side panel for '+id+' does not show its name or description');
   }
-  const sideEmpty=await p.evaluate(()=>document.getElementById('side').textContent.trim().length<20); if(sideEmpty) note(tag,'side panel empty after clicks');
-  for(const k of ids.p.slice(0, tag==='desk'?999:30)){ await p.evaluate(k=>{ location.hash='p='+k; }, k); }
-  // edit flow
-  await p.evaluate(()=>window.__atlas.CL.latache.el.dispatchEvent(new MouseEvent('click',{bubbles:true}))); await p.waitForTimeout(200);
-  if(await p.$('#edOpen')){ await p.click('#edOpen'); await p.fill('#edP','Domaine Leroy'); await p.fill('#edHa','0.1'); await p.fill('#edN','smoke'); await p.click('#edForm button[type=submit]');
-    await p.waitForFunction(()=>/Domaine Leroy/.test(document.getElementById('side').textContent),null,{timeout:10000}).catch(()=>note(tag,'edit did not apply')); }
+  const sideEmpty=await cd(()=>document.getElementById('side').textContent.trim().length<20); if(sideEmpty) note(tag,'side panel empty after clicks');
+  for(const k of ids.p.slice(0, tag==='desk'?999:30)){ const ok = await cd(k=>{ setProd(k); return !!document.querySelector('.prodbar'); }, k); if(!ok) note(tag,'no holdings bar for '+k); }
+  await cd(()=>setProd(null));
+  // edit flow (the cellar's login is in this browser)
+  await cd(()=>select('latache')); await p.waitForTimeout(400);
+  // through the page, not clicks: on a phone the panel is a sheet, and these lie below its fold
+  if(await p.$('#edOpen')){ await cd(()=>$('edOpen').click()); await p.waitForSelector('#edForm',{timeout:5000}).catch(()=>{});
+    await cd(()=>{ $('edP').value='Domaine Leroy'; $('edHa').value='0.1'; $('edN').value='smoke'; $('edForm').requestSubmit(); });
+    await p.waitForFunction(()=>/Domaine Leroy/.test(document.getElementById('side').textContent) && !document.getElementById('edForm'),null,{timeout:10000}).catch(()=>note(tag,'edit did not apply')); }
   else note(tag,'no edit button while logged in');
   // logout returns to the front page
   await p.goto(BASE); await p.waitForSelector('#app:not([hidden])',{timeout:20000}).catch(()=>{}); await p.waitForTimeout(300);
@@ -172,8 +163,8 @@ const overflow=async(p,where)=>{ const o=await p.evaluate(()=>document.documentE
   await ctx.close();
  }
  // atlas DOM size and timing
- const p=await b.newPage(); const t0=Date.now(); await p.goto(BASE+'burgundy.html'); await p.waitForLoadState('load'); await mapReady(p);
- const stats=await p.evaluate(()=>({nodes:document.getElementsByTagName('*').length, svg:document.querySelectorAll('#map *').length, labels:document.querySelectorAll('.lab').length}));
+ const p=await b.newPage(); const t0=Date.now(); await p.goto(BASE+'atlas.html#r=cotedor'); await p.waitForLoadState('load'); await mapReady(p);
+ const stats=await p.evaluate(()=>({nodes:document.getElementsByTagName('*').length, svg:document.querySelectorAll('#map *').length, labels:document.querySelectorAll('#map .lb').length}));
  const t=await p.evaluate(()=>{ const t0=performance.now(); for(let i=0;i<20;i++){ document.getElementById('zIn').click(); } return performance.now()-t0; });
  console.log('atlas load ms', Date.now()-t0, JSON.stringify(stats), '20 zoom clicks ms', Math.round(t));
  console.log(findings.length? findings.join('\n') : 'NO FINDINGS'); console.log('screenshots in', OUT);

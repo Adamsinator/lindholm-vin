@@ -1291,7 +1291,7 @@ function atlasLink(w){
   const rg = ATLAS_REGIONS.find(r => r.re.test([w.region, w.commune, w.name].join(" ")));
   if(rg) return `<a class="atlaslink" href="atlas.html#r=${rg.id}&w=${encodeURIComponent([w.name, w.commune].filter(Boolean).join(" "))}">${svgi("map")} ${esc(tr("On the map"))}</a>`;
   const at = window.BURG_MATCH && BURG_MATCH.where ? BURG_MATCH.where(w) : null;
-  return at ? `<a class="atlaslink" href="burgundy.html#${at.c ? "c="+encodeURIComponent(at.c) : "v="+encodeURIComponent(at.v)}">${svgi("map")} ${esc(tr("On the map"))}</a>` : "";
+  return at ? `<a class="atlaslink" href="atlas.html#r=cotedor&${at.c ? "c="+encodeURIComponent(at.c) : "v="+encodeURIComponent(at.v)}">${svgi("map")} ${esc(tr("On the map"))}</a>` : "";
 }
 // the atlas's "Add a bottle from here": open the add form filled in (once, and only if it's fresh)
 function takePrefill(){
@@ -2391,7 +2391,7 @@ function sommLoad(){
   if(!window.WINE_KB) need.push("wine-kb.js?v=2");
   if(!window.SOMM_DATA) need.push("sommelier-data.js?v=6");
   if(!window.SOMM_WORLD) need.push("sommelier-world.js?v=2");
-  if(!window.SOMMELIER) need.push("sommelier.js?v=9");
+  if(!window.SOMMELIER) need.push("sommelier.js?v=10");
   if(!window.BURG_VINTAGES) need.push("burgundy-vintages.js?v=5");
   if(["da","fr","de"].includes(lang) && !(window.BURG_I18N && BURG_I18N[lang])) need.push(`burgundy-i18n-${lang}.js?v=${lang==="de"?1:5}`);
   SOMM.lang = lang;

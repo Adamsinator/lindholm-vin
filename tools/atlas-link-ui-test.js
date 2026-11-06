@@ -42,9 +42,9 @@ const gas = H({ Ark1: [HEAD,
   const open = async prod => { const tr = p.locator(`#tbl tr.main:has-text("${prod}")`).first(); if ((await tr.getAttribute("aria-expanded")) !== "true") { await tr.click(); await p.waitForTimeout(250); } return p.locator(`#tbl tr.main:has-text("${prod}") + tr.detail`); };
   const rou = await open("Armand Rousseau");
   const href = await rou.locator("a.atlaslink").getAttribute("href").catch(() => null);
-  check("a Burgundy bottle has 'On the map', to its vineyard", href === "burgundy.html#c=closstjacques", href);
+  check("a Burgundy bottle has 'On the map', to its vineyard", href === "atlas.html#r=cotedor&c=closstjacques", href);
   const lef = await open("Domaine Leflaive");
-  check("…one with only a village goes to the village", /^burgundy\.html#v=/.test(await lef.locator("a.atlaslink").getAttribute("href").catch(() => "")));
+  check("…one with only a village goes to the village", /^atlas\.html#r=cotedor&v=/.test(await lef.locator("a.atlaslink").getAttribute("href").catch(() => "")));
   const krug = await open("Krug");
   const kh = await krug.locator("a.atlaslink").getAttribute("href").catch(() => null);
   check("…a Champagne goes to the Champagne atlas", /^atlas\.html#r=champagne&w=/.test(kh || ""), kh);
@@ -58,13 +58,13 @@ const gas = H({ Ark1: [HEAD,
   await p.keyboard.press("Escape"); await p.waitForTimeout(200);
 
   await p.evaluate(() => { MAP_VIEW = "Bourgogne"; renderMap(); });
-  check("the overview's Burgundy map links to the atlas", await p.isVisible("#mapAtlas") && (await p.getAttribute("#mapAtlas", "href")) === "burgundy.html");
+  check("the overview's Burgundy map links to the atlas", await p.isVisible("#mapAtlas") && (await p.getAttribute("#mapAtlas", "href")) === "atlas.html#r=cotedor");
   await p.evaluate(() => { MAP_VIEW = "europe"; renderMap(); });
   check("…the Europe view doesn't", await p.isHidden("#mapAtlas"));
 
   // into the atlas
   await (await open("Armand Rousseau")).locator("a.atlaslink").click();
-  await p.waitForURL(/burgundy\.html#c=closstjacques/); await p.waitForSelector("#side h2", { timeout: 20000 }); await p.waitForTimeout(1500);
+  await p.waitForURL(/atlas\.html#r=cotedor&c=closstjacques/); await p.waitForFunction(() => /Saint-Jacques|St-Jacques/.test((document.querySelector("#side h2") || {}).textContent || ""), null, { timeout: 20000 }).catch(() => {}); await p.waitForTimeout(1500);
   check("the atlas opens on the vineyard", /Clos Saint-Jacques|Clos St-Jacques/.test(await p.textContent("#side h2")), await p.textContent("#side h2"));
   check("…with the bottles under 'In your cellar'", /In your cellar[\s\S]*Armand Rousseau/.test(await p.textContent("#side")));
   await p.click("#addHere");
@@ -78,7 +78,7 @@ const gas = H({ Ark1: [HEAD,
 
   // with a producer being mapped, the producer comes along
   const prodKey = "rousseau"; // burgundy-data.js: producers
-  await p.goto(BASE + "burgundy.html#c=chambertin&p=" + prodKey); await p.waitForSelector("#addHere", { timeout: 20000 }); await p.waitForTimeout(800);
+  await p.goto(BASE + "atlas.html#r=cotedor&c=chambertin&p=" + prodKey); await p.waitForSelector("#addHere", { timeout: 20000 }); await p.waitForTimeout(800);
   check("…in the atlas the button names the producer being mapped", prodKey && /Rousseau/.test(await p.textContent("#addHere")), prodKey + " " + await p.textContent("#addHere").catch(() => ""));
   await p.click("#addHere"); await p.waitForSelector("#addModal.open", { timeout: 20000 });
   check("…and fills in the producer too", /Rousseau/.test(await p.inputValue("#aProducer")) && (await p.inputValue("#aName")) === "Chambertin" && (await p.inputValue("#aClass")) === "Grand cru",

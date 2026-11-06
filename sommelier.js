@@ -325,7 +325,7 @@ function aboutApp(lang, a, ctx) {
   const ag = ageOf([{ type: "app", ref: a }], "", ctx); if (ag && !ag.tiers) html += p(`<span class="sm-m">${esc(say(lang, "keeps", ag.lo, ag.hi))}</span>`);
   const vid = reg === "Bourgogne" && appVillage(ctx.burg, a.n);
   const V = vid && ctx.burg.villages.find(v => v.id === vid);
-  if (V) { const tx = (ctx.burgI18n && ctx.burgI18n.villages && ctx.burgI18n.villages[vid]) || {}; html += p(esc(tx.note || V.note || "")) + p(`<span class="sm-m">${esc(tx.aoc || V.aoc || "")}</span> <a href="burgundy.html#v=${esc(vid)}" target="_blank" rel="noopener">${esc(say(lang, "openAtlas"))}</a>`); }
+  if (V) { const tx = (ctx.burgI18n && ctx.burgI18n.villages && ctx.burgI18n.villages[vid]) || {}; html += p(esc(tx.note || V.note || "")) + p(`<span class="sm-m">${esc(tx.aoc || V.aoc || "")}</span> <a href="atlas.html#r=cotedor&v=${esc(vid)}" target="_blank" rel="noopener">${esc(say(lang, "openAtlas"))}</a>`); }
   return html + cellarLine(lang, ctx, w => norm(w.commune) === norm(a.n) || norm(w.name).startsWith(norm(a.n)));
 }
 function aboutGrape(lang, g, ctx) {
@@ -363,11 +363,11 @@ function aboutClimat(lang, cs, ctx) {
     const own = (c.p || []).filter(x => x[1] != null).sort((a, b) => b[1] - a[1]);
     if ((c.p || []).length === 1) html += p(say(lang, "monopole", esc(P[c.p[0][0]] || c.p[0][0])));
     else if (own.length) html += p(say(lang, "owners", esc(own.slice(0, 5).map(x => `${P[x[0]] || x[0]} ${String(x[1]).replace(".", lang === "en" ? "." : ",")} ha`).join(", "))));
-    return html + p(`<a href="burgundy.html#c=${esc(c.id)}" target="_blank" rel="noopener">${esc(say(lang, "openAtlas"))}</a>`);
+    return html + p(`<a href="atlas.html#r=cotedor&c=${esc(c.id)}" target="_blank" rel="noopener">${esc(say(lang, "openAtlas"))}</a>`);
   };
   if (cs.length === 1) return one(cs[0]) + cellarLine(lang, ctx, w => norm(w.name).includes(norm(cs[0].n.replace(/^(Les|La|Le|L'|Aux|Au|En) /, ""))));
   const vn = id => ((B.villages || []).find(x => x.id === id) || {}).n || id;
-  return p(say(lang, "climatMany", esc(cs[0].n))) + ul(cs.map(c => `${esc(vn(c.v))} — ${c.c === "GC" ? say(lang, "gc") : c.c === "1er" ? say(lang, "pc") : say(lang, "vc")}, ${String(c.ha)} ha · <a href="burgundy.html#c=${esc(c.id)}" target="_blank" rel="noopener">atlas ↗</a>`));
+  return p(say(lang, "climatMany", esc(cs[0].n))) + ul(cs.map(c => `${esc(vn(c.v))} — ${c.c === "GC" ? say(lang, "gc") : c.c === "1er" ? say(lang, "pc") : say(lang, "vc")}, ${String(c.ha)} ha · <a href="atlas.html#r=cotedor&c=${esc(c.id)}" target="_blank" rel="noopener">atlas ↗</a>`));
 }
 function aboutProducer(lang, pr, ctx) {
   const B = ctx.burg, prof = (B.profiles || {})[pr.key] || {}, tx = (ctx.burgI18n && ctx.burgI18n.profiles && ctx.burgI18n.profiles[pr.key]) || {};
@@ -378,7 +378,7 @@ function aboutProducer(lang, pr, ctx) {
   const held = (B.climats || []).map(c => { const h = (c.p || []).find(x => x[0] === pr.key); return h ? [c, h[1]] : null; }).filter(Boolean)
     .sort((a, b) => (b[0].c === "GC") - (a[0].c === "GC") || (b[1] || 0) - (a[1] || 0));
   if (held.length) html += p(say(lang, "holdings", esc(held.slice(0, 8).map(([c, h]) => c.n + (h ? ` ${String(h).replace(".", lang === "en" ? "." : ",")} ha` : "")).join(", ") + (held.length > 8 ? " …" : ""))))
-    + p(`<a href="burgundy.html#p=${esc(pr.key)}" target="_blank" rel="noopener">${esc(say(lang, "openAtlas"))}</a>`);
+    + p(`<a href="atlas.html#r=cotedor&p=${esc(pr.key)}" target="_blank" rel="noopener">${esc(say(lang, "openAtlas"))}</a>`);
   const key = norm(pr.n).replace(/^(domaine|maison|chateau) /, "");
   return html + cellarLine(lang, ctx, w => norm(w.producer).includes(key) || key.includes(norm(w.producer).replace(/^(domaine|maison|chateau) /, "")), true);
 }
@@ -404,7 +404,7 @@ function burgundyVintage(lang, y, cats, ctx) {
     return p(say(lang, "vintBurg", esc(cap(say(lang, name[cat]))), y, score, esc(bWord(lang, score))) + " " + esc(tx(note)))
       + p(say(lang, "drinking", esc(tx(drink))) + ` <span class="sm-m">${esc(say(lang, "basis", (src || []).length, est ? say(lang, "estimate") : ""))}</span>`);
   });
-  return out.join("") + p(`<a href="burgundy.html#color=vintage&amp;y=${y}" target="_blank" rel="noopener">${esc(say(lang, "openAtlas"))}</a>`);
+  return out.join("") + p(`<a href="atlas.html#r=cotedor&color=vintage&amp;y=${y}" target="_blank" rel="noopener">${esc(say(lang, "openAtlas"))}</a>`);
 }
 function chartVintage(lang, y, ids) {
   return ids.map(id => { const c = D.charts.find(x => x.id === id), s = c.years[y];
@@ -632,7 +632,7 @@ function answer(q, ctx) {
   const term = pick("term")[0]; if (term) return res(p(esc(term.ref.text[lang] || term.ref.text.en)), "term");
   const village = pick("village")[0];
   if (village && ctx.burg) { const v = village.ref, tx = (ctx.burgI18n && ctx.burgI18n.villages && ctx.burgI18n.villages[v.id]) || {};
-    return res(p(`<b>${esc(v.n)}</b>`) + p(esc(tx.note || v.note || "")) + p(`<span class="sm-m">${esc(tx.aoc || v.aoc || "")}</span> <a href="burgundy.html#v=${esc(v.id)}" target="_blank" rel="noopener">${esc(say(lang, "openAtlas"))}</a>`), "about"); }
+    return res(p(`<b>${esc(v.n)}</b>`) + p(esc(tx.note || v.note || "")) + p(`<span class="sm-m">${esc(tx.aoc || v.aoc || "")}</span> <a href="atlas.html#r=cotedor&v=${esc(v.id)}" target="_blank" rel="noopener">${esc(say(lang, "openAtlas"))}</a>`), "about"); }
   if (hasW(text, "help")) return res(help(lang, ctx), "help");
   const uk = SAY.unknown[Math.max(0, L.indexOf(lang))], pick2 = hash(text) % uk.length;
   return res(p(esc(uk[pick2])) + p(say(lang, "tryAsk")) + ul(rotate(examples(lang, ctx), (ctx.turn || 0) + pick2).slice(0, 2).map(esc)), "unknown");
@@ -1039,7 +1039,7 @@ function short(lang, e, ctx) {
   if (e.type === "climat" && ctx.burg) return aboutClimat(lang, [e.ref], Object.assign({}, ctx, { wines: null }));
   if (e.type === "producer" && ctx.burg) return aboutProducer(lang, e.ref, Object.assign({}, ctx, { wines: null }));
   if (e.type === "village" && ctx.burg) { const v = e.ref, tx = (ctx.burgI18n && ctx.burgI18n.villages && ctx.burgI18n.villages[v.id]) || {};
-    return p(`<b>${esc(v.n)}</b>`) + p(esc(tx.note || v.note || "")) + p(`<a href="burgundy.html#v=${esc(v.id)}" target="_blank" rel="noopener">${esc(say(lang, "openAtlas"))}</a>`); }
+    return p(`<b>${esc(v.n)}</b>`) + p(esc(tx.note || v.note || "")) + p(`<a href="atlas.html#r=cotedor&v=${esc(v.id)}" target="_blank" rel="noopener">${esc(say(lang, "openAtlas"))}</a>`); }
   if (e.type === "country") return p(`<b>${esc(e.ref.names[lang] || e.ref.n)}</b>`);
   return "";
 }
@@ -1086,7 +1086,7 @@ function bestVintages(lang, ents, text, ctx) {
     return cats.map(cat => { const ys = Object.keys(V).map(Number).filter(y => V[y][cat]).sort((a, b) => V[b][cat][0] - V[a][cat][0] || b - a);
       const top = ys.filter(y => V[y][cat][0] >= 95); const list = (top.length >= 4 ? top : ys.slice(0, 6)).slice(0, 8).sort((a, b) => b - a);
       return p(say(lang, "bestFor", esc(say(lang, name[cat])))) + p(list.map(y => `<b>${y}</b> <span class="sm-m">${V[y][cat][0]}</span>`).join(" · ")); }).join("")
-      + p(`<a href="burgundy.html#color=vintage" target="_blank" rel="noopener">${esc(say(lang, "openAtlas"))}</a>`); }
+      + p(`<a href="atlas.html#r=cotedor&color=vintage" target="_blank" rel="noopener">${esc(say(lang, "openAtlas"))}</a>`); }
   const ch = chartsFor(ents, text); if (!ch) return null;
   return ch.map(id => { const c = D.charts.find(x => x.id === id), ys = Object.keys(c.years).map(Number);
     let top = ys.filter(y => c.years[y] === 5); if (top.length < 3) top = ys.filter(y => c.years[y] >= 4);

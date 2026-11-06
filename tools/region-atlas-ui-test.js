@@ -182,7 +182,7 @@ const gas = H({ Ark1: [HEAD,
   const tr = p.locator('#tbl tr.main:has-text("William Fèvre")').first(); await tr.click(); await p.waitForTimeout(250);
   const href = await p.locator('#tbl tr.main:has-text("William Fèvre") + tr.detail a.atlaslink').getAttribute("href");
   check("a Chablis bottle's 'On the map' goes to the region atlas", /^atlas\.html#r=chablis&w=/.test(href || ""), href);
-  check("…a Gevrey still goes to the Burgundy atlas", /^burgundy\.html#c=/.test(await (async () => { await p.locator('#tbl tr.main:has-text("Armand Rousseau")').first().click(); await p.waitForTimeout(200);
+  check("…a Gevrey goes to the Côte d'Or's vineyard", /^atlas\.html#r=cotedor&c=/.test(await (async () => { await p.locator('#tbl tr.main:has-text("Armand Rousseau")').first().click(); await p.waitForTimeout(200);
     return p.locator('#tbl tr.main:has-text("Armand Rousseau") + tr.detail a.atlaslink').getAttribute("href"); })() || ""));
   await p.goto(BASE + href); await p.waitForTimeout(1800);
   check("…which opens on its vineyard", (await p.textContent("#side h2")) === "Montée de Tonnerre", await p.textContent("#side h2"));

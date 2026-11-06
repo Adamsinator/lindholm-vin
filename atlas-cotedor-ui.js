@@ -52,7 +52,7 @@ function ownersHtml(c) {
 }
   /* ---------- corrections: edits to the holdings, shared through the cellar's Google Sheet (Code.gs "atlas" reads them,
      "atlasedit" adds one, for a logged-in editor), applied over the compiled list in time order — the same store
-     burgundy.html uses, so every correction made there shows here ---------- */
+     burgundy.html used, so the corrections made there show here ---------- */
   const EDITS = { list: [], can: (() => { try { return !!localStorage.getItem("vinToken"); } catch (e) { return false; } })(), status: "", open: null, pre: null, loaded: false };
   function keyFor(name) { const P = st.pack.producers; if (P[name]) return name;
     const n = norm(name), hit = Object.keys(P).find(k => norm(P[k]) === n); if (hit) return hit;
@@ -141,6 +141,10 @@ function ownersHtml(c) {
   const EVT = { frost: ["#6FA8DC", "Frost"], hail: ["#8E7CC3", "Hail"], heat: ["#E07A3F", "Heat"], drought: ["#C9A227", "Drought"], rot: ["#6A994E", "Rot"], mildew: ["#6A994E", "Mildew"], storm: ["#8E7CC3", "Storm"], rain: ["#3F7CB6", "Rain"] };
   const evtKind = x => { const k = String(x).toLowerCase().replace(/[^a-z].*$/, ""); return EVT[k] ? k : "storm"; };
   const VLO = 84; // most Côte d'Or vintages since 1985 rate 85–98: the colour ramp spans that band
+  const inkOn = hex => { const m = /^#?([0-9a-f]{6})$/i.exec(hex || ""); if (!m) return "#fff"; const n = parseInt(m[1], 16), lin = v => { v /= 255; return v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; };
+    const L = .2126 * lin(n >> 16) + .7152 * lin((n >> 8) & 255) + .0722 * lin(n & 255); return L > .179 ? "#2A2126" : "#fff"; }; // whichever of dark and white reads better on it
+  // a score's badge: the lighter half of the ramp, so dark text reads on every one of them (WCAG AA, 4.5 : 1)
+  const badge = (sc, txt) => { const f = ATLAS_COLOR ? ATLAS_COLOR.ramp(Math.max(0, Math.min(1, (sc - VLO) / (100 - VLO))) * .5) : ""; return `<span class="vs" style="background:${f};color:${inkOn(f)}">${txt}</span>`; };
   const scoreFill = sc => ATLAS_COLOR ? ATLAS_COLOR.ramp(Math.max(0, Math.min(1, (sc - VLO) / (100 - VLO)))) : "";
   st.vy = null;
   const allYears = () => [...new Set(VCATS.flatMap(vYears))].sort((a, b) => a - b);
@@ -174,7 +178,7 @@ function ownersHtml(c) {
   }
   function yearHtml(cat, vid) {
     if (st.color !== "vintage" || !VT || st.vy == null) return ""; const v = vRating(cat, st.vy), evs = vEvents(vid, st.vy);
-    return `<div class="vyearbox">${stepper()}${v ? ` · <span class="vs" style="background:${scoreFill(v[0])}">${v[0]}</span>${v[1] ? ` <span class="note">(${esc(t("estimate"))})</span>` : ""}` : ""}
+    return `<div class="vyearbox">${stepper()}${v ? ` · ${badge(v[0], v[0])}${v[1] ? ` <span class="note">(${esc(t("estimate"))})</span>` : ""}` : ""}
       ${v && v[2] ? `<p>${esc(vx(v[2]))}${v[3] ? ` <span class="note">· ${esc(vx(v[3]))}</span>` : ""}</p>` : ""}
       ${evs.map(e => `<p class="note"><i class="evdot" style="background:${EVT[evtKind(e.t)][0]}"></i><b>${esc(t(EVT[evtKind(e.t)][1]))}</b> ${esc(e.d)}${e.s ? " — " + esc(vx(e.s)) : ""}</p>`).join("")}${weatherLine(st.vy)}</div>`;
   }
@@ -225,7 +229,7 @@ function ownersHtml(c) {
     }; }
   document.head.insertAdjacentHTML("beforeend", `<style>.vchart{width:100%;height:auto;display:block} .vchart .vax{font-size:9px;fill:var(--muted)} .vbar.on rect:first-child{stroke:var(--ink);stroke-width:1.2} .vbar{cursor:pointer}
     .vyear{display:inline-flex;align-items:center;gap:6px} .vyear button{border:1px solid var(--line);background:var(--card);border-radius:6px;width:26px;height:24px;cursor:pointer;color:var(--ink)}
-    .vyearbox{margin:8px 0;padding:8px 10px;border:1px solid var(--line);border-radius:10px} .vs{display:inline-block;padding:1px 7px;border-radius:6px;font-weight:700;color:#fff}
+    .vyearbox{margin:8px 0;padding:8px 10px;border:1px solid var(--line);border-radius:10px} .vs{display:inline-block;padding:1px 7px;border-radius:6px;font-weight:700}
     .evdot,.vkey i{display:inline-block;width:8px;height:8px;border-radius:50%;margin:0 4px 0 6px} .warmchart{width:100%;height:auto;display:block}
     .warmchart .pgrid{stroke:var(--line)} .warmchart .pax{font-size:20px;fill:var(--muted)} .warmchart .htrend{stroke:var(--ink);stroke-width:2;stroke-dasharray:6 4} .warmchart .hdot{fill:var(--ink);fill-opacity:.6}</style>`);
   document.head.insertAdjacentHTML("beforeend", `<style>.edbtn{border:0;background:none;color:var(--muted);cursor:pointer;padding:0 4px;font-size:13px} .edbtn:hover{color:var(--accent)} .ktag.ed{color:var(--accent)}
@@ -251,7 +255,7 @@ function ownersHtml(c) {
     const grp = (k, label) => { const l = by(k); return l.length ? `<h3>${esc(t(label))} · ${l.length}</h3><p class="ldlist">${l.map(c => `<button type="button" class="plink" data-c="${esc(c.id)}">${esc(c.n)}</button>`).join(" · ")}</p>` : ""; };
     if (!VT) vtLoad();
     side.innerHTML = `<p><button class="btn" id="back">← ${esc(st.pack.meta.name)}</button></p><span class="pill">${esc(t("Commune"))}</span><h2>${esc(v.n)}</h2>
-      ${v.aoc ? `<div class="meta">${esc(v.aoc)}</div>` : ""}${v.note ? `<p class="desc">${esc(v.note)}</p>` : ""}
+      ${vnote(v).aoc ? `<div class="meta">${esc(vnote(v).aoc)}</div>` : ""}${vnote(v).note ? `<p class="desc">${esc(vnote(v).note)}</p>` : ""}
       ${grp("GC", "Grand cru")}${grp("1er", "Premier cru")}${grp("V", "Village climat")}
       ${VT ? yearHtml(red, id) + vintageChart(red, id) + (cote === "beaune" ? vintageChart("beaune_white", id) : "") : ""}
       ${VT && vEvents(id).length ? `<h3>${esc(t("Frost, hail and heat"))}</h3>` + vEvents(id).slice().reverse().slice(0, 12).map(e => `<p class="note"><i class="evdot" style="background:${EVT[evtKind(e.t)][0]}"></i><b>${esc(e.d)}</b> ${esc(t(EVT[evtKind(e.t)][1]))}${e.s ? " — " + esc(vx(e.s)) : ""}</p>`).join("") : ""}`;
@@ -301,7 +305,7 @@ function ownersHtml(c) {
       <select id="cdVil" aria-label="${esc(t("Commune"))}"><option value="">${esc(t("Go to a commune…"))}</option>${V.map(v => `<option value="${esc(v.id)}">${esc(v.n)}</option>`).join("")}</select></div>`; }
   // the vintages at a glance: the last 25 years, the three ratings; a year opens it on the map
   function vintageTable() { if (!VT) return ""; const ys = allYears().slice().reverse().slice(0, 25);
-    const cell = (k, y) => { const v = vRating(k, y); return v ? `<td class="n"><span class="vs" style="background:${scoreFill(v[0])}">${v[0]}${v[1] ? "*" : ""}</span></td>` : `<td class="n">—</td>`; };
+    const cell = (k, y) => { const v = vRating(k, y); return v ? `<td class="n">${badge(v[0], v[0] + (v[1] ? "*" : ""))}</td>` : `<td class="n">—</td>`; };
     return `<h3>${esc(t("Vintages"))}</h3><table class="own vtab"><thead><tr><th></th>${VCATS.map(k => `<th class="n">${esc(t(VCAT_EN[k]))}</th>`).join("")}</tr></thead><tbody>${ys.map(y => `<tr><td><button type="button" class="plink" data-vy="${y}">${y}</button></td>${VCATS.map(k => cell(k, y)).join("")}</tr>`).join("")}</tbody></table>`; }
   function wireRegion(side) {
     side.querySelectorAll("[data-cote]").forEach(b => b.onclick = () => { const l = st.pack.climats.filter(c => c.cote === b.dataset.cote); if (l.length) fit(bbOf(l.flatMap(c => c.g)), .04, 380); });
@@ -311,5 +315,12 @@ function ownersHtml(c) {
     #map .t-bld{fill:var(--town);stroke:none;opacity:.9} .cdjump{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0} .cdjump select{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);flex:1;min-width:150px}
     .seg.cdonly{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden} .seg.cdonly button{border:0;background:var(--card);color:var(--ink);padding:5px 10px;font:inherit;font-size:13px;cursor:pointer} .seg.cdonly button.on{background:var(--ink);color:var(--card)}
     .vtab td,.vtab th{padding:3px 0} .vtab .vs{min-width:30px;text-align:center}</style>`);
-  return { ok, decorate, relayout2, legendExtra, jumpHtml, vintageTable, wireRegion, selectVillage, villageSide, fromHash, holds, shown: shownFor, compareHtml, ownersHtml, prodBar, setProd, histHtml, vintageHtml, regionHtml, colorModes, wire, edits: EDITS };
+  /* ---------- the texts in the page's language: burgundy-i18n-<lang>.js (Danish, French, German) ---------- */
+  const I18F = { da: "burgundy-i18n-da.js?v=6", fr: "burgundy-i18n-fr.js?v=6", de: "burgundy-i18n-de.js?v=1" }, i18nP = {};
+  const lang = () => (window.I18N && I18N.lang) || "en";
+  const tx = () => { const l = lang(); if (l === "en") return null; const T = window.BURG_I18N && BURG_I18N[l]; if (T) return T;
+    if (I18F[l] && !i18nP[l]) i18nP[l] = loadScript(I18F[l]).then(() => renderSide()).catch(() => { i18nP[l] = null; }); return null; };
+  const desc = c => { const T = tx(); return (T && T.climats && T.climats[c.id]) || c.d || ""; };
+  const vnote = v => { const T = tx(), V = T && T.villages && T.villages[v.id]; return { note: (V && V.note) || v.note, aoc: (V && V.aoc) || v.aoc }; };
+  return { desc, ok, decorate, relayout2, legendExtra, jumpHtml, vintageTable, wireRegion, selectVillage, villageSide, fromHash, holds, shown: shownFor, compareHtml, ownersHtml, prodBar, setProd, histHtml, vintageHtml, regionHtml, colorModes, wire, edits: EDITS };
 })();
