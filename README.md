@@ -351,6 +351,17 @@ engine is generic, so a new region is a data file, not new code; a region's own 
   "Ca' Grossa". Not in it: which commune each MGA lies in (that's in the rules' annex, which the copy leaves out).
   Each MGA has a vineyard page; a cellar bottle naming one ("Barolo Cannubi") links to it, and the add form says
   which MGA it recognised. If the Consorzio ever allows its outlines, they'd go into a region pack like the others.
+- **The growing seasons** (`atlas-wx.js`, texts in `atlas-wx-i18n.js`): every region's panel has its weather since
+  the 1950s from one or two long-running stations in or by the vineyards. The chart is each April–September against
+  the station's own 1991–2020 average, with the trend since 1981. ◀ ▶, a bar or a year in the table opens one season:
+  mean temperature, the Huglin index and its class (Tonietto & Carbonneau), days ≥ 30 °C and ≥ 35 °C (June–August),
+  rain and September's rain, spring frost nights (≤ −1 °C, 1 April–15 May) and hail (Météo-France's manned stations).
+  `node tools/region-weather.js <Météo-France folder> <DWD folder> [region …]` writes `atlas-<id>-wx.js`. The inputs
+  are Météo-France's daily files per département (`Q_<dd>_previous-1950-…` and `Q_<dd>_latest-…`, both
+  `RR-T-Vent` and `autres-parametres`, from meteo.data.gouv.fr, Licence Ouverte) and DWD's daily climate zips
+  (`tageswerte_KL_<id>_*_hist.zip` and `_akt.zip` from opendata.dwd.de, CC BY 4.0). The stations are listed at the
+  top of the tool. Re-run it, and `tools/vintage-weather.js` for the Côte d'Or, once each October to add the new
+  season. `tools/atlas-wx-ui-test.js` checks the figures hold together.
 - **A new region:** add it to `REGIONS` in `tools/region-build.js` (its box, village appellations and regional
   appellations), build it, then list it in `atlas.js` (`REGIONS`) and in `app.js` (`ATLAS_REGIONS`) for "On the map".
   Tested in `tools/region-atlas-ui-test.js`. Then rebuild the vineyard pages (next section).
