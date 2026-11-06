@@ -1271,6 +1271,7 @@ function detailHTML(w){
       ${atlasLink(w)}
       ${searchLinks(w)}
       <button class="winfo" data-row="${w.row}">${svgi("edit")} ${esc(tr("Edit details"))}</button>
+      <button class="wlike" data-row="${w.row}">＋ ${esc(tr("Another like this"))}</button>
       <button class="drink del" data-act="delete" data-row="${w.row}">${svgi("trash")} ${isElsewhere(w) ? esc(tr("Remove from Enjoyed")) : esc(tr("Delete wine"))}</button>
     </div>`;
 }
@@ -1319,11 +1320,17 @@ function takePrefill(){
   try{ pre = JSON.parse(localStorage.getItem("vinAddPrefill") || "null"); localStorage.removeItem("vinAddPrefill"); }catch(e){}
   if(location.hash === "#add") history.replaceState(null, "", location.pathname + location.search);
   if(!pre || !(Date.now() - (pre.at||0) < 600000)) return;
+  prefillAdd(pre);
+}
+// Add a wine, filled in: from the atlas ("Add a bottle from here"), or from a wine in the cellar ("Another like this":
+// everything but the vintage, the bottles and the price, which are what usually differ)
+function prefillAdd(pre){
   $("addBtn").click();
   const set = (id, v) => { if(v){ const el = $(id); el.value = v; el.dispatchEvent(new Event("input", {bubbles:true})); el.dispatchEvent(new Event("change", {bubbles:true})); } };
   set("aCountry", pre.country); set("aRegion", pre.region); set("aCommune", pre.commune); set("aName", pre.name); set("aProducer", pre.producer);
   if(pre.type) $("aType").value = pre.type;
   if(pre.classification){ $("aClass").value = matchOpt($("aClass"), pre.classification); $("aClass").dataset.auto = ""; }
+  set("aGrape", pre.grape); set("aLocation", pre.location); set("aSource", pre.source);
   (pre.producer ? $("aVintage") : $("aProducer")).focus();
 }
 
@@ -1516,6 +1523,10 @@ function bindDetail(root){
       openJournalModal(w ? {producer:w.producer, wine:w.name, vintage:w.vintage,
         country:w.country, region:w.region, grape:w.grape, commune:w.commune, classification:w.classification} : null);
     }));
+  root.querySelectorAll("button.wlike").forEach(b=>
+    b.addEventListener("click",()=>{ const w = WINES.find(x=>x.row===Number(b.dataset.row)); if(!w) return;
+      prefillAdd({producer:w.producer, name:w.name, country:w.country, region:w.region, commune:w.commune, grape:w.grape, location:w.location, source:w.source,
+        classification:w.classification, type:({"Rød":"Rød","Hvid":"Hvid","Rosé":"Rose","Bobler":"Bobler","Hedvin":"Hedvin"})[w.style]||""}); }));
   root.querySelectorAll("button.winfo").forEach(b=>
     b.addEventListener("click",()=>{ const w = WINES.find(x=>x.row===Number(b.dataset.row)); if(w) openInfo(w); }));
   root.querySelectorAll("button.fshare").forEach(b=>
@@ -1545,7 +1556,7 @@ async function loadData(quiet){
     if(!LIST_RESTORED){ LIST_RESTORED = true; if(syncListControls()) renderTable(); if(syncListControls()) renderTable(); saveList(); }
     LOADED_AT = new Date(); stampText();
     $("spin").hidden = true; $("content").hidden = false;
-    if(!window.CELLAR_QOL) loadJS("cellar-qol.js?v=2").catch(()=>{}); // the conveniences: swipes, keys, several wines at once
+    if(!window.CELLAR_QOL) loadJS("cellar-qol.js?v=3").catch(()=>{}); // the conveniences: swipes, keys, several wines at once
     loadJournalSilently(); refreshDeleted(); checkOwner(); takePrefill(); // checkOwner asks "me", which says if the feed is on
   }catch(err){
     if(AUTH_ERRORS.has(err.message)){ forgetAuth(); setGateMode("login"); showGate(tr("Your session expired: log in again.")); }

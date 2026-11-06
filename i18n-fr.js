@@ -1,6 +1,15 @@
 // French for allwine.dk: i18n.js loads the one dictionary the page's language needs (English is the source text).
 window.I18N_DICT = window.I18N_DICT || {};
 window.I18N_DICT.fr = {
+  "Another like this": "Un autre comme celui-ci",
+  "Put the closing windows in my calendar": "Mettre les fenêtres qui se ferment dans mon agenda",
+  "Drink: {0}": "À boire : {0}",
+  "Its drink window ends in {0}. {1} left in your cellar.": "Sa fenêtre de dégustation se ferme en {0}. {1} restante(s) dans votre cave.",
+  "Location: {0}": "Emplacement : {0}",
+  "AllWine: windows closing": "AllWine : fenêtres qui se ferment",
+  "No wine's window closes in the next three years.": "Aucune fenêtre ne se ferme dans les trois prochaines années.",
+  "{0} wine in the calendar file: open it to add the reminder": "{0} vin dans le fichier d'agenda : ouvrez-le pour ajouter le rappel",
+  "{0} wines in the calendar file: open it to add the reminders": "{0} vins dans le fichier d'agenda : ouvrez-le pour ajouter les rappels",
   "Changes undone": "Modifications annulées",
   "Could not undo: {0}": "Impossible d'annuler : {0}",
   "It's been a while since you kept a copy of your cellar on this device. Save one?": "Cela fait un moment que vous n'avez pas gardé de copie de votre cave sur cet appareil. En enregistrer une ?",

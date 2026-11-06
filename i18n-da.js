@@ -1,6 +1,15 @@
 // Danish for allwine.dk: i18n.js loads the one dictionary the page's language needs (English is the source text).
 window.I18N_DICT = window.I18N_DICT || {};
 window.I18N_DICT.da = {
+  "Another like this": "En mere som denne",
+  "Put the closing windows in my calendar": "Sæt de lukkende vinduer i min kalender",
+  "Drink: {0}": "Drik: {0}",
+  "Its drink window ends in {0}. {1} left in your cellar.": "Drikkevinduet lukker i {0}. {1} tilbage i din kælder.",
+  "Location: {0}": "Placering: {0}",
+  "AllWine: windows closing": "AllWine: vinduer der lukker",
+  "No wine's window closes in the next three years.": "Ingen vins vindue lukker de næste tre år.",
+  "{0} wine in the calendar file: open it to add the reminder": "{0} vin i kalenderfilen: åbn den for at tilføje påmindelsen",
+  "{0} wines in the calendar file: open it to add the reminders": "{0} vine i kalenderfilen: åbn den for at tilføje påmindelserne",
   "Changes undone": "Ændringerne er fortrudt",
   "Could not undo: {0}": "Kunne ikke fortryde: {0}",
   "It's been a while since you kept a copy of your cellar on this device. Save one?": "Det er et stykke tid siden, du gemte en kopi af din kælder på denne enhed. Gem en nu?",

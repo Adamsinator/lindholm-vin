@@ -180,3 +180,34 @@ $("selDrink").addEventListener("click", async ()=>{
       [{label:tr("Export"), fn:()=>$("expBtn").click()}, {label:tr("Not now"), fn:()=>{}}], {ms:15000});
   }, 5000);
 })();
+/* The closing windows in your calendar: a file (.ics, which any calendar opens) with an all-day reminder for each wine
+   whose drink window ends this year or in the next two, on 1 March of its last year, or a week from today when that
+   date has passed; each with an alert the day before. Nothing is sent anywhere: the file is made here and saved. */
+(()=>{
+  const btn = $("icsBtn"); if(!btn) return;
+  const pad = n => String(n).padStart(2, "0"), ymd = d => `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}`;
+  const escI = s => String(s).replace(/\\/g, "\\\\").replace(/[,;]/g, m => "\\" + m).replace(/\r?\n/g, "\\n");
+  // lines longer than 75 octets are folded, as the format asks
+  const fold = l => { const b = new TextEncoder().encode(l); if(b.length <= 75) return l; const out = []; let cur = "";
+    for(const ch of l){ if(new TextEncoder().encode(cur + ch).length > (out.length ? 74 : 75)){ out.push(cur); cur = ""; } cur += ch; } out.push(cur); return out.join("\r\n "); };
+  function make(){
+    const now = new Date(), y = now.getFullYear(), soon = new Date(now.getTime() + 7 * 864e5);
+    const list = WINES.filter(w => w.left > 0).map(w => ({w, win: drinkWindow(w)})).filter(({win}) => win && win.to != null && win.to >= y && win.to <= y + 2)
+      .sort((a, b) => a.win.to - b.win.to);
+    const ev = list.map(({w, win}, i) => {
+      let d = new Date(win.to, 2, 1); if(d < now) d = soon; const d2 = new Date(d.getTime() + 864e5);
+      const nm = [w.producer, w.name, typeof w.vintage === "number" ? w.vintage : ""].filter(Boolean).join(" ");
+      return ["BEGIN:VEVENT", `UID:allwine-${y}-${w.row}-${i}@allwine.dk`, `DTSTAMP:${ymd(now)}T000000Z`, `DTSTART;VALUE=DATE:${ymd(d)}`, `DTEND;VALUE=DATE:${ymd(d2)}`,
+        `SUMMARY:${escI(tr("Drink: {0}", nm))}`, `DESCRIPTION:${escI(tr("Its drink window ends in {0}. {1} left in your cellar.", win.to, btl(w.left)) + (w.location ? " " + tr("Location: {0}", w.location) : ""))}`,
+        "BEGIN:VALARM", "ACTION:DISPLAY", `DESCRIPTION:${escI(tr("Drink: {0}", nm))}`, "TRIGGER:-P1D", "END:VALARM", "END:VEVENT"]; });
+    const lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//AllWine//Cellar//EN", "CALSCALE:GREGORIAN", `X-WR-CALNAME:${escI(tr("AllWine: windows closing"))}`, ...ev.flat(), "END:VCALENDAR"];
+    return {n: list.length, text: lines.map(fold).join("\r\n") + "\r\n"};
+  }
+  btn.addEventListener("click", ()=>{
+    const {n, text} = make(); if(!n){ toast(tr("No wine's window closes in the next three years.")); return; }
+    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([text], {type:"text/calendar"}));
+    a.download = "allwine-drink-windows.ics"; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
+    toast(tr(n === 1 ? "{0} wine in the calendar file: open it to add the reminder" : "{0} wines in the calendar file: open it to add the reminders", n));
+  });
+  window.CELLAR_ICS = make; // for the tests
+})();
