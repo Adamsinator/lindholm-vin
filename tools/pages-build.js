@@ -222,14 +222,14 @@ for (const c of B.climats) {
     mp, own: !!G.climats[c.id], dem: DEM[c.id], geol: geolOf(window.BURG_GEOL, c.id), soil: c.detail && c.detail.soil, owners: c.p || [],
     note: { en: c.d, fr: I.fr.climats[c.id], de: I.de.climats[c.id], da: I.da.climats[c.id] },
     soilT: { fr: I.fr.detail?.[c.id]?.soil, de: I.de.detail?.[c.id]?.soil, da: I.da.detail?.[c.id]?.soil },
-    map: `burgundy.html?lang={L}#c=${c.id}` });
+    map: `atlas.html?lang={L}#r=cotedor&c=${c.id}` });
 }
 for (const [id, x] of Object.entries(G.extra)) {
   if (!VIL[x.v] || CL[id]) continue;
   const c = { id, n: x.n, v: x.v, c: x.c, ap: x.ap, in: x.in };
   ALL.push({ set: "burgundy", id, n: x.n, c: x.c, col: "", ha: x.ha, app: burgApp(c), commune: x.ap && x.c === "1er" ? x.ap : VIL[x.v].n, group: x.v,
     mp: x.mp, own: true, dem: DEM[id], geol: geolOf(window.BURG_GEOL, id), owners: (X.holdings[id] || []).map(([k, h, kind]) => [k, h, kind || ""]),
-    note: { en: X.notes[id] }, soilT: {}, map: `burgundy.html?lang={L}#c=${id}` });
+    note: { en: X.notes[id] }, soilT: {}, map: `atlas.html?lang={L}#r=cotedor&c=${id}` });
 }
 for (const pid of PACKS) {
   const P = window.ATLAS_PACKS[pid], [E0, N0] = P.meta.l93 || [], PDEM = ((window.ATLAS_DEM || {})[pid] || {}).c || {};
@@ -445,7 +445,7 @@ function build() {
     files[`${OUT}/${L}/index.html`] = hub(L);
     for (const v of ALL) files[`${OUT}/${L}/${v.slug}.html`] = page(v, L);
   }
-  const top = ["", "burgundy.html", "atlas.html", "privacy.html"];
+  const top = ["", "atlas.html", "privacy.html"]; // burgundy.html only forwards to atlas.html#r=cotedor now
   const alt = f => LANGS.map(l => `<xhtml:link rel="alternate" hreflang="${l}" href="${url(l, f)}"/>`).join("") + `<xhtml:link rel="alternate" hreflang="x-default" href="${url("en", f)}"/>`;
   files["sitemap.xml"] = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">

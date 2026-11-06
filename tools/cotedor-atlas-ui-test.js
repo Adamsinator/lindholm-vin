@@ -37,7 +37,10 @@ check("the pack was made after its sources last changed (else: node tools/cotedo
   p.on("pageerror", e => errs.push(e.message)); p.on("console", m => m.type() === "error" && !/net::|CORS|Failed to load resource/.test(m.text()) && errs.push(m.text()));
   await p.route(/^https:\/\/(data\.geopf\.fr|sgx\.geodatenzentrum\.de)\//, r => r.abort());
   await p.goto(BASE + "atlas.html"); await p.waitForTimeout(800);
-  check("not on the start page yet (burgundy.html is still the Côte d'Or's page)", !(await p.$('#map [data-id="cotedor"]')) && !(await p.$('#rchips [data-r="cotedor"]')));
+  check("on the start page with the other regions, and in the region list", !!(await p.$('#map [data-id="cotedor"]')) && !!(await p.$('#fRegion option[value="cotedor"]')) && !(await p.$('#fRegion option[value="burgundy"]')));
+  // burgundy.html forwards, keeping the language and the link
+  const fw = await b.newPage(); await fw.goto(BASE + "burgundy.html?lang=fr#c=latache"); await fw.waitForURL(/atlas\.html/, { timeout: 10000 }).catch(() => {});
+  check("burgundy.html forwards to the Côte d'Or here, the link and ?lang= kept", /atlas\.html\?lang=fr#r=cotedor&c=latache$/.test(fw.url()), fw.url()); await fw.close();
   await p.goto(BASE + "atlas.html#r=cotedor&c=richebourg");
   await p.waitForFunction(() => { try { return !!(st.pack && st.view && st.sel === "richebourg"); } catch (e) { return false; } }, null, { timeout: 20000 }); await p.waitForTimeout(500);
   const side = (await p.textContent("#side")).replace(/\s+/g, " ");

@@ -46,8 +46,8 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   await p.close();
 
   // every page leads there
-  for (const [path, sel] of [["index.html", "#gate .sitefoot, .sitefoot"], ["privacy.html", ".sitefoot"], ["help.html", ".sitefoot"], ["burgundy.html", ".sitefoot"]]) {
-    p = await page({ lang: "en" }); await p.goto(BASE + path); await p.waitForTimeout(path === "burgundy.html" ? 2500 : 700);
+  for (const [path, sel] of [["index.html", "#gate .sitefoot, .sitefoot"], ["privacy.html", ".sitefoot"], ["help.html", ".sitefoot"]]) { // the atlas (the Côte d'Or's too) has it in its menu: below
+    p = await page({ lang: "en" }); await p.goto(BASE + path); await p.waitForTimeout(path.startsWith("atlas") ? 2500 : 700);
     check(`${path}: a footer with About & terms`, await p.evaluate(s => [...document.querySelectorAll(s)].some(f => /About & terms/.test(f.textContent) && f.querySelector('a[href="legal.html"]')), sel)); await p.close(); }
   p = await page({ lang: "en" }); await p.goto(BASE + "privacy.html"); await p.waitForTimeout(500);
   const pv = await p.textContent("body");

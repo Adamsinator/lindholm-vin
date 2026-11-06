@@ -16,7 +16,7 @@ const HEAD = ["Producent", "Land", "Område", "Kommune", "Mark/Navn", "Klassifik
 const row = o => HEAD.map(h => o[h] ?? "");
 const gas = H({ Ark1: [HEAD, row({ Producent: "Armand Rousseau", Land: "Frankrig", Område: "Bourgogne", Kommune: "Gevrey-Chambertin", "Mark/Navn": "Clos St-Jacques", Klassifikation: "1. cru", Type: "Rød", Årgang: 2016, Antal: 1, "Pris kr (WS)": 2400 }),
   row({ Producent: "Dr. Loosen", Land: "Tyskland", Område: "Mosel", "Mark/Navn": "Wehlener Sonnenuhr Riesling Spätlese", Type: "Hvid", Årgang: 2019, Antal: 3, "Pris kr (WS)": 300 })] });
-const PAGES = ["atlas.html", "atlas.html#r=chablis", "atlas.html#r=mosel", "burgundy.html", "domaine.html?p=drc", "v/en/chateau-grillet.html"];
+const PAGES = ["atlas.html", "atlas.html#r=chablis", "atlas.html#r=mosel", "atlas.html#r=cotedor", "domaine.html?p=drc", "v/en/chateau-grillet.html"];
 
 const axe = async p => { await p.addScriptTag({ content: AXE });
   return p.evaluate(async () => (await axe.run(document, { runOnly: ["wcag2a", "wcag2aa"] })).violations
@@ -37,7 +37,7 @@ const axe = async p => { await p.addScriptTag({ content: AXE });
     await p.fill("#gateUser", "adam"); await p.fill("#gatePass", "pw"); await p.click("#gateSubmit");
     await p.waitForSelector("#app:not([hidden])", { timeout: 20000 }); await p.waitForTimeout(1200);
     v = await axe(p); check(`the cellar with its wines, charts and map (${tag})`, !v.length, v.join(" | "));
-    for (const pg of PAGES) { await p.goto(BASE + pg); await p.waitForTimeout(pg.startsWith("burgundy") ? 2500 : 1500);
+    for (const pg of PAGES) { await p.goto(BASE + pg); await p.waitForTimeout(pg.includes("cotedor") ? 3000 : 1500);
       v = await axe(p); check(`${pg} (${tag})`, !v.length, v.join(" | ")); }
     await ctx.close();
   }

@@ -77,8 +77,8 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   check("a reload reopens the cellar without the password", await p.isVisible("#app") && (await p.textContent("#tbl")).includes("Domaine Roulot"));
 
   // the atlas reads the encrypted cellar too
-  await p.goto(BASE + "burgundy.html"); await p.waitForTimeout(6000);
-  check("the atlas shows the encrypted cellar's bottles", await p.isVisible("#cellarChip"));
+  await p.goto(BASE + "atlas.html#r=cotedor"); await p.waitForFunction(() => { try { return CELLAR.loaded; } catch (e) { return false; } }, null, { timeout: 20000 }).catch(() => {});
+  check("the atlas shows the encrypted cellar's bottles", await p.evaluate(() => CELLAR.loaded && Object.values(CELLAR.by).some(b => b.left > 0)));
   await p.goto(BASE); await p.waitForTimeout(2500);
   // the recovery-code reminder: not on a recent account, but four months on, with "I have it" putting it away again
   check("no recovery-code reminder on a new account", await p.isHidden("#recNote"));

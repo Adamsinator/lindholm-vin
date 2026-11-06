@@ -1,7 +1,7 @@
 // The region atlas (atlas.html): one region pack at a time (atlas-<id>.js, made by tools/region-build.js from INAO's
 // outlines), drawn as a map you can pan and zoom, with each vineyard's classification and area, your own bottles on it
 // (read here from the cellar this browser is logged in to, decrypted here for an encrypted one) and "Add a bottle
-// from here". Burgundy's Côte d'Or keeps its own, richer atlas (burgundy.html).
+// from here". The Côte d'Or is one of them (atlas-cotedor*.js, with its own tools in atlas-cotedor-ui.js).
 "use strict";
 const t = (window.I18N && window.I18N.t) || ((s, ...a) => s.replace(/\{(\d)\}/g, (m, i) => a[i] ?? ""));
 const $ = id => document.getElementById(id);
@@ -15,6 +15,8 @@ const norm = s => " " + String(s || "").toLowerCase().normalize("NFD").replace(/
 // the regions there are packs for; the Côte d'Or links to its own atlas
 // kw: words on a label that put a bottle in the region; regional: what the pack's "regional" land is
 const REGIONS = [
+  { id: "cotedor", name: "Côte d'Or", file: "atlas-cotedor.js?v=4", topo: "atlas-cotedor-topo.js?v=1", dem: "atlas-cotedor-dem.js?v=1", geol: "atlas-cotedor-geol.js?v=1", ui: "atlas-cotedor-ui.js?v=5", ld: "atlas-cotedor-ld.js?v=2", match: "burgundy-match.js?v=3",
+  ll: [47.15, 4.86], country: "fr", kind: "Grands crus, premiers crus and village climats, with their owners", kw: [], regional: "" },
   { id: "chablis", name: "Chablis", file: "atlas-chablis.js?v=1", topo: "atlas-chablis-topo.js?v=1", dem: "atlas-chablis-dem.js?v=1", geol: "atlas-chablis-geol.js?v=1", ll: [47.811, 3.796], country: "fr", kind: "Grand cru · premier cru", kw: ["chablis"], regional: "Regional (Petit Chablis…)" },
   { id: "chalonnaise", name: "Côte Chalonnaise", file: "atlas-chalonnaise.js?v=1", topo: "atlas-chalonnaise-topo.js?v=1", dem: "atlas-chalonnaise-dem.js?v=1", geol: "atlas-chalonnaise-geol.js?v=1", ll: [46.782, 4.711], country: "fr", kind: "Premier cru", kw: ["mercurey", "givry", "rully", "montagny", "bouzeron", "chalonnaise"], regional: "Regional (Bourgogne Côte Chalonnaise)" },
   { id: "maconnais", name: "Mâconnais", file: "atlas-maconnais.js?v=1", topo: "atlas-maconnais-topo.js?v=1", dem: "atlas-maconnais-dem.js?v=1", geol: "atlas-maconnais-geol.js?v=1", ll: [46.288, 4.739], country: "fr", kind: "Premier cru", kw: ["pouilly fuisse", "pouilly vinzelles", "pouilly loche", "saint veran", "st veran", "vire clesse", "macon"], regional: "Regional (Mâcon…)" },
@@ -45,13 +47,9 @@ const REGIONS = [
   { id: "provence", name: "Provence", file: "atlas-provence.js?v=1", topo: "atlas-provence-topo.js?v=1", dem: "atlas-provence-dem.js?v=1", geol: "atlas-provence-geol.js?v=1", ll: [43.25, 5.75], country: "fr", kind: "Bandol and Palette",
     kw: ["bandol", "palette", "cotes de provence", "sainte victoire"], regional: "Côtes de Provence" },
 ];
-// the Côte d'Or on this engine (tools/cotedor-pack.js, from the burgundy-*.js files): reached by its address only
-// (#r=cotedor) while it's checked against burgundy.html, which stays the Côte d'Or's page until this matches it
-const PREVIEW = [{ id: "cotedor", name: "Côte d'Or", file: "atlas-cotedor.js?v=4", topo: "atlas-cotedor-topo.js?v=1", dem: "atlas-cotedor-dem.js?v=1", geol: "atlas-cotedor-geol.js?v=1", ui: "atlas-cotedor-ui.js?v=4", ld: "atlas-cotedor-ld.js?v=2", match: "burgundy-match.js?v=3",
-  ll: [47.15, 4.86], country: "fr", kind: "Grand cru · premier cru · village climats, with their owners", kw: [], regional: "" }];
+const PREVIEW = []; // a region being checked before it goes on the start page (reached by #r=<id> only)
 // the start page's other places: the Côte d'Or's own, richer atlas, and Piedmont, whose MGA have pages but no map
-const ELSEWHERE = [{ id: "burgundy", name: "Côte d'Or", ll: [47.058, 4.839], country: "fr", kind: "The detailed atlas: owners, terrain, geology", href: "burgundy.html" },
-  { id: "barolo", name: "Barolo", ll: [44.61, 7.94], country: "it", kind: "MGA · no map", href: "v/{L}/index.html#barolo" },
+const ELSEWHERE = [{ id: "barolo", name: "Barolo", ll: [44.61, 7.94], country: "it", kind: "MGA · no map", href: "v/{L}/index.html#barolo" },
   { id: "barbaresco", name: "Barbaresco", ll: [44.725, 8.08], country: "it", kind: "MGA · no map", href: "v/{L}/index.html#barbaresco" }];
 const COUNTRY = { fr: "France", de: "Germany", it: "Italy" };
 const TYPE = { W: "Hvid", R: "Rød", RW: "Rød", S: "Bobler" };
@@ -170,7 +168,11 @@ function relayout() { const v = st.view; if (!v) return; layoutLabels(); topoLod
 // (a CSS transform the compositor does, cheap), and redrawn at the new view once the movement pauses: redrawing a
 // region's thousands of paths each frame was what made a drag stutter on a phone
 function setView(v, live) {
+  // a view that can't be (not a number, nothing wide, or far wider than the region): refuse it, keep the one on screen
+  if (!v || !v.every(Number.isFinite) || v[2] <= 0 || (st.pack && v[2] > maxW() * 4)) { if (!setView.warned) { setView.warned = 1; console.warn("atlas: an impossible view was refused " + JSON.stringify(v) + " " + String(new Error().stack).split("\n").slice(2, 6).join(" | ")); } return; }
   st.view = v; cancelAnimationFrame(relayRaf); clearTimeout(relayT);
+  // past 8× either way the picture would be a huge layer to paint (a fast deep zoom, a jump across the region): redraw now
+  if (live && vbC && Math.abs(Math.log(vbC[2] / v[2])) > Math.log(8)) live = false;
   if (live && vbC) { const k = vbC[2] / v[2], r = mapRect().width / vbC[2] * k;
     mapview.style.transform = `translate(${((vbC[0] - v[0]) * r).toFixed(1)}px,${((vbC[1] - v[1]) * r).toFixed(1)}px) scale(${k.toFixed(5)})`;
     relayT = setTimeout(commitView, 120); return; }
@@ -335,9 +337,12 @@ function flyTo(to, ms = 260) {
   cancelAnimationFrame(flyRaf); stopGlide();
   const from = st.view.slice(), t0 = performance.now();
   if (matchMedia("(prefers-reduced-motion: reduce)").matches) ms = 0;
+  if (![...from, ...to].every(Number.isFinite) || from[2] <= 0 || to[2] <= 0) ms = 0; // nothing to ease between: go straight there
   // zoom eased in log space, so it feels even whether going in or out
   const step = now => { const t = ms ? Math.min(1, (now - t0) / ms) : 1, e = 1 - Math.pow(1 - t, 3);
-    const w = from[2] * Math.pow(to[2] / from[2], e), k = (w - from[2]) / ((to[2] - from[2]) || 1);
+    // how far along the pan is: by the zoom when the zoom changes (so the point under it stays put), by time when it
+    // hardly does (a jump at the same zoom: the zoom's share would divide by next to nothing and fly off the map)
+    const w = from[2] * Math.pow(to[2] / from[2], e), dw = to[2] - from[2], k = Math.abs(dw) > from[2] * 1e-3 ? Math.max(0, Math.min(1, (w - from[2]) / dw)) : e;
     const v = [from[0] + (to[0] - from[0]) * k, from[1] + (to[1] - from[1]) * k, w, w * from[3] / from[2]];
     setView(t < 1 ? v : to, t < 1); if (t < 1) flyRaf = requestAnimationFrame(step); };
   flyRaf = requestAnimationFrame(step);
@@ -675,7 +680,7 @@ function renderSide() {
         <div class="fact"><div class="l">${esc(t("Acres"))}</div><div class="v">${(c.ha * 2.471).toFixed(c.ha < 4 ? 1 : 0)}</div></div></div>`}
       ${st.cmpWith && st.cmpWith !== c.id && byId(st.cmpWith) && byId(st.cmpWith).g ? compareHtml(byId(st.cmpWith), c) : ""}
       ${st.cmpWith === c.id ? `<p class="note">${esc(t("Now pick another vineyard to compare with."))}</p>` : ""}
-      ${c.d ? `<p class="desc">${esc(c.d)}</p>` : ""}
+      ${(window.ATLAS_CD ? ATLAS_CD.desc(c) : c.d) ? `<p class="desc">${esc(window.ATLAS_CD ? ATLAS_CD.desc(c) : c.d)}</p>` : ""}
       ${ownersHtml(c)}
       ${window.ATLAS_CD ? ATLAS_CD.histHtml(c) + ATLAS_CD.vintageHtml(c) : ""}
       ${window.ATLAS_LDUI ? ATLAS_LDUI.listHtml(c) : ""}
@@ -686,7 +691,7 @@ function renderSide() {
       ${c.partInferred ? `<p class="note">${esc(t("Part of this outline is premier cru land INAO leaves unnamed, joined to it by IGN's place names ({0}).", c.partInferred.join(", ")))}</p>` : ""}
       ${c.unnamed ? `<p class="note">${esc(t("INAO's map gives this land only as premier cru, and no place name ties it to a climat."))}</p>` : ""}
       ${bottles ? `<h3>${esc(t("In your cellar"))}</h3>` + bottles.wines.slice(0, 12).map(w => `<div class="cw"><b>${w.left}×</b> ${esc(w.producer)} · ${esc(w.name || "")} ${esc(String(w.vintage || ""))}</div>`).join("") : ""}
-      ${c.unnamed ? "" : `<p><button class="btn primary" id="addHere">＋ ${esc(t("Add a bottle from here"))}</button> ${st.cmpWith ? "" : `<button class="btn" id="cmpBtn">⇄ ${esc(t("Compare"))}</button>`}</p>`}
+      ${c.unnamed ? "" : `<p><button class="btn primary" id="addHere">＋ ${esc(t("Add a bottle from here"))}${st.prod && P.producers && P.producers[st.prod] ? " · " + esc(P.producers[st.prod]) : ""}</button> ${st.cmpWith ? "" : `<button class="btn" id="cmpBtn">⇄ ${esc(t("Compare"))}</button>`}</p>`}
       <p class="src">${esc(P.meta.source)}.</p>`;
     $("back").onclick = () => select(null);
     const ah = $("addHere"); if (ah) ah.onclick = () => addFromAtlas(c, R);
@@ -837,7 +842,7 @@ function addFromAtlas(c, R) {
   }
   // a cru appellation or a Champagne village is where the wine is from, not its name
   const pre = { name: c.c === "AOC" || c.n === c.app || villagesPack() ? "" : shown(c), commune: c.app, classification: { GC: "Grand cru", "1er": "1. cru" }[c.c] || "", region: st.pack.meta.region, country: st.pack.meta.country,
-    type: TYPE[c.col] || "Hvid", producer: "", at: Date.now() };
+    type: TYPE[c.col] || "Hvid", producer: st.prod && st.pack.producers ? st.pack.producers[st.prod] || "" : "", at: Date.now() }; // the owner being mapped, if any
   try { localStorage.setItem("vinAddPrefill", JSON.stringify(pre)); } catch (e) {}
   location.href = "index.html#add";
 }
@@ -933,7 +938,7 @@ function showHome() {
   el("image", { href: "atlas-relief-eu.webp", x: rx0, y: ry0, width: rx1 - rx0, height: ry1 - ry0, preserveAspectRatio: "none", class: "relief", "clip-path": "url(#landClip)", "aria-hidden": "true" }, g);
   // where each region's vineyards are (atlas-outlines.js, built from the regions' own maps), loaded with the page's first view
   const ols = el("g", { class: "ols", "aria-hidden": "true" }, g);
-  const outline = () => { for (const r of allPlaces()) { const rings = (window.ATLAS_OUTLINES || {})[r.id]; if (!rings) continue;
+  const outline = () => { for (const r of allPlaces()) { const O = window.ATLAS_OUTLINES || {}, rings = O[r.id] || (r.id === "cotedor" && O.burgundy); /* the Côte d'Or's outline: filed under its old name */ if (!rings) continue;
     el("path", { class: "ol" + (r.href ? " out" : ""), "data-id": r.id, "fill-rule": "evenodd", d: rings.map(q => "M" + q.map(xy).map(p => p.join(" ")).join("L") + "Z").join("") }, ols); } };
   if (window.ATLAS_OUTLINES) outline(); else loadScript("atlas-outlines.js?v=2").then(() => { if (!st.pack && ols.isConnected) outline(); }).catch(() => {});
   // a region's outline and its dot light up together
@@ -970,7 +975,7 @@ async function openRegion(id, sel) {
   const R = REGIONS.concat(PREVIEW).find(r => r.id === id) || REGIONS[0];
   if (R.ui && !window.ATLAS_CD) await loadScript(R.ui).catch(() => {}); // the region's own tools (the Côte d'Or: owners)
   if (R.ld && !window.ATLAS_LDUI) await loadScript("atlas-ld.js?v=1").catch(() => {}); // lieux-dits: their data comes when zoomed in
-  if (R.match && !window.BURG_MATCH) await loadScript(R.match).catch(() => {}); // the Côte d'Or: the cellar's matcher, as burgundy.html uses
+  if (R.match && !window.BURG_MATCH) await loadScript(R.match).catch(() => {}); // the Côte d'Or: the cellar's matcher (burgundy-match.js)
   if (window.ATLAS_LDUI) ATLAS_LDUI.reset();
   if (!(window.ATLAS_PACKS && ATLAS_PACKS[R.id])) {
     // a pack that doesn't come (GitHub Pages answers 503 now and then): once more after a moment, then say so
@@ -1015,8 +1020,8 @@ function renderLegend() {
     .map(([c, n]) => `<span><i style="background:${c}"></i>${esc(t(n))}</span>`).join("") + (CELLAR.loaded ? `<span><i style="background:var(--gold);border-radius:50%"></i>${esc(t("Bottles in your cellar"))}</span>` : "");
   if (extra) $("legend").insertAdjacentHTML("beforeend", extra); // the Côte d'Or: monopoles and walled clos
 }
-$("fRegion").innerHTML = `<option value="">${esc(t("All regions"))}</option>` + REGIONS.map(r => `<option value="${r.id}">${esc(r.name)}</option>`).join("") + `<option value="burgundy">${esc(t("Côte d'Or (Burgundy atlas) ↗"))}</option>`;
-$("fRegion").onchange = e => { const v = e.target.value; if (v === "burgundy") { location.href = "burgundy.html"; return; } location.hash = v ? "#r=" + v : ""; };
+$("fRegion").innerHTML = `<option value="">${esc(t("All regions"))}</option>` + REGIONS.map(r => `<option value="${r.id}">${esc(r.name)}</option>`).join("");
+$("fRegion").onchange = e => { const v = e.target.value; location.hash = v ? "#r=" + v : ""; };
 $("fGC").onchange = e => { st.show.GC = e.target.checked; paint(); };
 $("f1er").onchange = e => { st.show["1er"] = e.target.checked; paint(); };
 $("fAOC").onchange = e => { st.show.AOC = e.target.checked; paint(); };
@@ -1045,7 +1050,7 @@ function sFind(q) {
   // the region's owners (the Côte d'Or) and lieux-dits, when it has them: "p:<key>" shows one owner's holdings, "l:<i>" a lieu-dit
   if (st.pack && st.pack.producers && st.region.ui) Object.entries(st.pack.producers).forEach(([k, n]) => { if (!k.startsWith("x_") && st.pack.climats.some(c => holds(c, k))) out.push([n, here, "p:" + k, "owner", "", null, []]); });
   if (window.ATLAS_LDUI && ATLAS_LDUI.loaded() && st.region.ld) ATLAS_LD[st.region.id].ld.forEach((l, i) => out.push([l[1], here, "l:" + i, "ld", (ATLAS_LD[st.region.id].meta.communes || {})[l[0]] || "", null, []]));
-  (window.ATLAS_INDEX || []).forEach(e => { if (e[1] !== here) out.push(e); });
+  (window.ATLAS_INDEX || []).forEach(e0 => { const e = e0[1] === "burgundy" ? [e0[0], "cotedor", ...e0.slice(2)] : e0; if (e[1] !== here) out.push(e); });
   const score = e => { const names = [e[0], ...(Array.isArray(e[e.length - 1]) ? e[e.length - 1] : [])].map(norm);
     const best = Math.min(...names.map(n => n.startsWith(" " + k) ? 0 : n.includes(" " + k) ? 1 : n.includes(k) ? 2 : 9));
     return best === 9 ? null : best * 10 + (e[1] === here ? 0 : 5) + Math.min(4, e[0].length / 20); };
@@ -1062,7 +1067,7 @@ function sGo(e) {
   sList.hidden = true; sBox.value = ""; sBox.blur(); sBox.setAttribute("aria-expanded", "false");
   if (st.region && e[1] === st.region.id) { const id = String(e[2]);
     if (id.startsWith("p:")) return setProd(id.slice(2)); if (id.startsWith("l:")) return ATLAS_LDUI.pick(+id.slice(2), true); return select(id, true); }
-  if (e[1] === "burgundy") return void (location.href = "burgundy.html#c=" + encodeURIComponent(e[2]));
+  if (e[1] === "burgundy") return void (location.hash = "#r=cotedor&c=" + encodeURIComponent(e[2])); // the search index's older name for it
   if (REGIONS.some(r => r.id === e[1])) return void (location.hash = "#r=" + e[1] + "&c=" + encodeURIComponent(e[2]));
   location.href = `v/${window.I18N ? I18N.lang : "en"}/${e[5]}.html`; // Barolo, Barbaresco: the MGA's page
 }
@@ -1087,7 +1092,7 @@ async function fromHash() {
   if (!r || !REGIONS.concat(PREVIEW).some(x => x.id === r)) { if (st.region || !svg.childNodes.length) showHome(); return; } // no region: the start page
   if (!st.region || st.region.id !== r) await openRegion(r, q.get("c"));
   else if ((q.get("c") || null) !== st.sel) select(q.get("c"), true);
-  if (st.region && st.region.ui && window.ATLAS_CD) await ATLAS_CD.fromHash(q); // the Côte d'Or: burgundy.html's other links
+  if (st.region && st.region.ui && window.ATLAS_CD) await ATLAS_CD.fromHash(q); // the Côte d'Or: #v=, #p=, #l=, #color= (burgundy.html's old links come here)
   if (q.get("w") && st.region) { const m = matchWine({ region: st.region.kw[0], name: q.get("w") }); if (m.c) select(m.c.id, true); else syncHash(); }
 }
 /* ---------- the map as an app: where you are as a breadcrumb, the map's look and layers in a panel, and on a phone the

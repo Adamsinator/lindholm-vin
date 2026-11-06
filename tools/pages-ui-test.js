@@ -28,7 +28,7 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   await p.click("a.btn.primary");
   await p.waitForFunction(() => /Romanée-Conti/.test(document.getElementById("side")?.textContent || "") && document.documentElement.lang === "de", null, { timeout: 15000 }).catch(() => {});
   const bg = await p.evaluate(() => ({ url: location.href, lang: document.documentElement.lang, side: (document.getElementById("side")?.textContent || "").slice(0, 80) }));
-  check("the map button opens the Burgundy atlas on Romanée-Conti, in German", /burgundy\.html\?lang=de#c=romaneeconti/.test(bg.url) && bg.lang === "de" && /Romanée-Conti/.test(bg.side), JSON.stringify(bg));
+  check("the map button opens the Côte d'Or on Romanée-Conti, in German", /atlas\.html\?lang=de#r=cotedor&c=romaneeconti/.test(bg.url) && bg.lang === "de" && /Romanée-Conti/.test(bg.side), JSON.stringify(bg));
 
   await p.goto(BASE + "v/fr/clos-des-myglands.html");
   await p.click("a.btn.primary");

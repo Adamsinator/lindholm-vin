@@ -47,17 +47,17 @@ check("no page says undefined, NaN or {0}", !bad.junk.length, bad.junk.slice(0, 
 check("every link points at a file that exists", !bad.links.length, bad.links.slice(0, 3).join(", "));
 
 const sm = files["sitemap.xml"], locs = new Set([...sm.matchAll(/<loc>([^<]+)<\/loc>/g)].map(m => m[1]));
-check("the sitemap lists every page and the atlases", pages.every(f => locs.has(SITE + f)) && locs.has(SITE) && locs.has(SITE + "burgundy.html") && locs.has(SITE + "atlas.html"), locs.size);
+check("the sitemap lists every page and the atlases", pages.every(f => locs.has(SITE + f)) && locs.has(SITE) && !locs.has(SITE + "burgundy.html") && locs.has(SITE + "atlas.html") /* burgundy.html only forwards now */, locs.size);
 check("the sitemap stays under Google's 50 000 URLs and 50 MB", locs.size < 50000 && Buffer.byteLength(sm) < 50e6);
 check("robots.txt allows the site and points at the sitemap", /User-agent: \*/.test(files["robots.txt"]) && !/Disallow: \/\s*$/m.test(files["robots.txt"]) && files["robots.txt"].includes(`Sitemap: ${SITE}sitemap.xml`));
-const pub = ["index.html", "burgundy.html", "atlas.html", "domaine.html", "privacy.html"];
+const pub = ["index.html", "atlas.html", "domaine.html", "privacy.html"];
 check("no public page tells search engines to stay away", pub.every(f => !/noindex/.test(fs.readFileSync(path.join(R, f), "utf8"))), pub.filter(f => /noindex/.test(fs.readFileSync(path.join(R, f), "utf8"))).join());
 
 // spot checks
 const rc = files[`${OUT}/da/romanee-conti.html`] || "";
 const rcLd = JSON.parse((rc.match(/ld\+json">(.*?)<\/script>/) || [, "{}"])[1]), rcGeo = ((rcLd["@graph"] || [])[0] || {}).geo || {};
 check("Romanée-Conti sits where IGN's map puts it (47.1616 N, 4.9497 E, within 150 m)", Math.abs(rcGeo.latitude - 47.1616) < .0014 && Math.abs(rcGeo.longitude - 4.9497) < .002, JSON.stringify(rcGeo));
-check("Romanée-Conti in Danish: grand cru, 1,81 ha, owned by the DRC, and a link to it on the map", rc.includes("<h1>Romanée-Conti</h1>") && rc.includes("1,81 ha") && rc.includes("Domaine de la Romanée-Conti") && rc.includes('href="../../burgundy.html?lang=da#c=romaneeconti"') && rc.includes('<html lang="da">'));
+check("Romanée-Conti in Danish: grand cru, 1,81 ha, owned by the DRC, and a link to it on the map", rc.includes("<h1>Romanée-Conti</h1>") && rc.includes("1,81 ha") && rc.includes("Domaine de la Romanée-Conti") && rc.includes('href="../../atlas.html?lang=da#r=cotedor&c=romaneeconti"') && rc.includes('<html lang="da">'));
 const lc = files[`${OUT}/fr/les-clos.html`] || "";
 check("Les Clos in French: Chablis Grand Cru, 27,1 ha, into the Chablis atlas, with Blanchot as a neighbour", lc.includes("Chablis Grand Cru Les Clos") && lc.includes("27,1 ha") && lc.includes('href="../../atlas.html?lang=fr#r=chablis&c=les_clos"') && /<a href="blanchot\.html"><path class="nb"/.test(lc), (lc.match(/\d+,\d ha/) || [])[0]);
 const inferred = ALL.find(v => v.inferred);
