@@ -362,6 +362,14 @@ engine is generic, so a new region is a data file, not new code; a region's own 
   (`tageswerte_KL_<id>_*_hist.zip` and `_akt.zip` from opendata.dwd.de, CC BY 4.0). The stations are listed at the
   top of the tool. Re-run it, and `tools/vintage-weather.js` for the Côte d'Or, once each October to add the new
   season. `tools/atlas-wx-ui-test.js` checks the figures hold together.
+- **Lieux-dits** (every French region; `atlas-ld.js`, as on the Côte d'Or): the cadastre's named places on the crus
+  and village appellations, drawn and named once zoomed in, listed in a climat's panel, opened with a tap, and found
+  by the search. `node tools/region-ld.js [region …]` writes `atlas-<id>-ld.js`. It takes the communes from
+  geo.api.gouv.fr, keeps those that reach the region's crus and villages, then takes each commune's lieux-dits from the
+  Etalab cadastre (Licence Ouverte; cached in `tools/.cadastre-cache`). It undoes the cadastre's capitals and
+  letter-spacing, takes accents from the region's own names, and drops parcel codes. A download that fails stops it;
+  run it again and the rest comes from the cache. Unlike the Côte d'Or's, these have no measured terrain.
+  `tools/region-ld-ui-test.js` checks them.
 - **A new region:** add it to `REGIONS` in `tools/region-build.js` (its box, village appellations and regional
   appellations), build it, then list it in `atlas.js` (`REGIONS`) and in `app.js` (`ATLAS_REGIONS`) for "On the map".
   Tested in `tools/region-atlas-ui-test.js`. Then rebuild the vineyard pages (next section).

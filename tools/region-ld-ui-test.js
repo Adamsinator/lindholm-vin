@@ -11,7 +11,7 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
 const R = f => path.join(__dirname, "..", f);
 
 const src = fs.readFileSync(R("atlas.js"), "utf8");
-const regs = [...src.matchAll(/\{ id: "([a-z]+)", name: "[^"]+", file: "[^"]+", (?:wx: "[^"]+", )?topo: "[^"]+", dem: "[^"]+", (geol: "[^"]+", )?(?:ui: "[^"]+", )?(ld: "([^"]+)", )?[^\n]*country: "(fr|de)"/g)].map(m => ({ id: m[1], ld: m[4], c: m[5] }));
+const regs = src.slice(src.indexOf("const REGIONS"), src.indexOf("const PREVIEW")).split("\n  { id: ").slice(1).map(e => ({ id: e.match(/^"([a-z]+)"/)[1], ld: (e.match(/\bld: "([^"]+)"/) || [])[1], c: (e.match(/country: "([a-z]+)"/) || [])[1] }));
 const fr = regs.filter(r => r.c === "fr");
 check("every French region has its lieux-dits, no German one", fr.length >= 15 && fr.every(r => r.ld) && regs.filter(r => r.c === "de").every(r => !r.ld), JSON.stringify(regs.filter(r => (r.c === "fr") !== !!r.ld).map(r => r.id)));
 const inRing = (x, y, r) => { let c = false; for (let i = 0, j = r.length - 1; i < r.length; j = i++) { const [xi, yi] = r[i], [xj, yj] = r[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c; } return c; };
@@ -33,11 +33,15 @@ console.log("  " + Object.entries(counts).map(([k, v]) => `${k} ${v}`).join(" ·
   const p = await b.newPage({ viewport: { width: 1280, height: 860 } });
   p.on("pageerror", e => errs.push(e.message)); p.on("console", m => m.type() === "error" && !/net::|CORS|Failed to load resource/.test(m.text()) && errs.push(m.text()));
   await p.route(/^https:\/\/(data\.geopf\.fr|sgx\.geodatenzentrum\.de)\//, r => r.abort());
-  await p.goto(BASE + "atlas.html#r=chablis&c=les_clos"); await p.waitForFunction(() => { try { return st.pack && st.sel === "les_clos"; } catch (e) { return false; } }, null, { timeout: 20000 });
-  await p.waitForSelector("#side .ldlist", { timeout: 15000 });
+  // a climat with lieux-dits of other names inside it: Montée de Tonnerre's or else the first that has some
+  await p.goto(BASE + "atlas.html#r=chablis"); await p.waitForFunction(() => { try { return st.pack && st.region.id === "chablis"; } catch (e) { return false; } }, null, { timeout: 20000 });
+  await p.evaluate(() => ATLAS_LDUI.want()); await p.waitForFunction(() => ATLAS_LDUI.loaded(), null, { timeout: 20000 });
+  const cid = await p.evaluate(() => { const ids = st.pack.climats.map(c => c.id); for (const id of ["montee_de_tonnerre", ...ids]) { const c = byId(id); if (c && /ldlist/.test(ATLAS_LDUI.listHtml(c))) return id; } return null; });
+  await p.evaluate(id => select(id, true), cid); await p.waitForSelector("#side .ldlist", { timeout: 15000 });
   const list = await p.$$eval("#side .ldlist button", bs => bs.map(x => x.textContent));
-  check("Les Clos's panel lists the lieux-dits inside it", list.length >= 1, JSON.stringify(list));
-  await p.evaluate(() => { const c = byId("les_clos"); fit(bbOf(c.g), .3, 0); }); await p.waitForTimeout(500);
+  check(`a climat's panel (${cid}) lists the lieux-dits inside it`, list.length >= 1, JSON.stringify(list));
+  await p.waitForTimeout(900); /* the flight to the climat ends first */
+  await p.evaluate(() => { const c = byId(st.sel), [x, y] = c.lp; setView([x - 900, y - 600, 1800, 1200]); }); await p.waitForTimeout(500);
   const drawn = await p.evaluate(() => ({ out: document.querySelectorAll("#map .ldo path").length, shown: getComputedStyle(document.querySelector("#map .ldo")).display, names: [...document.querySelectorAll("#map .tn-ld")].filter(e => e.style.display !== "none").length }));
   check("zoomed in, their outlines and names are on the map", drawn.out > 0 && drawn.shown !== "none" && drawn.names > 0, JSON.stringify(drawn));
   await p.click("#side .ldlist button"); await p.waitForTimeout(300);

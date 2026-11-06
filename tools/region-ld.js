@@ -67,7 +67,14 @@ for (const id of Object.keys(DEPS).filter(r => !ONLY.length || ONLY.includes(r))
     String(n).split(/[\s\-'’()«»"]+/).forEach(w => { if (w.length < 3) return; const k = fold(w).replace(/ /g, ""); if (!/[^\x00-\x7f]/.test(w)) { PLAIN.add(k); return; }
       const f = WORDS.get(k) || new Set(); f.add(w.toLowerCase()); WORDS.set(k, f); }); });
   const spell = n => SPELL.get(fold(n)) || n.replace(/[A-Za-z]{3,}/g, w => { const k = w.toLowerCase(), f = WORDS.get(k); if (!f || f.size !== 1 || PLAIN.has(k)) return w; const s = [...f][0]; return w[0] === w[0].toUpperCase() ? s[0].toUpperCase() + s.slice(1) : s; });
-  const tidy = raw => { const n = raw.replace(/^\s*\((.*)\)\s*$/, "$1").replace(/\s*\(/g, " (").replace(/\s*"\s*([^"]*?)\s*"/g, ' "$1"').replace(/\s+/g, " ").trim(), m = /^(.*?) dit "(.*)"$/i.exec(n);
+  // "L A      M O N T A I G N O T T E": letters spaced out, words by runs of spaces
+  // (all single-spaced: "L E S G A Y E R E S", then only a leading article can be told apart)
+  const unspace = r => { r = r.trim(); const tok = r.split(/ +/); if (tok.length < 3 || tok.some(w => w.length !== 1)) return r;
+    const gaps = r.match(/ +/g).map(g => g.length), g0 = Math.min(...gaps);
+    if (gaps.some(g => g > g0)) return r.split(new RegExp(` {${g0 + 1},}`)).map(w => w.replace(/ /g, "")).join(" ");
+    return r.replace(/ /g, "").replace(/^(LES|LA|LE|AUX|AU|DU|DES|SUR|SOUS|EN)(?=[A-Z]{3})/, "$1 "); };
+  const isName = n => (n.match(/[A-Za-zÀ-ÿ]/g) || []).length >= 3 && !/^[A-Z]{0,2}\d+[A-Z]?$/i.test(n.trim()); // not a parcel code ("C4", "11")
+  const tidy = raw => { const n = unspace(raw).replace(/^\s*\((.*)\)\s*$/, "$1").replace(/\s*\(/g, " (").replace(/\s*"\s*([^"]*?)\s*"/g, ' "$1"').replace(/\s+/g, " ").trim(), m = /^(.*?) dit "(.*)"$/i.exec(n);
     return m ? `${spell(cap(m[1]))} dit « ${spell(cap(m[2]))} »` : spell(cap(n)); };
   // the communes that reach the land
   const communes = {};
@@ -88,7 +95,7 @@ for (const id of Object.keys(DEPS).filter(r => !ONLY.length || ONLY.includes(r))
       catch (e) { if (e.status === 22) { none++; continue; } // 404: the commune has no lieux-dits file
         throw new Error(`${id}: ${insee} ${communes[insee]} could not be fetched (curl ${e.status}); run again, the rest is cached`); } }
     JSON.parse(fs.readFileSync(file, "utf8")).features.forEach(f => {
-      const g = f.geometry, name = (f.properties.nom || "").trim(); if (!g || !name) return;
+      const g = f.geometry, name = (f.properties.nom || "").trim(); if (!g || !name || !isName(name)) return;
       (g.type === "Polygon" ? [g.coordinates] : g.type === "MultiPolygon" ? g.coordinates : []).forEach(p => {
         const r = dpRing(p[0].map(toM), 2.5); if (r.length < 4 || area(r) < 1500) return;
         const pt = pole(r), [x0, y0, x1, y1] = bbOf(r);
