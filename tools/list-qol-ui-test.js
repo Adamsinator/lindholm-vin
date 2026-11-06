@@ -28,7 +28,7 @@ async function signup(b, devOpt, user) {
   return { ctx, p, errs };
 }
 const rows = p => p.$$eval("#rows tr.main", t => t.map(r => r.querySelector("td").textContent.trim()));
-const W = (p, prod) => p.evaluate(n => { const w = window.WINES.find(x => x.producer === n); return w && { left: w.left, drunk: w.drunk, location: w.location }; }, prod);
+const W = (p, prod) => p.evaluate(n => { const w = WINES.find(x => x.producer === n); return w && { left: w.left, drunk: w.drunk, location: w.location }; }, prod);
 
 (async () => {
   const b = await chromium.launch();
