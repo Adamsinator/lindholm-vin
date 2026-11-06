@@ -344,7 +344,7 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch} foote
 .impcols select{padding:5px 6px!important;font-size:13px!important}
 .impcols select.on{border-color:var(--accent)}
 .modal h3{font-size:12px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin:16px 0 6px;font-weight:600}
-.impprev{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r)}
+.impprev{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);padding-bottom:10px} /* room for a scrollbar drawn over the content (macOS) */
 .impprev table{border-collapse:collapse;width:100%;font-size:12.5px}
 .impprev th,.impprev td{padding:5px 8px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
 .impprev th{font-weight:600;color:var(--muted);background:var(--card2)}
@@ -403,6 +403,7 @@ body.selecting #rows tr.main.sel > td:first-child::before{background:var(--accen
 #map .land{fill:var(--chip);stroke:var(--line);stroke-width:1;stroke-linejoin:round}
 #map .land.clickable{cursor:pointer;transition:fill .1s}
 #map .land.clickable:hover{fill:var(--line)}
+#map .land.has{fill:var(--accent);stroke:var(--card)} #map .land.has:hover{fill-opacity:1 !important}
 #map .sea{fill:none}
 #map .dot{fill:var(--accent);fill-opacity:.55;stroke:var(--accent);stroke-width:1.5;cursor:pointer;transition:fill-opacity .1s}
 #map .dot:hover,#map .dot.on{fill-opacity:.9}
@@ -709,14 +710,16 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 }
 /* with the overview in its column beside the list there's less room: the region (it's in the overview) gives way */
 @media (min-width:1181px) and (max-width:1599px){
-  #eTbl thead th:nth-child(3),#eTbl tr.main td:nth-child(3){display:none}
+  /* a column given no width rather than display:none: the details row under a wine spans all seven columns, and
+     Safari keeps a hidden one's place as an empty column at the end */
+  #eTbl thead th:nth-child(3),#eTbl tr.main td:nth-child(3){width:0;padding:0;font-size:0;border:0;overflow:hidden;visibility:hidden}
   /* the cellar keeps its region, without the country (there's a country filter), to give the wine more room */
   #tbl .ctry{display:none}
   #tbl th.c-reg{width:108px} #tbl th.c-comm{width:150px} #tbl th.c-vint{width:72px} #tbl th.c-qty{width:76px} #tbl th.c-price{width:98px}
 }
 @media (min-width:1181px) and (max-width:1399px){ #tbl th.c-comm{width:124px} #tbl th.c-price{width:94px} }
 /* a small laptop beside the overview: the commune gives way too (it shows when the wine is opened, and search finds it) */
-@media (min-width:1181px) and (max-width:1299px){ #tbl th.c-comm,#tbl tr.main td.c-comm{display:none} }
+@media (min-width:1181px) and (max-width:1299px){ #tbl th.c-comm,#tbl tr.main td.c-comm{width:0;padding:0;font-size:0;border:0;overflow:hidden;visibility:hidden} } /* no width, not display:none (Safari, as above) */
 /* the header: Account and Log out at the top right with the languages; under it the page tabs, and a quiet line
    with when the cellar was fetched, Refresh and the atlas */
 .helpq,.acct .btn.helpq{display:inline-flex;align-items:center;justify-content:center;min-width:30px;min-height:30px;padding:0 !important;border:1.5px solid currentColor;border-radius:50%;font-weight:700;text-decoration:none;line-height:1}
@@ -1876,6 +1879,6 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 <script src="import.js?v=7"></script>
 <script src="export.js?v=3"></script>
 <script src="share-crypto.js?v=2"></script>
-<script src="app.js?v=97"></script>
+<script src="app.js?v=98"></script>
 </body>
 </html>

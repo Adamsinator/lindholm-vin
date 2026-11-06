@@ -468,6 +468,51 @@ function renderMore(cellar){
 }
 
 /* ---------- overview (rebuilt on every data load) ---------- */
+/* the vintage histogram, drawn for the width its box really has: measured when it's shown, and again when that width
+   changes (a panel opening or moving, a phone turning), so its numbers and years keep their size */
+let VINT_W = 0, VINT_CELLAR = [];
+function drawVintages(cellar){
+  VINT_CELLAR = cellar; const box = $("vintChart") && $("vintChart").parentElement; if(!box) return;
+  VINT_W = box.clientWidth;
+  const byV = {};
+  cellar.forEach(w=>{ const k = typeof w.vintage==="number" ? w.vintage : "NV";
+    (byV[k] ??= {b:0,wines:[]}).b += w.left; byV[k].wines.push(w); });
+  const years = Object.keys(byV).filter(k=>k!=="NV").map(Number).sort((a,b)=>a-b);
+  const keys = [...years, ...(byV.NV?["NV"]:[])];
+  // as wide as its box really is (the side column, or a full row), so labels keep their size
+  const W=Math.max(300, Math.round(box.clientWidth || 980)), H=W<600?160:190, P={l:8,r:8,t:14,b:22};
+  const maxV = Math.max(1,...keys.map(k=>byV[k].b));
+  const bw = (W-P.l-P.r)/Math.max(1,keys.length);
+  const svg = $("vintChart");
+  svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
+  // narrow bars: the counts only when they fit over a bar (the tooltip has them always), the years thinned to every
+  // 5th or 10th and written in full, so nothing runs into its neighbour or off the edge
+  const nums = bw >= String(maxV).length*6.4+2, yStep = bw >= 17 ? 1 : bw*5 >= 30 ? 5 : 10;
+  const yLabel = k => typeof k!=="number" ? (bw >= 17 || yStep ? "NV" : "") : yStep===1 ? String(k).slice(2) : (k % yStep === 0 ? String(k) : "");
+  let html="";
+  keys.forEach((k,i)=>{
+    const d=byV[k], h=Math.max(3,d.b/maxV*(H-P.t-P.b)), x=P.l+i*bw, y=H-P.b-h;
+    html+=`<g class="vcol" data-k="${k}">
+      <rect x="${x+bw*0.12}" y="${P.t}" width="${bw*0.76}" height="${H-P.t-P.b}" fill="transparent"></rect>
+      <rect class="bar" x="${x+bw*0.12}" y="${y}" width="${bw*0.76}" height="${h}" rx="3"></rect>
+      ${nums ? `<text class="vnum" x="${x+bw/2}" y="${y-4}" text-anchor="middle">${d.b}</text>` : ""}
+      <text class="vaxis" x="${Math.max(14, Math.min(W-14, x+bw/2))}" y="${H-7}" text-anchor="middle">${yLabel(k)}</text>
+    </g>`;
+  });
+  svg.innerHTML = html;
+  svg.querySelectorAll(".vcol").forEach(g=>{
+    const k = g.dataset.k, d = byV[k==="NV"?"NV":Number(k)];
+    g.addEventListener("mousemove",e=>{
+      const names = d.wines.slice(0,3).map(w=>w.producer).join(", ");
+      showTip(`<b>${k==="NV"?esc(tr("Non-vintage")):k}</b><br>${esc(nBottles(d.b))} · ${esc(nWines(d.wines.length))}<br><span style="opacity:.75">${esc(names)}${d.wines.length>3?"…":""}</span>`,e.clientX,e.clientY);
+    });
+    g.addEventListener("mouseleave",hideTip);
+    g.addEventListener("click",()=>{ $("q").value = state.q = (k==="NV"?"NV":k); renderTable(); });
+  });
+
+}
+new ResizeObserver(()=>{ const box = $("vintChart") && $("vintChart").parentElement, w = box ? box.clientWidth : 0;
+  if(w && Math.abs(w - VINT_W) > 24 && VINT_CELLAR.length) drawVintages(VINT_CELLAR); }).observe($("vintChart").parentElement);
 function renderOverview(){
   renderTips();
   const cellar = WINES.filter(w=>w.left>0);
@@ -587,38 +632,7 @@ function renderOverview(){
   renderInsights(cellar);
   renderPriorities(cellar);
 
-  /* vintage histogram */
-  const byV = {};
-  cellar.forEach(w=>{ const k = typeof w.vintage==="number" ? w.vintage : "NV";
-    (byV[k] ??= {b:0,wines:[]}).b += w.left; byV[k].wines.push(w); });
-  const years = Object.keys(byV).filter(k=>k!=="NV").map(Number).sort((a,b)=>a-b);
-  const keys = [...years, ...(byV.NV?["NV"]:[])];
-  // as wide as its box really is (the side column, or a full row), so labels keep their size
-  const W=Math.max(300, Math.round(($("vintChart").parentElement||{}).clientWidth || 980)), H=W<600?160:190, P={l:8,r:8,t:14,b:22};
-  const maxV = Math.max(1,...keys.map(k=>byV[k].b));
-  const bw = (W-P.l-P.r)/Math.max(1,keys.length);
-  const svg = $("vintChart");
-  svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
-  let html="";
-  keys.forEach((k,i)=>{
-    const d=byV[k], h=Math.max(3,d.b/maxV*(H-P.t-P.b)), x=P.l+i*bw, y=H-P.b-h;
-    html+=`<g class="vcol" data-k="${k}">
-      <rect x="${x+bw*0.12}" y="${P.t}" width="${bw*0.76}" height="${H-P.t-P.b}" fill="transparent"></rect>
-      <rect class="bar" x="${x+bw*0.12}" y="${y}" width="${bw*0.76}" height="${h}" rx="3"></rect>
-      <text class="vnum" x="${x+bw/2}" y="${y-4}" text-anchor="middle">${d.b}</text>
-      <text class="vaxis" x="${x+bw/2}" y="${H-7}" text-anchor="middle">${typeof k==="number"?String(k).slice(2):"NV"}</text>
-    </g>`;
-  });
-  svg.innerHTML = html;
-  svg.querySelectorAll(".vcol").forEach(g=>{
-    const k = g.dataset.k, d = byV[k==="NV"?"NV":Number(k)];
-    g.addEventListener("mousemove",e=>{
-      const names = d.wines.slice(0,3).map(w=>w.producer).join(", ");
-      showTip(`<b>${k==="NV"?esc(tr("Non-vintage")):k}</b><br>${esc(nBottles(d.b))} · ${esc(nWines(d.wines.length))}<br><span style="opacity:.75">${esc(names)}${d.wines.length>3?"…":""}</span>`,e.clientX,e.clientY);
-    });
-    g.addEventListener("mouseleave",hideTip);
-    g.addEventListener("click",()=>{ $("q").value = state.q = (k==="NV"?"NV":k); renderTable(); });
-  });
+  drawVintages(cellar);
 
   /* filter dropdown options (preserve selection) */
   const ctrys = [...new Set(WINES.filter(w=>w.left>0||state.status!=="cellar").map(w=>w.country).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
@@ -1233,7 +1247,6 @@ function detailHTML(w){
   return `<div class="dgrid">${cells}</div>
     ${w.note?`<div class="unote">“${esc(w.note)}” — ${esc(tr("cellar note"))}</div>`:""}
     ${pn?`<div class="pnote"><b>${esc(w.producer)}</b> · ${esc(tr(TIER_LABEL[pn[0]]))} — ${esc(noteText(pn[1]))}</div>`:""}
-    <div class="wstyle" data-row="${w.row}"></div>
     ${isBiz() ? "" : journalHTML(w)}
     ${isBiz() ? BIZ.detail(w) : ""}
     <div class="links">
@@ -1483,12 +1496,8 @@ function moreRow(total, shown, cols, tbl){
 // grape data): fetched the first time a wine's details open or the panel comes into view, not with the page
 let STYLE_LOAD = null;
 function styleReady(){
-  return STYLE_LOAD = STYLE_LOAD || [!window.WINE_KB && "wine-kb.js?v=2", !window.SOMM_DATA && "sommelier-data.js?v=6", !window.STYLE && "style.js?v=2"]
+  return STYLE_LOAD = STYLE_LOAD || [!window.WINE_KB && "wine-kb.js?v=2", !window.SOMM_DATA && "sommelier-data.js?v=6", !window.STYLE && "style.js?v=3"]
     .filter(Boolean).reduce((p, src)=>p.then(()=>loadJS(src)), Promise.resolve()).catch(e=>{ STYLE_LOAD = null; throw e; });
-}
-function styleFill(root){
-  const box = root.querySelector(".wstyle:empty"); if(!box) return;
-  styleReady().then(()=>{ if(box.isConnected) STYLE.fill(box); }).catch(()=>box.remove());
 }
 let TASTE_SEEN = false;
 function renderTaste(cellar){
@@ -1501,7 +1510,6 @@ function renderTaste(cellar){
   io.observe(el);
 }
 function bindDetail(root){
-  styleFill(root);
   root.querySelectorAll("button.drink").forEach(b=>
     b.addEventListener("click",()=>rowAction(b.dataset.act, Number(b.dataset.row), b)));
   root.querySelectorAll("select.rate").forEach(sel=>
@@ -1556,6 +1564,7 @@ async function loadData(quiet){
     if(!LIST_RESTORED){ LIST_RESTORED = true; if(syncListControls()) renderTable(); if(syncListControls()) renderTable(); saveList(); }
     LOADED_AT = new Date(); stampText();
     $("spin").hidden = true; $("content").hidden = false;
+    if(!VINT_W && VINT_CELLAR.length) drawVintages(VINT_CELLAR); // drawn while hidden (no width yet): again, for the width it has now
     if(!window.CELLAR_QOL) loadJS("cellar-qol.js?v=3").catch(()=>{}); // the conveniences: swipes, keys, several wines at once
     loadJournalSilently(); refreshDeleted(); checkOwner(); takePrefill(); // checkOwner asks "me", which says if the feed is on
   }catch(err){
@@ -2929,6 +2938,20 @@ let MAP_VIEW = "europe", LAST_CELLAR = [];
 const COS = Math.cos(46*Math.PI/180);
 // Fit a projector to the given [lng,lat] polygons (default: all of Europe), plus
 // optional extra [lat,lng] points so edge dots aren't clipped.
+// A dot's radius from its bottles, against the most in the same view: 4 px up to R, by area (√), so one big
+// country or region can't swallow its neighbours however large the cellar
+const dotR = (b, max, R = 22) => 4 + (R - 4) * Math.sqrt(Math.max(0, b) / Math.max(1, max));
+// A label beside its dot where it touches no other label or dot: right, left, above, below, then further out; boxes
+// holds what's placed ([x0,y0,x1,y1]), the label's own box is added. Returns where to draw it.
+function placeLabel(boxes, x, y, rad, text, W, H, fs = 11){
+  const w = text.length * fs * .58 + 4, h = fs + 3, g = 4;
+  const tries = [[x+rad+g, y+fs*.35, "start"], [x-rad-g, y+fs*.35, "end"], [x, y-rad-g, "middle"], [x, y+rad+h, "middle"]];
+  for(let k = 1; k <= 6; k++) tries.push([x+rad+g, y+fs*.35+k*h, "start"], [x-rad-g, y+fs*.35+k*h, "end"], [x+rad+g, y+fs*.35-k*h, "start"], [x-rad-g, y+fs*.35-k*h, "end"]);
+  const box = ([lx, ly, an]) => { const x0 = an === "start" ? lx : an === "end" ? lx - w : lx - w/2; return [x0, ly - fs, x0 + w, ly + 3]; };
+  const hit = b => b[0] < 2 || b[2] > W - 2 || b[1] < 2 || b[3] > H - 2 || boxes.some(o => !(b[2] < o[0] || b[0] > o[2] || b[3] < o[1] || b[1] > o[3]));
+  const t = tries.find(c => !hit(box(c))) || tries[0];
+  boxes.push(box(t)); return {x: t[0], y: t[1], anchor: t[2]};
+}
 function buildProjector(W, pad, polys, extraPts, capN){
   polys = polys || Object.values(LANDS);
   let minx=Infinity,maxx=-Infinity,miny=Infinity,maxy=-Infinity;
@@ -3007,15 +3030,20 @@ function renderEuropeMap(svg){
     return `<text class="cname" text-anchor="middle" x="${x.toFixed(1)}" y="${y.toFixed(1)}">${esc(tr(name))}</text>`;
   }).join("");
   const present = COUNTRIES.filter(c=>agg[c.key]).sort((a,b)=>agg[b.key].b-agg[a.key].b);
+  const maxB = present.length ? agg[present[0].key].b : 1;
+  // the countries themselves carry the bottles: the more, the deeper the colour (by √, so the small ones still show)
+  html = html.replace(/<path class="land clickable" data-country="([^"]*)"/g, (m, k) => { const a = agg[k];
+    return a ? `<path class="land clickable has" data-country="${k}" style="fill-opacity:${(.18 + .72 * Math.sqrt(a.b / maxB)).toFixed(2)}"` : m; });
+  const boxes = [];
   html += present.map(c=>{
-    const [x,y]=proj([c.geo[1],c.geo[0]]); const a=agg[c.key];
-    return `<circle class="dot" data-country="${esc(c.key)}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r(a.b).toFixed(1)}"/>`;
-  }).join("");
-  html += present.map(c=>{
-    const [x,y]=proj([c.geo[1],c.geo[0]]); const a=agg[c.key], rad=r(a.b), left=x>W*0.6;
-    const lx=(left?x-rad-4:x+rad+4).toFixed(1), anc=left?"end":"start";
-    return `<text class="dlabel" text-anchor="${anc}" x="${lx}" y="${(y-1).toFixed(1)}">${esc(countryLabel(c.key))}</text>
-      <text class="dsub" text-anchor="${anc}" x="${lx}" y="${(y+10).toFixed(1)}">${btl(a.b)}</text>`;
+    const [x,y]=proj([c.geo[1],c.geo[0]]), a=agg[c.key], name=countryLabel(c.key), sub=btl(a.b);
+    // centred on the country, nudged off any label already there
+    let ly = y, w = Math.max(name.length*6.6, sub.length*5.4)+6;
+    const clash = yy => boxes.some(o => !(x+w/2 < o[0] || x-w/2 > o[2] || yy+12 < o[1] || yy-11 > o[3]));
+    for(let k=0; k<8 && clash(ly); k++) ly += 22;
+    boxes.push([x-w/2, ly-11, x+w/2, ly+12]);
+    return `<text class="dlabel" text-anchor="middle" x="${x.toFixed(1)}" y="${(ly-1).toFixed(1)}">${esc(name)}</text>
+      <text class="dsub" text-anchor="middle" x="${x.toFixed(1)}" y="${(ly+10).toFixed(1)}">${esc(sub)}</text>`;
   }).join("");
   // beyond the map: a row (or two) along the bottom, each country a dot that filters the list
   const farList = Object.entries(far).sort((a,b)=>(!a[0])-(!b[0]) || b[1].b-a[1].b);
@@ -3024,7 +3052,7 @@ function renderEuropeMap(svg){
     const label = c => c ? (window.WINE_KB && WINE_KB.countries ? ((WINE_KB.countries.find(k=>k.n===c)||{}).names||{})[I18N.lang] || c : c) : tr("No country");
     let bx = 34, by = H + 26; HB = 40;
     html += `<text class="dsub" x="30" y="${(H+8).toFixed(1)}">${esc(tr("Beyond the map:"))}</text>`;
-    farList.forEach(([c,f])=>{ const rad=r(f.b), txt=`${label(c)} · ${f.b}`, wdt=rad*2+10+txt.length*6.6+18;
+    farList.forEach(([c,f])=>{ const rad=dotR(f.b, Math.max(maxB, ...farList.map(x=>x[1].b)), 12), txt=`${label(c)} · ${f.b}`, wdt=rad*2+10+txt.length*6.6+18;
       if(bx+wdt>W-10){ bx=34; by+=26; HB+=26; }
       html += `<g class="far" data-far="${esc(c)}"><circle class="dot" cx="${(bx+rad).toFixed(1)}" cy="${by.toFixed(1)}" r="${rad.toFixed(1)}"/>
         <text class="dlabel" x="${(bx+rad*2+6).toFixed(1)}" y="${(by+4).toFixed(1)}">${esc(txt)}</text></g>`;
@@ -3039,11 +3067,6 @@ function renderEuropeMap(svg){
   svg.querySelectorAll(".land.clickable").forEach(p=>{
     const key=p.dataset.country, a=agg[key];
     bindDot(p, `<b>${esc(countryLabel(key))}</b>${a?`<br>${esc(nBottles(a.b))} · ${esc(nWines(a.n))}`:""}<br><i>${esc(tr("click to explore"))}</i>`,
-      ()=>openCountry(key));
-  });
-  svg.querySelectorAll(".dot[data-country]").forEach(c=>{
-    const key=c.dataset.country, a=agg[key];
-    bindDot(c, `<b>${esc(countryLabel(key))}</b><br>${esc(nBottles(a.b))} · ${esc(nWines(a.n))}<br><i>${esc(tr("click to explore"))}</i>`,
       ()=>openCountry(key));
   });
 }
@@ -3069,20 +3092,19 @@ function renderCountryMap(svg, key){
     parts += `<text class="dsub" text-anchor="middle" x="${(W/2).toFixed(1)}" y="${(H/2).toFixed(1)}">${esc(tr("No wines from {0} yet.", countryLabel(key)))}</text>`;
     svg.setAttribute("viewBox",`0 0 ${W} ${Math.round(H)}`); svg.innerHTML=parts; return;
   }
-  const placedL=[], placedR=[];
-  present.forEach(n=>{
-    const [x,y]=proj([REGION_GEO[n][1],REGION_GEO[n][0]]); const a=agg[n], rad=r(a.b);
-    const drill = DRILLABLE.includes(n);
-    parts += `<circle class="dot${drill?" drill":""}" data-region="${esc(n)}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${rad.toFixed(1)}"/>`;
-    const left=x>W*0.6, placed=left?placedL:placedR; let ly=y+4;
-    while(placed.some(py=>Math.abs(py-ly)<12)) ly+=12; placed.push(ly);
-    parts += `<text class="dlabel" text-anchor="${left?"end":"start"}" x="${(left?x-rad-4:x+rad+4).toFixed(1)}" y="${ly.toFixed(1)}">${esc(n)} · ${a.b}</text>`;
-  });
+  const maxB = Math.max(1, ...names.map(n=>agg[n].b));
+  const dots = present.map(n=>{ const [x,y]=proj([REGION_GEO[n][1],REGION_GEO[n][0]]); return {n, x, y, rad:dotR(agg[n].b, maxB, 24)}; });
+  // the dots first (biggest under), then each label where it's clear of the dots and the labels before it
+  const boxes = dots.map(d=>[d.x-d.rad, d.y-d.rad, d.x+d.rad, d.y+d.rad]);
+  dots.forEach(({n,x,y,rad})=>{ const drill = DRILLABLE.includes(n);
+    parts += `<circle class="dot${drill?" drill":""}" data-region="${esc(n)}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${rad.toFixed(1)}"/>`; });
+  dots.forEach(({n,x,y,rad})=>{ const t = `${n} · ${agg[n].b}`, L = placeLabel(boxes, x, y, rad, t, W, H);
+    parts += `<text class="dlabel" text-anchor="${L.anchor}" x="${L.x.toFixed(1)}" y="${L.y.toFixed(1)}">${esc(t)}</text>`; });
   // regions we can't place on the map get a row along the bottom
   if(buckets.length){
     let bx=34; const by=H+HB-12;
     parts += `<text class="dsub" x="30" y="${(by-20).toFixed(1)}">${esc(tr("Not placed:"))}</text>`;
-    buckets.forEach(n=>{ const a=agg[n], rad=r(a.b);
+    buckets.forEach(n=>{ const a=agg[n], rad=dotR(a.b, maxB, 14);
       parts += `<circle class="dot" data-region="${esc(n)}" cx="${bx.toFixed(1)}" cy="${by.toFixed(1)}" r="${rad.toFixed(1)}"/>
         <text class="dlabel" x="${(bx+rad+6).toFixed(1)}" y="${(by+4).toFixed(1)}">${esc(n)} · ${a.b}</text>`;
       bx += rad+6 + (n.length+String(a.b).length+3)*7 + 30;
@@ -3129,7 +3151,7 @@ function renderCoteMap(svg){
   pts.forEach(([la,ln])=>{ const x=ln*cos;
     minx=Math.min(minx,x); maxx=Math.max(maxx,x); miny=Math.min(miny,la); maxy=Math.max(maxy,la); });
   const W=640, H=Math.max(430, present.length*26+150);
-  const X0=76, X1=300, Y0=42, Y1=H-(buckets.length?96:44);
+  const X0=128, X1=330, Y0=42, Y1=H-(buckets.length?96:44); // the section names (CÔTE DE BEAUNE) get the left margin to themselves
   const sx=(X1-X0)/Math.max(1e-9,maxx-minx), sy=(Y1-Y0)/Math.max(1e-9,maxy-miny);
   const proj=([la,ln])=>[X0+(ln*cos-minx)*sx, Y0+(maxy-la)*sy];
 
@@ -3150,9 +3172,9 @@ function renderCoteMap(svg){
   }
   // dots at true positions; labels in a staggered right column with leader lines
   const ordered = present.map(l=>({l,p:proj(geoOf[l])})).sort((a,b)=>a.p[1]-b.p[1]);
-  let lastY=-1e9; const LX=340;
+  let lastY=-1e9; const LX=372, maxB=Math.max(1, ...Object.values(agg).map(a=>a.b));
   ordered.forEach(o=>{
-    const a=agg[o.l], [x,y]=o.p, rad=4+Math.sqrt(a.b)*1.9;
+    const a=agg[o.l], [x,y]=o.p, rad=dotR(a.b, maxB, 16);
     const ly=Math.max(y, lastY+16); lastY=ly;
     parts.push(`<path class="lead" d="M ${(x+rad+2).toFixed(1)} ${y.toFixed(1)} L ${(LX-6).toFixed(1)} ${ly.toFixed(1)}"/>
       <circle class="dot" data-q="${esc(a.q)}" data-label="${esc(tr(o.l))}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${rad.toFixed(1)}"/>
@@ -3163,7 +3185,7 @@ function renderCoteMap(svg){
     const by=H-42; let bx=X0;
     parts.push(`<text class="dsub" x="18" y="${by-26}">${esc(tr("Without a spot on the Côte:"))}</text>`);
     buckets.forEach(l=>{
-      const a=agg[l], rad=4+Math.sqrt(a.b)*1.9;
+      const a=agg[l], rad=dotR(a.b, maxB, 14);
       parts.push(`<circle class="dot" data-q="${esc(a.q)}" data-label="${esc(tr(l))}" cx="${bx.toFixed(1)}" cy="${by}" r="${rad.toFixed(1)}"/>
         <text class="dlabel" x="${(bx+rad+7).toFixed(1)}" y="${by+4}">${esc(tr(l))} · ${a.b}</text>`);
       bx += rad + 7 + (tr(l).length+String(a.b).length+3)*7.2 + 44;
@@ -3220,15 +3242,12 @@ function renderChampagneMap(svg){
   // Label every owned village. Nudge labels apart when dots share nearly the same row so none overlap.
   const entries=Object.entries(agg).map(([key,a])=>{ const [x,y]=proj(CHAMP_GEO[key]); return {key,a,x,y}; })
     .sort((p,q)=>q.a.b-p.a.b);
-  const placedL=[], placedR=[]; // track label y-positions per side
-  entries.forEach(({a,x,y})=>{
-    const rad=4+Math.sqrt(a.b)*2.2;
-    parts.push(`<circle class="dot" data-q="${esc(a.q)}" data-label="${esc(a.label)}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${rad.toFixed(1)}"/>`);
-    const left = x>W*0.6, placed = left?placedL:placedR;
-    let ly = y+4;
-    while(placed.some(py=>Math.abs(py-ly)<11)) ly += 11; // push down off a crowded neighbour
-    placed.push(ly);
-    parts.push(`<text class="dlabel" text-anchor="${left?"end":"start"}" x="${(left?x-rad-5:x+rad+5).toFixed(1)}" y="${ly.toFixed(1)}">${esc(a.label)} · ${a.b}</text>`);
+  // capped dots (the biggest under), then each label clear of the dots and the labels before it
+  const maxB = Math.max(1, ...entries.map(e=>e.a.b)), boxes = [];
+  entries.forEach(e=>{ e.rad = dotR(e.a.b, maxB, 18); boxes.push([e.x-e.rad, e.y-e.rad, e.x+e.rad, e.y+e.rad]);
+    parts.push(`<circle class="dot" data-q="${esc(e.a.q)}" data-label="${esc(e.a.label)}" cx="${e.x.toFixed(1)}" cy="${e.y.toFixed(1)}" r="${e.rad.toFixed(1)}"/>`); });
+  entries.forEach(({a,x,y,rad})=>{ const t = `${a.label} · ${a.b}`, L = placeLabel(boxes, x, y, rad, t, W, H);
+    parts.push(`<text class="dlabel" text-anchor="${L.anchor}" x="${L.x.toFixed(1)}" y="${L.y.toFixed(1)}">${esc(t)}</text>`);
   });
   if(other) parts.push(`<text class="dsub" x="${pad}" y="${(H-12).toFixed(1)}">${esc(tr("+ {0} elsewhere ({1}…)", btl(other.b), other.q))}</text>`);
   svg.setAttribute("viewBox",`0 0 ${W} ${Math.round(H)}`);
@@ -3273,14 +3292,12 @@ function renderScatterMap(svg, cfg){
     parts.push(`<circle class="vref" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.6"><title>${esc(titleCase(k))}</title></circle>`); });
   // owned villages: accent dots + labels, collision-nudged
   const entries=owned.map(k=>{ const a=agg[k], [x,y]=proj(cfg.geo[k]); return {a,x,y}; }).sort((p,q)=>q.a.b-p.a.b);
-  const placedL=[], placedR=[];
-  entries.forEach(({a,x,y})=>{
-    const rad=4+Math.sqrt(a.b)*2.0;
-    parts.push(`<circle class="dot" data-q="${esc(a.q)}" data-label="${esc(a.label)}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${rad.toFixed(1)}"/>`);
-    const left=x>W*0.6, placed=left?placedL:placedR; let ly=y+4;
-    while(placed.some(py=>Math.abs(py-ly)<11)) ly+=11;
-    placed.push(ly);
-    parts.push(`<text class="dlabel" text-anchor="${left?"end":"start"}" x="${(left?x-rad-5:x+rad+5).toFixed(1)}" y="${ly.toFixed(1)}">${esc(a.label)} · ${a.b}</text>`);
+  // capped dots (the biggest under), then each label clear of the dots and the labels before it
+  const maxB = Math.max(1, ...entries.map(e=>e.a.b)), boxes = [];
+  entries.forEach(e=>{ e.rad = dotR(e.a.b, maxB, 18); boxes.push([e.x-e.rad, e.y-e.rad, e.x+e.rad, e.y+e.rad]);
+    parts.push(`<circle class="dot" data-q="${esc(e.a.q)}" data-label="${esc(e.a.label)}" cx="${e.x.toFixed(1)}" cy="${e.y.toFixed(1)}" r="${e.rad.toFixed(1)}"/>`); });
+  entries.forEach(({a,x,y,rad})=>{ const t = `${a.label} · ${a.b}`, L = placeLabel(boxes, x, y, rad, t, W, H);
+    parts.push(`<text class="dlabel" text-anchor="${L.anchor}" x="${L.x.toFixed(1)}" y="${L.y.toFixed(1)}">${esc(t)}</text>`);
   });
   if(other) parts.push(`<text class="dsub" x="${pad}" y="${(H-12).toFixed(1)}">${esc(tr("+ {0} elsewhere ({1}…)", btl(other.b), other.q))}</text>`);
   svg.setAttribute("viewBox",`0 0 ${W} ${Math.round(H)}`);
@@ -4157,6 +4174,7 @@ function drawDrinkingTime(drunk){
   const dm = w => /^\d{4}-\d{2}/.test(String(w.drunkDate));
   const dated = drunk.filter(dm);
   const nodate = drunk.reduce((s,w)=>s+(dm(w)?0:w.drunk),0);
+  svg.style.display = dated.length ? "" : "none"; // no empty frame when nothing has a date: the note says why
   if(!dated.length){
     svg.innerHTML=""; svg.removeAttribute("viewBox");
     cap.textContent = nodate ? tr("{0} enjoyed without a date: mark drinks in the app so they’re dated.", nBottles(nodate)) : "";
