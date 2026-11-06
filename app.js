@@ -730,8 +730,10 @@ let RACK_ALL = false, RACK_CASES = [];
 const rackKey = w => { const r = readiness(w); return !r ? "none" : r.k==="now" ? (r.soon?"soon":"now") : r.k; };
 function placeWall(){
   const wall = $("wall"), side = document.querySelector("#overview .side-body"); if(!wall || !side) return;
-  // wide: one of the overview's panels, where the customizer puts it (first, unless moved); narrow: above the figures
-  if(matchMedia("(min-width:1181px)").matches){ if(wall.parentNode !== side){ side.appendChild(wall); applyLayout("overview"); } }
+  // one of the overview's panels, where the customizer puts it; on a narrow screen, while it's first, it sits above the
+  // figures as it always has, and once moved (or taken away) it goes where the customizer says, as on a computer
+  const top = !matchMedia("(min-width:1181px)").matches && layoutOf("overview")[0] === "rack";
+  if(!top){ if(wall.parentNode !== side){ side.appendChild(wall); applyLayout("overview"); } }
   else if(wall.nextElementSibling !== $("kpis")) $("kpis").parentNode.insertBefore(wall, $("kpis"));
 }
 matchMedia("(min-width:1181px)").addEventListener("change", ()=>{ placeWall(); renderRack(WINES.filter(w=>w.left>0)); });
@@ -994,7 +996,7 @@ function applyLayout(id){
   on.forEach(k=>body.appendChild(at[k]));
   els.filter(e=>!on.includes(e.dataset.panel)).forEach(e=>body.appendChild(e));
   els.forEach(e=>e.classList.toggle("off", !on.includes(e.dataset.panel)));
-  if(id==="overview") placeWall(); // a narrow screen keeps the rack above the figures
+  if(id==="overview") placeWall(); // a narrow screen keeps the rack above the figures while it's first
   renderCustom(id);
 }
 function setLayout(id, list){
