@@ -208,8 +208,8 @@ function ownersHtml(c) {
         const segs = own.map(([k, h]) => `<span title="${esc(P[k] || k)} · ${fmtHa(h)} ha · ${Math.round(100 * h / c.ha)}%" style="width:${(100 * Math.min(h, c.ha) / c.ha).toFixed(2)}%;background:${col(k) || (alt++ % 2 ? "var(--chip)" : "var(--line)")}"></span>`).join("");
         return `<div class="gcrow"><button type="button" class="plink gcn" data-c="${esc(c.id)}">${esc(c.n)}</button><span class="gcbar">${segs}</span><span class="gch">${fmtHa(c.ha)} ha</span></div>`; }).join("");
   }
-  function regionHtml() { if (!VT) { vtLoad(); return gcOwnersHtml(); }
-    return gcOwnersHtml() + warmingChart() + `<p class="note">${esc(t("Ratings are AllWine's consensus of published vintage charts on a 100-point scale (* = estimate, fewer sources); hover a score for its note. Weather: Météo-France, Dijon-Longvic."))}</p>`; }
+  function regionHtml() { if (!VT) { vtLoad(); return jumpHtml() + gcOwnersHtml(); }
+    return jumpHtml() + gcOwnersHtml() + warmingChart() + vintageTable() + `<p class="note">${esc(t("Ratings are AllWine's consensus of published vintage charts on a 100-point scale (* = estimate, fewer sources); hover a score for its note. Weather: Météo-France, Dijon-Longvic."))}</p>`; }
   /* ---------- "colour the vineyards by" (atlas-color.js): the Côte d'Or's own measures ---------- */
   const VIL_IDX = () => Object.fromEntries((st.pack.villages || []).map((v, i) => [v.id, i]));
   const HUES = [8, 32, 52, 88, 140, 172, 200, 228, 262, 300, 330];
@@ -235,5 +235,81 @@ function ownersHtml(c) {
     .gclegend{display:flex;flex-wrap:wrap;gap:4px 12px;margin:4px 0 10px;font-size:12.5px} .sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
     .gcrow{display:grid;grid-template-columns:minmax(0,9.5em) 1fr auto;gap:8px;align-items:center;font-size:12.5px;margin:3px 0} .gcn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .gcbar{display:flex;height:12px;border-radius:3px;overflow:hidden;background:var(--card2);border:1px solid var(--line)} .gch{color:var(--muted);white-space:nowrap} table.cmpt th{font-size:12.5px;text-align:right}</style>`);
-  return { holds, shown: shownFor, compareHtml, ownersHtml, prodBar, setProd, histHtml, vintageHtml, regionHtml, colorModes, wire, edits: EDITS };
+  /* ---------- a commune: its climats, its appellation, its vintages and the weather that hit it (#v=… on burgundy.html) ---------- */
+  const villOf = id => (st.pack.villages || []).find(v => v.id === id);
+  const climatsOf = id => st.pack.climats.filter(c => c.v === id);
+  function selectVillage(id, fly) {
+    const list = climatsOf(id), v = villOf(id); if (!v && !list.length) return false;
+    st.sel = null; st.ld = null; st.vsel = id; paint(); renderSide(); document.body.classList.add("side-open");
+    if (fly) { const g = (v && v.g || []).concat(list.flatMap(c => c.g)); if (g.length) fit(bbOf(g), .05, 360); }
+    syncHash(); return true;
+  }
+  function villageSide() {
+    const id = st.vsel, v = villOf(id) || { id, n: (climatsOf(id)[0] || {}).app || id }, list = climatsOf(id), side = $("side");
+    const cote = v.cote || (list[0] || {}).cote, red = cote === "nuits" ? "nuits_red" : "beaune_red";
+    const by = k => list.filter(c => c.c === k && !c.x).concat(list.filter(c => c.c === k && c.x)).sort((a, b) => a.n.localeCompare(b.n, "fr"));
+    const grp = (k, label) => { const l = by(k); return l.length ? `<h3>${esc(t(label))} · ${l.length}</h3><p class="ldlist">${l.map(c => `<button type="button" class="plink" data-c="${esc(c.id)}">${esc(c.n)}</button>`).join(" · ")}</p>` : ""; };
+    if (!VT) vtLoad();
+    side.innerHTML = `<p><button class="btn" id="back">← ${esc(st.pack.meta.name)}</button></p><span class="pill">${esc(t("Commune"))}</span><h2>${esc(v.n)}</h2>
+      ${v.aoc ? `<div class="meta">${esc(v.aoc)}</div>` : ""}${v.note ? `<p class="desc">${esc(v.note)}</p>` : ""}
+      ${grp("GC", "Grand cru")}${grp("1er", "Premier cru")}${grp("V", "Village climat")}
+      ${VT ? yearHtml(red, id) + vintageChart(red, id) + (cote === "beaune" ? vintageChart("beaune_white", id) : "") : ""}
+      ${VT && vEvents(id).length ? `<h3>${esc(t("Frost, hail and heat"))}</h3>` + vEvents(id).slice().reverse().slice(0, 12).map(e => `<p class="note"><i class="evdot" style="background:${EVT[evtKind(e.t)][0]}"></i><b>${esc(e.d)}</b> ${esc(t(EVT[evtKind(e.t)][1]))}${e.s ? " — " + esc(vx(e.s)) : ""}</p>`).join("") : ""}`;
+    $("back").onclick = () => { st.vsel = null; paint(); renderSide(); syncHash(); };
+    side.querySelectorAll("button[data-c]").forEach(b => b.onclick = () => { st.vsel = null; select(b.dataset.c, true); });
+  }
+  /* ---------- burgundy.html's links: #c= a climat, #v= a commune, #p= an owner, #l= a lieu-dit (its old key), #color=…&y=… ---------- */
+  async function fromHash(q) {
+    if (q.get("color")) { if (!window.ATLAS_COLOR) await loadScript("atlas-color.js?v=1").catch(() => {});
+      if (window.ATLAS_COLOR && ATLAS_COLOR.modes()[q.get("color")]) { st.color = q.get("color"); if (st.color === "vintage") await vtLoad(); if (q.get("y")) st.vy = +q.get("y"); paint(); renderLegend(); } }
+    if (q.get("p") && st.pack.producers[q.get("p")]) setProd(q.get("p"));
+    if (q.get("v") && !q.get("c")) selectVillage(q.get("v"), true);
+    if (q.get("l") && window.ATLAS_LDUI) { await ATLAS_LDUI.want(); const L = window.ATLAS_LD && ATLAS_LD[st.region.id], key = q.get("l");
+      const i = L ? L.ld.findIndex(l => l[6] === key || norm(l[1]) === norm(key)) : -1; if (i >= 0) ATLAS_LDUI.pick(i, true); }
+    if (!q.get("l")) syncHash(); // the address as it now stands (the colour and year included)
+  }
+  /* ---------- the map's extras: red / white and monopoles only (in the filter bar), monopoles' and walled clos' outlines,
+     buildings zoomed in ---------- */
+  st.cdCol = ""; st.cdMono = false;
+  const ok = c => (!st.cdCol || String(c.col || "R").includes(st.cdCol)) && (!st.cdMono || !!c.mono);
+  function filtersUi() {
+    if ($("cdFilters")) return; const bar = $("fV") && $("fV").closest("label"); if (!bar) return;
+    bar.insertAdjacentHTML("afterend", `<span class="cdonly seg" id="cdFilters" role="group" aria-label="${esc(t("Colour"))}"><button type="button" data-cdcol="" class="on">${esc(t("All"))}</button><button type="button" data-cdcol="R">${esc(t("Red"))}</button><button type="button" data-cdcol="W">${esc(t("White"))}</button></span>
+      <label class="chk cdonly"><input type="checkbox" id="cdMono"><span>${esc(t("Monopoles"))}</span></label>`);
+    $("cdFilters").querySelectorAll("button").forEach(b => b.onclick = () => { st.cdCol = b.dataset.cdcol; $("cdFilters").querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b)); paint(); });
+    $("cdMono").onchange = e => { st.cdMono = e.target.checked; paint(); };
+  }
+  let gDeco = null, gBld = null, BLD = null, bldP = null;
+  function decorate() {
+    filtersUi(); if (!ROT.g || !st.pack) return; if (gDeco) gDeco.remove(); gDeco = el("g", { class: "cddeco", "pointer-events": "none" }); ROT.g.insertBefore(gDeco, gShade);
+    st.pack.climats.forEach(c => { if (!c.mono && !c.wall) return; const d = pathOf(c.g); if (c.wall) el("path", { class: "cdwall", d }, gDeco); if (c.mono) el("path", { class: "cdmono", d }, gDeco); });
+    gBld = null; if (BLD) drawBld(); relayout2();
+  }
+  function drawBld() { if (!BLD || !TG.under || gBld) return; const tiles = new Map();
+    BLD.forEach(f => { const k = Math.floor(f[0] / 1500) + "," + Math.floor(f[1] / 1500); let x = 0, y = 0, d = ""; for (let i = 0; i < f.length; i += 2) { x += f[i]; y += f[i + 1]; d += (i ? "L" : "M") + x + " " + y; } tiles.set(k, (tiles.get(k) || "") + d + "Z"); });
+    gBld = el("g", { class: "cdbld" }, TG.under); tiles.forEach(d => el("path", { class: "t-bld", d }, gBld)); }
+  function relayout2() {
+    if (!st.view) return; const near = st.view[2] < 3000, k = st.view[2] / (svg.clientWidth || 800);
+    if (near && !BLD && !bldP) bldP = loadScript("atlas-cotedor-bld.js?v=1").then(() => { BLD = window.ATLAS_BLD && ATLAS_BLD.cotedor; drawBld(); relayout2(); }).catch(() => { bldP = null; });
+    if (gBld) gBld.style.display = near ? "" : "none";
+    if (gDeco) { gDeco.querySelectorAll(".cdwall").forEach(p => p.style.strokeWidth = 3 * k + "px"); gDeco.querySelectorAll(".cdmono").forEach(p => { p.style.strokeWidth = 1.6 * k + "px"; p.style.strokeDasharray = `${5 * k} ${3 * k}`; }); }
+  }
+  const legendExtra = () => `<span class="gl"><i style="background:none;border:2px dashed var(--ink)"></i><em>${esc(t("Monopole"))}</em></span><span class="gl"><i style="background:none;border:2.5px solid var(--wall,#5b4636)"></i><em>${esc(t("Walled clos"))}</em></span>`;
+  // the Côtes and the communes: jump there from the region's panel
+  function jumpHtml() { const V = (st.pack.villages || []).slice().sort((a, b) => a.n.localeCompare(b.n, "fr"));
+    return `<div class="cdjump"><button type="button" class="btn" data-cote="nuits">${esc(t("Côte de Nuits"))}</button><button type="button" class="btn" data-cote="beaune">${esc(t("Côte de Beaune"))}</button>
+      <select id="cdVil" aria-label="${esc(t("Commune"))}"><option value="">${esc(t("Go to a commune…"))}</option>${V.map(v => `<option value="${esc(v.id)}">${esc(v.n)}</option>`).join("")}</select></div>`; }
+  // the vintages at a glance: the last 25 years, the three ratings; a year opens it on the map
+  function vintageTable() { if (!VT) return ""; const ys = allYears().slice().reverse().slice(0, 25);
+    const cell = (k, y) => { const v = vRating(k, y); return v ? `<td class="n"><span class="vs" style="background:${scoreFill(v[0])}">${v[0]}${v[1] ? "*" : ""}</span></td>` : `<td class="n">—</td>`; };
+    return `<h3>${esc(t("Vintages"))}</h3><table class="own vtab"><thead><tr><th></th>${VCATS.map(k => `<th class="n">${esc(t(VCAT_EN[k]))}</th>`).join("")}</tr></thead><tbody>${ys.map(y => `<tr><td><button type="button" class="plink" data-vy="${y}">${y}</button></td>${VCATS.map(k => cell(k, y)).join("")}</tr>`).join("")}</tbody></table>`; }
+  function wireRegion(side) {
+    side.querySelectorAll("[data-cote]").forEach(b => b.onclick = () => { const l = st.pack.climats.filter(c => c.cote === b.dataset.cote); if (l.length) fit(bbOf(l.flatMap(c => c.g)), .04, 380); });
+    const sv = $("cdVil"); if (sv) sv.onchange = () => { if (sv.value) selectVillage(sv.value, true); };
+  }
+  document.head.insertAdjacentHTML("beforeend", `<style>#map .cdwall{fill:none;stroke:var(--wall,#5b4636);stroke-linejoin:round} #map .cdmono{fill:none;stroke:var(--ink);stroke-opacity:.75}
+    #map .t-bld{fill:var(--town);stroke:none;opacity:.9} .cdjump{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0} .cdjump select{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);flex:1;min-width:150px}
+    .seg.cdonly{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden} .seg.cdonly button{border:0;background:var(--card);color:var(--ink);padding:5px 10px;font:inherit;font-size:13px;cursor:pointer} .seg.cdonly button.on{background:var(--ink);color:var(--card)}
+    .vtab td,.vtab th{padding:3px 0} .vtab .vs{min-width:30px;text-align:center}</style>`);
+  return { ok, decorate, relayout2, legendExtra, jumpHtml, vintageTable, wireRegion, selectVillage, villageSide, fromHash, holds, shown: shownFor, compareHtml, ownersHtml, prodBar, setProd, histHtml, vintageHtml, regionHtml, colorModes, wire, edits: EDITS };
 })();

@@ -1,6 +1,11 @@
 // French for allwine.dk: i18n.js loads the one dictionary the page's language needs (English is the source text).
 window.I18N_DICT = window.I18N_DICT || {};
 window.I18N_DICT.fr = {
+  "Colour": "Couleur",
+  "Côte de Nuits": "Côte de Nuits",
+  "Côte de Beaune": "Côte de Beaune",
+  "Go to a commune…": "Aller à une commune…",
+  "Frost, hail and heat": "Gel, grêle et chaleur",
   "Compare with": "Comparer avec",
   "another producer": "un autre producteur",
   "Compare two producers": "Comparer deux producteurs",
