@@ -45,6 +45,10 @@ const REGIONS = [
   { id: "provence", name: "Provence", file: "atlas-provence.js?v=1", topo: "atlas-provence-topo.js?v=1", dem: "atlas-provence-dem.js?v=1", geol: "atlas-provence-geol.js?v=1", ll: [43.25, 5.75], country: "fr", kind: "Bandol and Palette",
     kw: ["bandol", "palette", "cotes de provence", "sainte victoire"], regional: "Côtes de Provence" },
 ];
+// the Côte d'Or on this engine (tools/cotedor-pack.js, from the burgundy-*.js files): reached by its address only
+// (#r=cotedor) while it's checked against burgundy.html, which stays the Côte d'Or's page until this matches it
+const PREVIEW = [{ id: "cotedor", name: "Côte d'Or", file: "atlas-cotedor.js?v=1", topo: "atlas-cotedor-topo.js?v=1", dem: "atlas-cotedor-dem.js?v=1", geol: "atlas-cotedor-geol.js?v=1", ui: "atlas-cotedor-ui.js?v=1", ld: "atlas-cotedor-ld.js?v=1",
+  ll: [47.15, 4.86], country: "fr", kind: "Grand cru · premier cru · village climats, with their owners", kw: [], regional: "" }];
 // the start page's other places: the Côte d'Or's own, richer atlas, and Piedmont, whose MGA have pages but no map
 const ELSEWHERE = [{ id: "burgundy", name: "Côte d'Or", ll: [47.058, 4.839], country: "fr", kind: "The detailed atlas: owners, terrain, geology", href: "burgundy.html" },
   { id: "barolo", name: "Barolo", ll: [44.61, 7.94], country: "it", kind: "MGA · no map", href: "v/{L}/index.html#barolo" },
@@ -52,7 +56,7 @@ const ELSEWHERE = [{ id: "burgundy", name: "Côte d'Or", ll: [47.058, 4.839], co
 const COUNTRY = { fr: "France", de: "Germany", it: "Italy" };
 const TYPE = { W: "Hvid", R: "Rød", RW: "Rød", S: "Bobler" };
 const CLASS = { GC: "Grand cru", "1er": "Premier cru", AOC: "Cru appellation", EL: "Einzellage" };
-const st = { region: null, pack: null, sel: null, view: null, show: { GC: true, "1er": true, AOC: true, EL: true, PT: true }, mine: false };
+const st = { region: null, pack: null, sel: null, view: null, show: { GC: true, "1er": true, AOC: true, EL: true, V: true, PT: true }, mine: false };
 // classified châteaux (Bordeaux's 1855): points on the map, by rank; the classification as it's written on a label
 const PTCLASS = { "1855-1": "First growth (1855)", "1855-2": "Second growth (1855)", "1855-3": "Third growth (1855)", "1855-4": "Fourth growth (1855)", "1855-5": "Fifth growth (1855)",
   "sau-0": "Superior first growth (1855)", "sau-1": "First growth, Sauternes (1855)", "sau-2": "Second growth, Sauternes (1855)" };
@@ -61,7 +65,7 @@ const PTLABEL = { "1855-1": "Premier grand cru classé", "1855-2": "Deuxième gr
 const PTSIZE = { "1855-1": 6.5, "1855-2": 5.5, "1855-3": 5, "1855-4": 4.5, "1855-5": 4, "sau-0": 6.5, "sau-1": 5.5, "sau-2": 4.5 };
 const pts = () => (st.pack && st.pack.points) || [];
 const short = n => n.replace(/^Château /, "");
-const cls = c => c.c === "GC" ? "GC" : c.c === "AOC" ? "AOC" : c.unnamed ? "px" : "p1";
+const cls = c => c.c === "GC" ? "GC" : c.c === "AOC" ? "AOC" : c.c === "V" ? "pv" : c.unnamed ? "px" : "p1";
 const isTop = c => c.c === "GC" || c.c === "AOC"; // drawn and labelled first
 const noteOf = c => c.d && (c.d[window.I18N ? I18N.lang : "en"] || c.d.en);
 const shown = c => c.c === "EL" ? c.ap : c.n; // a German site is known by its village too: Wehlener Sonnenuhr
@@ -111,11 +115,12 @@ function draw() {
   if (topoOf()) drawTopo();
   if (geolOf()) drawGeol();
   paint(); compassSync(); locatorDraw();
+  if (window.ATLAS_LDUI && ATLAS_LDUI.loaded()) ATLAS_LDUI.draw();
 }
 function paint() {
   const P = st.pack; if (!P) return;
   P.climats.forEach(c => {
-    const off = !st.show[c.c] || (st.mine && !CELLAR.by[c.id]) || !terrOk(c);
+    const off = !st.show[c.c] || (st.mine && !CELLAR.by[c.id]) || !terrOk(c) || !prodOk(c);
     c.el.classList.toggle("dim", off); c.el.classList.toggle("sel", st.sel === c.id);
     const b = CELLAR.by[c.id]?.left || 0; c.dot.setAttribute("r", b ? 0 : 0); c.dot.dataset.b = b;
   });
@@ -133,7 +138,7 @@ function layoutLabels() {
     if (!c.lb) return;
     c.lb.style.fontSize = (isTop(c) ? 14.5 : 13) * k + "px"; c.lb.style.strokeWidth = 3 * k + "px"; // style: it outranks the stylesheet
     const [ax, ay] = rotP(c.lp), w = c.n.length * 7 * k, h = 15 * k, box = [ax - w / 2, ay - h, ax + w / 2, ay]; upright(c.lb, c.lp[0], c.lp[1]);
-    const hide = !st.show[c.c] || (st.mine && !CELLAR.by[c.id]) || !terrOk(c) || taken.some(o => !(box[2] < o[0] || box[0] > o[2] || box[3] < o[1] || box[1] > o[3]));
+    const hide = !st.show[c.c] || (st.mine && !CELLAR.by[c.id]) || !terrOk(c) || !prodOk(c) || taken.some(o => !(box[2] < o[0] || box[0] > o[2] || box[3] < o[1] || box[1] > o[3]));
     c.lb.style.display = hide ? "none" : ""; if (!hide) taken.push(box);
   });
   // the châteaux: a dot a little bigger for a higher rank; names once you're close enough to read them
@@ -155,6 +160,7 @@ const mapview = $("mapview");
 // the map's place on the page as laid out, not as the gesture's transform shows it (measured while none is on)
 const mapRect = () => mapview.style.transform && rectC ? rectC : (rectC = svg.getBoundingClientRect());
 function relayout() { const v = st.view; if (!v) return; layoutLabels(); topoLod(); shadeSoon(); drawMe(); locatorView();
+  if (window.ATLAS_LDUI && st.region && st.region.ld) { if (v[2] < ATLAS_LDUI.NEAR) ATLAS_LDUI.want(); ATLAS_LDUI.lod(); }
   if (PROF.a && TG.prof) TG.prof.querySelectorAll("circle").forEach(c => c.setAttribute("r", 5 * v[2] / (svg.clientWidth || 800))); }
 // while a finger, the wheel or a glide is moving the map, the drawing already on screen is moved and scaled as a picture
 // (a CSS transform the compositor does, cheap), and redrawn at the new view once the movement pauses: redrawing a
@@ -394,7 +400,9 @@ svg.addEventListener("pointerup", e => { const tgt = document.elementFromPoint(e
     if (lastTap && now - lastTap[0] < 320 && Math.hypot(e.clientX - lastTap[1], e.clientY - lastTap[2]) < 32) { lastTap = null; const [cx, cy] = toSvg(e); zoomAt(.5, cx, cy, 260); return; }
     lastTap = [now, e.clientX, e.clientY]; }
   if (PROF.on) { profClick(unrotP(toSvg(e))); return; }
-  const q = tgt && tgt.closest && tgt.closest(".pt"), c = tgt && tgt.closest && tgt.closest(".cl"); select(q ? q.dataset.pt : c ? c.dataset.id : null); });
+  const q = tgt && tgt.closest && tgt.closest(".pt"), c = tgt && tgt.closest && tgt.closest(".cl");
+  if (!q && !c && window.ATLAS_LDUI && st.region && st.region.ld) { const i = ATLAS_LDUI.at(unrotP(toSvg(e))); if (i >= 0) return ATLAS_LDUI.pick(i); } // a lieu-dit outside the climats
+  select(q ? q.dataset.pt : c ? c.dataset.id : null); });
 svg.addEventListener("pointercancel", up);
 svg.addEventListener("dblclick", e => { if (!st.pack || PROF.on) return; e.preventDefault(); const [cx, cy] = toSvg(e); zoomAt(.5, cx, cy, 260); });
 // Safari's own page pinch would fight the map's
@@ -598,13 +606,14 @@ addEventListener("resize", () => { if (st.view) layoutLabels(); });
 /* ---------- the side panel ---------- */
 const byId = id => st.pack && (st.pack.climats.find(c => c.id === id) || pts().find(q => q.id === id));
 function select(id, fly) {
-  st.sel = byId(id) ? id : null; if (st.sel) ensureGeol(); paint(); renderSide(); syncHash();
+  st.ld = null; st.sel = byId(id) ? id : null; if (st.sel) ensureGeol(); paint(); renderSide(); syncHash();
   document.body.classList.toggle("side-open", !!st.sel); // a phone: the vineyard's details slide up
   const c = st.sel && byId(st.sel);
   if (c && fly) { if (c.g) fit(bbOf(c.g), .6, 360); else if (c.p) fit([c.p[0] - 900, c.p[1] - 900, c.p[0] + 900, c.p[1] + 900], .1, 360); }
 }
 function renderSide() {
   const P = st.pack, side = $("side"); if (!P) return renderHomeSide();
+  if (st.ld != null && window.ATLAS_LDUI && ATLAS_LDUI.loaded()) return ATLAS_LDUI.side(); // a lieu-dit
   const c = st.sel && byId(st.sel), R = st.region;
   if (!c) {
     const gc = P.climats.filter(x => x.c === "GC"), pc = P.climats.filter(x => x.c === "1er" && !x.unnamed), aoc = P.climats.filter(x => x.c === "AOC"), many = P.villages.length > 1;
@@ -660,6 +669,10 @@ function renderSide() {
         <div class="fact"><div class="l">${esc(t("Acres"))}</div><div class="v">${(c.ha * 2.471).toFixed(c.ha < 4 ? 1 : 0)}</div></div></div>`}
       ${st.cmpWith && st.cmpWith !== c.id && byId(st.cmpWith) && byId(st.cmpWith).g ? compareHtml(byId(st.cmpWith), c) : ""}
       ${st.cmpWith === c.id ? `<p class="note">${esc(t("Now pick another vineyard to compare with."))}</p>` : ""}
+      ${c.d ? `<p class="desc">${esc(c.d)}</p>` : ""}
+      ${ownersHtml(c)}
+      ${window.ATLAS_CD ? ATLAS_CD.histHtml(c) : ""}
+      ${window.ATLAS_LDUI ? ATLAS_LDUI.listHtml(c) : ""}
       ${terrainHtml(c)}
       ${geolHtml(c)}
       ${noteOf(c) ? `<p class="note">${esc(noteOf(c))}</p>` : ""}
@@ -675,9 +688,18 @@ function renderSide() {
     const ce = $("cmpEnd"); if (ce) ce.onclick = () => { st.cmpWith = null; renderSide(); };
   }
   side.querySelectorAll("button[data-c]").forEach(b => b.onclick = () => select(b.dataset.c, true));
+  if (st.prod) { side.insertAdjacentHTML("afterbegin", prodBar()); $("prodX").onclick = () => setProd(null); }
+  if (window.ATLAS_LDUI) ATLAS_LDUI.wire(side);
+  side.querySelectorAll("button[data-prod]").forEach(b => b.onclick = () => setProd(st.prod === b.dataset.prod ? null : b.dataset.prod));
   if (!c) regionWines();
 }
 
+/* ---------- who owns it: the Côte d'Or's owners and the one-owner filter live in atlas-cotedor-ui.js, loaded with
+   that region only (the other regions have no owners on file) ---------- */
+const prodOk = c => !st.prod || !window.ATLAS_CD || ATLAS_CD.holds(c, st.prod);
+const ownersHtml = c => window.ATLAS_CD ? ATLAS_CD.ownersHtml(c) : "";
+const prodBar = () => window.ATLAS_CD ? ATLAS_CD.prodBar() : "";
+const setProd = k => window.ATLAS_CD && ATLAS_CD.setProd(k);
 /* ---------- the region's wines: its grapes' style and aromas, how long they keep, its vintages ---------- */
 // From the sommelier's own data (sommelier-data.js: grape profiles, ageing, vintage charts; wine-kb.js: what grows in
 // each appellation), fetched when a region opens, not with the page. The grapes are those of the appellations on the
@@ -934,7 +956,10 @@ function syncHash() {
   if (location.hash !== h) history.replaceState(null, "", location.pathname + location.search + h);
 }
 async function openRegion(id, sel) {
-  const R = REGIONS.find(r => r.id === id) || REGIONS[0];
+  const R = REGIONS.concat(PREVIEW).find(r => r.id === id) || REGIONS[0];
+  if (R.ui && !window.ATLAS_CD) await loadScript(R.ui).catch(() => {}); // the region's own tools (the Côte d'Or: owners)
+  if (R.ld && !window.ATLAS_LDUI) await loadScript("atlas-ld.js?v=1").catch(() => {}); // lieux-dits: their data comes when zoomed in
+  if (window.ATLAS_LDUI) ATLAS_LDUI.reset();
   if (!(window.ATLAS_PACKS && ATLAS_PACKS[R.id])) {
     // a pack that doesn't come (GitHub Pages answers 503 now and then): once more after a moment, then say so
     try { await loadScript(R.file).catch(() => new Promise(r => setTimeout(r, 1500)).then(() => loadScript(R.file))); }
@@ -950,12 +975,12 @@ async function openRegion(id, sel) {
   document.title = "AllWine — " + st.pack.meta.name + " · " + t("Wine atlas");
   // start on the crus (the regional land around them can be far bigger, and long and thin)
   st.home = bbOf(st.pack.climats.flatMap(c => c.g));
-  for (const [f, k] of [["fGC", "GC"], ["f1er", "1er"], ["fAOC", "AOC"], ["fEL", "EL"]]) $(f).parentNode.hidden = !st.pack.climats.some(c => c.c === k);
+  for (const [f, k] of [["fGC", "GC"], ["f1er", "1er"], ["fAOC", "AOC"], ["fEL", "EL"], ["fV", "V"]]) $(f).parentNode.hidden = !st.pack.climats.some(c => c.c === k);
   $("fPts").parentNode.hidden = !pts().length;
   place(); draw(); fit(st.home); renderLegend();
   $("fRelief").parentNode.hidden = !st.pack.meta.l93 && st.pack.meta.proj !== "eq";
   $("fTopo").parentNode.hidden = !R.topo; $("fGeol").parentNode.hidden = !R.geol; if (st.geol) ensureGeol();
-  st.cmpWith = null; terrClear(); $("terrbar").hidden = true; $("terrChip").hidden = !R.dem; terrSync();
+  st.cmpWith = null; st.prod = null; terrClear(); $("terrbar").hidden = true; $("terrChip").hidden = !R.dem; terrSync();
   $("profBtn").hidden = !st.pack.meta.l93; $("locBtn").hidden = !navigator.geolocation; if (PROF.on) profToggle(false); // the profile needs IGN's elevation service: France only
   if (R.topo && !topoOf()) loadScript(R.topo).then(() => { if (st.region === R) drawTopo(); }).catch(() => {});
   if (R.dem && !demOf(R.id)) loadScript(R.dem).then(() => { if (st.region === R) { renderSide(); paint(); } }).catch(() => {});
@@ -968,7 +993,7 @@ function renderLegend() {
     $("legend").innerHTML = `<b>${esc(t("Geology (BRGM 1:50 000)"))}</b>` + Object.entries(tot).sort((a, b) => b[1] - a[1]).slice(0, 8)
       .map(([k]) => `<span class="gl"><i style="background:${G.legend[k][2]}"></i><em>${geolLabel(G, k)}</em></span>`).join(""); return; }
   const has = k => P.climats.some(c => c.c === k);
-  $("legend").innerHTML = [has("GC") && ["var(--gc)", "Grand cru"], has("1er") && ["var(--pc)", "Premier cru"], has("AOC") && ["var(--ac)", "Cru appellation"], has("EL") && ["var(--pc)", "Einzellage"],
+  $("legend").innerHTML = [has("GC") && ["var(--gc)", "Grand cru"], has("1er") && ["var(--pc)", "Premier cru"], has("AOC") && ["var(--ac)", "Cru appellation"], has("EL") && ["var(--pc)", "Einzellage"], has("V") && ["var(--pv,#e9d9c2)", "Village climat"],
     P.climats.some(c => c.unnamed) && ["var(--pcx)", "Premier cru, unnamed by INAO"],
     P.villages.length && ["var(--vc)", st.region.village || (P.villages.length > 1 ? "Village appellations" : P.villages[0].ap)], P.regional.ha && ["var(--rg)", st.region.regional],
     pts().length && ["var(--ink)", "Classified château (1855)"]].filter(Boolean)
@@ -980,6 +1005,7 @@ $("fGC").onchange = e => { st.show.GC = e.target.checked; paint(); };
 $("f1er").onchange = e => { st.show["1er"] = e.target.checked; paint(); };
 $("fAOC").onchange = e => { st.show.AOC = e.target.checked; paint(); };
 $("fEL").onchange = e => { st.show.EL = e.target.checked; paint(); };
+$("fV").onchange = e => { st.show.V = e.target.checked; paint(); };
 $("fPts").onchange = e => { st.show.PT = e.target.checked; paint(); };
 $("fMine").onchange = e => { st.mine = e.target.checked; paint(); };
 const keep = (k, v) => { try { localStorage.setItem(k, v ? "1" : "0"); } catch (e) {} };
@@ -1038,7 +1064,7 @@ if (window.I18N) { I18N.picker && document.querySelectorAll("[data-langpick]").f
 // #r=chablis&c=les_clos, or &w=<a wine's name> from the cellar's "On the map": its vineyard if the atlas knows it
 async function fromHash() {
   const q = new URLSearchParams(location.hash.slice(1)), r = q.get("r");
-  if (!r || !REGIONS.some(x => x.id === r)) { if (st.region || !svg.childNodes.length) showHome(); return; } // no region: the start page
+  if (!r || !REGIONS.concat(PREVIEW).some(x => x.id === r)) { if (st.region || !svg.childNodes.length) showHome(); return; } // no region: the start page
   if (!st.region || st.region.id !== r) await openRegion(r, q.get("c"));
   else if ((q.get("c") || null) !== st.sel) select(q.get("c"), true);
   if (q.get("w") && st.region) { const m = matchWine({ region: st.region.kw[0], name: q.get("w") }); if (m.c) select(m.c.id, true); else syncHash(); }
