@@ -1,6 +1,7 @@
 // German for allwine.dk: i18n.js loads the one dictionary the page's language needs (English is the source text).
 window.I18N_DICT = window.I18N_DICT || {};
 window.I18N_DICT.de = {
+  "Outline: cadastre (Etalab, Licence Ouverte).": "Umriss: Kataster (Etalab, Licence Ouverte).",
   "Colour": "Farbe",
   "Côte de Nuits": "Côte de Nuits",
   "Côte de Beaune": "Côte de Beaune",

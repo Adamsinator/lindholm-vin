@@ -6,3 +6,4 @@ tools/.holdings-cache/
 tools/fixtures/big.xlsx
 .design-review/
 tools/.region-cache/
+tools/.geoapi-cache/

@@ -975,7 +975,7 @@ function syncHash() {
 async function openRegion(id, sel) {
   const R = REGIONS.concat(PREVIEW).find(r => r.id === id) || REGIONS[0];
   if (R.ui && !window.ATLAS_CD) await loadScript(R.ui).catch(() => {}); // the region's own tools (the Côte d'Or: owners)
-  if (R.ld && !window.ATLAS_LDUI) await loadScript("atlas-ld.js?v=1").catch(() => {}); // lieux-dits: their data comes when zoomed in
+  if (R.ld && !window.ATLAS_LDUI) await loadScript("atlas-ld.js?v=2").catch(() => {}); // lieux-dits: their data comes when zoomed in
   if (R.match && !window.BURG_MATCH) await loadScript(R.match).catch(() => {}); // the Côte d'Or: the cellar's matcher (burgundy-match.js)
   if (window.ATLAS_LDUI) ATLAS_LDUI.reset();
   if (!(window.ATLAS_PACKS && ATLAS_PACKS[R.id])) {
