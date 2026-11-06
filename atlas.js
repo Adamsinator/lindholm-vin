@@ -168,6 +168,8 @@ function relayout() { const v = st.view; if (!v) return; layoutLabels(); topoLod
 // (a CSS transform the compositor does, cheap), and redrawn at the new view once the movement pauses: redrawing a
 // region's thousands of paths each frame was what made a drag stutter on a phone
 function setView(v, live) {
+  // a view that can't be (not a number, nothing wide, or far wider than the region): refuse it, keep the one on screen
+  if (!v || !v.every(Number.isFinite) || v[2] <= 0 || (st.pack && v[2] > maxW() * 4)) { if (!setView.warned) { setView.warned = 1; console.warn("atlas: an impossible view was refused " + JSON.stringify(v) + " " + String(new Error().stack).split("\n").slice(2, 6).join(" | ")); } return; }
   st.view = v; cancelAnimationFrame(relayRaf); clearTimeout(relayT);
   // past 8× either way the picture would be a huge layer to paint (a fast deep zoom, a jump across the region): redraw now
   if (live && vbC && Math.abs(Math.log(vbC[2] / v[2])) > Math.log(8)) live = false;
@@ -335,9 +337,12 @@ function flyTo(to, ms = 260) {
   cancelAnimationFrame(flyRaf); stopGlide();
   const from = st.view.slice(), t0 = performance.now();
   if (matchMedia("(prefers-reduced-motion: reduce)").matches) ms = 0;
+  if (![...from, ...to].every(Number.isFinite) || from[2] <= 0 || to[2] <= 0) ms = 0; // nothing to ease between: go straight there
   // zoom eased in log space, so it feels even whether going in or out
   const step = now => { const t = ms ? Math.min(1, (now - t0) / ms) : 1, e = 1 - Math.pow(1 - t, 3);
-    const w = from[2] * Math.pow(to[2] / from[2], e), k = (w - from[2]) / ((to[2] - from[2]) || 1);
+    // how far along the pan is: by the zoom when the zoom changes (so the point under it stays put), by time when it
+    // hardly does (a jump at the same zoom: the zoom's share would divide by next to nothing and fly off the map)
+    const w = from[2] * Math.pow(to[2] / from[2], e), dw = to[2] - from[2], k = Math.abs(dw) > from[2] * 1e-3 ? Math.max(0, Math.min(1, (w - from[2]) / dw)) : e;
     const v = [from[0] + (to[0] - from[0]) * k, from[1] + (to[1] - from[1]) * k, w, w * from[3] / from[2]];
     setView(t < 1 ? v : to, t < 1); if (t < 1) flyRaf = requestAnimationFrame(step); };
   flyRaf = requestAnimationFrame(step);
