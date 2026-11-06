@@ -47,7 +47,7 @@ const REGIONS = [
 ];
 // the Côte d'Or on this engine (tools/cotedor-pack.js, from the burgundy-*.js files): reached by its address only
 // (#r=cotedor) while it's checked against burgundy.html, which stays the Côte d'Or's page until this matches it
-const PREVIEW = [{ id: "cotedor", name: "Côte d'Or", file: "atlas-cotedor.js?v=3", topo: "atlas-cotedor-topo.js?v=1", dem: "atlas-cotedor-dem.js?v=1", geol: "atlas-cotedor-geol.js?v=1", ui: "atlas-cotedor-ui.js?v=3", ld: "atlas-cotedor-ld.js?v=2", match: "burgundy-match.js?v=3",
+const PREVIEW = [{ id: "cotedor", name: "Côte d'Or", file: "atlas-cotedor.js?v=4", topo: "atlas-cotedor-topo.js?v=1", dem: "atlas-cotedor-dem.js?v=1", geol: "atlas-cotedor-geol.js?v=1", ui: "atlas-cotedor-ui.js?v=4", ld: "atlas-cotedor-ld.js?v=2", match: "burgundy-match.js?v=3",
   ll: [47.15, 4.86], country: "fr", kind: "Grand cru · premier cru · village climats, with their owners", kw: [], regional: "" }];
 // the start page's other places: the Côte d'Or's own, richer atlas, and Piedmont, whose MGA have pages but no map
 const ELSEWHERE = [{ id: "burgundy", name: "Côte d'Or", ll: [47.058, 4.839], country: "fr", kind: "The detailed atlas: owners, terrain, geology", href: "burgundy.html" },
@@ -116,6 +116,8 @@ function draw() {
   if (geolOf()) drawGeol();
   paint(); compassSync(); locatorDraw();
   if (window.ATLAS_LDUI && ATLAS_LDUI.loaded()) ATLAS_LDUI.draw();
+  if (window.ATLAS_CD && st.region && st.region.ui) ATLAS_CD.decorate();
+  document.querySelectorAll(".cdonly").forEach(e => e.hidden = !(st.region && st.region.ui)); // the Côte d'Or's own filters
 }
 function paint() {
   const P = st.pack; if (!P) return;
@@ -162,6 +164,7 @@ const mapview = $("mapview");
 const mapRect = () => mapview.style.transform && rectC ? rectC : (rectC = svg.getBoundingClientRect());
 function relayout() { const v = st.view; if (!v) return; layoutLabels(); topoLod(); shadeSoon(); drawMe(); locatorView();
   if (window.ATLAS_LDUI && st.region && st.region.ld) { if (v[2] < ATLAS_LDUI.NEAR) ATLAS_LDUI.want(); ATLAS_LDUI.lod(); }
+  if (window.ATLAS_CD && st.region && st.region.ui) ATLAS_CD.relayout2();
   if (PROF.a && TG.prof) TG.prof.querySelectorAll("circle").forEach(c => c.setAttribute("r", 5 * v[2] / (svg.clientWidth || 800))); }
 // while a finger, the wheel or a glide is moving the map, the drawing already on screen is moved and scaled as a picture
 // (a CSS transform the compositor does, cheap), and redrawn at the new view once the movement pauses: redrawing a
@@ -693,14 +696,14 @@ function renderSide() {
   side.querySelectorAll("button[data-c]").forEach(b => b.onclick = () => select(b.dataset.c, true));
   if (st.prod) { side.insertAdjacentHTML("afterbegin", prodBar() + (window.ATLAS_CD && st.prod2 ? `<div id="cmpTable">${ATLAS_CD.compareHtml()}</div>` : "")); $("prodX").onclick = () => setProd(null); }
   if (window.ATLAS_LDUI) ATLAS_LDUI.wire(side);
-  if (window.ATLAS_CD && R.ui) ATLAS_CD.wire(side, c);
+  if (window.ATLAS_CD && R.ui) { ATLAS_CD.wire(side, c); if (!c) ATLAS_CD.wireRegion(side); }
   side.querySelectorAll("button[data-prod]").forEach(b => b.onclick = () => setProd(st.prod === b.dataset.prod ? null : b.dataset.prod));
   if (!c) regionWines();
 }
 
 /* ---------- who owns it: the Côte d'Or's owners and the one-owner filter live in atlas-cotedor-ui.js, loaded with
    that region only (the other regions have no owners on file) ---------- */
-const prodOk = c => !st.prod || !window.ATLAS_CD || ATLAS_CD.shown(c, st.prod);
+const prodOk = c => (!st.prod || !window.ATLAS_CD || ATLAS_CD.shown(c, st.prod)) && (!window.ATLAS_CD || !st.region || !st.region.ui || ATLAS_CD.ok(c));
 const holds = (c, k) => !!window.ATLAS_CD && ATLAS_CD.holds(c, k);
 const ownersHtml = c => window.ATLAS_CD ? ATLAS_CD.ownersHtml(c) : "";
 const prodBar = () => window.ATLAS_CD ? ATLAS_CD.prodBar() : "";
@@ -1003,12 +1006,14 @@ function renderLegend() {
     $("legend").innerHTML = `<b>${esc(t("Geology (BRGM 1:50 000)"))}</b>` + Object.entries(tot).sort((a, b) => b[1] - a[1]).slice(0, 8)
       .map(([k]) => `<span class="gl"><i style="background:${G.legend[k][2]}"></i><em>${geolLabel(G, k)}</em></span>`).join(""); return; }
   const cl = window.ATLAS_COLOR && st.color !== "class" && ATLAS_COLOR.legend(); if (cl) { $("legend").innerHTML = cl; return; }
+  const extra = window.ATLAS_CD && st.region && st.region.ui ? ATLAS_CD.legendExtra() : "";
   const has = k => P.climats.some(c => c.c === k);
   $("legend").innerHTML = [has("GC") && ["var(--gc)", "Grand cru"], has("1er") && ["var(--pc)", "Premier cru"], has("AOC") && ["var(--ac)", "Cru appellation"], has("EL") && ["var(--pc)", "Einzellage"], has("V") && ["var(--vc)", "Village climat"],
     P.climats.some(c => c.unnamed) && ["var(--pcx)", "Premier cru, unnamed by INAO"],
     P.villages.length && ["var(--vc)", st.region.village || (P.villages.length > 1 ? "Village appellations" : P.villages[0].ap)], P.regional.ha && ["var(--rg)", st.region.regional],
     pts().length && ["var(--ink)", "Classified château (1855)"]].filter(Boolean)
     .map(([c, n]) => `<span><i style="background:${c}"></i>${esc(t(n))}</span>`).join("") + (CELLAR.loaded ? `<span><i style="background:var(--gold);border-radius:50%"></i>${esc(t("Bottles in your cellar"))}</span>` : "");
+  if (extra) $("legend").insertAdjacentHTML("beforeend", extra); // the Côte d'Or: monopoles and walled clos
 }
 $("fRegion").innerHTML = `<option value="">${esc(t("All regions"))}</option>` + REGIONS.map(r => `<option value="${r.id}">${esc(r.name)}</option>`).join("") + `<option value="burgundy">${esc(t("Côte d'Or (Burgundy atlas) ↗"))}</option>`;
 $("fRegion").onchange = e => { const v = e.target.value; if (v === "burgundy") { location.href = "burgundy.html"; return; } location.hash = v ? "#r=" + v : ""; };

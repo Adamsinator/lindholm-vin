@@ -89,6 +89,22 @@ check("the pack was made after its sources last changed (else: node tools/cotedo
   check("a tap on village land, zoomed in, opens the lieu-dit there: area, terrain, appellation", new RegExp("Lieu-dit\\s*" + pt[1]).test(lds) && /Area/.test(lds) && /Village appellation|Regional appellations|Appellation/.test(lds), pt[1] + " · " + lds.slice(0, 200));
   await p.click("#back"); await p.waitForTimeout(200);
   check("…and ← goes back to the region", /Côte d'Or/.test(await p.textContent("#side h2")) && await p.evaluate(() => st.ld === null));
+  // the extras from burgundy.html: red / white and monopoles, monopoles' and walled clos' outlines, buildings, the Côtes
+  // and communes to jump to, the vintage table
+  await p.evaluate(() => select(null)); await p.waitForSelector(".cdjump", { timeout: 10000 });
+  check("a Red / White choice and Monopoles in the filter bar (the Côte d'Or's only)", await p.isVisible("#cdFilters") && await p.isVisible("#cdMono"));
+  await p.click('#cdFilters [data-cdcol="W"]'); await p.waitForTimeout(300);
+  check("…White keeps the white climats (Montrachet), not the red (Chambertin)", await p.evaluate(() => !byId("montrachet").el.classList.contains("dim") && byId("chambertin").el.classList.contains("dim")));
+  await p.click('#cdFilters [data-cdcol=""]'); await p.check("#cdMono"); await p.waitForTimeout(300);
+  const monoN = await p.evaluate(() => st.pack.climats.filter(c => !c.el.classList.contains("dim")).map(c => c.mono ? 1 : 0)), monoAll = monoN.every(Boolean) && monoN.length > 20;
+  check("…Monopoles keeps only them", monoAll, monoN.length + " shown"); await p.uncheck("#cdMono"); await p.waitForTimeout(200);
+  check("monopoles dashed and walled clos outlined on the map, both in the legend", await p.evaluate(() => document.querySelectorAll("#map .cdmono").length > 20 && document.querySelectorAll("#map .cdwall").length > 20) && /Monopole/.test(await p.textContent("#legend")) && /Walled clos/.test(await p.textContent("#legend")));
+  check("the region's panel: Côte de Nuits / Côte de Beaune, a commune to go to, the last 25 vintages", (await p.$$(".cdjump [data-cote]")).length === 2 && (await p.$$("#cdVil option")).length > 20 && (await p.$$(".vtab tbody tr")).length === 25);
+  await p.selectOption("#cdVil", "vosne"); await p.waitForTimeout(600);
+  check("…a commune picked opens it", await p.evaluate(() => st.vsel === "vosne") && /Vosne-Romanée/.test(await p.textContent("#side h2")));
+  await p.evaluate(() => { const [x, y, w, h] = st.view; zoomAt(.3, x + w / 2, y + h / 2); }); await p.waitForFunction(() => document.querySelectorAll("#map .t-bld").length > 0, null, { timeout: 15000 }).catch(() => {});
+  check("buildings come in zoomed close (IGN)", await p.evaluate(() => document.querySelectorAll("#map .t-bld").length > 0));
+  await p.click("#back"); await p.waitForTimeout(200);
   // burgundy.html's links: #v= a commune, #p= an owner, #l= a lieu-dit by its old key, #color=vintage&y=
   global.window.BURG_LIEUXDITS || require(path.join(ROOT, "burgundy-lieuxdits.js")); const L0 = window.BURG_LIEUXDITS.ld[100], lkey = `${L0[0]}:${L0[2]}:${L0[3]}`;
   const fresh = async h => { const q = await b.newPage({ viewport: { width: 1440, height: 900 } }); q.on("pageerror", x => errs.push(h + ": " + x.message));
@@ -154,6 +170,8 @@ check("the pack was made after its sources last changed (else: node tools/cotedo
   const by = await e.evaluate(() => Object.fromEntries(Object.entries(CELLAR.by).map(([k, v]) => [k, v.left])));
   check("your bottles land on their climats, by burgundy.html's matcher (a village wine stays off Chambertin)", by.chambertin === 2 && by.suchots === 3 && Object.keys(by).length === 2, JSON.stringify(by));
   check("Remove this producer takes them off the list, with a note", /Removed by correction: Domaine Leroy/.test(await e.textContent("#side")) && !(await e.$('#side [data-prod="leroy"]')));
+  await p.goto(BASE + "atlas.html#r=chablis"); await p.waitForTimeout(1500);
+  check("Chablis doesn't show the Côte d'Or's filters", !(await p.isVisible("#cdFilters").catch(() => false)));
   check("no page errors", !errs.length, errs.join(" | "));
   await b.close();
   const n = results.filter(Boolean).length; console.log(`\n${n}/${results.length} passed`); process.exit(n === results.length ? 0 : 1);
