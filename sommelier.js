@@ -233,7 +233,7 @@ const hasW = (t, key) => W[key].some(p => (" " + t + " ").includes(" " + p + " "
 // ── an index of everything that can be named ──
 let IDX = null, IDX_FOR = null, IDX_NOTES = -1;
 const NOMATCH = new Set(["ghemme", "langhe", "rolle", "steen", "melon", "breton", "bouchet", "cot", "morillon", "favorita", "pigato", "listan", "mansois", "jaen", "calabrese", "auxerrois", "naturé", "nature", "meunier", "macabeu", "malvoisie", "sercial", "boal", "bual",
-  "port", "porto", "sherry", "asti", "toro", "etna", "cava", "nahe", "ahr", "wien", "graves", "baden", "franken", "jura", "corse", "marche", "puglia", "vaud", "washington", "oregon", "santorini", "madeira", "navarra", "alsace", "loire", "champagne", "beaujolais", "bordeaux", "bourgogne", "chablis", "rioja", "mosel", "douro", "barolo", "napa"]);
+  "port", "porto", "sherry", "asti", "toro", "etna", "cava", "nahe", "ahr", "wien", "graves", "baden", "franken", "jura", "corse", "marche", "puglia", "vaud", "washington", "oregon", "santorini", "madeira", "navarra", "alsace", "loire", "rioja", "mosel", "douro", "napa"]);
 // "Danish white", "dansk hvidvin", "vin danois": a country by its adjective
 const ADJ = { Danmark: ["danish", "dansk", "danske", "danois", "danoise", "danish wine", "danischer", "danisch", "danische"],
   Frankrig: ["french", "fransk", "franske", "francais", "francaise", "franzosisch", "franzosischer", "franzosische"],
@@ -507,7 +507,7 @@ function ensureIdx(ctx) {
   return IDX;
 }
 function answer(q, ctx) {
-  ctx = ctx || {};
+  ctx = ctx || {}; ASKED_KR = false;
   const lang = L.includes(ctx.lang) ? ctx.lang : "en";
   const text = norm(q).replace(/\b(st|ste)\b/g, "saint");
   ensureIdx(ctx);
@@ -912,8 +912,9 @@ function valueAnswer(lang, ents, text, ctx) {
 
 // ── recommendations: from your cellar first, then wines worth buying (sommelier-data.js PICKS) ──
 const EUR_DKK = 7.46, EUR_USD = 1.08;
+let ASKED_KR = false; // the question gave its budget in kroner: the answer shows kroner too, whatever the language
 const eur = (lang, e) => { const r = e >= 1000 ? Math.round(e / 100) * 100 : e >= 100 ? Math.round(e / 10) * 10 : Math.round(e);
-  return "€" + r.toLocaleString(lang === "en" ? "en-GB" : "da-DK") + (lang === "da" ? ` (≈ ${kr(e * EUR_DKK)})` : ""); };
+  return "€" + r.toLocaleString(lang === "en" ? "en-GB" : "da-DK") + (lang === "da" || ASKED_KR ? ` (≈ ${kr(e * EUR_DKK)})` : ""); };
 // "under 500 kr", "1000 euros", "€80", "$100" → the most a bottle may cost, in euros
 function budgetOf(q) {
   const t = String(q).toLowerCase(), num = x => Number(String(x).replace(/[.,\s](?=\d{3}\b)/g, "").replace(",", "."));
@@ -942,6 +943,7 @@ function tasteOf(ctx) {
   return [...by.entries()].sort((a, b) => b[1] - a[1]).map(x => x[0]).filter(r => D.picks.some(pk => pk.region === r));
 }
 function recommend(lang, ents, text, q, ctx) {
+  ASKED_KR = /\d\s*(?:kr\b|kr\.|kroner|dkk)|(?:dkk|kr\.?)\s*\d/i.test(String(q));
   const sc = scopeOf(ents, text), budget = budgetOf(q), buying = /\b(buy|buying|kobe|kob|acheter|kaufen|gave you|gav dig|give you)\b/.test(text);
   let html = "", taste = null;
   // your own bottles that fit and are ready, best first

@@ -100,7 +100,7 @@ window.BIZ = (() => {
       <label class="bz-f">${esc(tr("Supplier"))}<input class="bz-in" data-f="source" data-row="${w.row}" list="bzSup" value="${esc(w.source)}" placeholder="—"></label>
       <span class="bz-sell">${w.left > 0 || w.openGlasses > 0 ? `<button type="button" class="btn primary" data-sell="bottle" data-row="${w.row}"${w.left > 0 ? "" : " disabled"}>${esc(tr("Sold a bottle"))}</button>` : ""}
         ${W.glass && (w.left > 0 || w.openGlasses > 0) ? `<button type="button" class="btn" data-sell="glass" data-row="${w.row}">${esc(tr("Sold a glass"))}</button>` : ""}
-        ${w.openGlasses > 0 ? `<span class="note">${esc(tr("{0} glasses left in the open bottle", w.openGlasses))}</span>` : ""}</span>
+        ${w.openGlasses > 0 ? `<span class="note">${esc((w.openGlasses === 1 ? tr("1 glass left in the open bottle") : tr("{0} glasses left in the open bottle", w.openGlasses)))}</span>` : ""}</span>
       <span class="bz-m">${m ? esc(tr("Margin {0} ({1} a bottle, VAT excluded) · mark-up {2}", pct(m.pct), kr(Math.round(m.gross)), times(m.x)))
         : esc(tr(w.price > 0 ? "Set a price to see the margin" : "Add the cost price to see the margin"))}</span>
     </div>`;
@@ -199,7 +199,7 @@ window.BIZ = (() => {
       </div>
       ${priced.length < inP.length ? `<p class="note">${esc(tr("{0} of the sales are of wines with no cost price: they're left out of the profit.", fmt(inP.length - priced.length)))}</p>` : ""}
       <div class="bz-wk" style="grid-template-columns:repeat(${buckets.length},minmax(0,1fr))" role="img" aria-label="${esc(tr("Bottles sold over the period"))}">${buckets.map(b => { const n = b.l.reduce((t, s) => t + eq(s), 0);
-        return `<span title="${esc(tr("{0} bottles", n1(n)) + (SHOW_PRICES ? " · " + kr(Math.round(money(b.l))) : ""))}"><i style="height:${(n / bmax * 100).toFixed(0)}%"></i><em>${esc(b.t)}</em></span>`; }).join("")}</div>
+        return `<span title="${esc((n === 1 ? tr("1 bottle") : tr("{0} bottles", n1(n))) + (SHOW_PRICES ? " · " + kr(Math.round(money(b.l))) : ""))}"><i style="height:${(n / bmax * 100).toFixed(0)}%"></i><em>${esc(b.t)}</em></span>`; }).join("")}</div>
       <div class="bz-cols">
         <div>${best.length ? `<h4>${esc(tr("Best sellers"))}</h4><ul class="bz-sup">${best.map(x => `<li><span>${nm(x.s)}</span><b>${esc(x.n === 1 ? tr("1 bottle") : tr("{0} bottles", n1(x.n)))}${SHOW_PRICES ? ` <small>${esc(kr(Math.round(x.kr)))}</small>` : ""}</b></li>`).join("")}</ul>` : `<p class="note">${esc(tr("No sales in this period."))}</p>`}</div>
         <div>${SALES.length && slow.length ? `<h4>${esc(tr("Slow movers: in stock, nothing sold in 90 days"))}</h4><ul class="bz-sup">${slow.map(w => `<li><span>${nm(w)}</span><b>${esc(btl(fmt(w.left)))}</b></li>`).join("")}</ul>` : ""}</div>
@@ -349,7 +349,7 @@ window.BIZ = (() => {
     const val = w => (w.menuPrice || w.price || 0) * Math.max(0, w.left), mg = w => (margin(w) || { pct: -1 }).pct;
     const cmp = { producer: (a, b) => a.producer.localeCompare(b.producer) || (a.vintage || 0) - (b.vintage || 0), stock: (a, b) => b.left - a.left,
       value: (a, b) => val(b) - val(a), margin: (a, b) => mg(b) - mg(a) }[INV.sort];
-    return WINES.filter(pick).filter(w => !INV.loc || placeOf(w) === INV.loc).filter(w => !q || fold([w.producer, w.name, w.vintage, w.region, w.country, w.source, w.grape].join(" ")).includes(q)).sort(cmp);
+    return WINES.filter(pick).filter(w => !INV.loc || placeOf(w) === INV.loc).filter(w => !q || qMatch(q, [w.producer, w.name, w.vintage, w.region, w.country, w.source, w.grape])).sort(cmp);
   }
   function inventory() {
     const box = $("pageInventory"); if (!box || !on()) return;
@@ -436,7 +436,7 @@ window.BIZ = (() => {
     if (!(await ask(tr("Add the {0} bottles ordered from {1} to the stock?", fmt(n), k || tr("No supplier")), { ok: tr("Add to stock") }))) return;
     btn.disabled = true;
     const failed = await setStocks(g[1].map(w => ({ row: w.row, left: w.par })));
-    toast(failed.length ? failText(failed) : tr("{0} bottles added to the stock", fmt(n)));
+    toast(failed.length ? failText(failed) : (n === 1 ? tr("1 bottle added to the stock") : tr("{0} bottles added to the stock", fmt(n))));
   }
   // a modal of our own, shared by goods in and the count
   function sheet(id, title, body) {
@@ -454,7 +454,7 @@ window.BIZ = (() => {
       <div class="bz-scroll"><table class="bz-tab2 bz-gin"><thead><tr><th>${esc(tr("Wine"))}</th><th>${esc(tr("In stock"))}</th><th>${esc(tr("Came"))}</th><th>${esc(tr("Cost price"))}</th><th></th></tr></thead><tbody id="bzGoodsB"></tbody></table></div>
       <p class="note">${esc(tr("A wine that isn't here yet: add it with ＋ Add wine."))}</p>`);
     const draw = () => { const q = fold($("bzGoodsQ").value).trim();
-      const list = WINES.filter(w => !w.elsewhere).filter(w => !q || fold([w.producer, w.name, w.vintage, w.source].join(" ")).includes(q))
+      const list = WINES.filter(w => !w.elsewhere).filter(w => !q || qMatch(q, [w.producer, w.name, w.vintage, w.source]))
         .sort((a, b) => a.producer.localeCompare(b.producer)).slice(0, 40);
       $("bzGoodsB").innerHTML = list.map(w => `<tr><td><b>${esc(w.producer)}</b> ${esc([w.name, w.vintage || "NV"].filter(Boolean).join(" "))}<small>${esc(w.source || "")}</small></td>
         <td>${esc(fmt(Math.max(0, w.left)))}</td><td><input class="bz-n" type="number" min="1" step="1" inputmode="numeric" data-gin="${w.row}" aria-label="${esc(tr("Came"))}"></td>
@@ -466,12 +466,12 @@ window.BIZ = (() => {
       if (!(n >= 1)) { toast(tr("Type how many bottles came")); return; }
       b.disabled = true;
       const failed = await setStocks([{ row, left: Math.max(0, w.left) + n, price: c === "" ? null : Number(c) }]);
-      toast(failed.length ? failText(failed) : tr("{0} bottles of {1} added to the stock", fmt(n), w.producer)); draw(); };
+      toast(failed.length ? failText(failed) : (n === 1 ? tr("1 bottle of {0} added to the stock", w.producer) : tr("{0} bottles of {1} added to the stock", fmt(n), w.producer))); draw(); };
   }
-  // the count: what's on the shelf, beside what the stock says; the differences in bottles and at cost; saved in one go
+  // the count: what's on the shelf, beside what the stock says; the differences in bottles and at cost; saved in one go.
+  // What's typed is kept if the sheet closes before Save (Escape, Close, a tap beside it), until it's saved or cleared.
   let COUNT = {};
   function openCount() {
-    COUNT = {};
     const list = WINES.filter(w => !w.elsewhere && (w.left > 0 || w.par > 0)).sort((a, b) => placeOf(a).localeCompare(placeOf(b)) || a.producer.localeCompare(b.producer));
     const m = sheet("bzCount", "Count stock", `<p class="note">${esc(tr("Type what's on the shelf; a line left empty isn't counted. Nothing is saved until Save the count."))}</p>
       <div class="bz-scroll" style="max-height:52vh"><table class="bz-tab2 bz-cnt"><thead><tr><th>${esc(tr("Location"))}</th><th>${esc(tr("Wine"))}</th><th>${esc(tr("In stock"))}</th><th>${esc(tr("Counted"))}</th><th>${esc(tr("Difference"))}</th></tr></thead>
@@ -486,10 +486,15 @@ window.BIZ = (() => {
       if (i.value === "") { delete COUNT[row]; cell.textContent = ""; } else { COUNT[row] = Math.max(0, Math.round(Number(i.value))); const d = COUNT[row] - Math.max(0, w.left);
         cell.textContent = d ? (d > 0 ? "+" : "") + fmt(d) : "✓"; cell.className = "bz-dif" + (d < 0 ? " neg" : d > 0 ? " pos" : ""); }
       sum(); };
+    const kept = Object.keys(COUNT).filter(r => m.querySelector(`[data-cnt="${r}"]`));
+    Object.keys(COUNT).forEach(r => { if (!kept.includes(r)) delete COUNT[r]; });
+    kept.forEach(r => { const i = m.querySelector(`[data-cnt="${r}"]`); i.value = COUNT[r]; m.oninput({ target: i }); });
+    if (kept.length) { const p = document.createElement("p"); p.className = "bz-btns"; p.innerHTML = `<span class="note">${esc(tr("Your count so far is kept: {0} lines", fmt(kept.length)))}</span> <button type="button" class="btn quiet" data-bz="cclear">${esc(tr("Start the count again"))}</button>`;
+      m.querySelector("#bzCountSum").before(p); p.querySelector("button").onclick = () => { COUNT = {}; openCount(); }; }
     m.querySelector('[data-bz="csave"]').onclick = async e => { const ch = Object.entries(COUNT).map(([r, n]) => ({ row: Number(r), left: n })).filter(x => x.left !== Math.max(0, WINES.find(w => w.row === x.row).left));
-      if (!ch.length) { toast(tr("The count matches the stock")); m.classList.remove("open"); return; }
+      if (!ch.length) { toast(tr("The count matches the stock")); COUNT = {}; m.classList.remove("open"); return; }
       e.target.disabled = true; const failed = await setStocks(ch); e.target.disabled = false;
-      toast(failed.length ? failText(failed) : tr("The count is saved: {0} wines changed", fmt(ch.length))); if (!failed.length) m.classList.remove("open"); };
+      toast(failed.length ? failText(failed) : tr("The count is saved: {0} wines changed", fmt(ch.length))); if (!failed.length) { COUNT = {}; m.classList.remove("open"); } };
     m.querySelector('[data-bz="ccsv"]').onclick = () => { const rows = [[tr("Location"), tr("Producer"), tr("Wine"), tr("Vintage"), tr("In stock"), tr("Counted"), tr("Difference"), tr("Cost price")]]
       .concat(list.filter(w => COUNT[w.row] != null).map(w => [placeOf(w), w.producer, w.name || "", w.vintage || "", Math.max(0, w.left), COUNT[w.row], COUNT[w.row] - Math.max(0, w.left), w.price || ""]));
       const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([EXPORT.csv(rows)], { type: "text/csv;charset=utf-8" }));
@@ -514,7 +519,7 @@ window.BIZ = (() => {
   function tillDraw() {
     const box = $("bzTiles"); if (!box || !$("bzTill").classList.contains("open")) return;
     const W = words(), q = fold($("bzTillQ").value).trim();
-    const list = WINES.filter(w => w.left > 0 || w.openGlasses > 0).filter(w => !q || fold([w.producer, w.name, w.vintage].join(" ")).includes(q))
+    const list = WINES.filter(w => w.left > 0 || w.openGlasses > 0).filter(w => !q || qMatch(q, [w.producer, w.name, w.vintage]))
       .sort((a, b) => (b.glassPrice > 0) - (a.glassPrice > 0) || a.producer.localeCompare(b.producer)).slice(0, 24);
     box.innerHTML = list.map(w => `<div class="bz-tile"><b>${esc(w.producer)}</b><span>${esc([w.name, w.vintage || "NV"].filter(Boolean).join(" "))}</span>
         <small>${esc(btl(fmt(w.left)))}${w.openGlasses > 0 ? " · " + esc(tr(w.openGlasses === 1 ? "+ 1 glass open" : "+ {0} glasses open", w.openGlasses)) : ""}</small>
@@ -781,6 +786,6 @@ window.BIZ = (() => {
 </style>`);
   setTimeout(apply, 0);
   // its words: only a business needs them, so they come now, not with every page (i18n.js redraws the page in them)
-  if (window.I18N) { I18N.onChange(apply); if (I18N.more) I18N.more("business-i18n", "?v=6"); }
+  if (window.I18N) { I18N.onChange(apply); if (I18N.more) I18N.more("business-i18n", "?v=7"); }
   return { refreshSales: () => loadSales(true), apply, detail, priceCell, overview, page, inventory, cardLabel, margin, openCard, salesRows, reorder, reorderText, cardData, publishCard, cardShare };
 })();

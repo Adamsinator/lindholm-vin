@@ -35,7 +35,7 @@
   }
   // the footer's look, once; each page's own colours (--muted, --line, --accent) carry over
   document.head.insertAdjacentHTML("beforeend", `<style>.sitefoot{max-width:1100px;margin:28px auto 0;padding:14px 16px 28px;border-top:1px solid var(--line,#E7DFDD);display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12.5px;color:var(--muted,#756A70)}
-.sitefoot a{color:inherit} .sitefoot a:hover{color:var(--accent,#7C2D3E)} @media print{.sitefoot{display:none}}</style>`);
+.sitefoot a{color:inherit} .sitefoot a:hover{color:var(--accent,#7C2D3E)} @media(pointer:coarse){.sitefoot a{padding:6px 0}} @media print{.sitefoot{display:none}}</style>`);
   const run = () => { foot(); legal(); };
   run(); if (window.I18N && I18N.onChange) I18N.onChange(run);
 })();

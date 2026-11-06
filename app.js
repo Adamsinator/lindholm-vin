@@ -188,6 +188,9 @@ const btl = n => tr("{0} btl.", n); // "12 btl." — fl. in Danish
 const noteText = t => (((window.PRODUCER_NOTES_I18N||{})[window.I18N && I18N.lang])||{})[t] || t;
 const nBottles = n => n===1 ? tr("1 bottle") : tr("{0} bottles", n);
 const nWines = n => n===1 ? tr("1 wine") : tr("{0} wines", n);
+// search: case and accents don't count ("chateau" finds Château), and every word must be there, in any order
+const qFold = s => String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+const qMatch = (q, parts) => { const h = qFold(parts.join(" ")); return qFold(q).split(/\s+/).filter(Boolean).every(t => h.includes(t)); };
 
 let WINES = [];          // normalized
 let KEEP_OPEN = null;    // row number of the expanded detail, kept open across re-renders
@@ -508,7 +511,7 @@ function renderOverview(){
     {b:rest.reduce((s,r)=>s+r[1].b,0), v:rest.reduce((s,r)=>s+r[1].v,0), other:true}]);
   const maxB = topRegs.length ? topRegs[0][1].b : 1;
   $("regions").innerHTML = topRegs.map(([name,r])=>`
-    <button class="rbar" data-region="${r.other?"":esc(name)}" aria-label="${esc(name)}: ${esc(tr("{0} bottles", r.b))}">
+    <button class="rbar" data-region="${r.other?"":esc(name)}" aria-label="${esc(name)}: ${esc(nBottles(r.b))}">
       <span class="rb-name">${esc(name)}</span>
       <span class="rb-track"><span class="rb-fill" style="width:${Math.max(1.5,r.b/maxB*100)}%"></span></span>
       <span class="rb-n">${btl(r.b)}</span>
@@ -517,7 +520,7 @@ function renderOverview(){
     el.addEventListener("mousemove",e=>{
       const label = el.querySelector(".rb-name").textContent;
       const r = topRegs.find(t=>t[0]===label)[1];
-      showTip(`<b>${esc(label)}</b><br>${esc(tr("{0} bottles", r.b))}${SHOW_PRICES?" · "+kr(r.v):""}`,e.clientX,e.clientY);
+      showTip(`<b>${esc(label)}</b><br>${esc(nBottles(r.b))}${SHOW_PRICES?" · "+kr(r.v):""}`,e.clientX,e.clientY);
     });
     el.addEventListener("mouseleave",hideTip);
     el.addEventListener("click",()=>{ const name=el.dataset.region; if(!name) return;
@@ -547,7 +550,7 @@ function renderOverview(){
   const topProds = prods.slice(0,10);
   const maxPB = topProds.length ? topProds[0][1].b : 1;
   $("producers").innerHTML = topProds.map(([name,p])=>`
-    <button class="rbar" data-prod="${esc(name)}" aria-label="${esc(name)}: ${esc(tr("{0} bottles", p.b))}">
+    <button class="rbar" data-prod="${esc(name)}" aria-label="${esc(name)}: ${esc(nBottles(p.b))}">
       <span class="rb-name">${esc(name)}</span>
       <span class="rb-track"><span class="rb-fill" style="width:${Math.max(1.5,p.b/maxPB*100)}%"></span></span>
       <span class="rb-n">${btl(p.b)}</span>
@@ -1034,7 +1037,7 @@ function loadKind(){
 function setKindLocal(k, keepStored){
   KIND = k; document.documentElement.dataset.kind = k; $("acctKind").value = k;
   if(!keepStored) try{ localStorage.setItem(kindKey(), k); }catch(e){}
-  if(k!=="private" && !window.BIZ){ const s = document.createElement("script"); s.src = "business.js?v=10";
+  if(k!=="private" && !window.BIZ){ const s = document.createElement("script"); s.src = "business.js?v=11";
     s.onload = ()=>{ if(WINES.length){ renderOverview(); renderTable(); } }; document.head.appendChild(s); }
   else if(window.BIZ) BIZ.apply();
 }
@@ -1322,8 +1325,8 @@ function renderTable(){
       else if(!(rd && rd.k===state.ready)) return false;
     }
     if(q){
-      const hay = [w.producer,w.name,w.commune,w.region,w.grape,w.classification,String(w.vintage),w.note,w.location,w.farm,w.farm?tr(FARM_LABEL[w.farm]||w.farm):"",tasteText(w.taste)].join(" ").toLowerCase();
-      if(!hay.includes(q)) return false;
+      const hay = [w.producer,w.name,w.commune,w.region,w.grape,w.classification,String(w.vintage),w.note,w.location,w.farm,w.farm?tr(FARM_LABEL[w.farm]||w.farm):"",tasteText(w.taste)];
+      if(!qMatch(q, hay)) return false;
     }
     return true;
   });
@@ -1451,7 +1454,7 @@ function moreRow(total, shown, cols, tbl){
 // grape data): fetched the first time a wine's details open or the panel comes into view, not with the page
 let STYLE_LOAD = null;
 function styleReady(){
-  return STYLE_LOAD = STYLE_LOAD || [!window.WINE_KB && "wine-kb.js?v=2", !window.SOMM_DATA && "sommelier-data.js?v=6", !window.STYLE && "style.js?v=1"]
+  return STYLE_LOAD = STYLE_LOAD || [!window.WINE_KB && "wine-kb.js?v=2", !window.SOMM_DATA && "sommelier-data.js?v=6", !window.STYLE && "style.js?v=2"]
     .filter(Boolean).reduce((p, src)=>p.then(()=>loadJS(src)), Promise.resolve()).catch(e=>{ STYLE_LOAD = null; throw e; });
 }
 function styleFill(root){
@@ -2088,6 +2091,25 @@ document.addEventListener("keydown", e=>{
   const lb = document.querySelector(".jlightbox"); if(lb){ lb.remove(); return; }
   const open = [...document.querySelectorAll(".modal.open")]; if(open.length) open[open.length-1].classList.remove("open");
 });
+// Tab and Shift+Tab stay in the topmost open dialog (not the page behind it), and focus goes back to what opened it
+// when it closes, for keyboard and screen-reader users.
+const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]):not([type=hidden]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+document.addEventListener("keydown", e=>{
+  if(e.key!=="Tab") return;
+  const open = [...document.querySelectorAll(".modal.open")]; // the one with focus, else a question asked over the others, else the last
+  const m = open.find(x => x.contains(document.activeElement)) || open.find(x => x.id === "askModal") || open[open.length-1]; if(!m) return;
+  const els = [...m.querySelectorAll(FOCUSABLE)].filter(x => x.offsetWidth || x.offsetHeight || x.getClientRects().length); if(!els.length) return;
+  const i = els.indexOf(document.activeElement);
+  if(i < 0 || (e.shiftKey && i === 0) || (!e.shiftKey && i === els.length-1)){ e.preventDefault(); els[i < 0 ? 0 : (e.shiftKey ? els.length-1 : 0)].focus(); }
+});
+{ const opener = new Map(); let lastOut = null; // the dialogs focus their first field as they open, so remember what had focus before
+  document.addEventListener("focusin", e => { if(e.target && e.target.closest && !e.target.closest(".modal")) lastOut = e.target; });
+  new MutationObserver(recs => recs.forEach(r => { const m = r.target; if(!m.classList || !m.classList.contains("modal")) return;
+    const on = m.classList.contains("open"), was = /(^|\s)open(\s|$)/.test(r.oldValue || "");
+    if(on && !was){ const a = document.activeElement && document.activeElement !== document.body && !m.contains(document.activeElement) ? document.activeElement : lastOut; if(a && !m.contains(a)) opener.set(m, a); }
+    else if(!on && was){ const a = opener.get(m); opener.delete(m);
+      if(a && a.isConnected && (!document.activeElement || document.activeElement === document.body || m.contains(document.activeElement)) && !document.querySelector(".modal.open")) a.focus({ preventScroll: true }); }
+  })).observe(document.body, { subtree: true, attributes: true, attributeFilter: ["class"], attributeOldValue: true }); }
 $("addModal").addEventListener("click", e=>{ if(e.target===$("addModal")) $("addModal").classList.remove("open"); });
 $("addForm").addEventListener("submit", addWine);
 
@@ -2191,7 +2213,7 @@ function impBuild(){
   if(IMP.built.skipped.headers) notes.push(trn(IMP.built.skipped.headers, "{0} repeated heading row is left out.", "{0} repeated heading rows are left out."));
   if(IMP.built.truncated) notes.push(tr("Only the first {0} wines are imported at a time.", IMPORT.MAX_ROWS));
   if(!IMP.fields.includes("producer") && !IMP.fields.includes("line")) notes.push(tr("Choose which column holds the producer."));
-  $("impSum").innerHTML = esc(tr("{0} wines · {1} bottles", fmt(ws.length), fmt(bottles))) + notes.map(n => `<small>${esc(n)}</small>`).join("");
+  $("impSum").innerHTML = esc((ws.length===1 ? tr("1 wine") : tr("{0} wines", fmt(ws.length))) + " · " + (bottles===1 ? tr("1 bottle") : tr("{0} bottles", fmt(bottles)))) + notes.map(n => `<small>${esc(n)}</small>`).join("");
   // rows of the same wine, and the spelling fixes
   const nm = IMP.merge ? IMP.merged : TIDY.merge(tidied.wines).merged;
   $("impMergeWrap").hidden = !nm;
@@ -2369,7 +2391,7 @@ function sommLoad(){
   if(!window.WINE_KB) need.push("wine-kb.js?v=2");
   if(!window.SOMM_DATA) need.push("sommelier-data.js?v=6");
   if(!window.SOMM_WORLD) need.push("sommelier-world.js?v=2");
-  if(!window.SOMMELIER) need.push("sommelier.js?v=8");
+  if(!window.SOMMELIER) need.push("sommelier.js?v=9");
   if(!window.BURG_VINTAGES) need.push("burgundy-vintages.js?v=5");
   if(["da","fr","de"].includes(lang) && !(window.BURG_I18N && BURG_I18N[lang])) need.push(`burgundy-i18n-${lang}.js?v=${lang==="de"?1:5}`);
   SOMM.lang = lang;
@@ -3990,7 +4012,7 @@ function renderEnjoyed(){
     if(eState.where==="cellar" && isElsewhere(w)) return false;
     if(eState.where==="away" && !isElsewhere(w)) return false;
     if(!q) return true;
-    return [w.producer,w.name,w.commune,w.region,w.grape,w.classification,(classShown(w)||{}).txt,w.source,String(w.vintage)].join(" ").toLowerCase().includes(q);
+    return qMatch(q, [w.producer,w.name,w.commune,w.region,w.grape,w.classification,(classShown(w)||{}).txt,w.source,String(w.vintage)]);
   });
   const k=eState.sortK, dir=eState.sortDir;
   list.sort((a,b)=>{
@@ -4049,7 +4071,7 @@ function drawEnjoyedCharts(drunk){
   const prods=Object.entries(prodAgg).sort((a,b)=>b[1]-a[1]).slice(0,8);
   const maxB=prods.length?prods[0][1]:1;
   $("eProducers").innerHTML = prods.map(([name,b])=>`
-    <button class="rbar" data-prod="${esc(name)}" aria-label="${esc(name)}: ${esc(tr("{0} bottles", b))}">
+    <button class="rbar" data-prod="${esc(name)}" aria-label="${esc(name)}: ${esc(nBottles(b))}">
       <span class="rb-name">${esc(name)}</span>
       <span class="rb-track"><span class="rb-fill" style="width:${Math.max(2,b/maxB*100)}%"></span></span>
       <span class="rb-n">${btl(b)}</span></button>`).join("") || `<div class="ph">${esc(tr("Nothing yet."))}</div>`;

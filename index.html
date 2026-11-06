@@ -487,6 +487,8 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch} foote
 .jedit{margin-left:auto;border:0;background:none;cursor:pointer;font-size:13px;opacity:.45}
 .jdel{border:0;background:none;cursor:pointer;font-size:13px;opacity:.45}
 .jedit:hover,.jdel:hover{opacity:1}
+/* touch: the small controls get a finger-sized target (WCAG 2.2 target size) without changing how they look */
+@media(pointer:coarse){.jedit,.jdel{min-width:40px;min-height:36px;display:inline-flex;align-items:center;justify-content:center} .viewswitch button{min-height:32px;min-width:32px} .custbtn{min-height:32px} .tips-more{display:inline-block;padding:6px 0} footer a{display:inline-block;padding:6px 0} .gstat .refresh{min-width:36px;min-height:36px}}
 .jwine{font-family:var(--serif);font-weight:600;margin-top:2px;font-size:17px}
 .jwine .jglasses{font-weight:400;font-size:13px;margin-left:6px}
 .jwine .jprice{font-weight:400;font-size:13px;margin-left:6px;color:var(--muted)}
@@ -1427,7 +1429,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
         <select id="aSize"><option value="" data-i18n>Bottle · 75 cl</option><option>Piccolo</option><option value="Half" data-i18n>Half</option><option>Magnum</option><option>Jeroboam</option><option>Rehoboam</option><option>Methuselah</option><option>Salmanazar</option><option>Balthazar</option><option>Nebuchadnezzar</option></select></div>
     </div>
     <div class="row2">
-      <div><label for="aPrice" data-i18n>Price (kr.)</label><div class="pricewrap"><input id="aPrice" type="number" min="0" step="1"><select id="aPriceMode" aria-label="Price for" data-i18n-aria><option value="one" data-i18n>per bottle</option><option value="all" data-i18n>for all of them</option></select></div>
+      <div><label for="aPrice" data-i18n>Price (kr.)</label><div class="pricewrap"><input id="aPrice" type="number" min="0" step="any"><select id="aPriceMode" aria-label="Price for" data-i18n-aria><option value="one" data-i18n>per bottle</option><option value="all" data-i18n>for all of them</option></select></div>
         <label class="jcheck giftck"><input type="checkbox" id="aGift"> <span data-i18n>A gift (no price)</span></label></div>
       <div><label for="aSource" data-i18n>Source / bought at</label><input id="aSource"></div>
     </div>
@@ -1608,7 +1610,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
       <div><label for="eaSize" data-i18n>Format</label>
         <select id="eaSize"><option value="" data-i18n>Bottle · 75 cl</option><option>Piccolo</option><option value="Half" data-i18n>Half</option><option>Magnum</option><option>Jeroboam</option><option>Rehoboam</option><option>Methuselah</option><option>Salmanazar</option><option>Balthazar</option><option>Nebuchadnezzar</option></select></div>
       <div><label for="eaPrice"><span data-i18n>Price</span> <span class="lopt" data-i18n>(what it cost)</span></label>
-        <input id="eaPrice" type="number" min="0" step="1" inputmode="numeric" placeholder="kr."></div>
+        <input id="eaPrice" type="number" min="0" step="any" inputmode="decimal" placeholder="kr."></div>
     </div>
     <label for="eaNote" data-i18n>Note</label><textarea id="eaNote" rows="2"></textarea>
     <div class="jerr" id="eaErr" role="alert" hidden></div>
@@ -1648,7 +1650,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
     </div>
     <div class="row2" id="iStockRow">
       <div><label for="iLeft" data-i18n>Bottles in the cellar</label><input id="iLeft" type="number" min="0" step="1" inputmode="numeric"></div>
-      <div><label for="iPrice" data-i18n>Price (kr.)</label><div class="pricewrap"><input id="iPrice" type="number" min="0" step="1"><select id="iPriceMode" aria-label="Price for" data-i18n-aria><option value="one" data-i18n>per bottle</option><option value="all" data-i18n>for all of them</option></select></div></div>
+      <div><label for="iPrice" data-i18n>Price (kr.)</label><div class="pricewrap"><input id="iPrice" type="number" min="0" step="any"><select id="iPriceMode" aria-label="Price for" data-i18n-aria><option value="one" data-i18n>per bottle</option><option value="all" data-i18n>for all of them</option></select></div></div>
     </div>
     <div><label for="iFarm" data-i18n>Farming</label><select id="iFarm"><option value="" data-i18n>—</option><option value="Økologisk" data-i18n>Organic</option><option value="Biodynamisk" data-i18n>Biodynamic</option><option value="Naturvin" data-i18n>Natural wine</option></select></div>
     <details class="tastebox"><summary data-i18n>Style (optional)</summary><div class="tastegrid" id="iTaste"></div></details>
@@ -1673,7 +1675,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
     </div>
     <div class="row2">
       <div><label for="wRegion" data-i18n>Region</label><input id="wRegion" list="regionsList"></div>
-      <div><label for="wPrice" data-i18n>Target price (kr.)</label><input id="wPrice" type="number" min="0" step="1"></div>
+      <div><label for="wPrice" data-i18n>Target price (kr.)</label><input id="wPrice" type="number" min="0" step="any"></div>
     </div>
     <label for="wNote" data-i18n>Note</label><textarea id="wNote" rows="2" placeholder="Where to find it, why you want it…" data-i18n-ph></textarea>
     <div class="jerr" id="wErr" role="alert" hidden></div>
@@ -1752,7 +1754,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
       <option value="9">9 / 10</option><option value="10">10 / 10</option>
     </select>
     <label for="jPrice"><span data-i18n>Price</span> <span class="lopt" id="jPriceOpt">(optional: what the bottle cost)</span></label>
-    <input id="jPrice" type="number" min="0" step="1" inputmode="numeric" placeholder="kr.">
+    <input id="jPrice" type="number" min="0" step="any" inputmode="decimal" placeholder="kr.">
     <div class="row2">
       <div><label for="jFood"><span data-i18n>Food</span> <span class="lopt" data-i18n>(optional: what you ate with it)</span></label><input id="jFood" list="jFoods" data-i18n-ph placeholder="e.g. roast lamb"><datalist id="jFoods"></datalist></div>
       <div><label for="jPairing" data-i18n>How the pairing went</label><select id="jPairing"><option value="">—</option><option value="good" data-i18n>Worked well</option><option value="ok" data-i18n>Fine</option><option value="bad" data-i18n>Didn't work</option></select></div>
@@ -1820,9 +1822,9 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 
 <!-- Pages serves these with max-age=600 and no revalidation, so a merged change can
      sit invisible behind a stale app.js for ten minutes. Bump v on every deploy. -->
-<script src="i18n.js?v=85"></script>
+<script src="i18n.js?v=86"></script>
 <script src="site-info.js?v=2"></script>
-<script src="site-foot.js?v=2"></script>
+<script src="site-foot.js?v=3"></script>
 <script src="notes.js?v=5"></script>
 <script src="notes-i18n.js?v=2"></script>
 <script src="burgundy-data.js?v=14"></script>
@@ -1839,6 +1841,6 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 <script src="import.js?v=7"></script>
 <script src="export.js?v=3"></script>
 <script src="share-crypto.js?v=2"></script>
-<script src="app.js?v=90"></script>
+<script src="app.js?v=91"></script>
 </body>
 </html>

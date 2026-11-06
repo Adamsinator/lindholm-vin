@@ -111,7 +111,7 @@ window.STYLE = (() => {
       ${[1, 2, 3].map(i => `<line class="tg" x1="${x(i)}" x2="${x(i)}" y1="20" y2="200"/><line class="tg" x1="60" x2="320" y1="${y(i)}" y2="${y(i)}"/>
         <text class="tl" x="${x(i)}" y="218" text-anchor="middle">${esc(tr(lab[i - 1]))}</text><text class="tl" x="54" y="${y(i) + 4}" text-anchor="end">${esc(tr(acid[i - 1]))}</text>`).join("")}
       ${Object.entries(cells).map(([k, c]) => { const [b, a] = k.split(",").map(Number), r = 6 + Math.sqrt(c.b / max) * 26;
-        return `<g class="tc" data-cell="${k}" tabindex="0" role="button" aria-label="${esc(tr("{0} bottles: {1} body, {2} acidity", c.b, tr(lab[b - 1]).toLowerCase(), tr(acid[a - 1]).toLowerCase()))}">
+        return `<g class="tc" data-cell="${k}" tabindex="0" role="button" aria-label="${esc(tr(c.b === 1 ? "1 bottle: {1} body, {2} acidity" : "{0} bottles: {1} body, {2} acidity", c.b, tr(lab[b - 1]).toLowerCase(), tr(acid[a - 1]).toLowerCase()))}">
           <circle cx="${x(b)}" cy="${y(a)}" r="${r.toFixed(1)}" class="${c.red * 2 > c.b ? "red" : "white"}"/><text x="${x(b)}" y="${y(a) + 4}" text-anchor="middle">${c.b}</text></g>`; }).join("")}
     </svg>${none ? `<p class="ph">${esc(none === 1 ? tr("1 bottle without a known grape isn't placed.") : tr("{0} bottles without a known grape aren't placed.", none))}</p>` : ""}`;
     el.querySelectorAll(".tc").forEach(g => { const pick = () => { const c = cells[g.dataset.cell], [b, a] = g.dataset.cell.split(",").map(Number);

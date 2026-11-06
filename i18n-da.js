@@ -22,6 +22,7 @@ window.I18N_DICT.da = {
   "Goes with": "Passer til",
   "The cellar by body and acidity": "Kælderen efter fylde og syre",
   "{0} bottles: {1} body, {2} acidity": "{0} flasker: {1} fylde, {2} syre",
+  "1 bottle: {1} body, {2} acidity": "1 flaske: {1} fylde, {2} syre",
   "{0} bottles without a known grape aren't placed.": "{0} flasker uden kendt drue er ikke placeret.",
   "{0} body, {1} acidity": "{0} fylde, {1} syre",
   "Cellar by taste": "Kælderen efter smag",
