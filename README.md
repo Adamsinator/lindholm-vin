@@ -370,6 +370,15 @@ engine is generic, so a new region is a data file, not new code; a region's own 
   letter-spacing, takes accents from the region's own names, and drops parcel codes. A download that fails stops it;
   run it again and the rest comes from the cache. Unlike the Côte d'Or's, these have no measured terrain.
   `tools/region-ld-ui-test.js` checks them.
+- **Owners outside the Côte d'Or** (Chablis's grands crus so far; `atlas-owners.js`): a climat's owners with their
+  areas and shares, each with a ↗ link to the page it comes from. The list is `data/owners/<id>.json`, and it holds
+  **only what a domaine's own website says it owns**: `[domaine, hectares or null, page, what the page says]`. null
+  means the page lists the wine as its own vineyard but gives no area. Figures from merchants or the press aren't
+  used; domaines whose sites couldn't be read go under `to_verify` (William Fèvre, the largest Chablis grand cru
+  owner, for one). `node tools/region-owners.js <region>` writes `atlas-<id>-own.js`. It refuses a climat the pack
+  doesn't have, a holding without a page, and holdings that add up to more than the climat.
+  `tools/region-owners-ui-test.js` checks them. A new region needs `own: "atlas-<id>-own.js?v=1"` in its `REGIONS`
+  entry.
 - **A new region:** add it to `REGIONS` in `tools/region-build.js` (its box, village appellations and regional
   appellations), build it, then list it in `atlas.js` (`REGIONS`) and in `app.js` (`ATLAS_REGIONS`) for "On the map".
   Tested in `tools/region-atlas-ui-test.js`. Then rebuild the vineyard pages (next section).

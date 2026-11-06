@@ -3,6 +3,10 @@
 // the warming chart, one season at a time (◀ ▶) and the last 20 in a table. The Côte d'Or has its own (with ratings).
 // A classic script on atlas.js's shared scope (st, t, esc, renderSide).
 "use strict";
+// the panels' own texts (atlas-wx-i18n.js, loaded with a region), added to the dictionary of the language shown; on
+// each drawing, as a language picked later arrives as a new dictionary
+window.atlasTexts = window.atlasTexts || function () { const l = window.I18N && I18N.lang, o = window.ATLAS_WX_I18N && ATLAS_WX_I18N[l], D = window.I18N_DICT; if (!o || !D || !D[l] || D[l].__wx) return;
+  Object.entries(o).forEach(([k, v]) => { if (!(k in D[l])) D[l][k] = v; }); Object.defineProperty(D[l], "__wx", { value: 1 }); };
 window.ATLAS_WXUI = (() => {
   const W = () => window.ATLAS_WX && st.region && window.ATLAS_WX[st.region.id];
   const rec = (w, i, y) => { const v = w.y[i] && w.y[i][y]; return v ? Object.fromEntries(w.f.map((f, j) => [f, v[j]])) : null; };
@@ -56,10 +60,7 @@ window.ATLAS_WXUI = (() => {
     const by = s => w.st.filter(x => x.src === s).map(x => `${x.n} (${x.alt} m)`).join(", ");
     return `<p class="src">${w.st.some(x => x.src === "mf") ? esc(t("Weather: Météo-France, daily station records (Licence Ouverte): {0}.", by("mf"))) + " " : ""}${w.st.some(x => x.src === "dwd") ? esc(t("Weather: Datenbasis: Deutscher Wetterdienst (CC BY 4.0): {0}.", by("dwd"))) + " " : ""}${esc(t("Built {0}.", w.meta.built))}</p>`;
   }
-  // the panel's own texts (atlas-wx-i18n.js), added to the page's dictionary for the language shown (on each
-  // drawing: a language picked later arrives as a new dictionary)
-  const merge = () => { const l = window.I18N && I18N.lang, o = window.ATLAS_WX_I18N && ATLAS_WX_I18N[l], D = window.I18N_DICT; if (!o || !D || !D[l] || D[l].__wx) return;
-    Object.entries(o).forEach(([k, v]) => { if (!(k in D[l])) D[l][k] = v; }); Object.defineProperty(D[l], "__wx", { value: 1 }); };
+  const merge = () => window.atlasTexts && atlasTexts(); // the panel's own texts (atlas-wx-i18n.js), added by atlas.js
   function html() {
     const w = W(); if (!w) return ""; merge();
     const all = years(w, 0); if (st.wy == null || !rec(w, 0, st.wy)) st.wy = all[all.length - 1];
