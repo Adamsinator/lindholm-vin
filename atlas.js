@@ -690,15 +690,17 @@ function renderSide() {
     const ce = $("cmpEnd"); if (ce) ce.onclick = () => { st.cmpWith = null; renderSide(); };
   }
   side.querySelectorAll("button[data-c]").forEach(b => b.onclick = () => select(b.dataset.c, true));
-  if (st.prod) { side.insertAdjacentHTML("afterbegin", prodBar()); $("prodX").onclick = () => setProd(null); }
+  if (st.prod) { side.insertAdjacentHTML("afterbegin", prodBar() + (window.ATLAS_CD && st.prod2 ? `<div id="cmpTable">${ATLAS_CD.compareHtml()}</div>` : "")); $("prodX").onclick = () => setProd(null); }
   if (window.ATLAS_LDUI) ATLAS_LDUI.wire(side);
+  if (window.ATLAS_CD && R.ui) ATLAS_CD.wire(side, c);
   side.querySelectorAll("button[data-prod]").forEach(b => b.onclick = () => setProd(st.prod === b.dataset.prod ? null : b.dataset.prod));
   if (!c) regionWines();
 }
 
 /* ---------- who owns it: the Côte d'Or's owners and the one-owner filter live in atlas-cotedor-ui.js, loaded with
    that region only (the other regions have no owners on file) ---------- */
-const prodOk = c => !st.prod || !window.ATLAS_CD || ATLAS_CD.holds(c, st.prod);
+const prodOk = c => !st.prod || !window.ATLAS_CD || ATLAS_CD.shown(c, st.prod);
+const holds = (c, k) => !!window.ATLAS_CD && ATLAS_CD.holds(c, k);
 const ownersHtml = c => window.ATLAS_CD ? ATLAS_CD.ownersHtml(c) : "";
 const prodBar = () => window.ATLAS_CD ? ATLAS_CD.prodBar() : "";
 const setProd = k => window.ATLAS_CD && ATLAS_CD.setProd(k);
@@ -1024,12 +1026,15 @@ let sHits = [], sAt = -1;
 const placeName = id => (allPlaces().find(r => r.id === id) || {}).name || id;
 const loadIndex = () => window.ATLAS_INDEX ? Promise.resolve() : (loadIndex.p ||= loadScript(INDEX_SRC).catch(() => { loadIndex.p = null; }));
 // an entry: [name, place, id, class, commune, (an MGA's page), (other names)]
-const hitClass = e => PTCLASS[e[3]] ? t(PTCLASS[e[3]]) : e[3] === "V" ? t("Village") : e[3] === "MGA" || e[3] === "MGAV" ? "MGA" : t(CLASS[e[3]] || e[3]);
+const hitClass = e => e[3] === "owner" ? t("Owner") : e[3] === "ld" ? t("Lieu-dit") : PTCLASS[e[3]] ? t(PTCLASS[e[3]]) : e[3] === "V" ? t("Village") : e[3] === "MGA" || e[3] === "MGAV" ? "MGA" : t(CLASS[e[3]] || e[3]);
 function sFind(q) {
   const k = norm(q).trim(); if (k.length < 2) return [];
   const here = st.region ? st.region.id : null, out = [];
   // the open region's own, straight from its pack (so it works before the index is in)
   if (st.pack) st.pack.climats.filter(c => !c.unnamed).concat(pts()).forEach(c => out.push([shown(c), here, c.id, c.c === "PT" || !c.g ? c.cls : c.c, c.c === "EL" ? c.n : c.app || "", null, c.aka || []]));
+  // the region's owners (the Côte d'Or) and lieux-dits, when it has them: "p:<key>" shows one owner's holdings, "l:<i>" a lieu-dit
+  if (st.pack && st.pack.producers && st.region.ui) Object.entries(st.pack.producers).forEach(([k, n]) => { if (!k.startsWith("x_") && st.pack.climats.some(c => holds(c, k))) out.push([n, here, "p:" + k, "owner", "", null, []]); });
+  if (window.ATLAS_LDUI && ATLAS_LDUI.loaded() && st.region.ld) ATLAS_LD[st.region.id].ld.forEach((l, i) => out.push([l[1], here, "l:" + i, "ld", (ATLAS_LD[st.region.id].meta.communes || {})[l[0]] || "", null, []]));
   (window.ATLAS_INDEX || []).forEach(e => { if (e[1] !== here) out.push(e); });
   const score = e => { const names = [e[0], ...(Array.isArray(e[e.length - 1]) ? e[e.length - 1] : [])].map(norm);
     const best = Math.min(...names.map(n => n.startsWith(" " + k) ? 0 : n.includes(" " + k) ? 1 : n.includes(k) ? 2 : 9));
@@ -1045,7 +1050,8 @@ function sRender() {
 }
 function sGo(e) {
   sList.hidden = true; sBox.value = ""; sBox.blur(); sBox.setAttribute("aria-expanded", "false");
-  if (st.region && e[1] === st.region.id) return select(e[2], true);
+  if (st.region && e[1] === st.region.id) { const id = String(e[2]);
+    if (id.startsWith("p:")) return setProd(id.slice(2)); if (id.startsWith("l:")) return ATLAS_LDUI.pick(+id.slice(2), true); return select(id, true); }
   if (e[1] === "burgundy") return void (location.href = "burgundy.html#c=" + encodeURIComponent(e[2]));
   if (REGIONS.some(r => r.id === e[1])) return void (location.hash = "#r=" + e[1] + "&c=" + encodeURIComponent(e[2]));
   location.href = `v/${window.I18N ? I18N.lang : "en"}/${e[5]}.html`; // Barolo, Barbaresco: the MGA's page

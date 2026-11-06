@@ -10,28 +10,111 @@ table.own .pb{display:block;height:3px;margin-top:4px;border-radius:2px;backgrou
 const OWN_KIND = { f: "leased", s: "buys grapes" }; // a holding's 3rd element; absent = owned
 // one owner's holdings: a click on a name keeps only the climats they hold on the map, with the total in the panel
 const holds = (c, k) => c.mono === k || (c.own || []).some(h => h[0] === k);
+const shownFor = (c, k) => holds(c, k) || (!!st.prod2 && holds(c, st.prod2)); // the map, comparing two owners: both
 function prodBar() {
   const P = st.pack && st.pack.producers; if (!P || !st.prod) return "";
   const list = st.pack.climats.filter(c => holds(c, st.prod)), ha = list.reduce((s, c) => s + (c.mono === st.prod ? c.ha : ((c.own.find(h => h[0] === st.prod) || [])[1] || 0)), 0);
-  return `<div class="prodbar"><span>${esc(t("Showing the holdings of {0}: {1} climats", P[st.prod] || st.prod, list.length))}${ha ? " · " + esc(fmtHa(ha)) + " ha" : ""}</span><button type="button" class="px" id="prodX" aria-label="${esc(t("Show every owner"))}">✕</button></div>`;
+  producerList();
+  return `<div class="prodbar"><span>${esc(t("Showing the holdings of {0}: {1} climats", P[st.prod] || st.prod, list.length))}${ha ? " · " + esc(fmtHa(ha)) + " ha" : ""}
+    <label class="pcmp">${esc(t("Compare with"))} <input id="prodCmp" list="allProducers" value="${esc(st.prod2 ? P[st.prod2] || "" : "")}" placeholder="${esc(t("another producer"))}"></label></span><button type="button" class="px" id="prodX" aria-label="${esc(t("Show every owner"))}">✕</button></div>`;
 }
-function setProd(k) { st.prod = k || null; paint(); renderSide();
+// two owners side by side: their holdings climat by climat, and the totals (both are kept on the map)
+const heldBy = k => st.pack.climats.filter(c => holds(c, k)).map(c => ({ c, h: c.mono === k && !(c.own || []).some(x => x[0] === k) ? [k, c.ha, "", null] : (c.own || []).find(x => x[0] === k) }));
+function compareHtml() {
+  const P = st.pack.producers, a = st.prod, b = st.prod2; if (!a || !b) return "";
+  const rows = new Map(); [[a, 0], [b, 1]].forEach(([k, i]) => heldBy(k).forEach(({ c, h }) => { const e = rows.get(c.id) || { c, v: [null, null] }; e.v[i] = h; rows.set(c.id, e); }));
+  const ORD = { GC: 0, "1er": 1, V: 2 }, list = [...rows.values()].sort((x, y) => ORD[x.c.c] - ORD[y.c.c] || x.c.n.localeCompare(y.c.n, "fr"));
+  const cell = h => !h ? `<td class="n">—</td>` : h[2] === "s" ? `<td class="n"><span class="ktag">${esc(t("buys grapes"))}</span></td>` : `<td class="n">${h[1] != null ? `<b>${fmtHa(h[1])}</b> ha` : esc(t("holder"))}${h[2] === "f" ? ` <span class="ktag">${esc(t("leased"))}</span>` : ""}</td>`;
+  const tot = k => heldBy(k).reduce((s, { h }) => s + (h && h[2] !== "s" && h[1] ? h[1] : 0), 0), n = (k, cl) => heldBy(k).filter(({ c, h }) => c.c === cl && h && h[2] !== "s").length;
+  return `<h3>${esc(t("Compare two producers"))}</h3><table class="own cmpt"><thead><tr><th></th><th class="n">${esc(P[a])}</th><th class="n">${esc(P[b])}</th></tr></thead><tbody>
+    <tr class="tot"><td>${esc(t("Published hectares on the map"))}</td><td class="n"><b>${fmtHa(tot(a))}</b></td><td class="n"><b>${fmtHa(tot(b))}</b></td></tr>
+    <tr class="tot"><td>${esc(t("Grands crus · premiers crus"))}</td><td class="n">${n(a, "GC")} · ${n(a, "1er")}</td><td class="n">${n(b, "GC")} · ${n(b, "1er")}</td></tr>
+    ${list.map(({ c, v }) => `<tr><td><button type="button" class="plink" data-c="${esc(c.id)}">${esc(c.n)}</button> <span class="note">${esc(c.app)}</span></td>${cell(v[0])}${cell(v[1])}</tr>`).join("")}</tbody></table>`;
+}
+function producerList() { if ($("allProducers")) return; const P = st.pack.producers;
+  document.body.insertAdjacentHTML("beforeend", `<datalist id="allProducers">${Object.keys(P).filter(k => st.pack.climats.some(c => holds(c, k))).map(k => P[k]).sort((x, y) => x.localeCompare(y, "fr")).map(n => `<option value="${esc(n)}">`).join("")}</datalist>`); }
+function setProd(k) { st.prod = k || null; if (!k) st.prod2 = null; paint(); renderSide();
   if (k) { const list = st.pack.climats.filter(c => holds(c, k)); if (list.length) fit(bbOf(list.flatMap(c => c.g)), .12, 380); } }
 function ownersHtml(c) {
-  const P = st.pack.producers; if (!P || (!c.own && !c.mono)) return "";
+  const P = st.pack.producers; if (!P) return ""; editsLoad();
   const rows = [...(c.own || [])].sort((a, b) => (a[2] === "s") - (b[2] === "s") || (b[1] ?? -1) - (a[1] ?? -1));
   const known = rows.filter(r => r[1] && r[2] !== "s").reduce((s, r) => s + r[1], 0), rest = Math.max(0, c.ha - known);
   const seg = rows.filter(r => r[1] && r[2] !== "s").map(([k, h], i) => `<span title="${esc(P[k] || k)} · ${fmtHa(h)} ha" style="width:${(100 * h / c.ha).toFixed(2)}%;opacity:${(1 - (i % 6) / 8).toFixed(2)}"></span>`).join("");
   const body = rows.map(([k, h, kind, since]) => { const share = h && kind !== "s" ? 100 * h / c.ha : null;
-    return `<tr><td><button type="button" class="plink${st.prod === k ? " on" : ""}" data-prod="${esc(k)}" title="${esc(t("Show everything {0} holds", P[k] || k))}">${esc(P[k] || k)}</button>${kind || since ? ` <span class="ktag">${esc([kind && t(OWN_KIND[kind]), since && t("since {0}", since)].filter(Boolean).join(" · "))}</span>` : ""}${share != null ? `<span class="pb" style="width:${Math.max(2, share).toFixed(1)}%"></span>` : ""}</td>
+    return `<tr><td><button type="button" class="plink${st.prod === k ? " on" : ""}" data-prod="${esc(k)}" title="${esc(t("Show everything {0} holds", P[k] || k))}">${esc(P[k] || k)}</button>${edTag(c, k)}${EDITS.can ? ` <button type="button" class="edbtn" data-ed="${esc(k)}" title="${esc(t("Correct this holding"))}">✎</button>` : ""}${kind || since ? ` <span class="ktag">${esc([kind && t(OWN_KIND[kind]), since && t("since {0}", since)].filter(Boolean).join(" · "))}</span>` : ""}${share != null ? `<span class="pb" style="width:${Math.max(2, share).toFixed(1)}%"></span>` : ""}</td>
       <td class="n">${kind === "s" ? "" : h != null ? `<b>${fmtHa(h)}</b> ha` : esc(t("holder"))}</td><td class="n">${share != null ? (share < 1 ? share.toFixed(1) : Math.round(share)) + "%" : ""}</td></tr>`; }).join("");
   const cover = c.mono ? t("Monopole: the whole climat belongs to {0}.", P[c.mono] || c.mono)
     : !rows.length ? t("No ownership details on file for this climat.")
     : known >= c.ha * .98 ? t("The owners listed cover essentially the whole climat (published figures are rounded).")
     : known ? t("Owners with a published figure account for {0} of {1} ha ({2}%); the other {3} ha belongs to {4}smaller growers.", fmtHa(known), fmtHa(c.ha), Math.round(100 * known / c.ha), fmtHa(rest), rows.some(r => r[1] == null) ? t("the holders listed without a figure and ") : "")
     : t("Notable owners; individual holdings not listed.");
-  return `<h3>${esc(t("Owners"))}</h3>${known ? `<div class="sharebar" aria-hidden="true">${seg}</div>` : ""}<p class="note">${esc(cover)}</p>${rows.length ? `<table class="own">${body}</table>` : ""}`;
+  return `<h3>${esc(t("Owners"))}</h3>${known ? `<div class="sharebar" aria-hidden="true">${seg}</div>` : ""}<p class="note">${esc(cover)}</p>${rows.length ? `<table class="own">${body}</table>` : ""}${removedHtml(c)}${editHtml(c)}`;
 }
+  /* ---------- corrections: edits to the holdings, shared through the cellar's Google Sheet (Code.gs "atlas" reads them,
+     "atlasedit" adds one, for a logged-in editor), applied over the compiled list in time order — the same store
+     burgundy.html uses, so every correction made there shows here ---------- */
+  const EDITS = { list: [], can: (() => { try { return !!localStorage.getItem("vinToken"); } catch (e) { return false; } })(), status: "", open: null, pre: null, loaded: false };
+  function keyFor(name) { const P = st.pack.producers; if (P[name]) return name;
+    const n = norm(name), hit = Object.keys(P).find(k => norm(P[k]) === n); if (hit) return hit;
+    const k = "x_" + n.replace(/[^a-z0-9]+/g, "_").slice(0, 40); P[k] = name; return k; }
+  function applyEdits() {
+    st.pack.climats.forEach(c => { if (!c.own0) c.own0 = (c.own || []).map(x => [...x]); c.own = c.own0.map(x => [...x]); c.edited = {}; c.removed = []; });
+    const by = Object.fromEntries(st.pack.climats.map(c => [c.id, c]));
+    [...EDITS.list].sort((a, b) => String(a.time).localeCompare(String(b.time))).forEach(e => { const c = by[e.climat]; if (!c) return;
+      const key = keyFor(e.producer), i = c.own.findIndex(x => x[0] === key);
+      if (e.action === "remove") { if (i >= 0) c.own.splice(i, 1); c.removed.push({ key, e }); delete c.edited[key]; return; }
+      const row = [key, e.ha == null || e.ha === "" || isNaN(e.ha) ? null : +e.ha, e.kind || "", e.since || null];
+      if (i >= 0) c.own[i] = row; else c.own.push(row);
+      c.edited[key] = e; c.removed = c.removed.filter(x => x.key !== key); });
+  }
+  async function editsLoad() {
+    if (EDITS.loaded) return; EDITS.loaded = true; const api = apiUrl(); if (!api) return;
+    try { const data = await (await fetch(api, { method: "POST", body: JSON.stringify({ action: "atlas" }), redirect: "follow" })).json();
+      // an Apps Script from before the atlas answers "bad-code" (no session) or "bad-action"
+      if (!data.ok) { EDITS.status = ["bad-action", "bad-code"].includes(data.error) ? "redeploy" : data.error; renderSide(); return; }
+      EDITS.list = data.edits || []; EDITS.status = "ok"; applyEdits(); paint(); renderSide();
+    } catch (e) { EDITS.status = "offline"; }
+  }
+  const edTag = (c, k) => { const e = c.edited && c.edited[k]; return e ? ` <span class="ktag ed" title="${esc([e.note, e.time, e.user].filter(Boolean).join(" · "))}">${esc(t("✎ corrected"))}</span>` : ""; };
+  function removedHtml(c) { if (!c.removed || !c.removed.length) return "";
+    return `<p class="note">${esc(t("Removed by correction: {0}.", c.removed.map(({ key }) => st.pack.producers[key] || key).join(", ")))}</p>`; }
+  function editHtml(c) {
+    if (!EDITS.can) return `<p class="note">${esc(t("Spotted a wrong figure? Log in on the Cellar page and you can correct it here."))}</p>`;
+    if (EDITS.status === "redeploy") return `<p class="note">${esc(t("Corrections need the updated Apps Script: redeploy Code.gs (see README)."))}</p>`;
+    if (EDITS.open !== c.id) return `<p><button type="button" class="btn" id="edOpen">${esc(t("✎ Correct the holdings"))}</button></p>`;
+    const pre = EDITS.pre || {};
+    if (!$("allProducers")) document.body.insertAdjacentHTML("beforeend", `<datalist id="allProducers">${Object.values(st.pack.producers).sort().map(n => `<option value="${esc(n)}">`).join("")}</datalist>`);
+    return `<form class="edform" id="edForm"><h3>${esc(t("Correct a holding"))}</h3>
+      <label>${esc(t("Producer"))}<input id="edP" list="allProducers" value="${esc(pre.p || "")}" required></label>
+      <div class="edrow"><label>${esc(t("Hectares"))}<input id="edHa" type="number" step="0.01" min="0" max="200" value="${pre.ha ?? ""}" placeholder="${esc(t("unknown"))}"></label>
+        <label>${esc(t("Kind"))}<select id="edK"><option value="">${esc(t("owned"))}</option><option value="f"${pre.k === "f" ? " selected" : ""}>${esc(t("leased"))}</option><option value="s"${pre.k === "s" ? " selected" : ""}>${esc(t("buys grapes"))}</option></select></label>
+        <label>${esc(t("Since"))}<input id="edS" type="number" min="1000" max="2200" value="${esc(pre.s || "")}" placeholder="${esc(t("vintage"))}"></label></div>
+      <label>${esc(t("Source / note"))}<input id="edN" placeholder="${esc(t("e.g. domaine website, 2024 tech sheet"))}" required></label>
+      <div class="edrow"><button class="btn primary" type="submit">${esc(t("Save"))}</button><button class="btn" type="button" id="edRemove">${esc(t("Remove this producer"))}</button><button class="btn quiet" type="button" id="edCancel">${esc(t("Cancel"))}</button></div>
+      <p class="note" id="edMsg">${esc(t("Corrections are shared with everyone who opens the atlas and logged with your name."))}</p></form>`;
+  }
+  async function saveEdit(c, action) {
+    const name = $("edP").value.trim(), note = $("edN").value.trim();
+    if (!name) { $("edMsg").textContent = t("Pick or type a producer."); return; }
+    if (!note) { $("edMsg").textContent = t("Add where the figure comes from: it helps the next person."); return; }
+    const key = keyFor(name), edit = { climat: c.id, producer: key.startsWith("x_") ? name : key, action, ha: $("edHa").value === "" ? "" : Number($("edHa").value), kind: $("edK").value, since: $("edS").value, note };
+    $("edMsg").textContent = t("Saving…");
+    try { const data = await (await fetch(apiUrl(), { method: "POST", redirect: "follow", body: JSON.stringify({ user: localStorage.getItem("vinUser") || "", token: localStorage.getItem("vinToken") || "", action: "atlasedit", edit }) })).json();
+      if (!data.ok) { $("edMsg").textContent = data.error === "bad-action" ? t("The Apps Script needs redeploying first (see README).") : data.error === "bad-token" ? t("Your session expired: log in on the Cellar page again.")
+        : data.error === "not-an-atlas-editor" ? t("Your account isn't on the atlas editors list.") : t("Couldn't save: {0}", data.error); return; }
+      EDITS.list = data.edits || []; EDITS.open = null; EDITS.pre = null; applyEdits(); renderSide(); paint();
+    } catch (e) { $("edMsg").textContent = t("Couldn't reach the cellar API."); }
+  }
+  function wire(side, c) {
+    const pc = $("prodCmp"); if (pc) pc.onchange = () => { const P = st.pack.producers, n = norm(pc.value), k = Object.keys(P).find(x => norm(P[x]) === n);
+      st.prod2 = k && k !== st.prod ? k : null; paint(); renderSide(); if (st.prod2) fit(bbOf(st.pack.climats.filter(x => shownFor(x, st.prod)).flatMap(x => x.g)), .12, 380); };
+    const cm = $("cmpTable"); if (cm) cm.querySelectorAll("button[data-c]").forEach(b => b.onclick = () => select(b.dataset.c, true));
+    if (!c) return;
+    const o = $("edOpen"); if (o) o.onclick = () => { EDITS.open = c.id; EDITS.pre = null; renderSide(); };
+    side.querySelectorAll("[data-ed]").forEach(b => b.onclick = () => { const row = (c.own || []).find(x => x[0] === b.dataset.ed) || [];
+      EDITS.open = c.id; EDITS.pre = { p: st.pack.producers[b.dataset.ed], ha: row[1], k: row[2], s: row[3] }; renderSide(); });
+    const f = $("edForm"); if (!f) return;
+    f.onsubmit = ev => { ev.preventDefault(); saveEdit(c, "set"); }; $("edRemove").onclick = () => saveEdit(c, "remove"); $("edCancel").onclick = () => { EDITS.open = null; renderSide(); }; }
   /* ---------- historic rankings (burgundy-history.js: Lavalle 1855, the Beaune committee 1860, Rodier 1920), fetched
      the first time a climat's panel opens ---------- */
   const HSRC = { lavalle1855: "Lavalle 1855", comite1860: "Comité de Beaune 1860", rodier1920: "Rodier 1920" };
@@ -115,8 +198,18 @@ function ownersHtml(c) {
     for (let y = Math.ceil(y0 / 10) * 10; y <= y1; y += 10) g += `<text x="${X(y)}" y="${Hc - 4}" class="pax" text-anchor="middle">${y}</text>`;
     return `<h3>${esc(t("A warming Côte"))}</h3><p class="note">${esc(t("Bars: April–September temperature at Dijon-Longvic against 1991–2020 · dots: start of the harvest"))}</p><svg viewBox="0 0 ${Wc} ${Hc}" class="warmchart">${g}</svg>`;
   }
-  function regionHtml() { if (!VT) { vtLoad(); return ""; }
-    return warmingChart() + `<p class="note">${esc(t("Ratings are AllWine's consensus of published vintage charts on a 100-point scale (* = estimate, fewer sources); hover a score for its note. Weather: Météo-France, Dijon-Longvic."))}</p>`; }
+  const CAT = ["#7C2D3E", "#3F7CB6", "#A87E2F", "#3E9E68", "#8E5BA8", "#C2683A", "#2F8F8F", "#B5476E", "#5E6E2F", "#4C5BA8"];
+  function gcOwnersHtml() {
+    const P = st.pack.producers, gcs = st.pack.climats.filter(c => c.c === "GC" && !c.x), tot = {};
+    gcs.forEach(c => (c.own || []).forEach(([k, h, kd]) => { if (h && kd !== "s") tot[k] = (tot[k] || 0) + h; }));
+    const top = Object.entries(tot).sort((a, b) => b[1] - a[1]).slice(0, CAT.length).map(([k]) => k), col = k => CAT[top.indexOf(k)] || null;
+    return `<h3>${esc(t("Who owns the grands crus"))}</h3><div class="gclegend">${top.map(k => `<button type="button" class="plink" data-prod="${esc(k)}"><span class="sw" style="background:${col(k)}"></span>${esc(P[k])}</button>`).join("")}<span class="note"><span class="sw" style="background:var(--line)"></span>${esc(t("other listed owners · empty = not published"))}</span></div>`
+      + gcs.map(c => { const own = (c.own || []).filter(([, h, kd]) => h && kd !== "s").sort((a, b) => b[1] - a[1]); let alt = 0;
+        const segs = own.map(([k, h]) => `<span title="${esc(P[k] || k)} · ${fmtHa(h)} ha · ${Math.round(100 * h / c.ha)}%" style="width:${(100 * Math.min(h, c.ha) / c.ha).toFixed(2)}%;background:${col(k) || (alt++ % 2 ? "var(--chip)" : "var(--line)")}"></span>`).join("");
+        return `<div class="gcrow"><button type="button" class="plink gcn" data-c="${esc(c.id)}">${esc(c.n)}</button><span class="gcbar">${segs}</span><span class="gch">${fmtHa(c.ha)} ha</span></div>`; }).join("");
+  }
+  function regionHtml() { if (!VT) { vtLoad(); return gcOwnersHtml(); }
+    return gcOwnersHtml() + warmingChart() + `<p class="note">${esc(t("Ratings are AllWine's consensus of published vintage charts on a 100-point scale (* = estimate, fewer sources); hover a score for its note. Weather: Météo-France, Dijon-Longvic."))}</p>`; }
   /* ---------- "colour the vineyards by" (atlas-color.js): the Côte d'Or's own measures ---------- */
   const VIL_IDX = () => Object.fromEntries((st.pack.villages || []).map((v, i) => [v.id, i]));
   const HUES = [8, 32, 52, 88, 140, 172, 200, 228, 262, 300, 330];
@@ -135,5 +228,12 @@ function ownersHtml(c) {
     .vyearbox{margin:8px 0;padding:8px 10px;border:1px solid var(--line);border-radius:10px} .vs{display:inline-block;padding:1px 7px;border-radius:6px;font-weight:700;color:#fff}
     .evdot,.vkey i{display:inline-block;width:8px;height:8px;border-radius:50%;margin:0 4px 0 6px} .warmchart{width:100%;height:auto;display:block}
     .warmchart .pgrid{stroke:var(--line)} .warmchart .pax{font-size:20px;fill:var(--muted)} .warmchart .htrend{stroke:var(--ink);stroke-width:2;stroke-dasharray:6 4} .warmchart .hdot{fill:var(--ink);fill-opacity:.6}</style>`);
-  return { holds, ownersHtml, prodBar, setProd, histHtml, vintageHtml, regionHtml, colorModes };
+  document.head.insertAdjacentHTML("beforeend", `<style>.edbtn{border:0;background:none;color:var(--muted);cursor:pointer;padding:0 4px;font-size:13px} .edbtn:hover{color:var(--accent)} .ktag.ed{color:var(--accent)}
+    .edform{display:grid;gap:8px;margin:10px 0;padding:10px;border:1px solid var(--line);border-radius:10px} .edform label{display:grid;gap:3px;font-size:12.5px;color:var(--muted)} .edform input,.edform select{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)}
+    .edrow{display:flex;flex-wrap:wrap;gap:8px;align-items:end} .edrow label{flex:1;min-width:90px}</style>`);
+  document.head.insertAdjacentHTML("beforeend", `<style>.pcmp{display:block;margin-top:6px;font-size:12.5px;color:var(--muted)} .pcmp input{font:inherit;padding:4px 7px;border:1px solid var(--line);border-radius:7px;background:var(--card);color:var(--ink);width:min(100%,220px)}
+    .gclegend{display:flex;flex-wrap:wrap;gap:4px 12px;margin:4px 0 10px;font-size:12.5px} .sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+    .gcrow{display:grid;grid-template-columns:minmax(0,9.5em) 1fr auto;gap:8px;align-items:center;font-size:12.5px;margin:3px 0} .gcn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .gcbar{display:flex;height:12px;border-radius:3px;overflow:hidden;background:var(--card2);border:1px solid var(--line)} .gch{color:var(--muted);white-space:nowrap} table.cmpt th{font-size:12.5px;text-align:right}</style>`);
+  return { holds, shown: shownFor, compareHtml, ownersHtml, prodBar, setProd, histHtml, vintageHtml, regionHtml, colorModes, wire, edits: EDITS };
 })();

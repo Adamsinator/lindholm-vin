@@ -1,6 +1,10 @@
 // German for allwine.dk: i18n.js loads the one dictionary the page's language needs (English is the source text).
 window.I18N_DICT = window.I18N_DICT || {};
 window.I18N_DICT.de = {
+  "Compare with": "Vergleichen mit",
+  "another producer": "ein anderer Erzeuger",
+  "Compare two producers": "Zwei Erzeuger vergleichen",
+  "Owner": "Eigentümer",
   "Colour the vineyards by": "Lagen einfärben nach",
   "Not ranked": "Nicht eingestuft",
   "Your bottles": "Ihre Flaschen",

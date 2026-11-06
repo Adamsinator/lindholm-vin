@@ -46,8 +46,15 @@ check("the pack was made after its sources last changed (else: node tools/cotedo
   await p.click('#side button[data-prod="drc"]'); await p.waitForTimeout(600);
   const bar = (await p.textContent(".prodbar")).trim(), shown = await p.evaluate(() => st.pack.climats.filter(c => !c.el.classList.contains("dim")).map(c => c.id));
   check("a click on an owner keeps only their climats on the map, with the count and hectares", /Showing the holdings of Domaine de la Romanée-Conti: \d+ climats · [\d.,]+ ha/.test(bar) && shown.includes("romaneeconti") && shown.includes("latache") && !shown.includes("chambertin"), bar + " · " + shown.join(","));
+  await p.fill("#prodCmp", "Domaine Leroy"); await p.dispatchEvent("#prodCmp", "change"); await p.waitForTimeout(500);
+  const ct = (await p.textContent("#cmpTable").catch(() => "")).replace(/\s+/g, " ");
+  check("Compare with another owner: their holdings side by side, with the totals", /Compare two producers/.test(ct) && /Domaine de la Romanée-Conti/.test(ct) && /Domaine Leroy/.test(ct) && /Richebourg\s*Vosne-Romanée\s*3\.51 ha\s*0\.78 ha/.test(ct), ct.slice(0, 300));
+  check("…and both owners' climats on the map", await p.evaluate(() => !byId("musigny").el.classList.contains("dim") && !byId("latache").el.classList.contains("dim")));
   await p.click("#prodX"); await p.waitForTimeout(300);
   check("…and ✕ shows every owner again", await p.evaluate(() => st.prod === null && !document.querySelector(".prodbar") && !st.pack.climats.some(c => c.el.classList.contains("dim") && c.c === "GC")));
+  await p.evaluate(() => select(null)); await p.waitForFunction(() => /Who owns the grands crus/.test(document.getElementById("side").textContent), null, { timeout: 10000 }).catch(() => {});
+  check("the region's panel: who owns the grands crus, a bar per grand cru coloured by its biggest owners", /Who owns the grands crus/.test(await p.textContent("#side")) && (await p.$$("#side .gcrow")).length >= 30 && !!(await p.$('#side .gclegend [data-prod="drc"]')));
+  await p.evaluate(() => select("richebourg"));
   check("terrain and geology for the climat, as on burgundy.html", await p.evaluate(() => !!document.querySelector("#side")) && /Altitude/.test(side) && /Geology/.test(side));
   await p.evaluate(() => select("latache", true)); await p.waitForFunction(() => /Historic rankings/.test(document.getElementById("side").textContent), null, { timeout: 15000 }).catch(() => {});
   const hs = (await p.textContent("#side")).replace(/\s+/g, " ");
@@ -82,9 +89,49 @@ check("the pack was made after its sources last changed (else: node tools/cotedo
   check("a tap on village land, zoomed in, opens the lieu-dit there: area, terrain, appellation", new RegExp("Lieu-dit\\s*" + pt[1]).test(lds) && /Area/.test(lds) && /Village appellation|Regional appellations|Appellation/.test(lds), pt[1] + " · " + lds.slice(0, 200));
   await p.click("#back"); await p.waitForTimeout(200);
   check("…and ← goes back to the region", /Côte d'Or/.test(await p.textContent("#side h2")) && await p.evaluate(() => st.ld === null));
+  // the search box finds owners and lieux-dits too
+  await p.fill("#fSearch", "meo-camu"); await p.waitForTimeout(300);
+  const sh = await p.$$eval("#gRes li[data-i]", ls => ls.map(l => l.textContent));
+  check("search finds an owner (Méo-Camuzet), marked as one", sh.some(x => /Méo-Camuzet/.test(x) && /Owner/.test(x)), sh.join(" | "));
+  await p.press("#fSearch", "Enter"); await p.waitForTimeout(500);
+  check("…and picking it shows their holdings", await p.evaluate(() => st.prod === "meo") && /Showing the holdings of Méo-Camuzet/.test(await p.textContent("#side")));
+  await p.click("#prodX"); await p.fill("#fSearch", "loachauss"); await p.waitForTimeout(300);
+  const sl = await p.$$eval("#gRes li[data-i]", ls => ls.map(l => l.textContent));
+  check("…and a lieu-dit (Les Loächausses), with its commune", sl.some(x => /Loächausses/.test(x) && /Flagey|Vosne/.test(x) && /Lieu-dit/.test(x)), sl.join(" | "));
+  await p.press("#fSearch", "Enter"); await p.waitForTimeout(600);
+  check("…which opens it on the map", await p.evaluate(() => st.ld != null) && /Lieu-dit/.test(await p.textContent("#side")));
+  await p.click("#back").catch(() => {});
   await p.keyboard.press("]"); await p.waitForTimeout(300);
   check("the map turns here too", await p.evaluate(() => ROT.a === 15));
   await p.evaluate(() => { try { localStorage.removeItem("atlasRot"); } catch (e) {} });
+  // corrections: through the cellar's sheet (the real Code.gs), by someone logged in on the Cellar page
+  const SHEET_ATLAS = (require("fs").readFileSync(path.join(ROOT, "apps-script", "Code.gs"), "utf8").match(/const ATLAS_SHEET = '([^']+)'/) || [])[1];
+  const H = require("./gas-harness"), HEAD = ["Producent", "Land", "Område", "Kommune", "Mark/Navn", "Klassifikation", "Type", "Drue", "Årgang", "Antal", "Pris kr (WS)", "Drukket", "Kilde", "Note"];
+  const gas = H({ Ark1: [HEAD] }, { settings: { OWNER_USER: "eva", OWNER_PASSWORD: "eva-pass-123" } }); gas.run("makeOwner()");
+  const ctx = await b.newContext({ viewport: { width: 1440, height: 900 } }); await require("./turnstile-fake")(ctx);
+  await ctx.route(require("./api-route"), r => r.fulfill({ contentType: "application/json", body: JSON.stringify(gas.call(JSON.parse(r.request().postData() || "{}"))) }));
+  await ctx.route(/^https:\/\/(data\.geopf\.fr|sgx\.geodatenzentrum\.de)\//, r => r.abort());
+  const e = await ctx.newPage(); e.on("pageerror", x => errs.push("edit: " + x.message));
+  await e.goto(BASE + "atlas.html#r=cotedor&c=richebourg"); await e.waitForTimeout(1500);
+  check("logged out, the panel says how to correct a figure", /Log in on the Cellar page and you can correct it here/.test(await e.textContent("#side")));
+  await e.goto(BASE); await e.waitForTimeout(400); await e.fill("#gateUser", "eva"); await e.fill("#gatePass", "eva-pass-123"); await e.click("#gateSubmit");
+  if (await e.waitForSelector("#recModal.open", { timeout: 15000 }).then(() => true).catch(() => false)) { await e.check("#recOk"); await e.click("#recDone"); }
+  await e.waitForSelector("#app:not([hidden])", { timeout: 30000 });
+  await e.goto(BASE + "atlas.html#r=cotedor&c=richebourg"); await e.waitForSelector('#side [data-ed="drc"]', { timeout: 15000 });
+  await e.click('#side [data-ed="drc"]'); await e.waitForSelector("#edForm");
+  check("logged in, ✎ by an owner opens the form with their figure", (await e.inputValue("#edP")) === "Domaine de la Romanée-Conti" && (await e.inputValue("#edHa")) === "3.51");
+  await e.fill("#edHa", "3.6"); await e.fill("#edN", "domaine website, 2026"); await e.click('#edForm button[type="submit"]');
+  await e.waitForFunction(() => !document.getElementById("edForm"), null, { timeout: 15000 }).catch(() => {});
+  const sv = (await e.textContent("#side")).replace(/\s+/g, " ");
+  check("…a saved correction shows at once, marked as corrected", /Domaine de la Romanée-Conti\s*✎ corrected.*3\.6 ha/.test(sv), sv.slice(0, 400));
+  const arow = (gas.rows(SHEET_ATLAS) || []).find(r => r[2] === "richebourg" && r[3] === "drc") || [];
+  check("…and is stored in the sheet with who made it (the name isn't given out to anyone not logged in)", arow[1] === "eva" && +arow[4] === 3.6 && /domaine website/.test(arow[8])
+    && (gas.call({ action: "atlas" }).edits || []).every(x => !x.user), JSON.stringify(arow));
+  await e.reload(); await e.waitForFunction(() => /✎ corrected/.test(document.getElementById("side").textContent), null, { timeout: 15000 }).catch(() => {});
+  check("…for everyone who opens the atlas", /3\.6 ha/.test(await e.textContent("#side")));
+  await e.click('#side [data-ed="leroy"]'); await e.waitForSelector("#edForm"); await e.fill("#edN", "sold, 2026"); await e.click("#edRemove");
+  await e.waitForFunction(() => /Removed by correction/.test(document.getElementById("side").textContent), null, { timeout: 15000 }).catch(() => {});
+  check("Remove this producer takes them off the list, with a note", /Removed by correction: Domaine Leroy/.test(await e.textContent("#side")) && !(await e.$('#side [data-prod="leroy"]')));
   check("no page errors", !errs.length, errs.join(" | "));
   await b.close();
   const n = results.filter(Boolean).length; console.log(`\n${n}/${results.length} passed`); process.exit(n === results.length ? 0 : 1);
