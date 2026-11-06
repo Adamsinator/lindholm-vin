@@ -75,8 +75,20 @@ const svg = $("map"), NS = "http://www.w3.org/2000/svg";
 const el = (name, attrs, parent) => { const e = document.createElementNS(NS, name); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
 const pathOf = mp => mp.map(p => p.map(r => "M" + r.map(([x, y]) => x + " " + y).join("L") + "Z").join("")).join("");
 let gLabels = null;
+/* ---------- turning the map: every layer sits in one group turned about the region's centre (ROT.a degrees clockwise);
+   the view box is in the turned frame, so pan and zoom are unchanged, and labels are turned back to stay upright ---------- */
+const ROT = { a: (() => { try { return +localStorage.getItem("atlasRot") || 0; } catch (e) { return 0; } })(), c: [0, 0], g: null };
+const rotP = ([x, y], a = ROT.a) => { if (!a) return [x, y]; const r = a * Math.PI / 180, c = Math.cos(r), s = Math.sin(r), dx = x - ROT.c[0], dy = y - ROT.c[1]; return [ROT.c[0] + dx * c - dy * s, ROT.c[1] + dx * s + dy * c]; };
+const unrotP = p => rotP(p, -ROT.a);
+const rotBB = bb => { if (!ROT.a) return bb; const q = [[bb[0], bb[1]], [bb[2], bb[1]], [bb[0], bb[3]], [bb[2], bb[3]]].map(p => rotP(p));
+  return [Math.min(...q.map(p => p[0])), Math.min(...q.map(p => p[1])), Math.max(...q.map(p => p[0])), Math.max(...q.map(p => p[1]))]; };
+const upright = (e, x, y) => { if (ROT.a) e.setAttribute("transform", `rotate(${-ROT.a} ${x} ${y})`); else e.removeAttribute("transform"); };
+function applyRot(a) { if (ROT.g) { if (a) ROT.g.setAttribute("transform", `rotate(${a} ${ROT.c[0]} ${ROT.c[1]})`); else ROT.g.removeAttribute("transform"); } }
 function draw() {
   const P = st.pack; svg.innerHTML = ""; shadeTiles.clear(); photoTiles.clear();
+  const bb0 = P.meta.bb; ROT.c = [(bb0[0] + bb0[2]) / 2, (bb0[1] + bb0[3]) / 2];
+  const svgRoot = svg, root = ROT.g = el("g", { class: "turn" }, svgRoot); applyRot(ROT.a);
+  { const svg = root; // every layer goes in the turned group
   gPhoto = el("g", { class: "photo", "pointer-events": "none" }, svg); // IGN's aerial photos, under everything, when chosen
   // under the vineyards: woods, lakes, built-up areas; over them, faint relief, then rivers, roads and railways
   TG.under = el("g", { class: "topo", "pointer-events": "none" }, svg);
@@ -95,9 +107,10 @@ function draw() {
     c.dot = el("circle", { class: "dot", cx: c.lp[0], cy: c.lp[1], r: 0 }, gd); });
   pts().forEach(q => { if (!q.p) return; q.el = el("circle", { class: "pt", cx: q.p[0], cy: q.p[1], r: 0, "data-pt": q.id }, gp); el("title", {}, q.el).textContent = q.n;
     q.lb = el("text", { class: "lb pl", x: q.p[0], y: q.p[1] }, gLabels); q.lb.textContent = short(q.n); });
+  }
   if (topoOf()) drawTopo();
   if (geolOf()) drawGeol();
-  paint();
+  paint(); compassSync(); locatorDraw();
 }
 function paint() {
   const P = st.pack; if (!P) return;
@@ -119,19 +132,21 @@ function layoutLabels() {
     const b = Number(c.dot.dataset.b || 0); c.dot.setAttribute("r", b ? (4 + Math.sqrt(b) * 1.6) * k : 0);
     if (!c.lb) return;
     c.lb.style.fontSize = (isTop(c) ? 14.5 : 13) * k + "px"; c.lb.style.strokeWidth = 3 * k + "px"; // style: it outranks the stylesheet
-    const w = c.n.length * 7 * k, h = 15 * k, box = [c.lp[0] - w / 2, c.lp[1] - h, c.lp[0] + w / 2, c.lp[1]];
+    const [ax, ay] = rotP(c.lp), w = c.n.length * 7 * k, h = 15 * k, box = [ax - w / 2, ay - h, ax + w / 2, ay]; upright(c.lb, c.lp[0], c.lp[1]);
     const hide = !st.show[c.c] || (st.mine && !CELLAR.by[c.id]) || !terrOk(c) || taken.some(o => !(box[2] < o[0] || box[0] > o[2] || box[3] < o[1] || box[1] > o[3]));
     c.lb.style.display = hide ? "none" : ""; if (!hide) taken.push(box);
   });
   // the châteaux: a dot a little bigger for a higher rank; names once you're close enough to read them
   pts().filter(q => q.el).sort((a, b) => PTSIZE[b.cls] - PTSIZE[a.cls]).forEach(q => {
     const off = !st.show.PT || (st.mine && !CELLAR.by[q.id]); q.el.setAttribute("r", off ? 0 : PTSIZE[q.cls] * k);
-    q.lb.style.fontSize = 11.5 * k + "px"; q.lb.style.strokeWidth = 3 * k + "px"; q.lb.setAttribute("y", q.p[1] - 8 * k);
-    const w = short(q.n).length * 6 * k, h = 13 * k, box = [q.p[0] - w / 2, q.p[1] - 8 * k - h, q.p[0] + w / 2, q.p[1] - 8 * k];
+    q.lb.style.fontSize = 11.5 * k + "px"; q.lb.style.strokeWidth = 3 * k + "px"; q.lb.setAttribute("y", q.p[1] - 8 * k); upright(q.lb, q.p[0], q.p[1]);
+    const [ax, ay] = rotP(q.p), w = short(q.n).length * 6 * k, h = 13 * k, box = [ax - w / 2, ay - 8 * k - h, ax + w / 2, ay - 8 * k];
     const hide = off || st.view[2] > 25000 || taken.some(o => !(box[2] < o[0] || box[0] > o[2] || box[3] < o[1] || box[1] > o[3]));
     q.lb.style.display = hide ? "none" : ""; if (!hide) taken.push(box);
   });
+  LABEL_BOXES = taken; // the town names keep clear of these (in the turned frame, as they show)
 }
+let LABEL_BOXES = [];
 // the viewBox moves at once; the labels, the map's level of detail and the relief tiles follow on the next frame, or,
 // while a finger or the mouse is still moving the map, once it pauses (laying out every label each frame is what made
 // a drag stutter on a phone)
@@ -139,7 +154,7 @@ let relayRaf = 0, relayT = 0, vbC = null, rectC = null;
 const mapview = $("mapview");
 // the map's place on the page as laid out, not as the gesture's transform shows it (measured while none is on)
 const mapRect = () => mapview.style.transform && rectC ? rectC : (rectC = svg.getBoundingClientRect());
-function relayout() { const v = st.view; if (!v) return; layoutLabels(); topoLod(); shadeSoon(); drawMe();
+function relayout() { const v = st.view; if (!v) return; layoutLabels(); topoLod(); shadeSoon(); drawMe(); locatorView();
   if (PROF.a && TG.prof) TG.prof.querySelectorAll("circle").forEach(c => c.setAttribute("r", 5 * v[2] / (svg.clientWidth || 800))); }
 // while a finger, the wheel or a glide is moving the map, the drawing already on screen is moved and scaled as a picture
 // (a CSS transform the compositor does, cheap), and redrawn at the new view once the movement pauses: redrawing a
@@ -200,7 +215,9 @@ function tileLayer(g, tiles, url, zmax) {
   // the view's corners back to longitude and latitude (Lambert-93 is near enough a plane over a view: two points fix it)
   const [vx, vy, vw, vh] = st.view, [lo0, la0] = st.pack.meta.origin, p0 = toP(lo0, la0), p1 = toP(lo0 + .1, la0 + .1);
   const ax = .1 / (p1[0] - p0[0]), ay = .1 / (p1[1] - p0[1]), toLL = (x, y) => [lo0 + (x - p0[0]) * ax, la0 + (y - p0[1]) * ay];
-  const [w, n] = toLL(vx - vw * .1, vy - vh * .1), [e, s] = toLL(vx + vw * 1.1, vy + vh * 1.1), lat = (n + s) / 2;
+  // the view's corners (a little beyond), back in the map's metres when it's turned, then their extent
+  const cs = [[vx - vw * .1, vy - vh * .1], [vx + vw * 1.1, vy - vh * .1], [vx - vw * .1, vy + vh * 1.1], [vx + vw * 1.1, vy + vh * 1.1]].map(q => toLL(...unrotP(q)));
+  const w = Math.min(...cs.map(q => q[0])), e = Math.max(...cs.map(q => q[0])), n = Math.max(...cs.map(q => q[1])), s = Math.min(...cs.map(q => q[1])), lat = (n + s) / 2;
   const mpp = vw / (svg.clientWidth || 800);
   const z = Math.max(8, Math.min(zmax, Math.round(Math.log2(156543.03 * Math.cos(lat * d2r) / mpp))));
   const N = 2 ** z, tx = lon => Math.floor((lon + 180) / 360 * N), ty = la => Math.floor((1 - Math.log(Math.tan(la * d2r) + 1 / Math.cos(la * d2r)) / Math.PI) / 2 * N);
@@ -252,12 +269,12 @@ function topoLod() {
   [TG.under, TG.over, TG.names].forEach(g => g.style.display = on ? "" : "none"); if (!on) return;
   svg.classList.toggle("lod-mid", wk < 14); svg.classList.toggle("lod-near", wk < 6);
   const k = st.view[2] / (svg.clientWidth || 800), taken = [];
-  if (gLabels) gLabels.querySelectorAll("text").forEach(t => { if (t.style.display === "none") return; const b = t.getBBox && t.getBBox(); if (b && b.width) taken.push([b.x, b.y, b.x + b.width, b.y + b.height]); });
+  LABEL_BOXES.forEach(b => taken.push(b));
   for (const t of TG.names.children) {
     const kind = t._k, show = kind === 1 || kind === 2 ? wk < (kind === 1 ? 200 : 40) : kind === 3 ? wk < 14 : kind === 4 ? wk < 6 : wk < 8; // streams: close in (the Rhône's side valleys are full of them)
     if (!show) { t.style.display = "none"; continue; }
-    const fs = (kind === 1 ? 14 : kind === 2 ? 12.5 : kind === "w" ? 11.5 : 11) * k, x = +t.getAttribute("x"), y = +t.getAttribute("y"), w = t.textContent.length * fs * .55;
-    const box = [x - w / 2, y - fs * .6, x + w / 2, y + fs * .6];
+    const fs = (kind === 1 ? 14 : kind === 2 ? 12.5 : kind === "w" ? 11.5 : 11) * k, x0 = +t.getAttribute("x"), y0 = +t.getAttribute("y"), [x, y] = rotP([x0, y0]), w = t.textContent.length * fs * .55;
+    const box = [x - w / 2, y - fs * .6, x + w / 2, y + fs * .6]; upright(t, x0, y0);
     const hide = taken.some(o => !(box[2] < o[0] || box[0] > o[2] || box[3] < o[1] || box[1] > o[3]));
     t.style.display = hide ? "none" : ""; if (hide) continue;
     taken.push(box); t.style.fontSize = fs + "px"; t.style.strokeWidth = 3 * k + "px";
@@ -296,6 +313,7 @@ const clampW = w => Math.max(MIN_W, Math.min(w, maxW()));
 const svgSize = () => { const r = mapRect(); return [r.width || 800, r.height || 600]; }; // fractional, as laid out
 const aspect = () => { const [W, H] = svgSize(); return H / W; };
 function fit(bb, pad, ms) {
+  bb = rotBB(bb); // the box is in the map's metres; the view is in the turned frame
   const [W, H] = svgSize(), bw = bb[2] - bb[0], bh = bb[3] - bb[1], m = pad ?? .06;
   const w = clampW(Math.max(bw / W, bh / H) * (1 + 2 * m) * W), h = w * aspect(); // a tiny vineyard: centred, at the closest zoom
   const v = [(bb[0] + bb[2]) / 2 - w / 2, (bb[1] + bb[3]) / 2 - h / 2, w, h];
@@ -333,7 +351,7 @@ const ptrs = new Map(); let moved = 0, pinch = null, pan = null, trail = [], gli
 function stopGlide() { cancelAnimationFrame(glideRaf); glideRaf = 0; }
 const startPan = (x, y) => { pan = { x, y, v: st.view.slice() }; trail = [[performance.now(), x, y]]; };
 function startPinch() { const [a, b] = [...ptrs.values()], m = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
-  pinch = { d: Math.max(20, Math.hypot(a[0] - b[0], a[1] - b[1])), w: st.view[2], c: toSvg({ clientX: m[0], clientY: m[1] }) }; pan = null; }
+  pinch = { d: Math.max(20, Math.hypot(a[0] - b[0], a[1] - b[1])), w: st.view[2], c: toSvg({ clientX: m[0], clientY: m[1] }), ang: Math.atan2(b[1] - a[1], b[0] - a[0]), a0: ROT.a, turn: 0, turning: false }; pan = null; }
 svg.addEventListener("pointerdown", e => { stopGlide(); cancelAnimationFrame(flyRaf); ptrs.set(e.pointerId, [e.clientX, e.clientY]); try { svg.setPointerCapture(e.pointerId); } catch (x) {} svg.classList.add("drag");
   if (ptrs.size === 1) moved = 0;
   if (!st.view) return; // the start page: its dots are links
@@ -344,6 +362,10 @@ svg.addEventListener("pointermove", e => {
   moved += Math.abs(e.clientX - px) + Math.abs(e.clientY - py);
   const r = mapRect();
   if (ptrs.size === 2 && pinch) { const [a, b] = [...ptrs.values()], d = Math.max(20, Math.hypot(a[0] - b[0], a[1] - b[1]));
+    // a twist of more than 12° turns the map (a pinch alone always twists a little); the turn shows at once on the group
+    let tw = (Math.atan2(b[1] - a[1], b[0] - a[0]) - pinch.ang) * 180 / Math.PI; tw = ((tw + 540) % 360) - 180;
+    if (!pinch.turning && Math.abs(tw) > 12) pinch.turning = true;
+    if (pinch.turning) { pinch.turn = tw; applyRot(pinch.a0 + tw); }
     const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2, w = clampW(pinch.w * pinch.d / d), h = w * aspect();
     setView([pinch.c[0] - (mx - r.left) / r.width * w, pinch.c[1] - (my - r.top) / r.height * h, w, h], true); moved += 10; return; }
   if (ptrs.size === 1 && pan) { const [x, y, w, h] = pan.v;
@@ -358,7 +380,7 @@ function glideFrom(vx, vy) { const r = mapRect(); let last = performance.now();
   glideRaf = requestAnimationFrame(step); }
 const up = e => { const had = ptrs.size; ptrs.delete(e.pointerId);
   if (had === 2 && ptrs.size === 1 && st.view) { const [x, y] = [...ptrs.values()][0]; startPan(x, y); } // one finger left: pan on from here
-  if (ptrs.size < 2) pinch = null;
+  if (ptrs.size < 2 && pinch) { if (pinch.turning) { const p = pinch; applyRot(ROT.a); rotateTo(Math.round((p.a0 + p.turn) / 5) * 5); } pinch = null; }
   if (!ptrs.size) { svg.classList.remove("drag");
     if (pan && moved >= 6 && trail.length >= 2) { const [t0, x0, y0] = trail[0], [t1, x1, y1] = trail[trail.length - 1], dt = Math.max(8, t1 - t0);
       const vx = (x1 - x0) / dt, vy = (y1 - y0) / dt; if (performance.now() - t1 < 60 && Math.hypot(vx, vy) > .25) glideFrom(vx, vy); else if (st.view) setView(st.view); }
@@ -371,12 +393,52 @@ svg.addEventListener("pointerup", e => { const tgt = document.elementFromPoint(e
   if (touch) { const now = performance.now();
     if (lastTap && now - lastTap[0] < 320 && Math.hypot(e.clientX - lastTap[1], e.clientY - lastTap[2]) < 32) { lastTap = null; const [cx, cy] = toSvg(e); zoomAt(.5, cx, cy, 260); return; }
     lastTap = [now, e.clientX, e.clientY]; }
-  if (PROF.on) { profClick(toSvg(e)); return; }
+  if (PROF.on) { profClick(unrotP(toSvg(e))); return; }
   const q = tgt && tgt.closest && tgt.closest(".pt"), c = tgt && tgt.closest && tgt.closest(".cl"); select(q ? q.dataset.pt : c ? c.dataset.id : null); });
 svg.addEventListener("pointercancel", up);
 svg.addEventListener("dblclick", e => { if (!st.pack || PROF.on) return; e.preventDefault(); const [cx, cy] = toSvg(e); zoomAt(.5, cx, cy, 260); });
 // Safari's own page pinch would fight the map's
 ["gesturestart", "gesturechange"].forEach(t => svg.addEventListener(t, e => e.preventDefault()));
+/* ---------- the locator: the region north up, small, with the view's outline (turned with the map); shown once you've
+   zoomed in, where it's useful, and a click there flies the view to that spot ---------- */
+const LOC = { el: null, bb: null, vp: null };
+function locatorDraw() {
+  const L = $("locator"); if (!L) return; L.innerHTML = ""; LOC.vp = null; if (!st.pack) { L.toggleAttribute("hidden", true); return; } // an svg has no .hidden: the attribute it is
+  const bb = LOC.bb = bbOf(st.pack.climats.flatMap(c => c.g)), pad = (bb[2] - bb[0]) * .06; // the vineyards' extent, not the pack's wide margin
+  L.setAttribute("viewBox", [bb[0] - pad, bb[1] - pad, bb[2] - bb[0] + 2 * pad, bb[3] - bb[1] + 2 * pad].join(" ")); L.setAttribute("preserveAspectRatio", "xMidYMid meet");
+  // a light sketch: every few points of the outlines is plenty at this size
+  const thin = mp => mp.map(p => [p[0].filter((_, i) => i % 4 === 0)]).filter(p => p[0].length > 2);
+  el("path", { class: "lo-r", d: pathOf(thin(st.pack.regional.g)) }, L);
+  el("path", { class: "lo-c", d: pathOf(st.pack.climats.flatMap(c => thin(c.g))) }, L);
+  LOC.vp = el("polygon", { class: "lo-v" }, L); locatorView();
+}
+function locatorView() {
+  const L = $("locator"); if (!L || !LOC.vp || !st.view || !st.pack) return;
+  const [x, y, w, h] = st.view, bb = LOC.bb, q = [[x, y], [x + w, y], [x + w, y + h], [x, y + h]].map(unrotP);
+  LOC.vp.setAttribute("points", q.map(p => p.map(n => n.toFixed(0)).join(",")).join(" "));
+  const full = rotBB(bb), shown = w < (full[2] - full[0]) * .6 || h < (full[3] - full[1]) * .6; // the whole region on screen: no need for it
+  L.toggleAttribute("hidden", !shown);
+}
+$("locator").addEventListener("click", e => { if (!st.pack || !st.view) return; const r = e.currentTarget.getBoundingClientRect(), vb = e.currentTarget.viewBox.baseVal;
+  const s = Math.min(r.width / vb.width, r.height / vb.height), ox = (r.width - vb.width * s) / 2, oy = (r.height - vb.height * s) / 2;
+  const p = [vb.x + (e.clientX - r.left - ox) / s, vb.y + (e.clientY - r.top - oy) / s], m = rotP(p), [, , w, h] = st.view;
+  flyTo([m[0] - w / 2, m[1] - h / 2, w, h], 320); });
+// turning: the compass puts north up again; [ and ] turn by 15°; two fingers twist it (snapped to 5° on release)
+function compassSync() { const b = $("compass"); if (!b) return; b.hidden = !st.pack;
+  b.querySelector(".needle").setAttribute("transform", `rotate(${-ROT.a})`); b.classList.toggle("turned", !!ROT.a);
+  b.title = b.ariaLabel = ROT.a ? t("Turned {0}°: click to put north up", ((ROT.a % 360) + 360) % 360) : t("North is up"); }
+function rotateTo(deg, keep) {
+  deg = ((Math.round(deg) % 360) + 540) % 360 - 180; // −180…180
+  if (!st.pack || !st.view) { ROT.a = deg; return; }
+  const [x, y, w, h] = st.view, mid = keep || unrotP([x + w / 2, y + h / 2]); // the place in the middle of the screen stays there
+  ROT.a = deg; try { localStorage.setItem("atlasRot", deg); } catch (e) {}
+  applyRot(deg); const m = rotP(mid); setView([m[0] - w / 2, m[1] - h / 2, w, h]); compassSync();
+}
+$("compass").onclick = () => rotateTo(0);
+$("rotL").onclick = () => rotateTo(ROT.a - 15);
+$("rotR").onclick = () => rotateTo(ROT.a + 15);
+addEventListener("keydown", e => { if (!st.pack || e.ctrlKey || e.metaKey || e.altKey || /INPUT|SELECT|TEXTAREA/.test((document.activeElement || {}).tagName)) return;
+  if (e.key === "[" || e.key === "]") { e.preventDefault(); rotateTo(ROT.a + (e.key === "]" ? 15 : -15)); } });
 $("zIn").onclick = () => { const [x, y, w, h] = st.view; zoomAt(.6, x + w / 2, y + h / 2, 220); };
 $("zOut").onclick = () => { const [x, y, w, h] = st.view; zoomAt(1 / .6, x + w / 2, y + h / 2, 220); };
 $("zHome").onclick = () => fit(st.home, undefined, 320);
@@ -814,7 +876,7 @@ function goTo(id) {
   if (x.href) location.href = x.href.replace("{L}", window.I18N ? I18N.lang : "en"); else location.hash = "#r=" + id;
 }
 function showHome() {
-  st.region = null; st.pack = null; st.sel = null; st.view = null; $("scalebar").hidden = true;
+  st.region = null; st.pack = null; st.sel = null; st.view = null; $("scalebar").hidden = true; ROT.g = null; compassSync(); locatorDraw(); // the start page isn't turned
   document.title = "AllWine — " + t("Wine atlas"); $("regionName").textContent = ""; $("fRegion").value = "";
   document.body.classList.add("home");
   // France, Germany and the north of Italy, on a plain grid (longitude shrunk by the cosine of 47°)
@@ -1051,7 +1113,7 @@ function viewToLL() {
   return fit(mid[0], mid[1]);
 }
 // terrain3d.js is loaded only when it's asked for: most visits never tilt the map
-$("t3dBtn").onclick = async () => { if (!st.pack || !st.view) return; closePanels();
+$("t3dBtn").onclick = async () => { if (!st.pack || !st.view) return; closePanels(); if (ROT.a) rotateTo(0); // the 3D view turns on its own
   if (!window.TERRAIN3D) { try { await loadScript("terrain3d.js?v=1"); } catch (e) { return; } }
   TERRAIN3D.open({ svg, view: st.view.slice(), toLL: viewToLL(), labels: '.lb.GC, .lb.AOC, .lb[class~="1er"]', title: st.pack.meta.name + " · 3D" }); };
 // a link or Back that only changes the hash doesn't reload the page
