@@ -378,6 +378,15 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch} foote
 #actbar{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:121;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
   max-width:min(640px,calc(100vw - 24px));background:var(--ink);color:var(--bg);padding:8px 8px 8px 16px;border-radius:14px;font-size:14px;box-shadow:0 6px 24px rgba(0,0,0,.18)}
 #actbar[hidden]{display:none}
+/* choosing several wines: the rows chosen, and a bar with what to do to them */
+body.selecting #rows tr.main{cursor:pointer} body.selecting #rows tr.main.sel{outline:2px solid var(--accent);outline-offset:-2px;background:color-mix(in srgb,var(--accent) 8%,var(--card))}
+body.selecting #rows tr.main > td:first-child::before{content:"";display:inline-block;width:14px;height:14px;border:2px solid var(--muted);border-radius:4px;margin-right:8px;vertical-align:-2px}
+body.selecting #rows tr.main.sel > td:first-child::before{background:var(--accent);border-color:var(--accent);box-shadow:inset 0 0 0 2px var(--card)}
+#selBtn[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink,#fff);border-color:var(--accent)}
+.selbar{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:120;display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;
+  background:var(--card);border:1px solid var(--line);border-radius:16px;padding:10px 12px;box-shadow:0 10px 30px rgba(0,0,0,.18);max-width:calc(100vw - 24px)}
+.selbar[hidden]{display:none} #selN{font-weight:600;margin-right:4px}
+@media (max-width:700px){ .selbar{bottom:calc(84px + env(safe-area-inset-bottom))} }
 #actbar button{font:inherit;border:0;background:none;color:inherit;cursor:pointer;padding:6px 10px;border-radius:8px;min-height:36px}
 #actbar #actBtns button{font-weight:700;text-decoration:underline;text-underline-offset:3px}
 #actbar button:hover,#actbar button:focus-visible{background:rgba(255,255,255,.14)}
@@ -832,6 +841,12 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
   .modal .card::before{content:"";display:block;width:40px;height:5px;border-radius:3px;background:var(--line);margin:-10px auto 12px}
   /* each wine a card */
   #pageCellar #tbl tr.main{background:var(--card);border:1px solid var(--line);border-radius:14px;margin:0 0 8px;padding:10px 4px 8px}
+  /* swipe a wine left to drink a bottle: the row slides, a band says what letting go does */
+  #pageCellar #tbl tr.main{position:relative;overflow:hidden;touch-action:pan-y}
+  #pageCellar #tbl tr.main.swl{background:linear-gradient(to left,var(--accent) calc(var(--sw,0px) + 14px),var(--card) calc(var(--sw,0px) + 14px))}
+  #pageCellar #tbl tr.main.swl > td{transform:translateX(calc(-1 * var(--sw,0px)))}
+  #pageCellar #tbl tr.main.swl::after{content:attr(data-swl);position:absolute;right:16px;top:50%;transform:translateY(-50%);color:#fff;font-weight:600;font-size:14px;opacity:var(--swo,0)}
+  #pageCellar #tbl tr.main.swback > td{transition:transform .2s ease}
   #pageCellar #tbl tbody tr.detail:not([hidden]){margin:-10px 0 10px;border:1px solid var(--line);border-top:0;border-radius:0 0 14px 14px;background:var(--card)}
   #tbl thead{display:none !important}
 }
@@ -1146,6 +1161,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
   </select>
   <button class="clearbtn" id="clear" data-i18n>Clear filters</button>
   <span class="count" id="count"></span>
+  <button type="button" class="clearbtn show" id="selBtn" aria-pressed="false" data-i18n>Select</button>
 </div>
 
 <div class="chipbar" id="prioPanel" hidden>
@@ -1621,6 +1637,24 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
   </form>
 </div>
 
+<div class="selbar" id="selBar" role="region" aria-label="Selected wines" data-i18n-aria hidden>
+  <span id="selN" aria-live="polite"></span>
+  <button type="button" class="btn" id="selMove" data-i18n>Move to…</button>
+  <button type="button" class="btn" id="selDrink" data-i18n>Drink one of each</button>
+  <button type="button" class="btn primary" id="selDone" data-i18n>Done</button>
+</div>
+<div class="modal" id="moveModal" role="dialog" aria-modal="true" aria-labelledby="moveTitle">
+  <form class="card" id="moveForm">
+    <h2 id="moveTitle" data-i18n>Move to a location</h2>
+    <p class="hint" id="moveWhat"></p>
+    <label for="moveTo" data-i18n>Location</label><input id="moveTo" list="locList" data-i18n-ph placeholder="e.g. Cellar, shelf 2">
+    <div class="jerr" id="moveErr" role="alert" hidden></div>
+    <div class="mact">
+      <button type="button" class="btn" id="moveCancel" data-i18n>Cancel</button>
+      <button type="submit" class="btn primary" id="moveSave" data-i18n>Move</button>
+    </div>
+  </form>
+</div>
 <div class="modal" id="iModal" role="dialog" aria-modal="true" aria-labelledby="iTitle">
   <form class="card" id="iForm">
     <h2 id="iTitle">Edit wine details</h2>
@@ -1822,7 +1856,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 
 <!-- Pages serves these with max-age=600 and no revalidation, so a merged change can
      sit invisible behind a stale app.js for ten minutes. Bump v on every deploy. -->
-<script src="i18n.js?v=91"></script>
+<script src="i18n.js?v=92"></script>
 <script src="site-info.js?v=2"></script>
 <script src="site-foot.js?v=3"></script>
 <script src="notes.js?v=5"></script>
@@ -1841,6 +1875,6 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 <script src="import.js?v=7"></script>
 <script src="export.js?v=3"></script>
 <script src="share-crypto.js?v=2"></script>
-<script src="app.js?v=94"></script>
+<script src="app.js?v=95"></script>
 </body>
 </html>
