@@ -1,6 +1,13 @@
 // Danish for allwine.dk: i18n.js loads the one dictionary the page's language needs (English is the source text).
 window.I18N_DICT = window.I18N_DICT || {};
 window.I18N_DICT.da = {
+  "Turn the map with [ and ], the Map panel or two fingers; the compass shows where north is, and a click on it puts north up again. Zoomed in, the small map in the corner shows where you are in the region: click it to go elsewhere.": "Drej kortet med [ og ], i Kort-panelet eller med to fingre; kompasset viser, hvor nord er, og et klik på det sætter nord op igen. Når du har zoomet ind, viser det lille kort i hjørnet, hvor i området du er: klik på det for at gå et andet sted hen.",
+  "Where this view sits in the region": "Hvor dette udsnit ligger i området",
+  "Turned {0}°: click to put north up": "Drejet {0}°: klik for at sætte nord op",
+  "North is up": "Nord er op",
+  "Turn the map": "Drej kortet",
+  "Turn left ([)": "Drej til venstre ([)",
+  "Turn right (])": "Drej til højre (])",
   "Type the 6-digit code from the email.": "Skriv den 6-cifrede kode fra mailen.",
   "Sending a code to {0}…": "Sender en kode til {0}…",
   "We sent a 6-digit code to {0}. It can take a minute; look in spam too.": "Vi har sendt en 6-cifret kode til {0}. Det kan tage et minut; se også i spam.",
