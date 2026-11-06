@@ -89,6 +89,21 @@ check("the pack was made after its sources last changed (else: node tools/cotedo
   check("a tap on village land, zoomed in, opens the lieu-dit there: area, terrain, appellation", new RegExp("Lieu-dit\\s*" + pt[1]).test(lds) && /Area/.test(lds) && /Village appellation|Regional appellations|Appellation/.test(lds), pt[1] + " · " + lds.slice(0, 200));
   await p.click("#back"); await p.waitForTimeout(200);
   check("…and ← goes back to the region", /Côte d'Or/.test(await p.textContent("#side h2")) && await p.evaluate(() => st.ld === null));
+  // burgundy.html's links: #v= a commune, #p= an owner, #l= a lieu-dit by its old key, #color=vintage&y=
+  global.window.BURG_LIEUXDITS || require(path.join(ROOT, "burgundy-lieuxdits.js")); const L0 = window.BURG_LIEUXDITS.ld[100], lkey = `${L0[0]}:${L0[2]}:${L0[3]}`;
+  const fresh = async h => { const q = await b.newPage({ viewport: { width: 1440, height: 900 } }); q.on("pageerror", x => errs.push(h + ": " + x.message));
+    await q.route(/^https:\/\/(data\.geopf\.fr|sgx\.geodatenzentrum\.de)\//, r => r.abort()); await q.goto(BASE + "atlas.html#r=cotedor&" + h); await q.waitForTimeout(2500);
+    const r = await q.evaluate(() => ({ vsel: st.vsel, prod: st.prod, ld: st.ld, color: st.color, vy: st.vy, h2: (document.querySelector("#side h2") || {}).textContent })); await q.close(); return r; };
+  let r = await fresh("v=gevrey");
+  check("#v=gevrey opens the commune: its climats, appellation and vintages", r.vsel === "gevrey" && r.h2 === "Gevrey-Chambertin", JSON.stringify(r));
+  r = await fresh("v=flagey");
+  check("…and a commune drawn with its neighbour (Flagey) still opens", r.vsel === "flagey" && /Flagey/.test(r.h2), JSON.stringify(r));
+  r = await fresh("p=drc");
+  check("#p=drc shows the owner's holdings", r.prod === "drc", JSON.stringify(r));
+  r = await fresh("l=" + lkey);
+  check("#l= with burgundy.html's own key opens that lieu-dit (" + L0[1] + ")", r.ld != null && r.h2 === L0[1], JSON.stringify(r));
+  r = await fresh("color=vintage&y=2005");
+  check("#color=vintage&y=2005 colours the map by that vintage", r.color === "vintage" && r.vy === 2005, JSON.stringify(r));
   // the search box finds owners and lieux-dits too
   await p.fill("#fSearch", "meo-camu"); await p.waitForTimeout(300);
   const sh = await p.$$eval("#gRes li[data-i]", ls => ls.map(l => l.textContent));
@@ -107,7 +122,11 @@ check("the pack was made after its sources last changed (else: node tools/cotedo
   // corrections: through the cellar's sheet (the real Code.gs), by someone logged in on the Cellar page
   const SHEET_ATLAS = (require("fs").readFileSync(path.join(ROOT, "apps-script", "Code.gs"), "utf8").match(/const ATLAS_SHEET = '([^']+)'/) || [])[1];
   const H = require("./gas-harness"), HEAD = ["Producent", "Land", "Område", "Kommune", "Mark/Navn", "Klassifikation", "Type", "Drue", "Årgang", "Antal", "Pris kr (WS)", "Drukket", "Kilde", "Note"];
-  const gas = H({ Ark1: [HEAD] }, { settings: { OWNER_USER: "eva", OWNER_PASSWORD: "eva-pass-123" } }); gas.run("makeOwner()");
+  const row = o => HEAD.map(h => o[h] ?? "");
+  const gas = H({ Ark1: [HEAD, row({ Producent: "Armand Rousseau", Land: "Frankrig", Område: "Bourgogne", Kommune: "Gevrey-Chambertin", "Mark/Navn": "Chambertin", Klassifikation: "Grand cru", Type: "Rød", Årgang: 2017, Antal: 2 }),
+    row({ Producent: "Cathiard", Land: "Frankrig", Område: "Bourgogne", Kommune: "Vosne-Romanée", "Mark/Navn": "Les Suchots", Klassifikation: "1. cru", Type: "Rød", Årgang: 2019, Antal: 3 }),
+    row({ Producent: "Some Domaine", Land: "Frankrig", Område: "Bourgogne", Kommune: "Gevrey-Chambertin", "Mark/Navn": "Gevrey-Chambertin", Type: "Rød", Årgang: 2020, Antal: 1 })] },
+    { settings: { OWNER_USER: "eva", OWNER_PASSWORD: "eva-pass-123" } }); gas.run("makeOwner()");
   const ctx = await b.newContext({ viewport: { width: 1440, height: 900 } }); await require("./turnstile-fake")(ctx);
   await ctx.route(require("./api-route"), r => r.fulfill({ contentType: "application/json", body: JSON.stringify(gas.call(JSON.parse(r.request().postData() || "{}"))) }));
   await ctx.route(/^https:\/\/(data\.geopf\.fr|sgx\.geodatenzentrum\.de)\//, r => r.abort());
@@ -131,6 +150,9 @@ check("the pack was made after its sources last changed (else: node tools/cotedo
   check("…for everyone who opens the atlas", /3\.6 ha/.test(await e.textContent("#side")));
   await e.click('#side [data-ed="leroy"]'); await e.waitForSelector("#edForm"); await e.fill("#edN", "sold, 2026"); await e.click("#edRemove");
   await e.waitForFunction(() => /Removed by correction/.test(document.getElementById("side").textContent), null, { timeout: 15000 }).catch(() => {});
+  await e.waitForFunction(() => CELLAR.loaded, null, { timeout: 15000 }).catch(() => {});
+  const by = await e.evaluate(() => Object.fromEntries(Object.entries(CELLAR.by).map(([k, v]) => [k, v.left])));
+  check("your bottles land on their climats, by burgundy.html's matcher (a village wine stays off Chambertin)", by.chambertin === 2 && by.suchots === 3 && Object.keys(by).length === 2, JSON.stringify(by));
   check("Remove this producer takes them off the list, with a note", /Removed by correction: Domaine Leroy/.test(await e.textContent("#side")) && !(await e.$('#side [data-prod="leroy"]')));
   check("no page errors", !errs.length, errs.join(" | "));
   await b.close();

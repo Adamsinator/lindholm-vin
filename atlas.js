@@ -47,7 +47,7 @@ const REGIONS = [
 ];
 // the Côte d'Or on this engine (tools/cotedor-pack.js, from the burgundy-*.js files): reached by its address only
 // (#r=cotedor) while it's checked against burgundy.html, which stays the Côte d'Or's page until this matches it
-const PREVIEW = [{ id: "cotedor", name: "Côte d'Or", file: "atlas-cotedor.js?v=2", topo: "atlas-cotedor-topo.js?v=1", dem: "atlas-cotedor-dem.js?v=1", geol: "atlas-cotedor-geol.js?v=1", ui: "atlas-cotedor-ui.js?v=2", ld: "atlas-cotedor-ld.js?v=1",
+const PREVIEW = [{ id: "cotedor", name: "Côte d'Or", file: "atlas-cotedor.js?v=3", topo: "atlas-cotedor-topo.js?v=1", dem: "atlas-cotedor-dem.js?v=1", geol: "atlas-cotedor-geol.js?v=1", ui: "atlas-cotedor-ui.js?v=3", ld: "atlas-cotedor-ld.js?v=2", match: "burgundy-match.js?v=3",
   ll: [47.15, 4.86], country: "fr", kind: "Grand cru · premier cru · village climats, with their owners", kw: [], regional: "" }];
 // the start page's other places: the Côte d'Or's own, richer atlas, and Piedmont, whose MGA have pages but no map
 const ELSEWHERE = [{ id: "burgundy", name: "Côte d'Or", ll: [47.058, 4.839], country: "fr", kind: "The detailed atlas: owners, terrain, geology", href: "burgundy.html" },
@@ -607,7 +607,7 @@ addEventListener("resize", () => { if (st.view) layoutLabels(); });
 /* ---------- the side panel ---------- */
 const byId = id => st.pack && (st.pack.climats.find(c => c.id === id) || pts().find(q => q.id === id));
 function select(id, fly) {
-  st.ld = null; st.sel = byId(id) ? id : null; if (st.sel) ensureGeol(); paint(); renderSide(); syncHash();
+  st.ld = null; st.vsel = null; st.sel = byId(id) ? id : null; if (st.sel) ensureGeol(); paint(); renderSide(); syncHash();
   document.body.classList.toggle("side-open", !!st.sel); // a phone: the vineyard's details slide up
   const c = st.sel && byId(st.sel);
   if (c && fly) { if (c.g) fit(bbOf(c.g), .6, 360); else if (c.p) fit([c.p[0] - 900, c.p[1] - 900, c.p[0] + 900, c.p[1] + 900], .1, 360); }
@@ -615,6 +615,7 @@ function select(id, fly) {
 function renderSide() {
   const P = st.pack, side = $("side"); if (!P) return renderHomeSide();
   if (st.ld != null && window.ATLAS_LDUI && ATLAS_LDUI.loaded()) return ATLAS_LDUI.side(); // a lieu-dit
+  if (st.vsel && window.ATLAS_CD && st.region.ui) return ATLAS_CD.villageSide(); // a commune (the Côte d'Or)
   const c = st.sel && byId(st.sel), R = st.region;
   if (!c) {
     const gc = P.climats.filter(x => x.c === "GC"), pc = P.climats.filter(x => x.c === "1er" && !x.unnamed), aoc = P.climats.filter(x => x.c === "AOC"), many = P.villages.length > 1;
@@ -849,7 +850,10 @@ async function vaultData(api, user, token) {
 }
 // a bottle's vineyard: the region's name somewhere on it, then the longest climat name (or, for one named from IGN's
 // place names, one of those) in its wine or commune
+let MATCHER = null; // the Côte d'Or's (burgundy-match.js): communes off the label first, a premier cru needs its commune
 function matchWine(w) {
+  if (st.region.match && window.BURG_MATCH) { if (!MATCHER || MATCHER.p !== st.pack) MATCHER = { p: st.pack, m: BURG_MATCH.make(st.pack.climats, st.pack.villages) };
+    const m = MATCHER.m.match({ name: w.name, commune: w.commune }); return { region: !!(m.c || m.vil), c: m.c || null }; }
   const R = st.region, all = norm([w.region, w.commune, w.name, w.classification].join(" ")), label = norm([w.name, w.commune].join(" "));
   if (!R.kw.some(k => all.includes(" " + k + " ")) && !R.kw.some(k => norm(w.region).includes(k))) return { region: false };
   // a classified château by its name on the bottle (producer or wine): the longest name wins (Lamothe Guignard over Lamothe)
@@ -956,13 +960,14 @@ function renderHomeSide() {
 const cellarSummaryHome = () => CELLAR.loaded ? "" : `<p class="note">${esc(t(CELLAR.msg))}</p>`;
 
 function syncHash() {
-  const h = "#r=" + st.region.id + (st.sel ? "&c=" + st.sel : "");
+  const h = "#r=" + st.region.id + (st.sel ? "&c=" + st.sel : st.vsel ? "&v=" + st.vsel : "") + (st.prod ? "&p=" + st.prod : "") + (st.color && st.color !== "class" ? "&color=" + st.color + (st.color === "vintage" && st.vy ? "&y=" + st.vy : "") : "");
   if (location.hash !== h) history.replaceState(null, "", location.pathname + location.search + h);
 }
 async function openRegion(id, sel) {
   const R = REGIONS.concat(PREVIEW).find(r => r.id === id) || REGIONS[0];
   if (R.ui && !window.ATLAS_CD) await loadScript(R.ui).catch(() => {}); // the region's own tools (the Côte d'Or: owners)
   if (R.ld && !window.ATLAS_LDUI) await loadScript("atlas-ld.js?v=1").catch(() => {}); // lieux-dits: their data comes when zoomed in
+  if (R.match && !window.BURG_MATCH) await loadScript(R.match).catch(() => {}); // the Côte d'Or: the cellar's matcher, as burgundy.html uses
   if (window.ATLAS_LDUI) ATLAS_LDUI.reset();
   if (!(window.ATLAS_PACKS && ATLAS_PACKS[R.id])) {
     // a pack that doesn't come (GitHub Pages answers 503 now and then): once more after a moment, then say so
@@ -985,7 +990,7 @@ async function openRegion(id, sel) {
   $("fRelief").parentNode.hidden = !st.pack.meta.l93 && st.pack.meta.proj !== "eq";
   $("fTopo").parentNode.hidden = !R.topo; $("fGeol").parentNode.hidden = !R.geol; if (st.geol) ensureGeol();
   if (window.ATLAS_COLOR && !ATLAS_COLOR.modes()[st.color]) st.color = "class";
-  st.cmpWith = null; st.prod = null; terrClear(); $("terrbar").hidden = true; $("terrChip").hidden = !R.dem; terrSync();
+  st.cmpWith = null; st.prod = null; st.vsel = null; terrClear(); $("terrbar").hidden = true; $("terrChip").hidden = !R.dem; terrSync();
   $("profBtn").hidden = !st.pack.meta.l93; $("locBtn").hidden = !navigator.geolocation; if (PROF.on) profToggle(false); // the profile needs IGN's elevation service: France only
   if (R.topo && !topoOf()) loadScript(R.topo).then(() => { if (st.region === R) drawTopo(); }).catch(() => {});
   if (R.dem && !demOf(R.id)) loadScript(R.dem).then(() => { if (st.region === R) { renderSide(); paint(); } }).catch(() => {});
@@ -1077,6 +1082,7 @@ async function fromHash() {
   if (!r || !REGIONS.concat(PREVIEW).some(x => x.id === r)) { if (st.region || !svg.childNodes.length) showHome(); return; } // no region: the start page
   if (!st.region || st.region.id !== r) await openRegion(r, q.get("c"));
   else if ((q.get("c") || null) !== st.sel) select(q.get("c"), true);
+  if (st.region && st.region.ui && window.ATLAS_CD) await ATLAS_CD.fromHash(q); // the Côte d'Or: burgundy.html's other links
   if (q.get("w") && st.region) { const m = matchWine({ region: st.region.kw[0], name: q.get("w") }); if (m.c) select(m.c.id, true); else syncHash(); }
 }
 /* ---------- the map as an app: where you are as a breadcrumb, the map's look and layers in a panel, and on a phone the

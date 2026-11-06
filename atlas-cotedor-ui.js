@@ -235,5 +235,38 @@ function ownersHtml(c) {
     .gclegend{display:flex;flex-wrap:wrap;gap:4px 12px;margin:4px 0 10px;font-size:12.5px} .sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
     .gcrow{display:grid;grid-template-columns:minmax(0,9.5em) 1fr auto;gap:8px;align-items:center;font-size:12.5px;margin:3px 0} .gcn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .gcbar{display:flex;height:12px;border-radius:3px;overflow:hidden;background:var(--card2);border:1px solid var(--line)} .gch{color:var(--muted);white-space:nowrap} table.cmpt th{font-size:12.5px;text-align:right}</style>`);
-  return { holds, shown: shownFor, compareHtml, ownersHtml, prodBar, setProd, histHtml, vintageHtml, regionHtml, colorModes, wire, edits: EDITS };
+  /* ---------- a commune: its climats, its appellation, its vintages and the weather that hit it (#v=… on burgundy.html) ---------- */
+  const villOf = id => (st.pack.villages || []).find(v => v.id === id);
+  const climatsOf = id => st.pack.climats.filter(c => c.v === id);
+  function selectVillage(id, fly) {
+    const list = climatsOf(id), v = villOf(id); if (!v && !list.length) return false;
+    st.sel = null; st.ld = null; st.vsel = id; paint(); renderSide(); document.body.classList.add("side-open");
+    if (fly) { const g = (v && v.g || []).concat(list.flatMap(c => c.g)); if (g.length) fit(bbOf(g), .05, 360); }
+    syncHash(); return true;
+  }
+  function villageSide() {
+    const id = st.vsel, v = villOf(id) || { id, n: (climatsOf(id)[0] || {}).app || id }, list = climatsOf(id), side = $("side");
+    const cote = v.cote || (list[0] || {}).cote, red = cote === "nuits" ? "nuits_red" : "beaune_red";
+    const by = k => list.filter(c => c.c === k && !c.x).concat(list.filter(c => c.c === k && c.x)).sort((a, b) => a.n.localeCompare(b.n, "fr"));
+    const grp = (k, label) => { const l = by(k); return l.length ? `<h3>${esc(t(label))} · ${l.length}</h3><p class="ldlist">${l.map(c => `<button type="button" class="plink" data-c="${esc(c.id)}">${esc(c.n)}</button>`).join(" · ")}</p>` : ""; };
+    if (!VT) vtLoad();
+    side.innerHTML = `<p><button class="btn" id="back">← ${esc(st.pack.meta.name)}</button></p><span class="pill">${esc(t("Commune"))}</span><h2>${esc(v.n)}</h2>
+      ${v.aoc ? `<div class="meta">${esc(v.aoc)}</div>` : ""}${v.note ? `<p class="desc">${esc(v.note)}</p>` : ""}
+      ${grp("GC", "Grand cru")}${grp("1er", "Premier cru")}${grp("V", "Village climat")}
+      ${VT ? yearHtml(red, id) + vintageChart(red, id) + (cote === "beaune" ? vintageChart("beaune_white", id) : "") : ""}
+      ${VT && vEvents(id).length ? `<h3>${esc(t("Frost, hail and heat"))}</h3>` + vEvents(id).slice().reverse().slice(0, 12).map(e => `<p class="note"><i class="evdot" style="background:${EVT[evtKind(e.t)][0]}"></i><b>${esc(e.d)}</b> ${esc(t(EVT[evtKind(e.t)][1]))}${e.s ? " — " + esc(vx(e.s)) : ""}</p>`).join("") : ""}`;
+    $("back").onclick = () => { st.vsel = null; paint(); renderSide(); syncHash(); };
+    side.querySelectorAll("button[data-c]").forEach(b => b.onclick = () => { st.vsel = null; select(b.dataset.c, true); });
+  }
+  /* ---------- burgundy.html's links: #c= a climat, #v= a commune, #p= an owner, #l= a lieu-dit (its old key), #color=…&y=… ---------- */
+  async function fromHash(q) {
+    if (q.get("color")) { if (!window.ATLAS_COLOR) await loadScript("atlas-color.js?v=1").catch(() => {});
+      if (window.ATLAS_COLOR && ATLAS_COLOR.modes()[q.get("color")]) { st.color = q.get("color"); if (st.color === "vintage") await vtLoad(); if (q.get("y")) st.vy = +q.get("y"); paint(); renderLegend(); } }
+    if (q.get("p") && st.pack.producers[q.get("p")]) setProd(q.get("p"));
+    if (q.get("v") && !q.get("c")) selectVillage(q.get("v"), true);
+    if (q.get("l") && window.ATLAS_LDUI) { await ATLAS_LDUI.want(); const L = window.ATLAS_LD && ATLAS_LD[st.region.id], key = q.get("l");
+      const i = L ? L.ld.findIndex(l => l[6] === key || norm(l[1]) === norm(key)) : -1; if (i >= 0) ATLAS_LDUI.pick(i, true); }
+    if (!q.get("l")) syncHash(); // the address as it now stands (the colour and year included)
+  }
+  return { selectVillage, villageSide, fromHash, holds, shown: shownFor, compareHtml, ownersHtml, prodBar, setProd, histHtml, vintageHtml, regionHtml, colorModes, wire, edits: EDITS };
 })();

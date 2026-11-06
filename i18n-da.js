@@ -1,6 +1,7 @@
 // Danish for allwine.dk: i18n.js loads the one dictionary the page's language needs (English is the source text).
 window.I18N_DICT = window.I18N_DICT || {};
 window.I18N_DICT.da = {
+  "Frost, hail and heat": "Frost, hagl og hede",
   "Compare with": "Sammenlign med",
   "another producer": "en anden producent",
   "Compare two producers": "Sammenlign to producenter",

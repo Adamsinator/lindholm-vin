@@ -72,7 +72,8 @@ Object.entries(GEO.extra || {}).forEach(([id, x]) => {
 });
 const RANK = { GC: 0, "1er": 1, V: 2 };
 climats.sort((a, b) => RANK[a.c] - RANK[b.c] || a.n.localeCompare(b.n, "fr"));
-const villages = Object.entries(GEO.villages || {}).map(([id, mp]) => ({ id, n: vname(id), cote: (V[id] || {}).cote, g: mpP(mp) }));
+const villages = Object.entries(GEO.villages || {}).map(([id, mp]) => Object.assign({ id, n: vname(id), cote: (V[id] || {}).cote, g: mpP(mp) },
+  V[id] && V[id].aoc ? { aoc: V[id].aoc } : {}, V[id] && V[id].note ? { note: V[id].note } : {}));
 const all = climats.flatMap(c => c.g).concat(...villages.map(v => v.g)).flatMap(p => p[0]);
 const bb = all.reduce((b, [x, y]) => [Math.min(b[0], x), Math.min(b[1], y), Math.max(b[2], x), Math.max(b[3], y)], [Infinity, Infinity, -Infinity, -Infinity]);
 const today = new Date().toISOString().slice(0, 10);
@@ -103,5 +104,6 @@ write("atlas-cotedor-topo.js", "ATLAS_TOPO", topo);
 // ── the cadastre's lieux-dits: label point and outline moved, the commune code and the measured terrain as they were ──
 const LDX = window.BURG_LIEUXDITS;
 write("atlas-cotedor-ld.js", "ATLAS_LD", { meta: Object.assign({}, LDX.meta, { id: "cotedor" }),
-  ld: LDX.ld.map(([insee, n, x, y, ring, ...rest]) => [insee, n, ...P([x, y]), reline(ring), ...rest]) });
+  // the 7th field: the key burgundy.html's links used (insee:x:y in its own grid), so #l= links keep working
+  ld: LDX.ld.map(([insee, n, x, y, ring, m]) => [insee, n, ...P([x, y]), reline(ring), m || null, `${insee}:${x}:${y}`]) });
 console.log(`${climats.length} climats (${climats.filter(c => c.x).length} INAO extras), ${villages.length} villages; no outline for: ${missing.join(", ") || "none"}`);
