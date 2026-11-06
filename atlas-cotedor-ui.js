@@ -131,7 +131,7 @@ function ownersHtml(c) {
   /* ---------- vintages (burgundy-vintages.js: ratings per Côte and colour, events per commune, Météo-France's station
      weather), fetched the first time a climat opens or the map is coloured by vintage ---------- */
   let VT = window.BURG_VINTAGES || null, vtP = null;
-  const vtLoad = () => VT ? Promise.resolve(VT) : (vtP = vtP || Promise.all([loadScript("burgundy-vintages.js?v=5"), window.ATLAS_COLOR ? 0 : loadScript("atlas-color.js?v=1")]).then(() => { /* the colours: atlas-color.js */ VT = window.BURG_VINTAGES || null; paint(); renderLegend(); renderSide(); return VT; }).catch(() => { vtP = null; }));
+  const vtLoad = () => VT ? Promise.resolve(VT) : (vtP = vtP || Promise.all([loadScript("burgundy-vintages.js?v=6"), window.ATLAS_COLOR ? 0 : loadScript("atlas-color.js?v=1")]).then(() => { /* the colours: atlas-color.js */ VT = window.BURG_VINTAGES || null; paint(); renderLegend(); renderSide(); return VT; }).catch(() => { vtP = null; }));
   const VCATS = ["nuits_red", "beaune_red", "beaune_white"], VCAT_EN = { nuits_red: "Côte de Nuits red", beaune_red: "Côte de Beaune red", beaune_white: "Côte de Beaune white" };
   const catOf = c => (c.col || "R") === "W" ? "beaune_white" : c.cote === "nuits" ? "nuits_red" : "beaune_red";
   const vx = s => (s && VT && VT.i18n && (VT.i18n[window.I18N ? I18N.lang : "en"] || {})[s]) || s; // notes come in English; Danish and French by the English text

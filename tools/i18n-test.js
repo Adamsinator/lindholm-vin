@@ -12,7 +12,9 @@ const ph = s => (String(s).match(/\{\d\}/g) || []).sort().join();
 const src = fs.readFileSync(R("i18n.js"), "utf8");
 // the shared dictionary, plus the privacy page's own (privacy-i18n-*.js, loaded only there)
 const dict = l => { const w = {}; new Function("window", fs.readFileSync(R(`i18n-${l}.js`), "utf8"))(w);
-  new Function("window", fs.readFileSync(R(`privacy-i18n-${l}.js`), "utf8"))(w); return w.I18N_DICT[l]; };
+  new Function("window", fs.readFileSync(R(`privacy-i18n-${l}.js`), "utf8"))(w);
+  new Function("window", fs.readFileSync(R("atlas-wx-i18n.js"), "utf8"))(w); Object.entries(w.ATLAS_WX_I18N[l]).forEach(([k, v]) => { if (!(k in w.I18N_DICT[l])) w.I18N_DICT[l][k] = v; }); // the weather panel's own
+  return w.I18N_DICT[l]; };
 const D = { da: dict("da"), de: dict("de"), fr: dict("fr") };
 check("i18n.js names each dictionary file", ["da", "fr", "de"].every(l => new RegExp(`${l}: "i18n-${l}\\.js\\?v=\\d+"`).test(src)));
 const all = new Set(Object.values(D).flatMap(Object.keys));
@@ -27,7 +29,7 @@ for (const [l, d] of Object.entries(D)) {
 check("the picker offers German", /\{id:"de", n:"Deutsch"\}/.test(src) && /\n  de: `<svg/.test(src));
 // every t("…")/tr("…") literal in the front-end has a translation
 const used = new Set();
-for (const f of ["app.js", "admin.js", "style.js", "domaine.js", "vault.js", "atlas.js", "atlas-cotedor-ui.js", "atlas-ld.js", "atlas-color.js"]) {
+for (const f of ["app.js", "admin.js", "style.js", "domaine.js", "vault.js", "atlas.js", "atlas-cotedor-ui.js", "atlas-ld.js", "atlas-color.js", "atlas-wx.js"]) {
   const s = fs.readFileSync(R(f), "utf8");
   for (const m of s.matchAll(/\b(?:tr|t|trSet)\("((?:[^"\\]|\\.)+)"/g)) used.add(JSON.parse('"' + m[1] + '"'));
 }
