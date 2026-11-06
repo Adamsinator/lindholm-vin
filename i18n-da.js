@@ -1,6 +1,9 @@
 // Danish for allwine.dk: i18n.js loads the one dictionary the page's language needs (English is the source text).
 window.I18N_DICT = window.I18N_DICT || {};
 window.I18N_DICT.da = {
+  "Showing the holdings of {0}: {1} climats": "Viser {0}s parceller: {1} climater",
+  "Show every owner": "Vis alle ejere",
+  "Show everything {0} holds": "Vis alt, {0} ejer",
   "Turn the map with [ and ], the Map panel or two fingers; the compass shows where north is, and a click on it puts north up again. Zoomed in, the small map in the corner shows where you are in the region: click it to go elsewhere.": "Drej kortet med [ og ], i Kort-panelet eller med to fingre; kompasset viser, hvor nord er, og et klik på det sætter nord op igen. Når du har zoomet ind, viser det lille kort i hjørnet, hvor i området du er: klik på det for at gå et andet sted hen.",
   "Where this view sits in the region": "Hvor dette udsnit ligger i området",
   "Turned {0}°: click to put north up": "Drejet {0}°: klik for at sætte nord op",

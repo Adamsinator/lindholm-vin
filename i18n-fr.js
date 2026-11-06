@@ -1,6 +1,9 @@
 // French for allwine.dk: i18n.js loads the one dictionary the page's language needs (English is the source text).
 window.I18N_DICT = window.I18N_DICT || {};
 window.I18N_DICT.fr = {
+  "Showing the holdings of {0}: {1} climats": "Les parcelles de {0} : {1} climats",
+  "Show every owner": "Afficher tous les propriétaires",
+  "Show everything {0} holds": "Afficher tout ce que possède {0}",
   "Turn the map with [ and ], the Map panel or two fingers; the compass shows where north is, and a click on it puts north up again. Zoomed in, the small map in the corner shows where you are in the region: click it to go elsewhere.": "Tournez la carte avec [ et ], le panneau Carte ou deux doigts ; la boussole indique le nord, et un clic dessus remet le nord en haut. En zoom rapproché, la petite carte dans le coin montre où vous êtes dans la région : cliquez dessus pour aller ailleurs.",
   "Where this view sits in the region": "Où se trouve cette vue dans la région",
   "Turned {0}°: click to put north up": "Tournée de {0}° : cliquez pour remettre le nord en haut",
