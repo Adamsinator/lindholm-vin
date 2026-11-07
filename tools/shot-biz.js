@@ -22,7 +22,7 @@ gas.run("makeOwner()");
   await p.fill("#gateUser", "adam"); await p.fill("#gatePass", "owner-pass-1"); await p.click("#gateSubmit");
   await p.waitForSelector("#recModal.open", { timeout: 20000 }); await p.check("#recOk"); await p.click("#recDone");
   await p.waitForSelector("#app:not([hidden])", { timeout: 30000 }); await p.waitForTimeout(1000);
-  await p.click("#acctBtn"); await p.waitForSelector("#acctModal.open"); await p.selectOption("#acctKind", "restaurant"); await p.keyboard.press("Escape"); await p.waitForTimeout(800);
+  await p.click("#acctBtn"); await p.waitForSelector("#acctModal.open"); await p.selectOption("#acctKind", "business"); await p.keyboard.press("Escape"); await p.waitForTimeout(800);
   await p.evaluate(async () => {
     const set = { "Armand Rousseau": [900, 150, 4], "Domaine Leflaive": [1100, 0, 2], Bollinger: [850, 120, 6], "G. Conterno": [1400, 0, 4], "Egon Müller": [520, 95, 6], "Taylor's": [750, 70, 1] };
     for (const w of WINES) { const v = set[w.producer]; if (!v) continue;

@@ -42,7 +42,7 @@ function setting(key) {
 // The legacy code only works once you've set a real one: the placeholder from the template is public.
 function accessCode() { const c = setting('ACCESS_CODE'); return c === 'CHANGE-ME' ? '' : c; }
 
-const API_VERSION = 55; // returned in every response; used to verify deployments
+const API_VERSION = 56; // returned in every response; used to verify deployments
 
 // Per-request spreadsheet for the authenticated user. Set in handle(); every
 // sheet helper reads it via ss(). Falls back to the bound (owner's) spreadsheet.
@@ -327,7 +327,7 @@ function handle(p) {
         return json({ ok: true, wines: readAll() });
       // who you are: the page shows the admin page only to the owner
       case 'me':
-        return json({ ok: true, user: CTX_USER, owner: isOwnerAccount(CTX_ACCOUNT), help: helpFor(CTX_ACCOUNT), test: !!(CTX_ACCOUNT && CTX_ACCOUNT.test), social: setting('SOCIAL') === 'on',
+        return json({ ok: true, user: CTX_USER, owner: isOwnerAccount(CTX_ACCOUNT), help: helpFor(CTX_ACCOUNT), test: !!(CTX_ACCOUNT && CTX_ACCOUNT.test), biz: !!(CTX_ACCOUNT && CTX_ACCOUNT.business), social: setting('SOCIAL') === 'on',
           role: CTX_ACCOUNT && CTX_ACCOUNT.parent ? (CTX_ACCOUNT.role || 'staff') : '', parent: (CTX_ACCOUNT && CTX_ACCOUNT.parent) || '' });
       // this account's data key wrapped to the admin's public key (done in the browser): the admin can help it back in
       case 'escrow': {
@@ -340,9 +340,15 @@ function handle(p) {
       }
       // the owner's admin page: the members and the invite codes, never anything from a cellar
       case 'admin': case 'admininvites': case 'adminrevoke': case 'admindelete':
-      case 'adminkeyset': case 'adminkeyget': case 'adminescrow': case 'adminrecovery': case 'admintestuser':
+      case 'adminkeyset': case 'adminkeyget': case 'adminescrow': case 'adminrecovery': case 'admintestuser': case 'adminbiz':
         if (!isOwnerAccount(CTX_ACCOUNT)) return json({ ok: false, error: 'not-owner' });
         if (p.action === 'admintestuser') return adminTestUser(p);
+        if (p.action === 'adminbiz') { // a member's account made a business account, or back to a private cellar
+          const t = findUser(String(p.member || ''));
+          if (!t || isOwnerAccount(t) || t.parent) return json({ ok: false, error: 'no-user' });
+          setUser(t, 'Business', p.on ? 'on' : ''); logEvent('admin', CTX_USER, (p.on ? 'business on: ' : 'business off: ') + t.username);
+          return json(adminView());
+        }
         if (p.action === 'adminkeyset') return adminKeySet(p);
         if (p.action === 'adminkeyget') return json({ ok: true, pub: CTX_ACCOUNT.adminPub || '', key: CTX_ACCOUNT.adminKey || '', kid: CTX_ACCOUNT.adminKid || '' });
         if (p.action === 'adminescrow') {
@@ -605,7 +611,9 @@ const USERS_SHEET = 'Users';
 // hashed, the vault spreadsheet, and the migration state ('' plain, 'migrating', 'done') with the plain sheet it left.
 const USER_COLS = ['Username', 'Salt', 'Hash', 'SpreadsheetId', 'Token', 'Created',
                    'Kdf', 'KdfSalt', 'WrapKey', 'WrapRec', 'RecSalt', 'RecHash', 'VaultId', 'State', 'OldSheet', 'Email', 'LastSeen',
-                   'WrapAdmin', 'AdminKid', 'AdminPub', 'AdminKey', 'Role', 'Parent'];
+                   'WrapAdmin', 'AdminKid', 'AdminPub', 'AdminKey', 'Role', 'Parent', 'Business'];
+// Business (API 56): 'on' when the owner has made the account a business account (Admin → a member → Business); only
+// then may it choose the business kind (the owner, test users and staff logins may anyway)
 // Role and Parent (API 54): a staff login of a business account. Parent is the business's username; the login opens the
 // business's vault with its own password (the data key wrapped to it in the owner's browser); Role is 'staff' or
 // 'manager', which the page uses to show less (the server can't tell what's in the vault, so it can't hold it to more).
@@ -641,7 +649,7 @@ function findUser(username) {
                wrapRec: c('WrapRec'), recSalt: c('RecSalt'), recHash: c('RecHash'), vaultId: c('VaultId'),
                state: c('State'), oldSheet: c('OldSheet'), email: c('Email'), lastSeen: c('LastSeen'),
                wrapAdmin: c('WrapAdmin'), adminKid: c('AdminKid'), adminPub: c('AdminPub'), adminKey: c('AdminKey'),
-               role: c('Role'), parent: c('Parent') };
+               role: c('Role'), parent: c('Parent'), business: c('Business') === 'on' };
     }
   }
   return null;
@@ -887,7 +895,8 @@ function adminView() {
   const users = rows.filter(r => String(r[0]).trim()).map(r => ({ user: String(r[0]), email: String(c(r, 'Email') || ''), created: fmtDay(c(r, 'Created')),
     lastSeen: fmtDay(c(r, 'LastSeen')), encrypted: String(c(r, 'State')) === 'done', invite: used[normUser(r[0])] || '',
     owner: isOwnerAccount({ spreadsheetId: String(c(r, 'SpreadsheetId')), oldSheet: String(c(r, 'OldSheet') || '') }),
-    helpReady: !!adminKid && String(c(r, 'AdminKid') || '') === adminKid && !!String(c(r, 'WrapAdmin') || ''), test: String(c(r, 'Email') || '') === TEST_EMAIL }));
+    helpReady: !!adminKid && String(c(r, 'AdminKid') || '') === adminKid && !!String(c(r, 'WrapAdmin') || ''), test: String(c(r, 'Email') || '') === TEST_EMAIL,
+    business: String(c(r, 'Business') || '') === 'on', staff: !!String(c(r, 'Parent') || '') }));
   const ish = invitesSheet(false), ilast = ish ? ish.getLastRow() : 0;
   const invites = ilast >= 2 ? ish.getRange(2, 1, ilast - 1, INVITE_COLS.length).getValues().filter(r => String(r[0]).trim())
     .map(r => ({ code: String(r[0]), note: String(r[1] || ''), created: fmtDay(r[2]), usedBy: String(r[3] || ''), usedAt: fmtDay(r[4]) })) : [];

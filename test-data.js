@@ -52,7 +52,7 @@
   function rng(seed) { let s = seed >>> 0 || 1; return () => (s = (s * 1664525 + 1013904223) >>> 0) / 4294967296; }
   function wines(n, kind) {
     const r = rng(n * 7919 + (kind || "").length), pick = a => a[Math.floor(r() * a.length)];
-    const Y = new Date().getFullYear(), biz = kind && kind !== "private", glass = kind === "restaurant", out = [];
+    const Y = new Date().getFullYear(), biz = kind && kind !== "private", glass = kind === "restaurant" || kind === "business", out = [];
     // the list in a shuffled order, so ten wines already span the regions
     const order = W.map((_, i) => i); for (let i = order.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
     for (let i = 0; i < n; i++) {

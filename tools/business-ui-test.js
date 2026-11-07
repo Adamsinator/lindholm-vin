@@ -35,7 +35,7 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   check("a private cellar: no business panel, no wine card, nothing extra loaded", await p.evaluate(() => !window.BIZ && !document.getElementById("bizPanel") && document.documentElement.dataset.kind === "private"
     && ![...document.scripts].some(s => /business/.test(s.src))));
   await p.click("#acctBtn"); await p.waitForSelector("#acctModal.open");
-  await p.selectOption("#acctKind", "restaurant"); await p.waitForFunction(() => !!window.BIZ && !!document.getElementById("bizPanel"), null, { timeout: 5000 }).catch(() => {});
+  await p.selectOption("#acctKind", "business"); await p.waitForFunction(() => !!window.BIZ && !!document.getElementById("bizPanel"), null, { timeout: 5000 }).catch(() => {});
   await p.keyboard.press("Escape"); await p.waitForTimeout(400);
   const tabs = async () => p.$$eval(".gbar .tabs .tab", ts => ts.filter(t => !t.hidden).map(t => t.dataset.page).join(","));
   check("Account → a restaurant: its own pages, Inventory first; no Enjoyed, Wishlist or Journal", (await tabs()) === "inventory,cellar,accounts,winecard"
@@ -277,17 +277,15 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   check("on a phone every business page fits, no sideways scroll", !wide.length, wide.join(", "));
   await p.setViewportSize({ width: 1400, height: 900 }); await p.click('.tab[data-page="cellar"]'); await p.waitForTimeout(300);
 
-  // a winemaker
-  await p.click("#acctBtn"); await p.waitForSelector("#acctModal.open"); await p.selectOption("#acctKind", "winemaker"); await p.keyboard.press("Escape"); await p.waitForTimeout(400);
-  check("a winemaker: a price list, no glass price", /Price list/.test(await p.textContent("#bizCardBtn")) && !(await p.$('tr.detail:not([hidden]) .bz-in[data-f="glassPrice"]')));
+  // a business that makes wine: names its domaine and sees its own wines by vintage
   await p.click('.tab[data-page="accounts"]'); await p.waitForTimeout(300);
-  check("…its page is called Accounts", /^Accounts$/.test((await p.textContent('.tab[data-page="accounts"]')).trim()));
   await p.fill("#bzDom", "Rousseau"); await p.press("#bzDom", "Tab"); await p.waitForTimeout(300);
-  check("…names its domaine and sees its own wines by vintage", /Clos St-Jacques/.test(await p.textContent("#bizPanel")) && /2016 · 1/.test(await p.textContent("#bizPanel")));
-
+  check("a business that makes wine names its domaine and sees its own wines by vintage", /Clos St-Jacques/.test(await p.textContent("#bizPanel")) && /2016 · 1/.test(await p.textContent("#bizPanel")));
+  // an account of before, kept as a winemaker in the vault: opens as the one business kind
+  await p.evaluate(() => VAULT.setPrefs(Object.assign({}, VAULT.prefs(), { kind: "winemaker" })));
   await p.evaluate(() => { location.hash = ""; }); await p.reload(); await p.waitForSelector("#app:not([hidden])", { timeout: 30000 }); await p.waitForTimeout(1500);
-  check("…kept in the encrypted vault's prefs (with the domaine), not only on this device", await p.evaluate(() => VAULT.active() && VAULT.prefs().kind === "winemaker" && VAULT.prefs().domaine === "Rousseau"));
-  check("the kind is kept after a reload, opening on the inventory", await p.evaluate(() => KIND === "winemaker" && !!window.BIZ) && await p.isVisible("#pageInventory"));
+  check("the domaine is kept in the encrypted vault's prefs, not only on this device", await p.evaluate(() => VAULT.active() && VAULT.prefs().domaine === "Rousseau"));
+  check("a restaurant, merchant or winemaker of before opens as a business, on the inventory", await p.evaluate(() => KIND === "business" && !!window.BIZ) && await p.isVisible("#pageInventory"));
   await p.click("#acctBtn"); await p.waitForSelector("#acctModal.open"); await p.selectOption("#acctKind", "private"); await p.keyboard.press("Escape"); await p.waitForTimeout(400);
   check("back to private: the business pages, the button and the extra fields are gone; Enjoyed, Wishlist and Journal are back; the wines are the same",
     (await tabs()) === "cellar,enjoyed,wishlist,journal" && await p.isVisible("#pageCellar") && await p.isHidden("#bizPanel") && await p.isHidden("#bizCardBtn") && (await p.textContent("#wallTitle")) === "Your cellar"

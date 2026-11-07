@@ -1,18 +1,8 @@
-// The business page (business.html): the kind of business picks what's shown and which price is marked; the tour is a
+// The business page (business.html): one business account, everything included; the tour is a
 // gallery of cards, one feature each, with a cut of the real app (img/business, made by tools/shot-demo.js).
 "use strict";
 (() => {
   const $ = id => document.getElementById(id), t = s => (window.I18N ? I18N.t(s) : s);
-  // the kind: the features for it, its price marked; remembered in the address (#restaurant, #merchant, #winemaker)
-  function setKind(k) {
-    document.querySelectorAll("#kinds button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.kind === k)));
-    document.querySelectorAll("#feats .feat").forEach(f => { f.hidden = !f.dataset.for.split(" ").includes(k); });
-    document.querySelectorAll("#plans .plan").forEach(p => p.classList.toggle("on", p.dataset.plan === k));
-  }
-  $("kinds").addEventListener("click", e => { const b = e.target.closest("button[data-kind]"); if (!b) return; setKind(b.dataset.kind); history.replaceState(null, "", "#" + b.dataset.kind); });
-  const fromHash = () => { const k = location.hash.slice(1); setKind(["restaurant", "merchant", "winemaker"].includes(k) ? k : (document.querySelector('#kinds [aria-pressed="true"]') || {}).dataset?.kind || "restaurant"); };
-  fromHash(); window.addEventListener("hashchange", fromHash);
-
   // the tour: a gallery of cards, one feature each (img/business, cut from the app by tools/shot-demo.js), swiped or
   // scrolled sideways; the arrows and the dots move a card at a time
   const cards = [...$("slides").content.children].map(d => ({ shot: d.dataset.shot, kick: d.querySelector("u").textContent.trim(), title: d.querySelector("b").textContent.trim(), text: d.querySelector("i").textContent.trim() }));

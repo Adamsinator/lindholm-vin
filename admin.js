@@ -45,6 +45,7 @@ function renderAdmin(){
   $("adminCount").textContent = tr("{0} of at most {1}", fmt(A.users.length), fmt(A.max || 50));
   $("adminUsers").innerHTML = A.users.map(u=>`<li><span class="a1"><b>${esc(u.user)}</b> · ${u.test ? `<span class="tchip">${esc(tr("test user"))}</span>` : u.email ? `<a href="mailto:${esc(u.email)}">${esc(u.email)}</a>` : "—"}</span>
       ${u.owner ? `<span class="ph adrm">${esc(tr("you (owner)"))}</span>` : `${A.adminKid ? (u.helpReady ? `<button type="button" data-help="${esc(u.user)}">${esc(tr("Help back in"))}</button>` : `<span class="hwait">${esc(tr("help: after next login"))}</span>`) : ""}
+        ${u.staff || u.test ? "" : `<button type="button" ${u.business ? 'style="background:var(--accent);border-color:var(--accent);color:#fff"' : ""} data-biz="${esc(u.user)}" aria-pressed="${u.business ? "true" : "false"}">${esc(trA(u.business ? "Business: on" : "Make business"))}</button>`}
         <button type="button" class="adrm" data-remove="${esc(u.user)}">${esc(tr("Remove"))}</button>`}
       <span class="a2">${esc(tr("Signed up"))} ${esc(u.created || "—")} · ${esc(tr("Last seen"))} ${esc(u.lastSeen || "—")}</span></li>`).join("");
   const open = A.invites.filter(i=>!i.usedBy), done = A.invites.filter(i=>i.usedBy);
@@ -83,6 +84,20 @@ $("adminUsers").addEventListener("click", async e=>{
       <p><button type="button" class="btn" id="helpCopy">${esc(tr("Copy a message for {0}", who))}</button></p>`;
     $("helpCopy").onclick = async ()=>{ try{ await navigator.clipboard.writeText(msg); toast(tr("Copied")); }catch(err){ window.prompt(tr("Copy"), msg); } };
   }catch(err){ $("adminErr").textContent = /no-help-yet/.test(errText(err)) ? tr("{0} isn't ready yet: it happens at their next login.", who) : tr("Could not reach the cellar API ({0}).", errText(err)); }
+});
+// the words of the business switch: only the owner sees them, so they're kept here, not in the site's dictionaries
+const ADMIN_WORDS = {"da": {"Business: on": "Erhverv: til", "Make business": "Gør til erhverv", "Make {0} a private cellar again? Their business pages close; nothing they've stored is deleted.": "Gør {0} til en privat kælder igen? Erhvervssiderne lukkes; intet af det gemte slettes.", "Make private": "Gør privat", "{0} is a business account: they choose Business under Account": "{0} er en erhvervskonto: de vælger Erhverv under Konto", "{0} is a private cellar again": "{0} er en privat kælder igen", "This needs the updated Apps Script (version 56): redeploy Code.gs.": "Det kræver det opdaterede Apps Script (version 56): genudrul Code.gs."}, "fr": {"Business: on": "Pro : activé", "Make business": "Passer en pro", "Make {0} a private cellar again? Their business pages close; nothing they've stored is deleted.": "Refaire de {0} une cave privée ? Ses pages pro se ferment ; rien de ce qui est enregistré n'est supprimé.", "Make private": "Rendre privée", "{0} is a business account: they choose Business under Account": "{0} est un compte pro : il choisit Entreprise sous Compte", "{0} is a private cellar again": "{0} est de nouveau une cave privée", "This needs the updated Apps Script (version 56): redeploy Code.gs.": "Il faut l'Apps Script à jour (version 56) : redéployez Code.gs."}, "de": {"Business: on": "Betrieb: an", "Make business": "Zum Betrieb machen", "Make {0} a private cellar again? Their business pages close; nothing they've stored is deleted.": "{0} wieder zu einem privaten Keller machen? Die Betriebsseiten schließen sich; nichts Gespeichertes wird gelöscht.", "Make private": "Privat machen", "{0} is a business account: they choose Business under Account": "{0} ist ein Betriebskonto: unter Konto wählt man Betrieb", "{0} is a private cellar again": "{0} ist wieder ein privater Keller", "This needs the updated Apps Script (version 56): redeploy Code.gs.": "Dafür braucht es das aktualisierte Apps Script (Version 56): Code.gs neu bereitstellen."}};
+const trA = (s, ...a) => (((ADMIN_WORDS[window.I18N && I18N.lang] || {})[s]) || s).replace(/\{(\d)\}/g, (m, i) => a[i] ?? "");
+// a member's account made a business account (after they've written and agreed a price), or back to a private cellar:
+// it unlocks the business kind under their Account; their wines stay as they are either way
+$("adminUsers").addEventListener("click", async e=>{
+  const b = e.target.closest("button[data-biz]"); if(!b) return;
+  const who = b.dataset.biz, on = b.getAttribute("aria-pressed") !== "true";
+  if(!on && !(await ask(trA("Make {0} a private cellar again? Their business pages close; nothing they've stored is deleted.", who), {ok:trA("Make private")}))) return;
+  b.disabled = true;
+  try{ ADMIN = await api({action:"adminbiz", member:who, on}); $("adminErr").textContent = ""; renderAdmin();
+    toast(on ? trA("{0} is a business account: they choose Business under Account", who) : trA("{0} is a private cellar again", who)); }
+  catch(err){ b.disabled = false; $("adminErr").textContent = /bad-action/.test(errText(err)) ? trA("This needs the updated Apps Script (version 56): redeploy Code.gs.") : tr("Could not reach the cellar API ({0}).", errText(err)); }
 });
 // removing a member: as permanent as them deleting their own account, so the name is typed to confirm it
 $("adminUsers").addEventListener("click", async e=>{

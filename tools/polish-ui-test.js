@@ -66,7 +66,7 @@ const rows = p => p.$$eval("#tbl tr.main", r => r.length);
   check("on a touch screen the journal's edit and delete buttons are at least 24 × 24 px", sz.length >= 2 && sz.every(([w, h]) => w >= 24 && h >= 24), JSON.stringify(sz));
   check("…and nothing scrolls sideways", await f.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
   // a business: the count survives the sheet closing
-  await p.click("#acctBtn"); await p.waitForSelector("#acctModal.open"); await p.selectOption("#acctKind", "restaurant"); await p.keyboard.press("Escape"); await p.waitForTimeout(800);
+  await p.click("#acctBtn"); await p.waitForSelector("#acctModal.open"); await p.selectOption("#acctKind", "business"); await p.keyboard.press("Escape"); await p.waitForTimeout(800);
   await p.click('.tab[data-page="inventory"]').catch(() => {}); await p.waitForSelector('[data-bz="count"]', { timeout: 10000 });
   await p.click('[data-bz="count"]'); await p.waitForSelector("#bzCount.open");
   const r0 = await p.$eval("#bzCount [data-cnt]", i => i.dataset.cnt);

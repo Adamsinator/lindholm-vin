@@ -1046,14 +1046,13 @@ function saveLayout(){
 // the vault keeps one prefs object: a change to one part keeps the others (the layout, the kind of account)
 const savePrefs = o => VAULT.setPrefs(Object.assign({}, VAULT.prefs() || {}, o));
 
-/* What kind of account: private (the default), a restaurant or wine bar, a wine merchant or shop, a winemaker. Kept with
+/* What kind of account: private (the default) or business (the restaurant, merchant and winemaker of before). Kept with
    the layout (the vault's encrypted prefs, and this device). A business kind loads business.js: its fields (the price on
    the card, by the glass, the supplier), margins and stock value, and the printable wine card or price list. The wines
    stay the same whatever the kind; only what's shown changes. */
-const KINDS = ["private","restaurant","merchant","winemaker"];
+const KINDS = ["private","business"], OLD_KINDS = ["restaurant","merchant","winemaker"];
 let KIND = "private";
-// business accounts aren't open to members yet: only the owner and test users choose a kind; everyone else is a
-// private cellar (what they have stored is left alone, for when BIZ_OPEN is turned on)
+// business once the owner has made the account one (Admin; "me" says biz), or for the owner, test users and staff
 const BIZ_OPEN = false;
 let MAY_BIZ = false;
 const bizAllowed = () => BIZ_OPEN || MAY_BIZ;
@@ -1061,10 +1060,11 @@ const kindKey = () => "vinKind:" + String(cfg.user||"").toLowerCase();
 const isBiz = () => KIND!=="private" && !!window.BIZ;
 function loadKind(){
   let k = null;
-  try{ const x = window.VAULT && VAULT.active() && VAULT.prefs(); if(x && KINDS.includes(x.kind)) k = x.kind; }catch(e){}
+  try{ const x = window.VAULT && VAULT.active() && VAULT.prefs(); if(x && (KINDS.includes(x.kind) || OLD_KINDS.includes(x.kind))) k = x.kind; }catch(e){}
   if(!k){ k = localStorage.getItem(kindKey());
     // chosen at sign-up (or on this device before the vault had it): the vault keeps it from now on
     if(KINDS.includes(k) && k!=="private" && bizAllowed() && window.VAULT && VAULT.active()) savePrefs({kind:k}).catch(()=>{}); }
+  if(OLD_KINDS.includes(k)) k = "business";
   if(!bizAllowed()) return setKindLocal("private", true); // shown as private, nothing stored is changed
   setKindLocal(KINDS.includes(k) ? k : "private");
 }
@@ -1756,6 +1756,7 @@ function showGate(msg){
   $("who").hidden = true; $("who").textContent = "";
   $("gateApiWrap").hidden = !!cfg.api;
   $("gateErr").textContent = msg||"";
+  if(!document.getElementById("bizband")) loadJS("landing-biz.js?v=1").catch(()=>{});
   // On phones the atlas sits above the login; focusing would pop the keyboard and scroll past it.
   if(matchMedia("(min-width: 821px)").matches) setTimeout(()=>$("gateUser").focus(), 50);
 }
@@ -4531,7 +4532,7 @@ async function checkOwner(){
     setRole(r && r.role);
     // the feed only when the server has it on ("me" says so; an older API without the flag: ask the feed itself)
     if(r && r.social === true || (r && r.social === undefined)) loadFeedSilently(); else setSocial(false);
-    const may = !!(r && (r.owner === true || r.test === true || r.parent)); $("acctKindWrap").hidden = !(BIZ_OPEN || may) || !!ROLE;
+    const may = !!(r && (r.owner === true || r.test === true || r.parent || r.biz === true)); $("acctKindWrap").hidden = !(BIZ_OPEN || may) || !!ROLE;
     if(may !== MAY_BIZ){ MAY_BIZ = may; loadKind(); if(WINES.length){ renderOverview(); renderTable(); } } askForHelp(r && r.help); }catch(e){ $("adminBtn").hidden = true; loadFeedSilently(); } // no "me" (an older API): the feed says itself whether it is on
 }
 // account help: a member whose session came back without the password (a kept key) types it once, so the key can be
@@ -4558,12 +4559,12 @@ $("helpForm").addEventListener("submit", async e=>{
 // opened, so a member's page never carries it
 let ADMIN_LOAD = null;
 $("adminBtn").addEventListener("click", ()=>{
-  (ADMIN_LOAD = ADMIN_LOAD || loadJS("admin.js?v=1").catch(e=>{ ADMIN_LOAD = null; throw e; }))
+  (ADMIN_LOAD = ADMIN_LOAD || loadJS("admin.js?v=2").catch(e=>{ ADMIN_LOAD = null; throw e; }))
     .then(()=>openAdmin()).catch(err=>toast(tr("Could not reach the cellar API ({0}).", errText(err))));
 });
 // test users and test wines (test-data.js, loaded the first time one of these is used)
 const testTools = () => window.TESTDATA && TESTDATA.ui ? Promise.resolve(TESTDATA) : new Promise((ok, no)=>{ const el = document.createElement("script");
-  el.src = "test-data.js?v=2"; el.onload = ()=>ok(window.TESTDATA); el.onerror = ()=>no(new Error("load test-data.js")); document.head.appendChild(el); });
+  el.src = "test-data.js?v=3"; el.onload = ()=>ok(window.TESTDATA); el.onerror = ()=>no(new Error("load test-data.js")); document.head.appendChild(el); });
 $("acctTest").addEventListener("click", e=>{ const b = e.target.closest("button[data-testwines]"); if(!b) return;
   testTools().then(T=>T.ui.addWines(Number(b.dataset.testwines))).catch(err=>{ $("acctTestMsg").textContent = errText(err); }); });
 async function loadFeedSilently(){

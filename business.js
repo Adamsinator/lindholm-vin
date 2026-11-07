@@ -15,11 +15,12 @@
 window.BIZ = (() => {
   const VAT = 0.25;
   const WORDS = {
+    business:   { stock: "Your stock", sell: "Menu price", card: "Wine card", glass: true },
     restaurant: { stock: "Your stock", sell: "Menu price", card: "Wine card", glass: true },
     merchant:   { stock: "Your stock", sell: "Sale price", card: "Price list", glass: false },
     winemaker:  { stock: "Your cellar", sell: "Cellar-door price", card: "Price list", glass: false },
   };
-  const words = () => WORDS[KIND] || WORDS.restaurant;
+  const words = () => WORDS[KIND] || WORDS.business;
   // a word inside a sentence: lower case, except in German, where a noun keeps its capital
   const low = s => window.I18N && I18N.lang === "de" ? s : s.toLowerCase();
   const on = () => KIND !== "private";
@@ -192,7 +193,7 @@ window.BIZ = (() => {
     return `<div class="bz-h"><h3>${esc(tr("Sales"))}</h3>
         <label class="bz-f">${esc(tr("Period"))}<select id="bzPeriod">${PERIODS.map(([d, l]) => `<option value="${d}"${d === PERIOD ? " selected" : ""}>${esc(tr(l))}</option>`).join("")}</select></label></div>
       <div class="bz-ks">
-        <div class="bz-k"><b>${esc(fmt(nB))}${KIND === "restaurant" ? ` <small>+ ${esc(fmt(nG))} ${esc(tr("glasses"))}</small>` : ""}</b><span>${esc(tr(KIND === "restaurant" ? "Bottles and glasses sold" : "Bottles sold"))}</span></div>
+        <div class="bz-k"><b>${esc(fmt(nB))}${words().glass ? ` <small>+ ${esc(fmt(nG))} ${esc(tr("glasses"))}</small>` : ""}</b><span>${esc(tr(words().glass ? "Bottles and glasses sold" : "Bottles sold"))}</span></div>
         ${fig(hide(rev), tr("Sales, VAT included"), SHOW_PRICES ? tr("{0} without VAT", kr(Math.round(rev / (1 + VAT)))) : "")}
         ${fig(priced.length ? hide(profit) : "—", tr("Gross profit, VAT excluded"), priced.length && netP > 0 ? tr("margin {0}", pct(profit / netP)) : "")}
         ${fig(eqN > 0 ? hide(rev / eqN) : "—", tr("Average a bottle sold"))}
@@ -206,7 +207,7 @@ window.BIZ = (() => {
       </div>
       ${SALES.length ? `<p class="bz-exp"><label class="bz-f">${esc(tr("Sales of the month"))}<select id="bzMonth">${months().map(m => `<option value="${m}">${esc(monthName(m))}</option>`).join("")}</select></label>
         <button type="button" class="btn" id="bzSalesCsv">${esc(tr("Download as CSV"))}</button></p>` : ""}
-      ${KIND === "restaurant" ? `<label class="bz-f bz-gl">${esc(tr("Glasses in a bottle"))}<input id="bzGlasses" type="number" min="2" max="12" step="1" value="${per}"></label>` : ""}`;
+      ${words().glass ? `<label class="bz-f bz-gl">${esc(tr("Glasses in a bottle"))}<input id="bzGlasses" type="number" min="2" max="12" step="1" value="${per}"></label>` : ""}`;
   }
   // the months that have sales, newest first ("2026-10"), and a month's sales as rows for EXPORT.csv: one line a
   // sale, its price with and without VAT and the VAT itself, and a total; a spreadsheet for the bookkeeping
@@ -289,7 +290,7 @@ window.BIZ = (() => {
     $("bzSup").innerHTML = Object.keys(sup).sort().map(s => `<option>${esc(s)}</option>`).join("");
     const fig = (n, l) => `<div class="bz-k"><b>${n}</b><span>${esc(l)}</span></div>`;
     let own = "";
-    if (KIND === "winemaker") {
+    if (KIND === "winemaker" || KIND === "business") { // a business that makes wine names its domaine; its own wines by vintage
       const dom = domaine(), mine = dom ? cellar.filter(w => w.producer.toLowerCase().includes(dom.toLowerCase())) : [];
       const byWine = {}; mine.forEach(w => { const k = w.name || w.producer; (byWine[k] = byWine[k] || []).push(w); });
       own = `<h3>${esc(tr("Your own wines"))}</h3>
@@ -297,7 +298,7 @@ window.BIZ = (() => {
         ${dom ? (mine.length ? `<div class="bz-own">${Object.entries(byWine).map(([k, ws]) => `<div><b>${esc(k)}</b> ${ws.sort((a, b) => (a.vintage || 0) - (b.vintage || 0)).map(w => `<span class="bz-v">${esc(w.vintage || "NV")} · ${esc(btl(fmt(w.left)))}</span>`).join(" ")}</div>`).join("")}</div>`
           : `<p class="note">${esc(tr("No wines from {0} in the cellar yet.", dom))}</p>`) : ""}`;
     }
-    p.innerHTML = `<h2>${esc(tr(KIND === "restaurant" ? "The business" : KIND === "merchant" ? "The shop" : "The domaine"))}</h2>
+    p.innerHTML = `<h2>${esc(tr(KIND === "restaurant" || KIND === "business" ? "The business" : KIND === "merchant" ? "The shop" : "The domaine"))}</h2>
       ${KIND !== "winemaker" ? salesHTML(cellar) : ""}
       <h3>${esc(tr("The stock"))}</h3>
       <div class="bz-ks">

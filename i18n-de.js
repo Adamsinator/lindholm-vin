@@ -1,6 +1,8 @@
 // German for allwine.dk: i18n.js loads the one dictionary the page's language needs (English is the source text).
 window.I18N_DICT = window.I18N_DICT || {};
 window.I18N_DICT.de = {
+  "A business: restaurant, wine bar, shop or domaine": "Ein Betrieb: Restaurant, Weinbar, Laden oder Weingut",
+  "For business": "Für Betriebe",
   "Another like this": "Noch einen wie diesen",
   "Put the closing windows in my calendar": "Die schließenden Trinkfenster in meinen Kalender",
   "Drink: {0}": "Trinken: {0}",
@@ -282,9 +284,6 @@ window.I18N_DICT.de = {
   "Saved: {0}": "Gespeichert: {0}",
   "What kind of account": "Welche Art von Konto",
   "A private cellar": "Ein privater Keller",
-  "A restaurant or wine bar": "Ein Restaurant oder eine Weinbar",
-  "A wine merchant or shop": "Eine Weinhandlung oder ein Laden",
-  "A winemaker or domaine": "Ein Winzer oder Weingut",
   "It changes the words, fields and overviews; your wines stay as they are. Saved at once.": "Das ändert Begriffe, Felder und Übersichten; Ihre Weine bleiben, wie sie sind. Sofort gespeichert.",
   "Prices in kr. including VAT.": "Preise in Kronen inkl. MwSt.",
   "The first price is by the glass.": "Der erste Preis gilt pro Glas.",
