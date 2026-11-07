@@ -133,7 +133,7 @@ Object.assign(window.I18N_DICT.fr = window.I18N_DICT.fr || {}, {
   "No location": "Sans emplacement",
   "All locations": "Tous les emplacements",
   "Quick sell": "Vente rapide",
-  "A few letters of the wine": "Quelques lettres du vin",
+  "Search wine, producer or vintage": "Chercher un vin, un producteur, un millésime",
   "Goods in": "Réception",
   "Count stock": "Compter le stock",
   "{0}'s order has come": "La commande de {0} est arrivée",

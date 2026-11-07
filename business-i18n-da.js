@@ -133,7 +133,7 @@ Object.assign(window.I18N_DICT.da = window.I18N_DICT.da || {}, {
   "No location": "Ingen placering",
   "All locations": "Alle placeringer",
   "Quick sell": "Hurtigsalg",
-  "A few letters of the wine": "Et par bogstaver af vinen",
+  "Search wine, producer or vintage": "Søg vin, producent eller årgang",
   "Goods in": "Varemodtagelse",
   "Count stock": "Optæl lager",
   "{0}'s order has come": "Bestillingen fra {0} er kommet",

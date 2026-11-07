@@ -5,7 +5,7 @@
 <!-- what the page may load (see README, "Content-Security-Policy"); GitHub Pages can't send it as a header -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; script-src 'self'; connect-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="i18n-extra" content="business-page-i18n-da.js?v=6 business-page-i18n-fr.js?v=6 business-page-i18n-de.js?v=6">
+<meta name="i18n-extra" content="business-page-i18n-da.js?v=7 business-page-i18n-fr.js?v=7 business-page-i18n-de.js?v=7">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>AllWine for business</title>
 <meta name="description" content="AllWine for restaurants, wine bars, wine merchants and winemakers: the stock, the sales and the wine card in one place. Price on request.">
@@ -32,8 +32,6 @@ a{color:var(--accent)}
 .btn{display:inline-block;padding:10px 16px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;font-weight:600;text-decoration:none;cursor:pointer}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
 h2{font-size:28px;margin:44px 0 6px} .sub{color:var(--muted);margin:0 0 16px}
-.feats{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
-.feat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px} .feat h3{margin:0 0 4px;font-size:16px} .feat p{margin:0;color:var(--muted);font-size:14.5px}
 /* the tour: a gallery, one feature a card (its words above, a cut of the app below), swiped or scrolled sideways */
 .gal{width:100vw;margin-left:calc(50% - 50vw);position:relative}
 .track{display:flex;gap:18px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;scrollbar-width:none;
@@ -80,29 +78,15 @@ h2{font-size:28px;margin:44px 0 6px} .sub{color:var(--muted);margin:0 0 16px}
 
 <section class="hero">
   <div>
-    <h1 data-i18n>Your wine, from the cellar to the glass, in one place</h1>
-    <p data-i18n>For restaurants and wine bars, wine merchants and winemakers: the stock you count and sell from, the sales and margins by period, and a wine card that keeps itself up to date, online with a QR code.</p>
+    <h1 data-i18n>Stock, sales and the wine card in one place</h1>
+    <p data-i18n>Count and sell from the same list, see the margin on every bottle, and keep a wine card online that changes when the stock does.</p>
     <div class="cta"><a class="btn primary" href="#tour" data-i18n>Take the tour</a><a class="btn" href="#prices" data-i18n>See the prices</a></div>
   </div>
   <img src="img/business/inventory.webp" alt="The inventory: every wine with its stock, minimum, prices, supplier and margin" width="2240" height="1400">
 </section>
 
-<h2 data-i18n>What you get</h2>
-<p class="sub" data-i18n>One business account, everything included: for a restaurant, a wine bar, a shop or a domaine.</p>
-<div class="feats" id="feats">
-  <div class="feat"><h3 data-i18n>An inventory to work from</h3><p data-i18n>Every wine as a line: stock, minimum, cost and selling price, supplier and margin, edited in place. Search, filter by location or what's running low.</p></div>
-  <div class="feat"><h3 data-i18n>Quick sell, by the bottle or the glass</h3><p data-i18n>A till for service: a few letters find the wine, one tap sells a bottle or a glass. The open bottle's glasses are counted for you.</p></div>
-  <div class="feat"><h3 data-i18n>Sales and accounts</h3><p data-i18n>Takings with and without VAT, gross profit and margin, best sellers and slow movers, for a week, a month or a year; the month as a CSV for your bookkeeping.</p></div>
-  <div class="feat"><h3 data-i18n>A wine card that writes itself</h3><p data-i18n>Print it or put it online behind a QR code on the table: it shows what's in stock at today's prices, with the price by the glass.</p></div>
-  <div class="feat"><h3 data-i18n>Your own wines by vintage</h3><p data-i18n>Name your domaine and see your wines vintage by vintage, with a cellar-door price list online.</p></div>
-  <div class="feat"><h3 data-i18n>Reorder, by supplier</h3><p data-i18n>Set a minimum per wine; what's below it is listed by supplier, ready to email or print as an order.</p></div>
-  <div class="feat"><h3 data-i18n>Stock by location</h3><p data-i18n>Bar fridge, cellar, shelf 3: see what's where, and what it's worth at cost.</p></div>
-  <div class="feat"><h3 data-i18n>Knowledge for your staff</h3><p data-i18n>Serving temperature, glass and decanting, food matches, and a sommelier to ask, in four languages.</p></div>
-  <div class="feat"><h3 data-i18n>Private by design</h3><p data-i18n>Your figures are encrypted in your browser: we can't read them. Export everything at any time.</p></div>
-</div>
-
 <h2 id="tour" data-i18n>Take the tour</h2>
-<p class="sub" data-i18n>Real screens from a made-up wine bar, one feature at a time. Swipe or scroll sideways.</p>
+<p class="sub" data-i18n>Screens from a made-up wine bar. Swipe or scroll sideways.</p>
 <section class="gal" id="tourBox" aria-roledescription="carousel" aria-label="The tour" data-i18n-aria>
   <div class="track" id="track" tabindex="0"></div>
   <div class="gnav"><div class="dots" id="dots"></div>
@@ -110,23 +94,23 @@ h2{font-size:28px;margin:44px 0 6px} .sub{color:var(--muted);margin:0 0 16px}
 </section>
 <!-- the cards: the picture (img/business, made by tools/shot-demo.js), the part of the business it belongs to, title, text -->
 <template id="slides">
-  <div data-shot="kpis"><u data-i18n>Inventory</u><b data-i18n>Stock at a glance</b><i data-i18n>Bottles, value at cost and at menu price, and how many wines are under their minimum.</i></div>
-  <div data-shot="stock"><u data-i18n>Inventory</u><b data-i18n>Every wine as a line</b><i data-i18n>Stock, minimum, cost and menu price, supplier and margin, changed right there. The margin follows the price.</i></div>
-  <div data-shot="quicksell"><u data-i18n>Service</u><b data-i18n>Quick sell</b><i data-i18n>During service: a few letters find the wine, one tap sells a bottle or a glass. The open bottle is counted by the glass.</i></div>
-  <div data-shot="count"><u data-i18n>Inventory</u><b data-i18n>Counting the stock</b><i data-i18n>Type what's on the shelf; the difference shows at once, and nothing is saved until you say so.</i></div>
-  <div data-shot="sales"><u data-i18n>Accounts</u><b data-i18n>Sales and accounts</b><i data-i18n>Takings with and without VAT, gross profit and margin, day by day, for the period you choose.</i></div>
-  <div data-shot="movers"><u data-i18n>Accounts</u><b data-i18n>Best sellers and slow movers</b><i data-i18n>What sells, and what has stood still for 90 days.</i></div>
-  <div data-shot="reorder"><u data-i18n>Inventory</u><b data-i18n>Reordering</b><i data-i18n>Set a minimum per wine: what's under it is listed by supplier, ready to email or print as an order.</i></div>
+  <div data-shot="kpis"><u data-i18n>Inventory</u><b data-i18n>Stock at a glance</b><i data-i18n>Bottles, stock value at cost and at menu price, and wines under their minimum.</i></div>
+  <div data-shot="stock"><u data-i18n>Inventory</u><b data-i18n>Every wine as a line</b><i data-i18n>Stock, minimum, prices, supplier and margin on one line. Change a price and the margin follows.</i></div>
+  <div data-shot="quicksell"><u data-i18n>Service</u><b data-i18n>Quick sell</b><i data-i18n>Search, then tap Bottle or Glass. The glasses left in an open bottle are counted.</i></div>
+  <div data-shot="count"><u data-i18n>Inventory</u><b data-i18n>Counting the stock</b><i data-i18n>Type what's on the shelf. You see the difference before anything is saved.</i></div>
+  <div data-shot="sales"><u data-i18n>Accounts</u><b data-i18n>Sales and accounts</b><i data-i18n>Takings with and without VAT, gross profit and margin, for the period you pick.</i></div>
+  <div data-shot="movers"><u data-i18n>Accounts</u><b data-i18n>Best sellers and slow movers</b><i data-i18n>What sells, and what hasn't moved in 90 days.</i></div>
+  <div data-shot="reorder"><u data-i18n>Inventory</u><b data-i18n>Reordering</b><i data-i18n>Give each wine a minimum. What falls below it is listed per supplier, ready to send as an order.</i></div>
   <div data-shot="locations"><u data-i18n>Inventory</u><b data-i18n>Stock by location</b><i data-i18n>Bar fridge, cellar, shelf 3: what's where, and what it's worth at cost.</i></div>
-  <div data-shot="winecard"><u data-i18n>Wine card</u><b data-i18n>The wine card</b><i data-i18n>Made from your stock and prices. Print it, or put it online with a QR code for the table.</i></div>
-  <div data-shot="guest"><u data-i18n>Wine card</u><b data-i18n>What the guest sees</b><i data-i18n>The card on the guest's phone. When a wine sells out or a price changes, it follows by itself.</i></div>
-  <div data-shot="details"><u data-i18n>Inventory</u><b data-i18n>Each wine</b><i data-i18n>Prices, stock, minimum and supplier in its details, with the margin worked out, and a sale in one tap.</i></div>
-  <div data-shot="sommelier"><u data-i18n>Knowledge</u><b data-i18n>The sommelier</b><i data-i18n>Ask what goes with a dish: it answers from your own stock, offline, in four languages.</i></div>
-  <div data-shot="atlas"><u data-i18n>Knowledge</u><b data-i18n>The wine atlas</b><i data-i18n>The vineyards of France and Germany from official maps: a story to tell at the table.</i></div>
+  <div data-shot="winecard"><u data-i18n>Wine card</u><b data-i18n>The wine card</b><i data-i18n>Built from your stock and prices. Print it, or put it online behind a QR code.</i></div>
+  <div data-shot="guest"><u data-i18n>Wine card</u><b data-i18n>What the guest sees</b><i data-i18n>The card on the guest's phone. A wine that sells out comes off it; a new price shows at once.</i></div>
+  <div data-shot="details"><u data-i18n>Inventory</u><b data-i18n>Each wine</b><i data-i18n>The margin on the bottle, the stock and the supplier, and a sale in one tap.</i></div>
+  <div data-shot="sommelier"><u data-i18n>Knowledge</u><b data-i18n>The sommelier</b><i data-i18n>Ask what goes with a dish. It answers from your own stock, offline.</i></div>
+  <div data-shot="atlas"><u data-i18n>Knowledge</u><b data-i18n>The wine atlas</b><i data-i18n>Official vineyard maps of France and Germany, for when a guest asks where a wine is from.</i></div>
 </template>
 
 <h2 id="prices" data-i18n>Prices</h2>
-<p class="sub" data-i18n>A price for your business, everything included: tell us what you need and we'll make you an offer. No set-up fee, no binding, and your data is always yours to take with you.</p>
+<p class="sub" data-i18n>Tell us about your business and we'll send a price. No set-up fee, no lock-in, and you can export everything at any time.</p>
 <div class="plans" id="plans">
   <div class="plan" data-plan="private"><h3 data-i18n>Private cellar</h3><div class="price"><span data-i18n>Free</span></div>
     <ul><li data-i18n>The cellar, the journal and the wishlist</li><li data-i18n>The sommelier and the wine atlas</li><li data-i18n>Encrypted, exportable</li></ul></div>
@@ -150,6 +134,6 @@ h2{font-size:28px;margin:44px 0 6px} .sub{color:var(--muted);margin:0 0 16px}
 <script src="i18n.js?v=95"></script>
 <script src="site-info.js?v=2"></script>
 <script src="site-foot.js?v=4"></script>
-<script src="business-page.js?v=6"></script>
+<script src="business-page.js?v=7"></script>
 </body>
 </html>
