@@ -31,7 +31,7 @@ const login = async (p, user, pass) => { await p.goto(BASE); await p.waitForTime
   await login(o, "adam", "owner-pass-1");
   await o.waitForSelector("#recModal.open", { timeout: 20000 }); await o.check("#recOk"); await o.click("#recDone");
   await o.waitForSelector("#app:not([hidden])", { timeout: 30000 }); await o.waitForTimeout(1000);
-  await o.click("#acctBtn"); await o.waitForSelector("#acctModal.open"); await o.selectOption("#acctKind", "restaurant"); await o.keyboard.press("Escape"); await o.waitForTimeout(600);
+  await o.click("#acctBtn"); await o.waitForSelector("#acctModal.open"); await o.selectOption("#acctKind", "business"); await o.keyboard.press("Escape"); await o.waitForTimeout(600);
   await o.click('.tab[data-page="accounts"]'); await o.waitForSelector("#bzStaffAdd", { timeout: 10000 });
   check("the owner sees Staff logins on Sales & accounts", /Staff logins/.test(await o.textContent("#bizPanel")) && /hold the cellar's key/.test(await o.textContent("#bzStaff")));
   // a wrong owner password: nothing made

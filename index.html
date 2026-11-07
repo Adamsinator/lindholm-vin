@@ -982,9 +982,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
       <label for="gateKind" data-i18n>What kind of account</label>
       <select id="gateKind">
         <option value="private" data-i18n>A private cellar</option>
-        <option value="restaurant" data-i18n>A restaurant or wine bar</option>
-        <option value="merchant" data-i18n>A wine merchant or shop</option>
-        <option value="winemaker" data-i18n>A winemaker or domaine</option>
+        <option value="business" data-i18n>A business: restaurant, wine bar, shop or domaine</option>
       </select>
     </div>
     <div id="gateRecWrap" hidden>
@@ -1036,9 +1034,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
     <div id="acctKindWrap" hidden><label for="acctKind" data-i18n>What kind of account</label>
     <select id="acctKind">
       <option value="private" data-i18n>A private cellar</option>
-      <option value="restaurant" data-i18n>A restaurant or wine bar</option>
-      <option value="merchant" data-i18n>A wine merchant or shop</option>
-      <option value="winemaker" data-i18n>A winemaker or domaine</option>
+      <option value="business" data-i18n>A business: restaurant, wine bar, shop or domaine</option>
     </select>
     <p class="hint" data-i18n>It changes the words, fields and overviews; your wines stay as they are. Saved at once.</p></div>
     <div id="acctTest" hidden><h3 class="adh" data-i18n>Test data</h3>
@@ -1410,8 +1406,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
     <h3 class="adh" data-i18n>Test users</h3>
     <p class="ph" data-i18n>Accounts to try things in, without an invite code. Log in with one in a private window; fill it from its Account with test wines.</p>
     <div class="adnew"><select id="adminTestKind" aria-label="What kind of account" data-i18n-aria>
-        <option value="private" data-i18n>A private cellar</option><option value="restaurant" data-i18n>A restaurant or wine bar</option>
-        <option value="merchant" data-i18n>A wine merchant or shop</option><option value="winemaker" data-i18n>A winemaker or domaine</option></select>
+        <option value="private" data-i18n>A private cellar</option><option value="business" data-i18n>A business: restaurant, wine bar, shop or domaine</option></select>
       <button class="btn primary" type="button" id="adminTestMake" data-i18n>Make a test user</button>
       <button class="btn quiet" type="button" id="adminTestClear" data-i18n>Remove all test users</button></div>
     <div id="adminTestOut"></div>
@@ -1861,9 +1856,9 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 
 <!-- Pages serves these with max-age=600 and no revalidation, so a merged change can
      sit invisible behind a stale app.js for ten minutes. Bump v on every deploy. -->
-<script src="i18n.js?v=94"></script>
+<script src="i18n.js?v=95"></script>
 <script src="site-info.js?v=2"></script>
-<script src="site-foot.js?v=3"></script>
+<script src="site-foot.js?v=4"></script>
 <script src="notes.js?v=5"></script>
 <script src="notes-i18n.js?v=2"></script>
 <script src="burgundy-data.js?v=14"></script>
@@ -1873,13 +1868,13 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 <script src="gas-fake.js?v=7"></script>
 <script src="vault-crypto.js?v=3"></script>
 <script src="vault-engine.js?v=1"></script>
-<script src="vault.js?v=32"></script>
+<script src="vault.js?v=33"></script>
 <script src="wine-kb.js?v=2"></script>
 <script src="piemonte-mga.js?v=1"></script>
 <script src="tidy.js?v=3"></script>
 <script src="import.js?v=8"></script>
 <script src="export.js?v=3"></script>
 <script src="share-crypto.js?v=2"></script>
-<script src="app.js?v=101"></script>
+<script src="app.js?v=102"></script>
 </body>
 </html>

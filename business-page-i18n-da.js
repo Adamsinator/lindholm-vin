@@ -1,6 +1,11 @@
 // The business page's texts in Danish (business.html; English is the source there). Loaded after i18n-da.js,
 // which i18n.js makes sure of, and added to its dictionary.
 Object.assign(window.I18N_DICT.da, {
+  "One business account, everything included: for a restaurant, a wine bar, a shop or a domaine.": "Én erhvervskonto med det hele: til en restaurant, en vinbar, en butik eller en vingård.",
+  "Serving temperature, glass and decanting, food matches, and a sommelier to ask, in four languages.": "Serveringstemperatur, glas og dekantering, madforslag og en sommelier at spørge, på fire sprog.",
+  "Business": "Erhverv",
+  "Logins for your staff": "Login til personalet",
+  "Write to us with a word about your business: we'll send you a price, and switch your account to business once you've signed up.": "Skriv til os med et par ord om jeres forretning: vi sender en pris og skifter jeres konto til erhverv, når I er oprettet.",
   "Real screens from a made-up wine bar, one feature at a time. Swipe or scroll sideways.": "Rigtige skærmbilleder fra en opdigtet vinbar, én funktion ad gangen. Swipe eller scroll sidelæns.",
   "Service": "Servering",
   "Accounts": "Regnskab",

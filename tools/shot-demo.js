@@ -74,7 +74,7 @@ async function crop(pg, name, expr, pad = 12) { // pad: css px, added round the 
   await p.fill("#gateUser", "demo"); await p.fill("#gatePass", "demo-pass-1"); await p.click("#gateSubmit");
   await p.waitForSelector("#recModal.open", { timeout: 20000 }); await p.check("#recOk"); await p.click("#recDone");
   await p.waitForSelector("#app:not([hidden])", { timeout: 30000 }); await p.waitForTimeout(1000);
-  await p.click("#acctBtn"); await p.waitForSelector("#acctModal.open"); await p.selectOption("#acctKind", "restaurant"); await p.keyboard.press("Escape"); await p.waitForTimeout(800);
+  await p.click("#acctBtn"); await p.waitForSelector("#acctModal.open"); await p.selectOption("#acctKind", "business"); await p.keyboard.press("Escape"); await p.waitForTimeout(800);
   // prices, glass prices, minimums and locations; then a month of sales
   await p.evaluate(async (W) => {
     for (const [pr, , , , , , , , , , , [menu, glass, par], loc] of W) { const w = WINES.find(x => x.producer === pr);

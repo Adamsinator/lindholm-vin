@@ -445,7 +445,7 @@ function build() {
     files[`${OUT}/${L}/index.html`] = hub(L);
     for (const v of ALL) files[`${OUT}/${L}/${v.slug}.html`] = page(v, L);
   }
-  const top = ["", "atlas.html", "privacy.html"]; // burgundy.html only forwards to atlas.html#r=cotedor now
+  const top = ["", "atlas.html", "business.html", "privacy.html"]; // burgundy.html only forwards to atlas.html#r=cotedor now
   const alt = f => LANGS.map(l => `<xhtml:link rel="alternate" hreflang="${l}" href="${url(l, f)}"/>`).join("") + `<xhtml:link rel="alternate" hreflang="x-default" href="${url("en", f)}"/>`;
   files["sitemap.xml"] = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">

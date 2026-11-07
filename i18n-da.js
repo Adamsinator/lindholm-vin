@@ -1,6 +1,8 @@
 // Danish for allwine.dk: i18n.js loads the one dictionary the page's language needs (English is the source text).
 window.I18N_DICT = window.I18N_DICT || {};
 window.I18N_DICT.da = {
+  "A business: restaurant, wine bar, shop or domaine": "En virksomhed: restaurant, vinbar, butik eller vingård",
+  "For business": "Til erhverv",
   "Another like this": "En mere som denne",
   "Put the closing windows in my calendar": "Sæt de lukkende vinduer i min kalender",
   "Drink: {0}": "Drik: {0}",
@@ -282,9 +284,6 @@ window.I18N_DICT.da = {
   "Saved: {0}": "Gemt: {0}",
   "What kind of account": "Hvilken slags konto",
   "A private cellar": "En privat vinkælder",
-  "A restaurant or wine bar": "En restaurant eller vinbar",
-  "A wine merchant or shop": "En vinhandler eller butik",
-  "A winemaker or domaine": "En vinbonde eller et domæne",
   "It changes the words, fields and overviews; your wines stay as they are. Saved at once.": "Det ændrer ordene, felterne og oversigterne; dine vine forbliver som de er. Gemmes med det samme.",
   "Prices in kr. including VAT.": "Priser i kr. inkl. moms.",
   "The first price is by the glass.": "Den første pris er pr. glas.",

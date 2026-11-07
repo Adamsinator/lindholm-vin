@@ -42,14 +42,14 @@ const HEAD = ["Producent", "Land", "Område", "Kommune", "Mark/Navn", "Klassifik
   check("…and pia still doesn't", await B.p.isHidden("#adminBtn"));
   // business accounts aren't open yet: a member can't choose one, at sign-up or in Account; the owner can
   await B.p.click("#acctBtn"); await B.p.waitForSelector("#acctModal.open");
-  check("a member's Account has no 'what kind of account' (a private cellar only, for now)", await B.p.isHidden("#acctKindWrap") && await B.p.evaluate(() => KIND === "private"));
+  check("a member's Account has no 'what kind of account' (a private cellar until the owner makes it a business)", await B.p.isHidden("#acctKindWrap") && await B.p.evaluate(() => KIND === "private"));
   await B.p.keyboard.press("Escape");
   await p.click("#acctBtn"); await p.waitForSelector("#acctModal.open");
   check("…the owner's has", await p.isVisible("#acctKindWrap")); await p.keyboard.press("Escape");
 
   await p.click("#adminBtn"); await p.waitForFunction(() => document.querySelectorAll("#adminUsers li").length >= 2, null, { timeout: 10000 });
   const rows = await p.$$eval("#adminUsers li", rs => rs.map(r => r.textContent.replace(/\s+/g, " ").trim()));
-  check("it lists the members with email, signed up and last seen", rows.some(r => /^pia · pia@example\.dk Remove Signed up \d{4}-\d{2}-\d{2} · Last seen \d{4}-\d{2}-\d{2}$/.test(r)) && rows.some(r => /^ole · ole@example\.dk/.test(r)), rows.join(" | "));
+  check("it lists the members with email, signed up and last seen", rows.some(r => /^pia · pia@example\.dk Make business Remove Signed up \d{4}-\d{2}-\d{2} · Last seen \d{4}-\d{2}-\d{2}$/.test(r)) && rows.some(r => /^ole · ole@example\.dk/.test(r)), rows.join(" | "));
   check("…and says how many there are of the most", /2 of at most 50/.test(await p.textContent("#adminCount")), await p.textContent("#adminCount"));
   // usage: pia's page reports which pages she opened (counts only), and the owner sees the 30 days
   await B.p.click('.tab[data-page="journal"]'); await B.p.click('.tab[data-page="enjoyed"]'); await B.p.waitForTimeout(200);
@@ -81,6 +81,18 @@ const HEAD = ["Producent", "Land", "Område", "Kommune", "Mark/Navn", "Klassifik
   await p.click(`#adminInvites button[data-revoke="${codes[1]}"]`);
   await p.waitForFunction(c => [...document.querySelectorAll("#adminInvites li.used")].some(r => r.textContent.includes(c) && /withdrawn/.test(r.textContent)), codes[1], { timeout: 10000 });
   check("'Withdraw' marks the code as withdrawn", true);
+  // the owner makes pia a business account (after she's written and agreed a price): she may choose Business
+  check("a member can't make an account a business account", !gas.call({ action: "adminbiz", member: "pia", on: true }).ok);
+  await p.click('#adminUsers button[data-biz="pia"]');
+  await p.waitForFunction(() => document.querySelector('#adminUsers button[data-biz="pia"]').getAttribute("aria-pressed") === "true", null, { timeout: 10000 });
+  const bizCol = gas.rows("Users")[0].indexOf("Business");
+  check("Make business: the owner switches it on for pia", bizCol > 0 && gas.rows("Users").find(r => r[0] === "pia")[bizCol] === "on" && /Business: on/.test(await p.textContent('#adminUsers button[data-biz="pia"]')));
+  await B.p.reload(); await B.p.waitForSelector("#app:not([hidden])", { timeout: 20000 }); await B.p.waitForTimeout(1200);
+  await B.p.click("#acctBtn"); await B.p.waitForSelector("#acctModal.open");
+  check("…and pia's Account now offers a business account", await B.p.isVisible("#acctKindWrap"));
+  await B.p.selectOption("#acctKind", "business"); await B.p.keyboard.press("Escape");
+  await B.p.waitForFunction(() => !!window.BIZ && KIND === "business", null, { timeout: 10000 }).catch(() => {});
+  check("…choosing Business opens the business pages", await B.p.evaluate(() => KIND === "business" && !!document.querySelector('.tab[data-page="inventory"]')));
   check("the owner can't be removed; the others can", await p.isHidden('#adminUsers button[data-remove="ole"]') && await p.isVisible('#adminUsers button[data-remove="pia"]'));
   ASK = "pai";
   await p.click('#adminUsers button[data-remove="pia"]'); await p.waitForTimeout(300);
@@ -100,10 +112,10 @@ const HEAD = ["Producent", "Land", "Område", "Kommune", "Mark/Navn", "Klassifik
   check("…and pia is logged out", await B.p.isHidden("#app"), await B.p.isVisible("#app"));
   // test users: made here without an invite, logged into elsewhere, filled with test wines, all removed at once
   ASK = true;
-  await p.selectOption("#adminTestKind", "restaurant"); await p.click("#adminTestMake");
+  await p.selectOption("#adminTestKind", "business"); await p.click("#adminTestMake");
   await p.waitForSelector("#adminTestOut .code", { timeout: 20000 });
   const [tu, tp] = (await p.innerText("#adminTestOut .code")).split("\n").map(x => x.trim());
-  check("Make a test user: a name and a password, no invite code used", /^test-restaurant-[a-z0-9]{4}$/.test(tu) && tp.length === 14
+  check("Make a test user: a name and a password, no invite code used", /^test-business-[a-z0-9]{4}$/.test(tu) && tp.length === 14
     && gas.rows("Users").some(r => r[0] === tu) && (gas.rows("Invites") || []).every(r => r[3] !== tu), tu);
   check("…listed as a test user", /test user/.test(await p.textContent(`#adminUsers li:has-text("${tu}")`)));
   const anon = gas.call({ action: "admintestuser", member: "test-private-zzzz" });

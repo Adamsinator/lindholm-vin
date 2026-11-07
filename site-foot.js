@@ -12,7 +12,7 @@
   function foot() {
     const who = [S.name ? esc(S.name) : "AllWine", S.cvr ? "CVR " + esc(S.cvr) : ""].filter(Boolean).join(" · ");
     const html = `<footer class="sitefoot"><span>© ${years} ${who}</span>
-      <a href="legal.html">${esc(t("About & terms"))}</a><a href="privacy.html">${esc(t("Privacy & cookies"))}</a><a href="legal.html#${lang() === "da" ? "da" : "en"}-copy">${esc(t("Data & licences"))}</a>${S.email ? `<a href="mailto:${esc(S.email)}">${esc(S.email)}</a>` : ""}</footer>`;
+      <a href="business.html">${esc(t("For business"))}</a><a href="legal.html">${esc(t("About & terms"))}</a><a href="privacy.html">${esc(t("Privacy & cookies"))}</a><a href="legal.html#${lang() === "da" ? "da" : "en"}-copy">${esc(t("Data & licences"))}</a>${S.email ? `<a href="mailto:${esc(S.email)}">${esc(S.email)}</a>` : ""}</footer>`;
     document.querySelectorAll("[data-sitefoot]").forEach(el => { el.innerHTML = html; });
   }
   function legal() {

@@ -583,6 +583,14 @@ only, never wines.
 
 ## Members, sign-up and the owner's admin page
 
+- **Business accounts (API 56):** one business kind (a restaurant, a bar, a shop or a domaine; the restaurant,
+  merchant and winemaker of before open as it). A member gets it when the owner presses **Make business** beside
+  their name in Admin (after they've written and agreed a price, see `business.html`); their Account then offers
+  *A business*. **Business: on** turns it back to a private cellar; nothing stored is deleted either way. The
+  owner, test users and staff logins may choose it anyway. Needs `Code.gs` 56 deployed (a `Business` column is
+  added to the users sheet by itself). The front page shows *For business* below the login (`landing-biz.js`,
+  loaded only there), and every page's footer links to `business.html`.
+
 - **Private for now:** with `SOCIAL` off (the default in `Settings.gs`) there is no feed, no sharing and no
   follows, and no answer from the server names another account. `SOCIAL: 'on'` brings the feed back.
 - **Sign-up** asks for a username (3–24 letters, numbers, `.` `_` `-`), an email (required; only the owner sees

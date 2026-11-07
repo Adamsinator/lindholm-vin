@@ -1,6 +1,11 @@
 // The business page's texts in French (business.html; English is the source there). Loaded after i18n-fr.js,
 // which i18n.js makes sure of, and added to its dictionary.
 Object.assign(window.I18N_DICT.fr, {
+  "One business account, everything included: for a restaurant, a wine bar, a shop or a domaine.": "Un seul compte pro, tout compris : pour un restaurant, un bar à vin, un caviste ou un domaine.",
+  "Serving temperature, glass and decanting, food matches, and a sommelier to ask, in four languages.": "Température de service, verre et carafage, accords mets-vins, et un sommelier à interroger, en quatre langues.",
+  "Business": "Pro",
+  "Logins for your staff": "Des accès pour votre équipe",
+  "Write to us with a word about your business: we'll send you a price, and switch your account to business once you've signed up.": "Écrivez-nous avec un mot sur votre activité : nous vous enverrons un prix, et passerons votre compte en pro une fois inscrit.",
   "Real screens from a made-up wine bar, one feature at a time. Swipe or scroll sideways.": "De vrais écrans d'un bar à vin imaginaire, une fonction à la fois. Balayez ou faites défiler de côté.",
   "Service": "Service",
   "Accounts": "Comptes",

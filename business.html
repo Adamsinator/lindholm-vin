@@ -5,9 +5,7 @@
 <!-- what the page may load (see README, "Content-Security-Policy"); GitHub Pages can't send it as a header -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; script-src 'self'; connect-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<!-- not in the menus or search engines until business accounts open (app.js BIZ_OPEN) and the prices are settled -->
-<meta name="robots" content="noindex">
-<meta name="i18n-extra" content="business-page-i18n-da.js?v=5 business-page-i18n-fr.js?v=5 business-page-i18n-de.js?v=5">
+<meta name="i18n-extra" content="business-page-i18n-da.js?v=6 business-page-i18n-fr.js?v=6 business-page-i18n-de.js?v=6">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>AllWine for business</title>
 <meta name="description" content="AllWine for restaurants, wine bars, wine merchants and winemakers: the stock, the sales and the wine card in one place. Price on request.">
@@ -33,12 +31,9 @@ a{color:var(--accent)}
 .cta{display:flex;flex-wrap:wrap;gap:10px}
 .btn{display:inline-block;padding:10px 16px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;font-weight:600;text-decoration:none;cursor:pointer}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
-.kinds{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 14px} .kinds button{padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;cursor:pointer}
-.kinds button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 h2{font-size:28px;margin:44px 0 6px} .sub{color:var(--muted);margin:0 0 16px}
 .feats{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
 .feat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px} .feat h3{margin:0 0 4px;font-size:16px} .feat p{margin:0;color:var(--muted);font-size:14.5px}
-.feat[hidden]{display:none}
 /* the tour: a gallery, one feature a card (its words above, a cut of the app below), swiped or scrolled sideways */
 .gal{width:100vw;margin-left:calc(50% - 50vw);position:relative}
 .track{display:flex;gap:18px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;scrollbar-width:none;
@@ -93,24 +88,17 @@ h2{font-size:28px;margin:44px 0 6px} .sub{color:var(--muted);margin:0 0 16px}
 </section>
 
 <h2 data-i18n>What you get</h2>
-<p class="sub" data-i18n>Choose your kind of business:</p>
-<div class="kinds" id="kinds" role="group" aria-label="Kind of business" data-i18n-aria>
-  <button type="button" data-kind="restaurant" aria-pressed="true" data-i18n>Restaurant or wine bar</button>
-  <button type="button" data-kind="merchant" aria-pressed="false" data-i18n>Wine merchant</button>
-  <button type="button" data-kind="winemaker" aria-pressed="false" data-i18n>Winemaker</button>
-</div>
+<p class="sub" data-i18n>One business account, everything included: for a restaurant, a wine bar, a shop or a domaine.</p>
 <div class="feats" id="feats">
-  <div class="feat" data-for="restaurant merchant winemaker"><h3 data-i18n>An inventory to work from</h3><p data-i18n>Every wine as a line: stock, minimum, cost and selling price, supplier and margin, edited in place. Search, filter by location or what's running low.</p></div>
-  <div class="feat" data-for="restaurant"><h3 data-i18n>Quick sell, by the bottle or the glass</h3><p data-i18n>A till for service: a few letters find the wine, one tap sells a bottle or a glass. The open bottle's glasses are counted for you.</p></div>
-  <div class="feat" data-for="merchant winemaker"><h3 data-i18n>Sell in a tap</h3><p data-i18n>Record a sale from the inventory or the quick-sell screen; the stock follows, and a mistake is undone with one click.</p></div>
-  <div class="feat" data-for="restaurant merchant winemaker"><h3 data-i18n>Sales and accounts</h3><p data-i18n>Takings with and without VAT, gross profit and margin, best sellers and slow movers, for a week, a month or a year; the month as a CSV for your bookkeeping.</p></div>
-  <div class="feat" data-for="restaurant"><h3 data-i18n>A wine card that writes itself</h3><p data-i18n>Print it or put it online behind a QR code on the table: it shows what's in stock at today's prices, with the price by the glass.</p></div>
-  <div class="feat" data-for="merchant"><h3 data-i18n>A price list that writes itself</h3><p data-i18n>Print it or share it online with a QR code: in stock and priced only, with the bottles left.</p></div>
-  <div class="feat" data-for="winemaker"><h3 data-i18n>Your own wines by vintage</h3><p data-i18n>Name your domaine and see your wines vintage by vintage, with a cellar-door price list online.</p></div>
-  <div class="feat" data-for="restaurant merchant winemaker"><h3 data-i18n>Reorder, by supplier</h3><p data-i18n>Set a minimum per wine; what's below it is listed by supplier, ready to email or print as an order.</p></div>
-  <div class="feat" data-for="restaurant merchant winemaker"><h3 data-i18n>Stock by location</h3><p data-i18n>Bar fridge, cellar, shelf 3: see what's where, and what it's worth at cost.</p></div>
-  <div class="feat" data-for="restaurant merchant winemaker"><h3 data-i18n>Knowledge for your staff</h3><p data-i18n>Each wine's style at a glance, serving temperature, glass and decanting, food matches, and a sommelier to ask, in four languages.</p></div>
-  <div class="feat" data-for="restaurant merchant winemaker"><h3 data-i18n>Private by design</h3><p data-i18n>Your figures are encrypted in your browser: we can't read them. Export everything at any time.</p></div>
+  <div class="feat"><h3 data-i18n>An inventory to work from</h3><p data-i18n>Every wine as a line: stock, minimum, cost and selling price, supplier and margin, edited in place. Search, filter by location or what's running low.</p></div>
+  <div class="feat"><h3 data-i18n>Quick sell, by the bottle or the glass</h3><p data-i18n>A till for service: a few letters find the wine, one tap sells a bottle or a glass. The open bottle's glasses are counted for you.</p></div>
+  <div class="feat"><h3 data-i18n>Sales and accounts</h3><p data-i18n>Takings with and without VAT, gross profit and margin, best sellers and slow movers, for a week, a month or a year; the month as a CSV for your bookkeeping.</p></div>
+  <div class="feat"><h3 data-i18n>A wine card that writes itself</h3><p data-i18n>Print it or put it online behind a QR code on the table: it shows what's in stock at today's prices, with the price by the glass.</p></div>
+  <div class="feat"><h3 data-i18n>Your own wines by vintage</h3><p data-i18n>Name your domaine and see your wines vintage by vintage, with a cellar-door price list online.</p></div>
+  <div class="feat"><h3 data-i18n>Reorder, by supplier</h3><p data-i18n>Set a minimum per wine; what's below it is listed by supplier, ready to email or print as an order.</p></div>
+  <div class="feat"><h3 data-i18n>Stock by location</h3><p data-i18n>Bar fridge, cellar, shelf 3: see what's where, and what it's worth at cost.</p></div>
+  <div class="feat"><h3 data-i18n>Knowledge for your staff</h3><p data-i18n>Serving temperature, glass and decanting, food matches, and a sommelier to ask, in four languages.</p></div>
+  <div class="feat"><h3 data-i18n>Private by design</h3><p data-i18n>Your figures are encrypted in your browser: we can't read them. Export everything at any time.</p></div>
 </div>
 
 <h2 id="tour" data-i18n>Take the tour</h2>
@@ -142,14 +130,11 @@ h2{font-size:28px;margin:44px 0 6px} .sub{color:var(--muted);margin:0 0 16px}
 <div class="plans" id="plans">
   <div class="plan" data-plan="private"><h3 data-i18n>Private cellar</h3><div class="price"><span data-i18n>Free</span></div>
     <ul><li data-i18n>The cellar, the journal and the wishlist</li><li data-i18n>The sommelier and the wine atlas</li><li data-i18n>Encrypted, exportable</li></ul></div>
-  <div class="plan on" data-plan="restaurant"><h3 data-i18n>Restaurant or wine bar</h3><div class="price"><span data-i18n>Price on request</span></div>
-    <ul><li data-i18n>Inventory and quick sell, by the bottle and the glass</li><li data-i18n>Sales and accounts, the month's CSV</li><li data-i18n>The wine card, printed and online with QR</li><li data-i18n>Reorder lists and orders by supplier</li></ul></div>
-  <div class="plan" data-plan="merchant"><h3 data-i18n>Wine merchant</h3><div class="price"><span data-i18n>Price on request</span></div>
-    <ul><li data-i18n>Inventory and sales</li><li data-i18n>Sales and accounts, the month's CSV</li><li data-i18n>The price list, printed and online with QR</li><li data-i18n>Reorder lists and orders by supplier</li></ul></div>
-  <div class="plan" data-plan="winemaker"><h3 data-i18n>Winemaker</h3><div class="price"><span data-i18n>Price on request</span></div>
-    <ul><li data-i18n>Your own wines by vintage</li><li data-i18n>Cellar-door sales and accounts</li><li data-i18n>The price list, printed and online with QR</li><li data-i18n>Stock by location</li></ul></div>
+  <div class="plan on" data-plan="business"><h3 data-i18n>Business</h3><div class="price"><span data-i18n>Price on request</span></div>
+    <ul><li data-i18n>Inventory and quick sell, by the bottle and the glass</li><li data-i18n>Sales and accounts, the month's CSV</li><li data-i18n>The wine card, printed and online with QR</li>
+      <li data-i18n>Reorder lists and orders by supplier</li><li data-i18n>Stock by location</li><li data-i18n>Your own wines by vintage</li><li data-i18n>Logins for your staff</li></ul></div>
 </div>
-<p class="note" data-i18n>Business accounts open soon. Write to us with a word about your business, and we'll send you a price and set your account up.</p>
+<p class="note" data-i18n>Write to us with a word about your business: we'll send you a price, and switch your account to business once you've signed up.</p>
 <div class="cta"><a class="btn primary" id="mailUs" href="mailto:info@allwine.dk?subject=AllWine%20for%20business" data-i18n>Ask for a price</a><a class="btn" href="./" data-i18n>Open AllWine</a></div>
 
 <h2 data-i18n>Questions</h2>
@@ -162,9 +147,9 @@ h2{font-size:28px;margin:44px 0 6px} .sub{color:var(--muted);margin:0 0 16px}
 </div>
 </div>
 <div data-sitefoot></div>
-<script src="i18n.js?v=94"></script>
+<script src="i18n.js?v=95"></script>
 <script src="site-info.js?v=2"></script>
-<script src="site-foot.js?v=3"></script>
-<script src="business-page.js?v=5"></script>
+<script src="site-foot.js?v=4"></script>
+<script src="business-page.js?v=6"></script>
 </body>
 </html>
