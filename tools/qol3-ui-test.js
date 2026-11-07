@@ -30,7 +30,8 @@ const W = (p, prod) => p.evaluate(n => { const w = WINES.find(x => x.producer ==
   const { p, errs } = await signup(b, { viewport: { width: 1300, height: 900 } }, "ida", twelve);
   // Undo an edit
   await p.evaluate(() => openInfo(WINES.find(x => x.producer === "Domaine A")));
-  await p.waitForSelector("#iModal.open"); await p.fill("#iName", "Vieilles Vignes"); await p.fill("#iLocation", "Garage"); await p.fill("#iLeft", "5"); await p.fill("#iPrice", "300");
+  // the dialog puts the cursor in the name a moment after it opens: wait for that, or a fill elsewhere can be cut in two
+  await p.waitForSelector("#iModal.open"); await p.waitForFunction(() => document.activeElement === $("iName")); await p.fill("#iName", "Vieilles Vignes"); await p.fill("#iLocation", "Garage"); await p.fill("#iLeft", "5"); await p.fill("#iPrice", "300");
   await p.click("#iSave"); await p.waitForTimeout(1000);
   const ed = await W(p, "Domaine A");
   check("an edit saves name, location, bottles and price", ed.name === "Vieilles Vignes" && ed.location === "Garage" && ed.left === 5 && Number(ed.price) === 300, JSON.stringify(ed));
