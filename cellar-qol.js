@@ -250,7 +250,7 @@ $("selDrink").addEventListener("click", async ()=>{
    (click it again to turn the order round); the filters above narrow it. */
 (()=>{
   const W = { da: { Columns: "Kolonner" }, fr: { Columns: "Colonnes" }, de: { Columns: "Spalten" } };
-  const t = s => (W[window.I18N && I18N.lang] || {})[s] || tr(s);
+  const word = s => (W[window.I18N && I18N.lang] || {})[s] || tr(s);
   const C = [["comm", "Commune", 0], ["vint", "Vintage", 1], ["reg", "Region", 1], ["qty", "Bottles", 0], ["price", "Price", 1], ["loc", "Location", 0]];
   const key = () => "cols:" + (cfg.user || "");
   document.head.insertAdjacentHTML("beforeend", `<style>#colBtn,#colPop{display:none}
@@ -266,12 +266,12 @@ $("selDrink").addEventListener("click", async ()=>{
   const sel = $("selBtn"); if(!sel) return;
   sel.insertAdjacentHTML("beforebegin", `<button type="button" class="clearbtn show" id="colBtn" aria-haspopup="true" aria-expanded="false"></button>`);
   document.body.insertAdjacentHTML("beforeend", `<div id="colPop" role="group" hidden></div>`);
-  const btn = $("colBtn"), pop = $("colPop"), label = () => { btn.textContent = t("Columns") + " ▾"; pop.setAttribute("aria-label", t("Columns")); };
+  const btn = $("colBtn"), pop = $("colPop"), label = () => { btn.textContent = word("Columns") + " ▾"; pop.setAttribute("aria-label", word("Columns")); };
   label();
   const close = () => { pop.hidden = true; btn.setAttribute("aria-expanded", "false"); };
   btn.addEventListener("click", e => {
     e.stopPropagation(); if(!pop.hidden) return close(); label();
-    pop.innerHTML = C.map(([c, n]) => `<label><input type="checkbox" data-c="${c}"${on.includes(c) ? " checked" : ""}> ${esc(t(n))}</label>`).join("");
+    pop.innerHTML = C.map(([c, n]) => `<label><input type="checkbox" data-c="${c}"${on.includes(c) ? " checked" : ""}> ${esc(word(n))}</label>`).join("");
     const r = btn.getBoundingClientRect(); pop.style.top = (r.bottom + 4) + "px"; pop.style.left = Math.min(r.left, innerWidth - 190) + "px";
     pop.hidden = false; btn.setAttribute("aria-expanded", "true"); pop.querySelector("input").focus();
   });
