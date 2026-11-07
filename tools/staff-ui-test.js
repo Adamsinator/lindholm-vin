@@ -59,7 +59,11 @@ const login = async (p, user, pass) => { await p.goto(BASE); await p.waitForTime
   await s.click('[data-bz="till"]'); await s.waitForSelector("#bzTill.open"); await s.fill("#bzTillQ", "boll"); await s.waitForTimeout(150);
   await s.click('#bzTiles button[data-sell="bottle"]'); await s.waitForTimeout(1500); await s.keyboard.press("Escape");
   check("the staff login sells a bottle: 5 Bollinger left", await s.evaluate(() => WINES.find(w => w.producer === "Bollinger").left === 5));
-  await o.evaluate(() => VAULT.checkFresh()); await o.waitForTimeout(800);
+  // as the app does it (a check now and then, a failed one simply tried again later): a check can land while the
+  // staff device's save is still being written, and read it half-done
+  await s.waitForFunction(() => WINES.find(w => w.producer === "Bollinger").left === 5, null, { timeout: 15000 });
+  for (let i = 0; i < 4; i++) { const ok = await o.evaluate(() => VAULT.checkFresh().then(() => true, () => false)); await o.waitForTimeout(800);
+    if (ok && await o.evaluate(() => WINES.find(w => w.producer === "Bollinger").left === 5)) break; }
   check("…and the owner's device picks it up when it checks (the vault's versions changed)", await o.evaluate(() => WINES.find(w => w.producer === "Bollinger").left === 5));
   check("…while an unchanged vault isn't fetched again", (await o.evaluate(() => VAULT.checkFresh())) === false);
   // role, then removed
