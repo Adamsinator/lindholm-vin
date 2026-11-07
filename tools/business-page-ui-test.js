@@ -70,6 +70,8 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   // a phone
   await p.setViewportSize({ width: 390, height: 844 }); await p.waitForTimeout(300);
   check("on a phone it fits, no sideways scroll", await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
+  check("on a phone the tour shows the phone's own screens (the app as it looks there)", /img\/business\/inventory-m\.webp$/.test(await p.evaluate(() => document.getElementById("slideImg").getAttribute("src"))));
+  check("…and the picture at the top keeps its shape (not squeezed to the width)", await p.evaluate(() => { const i = document.querySelector(".hero img"); return Math.abs(i.clientWidth / i.clientHeight - i.naturalWidth / i.naturalHeight) < 0.02; }));
   check("on a phone the words of the callouts are in the list, not over the screen", await p.evaluate(() => getComputedStyle(document.querySelector("#spots .bubble")).display === "none" && document.querySelectorAll("#callouts button").length === 4));
   // with reduced motion asked for, it doesn't play by itself
   const q = await b.newPage({ viewport: { width: 1280, height: 900 }, reducedMotion: "reduce" }); await q.goto(BASE + "business.html#tour"); await q.waitForTimeout(400);

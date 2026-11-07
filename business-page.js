@@ -25,9 +25,14 @@
   const FIRST = 1600, EACH = 2900, LAST = 1500, BARE = 5600; // ms: the screen alone, each callout, after the last, a screen without callouts
   let at = 0, step = -1, playing = !reduce.matches, inView = false, t0 = 0, left = 0, timer = 0, raf = 0;
   const esc = s => String(s).replace(/[<&"]/g, c => ({ "<": "&lt;", "&": "&amp;", '"': "&quot;" })[c]);
-  const spotsOf = i => ((tour()[slides[i].shot] || {}).spots || []).slice(0, slides[i].callouts.length);
+  // on a phone, the phone's own screens (name-m: the app as it looks there), where there are some
+  const small = matchMedia("(max-width: 700px)");
+  const shotOf = i => { const n = slides[i].shot; return small.matches && tour()[n + "-m"] ? n + "-m" : n; };
+  // the callouts' places on this screen (null: one the phone's screen doesn't show), and the ones there are, in order
+  const spotsOf = i => ((tour()[shotOf(i)] || {}).spots || []).slice(0, slides[i].callouts.length);
+  const shown = i => spotsOf(i).map((x, k) => x ? k : -1).filter(k => k >= 0);
   // how long this step stays: the screen alone, then each callout
-  const dur = () => { const n = spotsOf(at).length; return !n ? BARE : step < 0 ? FIRST : step === n - 1 ? EACH + LAST : EACH; };
+  const dur = () => { const ks = shown(at); return !ks.length ? BARE : step < 0 ? FIRST : step === ks[ks.length - 1] ? EACH + LAST : EACH; };
 
   $("bars").innerHTML = slides.map((s, k) => `<button type="button" data-k="${k}"><span><i></i></span></button>`).join("");
   function bars() {
@@ -36,8 +41,8 @@
   }
   // the share of this slide that has passed, for its bar
   function progress() {
-    const n = spotsOf(at).length, total = n ? FIRST + n * EACH + LAST : BARE;
-    const before = !n || step < 0 ? 0 : FIRST + step * EACH, spent = dur() - left + (playing && inView && timer ? performance.now() - t0 : 0);
+    const ks = shown(at), n = ks.length, total = n ? FIRST + n * EACH + LAST : BARE, pos = ks.indexOf(step);
+    const before = !n || pos < 0 ? 0 : FIRST + pos * EACH, spent = dur() - left + (playing && inView && timer ? performance.now() - t0 : 0);
     const i = $("bars").querySelector(`[data-k="${at}"] i`); if (i) i.style.width = Math.min(100, (before + spent) / total * 100) + "%";
     if (playing && inView) raf = requestAnimationFrame(progress);
   }
@@ -47,8 +52,8 @@
     t0 = performance.now(); timer = setTimeout(advance, left); raf = requestAnimationFrame(progress);
   }
   function advance() {
-    const n = spotsOf(at).length;
-    if (step < n - 1) { step++; drawSpots(); left = dur(); run(); } else show(at + 1);
+    const next = shown(at).find(k => k > step);
+    if (next != null) { step = next; drawSpots(); left = dur(); run(); } else show(at + 1);
   }
   function pause() { if (timer) left = Math.max(0, left - (performance.now() - t0)); stop(); progress(); }
   function setPlaying(on) { playing = on; $("play").textContent = on ? "❚❚" : "▶"; $("play").setAttribute("aria-label", t(on ? "Pause" : "Play")); if (on) run(); else pause(); }
@@ -56,7 +61,7 @@
   // the callouts on the screen: the ring (and the rest dimmed) for the one that's on, with its words beside it
   function drawSpots() {
     const s = slides[at], sp = spotsOf(at);
-    $("spots").innerHTML = sp.map(([x, y, w, h], k) => {
+    $("spots").innerHTML = sp.map((xy, k) => { if (!xy) return ""; const [x, y, w, h] = xy;
       const pad = 0.6; // per cent: a little room round the thing
       const box = `left:${x * 100 - pad}%;top:${y * 100 - pad * 1.6}%;width:${w * 100 + 2 * pad}%;height:${h * 100 + 3.2 * pad}%`;
       // the words go below the ring if there's room, else above; left-aligned with it, kept inside the screen
@@ -68,10 +73,11 @@
   }
   function show(i, opt = {}) {
     stop(); at = (i + slides.length) % slides.length; step = opt.step ?? -1;
-    const s = slides[at], d = tour()[s.shot] || {}, scr = $("screen"), img = $("slideImg");
+    const s = slides[at], name = shotOf(at), d = tour()[name] || {}, scr = $("screen"), img = $("slideImg");
     const swap = () => {
-      img.src = dir() + s.shot + ".webp"; img.width = (d.w || 1120) * 2; img.height = (d.h || 700) * 2;
-      img.alt = t(s.title) + ": " + t(s.text); scr.className = "screen" + (d.phone ? " phone" : "");
+      img.src = dir() + name + ".webp"; img.width = (d.w || 1120) * 2; img.height = (d.h || 700) * 2;
+      // on a computer a phone's screen stands in a drawn phone; on a phone it fills the frame like the rest
+      img.alt = t(s.title) + ": " + t(s.text); scr.className = "screen" + (d.phone && !small.matches ? " phone" : "");
       drawSpots(); requestAnimationFrame(() => scr.classList.remove("out"));
     };
     if (reduce.matches || opt.now) swap(); else { scr.classList.add("out"); setTimeout(swap, 180); }
@@ -81,7 +87,7 @@
     $("callouts").hidden = !s.callouts.length;
     bars(); left = dur(); run();
     // the next screen, fetched ahead
-    const n = new Image(); n.src = dir() + slides[(at + 1) % slides.length].shot + ".webp";
+    const n = new Image(); n.src = dir() + shotOf((at + 1) % slides.length) + ".webp";
   }
   $("prev").onclick = () => show(at - 1); $("next").onclick = () => show(at + 1);
   $("bars").addEventListener("click", e => { const b = e.target.closest("button[data-k]"); if (b) show(Number(b.dataset.k)); });
@@ -104,6 +110,7 @@
   addEventListener("scroll", watch, { passive: true }); document.addEventListener("visibilitychange", watch);
   const start = () => loadTour(dir()).then(() => { show(at, { now: true, step }); watch(); });
   setPlaying(playing); start();
+  small.addEventListener("change", () => show(at, { now: true }));
   if (window.I18N) I18N.onChange(() => { const h = document.querySelector(".hero img"); if (h) h.src = dir() + "inventory.webp"; start(); });
   const hero = document.querySelector(".hero img"); if (hero) hero.src = dir() + "inventory.webp";
   window.TOUR = { show, get at() { return at; }, get step() { return step; }, get playing() { return playing; }, setPlaying }; // for the tests
