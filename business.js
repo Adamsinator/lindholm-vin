@@ -762,7 +762,7 @@ window.BIZ = (() => {
   .bz-inv-t tr{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:10px 0;border-bottom:1px solid var(--line)}
   .bz-inv-t td{border:0;padding:0;min-width:0} .bz-inv-t td.bz-wn,.bz-inv-t td.bz-sl{grid-column:1/-1} .bz-wn{min-width:0}
   .bz-inv-t td[data-l]::before{content:attr(data-l);display:block;font-size:11px;color:var(--muted);margin-bottom:2px}
-  .bz-n,.bz-sp{width:100%;box-sizing:border-box} .bz-under td:first-child{box-shadow:none} .bz-under{box-shadow:inset 3px 0 var(--accent,#7C2D3E);padding-left:8px}
+  .bz-n,.bz-sp{width:100%;box-sizing:border-box} .bz-under td:first-child{box-shadow:none} .bz-inv-t tr.bz-under{box-shadow:inset 3px 0 var(--accent,#7C2D3E);padding-left:10px}
   .bz-sl .btn{padding:8px 14px} .bz-tools select{flex:1} }
 .bz-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;max-width:720px;margin:0 auto 12px}
 .bz-sheet{max-width:720px;margin:0 auto;background:#fff;color:#1c1416;padding:40px 48px;border-radius:6px;box-shadow:0 6px 30px rgba(0,0,0,.12);font-family:var(--serif,Georgia),serif}
