@@ -29,7 +29,7 @@ for (const [l, d] of Object.entries(D)) {
 check("the picker offers German", /\{id:"de", n:"Deutsch"\}/.test(src) && /\n  de: `<svg/.test(src));
 // every t("…")/tr("…") literal in the front-end has a translation
 const used = new Set();
-for (const f of ["app.js", "cellar-qol.js", "admin.js", "style.js", "domaine.js", "vault.js", "atlas.js", "atlas-cotedor-ui.js", "atlas-ld.js", "atlas-color.js", "atlas-wx.js", "atlas-owners.js", "testkit.js"]) {
+for (const f of ["app.js", "cellar-qol.js", "admin.js", "style.js", "domaine.js", "vault.js", "atlas.js", "atlas-cotedor-ui.js", "atlas-ld.js", "atlas-color.js", "atlas-wx.js", "atlas-owners.js"]) {
   const s = fs.readFileSync(R(f), "utf8");
   for (const m of s.matchAll(/\b(?:tr|t|trSet)\("((?:[^"\\]|\\.)+)"/g)) used.add(JSON.parse('"' + m[1] + '"'));
 }

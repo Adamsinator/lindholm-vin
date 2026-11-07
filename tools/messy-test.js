@@ -96,6 +96,9 @@ const file = name => { const b = fs.readFileSync(path.join(__dirname, "fixtures"
     col("Vinproducent") === "producer" && col("Weinproduzent") === "producer" && col("Flaskepris") === "price" && col("Stykpris") === "price" && col("Ant.") === "qty",
     J(["Vinproducent", "Weinproduzent", "Flaskepris", "Stykpris", "Ant."].map(col)));
   const K = require("../testkit.js"), kw = K.wines(1000);
+  const used = [...fs.readFileSync(path.join(__dirname, "..", "testkit.js"), "utf8").matchAll(/\btr\("((?:[^"\\]|\\.)+)"/g)].map(m => JSON.parse('"' + m[1] + '"'));
+  const missing = ["da", "fr", "de"].flatMap(l => used.filter(k => !K.WORDS[l][k]).map(k => l + ": " + k));
+  check("the test kit's words are all in Danish, French and German (kept in testkit.js, not the site's dictionaries)", used.length > 10 && !missing.length, J(missing));
   check("the test kit makes exactly the bottles asked for", kw.reduce((s, w) => s + w.qty - w.drunk, 0) === 1000);
   const ms = K.messy(600), mt = I.table(ms), mb = I.build(ms, mt.header, mt.columns.map(c => c.field));
   check("its messy sheet: 600 rows, the headings all read, the repeated headings and the totals line skipped, 500+ wines in",

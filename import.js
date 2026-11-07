@@ -238,8 +238,7 @@ function matchHeader(label) {
     if (sw.every(w => words.has(w))) { const sc = 10 + s.length; if (!best || sc > best.score) best = { field: f, score: sc }; }
   }
   if (best) return best;
-  // a compound word ending in a known one (Danish and German write them as one: "Vinproducent", "Weinproduzent",
-  // "Flaskepris", "Indkøbsantal"): the longest such ending, if it has five letters or more
+  // a compound ending in a known word of 5+ letters ("Vinproducent", "Flaskepris"): the longest
   if (words.size === 1) {
     for (const [s, { f }] of Object.entries(LOOKUP)) if (s.length >= 5 && !s.includes(" ") && a.length > s.length && a.endsWith(s)) { const sc = 8 + s.length; if (!best || sc > best.score) best = { field: f, score: sc }; }
     if (best) return best;

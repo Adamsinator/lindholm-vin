@@ -80,8 +80,63 @@ function messy(n, seed = 1855) {
 }
 
 // ── in the page: a "Test data" button by the others, and its dialog ──
+// its words live here, not in the site's dictionaries: only test accounts load them
+const WORDS = {
+  "da": {
+  "Test data": "Testdata",
+  "A messy sheet to import": "Et rodet ark at importere",
+  "A number from 1 to {0}": "Et tal fra 1 til {0}",
+  "Add the bottles": "Tilføj flaskerne",
+  "Adding… {0} of {1}": "Tilføjer… {0} af {1}",
+  "Bottles to add": "Antal flasker",
+  "Download .csv": "Hent .csv",
+  "Download .xlsx": "Hent .xlsx",
+  "Fill the cellar": "Fyld kælderen",
+  "Headings in three languages, prices as text, “6 fl.”, regions spelt wrong, a heading repeated, blank rows, #N/A and a totals line: download it, then try it with Import.": "Overskrifter på tre sprog, priser som tekst, “6 fl.”, stavefejl i områderne, en gentaget overskrift, tomme rækker, #N/A og en totallinje: hent det, og prøv det så med Importér.",
+  "Only on test accounts (a username starting with “test”). All producers are made up.": "Kun på testkonti (et brugernavn, der starter med “test”). Alle producenter er opdigtede.",
+  "Rows": "Rækker",
+  "Stopped after {0} of {1} wines: {2}": "Stoppede efter {0} af {1} vine: {2}",
+  "{0} bottles added": "{0} flasker tilføjet",
+  "Close": "Luk"
+  },
+  "fr": {
+  "Test data": "Données de test",
+  "A messy sheet to import": "Une feuille en désordre à importer",
+  "A number from 1 to {0}": "Un nombre de 1 à {0}",
+  "Add the bottles": "Ajouter les bouteilles",
+  "Adding… {0} of {1}": "Ajout… {0} sur {1}",
+  "Bottles to add": "Bouteilles à ajouter",
+  "Download .csv": "Télécharger .csv",
+  "Download .xlsx": "Télécharger .xlsx",
+  "Fill the cellar": "Remplir la cave",
+  "Headings in three languages, prices as text, “6 fl.”, regions spelt wrong, a heading repeated, blank rows, #N/A and a totals line: download it, then try it with Import.": "Des en-têtes en trois langues, des prix en texte, « 6 fl. », des régions mal orthographiées, un en-tête répété, des lignes vides, des #N/A et une ligne de total : téléchargez-la, puis essayez-la avec Importer.",
+  "Only on test accounts (a username starting with “test”). All producers are made up.": "Uniquement sur les comptes de test (un nom d’utilisateur commençant par « test »). Tous les producteurs sont inventés.",
+  "Rows": "Lignes",
+  "Stopped after {0} of {1} wines: {2}": "Arrêté après {0} vins sur {1} : {2}",
+  "{0} bottles added": "{0} bouteilles ajoutées",
+  "Close": "Fermer"
+  },
+  "de": {
+  "Test data": "Testdaten",
+  "A messy sheet to import": "Eine chaotische Tabelle zum Importieren",
+  "A number from 1 to {0}": "Eine Zahl von 1 bis {0}",
+  "Add the bottles": "Flaschen hinzufügen",
+  "Adding… {0} of {1}": "Wird hinzugefügt… {0} von {1}",
+  "Bottles to add": "Anzahl Flaschen",
+  "Download .csv": ".csv herunterladen",
+  "Download .xlsx": ".xlsx herunterladen",
+  "Fill the cellar": "Keller füllen",
+  "Headings in three languages, prices as text, “6 fl.”, regions spelt wrong, a heading repeated, blank rows, #N/A and a totals line: download it, then try it with Import.": "Überschriften in drei Sprachen, Preise als Text, „6 fl.“, falsch geschriebene Regionen, eine wiederholte Überschrift, leere Zeilen, #N/A und eine Summenzeile: herunterladen und dann mit Importieren ausprobieren.",
+  "Only on test accounts (a username starting with “test”). All producers are made up.": "Nur bei Testkonten (ein Benutzername, der mit „test“ beginnt). Alle Erzeuger sind erfunden.",
+  "Rows": "Zeilen",
+  "Stopped after {0} of {1} wines: {2}": "Abgebrochen nach {0} von {1} Weinen: {2}",
+  "{0} bottles added": "{0} Flaschen hinzugefügt",
+  "Close": "Schließen"
+  }
+  };
+function tr(s, ...a) { const l = window.I18N && I18N.lang, w = (WORDS[l] || {})[s] || s; return w.replace(/\{(\d)\}/g, (m, i) => a[i] ?? ""); }
 function mount() {
-  const $ = id => document.getElementById(id); // tr, api, loadData, toast, fmt: app.js's, shared by the page's scripts
+  const $ = id => document.getElementById(id); // api, loadData, toast, fmt: app.js's, shared by the page's scripts
   if ($("testBtn")) return;
   const btn = document.createElement("button"); btn.className = "btn"; btn.id = "testBtn"; btn.type = "button"; btn.textContent = "🧪 " + tr("Test data");
   const bar = document.querySelector(".actions"); if (bar) bar.appendChild(btn);
@@ -122,7 +177,7 @@ function mount() {
   $("testXlsx").addEventListener("click", () => dl("xlsx")); $("testCsv").addEventListener("click", () => dl("csv"));
 }
 
-const kit = { wines, messy, mount };
+const kit = { wines, messy, mount, label: () => tr("Test data"), WORDS };
 if (typeof module === "object" && module.exports) module.exports = kit;
 else root.TESTKIT = kit;
 })(typeof window !== "undefined" ? window : this);
