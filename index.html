@@ -699,7 +699,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
   #tbl{table-layout:fixed}
   #tbl thead th{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:10px 10px;letter-spacing:.05em}
   #tbl th.c-prod{width:26%} #tbl th.c-vint{width:90px} #tbl th.c-reg{width:24%} #tbl th.c-price{width:112px}
-  #tbl th.c-comm,#tbl tr.main td.c-comm,#tbl th.c-qty,#tbl tr.main td.c-qty{width:0;padding:0;font-size:0;border:0;overflow:hidden;visibility:hidden}
+  #tbl:not(.o-comm) th.c-comm,#tbl:not(.o-comm) tr.main td.c-comm,#tbl:not(.o-qty) th.c-qty,#tbl:not(.o-qty) tr.main td.c-qty{width:0;padding:0;font-size:0;border:0;overflow:hidden;visibility:hidden}
   #tbl tr.main td{overflow:hidden;overflow-wrap:anywhere}
   #eTbl tr.main td:first-child{max-width:0;width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   /* Enjoyed: fixed widths, so the same in every browser; the wine has the rest */

@@ -694,7 +694,7 @@ function chat(q, ctx) {
   // the same opening never twice in a row
   let lead = leads && h % 10 < 7 ? leads[(h >> 4) % leads.length] : "";
   if (lead && lead === ctx.lastLead) lead = leads[((h >> 4) + 1) % leads.length];
-  const hint = HINT[r.kind] && !repeats && (h >> 8) % 10 < 4 ? HINT[r.kind][i] : "";
+  const hint = ""; // no "Want me to …?" after an answer: it read as a button and wasn't one (HINT is kept for its words)
   r.html = (lead ? `<p class="sm-lead">${esc(lead)}</p>` : "") + r.html + (hint ? `<p class="sm-hint">${esc(hint)}</p>` : "");
   r.lead = lead;
   // a hint that offers something: "yes" next takes it up

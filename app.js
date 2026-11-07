@@ -1378,12 +1378,12 @@ function renderTable(){
   const was = RACK_SRC; RACK_SRC = filtering ? list.filter(w=>w.left>0) : null;
   if(was || RACK_SRC) renderRack(WINES.filter(w=>w.left>0));
   const k=state.sortK, dir=state.sortDir;
-  list.sort((a,b)=>{
-    let va=a[k], vb=b[k];
+  // as a spreadsheet sorts: blanks last either way, and ties by producer, wine and vintage
+  const cmp=(a,b,k,d)=>{ let va=a[k], vb=b[k];
     if(k==="vintage"){ va = typeof va==="number"?va:9999; vb = typeof vb==="number"?vb:9999; }
-    if(typeof va==="string") return va.localeCompare(vb)*dir;
-    return ((va??0)-(vb??0))*dir;
-  });
+    const ea = va==null||va==="", eb = vb==null||vb==="";
+    return ea||eb ? ea-eb : (typeof va==="string" ? String(va).localeCompare(String(vb)) : va-vb)*d; };
+  list.sort((a,b)=>cmp(a,b,k,dir)||cmp(a,b,"producer",1)||cmp(a,b,"name",1)||cmp(a,b,"vintage",1));
   document.querySelectorAll("th[data-k] .arr").forEach(s=>s.textContent="");
   const th=document.querySelector(`th[data-k="${k}"] .arr`); if(th) th.textContent = dir>0?"▲":"▼";
 
@@ -1419,7 +1419,9 @@ function renderTable(){
     const dot = `<span class="sdot" title="${esc(tr(STYLE_EN[w.style])||w.style||"")}" style="background:var(${STYLE_VAR[w.style]||"--muted"})"></span>`;
     const wine = `${fmtChip(w)}${esc(w.name)}${classChip(w, !!w.name)}${w.rating?` · <span class="myscore">${w.rating}/10</span>`:""}`;
     const loc = w.location ? `<span class="wloc">${svgi("pin")} ${esc(w.location)}</span>` : "";
-    const where = [w.commune && w.commune!==w.name ? w.commune : "", w.region].filter(Boolean).map(esc).join(" · ") + (w.country ? `<span class="ctry">${w.region||w.commune ? " · " : ""}${esc(w.country)}</span>` : "");
+    // the commune in its own span: with the Commune column shown (cellar-qol.js) it isn't said twice
+    const cm = w.commune && w.commune!==w.name ? w.commune : "";
+    const where = (cm ? `<span class="ocm">${esc(cm)}${w.region||w.country ? " · " : ""}</span>` : "") + esc(w.region||"") + (w.country ? `<span class="ctry">${w.region ? " · " : ""}${esc(w.country)}</span>` : "");
     return `<tr class="main${w.left===0?" gone":""}" data-i="${i}" data-row="${w.row}" tabindex="0" aria-level="1" aria-expanded="false">
       <td class="c-prod"><span class="prod">${esc(w.producer)}</span>${badge}${rbadge}<br class="ponly"><span class="wname ponly">${dot}${fmtChip(w)}${esc(nm)}${classChip(w, !!nm)}${w.rating?` · <span class="myscore">${w.rating}/10</span>`:""}</span>${loc?`<br class="ponly"><span class="ponly">${loc}</span>`:""}</td>
       <td class="c-wine"><span class="wname">${dot}${wine}</span>${loc}</td>
@@ -1568,7 +1570,7 @@ async function loadData(quiet){
     LOADED_AT = new Date(); stampText();
     $("spin").hidden = true; $("content").hidden = false;
     if(!VINT_W && VINT_CELLAR.length) drawVintages(VINT_CELLAR); // drawn while hidden (no width yet): again, for the width it has now
-    if(!window.CELLAR_QOL) loadJS("cellar-qol.js?v=4").catch(()=>{}); // the conveniences: swipes, keys, several wines at once
+    if(!window.CELLAR_QOL) loadJS("cellar-qol.js?v=6").catch(()=>{}); // the conveniences: swipes, keys, several wines at once
     if(/^test/i.test(cfg.user||"") && !window.TESTKIT) loadJS("testkit.js?v=2").then(()=>TESTKIT.mount()).catch(()=>{}); // test data
     loadJournalSilently(); refreshDeleted(); checkOwner(); takePrefill(); // checkOwner asks "me", which says if the feed is on
   }catch(err){
@@ -2444,7 +2446,7 @@ function sommLoad(){
   if(!window.WINE_KB) need.push("wine-kb.js?v=2");
   if(!window.SOMM_DATA) need.push("sommelier-data.js?v=6");
   if(!window.SOMM_WORLD) need.push("sommelier-world.js?v=2");
-  if(!window.SOMMELIER) need.push("sommelier.js?v=10");
+  if(!window.SOMMELIER) need.push("sommelier.js?v=11");
   if(!window.BURG_VINTAGES) need.push("burgundy-vintages.js?v=6");
   if(["da","fr","de"].includes(lang) && !(window.BURG_I18N && BURG_I18N[lang])) need.push(`burgundy-i18n-${lang}.js?v=${lang==="de"?1:5}`);
   SOMM.lang = lang;
@@ -2490,7 +2492,7 @@ async function sommAsk(q){
     SOMM.prev = r.asked || q; SOMM.offer = r.offer || ""; SOMM.lastLead = r.lead || "";
     SOMM.hist = (SOMM.hist || []).concat({asked:r.asked || q, subject:r.subject || ""}).slice(-6);
     think.remove();
-    const ans = sommSay(r.html); sommChips(r.chips);
+    const ans = sommSay(r.html); sommChips([]); // once you're talking, no suggestions under the answers
     // question and answer together if they fit; otherwise from the question down
     const log = $("sommLog"), span = ans.offsetTop + ans.offsetHeight - asked.offsetTop;
     log.scrollTop = span > log.clientHeight - 20 ? asked.offsetTop - 10 : ans.offsetTop + ans.offsetHeight - log.clientHeight + 12;

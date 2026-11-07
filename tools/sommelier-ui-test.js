@@ -33,6 +33,10 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   await p.click("#sommBtn");
   await p.waitForSelector("#sommLog .sm-a", { timeout: 10000 });
   check("it opens with a greeting and suggestions", /sommelier/i.test(await p.textContent("#sommLog")) && (await p.$$("#sommChips button")).length === 3);
+  const chip = await p.textContent("#sommChips button:nth-child(2)");
+  await p.click("#sommChips button:nth-child(2)"); await p.waitForFunction(() => !document.querySelector("#sommLog .sm-think") && document.querySelectorAll("#sommLog .sm-q").length === 1 && document.querySelectorAll("#sommLog .sm-a:not(.sm-think)").length >= 2, null, { timeout: 8000 });
+  const chipQ = await p.evaluate(() => [...document.querySelectorAll("#sommLog .sm-q")].pop().textContent);
+  check("a suggestion at the start can be clicked, and it is answered", chipQ === chip && !/know that one yet|beyond me|not sure what you mean/.test(await p.$$eval("#sommLog .sm-a", a => a[a.length - 1].textContent)), chip);
   const before = calls;
   // asking: the question, "Thinking…" for about two seconds, then the answer (its opening and hint aside)
   const ask = async q => { const n = (await p.$$("#sommLog .sm-a:not(.sm-think)")).length, t0 = Date.now();
@@ -46,10 +50,8 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   check("answers an appellation", /Sauvignon Blanc/.test(await last()) && /Pinot Noir/.test(await last()));
   await ask("where is my rousseau");
   check("answers about the cellar, with the location", /Clos St-Jacques 2016.*Kælder, reol 3/.test(await last()), await last());
-  const chip = await p.textContent("#sommChips button:nth-child(2)");
-  await p.click("#sommChips button:nth-child(2)"); await p.waitForFunction(() => !document.querySelector("#sommLog .sm-think") && document.querySelectorAll("#sommLog .sm-q").length === document.querySelectorAll("#sommLog .sm-a:not(.sm-think)").length - 1, null, { timeout: 8000 });
-  const chipQ = await p.evaluate(() => [...document.querySelectorAll("#sommLog .sm-q")].pop().textContent);
-  check("a suggestion can be clicked, and it is answered", chipQ === chip && !/know that one yet|beyond me|not sure what you mean/.test(await last()), chip + " → " + (await last()).slice(0, 100));
+  check("once you're talking, no suggestions under the answers", (await p.$$("#sommChips button")).length === 0);
+  check("…and no 'Want me to …?' that looks like a button but isn't", !(await p.$("#sommLog .sm-hint")));
   // a follow-up: the page hands the sommelier the previous question
   await ask("how long can I keep Barolo?");
   await ask("and Barbaresco?");

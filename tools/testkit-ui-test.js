@@ -46,11 +46,14 @@ const bottles = p => p.evaluate(() => WINES.reduce((s, w) => s + w.left, 0));
 
   // waiting: with the server slow, a click's call shows the bottle draining into a glass until the answer comes
   await p.waitForFunction(() => !!document.getElementById("busy"), null, { timeout: 5000 });
-  await p.context().route(require("./api-route"), async route => { await new Promise(r => setTimeout(r, 1200)); await route.fallback(); });
+  await p.context().route(require("./api-route"), async route => { await new Promise(r => setTimeout(r, 1800)); await route.fallback(); });
   await p.click("#testBtn"); await p.fill("#testN", "5"); await p.click("#testFill");
   await p.waitForTimeout(700);
-  const busy = await p.evaluate(() => { const b = document.getElementById("busy"); return { on: !b.hidden, svg: !!b.querySelector("svg animate"), text: b.textContent.trim() }; });
-  check("a slow answer after a click: the waiting bottle and glass show, with words for screen readers", busy.on && busy.svg && /moment/i.test(busy.text), JSON.stringify(busy));
+  const ys = () => p.evaluate(() => ["bzg", "bzb"].map(id => +document.getElementById(id).getAttribute("y")));
+  const busy = await p.evaluate(() => { const b = document.getElementById("busy"); return { on: !b.hidden, text: b.getAttribute("aria-label") || "", shown: b.textContent.trim() }; });
+  const y0 = await ys(); await p.waitForTimeout(520); const y1 = await ys();
+  check("a slow answer after a click: the glass fills as the bottle empties, a step each half second, with words only for screen readers",
+    busy.on && /moment/i.test(busy.text) && !busy.shown && y1[0] < y0[0] && y1[1] > y0[1] && Math.abs((y0[0] - y1[0]) - 1.4) < .01 && Math.abs((y1[1] - y0[1]) - 2.5) < .01, JSON.stringify({ busy, y0, y1 }));
   await p.waitForFunction(() => !document.getElementById("testModal").classList.contains("open"), null, { timeout: 30000 });
   check("…and go when it's done", await p.evaluate(() => document.getElementById("busy").hidden));
   await p.evaluate(() => api({ action: "me" })); // not from a click (more than a second and a half after): no waiting shown
