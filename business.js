@@ -453,7 +453,7 @@ window.BIZ = (() => {
   // goods in: find the wine, the bottles that came, and the cost if it changed
   function openGoods() {
     const m = sheet("bzGoods", "Goods in", `<p class="note">${esc(tr("A delivery: find each wine, type the bottles that came (and the cost price if it changed), then Add."))}</p>
-      <input type="search" id="bzGoodsQ" placeholder="${esc(tr("A few letters of the wine"))}" aria-label="${esc(tr("A few letters of the wine"))}" autocomplete="off">
+      <input type="search" id="bzGoodsQ" placeholder="${esc(tr("Search wine, producer or vintage"))}" aria-label="${esc(tr("Search wine, producer or vintage"))}" autocomplete="off">
       <div class="bz-scroll"><table class="bz-tab2 bz-gin"><thead><tr><th>${esc(tr("Wine"))}</th><th>${esc(tr("In stock"))}</th><th>${esc(tr("Came"))}</th><th>${esc(tr("Cost price"))}</th><th></th></tr></thead><tbody id="bzGoodsB"></tbody></table></div>
       <p class="note">${esc(tr("A wine that isn't here yet: add it with ＋ Add wine."))}</p>`);
     const draw = () => { const q = fold($("bzGoodsQ").value).trim();
@@ -511,7 +511,7 @@ window.BIZ = (() => {
     let t = $("bzTill");
     if (!t) { t = document.createElement("div"); t.id = "bzTill"; t.className = "modal bz-till"; t.setAttribute("role", "dialog"); t.setAttribute("aria-modal", "true");
       t.innerHTML = `<div class="card"><div class="bz-h"><h2>${esc(tr("Quick sell"))}</h2><button type="button" class="btn" data-bz="tclose">${esc(tr("Close"))}</button></div>
-        <input type="search" id="bzTillQ" placeholder="${esc(tr("A few letters of the wine"))}" aria-label="${esc(tr("A few letters of the wine"))}" autocomplete="off">
+        <input type="search" id="bzTillQ" placeholder="${esc(tr("Search wine, producer or vintage"))}" aria-label="${esc(tr("Search wine, producer or vintage"))}" autocomplete="off">
         <div class="bz-tiles" id="bzTiles"></div></div>`;
       document.body.appendChild(t);
       t.querySelector('[data-bz="tclose"]').onclick = () => t.classList.remove("open");
@@ -789,6 +789,6 @@ window.BIZ = (() => {
 </style>`);
   setTimeout(apply, 0);
   // its words: only a business needs them, so they come now, not with every page (i18n.js redraws the page in them)
-  if (window.I18N) { I18N.onChange(apply); if (I18N.more) I18N.more("business-i18n", "?v=7"); }
+  if (window.I18N) { I18N.onChange(apply); if (I18N.more) I18N.more("business-i18n", "?v=8"); }
   return { refreshSales: () => loadSales(true), apply, detail, priceCell, overview, page, inventory, cardLabel, margin, openCard, salesRows, reorder, reorderText, cardData, publishCard, cardShare };
 })();

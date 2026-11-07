@@ -15,8 +15,8 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   p.on("response", r => { if (r.status() >= 400) bad.push(r.status() + " " + r.url()); });
   await p.goto(BASE + "business.html"); await p.waitForTimeout(800);
   check("open to search engines now (no noindex), and in the sitemap", !(await p.$('meta[name="robots"]')) && require("fs").readFileSync(require("path").join(__dirname, "..", "sitemap.xml"), "utf8").includes("https://allwine.dk/business.html"));
-  const feats = await p.$$eval("#feats .feat", fs => fs.map(f => f.querySelector("h3").textContent));
-  check("one business account, everything in it: quick sell, the wine card, its own wines, reordering", !(await p.$("#kinds")) && feats.some(x => /Quick sell/.test(x)) && feats.some(x => /wine card/.test(x)) && feats.some(x => /own wines/.test(x)) && feats.some(x => /Reorder/.test(x)), feats.join(" | "));
+  const inc = await p.$$eval('#plans .plan[data-plan="business"] li', ls => ls.map(l => l.textContent));
+  check("one business account, everything in it: quick sell, the wine card, its own wines, reordering", !(await p.$("#kinds, #feats")) && inc.some(x => /quick sell/.test(x)) && inc.some(x => /wine card/.test(x)) && inc.some(x => /own wines/.test(x)) && inc.some(x => /Reorder/.test(x)), inc.join(" | "));
   check("…and one price for it, beside the free private cellar", JSON.stringify(await p.$$eval("#plans .plan", ps => ps.map(x => x.dataset.plan))) === JSON.stringify(["private", "business"]) && (await p.getAttribute("#plans .plan.on", "data-plan")) === "business");
   // the tour: a gallery of cards, one feature each, moved sideways
   const card = k => p.evaluate(k => { const c = document.querySelectorAll("#track .gcard")[k]; return c && [c.querySelector("h3").textContent, c.querySelector("img").getAttribute("src")]; }, k);
@@ -42,7 +42,7 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   check("at the end › goes off", (await nav()).next, JSON.stringify(await nav()));
   // Danish
   await p.evaluate(() => I18N.setLang("da")); await p.waitForTimeout(600);
-  check("in Danish: the page, the cards, their pictures and the prices", /Jeres vin, fra kælderen til glasset/.test(await p.textContent("h1")) && (await card(0))[0] === "Lageret på et øjeblik"
+  check("in Danish: the page, the cards, their pictures and the prices", /Lager, salg og vinkort ét sted/.test(await p.textContent("h1")) && (await card(0))[0] === "Lageret på et øjeblik"
     && /img\/business\/da\/kpis\.webp/.test((await card(0))[1]) && /Pris efter aftale/.test(await p.textContent("#plans")), JSON.stringify(await card(0)));
   await p.evaluate(() => I18N.setLang("en")); await p.waitForTimeout(300);
   // a phone
