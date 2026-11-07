@@ -354,8 +354,10 @@ window.BIZ = (() => {
   function inventory() {
     const box = $("pageInventory"); if (!box || !on()) return;
     const W = words();
-    if (box.dataset.kind !== KIND) {
-      box.dataset.kind = KIND;
+    // built again when the kind or the words change (the business words arrive after the first draw, in another language)
+    const key = KIND + '|' + tr('Quick sell') + '|' + tr('Search the stock');
+    if (box.dataset.kind !== key) {
+      box.dataset.kind = key;
       box.innerHTML = `<section class="panel bz-inv"><div class="bz-h"><h2>${esc(tr("Inventory"))}</h2>
           <span class="bz-btns"><button type="button" class="btn primary" data-bz="till">${esc(tr("Quick sell"))}</button><button type="button" class="btn" data-bz="goods">${esc(tr("Goods in"))}</button><button type="button" class="btn" data-bz="count">${esc(tr("Count stock"))}</button><button type="button" class="btn" data-bz="add">${esc(tr("＋ Add wine"))}</button><button type="button" class="btn" data-bz="card2">${esc(tr(W.card))}</button></span></div>
         <div class="bz-ks" id="bzInvKs"></div>
@@ -376,7 +378,7 @@ window.BIZ = (() => {
       box.querySelector('[data-bz="goods"]').onclick = openGoods;
       box.querySelector('[data-bz="count"]').onclick = openCount;
       box.querySelector('[data-bz="card2"]').onclick = openCard;
-      box.addEventListener("click", e => { const o = e.target.closest("[data-open]"); if (!o) return;
+      if (!box.dataset.bound) box.dataset.bound = "1", box.addEventListener("click", e => { const o = e.target.closest("[data-open]"); if (!o) return;
         KEEP_OPEN = Number(o.dataset.open); location.hash = "cellar"; renderTable();
         setTimeout(() => { const r = document.querySelector(`#tbl tr.main[data-row="${o.dataset.open}"]`); if (r) r.scrollIntoView({ block: "center" }); }, 60); });
     }
