@@ -1,6 +1,18 @@
 // Danish for allwine.dk: i18n.js loads the one dictionary the page's language needs (English is the source text).
 window.I18N_DICT = window.I18N_DICT || {};
 window.I18N_DICT.da = {
+  "A messy sheet to import": "Et rodet ark at importere",
+  "A number from 1 to {0}": "Et tal fra 1 til {0}",
+  "Add the bottles": "Tilføj flaskerne",
+  "Bottles to add": "Antal flasker",
+  "Download .csv": "Hent .csv",
+  "Download .xlsx": "Hent .xlsx",
+  "Fill the cellar": "Fyld kælderen",
+  "Headings in three languages, prices as text, “6 fl.”, regions spelt wrong, a heading repeated, blank rows, #N/A and a totals line: download it, then try it with Import.": "Overskrifter på tre sprog, priser som tekst, “6 fl.”, stavefejl i områderne, en gentaget overskrift, tomme rækker, #N/A og en totallinje: hent det, og prøv det så med Importér.",
+  "Only on test accounts (a username starting with “test”). All producers are made up.": "Kun på testkonti (et brugernavn, der starter med “test”). Alle producenter er opdigtede.",
+  "Rows": "Rækker",
+  "Stopped after {0} of {1} wines: {2}": "Stoppede efter {0} af {1} vine: {2}",
+  "{0} bottles added": "{0} flasker tilføjet",
   "Another like this": "En mere som denne",
   "Put the closing windows in my calendar": "Sæt de lukkende vinduer i min kalender",
   "Drink: {0}": "Drik: {0}",

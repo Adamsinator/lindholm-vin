@@ -1,0 +1,128 @@
+// Test data for test accounts (a username starting with "test"; app.js loads this file only for them): fill the
+// cellar with a number of made-up bottles, or download a messy sheet to try the import with, the way real lists come
+// (merchant exports glued together, CellarTracker, hand-kept Excel). All producers are invented. Also runs in Node,
+// for the tests: TESTKIT.wines(n) and TESTKIT.messy(n) are plain functions.
+(function (root) {
+"use strict";
+
+// a small seeded random, so the same numbers give the same cellar
+function rng(seed) { let s = seed >>> 0 || 1; return () => (s = (s * 1664525 + 1013904223) >>> 0) / 4294967296; }
+
+// country, region, communes, [grape, type], classifications, price range kr, years in the window after the vintage
+const AREAS = [
+  ["Frankrig", "Bourgogne", ["Gevrey-Chambertin", "Chambolle-Musigny", "Vosne-Romanée", "Volnay", "Pommard", "Beaune"], [["Pinot Noir", "Rød"]], ["", "Premier cru", "Grand cru"], [180, 2500], [5, 20], 14],
+  ["Frankrig", "Bourgogne", ["Meursault", "Puligny-Montrachet", "Chassagne-Montrachet", "Chablis"], [["Chardonnay", "Hvid"]], ["", "Premier cru", "Grand cru"], [160, 1800], [3, 15], 9],
+  ["Frankrig", "Bordeaux", ["Pauillac", "Margaux", "Saint-Julien", "Saint-Émilion", "Pomerol"], [["Cabernet Sauvignon", "Rød"], ["Merlot", "Rød"]], ["", "Grand cru classé"], [150, 3000], [8, 30], 12],
+  ["Frankrig", "Champagne", ["", "Aÿ", "Cramant"], [["", "Bobler"]], ["", "Grand cru"], [250, 1500], [1, 15], 7],
+  ["Frankrig", "Rhône", ["Hermitage", "Côte-Rôtie", "Châteauneuf-du-Pape"], [["Syrah", "Rød"], ["Grenache", "Rød"]], [""], [120, 1200], [5, 20], 7],
+  ["Frankrig", "Loire", ["Sancerre", "Vouvray", "Chinon"], [["Sauvignon Blanc", "Hvid"], ["Chenin Blanc", "Hvid"]], [""], [110, 600], [2, 15], 5],
+  ["Italien", "Piemonte", ["Barolo", "Barbaresco"], [["Nebbiolo", "Rød"]], ["DOCG"], [220, 2000], [8, 30], 7],
+  ["Italien", "Toscana", ["Montalcino", "Bolgheri"], [["Sangiovese", "Rød"]], ["DOCG"], [150, 1500], [5, 25], 6],
+  ["Spanien", "Rioja", [""], [["Tempranillo", "Rød"]], ["Reserva", "Gran Reserva"], [120, 900], [5, 25], 5],
+  ["Tyskland", "Mosel", ["Wehlen", "Graach"], [["Riesling", "Hvid"]], ["Kabinett", "Spätlese", "Auslese"], [110, 900], [3, 25], 6],
+  ["Østrig", "Wachau", ["Spitz"], [["Grüner Veltliner", "Hvid"]], ["Smaragd"], [120, 600], [3, 15], 2],
+  ["Portugal", "Douro", [""], [["Touriga Nacional", "Hedvin"]], [""], [150, 1200], [10, 40], 3],
+  ["USA", "Californien", ["Napa Valley"], [["Cabernet Sauvignon", "Rød"]], [""], [200, 2500], [5, 25], 2],
+];
+const PRE = ["Domaine", "Château", "Clos", "Maison", "Weingut", "Tenuta", "Bodega", "Quinta", ""];
+const A = ["Mor", "Laur", "Belle", "Font", "Val", "Gras", "Ber", "Duv", "Cor", "Sau", "Vig", "Pell", "Ard"], B = ["eau", "ière", "and", "ot", "ac", "elle", "ard", "ine", "ault", "on"];
+const SITES = ["Les Charmes", "Clos du Roi", "Les Perrières", "La Croix", "Vieilles Vignes", "Réserve", "Cuvée Prestige", "Sonnenuhr", "Cannubi", "Old Vines", ""];
+const SOURCES = ["Juul's", "Holte Vinlager", "Kjær & Sommerfeldt", "Auktion", "Ved domænet", "Gave", ""];
+
+// n bottles in the cellar, as the site's own rows (what api addmany takes): ~4 bottles a wine, a few already drunk,
+// most with a price and a place, seven in ten with a drink window (the rest get the site's estimate)
+function wines(n, seed = 2026) {
+  const R = rng(seed), pick = a => a[Math.floor(R() * a.length)], weighted = () => { const t = AREAS.reduce((s, a) => s + a[7], 0); let x = R() * t; return AREAS.find(a => (x -= a[7]) < 0) || AREAS[0]; };
+  const name = () => (pick(A) + pick(B)).replace(/^./, c => c.toUpperCase());
+  const out = []; let left = n;
+  while (left > 0) {
+    const [country, region, communes, grapes, classes, [p0, p1], [w0, w1]] = weighted(), [grape, type] = pick(grapes);
+    const vintage = type === "Bobler" && R() < .5 ? "NV" : 1990 + Math.floor(R() * 34);
+    const have = Math.min(left, pick([1, 1, 1, 2, 2, 3, 3, 6, 6, 12])), drunk = have > 1 && R() < .2 ? 1 : 0;
+    const w = { producer: (pick(PRE) + " " + name() + (R() < .3 ? " " + name() : "")).trim(), name: pick(SITES), country, region, commune: pick(communes), grape, type,
+      classification: pick(classes), vintage, qty: have + drunk, drunk, price: R() < .92 ? Math.round((p0 + R() * (p1 - p0)) / 5) * 5 : "",
+      location: R() < .85 ? `Kælder, reol ${1 + Math.floor(R() * 12)}, hylde ${1 + Math.floor(R() * 8)}` : pick(["Køleskab", "Garage", ""]), source: pick(SOURCES) };
+    if (typeof vintage === "number" && R() < .7) { w.drinkFrom = vintage + w0; w.drinkTo = vintage + w1 + Math.floor(R() * 5); }
+    out.push(w); left -= have;
+  }
+  return out;
+}
+
+// A messy sheet of about n rows, as people's lists really come: headings in three languages and in odd words, the
+// wine's name and vintage in one cell, prices as text ("1.234,50 kr.", "DKK 450", "450,-"), "6 fl." for bottles,
+// regions spelt wrong and in capitals, stray spaces, a heading repeated where two exports were glued together,
+// blank rows, #N/A cells, a picture and a link column, and a totals line at the end. → [[cell…]…] for EXPORT.
+function messy(n, seed = 1855) {
+  const R = rng(seed), pick = a => a[Math.floor(R() * a.length)];
+  const HEAD = ["Vinproducent", "Wine / Cuvée", "Jahrgang", "Ant.", "Pris pr. fl.", "Country", "Region / Område", "Village", "Type", "Rebsorte", "Drink window", "Hvor?", "Notes", "Billede", "Link"];
+  const SPELL = { Bourgogne: ["Bourgogne", "Burgundy", "BOURGOGNE", "bourgonge", "Bourgogne "], Bordeaux: ["Bordeaux", "bordeuax", "BORDEAUX"], Piemonte: ["Piemonte", "Piedmont", "Piemont"],
+    Mosel: ["Mosel", "Moselle", "Mosel-Saar-Ruwer"], Champagne: ["Champagne", "champagne"], Rioja: ["Rioja", "RIOJA"], Rhône: ["Rhône", "Rhone", "Northern Rhone"] };
+  const COUNTRY = { Frankrig: ["France", "Frankrig", "FR", "Frankreich"], Italien: ["Italy", "Italien"], Spanien: ["Spain", "Spanien", "España"], Tyskland: ["Germany", "Tyskland", "Deutschland"],
+    Østrig: ["Austria", "Østrig"], Portugal: ["Portugal"], USA: ["USA", "United States"] };
+  const TYPE = { Rød: ["Red", "Rød", "rot", "R"], Hvid: ["White", "Hvid", "weiss", "W"], Bobler: ["Sparkling", "Mousserende", "Champagne"], Rosé: ["Rosé", "Rose"], Hedvin: ["Port", "Hedvin"] };
+  const price = p => p === "" ? pick(["", "#N/A", "-"]) : pick([`${p.toLocaleString("da-DK")},00 kr.`, `DKK ${p}`, `${p},-`, String(p), `kr ${p}`, `${p} DKK`]);
+  const qty = q => pick([String(q), `${q} fl.`, `${q} btl`, `${q} bottles`, q]);
+  const base = wines(n * 6, seed + 1), rows = [HEAD];
+  for (let i = 0; rows.length < n && i < base.length; i++) {
+    const w = base[i], ws = (s, k) => (R() < .12 ? String(s).toUpperCase() : String(s)) + (R() < .1 ? " " : ""); // shouting and stray spaces
+    const nameCell = R() < .35 ? `${w.name}${w.name ? " " : ""}${w.vintage}` : w.name;     // the vintage in the name, sometimes
+    const vintageCell = nameCell !== w.name ? "" : (w.vintage === "NV" ? pick(["NV", "n.v.", "", "Non-vintage"]) : R() < .08 ? `'${String(w.vintage).slice(2)}` : w.vintage);
+    const win = w.drinkFrom ? pick([`${w.drinkFrom}-${w.drinkTo}`, `${w.drinkFrom}–${w.drinkTo}`, `${w.drinkFrom} - ${w.drinkTo}`]) : "";
+    const row = [ws(w.producer), nameCell, vintageCell, qty(w.qty - w.drunk), price(w.price), pick(COUNTRY[w.country] || [w.country]), ws(pick(SPELL[w.region] || [w.region])),
+      w.commune, pick(TYPE[w.type] || [w.type]), w.grape, win, w.location, R() < .1 ? pick(["gave fra far", "til nytår", "købt på auktion", "#N/A"]) : "", R() < .3 ? "IMG_" + (1000 + i) + ".jpg" : "", R() < .2 ? "https://example.com/w/" + i : ""];
+    rows.push(row);
+    if (R() < .06) rows.push(row.map((c, j) => j === 3 ? qty(1 + Math.floor(R() * 3)) : c)); // the same wine again, bought another time
+    if (R() < .015) rows.push(HEAD.map(h => R() < .3 ? h.toUpperCase() : h));                // a heading where two lists were glued
+    if (R() < .03) rows.push(HEAD.map(() => ""));                                            // a blank row
+  }
+  rows.push(["I alt", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]);             // a totals line
+  return rows;
+}
+
+// ── in the page: a "Test data" button by the others, and its dialog ──
+function mount() {
+  const $ = id => document.getElementById(id); // tr, api, loadData, toast, fmt: app.js's, shared by the page's scripts
+  if ($("testBtn")) return;
+  const btn = document.createElement("button"); btn.className = "btn"; btn.id = "testBtn"; btn.type = "button"; btn.textContent = "🧪 " + tr("Test data");
+  const bar = document.querySelector(".actions"); if (bar) bar.appendChild(btn);
+  const m = document.createElement("div"); m.className = "modal"; m.id = "testModal"; m.setAttribute("role", "dialog"); m.setAttribute("aria-modal", "true"); m.setAttribute("aria-labelledby", "testTitle");
+  m.innerHTML = `<div class="card">
+    <h2 id="testTitle">${tr("Test data")}</h2>
+    <p class="hint">${tr("Only on test accounts (a username starting with “test”). All producers are made up.")}</p>
+    <h3>${tr("Fill the cellar")}</h3>
+    <label for="testN">${tr("Bottles to add")}</label><input id="testN" type="number" min="1" max="20000" step="1" value="1000" inputmode="numeric">
+    <div class="mact" style="justify-content:flex-start"><button type="button" class="btn primary" id="testFill">${tr("Add the bottles")}</button></div>
+    <h3>${tr("A messy sheet to import")}</h3>
+    <p class="hint">${tr("Headings in three languages, prices as text, “6 fl.”, regions spelt wrong, a heading repeated, blank rows, #N/A and a totals line: download it, then try it with Import.")}</p>
+    <label for="testRows">${tr("Rows")}</label><input id="testRows" type="number" min="1" max="10000" step="1" value="500" inputmode="numeric">
+    <div class="mact" style="justify-content:flex-start"><button type="button" class="btn" id="testXlsx">${tr("Download .xlsx")}</button><button type="button" class="btn" id="testCsv">${tr("Download .csv")}</button></div>
+    <div class="jerr" id="testErr" role="alert" hidden></div>
+    <div class="mact"><button type="button" class="btn" id="testClose">${tr("Close")}</button></div></div>`;
+  document.body.appendChild(m);
+  const close = () => m.classList.remove("open"), err = t => { $("testErr").textContent = t || ""; $("testErr").hidden = !t; };
+  btn.addEventListener("click", () => { err(""); m.classList.add("open"); setTimeout(() => $("testN").focus(), 40); });
+  $("testClose").addEventListener("click", close);
+  m.addEventListener("click", e => { if (e.target === m) close(); });
+  const num = (id, max) => { const v = Math.floor(Number($(id).value)); return v >= 1 && v <= max ? v : 0; };
+  $("testFill").addEventListener("click", async () => {
+    const n = num("testN", 20000); if (!n) return err(tr("A number from 1 to {0}", "20.000"));
+    const b = $("testFill"), rows = wines(n, Date.now() % 100000).map(w => window.IMPORT && IMPORT.clean ? IMPORT.clean(w) : w);
+    const big = window.VAULT && VAULT.active() ? 4000 : 400; b.disabled = true; err(""); let done = 0;
+    try {
+      for (let i = 0; i < rows.length; i += big) { b.textContent = tr("Adding… {0} of {1}", fmt(done), fmt(rows.length)); await api({ action: "addmany", bumps: [], wines: rows.slice(i, i + big) }); done += Math.min(big, rows.length - i); }
+      await loadData(true); close(); toast(tr("{0} bottles added", fmt(n)));
+    } catch (e) { err(tr("Stopped after {0} of {1} wines: {2}", done, rows.length, String(e && e.message || e))); }
+    b.disabled = false; b.textContent = tr("Add the bottles");
+  });
+  const dl = kind => { const n = num("testRows", 10000); if (!n) return err(tr("A number from 1 to {0}", "10.000")); err("");
+    const rows = messy(n, Date.now() % 100000), blob = kind === "csv" ? new Blob([EXPORT.csv(rows)], { type: "text/csv;charset=utf-8" })
+      : new Blob([EXPORT.xlsx([{ name: "Min kælder", rows }])], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `messy-cellar-${n}.${kind}`; document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000); };
+  $("testXlsx").addEventListener("click", () => dl("xlsx")); $("testCsv").addEventListener("click", () => dl("csv"));
+}
+
+const kit = { wines, messy, mount };
+if (typeof module === "object" && module.exports) module.exports = kit;
+else root.TESTKIT = kit;
+})(typeof window !== "undefined" ? window : this);

@@ -37,7 +37,7 @@ gas.run("makeOwner()");
   const p = await ctx.newPage(), errs = []; p.on("pageerror", e => errs.push(e.message));
   const shot = async (name, el) => { await p.evaluate(() => { const h = document.getElementById("adminBtn"); if (h) h.hidden = true; document.querySelectorAll("#toast").forEach(t => t.style.display = "none"); });
     await (el ? (await p.$(el)).screenshot({ path: path.join(OUT, name + ".jpg"), type: "jpeg", quality: 78 }) : p.screenshot({ path: path.join(OUT, name + ".jpg"), type: "jpeg", quality: 78 })); console.log("wrote", name); };
-  await ctx.addInitScript(l => { try { localStorage.setItem("lang", l); } catch (e) {} }, LANG);
+  await ctx.addInitScript(l => { try { localStorage.setItem("lang", l); localStorage.setItem("vinTips:demo", "0"); localStorage.setItem("vinCopyAsk:demo", String(Date.now())); } catch (e) {} }, LANG); // no first-steps card, no backup reminder over the screens
   await p.goto(BASE); await p.waitForTimeout(500);
   await p.fill("#gateUser", "demo"); await p.fill("#gatePass", "demo-pass-1"); await p.click("#gateSubmit");
   await p.waitForSelector("#recModal.open", { timeout: 20000 }); await p.check("#recOk"); await p.click("#recDone");
@@ -69,7 +69,7 @@ gas.run("makeOwner()");
   const url = await p.inputValue("#bizCard .bz-url");
   await p.click('.tab[data-page="cellar"]'); await p.waitForTimeout(800);
   await shot("cellar");
-  await p.click('#tbl tr.main:has-text("Léoville Barton")'); await p.waitForSelector('tr.detail:not([hidden]) .wstyle .ssb', { timeout: 10000 }).catch(() => {});
+  await p.click('#tbl tr.main:has-text("Léoville Barton")'); await p.waitForSelector('tr.detail:not([hidden]) .bz-d', { timeout: 10000 }).catch(() => {});
   await p.evaluate(() => document.querySelector('tr.detail:not([hidden])').scrollIntoView({ block: "center" })); await p.waitForTimeout(300);
   await shot("details");
   await p.click("#sommBtn"); await p.waitForSelector("#sommLog .sm-a"); await p.fill("#sommQ", LANG === "da" ? "Hvad passer til lam?" : "What goes with lamb?"); await p.press("#sommQ", "Enter");

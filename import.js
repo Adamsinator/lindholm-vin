@@ -200,10 +200,10 @@ const SYN = {
   type: ["weinart", "art", "weinfarbe", "type", "farve", "color", "colour", "couleur", "style", "stil", "wine type", "vintype", "kind"],
   grape: ["rebsorte", "rebsorten", "traube", "trauben", "drue", "druer", "grape", "grapes", "varietal", "variety", "varietals", "cepage", "cepages", "druesort", "drueart", "blend"],
   vintage: ["argang", "vintage", "year", "millesime", "annee", "aar", "ar", "annata", "jahrgang"],
-  qty: ["anzahl", "menge", "stuck", "anzahl flaschen", "antal", "qty", "quantity", "bottles", "flasker", "antal flasker", "count", "number", "stk", "nombre", "quantite", "units", "fl", "bouteilles", "purchased"],
+  qty: ["anzahl", "menge", "stuck", "anzahl flaschen", "antal", "qty", "quantity", "bottles", "flasker", "antal flasker", "count", "number", "stk", "nombre", "quantite", "units", "fl", "bouteilles", "purchased", "ant", "ant fl", "btl", "fl antal"],
   left: ["bestand", "vorrat", "ubrig", "noch da", "im keller", "tilbage", "remaining", "left", "on hand", "beholdning", "i kaelder", "in cellar", "in stock", "stock", "restant", "bottles left", "flasker tilbage"],
   drunk: ["getrunken", "geoffnet", "drukket", "drunk", "consumed", "opened", "abnet", "bu", "bues", "drukne"],
-  price: ["preis", "einkaufspreis", "kaufpreis", "preis pro flasche", "pris", "price", "pris kr", "pris kr ws", "cost", "kostpris", "indkobspris", "prix", "purchase price", "paid", "bottle price", "pris pr flaske", "my price", "wine price"],
+  price: ["preis", "einkaufspreis", "kaufpreis", "preis pro flasche", "pris", "price", "pris kr", "pris kr ws", "cost", "kostpris", "indkobspris", "prix", "purchase price", "paid", "bottle price", "pris pr flaske", "my price", "wine price", "flaskepris", "stykpris", "flaschenpreis", "pris pr fl"],
   value: ["wert", "marktwert", "aktueller wert", "vaerdi", "vaerdi kr", "value", "valuation", "market value", "current value", "valeur", "est value", "estimated value", "auction value"],
   source: ["handler", "bezugsquelle", "gekauft bei", "lieferant", "weinhandler", "kilde", "source", "bought at", "kobt hos", "store", "shop", "merchant", "supplier", "leverandor", "forhandler", "vendor", "retailer", "fournisseur", "caviste", "importer", "importor"],
   note: ["notiz", "notizen", "bemerkung", "bemerkungen", "verkostungsnotiz", "note", "noter", "notes", "comment", "comments", "kommentar", "kommentarer", "bemaerkning", "bemaerkninger", "remarks", "description", "beskrivelse", "your review", "my notes", "tasting note", "tasting notes", "smagsnote"],
@@ -238,6 +238,12 @@ function matchHeader(label) {
     if (sw.every(w => words.has(w))) { const sc = 10 + s.length; if (!best || sc > best.score) best = { field: f, score: sc }; }
   }
   if (best) return best;
+  // a compound word ending in a known one (Danish and German write them as one: "Vinproducent", "Weinproduzent",
+  // "Flaskepris", "Indkøbsantal"): the longest such ending, if it has five letters or more
+  if (words.size === 1) {
+    for (const [s, { f }] of Object.entries(LOOKUP)) if (s.length >= 5 && !s.includes(" ") && a.length > s.length && a.endsWith(s)) { const sc = 8 + s.length; if (!best || sc > best.score) best = { field: f, score: sc }; }
+    if (best) return best;
+  }
   // a typo in the heading ("Producnet", "Vintgae", "Pirce"): one slip in a short word, two in a long one, and only
   // if every close heading points to the same field
   if (a.length < 5) return null;

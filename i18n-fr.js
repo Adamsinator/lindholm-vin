@@ -1,6 +1,18 @@
 // French for allwine.dk: i18n.js loads the one dictionary the page's language needs (English is the source text).
 window.I18N_DICT = window.I18N_DICT || {};
 window.I18N_DICT.fr = {
+  "A messy sheet to import": "Une feuille en désordre à importer",
+  "A number from 1 to {0}": "Un nombre de 1 à {0}",
+  "Add the bottles": "Ajouter les bouteilles",
+  "Bottles to add": "Bouteilles à ajouter",
+  "Download .csv": "Télécharger .csv",
+  "Download .xlsx": "Télécharger .xlsx",
+  "Fill the cellar": "Remplir la cave",
+  "Headings in three languages, prices as text, “6 fl.”, regions spelt wrong, a heading repeated, blank rows, #N/A and a totals line: download it, then try it with Import.": "Des en-têtes en trois langues, des prix en texte, « 6 fl. », des régions mal orthographiées, un en-tête répété, des lignes vides, des #N/A et une ligne de total : téléchargez-la, puis essayez-la avec Importer.",
+  "Only on test accounts (a username starting with “test”). All producers are made up.": "Uniquement sur les comptes de test (un nom d’utilisateur commençant par « test »). Tous les producteurs sont inventés.",
+  "Rows": "Lignes",
+  "Stopped after {0} of {1} wines: {2}": "Arrêté après {0} vins sur {1} : {2}",
+  "{0} bottles added": "{0} bouteilles ajoutées",
   "Another like this": "Un autre comme celui-ci",
   "Put the closing windows in my calendar": "Mettre les fenêtres qui se ferment dans mon agenda",
   "Drink: {0}": "À boire : {0}",

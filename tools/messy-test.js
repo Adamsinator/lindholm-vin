@@ -90,8 +90,19 @@ const file = name => { const b = fs.readFileSync(path.join(__dirname, "fixtures"
   check("mergerows refuses a row used twice", /Bad row/.test(g2.call({ code: "test-code", action: "mergerows", groups: [{ keep: 2, drop: [3] }, { keep: 3, drop: [4] }] }).error));
   check("setinfomany refuses a bad row", /Bad row/.test(g2.call({ code: "test-code", action: "setinfomany", edits: [{ row: 99, fields: { region: "x" } }] }).error));
 
+  // compound headings (Danish and German write them as one word) and the test kit's messy sheet (testkit.js)
+  const col = h => I.table([["Vin", h, "Årgang"], ["Les Charmes", "100", 2015], ["Clos", "200", 2016]]).columns[1].field;
+  check("compound headings: Vinproducent, Weinproduzent → producer; Flaskepris, Stykpris → price; Ant. → bottles",
+    col("Vinproducent") === "producer" && col("Weinproduzent") === "producer" && col("Flaskepris") === "price" && col("Stykpris") === "price" && col("Ant.") === "qty",
+    J(["Vinproducent", "Weinproduzent", "Flaskepris", "Stykpris", "Ant."].map(col)));
+  const K = require("../testkit.js"), kw = K.wines(1000);
+  check("the test kit makes exactly the bottles asked for", kw.reduce((s, w) => s + w.qty - w.drunk, 0) === 1000);
+  const ms = K.messy(600), mt = I.table(ms), mb = I.build(ms, mt.header, mt.columns.map(c => c.field));
+  check("its messy sheet: 600 rows, the headings all read, the repeated headings and the totals line skipped, 500+ wines in",
+    ms.length === 601 && mt.columns.slice(0, 13).every(c => c.field) && mb.skipped.totals === 1 && mb.skipped.noProducer === 0 && mb.wines.length > 500, J({ rows: ms.length, skipped: mb.skipped, wines: mb.wines.length }));
+
   // the same in an encrypted cellar
-  const g3 = H({ Ark1: [HEAD] }, { settings: { SIGNUP_CODE: "invite" } });
+  const g3 =H({ Ark1: [HEAD] }, { settings: { SIGNUP_CODE: "invite" } });
   const post = async p => g3.call(p);
   const keys = await VAULT.newKeys("pass-1234");
   const su = await post({ action: "signup", email: "someone@example.com", user: "tidyuser", code: "invite", ...keys.fields });
