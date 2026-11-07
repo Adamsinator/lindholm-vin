@@ -10,8 +10,9 @@ const BASE = process.env.BASE || "http://localhost:8765/";
 const results = []; const check = (name, ok, extra = "") => { results.push(ok); console.log((ok ? "PASS " : "FAIL ") + name + (ok ? "" : "  " + extra)); };
 const HEAD = ["Producent", "Land", "Område", "Kommune", "Mark/Navn", "Klassifikation", "Type", "Drue", "Årgang", "Antal", "Pris kr (WS)", "Drukket", "Kilde", "Note"];
 
+let GAS = null;
 async function signup(b, devOpt, user) {
-  const gas = H({ Ark1: [HEAD] }, { settings: { SIGNUP_CODE: "invite" } }), ctx = await b.newContext({ acceptDownloads: true, ...devOpt });
+  const gas = H({ Ark1: [HEAD] }, { settings: { SIGNUP_CODE: "invite" } }); GAS = gas; const ctx = await b.newContext({ acceptDownloads: true, ...devOpt });
   await require("./turnstile-fake")(ctx);
   await ctx.route(require("./api-route"), async route => { const q = JSON.parse(route.request().postData() || "{}"); await route.fulfill({ contentType: "application/json", body: JSON.stringify(gas.call(q)) }); });
   const p = await ctx.newPage(), errs = []; p.on("pageerror", e => errs.push(e.message)); p.on("console", m => m.type() === "error" && errs.push(m.text()));
@@ -43,6 +44,22 @@ const bottles = p => p.evaluate(() => WINES.reduce((s, w) => s + w.left, 0));
   check("asking for 750 bottles puts exactly 750 in the cellar", n === 750, String(n));
   check("…shown in the list and the overview", await p.evaluate(() => document.querySelectorAll("#rows tr.main").length > 0));
 
+  // waiting: with the server slow, a click's call shows the bottle draining into a glass until the answer comes
+  await p.waitForFunction(() => !!document.getElementById("busy"), null, { timeout: 5000 });
+  await p.context().route(require("./api-route"), async route => { await new Promise(r => setTimeout(r, 1800)); await route.fallback(); });
+  await p.click("#testBtn"); await p.fill("#testN", "5"); await p.click("#testFill");
+  await p.waitForTimeout(700);
+  const ys = () => p.evaluate(() => ["bzg", "bzb"].map(id => +document.getElementById(id).getAttribute("y")));
+  const busy = await p.evaluate(() => { const b = document.getElementById("busy"); return { on: !b.hidden, text: b.getAttribute("aria-label") || "", shown: b.textContent.trim() }; });
+  const y0 = await ys(); await p.waitForTimeout(520); const y1 = await ys();
+  check("a slow answer after a click: the glass fills as the bottle empties, a step each half second, with words only for screen readers",
+    busy.on && /moment/i.test(busy.text) && !busy.shown && y1[0] < y0[0] && y1[1] > y0[1] && Math.abs((y0[0] - y1[0]) - 1.4) < .01 && Math.abs((y1[1] - y0[1]) - 2.5) < .01, JSON.stringify({ busy, y0, y1 }));
+  await p.waitForFunction(() => !document.getElementById("testModal").classList.contains("open"), null, { timeout: 30000 });
+  check("…and go when it's done", await p.evaluate(() => document.getElementById("busy").hidden));
+  await p.evaluate(() => api({ action: "me" })); // not from a click (more than a second and a half after): no waiting shown
+  check("a call behind the scenes shows nothing", await p.evaluate(async () => { await new Promise(r => setTimeout(r, 1700)); const t = api({ action: "me" }); await new Promise(r => setTimeout(r, 500)); const on = !document.getElementById("busy").hidden; await t; return !on; }));
+  await p.context().unroute(require("./api-route"));
+  await p.context().route(require("./api-route"), async route => { const q = JSON.parse(route.request().postData() || "{}"); await route.fulfill({ contentType: "application/json", body: JSON.stringify(GAS.call(q)) }); });
   // the messy sheet: download, then import it
   await p.click("#testBtn"); await p.fill("#testRows", "400");
   const dl = p.waitForEvent("download"); await p.click("#testXlsx"); const f = await dl, file = await f.path();
@@ -57,8 +74,10 @@ const bottles = p => p.evaluate(() => WINES.reduce((s, w) => s + w.left, 0));
   const before = await p.evaluate(() => WINES.length);
   const goN = Number(((await p.textContent("#impGo")).match(/[\d.,]+/) || ["0"])[0].replace(/\D/g, ""));
   await p.click("#impGo"); await p.waitForFunction(() => !document.getElementById("impModal").classList.contains("open"), null, { timeout: 30000 }); await p.waitForTimeout(500);
-  const after = await p.evaluate(() => WINES.length);
-  check("the import adds the wines it offered (300 or more of the 400 rows)", goN >= 300 && after - before === goN, `${goN} offered, ${after - before} added`);
+  const after = await p.evaluate(() => WINES.length), toastN = Number(((await p.textContent("#toast")).match(/[\d.,]+/) || ["0"])[0].replace(/\D/g, ""));
+  // real producers: some rows are wines already in the cellar, and add their bottles to them instead of a new line
+  check("the import takes in the wines it offered (300 or more of the 400 rows; new lines, or bottles added to wines already there)",
+    goN >= 300 && toastN === goN && after > before && after - before <= goN, `${goN} offered, ${toastN} imported, ${after - before} new lines`);
   const price = await p.evaluate(() => WINES.filter(w => w.price > 0).length / WINES.length);
   check("prices written as text (\"1.234,00 kr.\", \"DKK 450\", \"450,-\") were read as numbers", price > .8, String(price));
   check("no errors on the computer", !errs.length, errs.slice(0, 3).join(" | "));

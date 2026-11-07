@@ -57,6 +57,15 @@ function cellar() {
     const overlap = lb.some((a, i) => lb.some((b, j) => j > i && !(a.right <= b.left || a.left >= b.right || a.bottom <= b.top || a.top >= b.bottom))); return { maxR: Math.max(...r), overlap }; });
   check("France's regions: bubbles capped (the biggest no more than 24), no two labels on each other", fr.maxR <= 24.1 && !fr.overlap, JSON.stringify(fr));
   await p.evaluate(() => { MAP_VIEW = "europe"; renderMap(); });
+  // on a computer the list scrolls in its own box: the page ends with its footer (the CVR) a short scroll away
+  const box = await p.evaluate(async () => { const w = document.querySelector("#pageCellar .tablewrap"), rows = () => document.querySelectorAll("#tbl tr.main").length;
+    const r0 = rows(); scrollTo(0, document.documentElement.scrollHeight); await new Promise(r => setTimeout(r, 300));
+    const foot = [...document.querySelectorAll(".sitefoot")].find(f => f.offsetParent), fr = foot && foot.getBoundingClientRect();
+    w.scrollTop = w.scrollHeight; await new Promise(r => setTimeout(r, 1200));
+    return { scrolls: w.scrollHeight > w.clientHeight, pageH: document.documentElement.scrollHeight, footSeen: !!fr && fr.top < innerHeight && fr.bottom > 0, r0, r1: rows() }; });
+  check("the wine list scrolls in its own box, and the page's footer is in reach (not after thousands of rows)", box.scrolls && box.footSeen && box.pageH < 6000, JSON.stringify(box));
+  check("…and scrolling to the box's end brings the next wines", box.r1 > box.r0, JSON.stringify(box));
+  await p.evaluate(() => scrollTo(0, 0));
   // a wine's details: no style card
   await p.click("#rows tr.main"); await p.waitForTimeout(600);
   check("a wine's details have no style card", !(await p.$("#rows .wstyle")));

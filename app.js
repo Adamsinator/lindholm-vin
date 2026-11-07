@@ -321,9 +321,10 @@ function classShown(w){
   return sg ? {txt:sg.cls, est:true, sg} : null;
 }
 // " · Grand cru" after a wine's name; a suggested one is marked ≈ and dashed. Plain AOC isn't worth the space.
-function classChip(w){
+function classChip(w, lead = true){
   const c = classShown(w); if(!c || clsKey(c.txt)==="V") return "";
-  return c.est ? ` · <b class="clsest" title="${esc(tr("Suggested from {0}: not saved yet", c.sg.climat||tr("the label")))}">≈ ${esc(c.txt)}</b>` : " · <b>"+esc(c.txt)+"</b>";
+  const sep = lead ? " · " : ""; // lead: there is text before it (a wine without a name has none)
+  return c.est ? `${sep}<b class="clsest" title="${esc(tr("Suggested from {0}: not saved yet", c.sg.climat||tr("the label")))}">≈ ${esc(c.txt)}</b>` : sep+"<b>"+esc(c.txt)+"</b>";
 }
 // A wine drunk somewhere else and never in the cellar: marked by the API since v26; older rows by their shape.
 const isElsewhere = w => w.elsewhere || (w.qty===1 && w.drunk===1 && !w.acquired);
@@ -1377,12 +1378,12 @@ function renderTable(){
   const was = RACK_SRC; RACK_SRC = filtering ? list.filter(w=>w.left>0) : null;
   if(was || RACK_SRC) renderRack(WINES.filter(w=>w.left>0));
   const k=state.sortK, dir=state.sortDir;
-  list.sort((a,b)=>{
-    let va=a[k], vb=b[k];
+  // as a spreadsheet sorts: blanks last either way, and ties by producer, wine and vintage
+  const cmp=(a,b,k,d)=>{ let va=a[k], vb=b[k];
     if(k==="vintage"){ va = typeof va==="number"?va:9999; vb = typeof vb==="number"?vb:9999; }
-    if(typeof va==="string") return va.localeCompare(vb)*dir;
-    return ((va??0)-(vb??0))*dir;
-  });
+    const ea = va==null||va==="", eb = vb==null||vb==="";
+    return ea||eb ? ea-eb : (typeof va==="string" ? String(va).localeCompare(String(vb)) : va-vb)*d; };
+  list.sort((a,b)=>cmp(a,b,k,dir)||cmp(a,b,"producer",1)||cmp(a,b,"name",1)||cmp(a,b,"vintage",1));
   document.querySelectorAll("th[data-k] .arr").forEach(s=>s.textContent="");
   const th=document.querySelector(`th[data-k="${k}"] .arr`); if(th) th.textContent = dir>0?"▲":"▼";
 
@@ -1416,11 +1417,13 @@ function renderTable(){
     const nm = [w.name, w.commune && w.commune!==w.name ? w.commune : ""].filter(Boolean).join(" · ");
     // the colour as a dot before the wine (the style has its filter and its chart)
     const dot = `<span class="sdot" title="${esc(tr(STYLE_EN[w.style])||w.style||"")}" style="background:var(${STYLE_VAR[w.style]||"--muted"})"></span>`;
-    const wine = `${fmtChip(w)}${esc(w.name)}${classChip(w)}${w.rating?` · <span class="myscore">${w.rating}/10</span>`:""}`;
+    const wine = `${fmtChip(w)}${esc(w.name)}${classChip(w, !!w.name)}${w.rating?` · <span class="myscore">${w.rating}/10</span>`:""}`;
     const loc = w.location ? `<span class="wloc">${svgi("pin")} ${esc(w.location)}</span>` : "";
-    const where = w.region ? esc(w.region) + (w.country ? `<span class="ctry"> · ${esc(w.country)}</span>` : "") : esc(w.country);
+    // the commune in its own span: with the Commune column shown (cellar-qol.js) it isn't said twice
+    const cm = w.commune && w.commune!==w.name ? w.commune : "";
+    const where = (cm ? `<span class="ocm">${esc(cm)}${w.region||w.country ? " · " : ""}</span>` : "") + esc(w.region||"") + (w.country ? `<span class="ctry">${w.region ? " · " : ""}${esc(w.country)}</span>` : "");
     return `<tr class="main${w.left===0?" gone":""}" data-i="${i}" data-row="${w.row}" tabindex="0" aria-level="1" aria-expanded="false">
-      <td class="c-prod"><span class="prod">${esc(w.producer)}</span>${badge}${rbadge}<br class="ponly"><span class="wname ponly">${dot}${fmtChip(w)}${esc(nm)}${classChip(w)}${w.rating?` · <span class="myscore">${w.rating}/10</span>`:""}</span>${loc?`<br class="ponly"><span class="ponly">${loc}</span>`:""}</td>
+      <td class="c-prod"><span class="prod">${esc(w.producer)}</span>${badge}${rbadge}<br class="ponly"><span class="wname ponly">${dot}${fmtChip(w)}${esc(nm)}${classChip(w, !!nm)}${w.rating?` · <span class="myscore">${w.rating}/10</span>`:""}</span>${loc?`<br class="ponly"><span class="ponly">${loc}</span>`:""}</td>
       <td class="c-wine"><span class="wname">${dot}${wine}</span>${loc}</td>
       <td class="c-comm">${esc(w.commune && w.commune!==w.name ? w.commune : "")}</td>
       <td class="num c-vint">${esc(w.vintage||"—")}</td>
@@ -1455,6 +1458,8 @@ function bindWineRows(scope){
     const row=document.querySelector(`${scope} tr.main[data-row="${KEEP_OPEN}"]`);
     if(row && row.nextElementSibling){ fillDetail(row.nextElementSibling, row); row.nextElementSibling.hidden=false; row.setAttribute("aria-expanded","true"); }
   }
+  // a computer's list scrolls in its own box
+  const LIST_BOX = el => { const w = el.closest(".tablewrap"); return w && getComputedStyle(w).maxHeight !== "none" ? w : null; };
   const more = (tbl, all) => { PAGE_SIZE[tbl].n = all ? Infinity : PAGE_SIZE[tbl].n + PAGE_STEP; tbl==="cellar" ? renderTable() : renderEnjoyed(); };
   document.querySelectorAll(`${scope} tr.morerow button`).forEach(b=>b.addEventListener("click",()=>more(b.dataset.tbl, b.dataset.all)));
   // the next rows come by themselves as the end of the list scrolls near (the buttons stay, for keyboards and old browsers)
@@ -1464,7 +1469,7 @@ function bindWineRows(scope){
     // a short wait, so a tap on the row's own buttons (or a quick scroll past) isn't overtaken by a redraw
     let near = false, t = null;
     PAGE_OBS[tbl] = new IntersectionObserver(es=>{ near = es[es.length-1].isIntersecting; clearTimeout(t);
-      if(near) t = setTimeout(()=>{ if(near && mr.isConnected){ PAGE_OBS[tbl].disconnect(); more(tbl); } }, 250); }, {rootMargin:"0px 0px 600px 0px"});
+      if(near) t = setTimeout(()=>{ if(near && mr.isConnected){ PAGE_OBS[tbl].disconnect(); more(tbl); } }, 250); }, {root:LIST_BOX(mr), rootMargin:"0px 0px 600px 0px"});
     PAGE_OBS[tbl].observe(mr);
   }
 }
@@ -1480,7 +1485,7 @@ function fillDetail(d, row){
 const PAGE_STEP = 100, PAGE_SIZE = {cellar:{n:PAGE_STEP, key:""}, enjoyed:{n:PAGE_STEP, key:""}}, PAGE_OBS = {};
 function pageOf(list, tbl){
   const ps = PAGE_SIZE[tbl], key = JSON.stringify(tbl==="cellar" ? state : eState);
-  if(key!==ps.key){ ps.key = key; ps.n = PAGE_STEP; }
+  if(key!==ps.key){ ps.key = key; ps.n = PAGE_STEP; const w = document.querySelector(tbl==="cellar" ? "#pageCellar .tablewrap" : "#pageEnjoyed .tablewrap"); if(w) w.scrollTop = 0; }
   // the open wine stays in view even when it's further down
   const n = ps.n, i = KEEP_OPEN!=null ? list.findIndex(w=>w.row===KEEP_OPEN) : -1;
   return i >= n ? list.slice(0, n).concat(list[i]) : list.slice(0, n);
@@ -1565,8 +1570,8 @@ async function loadData(quiet){
     LOADED_AT = new Date(); stampText();
     $("spin").hidden = true; $("content").hidden = false;
     if(!VINT_W && VINT_CELLAR.length) drawVintages(VINT_CELLAR); // drawn while hidden (no width yet): again, for the width it has now
-    if(!window.CELLAR_QOL) loadJS("cellar-qol.js?v=3").catch(()=>{}); // the conveniences: swipes, keys, several wines at once
-    if(/^test/i.test(cfg.user||"") && !window.TESTKIT) loadJS("testkit.js?v=1").then(()=>TESTKIT.mount()).catch(()=>{}); // test data
+    if(!window.CELLAR_QOL) loadJS("cellar-qol.js?v=6").catch(()=>{}); // the conveniences: swipes, keys, several wines at once
+    if(/^test/i.test(cfg.user||"") && !window.TESTKIT) loadJS("testkit.js?v=2").then(()=>TESTKIT.mount()).catch(()=>{}); // test data
     loadJournalSilently(); refreshDeleted(); checkOwner(); takePrefill(); // checkOwner asks "me", which says if the feed is on
   }catch(err){
     if(AUTH_ERRORS.has(err.message)){ forgetAuth(); setGateMode("login"); showGate(tr("Your session expired: log in again.")); }
@@ -1756,7 +1761,7 @@ function showGate(msg){
   $("who").hidden = true; $("who").textContent = "";
   $("gateApiWrap").hidden = !!cfg.api;
   $("gateErr").textContent = msg||"";
-  if(!document.getElementById("bizband")) loadJS("landing-biz.js?v=1").catch(()=>{});
+  if(!document.getElementById("bizband")) loadJS("landing-biz.js?v=3").catch(()=>{});
   // On phones the atlas sits above the login; focusing would pop the keyboard and scroll past it.
   if(matchMedia("(min-width: 821px)").matches) setTimeout(()=>$("gateUser").focus(), 50);
 }
@@ -2441,7 +2446,7 @@ function sommLoad(){
   if(!window.WINE_KB) need.push("wine-kb.js?v=2");
   if(!window.SOMM_DATA) need.push("sommelier-data.js?v=6");
   if(!window.SOMM_WORLD) need.push("sommelier-world.js?v=2");
-  if(!window.SOMMELIER) need.push("sommelier.js?v=10");
+  if(!window.SOMMELIER) need.push("sommelier.js?v=11");
   if(!window.BURG_VINTAGES) need.push("burgundy-vintages.js?v=6");
   if(["da","fr","de"].includes(lang) && !(window.BURG_I18N && BURG_I18N[lang])) need.push(`burgundy-i18n-${lang}.js?v=${lang==="de"?1:5}`);
   SOMM.lang = lang;
@@ -2487,7 +2492,7 @@ async function sommAsk(q){
     SOMM.prev = r.asked || q; SOMM.offer = r.offer || ""; SOMM.lastLead = r.lead || "";
     SOMM.hist = (SOMM.hist || []).concat({asked:r.asked || q, subject:r.subject || ""}).slice(-6);
     think.remove();
-    const ans = sommSay(r.html); sommChips(r.chips);
+    const ans = sommSay(r.html); sommChips([]); // once you're talking, no suggestions under the answers
     // question and answer together if they fit; otherwise from the question down
     const log = $("sommLog"), span = ans.offsetTop + ans.offsetHeight - asked.offsetTop;
     log.scrollTop = span > log.clientHeight - 20 ? asked.offsetTop - 10 : ans.offsetTop + ans.offsetHeight - log.clientHeight + 12;
@@ -4101,7 +4106,7 @@ function renderEnjoyed(){
     const badge = pn?`<span class="badge ${pn[0]}" title="${esc(tr(TIER_TIP[pn[0]]))}">${tr(TIER_LABEL[pn[0]])}</span>`:"";
     const nm = [w.name, w.commune && w.commune!==w.name ? w.commune : ""].filter(Boolean).join(" · ");
     return `<tr class="main" data-i="${i}" data-row="${w.row}" tabindex="0" aria-level="1" aria-expanded="false">
-      <td><span class="prod">${esc(w.producer)}</span>${badge}<br><span class="wname">${fmtChip(w)}${esc(nm)}${classChip(w)}${w.rating?` · <span class="myscore">${w.rating}/10</span>`:""}${w.drunkDate?`<span class="ponly"> · ${esc(fmtDate(w.drunkDate))}</span>`:""}</span></td>
+      <td><span class="prod">${esc(w.producer)}</span>${badge}<br><span class="wname">${fmtChip(w)}${esc(nm)}${classChip(w, !!nm)}${w.rating?` · <span class="myscore">${w.rating}/10</span>`:""}${w.drunkDate?`<span class="ponly"> · ${esc(fmtDate(w.drunkDate))}</span>`:""}</span></td>
       <td class="num">${esc(w.vintage||"—")}</td>
       <td>${esc(w.region)}</td>
       <td><span class="sdot" style="background:var(${STYLE_VAR[w.style]||"--muted"})"></span>${tr(STYLE_EN[w.style])||esc(w.style)}</td>
@@ -4564,7 +4569,7 @@ $("adminBtn").addEventListener("click", ()=>{
 });
 // test users and test wines (test-data.js, loaded the first time one of these is used)
 const testTools = () => window.TESTDATA && TESTDATA.ui ? Promise.resolve(TESTDATA) : new Promise((ok, no)=>{ const el = document.createElement("script");
-  el.src = "test-data.js?v=3"; el.onload = ()=>ok(window.TESTDATA); el.onerror = ()=>no(new Error("load test-data.js")); document.head.appendChild(el); });
+  el.src = "test-data.js?v=5"; el.onload = ()=>ok(window.TESTDATA); el.onerror = ()=>no(new Error("load test-data.js")); document.head.appendChild(el); });
 $("acctTest").addEventListener("click", e=>{ const b = e.target.closest("button[data-testwines]"); if(!b) return;
   testTools().then(T=>T.ui.addWines(Number(b.dataset.testwines))).catch(err=>{ $("acctTestMsg").textContent = errText(err); }); });
 async function loadFeedSilently(){

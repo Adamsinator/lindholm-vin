@@ -77,7 +77,7 @@
     }
     return out;
   }
-  root.TESTDATA = { wines };
+  root.TESTDATA = { wines, REAL: W }; // REAL: the producers and their wines, for testkit.js too
   if (typeof module !== "undefined") module.exports = root.TESTDATA;
 })(typeof window !== "undefined" ? window : globalThis);
 
@@ -114,7 +114,10 @@
       const res = await api({ action: "addmany", wines: list.slice(i, i + size), bumps: [] });
       done = Math.min(list.length, i + size); WINES = normalize(res.wines);
     }
-    renderOverview(); renderTable(); renderEnjoyed(); msg.textContent = tr("{0} test wines added", fmt(done));
+    // each test wine has 1 to 6 bottles (a business 1 to 24): say both, so "1,000" isn't read as bottles
+    const btl = list.reduce((t, w) => t + (Number(w.qty) || 0), 0), l = window.I18N && I18N.lang;
+    const W = { da: "{0} testvine tilføjet ({1} flasker)", fr: "{0} vins de test ajoutés ({1} bouteilles)", de: "{0} Testweine hinzugefügt ({1} Flaschen)" };
+    renderOverview(); renderTable(); renderEnjoyed(); msg.textContent = (W[l] || "{0} test wines added ({1} bottles)").replace("{0}", fmt(done)).replace("{1}", fmt(btl));
   }
   T.ui = { makeUser, clearUsers, addWines };
 })(typeof window !== "undefined" ? window : globalThis);

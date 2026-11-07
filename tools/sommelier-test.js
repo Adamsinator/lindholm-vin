@@ -281,10 +281,8 @@ check("…but gibberish stays gibberish", r.kind === "unknown", r.kind);
 r = conv("en", ["what is a monopole", "how long does it keep?"]);
 check("…and with no wine to remember, 'it' isn't invented", !/Barolo|Chablis/.test(r.asked), r.asked);
 // yes to an offer
-{ const off = Array.from({ length: 40 }, (_, i) => S.chat("do I have any Barolo", ctx("en", { turn: i }))).find(x => x.offer);
-  check("a hint that offers something carries the offer", off && /What should I drink now/.test(off.offer), off && off.offer);
-  const y = S.chat("yes please", ctx("en", { offer: off && off.offer, turn: 1 }));
-  check("…and 'yes please' takes it up", y.kind === "cellar" && /Ready to drink/.test(text(y.html)), text(y.html).slice(0, 80));
+{ const all = Array.from({ length: 40 }, (_, i) => S.chat("do I have any Barolo", ctx("en", { turn: i })));
+  check("no answer ends with an offer ('Want me to …?'): it read as a button and wasn't one", all.every(x => !x.offer && !/sm-hint/.test(x.html)));
   check("…while 'yes' with nothing offered is just friendly", S.chat("yes", ctx("en")).kind === "talk"); }
 // chips
 r = S.chat("tell me about barolo", ctx("en", { turn: 0 }));

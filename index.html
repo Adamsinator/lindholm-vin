@@ -268,7 +268,7 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch} foote
 /* gate + modal */
 .gate{position:fixed;inset:0;background:var(--bg);z-index:100;overflow-y:auto;padding:20px 16px 40px}
 /* front page: the public Burgundy atlas next to the cellar login */
-.landing{max-width:2200px;margin:0 auto;padding:0 clamp(0px,1.4vw,20px)}
+.landing{max-width:1240px;margin:0 auto;padding:0 clamp(0px,1.4vw,20px)}
 .landing-head .sub{display:inline-flex;align-items:center;gap:12px;flex-wrap:wrap}
 .langwrap{display:inline-flex}
 .langpick{display:flex;gap:4px}
@@ -282,13 +282,13 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch} foote
 .gate .landing-head h1{font-family:var(--serif);font-size:clamp(30px,5vw,44px);font-weight:600;margin:0}
 .gate .landing-head h1 em{font-style:italic;color:var(--accent)}
 /* the atlas fills the first screen; the cellar login sits beside it (below it on phones) */
-.landing-grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start}
+.landing-grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px}
 @media(max-width:820px){.landing-grid{grid-template-columns:1fr}}
 @media(max-width:600px){.landing-head{align-items:center;flex-wrap:nowrap} .gate .landing-head h1{font-size:28px} .landing-head .sub > span[data-i18n]{display:none}}
 .atlascard{display:block;position:relative;background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden;
   box-shadow:var(--shadow);color:inherit;text-decoration:none}
 .atlascard:hover{border-color:var(--accent)}
-.atlascard img{display:block;width:100%;height:calc(100svh - 150px);min-height:360px;object-fit:cover;object-position:42% 50%;background:var(--card2);transition:transform .6s}
+.landing-grid>div,.atlascard{height:100%} .atlascard img{display:block;width:100%;height:100%;min-height:320px;object-fit:cover;object-position:42% 50%;background:var(--card2);transition:transform .6s}
 .atlascard:hover img{transform:scale(1.015)}
 @media (prefers-color-scheme: dark){.atlascard img{filter:brightness(.8) saturate(.95)}}
 .atlascard .ab{position:absolute;left:18px;bottom:18px;max-width:min(540px,calc(100% - 36px));padding:18px 22px 20px;border-radius:var(--r);
@@ -298,15 +298,15 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch} foote
 .atlascard .open{display:inline-block;font-weight:650;font-size:14.5px;background:var(--accent);color:var(--accent-ink,#fff);border-radius:var(--r);padding:9px 16px}
 .atlascard .credit{position:absolute;right:10px;bottom:6px;font-size:10px;color:var(--muted);text-shadow:0 0 3px var(--bg)}
 @media(max-width:820px){
-  .atlascard img{height:56svh;min-height:300px}
+  .atlascard img{height:42svh;min-height:42svh}
   .atlascard .ab{position:static;max-width:none;border:0;border-radius:0;box-shadow:none;background:var(--card);padding:14px 16px 16px}
-  .atlascard .credit{bottom:auto;top:calc(56svh - 18px)}
+  .atlascard .credit{bottom:auto;top:calc(42svh - 18px)}
 }
 .gate .card h2{font-family:var(--serif);font-size:22px;font-weight:600;margin:0 0 2px}
 .gate .card,.modal .card{background:var(--bg);border:1px solid var(--ink);border-radius:var(--r-lg);
   padding:28px;max-width:400px;width:100%}
 .modal .card{border-top:4px solid var(--accent)}
-.gate .landing-grid .card{max-width:none;position:sticky;top:16px}
+.gate .landing-grid .card{max-width:none}
 .gate h1{font-family:var(--serif);font-size:28px;margin:0 0 2px}
 .gate h1 em{font-style:italic;color:var(--accent)}
 .gate p{color:var(--muted);font-size:13px;margin:4px 0 18px}
@@ -660,6 +660,8 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 .side-body h2{font-size:15px}
 .side-body .ph{font-size:11.5px}
 .cellar-main .filters{position:sticky;top:0;z-index:6;background:var(--bg);padding:8px 0;margin:0 0 6px}
+@media(min-width:821px){#pageCellar .tablewrap,#pageEnjoyed .tablewrap{max-height:calc(100vh - 120px);overflow:auto;overscroll-behavior:contain}
+#tbl thead th,#eTbl thead th{position:sticky;top:0;z-index:2;background:var(--bg)} .cellar-main .filters{position:static}}
 .chipbar{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;margin:0 0 10px}
 .chipbar-lbl{font-size:10.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--muted)}
 /* the bottles to open first, under the chips: past their window first, then the ones closing soonest */
@@ -685,20 +687,20 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 .mapfold summary h2{margin:0}
 .mapfold[open] summary .ph{display:none}
 .mapfold[open] summary{margin-bottom:6px}
-/* one line per wine: the name gives way (…) before anything wraps; the whole wine shows when it's opened */
+/* the lists: a wine wraps rather than being cut off; its details show when it's opened */
 #tbl td,#eTbl td{padding:7px 10px}
 #tbl td.c-vint,#tbl td.c-qty,#tbl td.c-price,#eTbl td:nth-child(3),#eTbl td:nth-child(4),#eTbl td:nth-child(6){white-space:nowrap}
 #tbl .ponly,#eTbl .ponly{display:none}
 #tbl .ctry{color:var(--muted)}
 @media (min-width:701px){
-  /* the cellar: producer, wine, commune, vintage, region · country, bottles, price — one line each, the same widths
-     in every browser; producer and wine share what's left, and anything too long ends in … */
+  /* the cellar as a wine list: producer, wine (name and classification, on two lines if it needs them), vintage,
+     where it's from (commune · region · country), price. The bottles, the commune's own column and the rest are in
+     the wine's details (the columns stay, given no width: the details row spans seven, and Safari keeps a hidden one) */
   #tbl{table-layout:fixed}
-  #tbl thead th{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:10px 10px;letter-spacing:.08em}
-  /* widths from what the cells hold: "Morey-Saint-Denis", "Bourgogne · Frankrig", 13.136 kr., and headers like
-     ÅRGANG / FLASCHEN in full; the producer (with its badges) gets a bit more than the wine's share */
-  #tbl th.c-prod{width:25%} #tbl th.c-comm{width:166px} #tbl th.c-vint{width:76px} #tbl th.c-reg{width:170px} #tbl th.c-qty{width:78px} #tbl th.c-price{width:104px}
-  #tbl tr.main td{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #tbl thead th{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:10px 10px;letter-spacing:.05em}
+  #tbl th.c-prod{width:26%} #tbl th.c-vint{width:90px} #tbl th.c-reg{width:24%} #tbl th.c-price{width:112px}
+  #tbl:not(.o-comm) th.c-comm,#tbl:not(.o-comm) tr.main td.c-comm,#tbl:not(.o-qty) th.c-qty,#tbl:not(.o-qty) tr.main td.c-qty{width:0;padding:0;font-size:0;border:0;overflow:hidden;visibility:hidden}
+  #tbl tr.main td{overflow:hidden;overflow-wrap:anywhere}
   #eTbl tr.main td:first-child{max-width:0;width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   /* Enjoyed: fixed widths, so the same in every browser; the wine has the rest */
   #eTbl{table-layout:fixed}
@@ -707,20 +709,14 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
   #eTbl thead th:nth-child(5){width:54px} #eTbl thead th:nth-child(6){width:124px} #eTbl thead th:nth-child(7){width:126px}
   #eTbl tr.main td:nth-child(3),#eTbl tr.main td:nth-child(4){overflow:hidden;text-overflow:ellipsis}
   #eTbl td:first-child br{display:none}
-  #tbl td.c-wine .wloc,#eTbl td:first-child .wname{margin-left:8px}
+  #tbl td.c-wine .wloc{display:none} #eTbl td:first-child .wname{margin-left:8px}
 }
 /* with the overview in its column beside the list there's less room: the region (it's in the overview) gives way */
 @media (min-width:1181px) and (max-width:1599px){
   /* a column given no width rather than display:none: the details row under a wine spans all seven columns, and
      Safari keeps a hidden one's place as an empty column at the end */
   #eTbl thead th:nth-child(3),#eTbl tr.main td:nth-child(3){width:0;padding:0;font-size:0;border:0;overflow:hidden;visibility:hidden}
-  /* the cellar keeps its region, without the country (there's a country filter), to give the wine more room */
-  #tbl .ctry{display:none}
-  #tbl th.c-reg{width:108px} #tbl th.c-comm{width:150px} #tbl th.c-vint{width:72px} #tbl th.c-qty{width:76px} #tbl th.c-price{width:98px}
 }
-@media (min-width:1181px) and (max-width:1399px){ #tbl th.c-comm{width:124px} #tbl th.c-price{width:94px} }
-/* a small laptop beside the overview: the commune gives way too (it shows when the wine is opened, and search finds it) */
-@media (min-width:1181px) and (max-width:1299px){ #tbl th.c-comm,#tbl tr.main td.c-comm{width:0;padding:0;font-size:0;border:0;overflow:hidden;visibility:hidden} } /* no width, not display:none (Safari, as above) */
 /* the header: Account and Log out at the top right with the languages; under it the page tabs, and a quiet line
    with when the cellar was fetched, Refresh and the atlas */
 .helpq,.acct .btn.helpq{display:inline-flex;align-items:center;justify-content:center;min-width:30px;min-height:30px;padding:0 !important;border:1.5px solid currentColor;border-radius:50%;font-weight:700;text-decoration:none;line-height:1}
@@ -930,7 +926,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
   <main class="landing-grid">
   <div>
     <a class="atlascard" href="atlas.html">
-      <picture><!-- WebP where the browser takes it: a third smaller than the JPEG -->
+      <picture>
         <source type="image/webp" srcset="atlas-hero-1000.webp 1000w, atlas-hero.webp 2000w" sizes="(max-width: 820px) 100vw, 75vw">
         <img src="atlas-hero.jpg" srcset="atlas-hero-1000.jpg 1000w, atlas-hero.jpg 2000w" sizes="(max-width: 820px) 100vw, 75vw"
           alt="The Wine atlas: Vosne-Romanée's grands crus around Romanée-Conti" width="2000" height="1150" fetchpriority="high">
@@ -997,9 +993,9 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
     <p class="lockline"><svg class="svgi" aria-hidden="true" focusable="false"><use href="icons.svg#lock"/></svg> <span data-i18n>Your cellar is encrypted on this device before it's saved; the server only ever holds the locked copy.</span></p>
     <p class="lockline"><a href="privacy.html" data-i18n>Privacy: what's stored and where</a></p>
     <p class="lockline"><a href="v/en/index.html" id="gateVineyards" data-i18n>Vineyard atlas: every grand cru and premier cru</a></p>
-    <div data-sitefoot></div>
   </form>
   </main>
+  <div data-sitefoot></div>
  </div>
 </div>
 
@@ -1097,7 +1093,6 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 
 <div id="pageCellar">
 
-<!-- for a new member (app.js, renderTips): three steps, ticked as they're done, until both are done or it's hidden -->
 <section class="tips" id="tips" aria-labelledby="tipsTitle" hidden>
   <div class="tips-h"><h2 id="tipsTitle" data-i18n>Welcome to your cellar</h2>
     <a class="tips-more" href="help.html" target="_blank" rel="noopener" data-i18n>All help and tips →</a>
@@ -1120,13 +1115,11 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
   <button class="btn" id="priceBtn">Show prices</button>
 </div>
 
-<!-- while the cellar loads: the shape of what's coming (the words stay for screen readers); an error replaces it all -->
 <div class="spin skel" id="spin"><span class="sr" data-i18n>Fetching the cellar…</span>
   <div class="sk-kpis" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
   <div class="sk-rows" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
 <div id="content" hidden>
 
-<!-- the cellar as a wine rack: a bottle for every bottle, coloured by type, the capsule amber when it's time (app.js, renderRack) -->
 <section class="wall" id="wall" data-panel="rack" aria-labelledby="wallTitle" hidden>
   <div class="wall-h"><h2 id="wallTitle" data-i18n>Your cellar</h2><p class="wall-big"><b id="wallN"></b> <span id="wallSub"></span></p></div>
   <div class="rack" id="rack" role="group" aria-label="Every bottle in the cellar" data-i18n-aria></div>
@@ -1827,10 +1820,8 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
   <div class="card"><h2 id="meTitle"></h2><div class="pmenu" id="meMenu"></div><div class="melang" data-langpick></div></div>
 </div>
 <div id="toast"></div>
-<!-- an action that just happened, with what can follow it: Undo, a rating, a tasting note (app.js, notify) -->
 <div id="actbar" role="status" aria-live="polite" hidden><span id="actMsg"></span><span id="actExtra"></span><span id="actBtns"></span>
   <button type="button" id="actClose" aria-label="Close" data-i18n-aria>✕</button></div>
-<!-- the site's own question, instead of the browser's OK / Cancel box (app.js, ask) -->
 <div class="modal" id="askModal" role="alertdialog" aria-modal="true" aria-labelledby="askMsg">
   <form class="card askcard" id="askForm">
     <p id="askMsg"></p>
@@ -1875,6 +1866,6 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 <script src="import.js?v=8"></script>
 <script src="export.js?v=3"></script>
 <script src="share-crypto.js?v=2"></script>
-<script src="app.js?v=103"></script>
+<script src="app.js?v=105"></script>
 </body>
 </html>
