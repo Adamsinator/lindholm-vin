@@ -154,7 +154,7 @@ own wines by vintage. Still to do, roughly in order:
 ## The business page (business.html, 5 November 2026)
 
 A page to show a restaurant, a wine merchant or a winemaker what they get: the features for their kind, a tour through
-ten real screens of a made-up wine bar ("Vinbaren Demo", tools/shot-demo.js writes img/business/), the prices and the
+eleven real screens of a made-up wine bar as a slideshow that rings what each shows ("Vinbaren Demo", tools/shot-demo.js writes img/business/*.webp and tour.json), the prices and the
 questions they ask. In four languages (business-page-i18n-*.js). Kept out of search engines (noindex) and not linked
 from the site until business accounts open (app.js BIZ_OPEN). Prices are "on request": a business writes, and gets an
 offer.
