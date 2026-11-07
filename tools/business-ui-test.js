@@ -138,6 +138,10 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   const daP = await p.textContent("#bizPanel");
   check("…in Danish too, from business-i18n-da.js, fetched only for a business", (await p.textContent("#wallTitle")) === "Dit lager" && /Skal bestilles/.test(daP) && /bestil 5/.test(daP)
     && await p.evaluate(() => [...document.scripts].some(s => /business-i18n-da\.js/.test(s.src))), daP.slice(0, 200));
+  // the inventory's buttons and headings were drawn before the Danish words came: drawn again once they're here
+  await p.click('.tab[data-page="inventory"]'); await p.waitForTimeout(400);
+  const invDa = await p.evaluate(() => [document.querySelector('#pageInventory [data-bz="till"]').textContent, document.getElementById("bzInvQ").placeholder]);
+  check("…the inventory's buttons and search in Danish as well (drawn again when the words arrive)", invDa[0] === "Hurtigsalg" && /^Søg/.test(invDa[1]), JSON.stringify(invDa));
   await p.evaluate(() => I18N.setLang("en")); await p.waitForTimeout(500);
 
   // the month's sales as a CSV: 1 bottle at 900 and 2 glasses at 150 = 1,200 with VAT, 960 without, 240 VAT
