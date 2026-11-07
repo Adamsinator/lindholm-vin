@@ -1455,6 +1455,8 @@ function bindWineRows(scope){
     const row=document.querySelector(`${scope} tr.main[data-row="${KEEP_OPEN}"]`);
     if(row && row.nextElementSibling){ fillDetail(row.nextElementSibling, row); row.nextElementSibling.hidden=false; row.setAttribute("aria-expanded","true"); }
   }
+  // a computer's list scrolls in its own box
+  const LIST_BOX = el => { const w = el.closest(".tablewrap"); return w && getComputedStyle(w).maxHeight !== "none" ? w : null; };
   const more = (tbl, all) => { PAGE_SIZE[tbl].n = all ? Infinity : PAGE_SIZE[tbl].n + PAGE_STEP; tbl==="cellar" ? renderTable() : renderEnjoyed(); };
   document.querySelectorAll(`${scope} tr.morerow button`).forEach(b=>b.addEventListener("click",()=>more(b.dataset.tbl, b.dataset.all)));
   // the next rows come by themselves as the end of the list scrolls near (the buttons stay, for keyboards and old browsers)
@@ -1464,7 +1466,7 @@ function bindWineRows(scope){
     // a short wait, so a tap on the row's own buttons (or a quick scroll past) isn't overtaken by a redraw
     let near = false, t = null;
     PAGE_OBS[tbl] = new IntersectionObserver(es=>{ near = es[es.length-1].isIntersecting; clearTimeout(t);
-      if(near) t = setTimeout(()=>{ if(near && mr.isConnected){ PAGE_OBS[tbl].disconnect(); more(tbl); } }, 250); }, {rootMargin:"0px 0px 600px 0px"});
+      if(near) t = setTimeout(()=>{ if(near && mr.isConnected){ PAGE_OBS[tbl].disconnect(); more(tbl); } }, 250); }, {root:LIST_BOX(mr), rootMargin:"0px 0px 600px 0px"});
     PAGE_OBS[tbl].observe(mr);
   }
 }
@@ -1480,7 +1482,7 @@ function fillDetail(d, row){
 const PAGE_STEP = 100, PAGE_SIZE = {cellar:{n:PAGE_STEP, key:""}, enjoyed:{n:PAGE_STEP, key:""}}, PAGE_OBS = {};
 function pageOf(list, tbl){
   const ps = PAGE_SIZE[tbl], key = JSON.stringify(tbl==="cellar" ? state : eState);
-  if(key!==ps.key){ ps.key = key; ps.n = PAGE_STEP; }
+  if(key!==ps.key){ ps.key = key; ps.n = PAGE_STEP; const w = document.querySelector(tbl==="cellar" ? "#pageCellar .tablewrap" : "#pageEnjoyed .tablewrap"); if(w) w.scrollTop = 0; }
   // the open wine stays in view even when it's further down
   const n = ps.n, i = KEEP_OPEN!=null ? list.findIndex(w=>w.row===KEEP_OPEN) : -1;
   return i >= n ? list.slice(0, n).concat(list[i]) : list.slice(0, n);
@@ -4564,7 +4566,7 @@ $("adminBtn").addEventListener("click", ()=>{
 });
 // test users and test wines (test-data.js, loaded the first time one of these is used)
 const testTools = () => window.TESTDATA && TESTDATA.ui ? Promise.resolve(TESTDATA) : new Promise((ok, no)=>{ const el = document.createElement("script");
-  el.src = "test-data.js?v=3"; el.onload = ()=>ok(window.TESTDATA); el.onerror = ()=>no(new Error("load test-data.js")); document.head.appendChild(el); });
+  el.src = "test-data.js?v=4"; el.onload = ()=>ok(window.TESTDATA); el.onerror = ()=>no(new Error("load test-data.js")); document.head.appendChild(el); });
 $("acctTest").addEventListener("click", e=>{ const b = e.target.closest("button[data-testwines]"); if(!b) return;
   testTools().then(T=>T.ui.addWines(Number(b.dataset.testwines))).catch(err=>{ $("acctTestMsg").textContent = errText(err); }); });
 async function loadFeedSilently(){

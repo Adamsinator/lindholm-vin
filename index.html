@@ -660,6 +660,8 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 .side-body h2{font-size:15px}
 .side-body .ph{font-size:11.5px}
 .cellar-main .filters{position:sticky;top:0;z-index:6;background:var(--bg);padding:8px 0;margin:0 0 6px}
+@media(min-width:821px){#pageCellar .tablewrap,#pageEnjoyed .tablewrap{max-height:calc(100vh - 120px);overflow:auto;overscroll-behavior:contain}
+#tbl thead th,#eTbl thead th{position:sticky;top:0;z-index:2;background:var(--bg)} .cellar-main .filters{position:static}}
 .chipbar{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;margin:0 0 10px}
 .chipbar-lbl{font-size:10.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--muted)}
 /* the bottles to open first, under the chips: past their window first, then the ones closing soonest */
@@ -1097,7 +1099,6 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 
 <div id="pageCellar">
 
-<!-- for a new member (app.js, renderTips): three steps, ticked as they're done, until both are done or it's hidden -->
 <section class="tips" id="tips" aria-labelledby="tipsTitle" hidden>
   <div class="tips-h"><h2 id="tipsTitle" data-i18n>Welcome to your cellar</h2>
     <a class="tips-more" href="help.html" target="_blank" rel="noopener" data-i18n>All help and tips →</a>
@@ -1120,13 +1121,11 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
   <button class="btn" id="priceBtn">Show prices</button>
 </div>
 
-<!-- while the cellar loads: the shape of what's coming (the words stay for screen readers); an error replaces it all -->
 <div class="spin skel" id="spin"><span class="sr" data-i18n>Fetching the cellar…</span>
   <div class="sk-kpis" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
   <div class="sk-rows" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
 <div id="content" hidden>
 
-<!-- the cellar as a wine rack: a bottle for every bottle, coloured by type, the capsule amber when it's time (app.js, renderRack) -->
 <section class="wall" id="wall" data-panel="rack" aria-labelledby="wallTitle" hidden>
   <div class="wall-h"><h2 id="wallTitle" data-i18n>Your cellar</h2><p class="wall-big"><b id="wallN"></b> <span id="wallSub"></span></p></div>
   <div class="rack" id="rack" role="group" aria-label="Every bottle in the cellar" data-i18n-aria></div>
@@ -1827,7 +1826,6 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
   <div class="card"><h2 id="meTitle"></h2><div class="pmenu" id="meMenu"></div><div class="melang" data-langpick></div></div>
 </div>
 <div id="toast"></div>
-<!-- an action that just happened, with what can follow it: Undo, a rating, a tasting note (app.js, notify) -->
 <div id="actbar" role="status" aria-live="polite" hidden><span id="actMsg"></span><span id="actExtra"></span><span id="actBtns"></span>
   <button type="button" id="actClose" aria-label="Close" data-i18n-aria>✕</button></div>
 <div class="modal" id="askModal" role="alertdialog" aria-modal="true" aria-labelledby="askMsg">
@@ -1874,6 +1872,6 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 <script src="import.js?v=8"></script>
 <script src="export.js?v=3"></script>
 <script src="share-crypto.js?v=2"></script>
-<script src="app.js?v=104"></script>
+<script src="app.js?v=105"></script>
 </body>
 </html>
