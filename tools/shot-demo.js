@@ -1,6 +1,6 @@
 // The screenshots for the business page (business.html): a made-up wine bar, "Vinbaren Demo", with made-up wines and
-// sales, taken in a browser against the real Apps Script (gas-harness.js). Writes img/business/*.webp and tour.json
-// (needs Python with Pillow for the WebP).
+// sales, taken in a browser against the real Apps Script (gas-harness.js). Writes img/business/*.webp, one
+// picture a feature (needs Python with Pillow for the WebP).
 //   (cd .. && python3 -m http.server 8765) & node tools/shot-demo.js [da]   (da: the Danish screens, into img/business/da)
 "use strict";
 const path = require("path"), fs = require("fs");
@@ -31,35 +31,41 @@ const gas = H({ Ark1: [HEAD, ...W.map(([pr, c, reg, com, n, t, g, y, q, cost, su
   Journal: [["Dato", "Producent", "Vin", "Årgang", "Land", "Område", "Drue", "Sted", "Rating", "Pris", "Note", "Foto"]] }, { settings: { OWNER_USER: "demo", OWNER_PASSWORD: "demo-pass-1" } });
 gas.run("makeOwner()");
 
-// Each screen: the view at twice the pixels (sharp on a retina screen), saved as WebP, and where its callouts are, as
-// fractions of the picture (tour.json, read by business-page.js): the tour rings what each slide is about.
-const VW = 1120, VH = 700, TOUR = {};
-let SFX = ""; // "-m": the phone's screens (390 × 624, as tall as the tour's frame on a phone)
-async function take(pg, name, { top, spots = [], phone = false }) {
-  name += SFX;
-  await pg.evaluate(() => { const h = document.getElementById("adminBtn"); if (h) h.hidden = true; document.querySelectorAll("#toast").forEach(t => t.style.display = "none");
-    ["sommBtn", "pFab"].forEach(id => { const e = document.getElementById(id); if (e) e.style.visibility = "hidden"; }); }); // the floating buttons would cover the screen
-  if (top) await pg.evaluate(([x, off]) => { const Q = s => document.querySelector(s), QA = s => [...document.querySelectorAll(s)];
-    const e = x.startsWith("Q") ? eval(x) : Q(x); if (!e) throw new Error("no " + x); scrollTo(0, 0); scrollTo(0, Math.max(0, e.getBoundingClientRect().top + off)); }, top);
-  await pg.waitForTimeout(300);
-  const vp = pg.viewportSize();
-  const rects = await pg.evaluate(list => list.map(x => { const Q = s => document.querySelector(s), QA = s => [...document.querySelectorAll(s)];
-    const e = eval(x); if (!e || (Array.isArray(e) && !e.length)) return null; const els = Array.isArray(e) ? e : [e], rs = els.map(n => n.getBoundingClientRect());
-    // not ringed if something else (a bar fixed at the bottom, a dialog) lies over its middle
-    const r0 = rs[0], hit = document.elementFromPoint(r0.left + r0.width / 2, r0.top + Math.min(r0.height / 2, 12)); if (!hit || !els.some(n => n.contains(hit) || hit.contains(n))) return null;
-    const l = Math.min(...rs.map(r => r.left)), t = Math.min(...rs.map(r => r.top)), rr = Math.max(...rs.map(r => r.right)), bb = Math.max(...rs.map(r => r.bottom)); return [l, t, rr - l, bb - t]; }), spots);
-  const f = n => Math.round(n * 1e4) / 1e4;
-  const out = rects.map((r, i) => { if (!r || !r[2] || r[1] < 0 || r[1] + r[3] > vp.height + 1 || r[0] < 0 || r[0] + r[2] > vp.width + 1) {
-      if (SFX) return null; throw new Error(`${name}: callout ${i + 1} not in view (${spots[i]}): ${JSON.stringify(r)}`); }
-    return [f(r[0] / vp.width), f(r[1] / vp.height), f(r[2] / vp.width), f(r[3] / vp.height)]; });
-  const png = path.join(require("os").tmpdir(), "allwine-" + name + ".png"); await pg.screenshot({ path: png });
-  const r = require("child_process").spawnSync("python3", ["-c", "import sys;from PIL import Image;Image.open(sys.argv[1]).convert('RGB').save(sys.argv[2],'WEBP',quality=84,method=6)", png, path.join(OUT, name + ".webp")]);
-  if (r.status) throw new Error("webp: " + r.stderr); fs.unlinkSync(png);
-  TOUR[name] = { w: vp.width, h: vp.height, ...(phone ? { phone: true } : {}), spots: out }; console.log("wrote", name, out.length ? out.length + " callouts" : "");
+// The pictures: a cut of the app round each feature (its elements, a margin of 14 px), as a phone shows it, at three
+// times the pixels, saved as WebP. The business page shows them in a gallery, one feature a card.
+const VW = 1120, VH = 700;
+const hide = pg => pg.evaluate(() => { ["adminBtn"].forEach(id => { const h = document.getElementById(id); if (h) h.hidden = true; });
+  document.querySelectorAll("#toast").forEach(t => t.style.display = "none");
+  ["sommBtn", "pFab", "ptabs"].forEach(id => { const e = document.getElementById(id); if (e) e.style.visibility = "hidden"; }); }); // the floating buttons and the bottom bar
+// pad: a margin round the picture in the page's own colour (rgb), in pixels of the picture
+async function save(buf, name, pad = 0, rgb = "255,255,255") {
+  const png = path.join(require("os").tmpdir(), "allwine-" + name + ".png"); fs.writeFileSync(png, buf);
+  const py = "import sys;from PIL import Image,ImageOps;im=Image.open(sys.argv[1]).convert('RGB');p=int(sys.argv[3]);c=tuple(int(v) for v in sys.argv[4].split(','))\n" +
+    "im=ImageOps.expand(im,border=p,fill=c) if p else im;im.save(sys.argv[2],'WEBP',quality=86,method=6)";
+  const r = require("child_process").spawnSync("python3", ["-c", py, png, path.join(OUT, name + ".webp"), String(pad), rgb]);
+  if (r.status) throw new Error("webp: " + r.stderr); fs.unlinkSync(png); console.log("wrote", name);
+}
+async function crop(pg, name, expr, pad = 12) { // pad: css px, added round the cut, not taken from the page
+  await hide(pg);
+  // the elements' box on the page; scrolled so it's in view, then cut out
+  const box = async () => pg.evaluate(x => { const Q = s => document.querySelector(s), QA = s => [...document.querySelectorAll(s)];
+    const els = eval(x).filter(Boolean); if (!els.length) return null; const rs = els.map(e => e.getBoundingClientRect());
+    const l = Math.min(...rs.map(r => r.left)), t = Math.min(...rs.map(r => r.top)), r = Math.max(...rs.map(r => r.right)), b = Math.max(...rs.map(r => r.bottom));
+    return { l, t, r, b }; }, expr);
+  let r = await box(); if (!r) throw new Error(name + ": nothing found for " + expr);
+  // scroll the page (or the dialog the elements are in) so the box starts near the top
+  await pg.evaluate(x => { const Q = s => document.querySelector(s), QA = s => [...document.querySelectorAll(s)]; eval(x).filter(Boolean)[0].scrollIntoView({ block: "center" }); }, expr);
+  await pg.waitForTimeout(250); r = await box();
+  // the elements exactly (no slivers of their neighbours), the phone's full width less its margins, then the margin added
+  const vp = pg.viewportSize(), y = Math.max(0, r.t), x = Math.max(0, Math.min(r.l, 12)), w = Math.min(vp.width - x, Math.max(r.r, vp.width - 12) - x);
+  const clip = { x, y, width: w, height: Math.min(vp.height, r.b) - y };
+  const rgb = await pg.evaluate(() => (getComputedStyle(document.body).backgroundColor.match(/\d+/g) || [255, 255, 255]).slice(0, 3).join(","));
+  if (clip.height < 40 || clip.width < 100) throw new Error(name + ": too small " + JSON.stringify(clip));
+  await save(await pg.screenshot({ clip }), name, pad * 3, rgb);
 }
 
 (async () => {
-  const b = await chromium.launch(); const ctx = await b.newContext({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 2 });
+  const b = await chromium.launch(); const ctx = await b.newContext({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 3 });
   await require("./turnstile-fake")(ctx); await require("./ask-auto")(ctx);
   await ctx.route(require("./api-route"), async route => route.fulfill({ contentType: "application/json", body: JSON.stringify(gas.call(JSON.parse(route.request().postData() || "{}"))) }));
   const p = await ctx.newPage(), errs = []; p.on("pageerror", e => errs.push(e.message));
@@ -86,56 +92,53 @@ async function take(pg, name, { top, spots = [], phone = false }) {
   await p.evaluate(() => { try { localStorage.setItem("vinCardTitle:demo", "Vinbaren Demo"); } catch (e) {} location.hash = ""; }); await p.waitForTimeout(600);
   let url = "";
   const go = async (pg, h) => { await pg.evaluate(h => { location.hash = h; }, h); await pg.waitForTimeout(700); await pg.evaluate(() => scrollTo(0, 0)); };
-  // the screens, once for a computer and once for a phone
-  async function screens() {
-    await p.evaluate(() => { if (!$("sommPanel").hidden) sommClose(); document.querySelectorAll(".modal.open").forEach(m => m.classList.remove("open")); });
-    await go(p, "inventory");
-    await take(p, "inventory", { top: ["#bzInvKs", -70], spots: [
-      'Q("#bzInvKs").lastElementChild', 'Q("#bzInvBody tr:nth-child(2) td:nth-child(2)")', 'Q("#bzInvBody tr:nth-child(1) td:nth-last-child(2)")', 'Q("#bzInvBody tr:nth-child(1) td:last-child")'] });
-    await go(p, ""); await p.evaluate(() => document.querySelector('#pageInventory [data-bz="till"]').click()); await p.waitForSelector("#bzTill.open"); await p.fill("#bzTillQ", ""); await p.waitForTimeout(300);
-    await take(p, "quicksell", { spots: ['Q("#bzTillQ")', 'Q("#bzTiles .bz-tile .bz-tb")', 'Q("#bzTiles .bz-tile small")'] });
-    await p.keyboard.press("Escape"); await p.waitForTimeout(200);
-    // counting the stock: two shelves typed in, the differences shown before anything is saved
-    await p.evaluate(() => document.querySelector('#pageInventory [data-bz="count"]').click()); await p.waitForSelector("#bzCount.open");
-    const cnt = await p.$$("#bzCount input[data-cnt]"); if (cnt[0]) await cnt[0].fill("11"); if (cnt[1]) await cnt[1].fill("8"); await p.keyboard.press("Tab"); await p.evaluate(() => document.activeElement.blur()); await p.waitForTimeout(300);
-    await take(p, "count", { spots: ['QA("#bzCount input[data-cnt]")[0]', 'Q("#bzCount .bz-dif:not(:empty)")', 'Q("#bzCountSum")'] });
-    await p.keyboard.press("Escape"); await p.waitForTimeout(200);
-    await go(p, "accounts"); await p.evaluate(() => $("refreshBtn").click()); await p.waitForTimeout(1800);
-    await take(p, "accounts", { top: ['Q("#bizPanel .bz-h")', -12], spots: ['QA("#bizPanel .bz-ks")[0].children[2]', 'Q("#bizPanel .bz-wk")', '[...Q("#bizPanel .bz-cols").lastElementChild.children]'] });
-    // where the stock is, and what to reorder (the buttons' row, its list, its supplier, the heading, the table above it)
-    const RE = 'Q("#bzReorderCopy").parentElement';
-    await take(p, "reorder", { top: [RE + '.previousElementSibling.previousElementSibling.previousElementSibling.previousElementSibling.previousElementSibling', -12],
-      spots: [RE + '.previousElementSibling.previousElementSibling.previousElementSibling.previousElementSibling', RE + '.previousElementSibling', RE] });
-    await go(p, "winecard"); await p.waitForTimeout(600);
-    if (!(await p.$("#bzQr svg"))) await p.click('#bizCard [data-bz="online"]'); await p.waitForSelector("#bzQr svg", { timeout: 10000 }); await p.waitForTimeout(300);
-    url = await p.inputValue("#bizCard .bz-url");
-    // the address as it reads on the real site, not this test server
-    await p.evaluate(() => { const i = document.querySelector("#bizCard .bz-url"); i.value = i.value.replace(/^https?:\/\/[^/]+\/(lindholm-vin\/)?/, "https://allwine.dk/"); });
-    await take(p, "winecard", { top: ['Q("#bizCard")', -10], spots: ['Q("#bzQr")', '[...QA("#bizCard td, #bizCard span, #bizCard div")].find(e => !e.children.length && e.textContent.trim() === "125").parentElement', 'Q("#bizCard [data-bz=print]")'] });
-    await go(p, "cellar"); await p.waitForTimeout(800);
-    await p.evaluate(() => { if (!document.querySelector("#tbl tr.detail:not([hidden]) .bz-d")) [...document.querySelectorAll("#tbl tr.main")].find(r => /Léoville Barton/.test(r.textContent)).click(); }); await p.waitForSelector('tr.detail:not([hidden]) .bz-d', { timeout: 10000 });
-    await p.evaluate(() => document.activeElement && document.activeElement.blur());
-    await take(p, "details", { top: SFX ? ['Q("tr.detail:not([hidden]) .bz-d")', -16] : ['Q("#tbl tr.detail:not([hidden])").previousElementSibling', -118], // below the filters, which stay at the top
-      spots: ['Q("tr.detail:not([hidden]) .bz-m")', 'Q("tr.detail:not([hidden]) .bz-sell")', 'Q("tr.detail:not([hidden]) .winwrap")'] });
-    await p.evaluate(() => window.scrollTo(0, 0));
-    await p.evaluate(() => $("sommBtn").click()); await p.waitForSelector("#sommLog .sm-a"); if ((await p.$$("#sommLog .sm-a")).length < 2) { await p.fill("#sommQ", LANG === "da" ? "Hvad passer til lam?" : "What goes with lamb?"); await p.press("#sommQ", "Enter"); }
-    await p.waitForFunction(() => !document.querySelector("#sommLog .sm-think") && document.querySelectorAll("#sommLog .sm-a").length >= 2, null, { timeout: 10000 });
-    await p.evaluate(() => { const l = $("sommLog"); l.scrollTop = l.scrollHeight; document.activeElement && document.activeElement.blur(); }); await p.waitForTimeout(400);
-    await take(p, "sommelier", { spots: ['[...QA("#sommLog .sm-a")].pop()'] });
-    await p.keyboard.press("Escape");
-  }
-  await p.setViewportSize({ width: VW, height: VH }); await p.waitForTimeout(400); await screens();
-  SFX = "-m"; await p.setViewportSize({ width: 390, height: 624 }); await p.waitForTimeout(600); await screens(); SFX = "";
-  // a guest's phone, scanning the code; and the inventory on a phone
-  const g = await ctx.newPage(); await g.setViewportSize({ width: 390, height: 780 }); await g.goto(url); await g.waitForSelector(".card", { timeout: 10000 }); await g.waitForTimeout(400);
-  await take(g, "guest", { phone: true }); await g.close();
-  await p.setViewportSize({ width: 390, height: 780 }); await p.evaluate(() => { if (!$("sommPanel").hidden) sommClose(); }); await go(p, "inventory");
-  await take(p, "phone", { phone: true });
-  await p.setViewportSize({ width: VW, height: VH });
-  await p.goto(BASE + "atlas.html#r=bordeaux"); await p.waitForTimeout(3500); await p.waitForSelector("#rWines .grp li", { timeout: 10000 }).catch(() => {});
-  await take(p, "atlas", {});
-  SFX = "-m"; await p.setViewportSize({ width: 390, height: 624 }); await p.reload(); await p.waitForTimeout(3500); await take(p, "atlas", {}); SFX = "";
-  fs.writeFileSync(path.join(OUT, "tour.json"), JSON.stringify(TOUR) + "\n"); console.log("wrote tour.json");
+  const closeAll = pg => pg.evaluate(() => { if (window.$ && $("sommPanel") && !$("sommPanel").hidden) sommClose(); document.querySelectorAll(".modal.open").forEach(m => m.classList.remove("open")); });
+  // the hero: the inventory on a computer
+  await p.setViewportSize({ width: VW, height: VH }); await go(p, "inventory");
+  await p.evaluate(() => { const e = document.getElementById("bzInvKs"); scrollTo(0, 0); scrollTo(0, e.getBoundingClientRect().top - 70); }); await p.waitForTimeout(300);
+  await hide(p); await save(await p.screenshot(), "inventory");
+  // the gallery: each feature cut from the app as a phone shows it (390 px wide, three times the pixels)
+  await p.setViewportSize({ width: 390, height: 844 }); await p.waitForTimeout(500);
+  await go(p, "inventory");
+  await crop(p, "kpis", '[Q("#bzInvKs")]');
+  await crop(p, "stock", '[Q("#bzInvBody tr:nth-child(2)")]');
+  await p.evaluate(() => document.querySelector('#pageInventory [data-bz="till"]').click()); await p.waitForSelector("#bzTill.open"); await p.fill("#bzTillQ", ""); await p.evaluate(() => document.activeElement.blur()); await p.waitForTimeout(300);
+  await crop(p, "quicksell", '[Q("#bzTill h2").closest(".bz-h"), Q("#bzTillQ"), ...QA("#bzTiles .bz-tile").slice(0, 2)]');
+  await closeAll(p);
+  await p.evaluate(() => document.querySelector('#pageInventory [data-bz="count"]').click()); await p.waitForSelector("#bzCount.open");
+  const cnt = await p.$$("#bzCount input[data-cnt]"); if (cnt[0]) await cnt[0].fill("11"); if (cnt[1]) await cnt[1].fill("8"); await p.keyboard.press("Tab"); await p.evaluate(() => document.activeElement.blur()); await p.waitForTimeout(300);
+  // on a phone the count's table scrolls sideways and hides the difference: this one at a tablet's width
+  await p.setViewportSize({ width: 600, height: 844 }); await p.waitForTimeout(300);
+  await crop(p, "count", '[Q("#bzCount thead"), ...QA("#bzCount tbody tr").slice(0, 3)]');
+  await p.setViewportSize({ width: 390, height: 844 }); await p.waitForTimeout(300);
+  await closeAll(p);
+  await go(p, "accounts"); await p.evaluate(() => $("refreshBtn").click()); await p.waitForTimeout(1800);
+  await crop(p, "sales", '[QA("#bizPanel .bz-ks")[0], Q("#bizPanel .bz-wk")]');
+  await crop(p, "movers", '[Q("#bizPanel .bz-cols")]');
+  const RE = 'Q("#bzReorderCopy").parentElement';
+  await crop(p, "reorder", `[${RE}.previousElementSibling.previousElementSibling.previousElementSibling, ${RE}]`);
+  const LOC = RE + ".previousElementSibling.previousElementSibling.previousElementSibling.previousElementSibling"; // the table; its heading before it
+  await crop(p, "locations", `[${LOC}.previousElementSibling, ${LOC}]`);
+  await go(p, "winecard");
+  if (!(await p.$("#bzQr svg"))) await p.click('#bizCard [data-bz="online"]'); await p.waitForSelector("#bzQr svg", { timeout: 10000 }); await p.waitForTimeout(300);
+  url = await p.inputValue("#bizCard .bz-url");
+  // the address as it reads on the real site, not this test server
+  await p.evaluate(() => { const i = document.querySelector("#bizCard .bz-url"); i.value = i.value.replace(/^https?:\/\/[^/]+\/(lindholm-vin\/)?/, "https://allwine.dk/"); });
+  await crop(p, "winecard", '[Q("#bzQr").closest("div[class]").parentElement]');
+  await go(p, "cellar");
+  await p.evaluate(() => [...document.querySelectorAll("#tbl tr.main")].find(r => /Léoville Barton/.test(r.textContent)).click()); await p.waitForSelector("tr.detail:not([hidden]) .bz-d", { timeout: 10000 });
+  await crop(p, "details", '[Q("tr.detail:not([hidden]) .bz-d")]');
+  await p.evaluate(() => { scrollTo(0, 0); $("sommBtn").click(); }); await p.waitForSelector("#sommLog .sm-a");
+  await p.fill("#sommQ", LANG === "da" ? "Hvad passer til lam?" : "What goes with lamb?"); await p.press("#sommQ", "Enter");
+  await p.waitForFunction(() => !document.querySelector("#sommLog .sm-think") && document.querySelectorAll("#sommLog .sm-a").length >= 2, null, { timeout: 10000 }); await p.waitForTimeout(400);
+  await p.evaluate(() => document.activeElement && document.activeElement.blur());
+  await crop(p, "sommelier", '[[...QA("#sommLog .sm-q, #sommLog .sm-me, #sommLog [class*=sm-u]")].pop() || [...QA("#sommLog .sm-a")].slice(-2)[0], [...QA("#sommLog .sm-a")].pop()]');
+  await closeAll(p);
+  // a guest's phone, scanning the code
+  const g = await ctx.newPage(); await g.setViewportSize({ width: 390, height: 844 }); await g.goto(url); await g.waitForSelector(".card", { timeout: 10000 }); await g.waitForTimeout(400);
+  await crop(g, "guest", '[...Q(".card").children].slice(0, 4)'); await g.close();
+  await p.goto(BASE + "atlas.html#r=bordeaux"); await p.waitForTimeout(3500);
+  await hide(p); await save(await p.screenshot({ clip: { x: 0, y: 0, width: 390, height: 600 } }), "atlas");
   console.log("errors:", errs.length ? errs.join(" | ") : "none");
   await b.close();
 })().catch(e => { console.error(e); process.exit(1); });

@@ -1,5 +1,5 @@
 // The business page (business.html): the kind of business picks what's shown and which price is marked; the tour is a
-// slideshow of real screens that plays by itself and rings what each is about (img/business, made by tools/shot-demo.js).
+// gallery of cards, one feature each, with a cut of the real app (img/business, made by tools/shot-demo.js).
 "use strict";
 (() => {
   const $ = id => document.getElementById(id), t = s => (window.I18N ? I18N.t(s) : s);
@@ -13,105 +13,34 @@
   const fromHash = () => { const k = location.hash.slice(1); setKind(["restaurant", "merchant", "winemaker"].includes(k) ? k : (document.querySelector('#kinds [aria-pressed="true"]') || {}).dataset?.kind || "restaurant"); };
   fromHash(); window.addEventListener("hashchange", fromHash);
 
-  // the tour: a slideshow of real screens (img/business, made by tools/shot-demo.js with tour.json, where each screen's
-  // callouts are). It plays by itself once it's in view: each screen, then its callouts one by one, the thing ringed
-  // and the rest dimmed; then the next. A click on a step or a callout, a swipe, the arrow keys, or ❚❚ take over.
-  const slides = [...$("slides").content.children].map(d => ({ shot: d.dataset.shot, title: d.querySelector("b").textContent.trim(), text: d.querySelector("i").textContent.trim(),
-    callouts: [...d.querySelectorAll("s")].map(x => x.textContent.trim()) }));
+  // the tour: a gallery of cards, one feature each (img/business, cut from the app by tools/shot-demo.js), swiped or
+  // scrolled sideways; the arrows and the dots move a card at a time
+  const cards = [...$("slides").content.children].map(d => ({ shot: d.dataset.shot, kick: d.querySelector("u").textContent.trim(), title: d.querySelector("b").textContent.trim(), text: d.querySelector("i").textContent.trim() }));
   const SHOTS = ["da"], lang = () => (window.I18N ? I18N.lang : "en"), dir = () => "img/business/" + (SHOTS.includes(lang()) ? lang() + "/" : "");
-  const TOURS = {}, tour = () => TOURS[dir()] || {};
-  const loadTour = d => TOURS[d] ? Promise.resolve() : fetch(d + "tour.json").then(r => r.ok ? r.json() : {}).catch(() => ({})).then(j => { TOURS[d] = j; });
-  const reduce = matchMedia("(prefers-reduced-motion: reduce)");
-  const FIRST = 1600, EACH = 2900, LAST = 1500, BARE = 5600; // ms: the screen alone, each callout, after the last, a screen without callouts
-  let at = 0, step = -1, playing = !reduce.matches, inView = false, t0 = 0, left = 0, timer = 0, raf = 0;
   const esc = s => String(s).replace(/[<&"]/g, c => ({ "<": "&lt;", "&": "&amp;", '"': "&quot;" })[c]);
-  // on a phone, the phone's own screens (name-m: the app as it looks there), where there are some
-  const small = matchMedia("(max-width: 700px)");
-  const shotOf = i => { const n = slides[i].shot; return small.matches && tour()[n + "-m"] ? n + "-m" : n; };
-  // the callouts' places on this screen (null: one the phone's screen doesn't show), and the ones there are, in order
-  const spotsOf = i => ((tour()[shotOf(i)] || {}).spots || []).slice(0, slides[i].callouts.length);
-  const shown = i => spotsOf(i).map((x, k) => x ? k : -1).filter(k => k >= 0);
-  // how long this step stays: the screen alone, then each callout
-  const dur = () => { const ks = shown(at); return !ks.length ? BARE : step < 0 ? FIRST : step === ks[ks.length - 1] ? EACH + LAST : EACH; };
-
-  $("bars").innerHTML = slides.map((s, k) => `<button type="button" data-k="${k}"><span><i></i></span></button>`).join("");
-  function bars() {
-    $("bars").querySelectorAll("button").forEach((b, k) => { b.classList.toggle("done", k < at); b.setAttribute("aria-label", `${k + 1}. ${t(slides[k].title)}`);
-      if (k === at) b.setAttribute("aria-current", "true"); else b.removeAttribute("aria-current"); if (k !== at) b.querySelector("i").style.width = ""; });
+  const track = $("track");
+  function draw() {
+    track.innerHTML = cards.map((c, k) => `<article class="gcard" aria-roledescription="slide" aria-label="${esc(t("{0} of {1}").replace("{0}", k + 1).replace("{1}", cards.length))}">
+      <div class="gt"><div class="kick">${esc(t(c.kick))}</div><h3>${esc(t(c.title))}</h3><p>${esc(t(c.text))}</p></div>
+      <div class="gi"><img src="${dir()}${c.shot}.webp" alt="${esc(t(c.title))}" ${k > 2 ? 'loading="lazy"' : ""} decoding="async"></div></article>`).join("");
+    $("dots").innerHTML = cards.map((c, k) => `<button type="button" data-k="${k}" aria-label="${esc(t(c.title))}"></button>`).join("");
+    const hero = document.querySelector(".hero img"); if (hero) hero.src = dir() + "inventory.webp";
+    mark();
   }
-  // the share of this slide that has passed, for its bar
-  function progress() {
-    const ks = shown(at), n = ks.length, total = n ? FIRST + n * EACH + LAST : BARE, pos = ks.indexOf(step);
-    const before = !n || pos < 0 ? 0 : FIRST + pos * EACH, spent = dur() - left + (playing && inView && timer ? performance.now() - t0 : 0);
-    const i = $("bars").querySelector(`[data-k="${at}"] i`); if (i) i.style.width = Math.min(100, (before + spent) / total * 100) + "%";
-    if (playing && inView) raf = requestAnimationFrame(progress);
+  const step = () => { const a = track.children[0], b = track.children[1]; return a && b ? b.offsetLeft - a.offsetLeft : 300; };
+  // the card at the left edge: its dot marked; the arrows off at the ends
+  const at = () => Math.round(track.scrollLeft / step());
+  function mark() {
+    const i = at(), end = track.scrollLeft + track.clientWidth >= track.scrollWidth - 4;
+    $("dots").querySelectorAll("button").forEach((b, k) => b.setAttribute("aria-current", String(k === i)));
+    $("prev").disabled = track.scrollLeft <= 4; $("next").disabled = end;
   }
-  function stop() { clearTimeout(timer); timer = 0; cancelAnimationFrame(raf); }
-  function run() {
-    stop(); if (!playing || !inView) { progress(); return; }
-    t0 = performance.now(); timer = setTimeout(advance, left); raf = requestAnimationFrame(progress);
-  }
-  function advance() {
-    const next = shown(at).find(k => k > step);
-    if (next != null) { step = next; drawSpots(); left = dur(); run(); } else show(at + 1);
-  }
-  function pause() { if (timer) left = Math.max(0, left - (performance.now() - t0)); stop(); progress(); }
-  function setPlaying(on) { playing = on; $("play").textContent = on ? "❚❚" : "▶"; $("play").setAttribute("aria-label", t(on ? "Pause" : "Play")); if (on) run(); else pause(); }
-
-  // the callouts on the screen: the ring (and the rest dimmed) for the one that's on, with its words beside it
-  function drawSpots() {
-    const s = slides[at], sp = spotsOf(at);
-    $("spots").innerHTML = sp.map((xy, k) => { if (!xy) return ""; const [x, y, w, h] = xy;
-      const pad = 0.6; // per cent: a little room round the thing
-      const box = `left:${x * 100 - pad}%;top:${y * 100 - pad * 1.6}%;width:${w * 100 + 2 * pad}%;height:${h * 100 + 3.2 * pad}%`;
-      // the words go below the ring if there's room, else above; left-aligned with it, kept inside the screen
-      const below = y + h < 0.7, bx = Math.min(Math.max(x * 100, 2), 56);
-      const bub = `left:${bx}%;${below ? `top:calc(${(y + h) * 100 + 2}% + 10px)` : `bottom:calc(${(1 - y) * 100 + 2}% + 10px)`}`;
-      return `<div class="spot${k === step ? " on" : ""}" style="${box}"><b>${k + 1}</b></div><div class="bubble${k === step ? " on" : ""}" style="${bub}">${esc(t(s.callouts[k]))}</div>`;
-    }).join("");
-    $("callouts").querySelectorAll("button").forEach((b, k) => b.setAttribute("aria-current", String(k === step)));
-  }
-  function show(i, opt = {}) {
-    stop(); at = (i + slides.length) % slides.length; step = opt.step ?? -1;
-    const s = slides[at], name = shotOf(at), d = tour()[name] || {}, scr = $("screen"), img = $("slideImg");
-    const swap = () => {
-      img.src = dir() + name + ".webp"; img.width = (d.w || 1120) * 2; img.height = (d.h || 700) * 2;
-      // on a computer a phone's screen stands in a drawn phone; on a phone it fills the frame like the rest
-      img.alt = t(s.title) + ": " + t(s.text); scr.className = "screen" + (d.phone && !small.matches ? " phone" : "");
-      drawSpots(); requestAnimationFrame(() => scr.classList.remove("out"));
-    };
-    if (reduce.matches || opt.now) swap(); else { scr.classList.add("out"); setTimeout(swap, 180); }
-    $("slideN").textContent = t("{0} of {1}").replace("{0}", at + 1).replace("{1}", slides.length);
-    $("slideT").textContent = t(s.title); $("slideP").textContent = t(s.text);
-    $("callouts").innerHTML = s.callouts.map((c, k) => `<li><button type="button" data-c="${k}" aria-current="${k === step}"><i>${k + 1}</i><span>${esc(t(c))}</span></button></li>`).join("");
-    $("callouts").hidden = !s.callouts.length;
-    bars(); left = dur(); run();
-    // the next screen, fetched ahead
-    const n = new Image(); n.src = dir() + shotOf((at + 1) % slides.length) + ".webp";
-  }
-  $("prev").onclick = () => show(at - 1); $("next").onclick = () => show(at + 1);
-  $("bars").addEventListener("click", e => { const b = e.target.closest("button[data-k]"); if (b) show(Number(b.dataset.k)); });
-  // a callout picked by hand: shown, and the show waits there
-  $("callouts").addEventListener("click", e => { const b = e.target.closest("button[data-c]"); if (!b) return; setPlaying(false); step = Number(b.dataset.c); drawSpots(); });
-  $("play").onclick = () => setPlaying(!playing);
-  $("full").onclick = () => { const box = $("tourBox"); if (document.fullscreenElement) document.exitFullscreen(); else if (box.requestFullscreen) box.requestFullscreen().catch(() => {}); };
-  if (!document.fullscreenEnabled) $("full").hidden = true;
-  $("tourBox").addEventListener("keydown", e => {
-    if (e.target.closest("input,select,textarea")) return;
-    if (e.key === "ArrowRight") { e.preventDefault(); show(at + 1); } else if (e.key === "ArrowLeft") { e.preventDefault(); show(at - 1); }
-    else if (e.key === " " && !e.target.closest("button")) { e.preventDefault(); setPlaying(!playing); } });
-  let x0 = null;
-  $("stage").addEventListener("pointerdown", e => { x0 = e.clientX; });
-  $("stage").addEventListener("pointerup", e => { if (x0 == null) return; const dx = e.clientX - x0; x0 = null; if (Math.abs(dx) > 40) show(at + (dx < 0 ? 1 : -1)); });
-  // it plays only while it's on the screen and the tab is open
-  const seen = () => { const r = $("stage").getBoundingClientRect(); return !document.hidden && r.bottom > innerHeight * 0.25 && r.top < innerHeight * 0.75; };
-  const watch = () => { const v = seen(); if (v === inView) return; inView = v; if (v) run(); else pause(); };
-  if ("IntersectionObserver" in window) new IntersectionObserver(watch, { threshold: [0, 0.25, 0.5, 0.75, 1] }).observe($("stage"));
-  addEventListener("scroll", watch, { passive: true }); document.addEventListener("visibilitychange", watch);
-  const start = () => loadTour(dir()).then(() => { show(at, { now: true, step }); watch(); });
-  setPlaying(playing); start();
-  small.addEventListener("change", () => show(at, { now: true }));
-  if (window.I18N) I18N.onChange(() => { const h = document.querySelector(".hero img"); if (h) h.src = dir() + "inventory.webp"; start(); });
-  const hero = document.querySelector(".hero img"); if (hero) hero.src = dir() + "inventory.webp";
-  window.TOUR = { show, get at() { return at; }, get step() { return step; }, get playing() { return playing; }, setPlaying }; // for the tests
+  const go = i => track.scrollTo({ left: Math.max(0, Math.min(cards.length - 1, i)) * step() });
+  $("prev").onclick = () => go(at() - 1); $("next").onclick = () => go(at() + 1);
+  $("dots").addEventListener("click", e => { const b = e.target.closest("button[data-k]"); if (b) go(Number(b.dataset.k)); });
+  let raf = 0; track.addEventListener("scroll", () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(mark); }, { passive: true });
+  addEventListener("resize", mark);
+  draw();
+  if (window.I18N) I18N.onChange(draw);
+  window.TOUR = { go, get at() { return at(); }, count: cards.length }; // for the tests
 })();
