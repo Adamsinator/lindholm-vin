@@ -321,9 +321,10 @@ function classShown(w){
   return sg ? {txt:sg.cls, est:true, sg} : null;
 }
 // " · Grand cru" after a wine's name; a suggested one is marked ≈ and dashed. Plain AOC isn't worth the space.
-function classChip(w){
+function classChip(w, lead = true){
   const c = classShown(w); if(!c || clsKey(c.txt)==="V") return "";
-  return c.est ? ` · <b class="clsest" title="${esc(tr("Suggested from {0}: not saved yet", c.sg.climat||tr("the label")))}">≈ ${esc(c.txt)}</b>` : " · <b>"+esc(c.txt)+"</b>";
+  const sep = lead ? " · " : ""; // lead: there is text before it (a wine without a name has none)
+  return c.est ? `${sep}<b class="clsest" title="${esc(tr("Suggested from {0}: not saved yet", c.sg.climat||tr("the label")))}">≈ ${esc(c.txt)}</b>` : sep+"<b>"+esc(c.txt)+"</b>";
 }
 // A wine drunk somewhere else and never in the cellar: marked by the API since v26; older rows by their shape.
 const isElsewhere = w => w.elsewhere || (w.qty===1 && w.drunk===1 && !w.acquired);
@@ -1416,11 +1417,11 @@ function renderTable(){
     const nm = [w.name, w.commune && w.commune!==w.name ? w.commune : ""].filter(Boolean).join(" · ");
     // the colour as a dot before the wine (the style has its filter and its chart)
     const dot = `<span class="sdot" title="${esc(tr(STYLE_EN[w.style])||w.style||"")}" style="background:var(${STYLE_VAR[w.style]||"--muted"})"></span>`;
-    const wine = `${fmtChip(w)}${esc(w.name)}${classChip(w)}${w.rating?` · <span class="myscore">${w.rating}/10</span>`:""}`;
+    const wine = `${fmtChip(w)}${esc(w.name)}${classChip(w, !!w.name)}${w.rating?` · <span class="myscore">${w.rating}/10</span>`:""}`;
     const loc = w.location ? `<span class="wloc">${svgi("pin")} ${esc(w.location)}</span>` : "";
-    const where = w.region ? esc(w.region) + (w.country ? `<span class="ctry"> · ${esc(w.country)}</span>` : "") : esc(w.country);
+    const where = [w.commune && w.commune!==w.name ? w.commune : "", w.region].filter(Boolean).map(esc).join(" · ") + (w.country ? `<span class="ctry">${w.region||w.commune ? " · " : ""}${esc(w.country)}</span>` : "");
     return `<tr class="main${w.left===0?" gone":""}" data-i="${i}" data-row="${w.row}" tabindex="0" aria-level="1" aria-expanded="false">
-      <td class="c-prod"><span class="prod">${esc(w.producer)}</span>${badge}${rbadge}<br class="ponly"><span class="wname ponly">${dot}${fmtChip(w)}${esc(nm)}${classChip(w)}${w.rating?` · <span class="myscore">${w.rating}/10</span>`:""}</span>${loc?`<br class="ponly"><span class="ponly">${loc}</span>`:""}</td>
+      <td class="c-prod"><span class="prod">${esc(w.producer)}</span>${badge}${rbadge}<br class="ponly"><span class="wname ponly">${dot}${fmtChip(w)}${esc(nm)}${classChip(w, !!nm)}${w.rating?` · <span class="myscore">${w.rating}/10</span>`:""}</span>${loc?`<br class="ponly"><span class="ponly">${loc}</span>`:""}</td>
       <td class="c-wine"><span class="wname">${dot}${wine}</span>${loc}</td>
       <td class="c-comm">${esc(w.commune && w.commune!==w.name ? w.commune : "")}</td>
       <td class="num c-vint">${esc(w.vintage||"—")}</td>
@@ -1567,8 +1568,8 @@ async function loadData(quiet){
     LOADED_AT = new Date(); stampText();
     $("spin").hidden = true; $("content").hidden = false;
     if(!VINT_W && VINT_CELLAR.length) drawVintages(VINT_CELLAR); // drawn while hidden (no width yet): again, for the width it has now
-    if(!window.CELLAR_QOL) loadJS("cellar-qol.js?v=3").catch(()=>{}); // the conveniences: swipes, keys, several wines at once
-    if(/^test/i.test(cfg.user||"") && !window.TESTKIT) loadJS("testkit.js?v=1").then(()=>TESTKIT.mount()).catch(()=>{}); // test data
+    if(!window.CELLAR_QOL) loadJS("cellar-qol.js?v=4").catch(()=>{}); // the conveniences: swipes, keys, several wines at once
+    if(/^test/i.test(cfg.user||"") && !window.TESTKIT) loadJS("testkit.js?v=2").then(()=>TESTKIT.mount()).catch(()=>{}); // test data
     loadJournalSilently(); refreshDeleted(); checkOwner(); takePrefill(); // checkOwner asks "me", which says if the feed is on
   }catch(err){
     if(AUTH_ERRORS.has(err.message)){ forgetAuth(); setGateMode("login"); showGate(tr("Your session expired: log in again.")); }
@@ -4103,7 +4104,7 @@ function renderEnjoyed(){
     const badge = pn?`<span class="badge ${pn[0]}" title="${esc(tr(TIER_TIP[pn[0]]))}">${tr(TIER_LABEL[pn[0]])}</span>`:"";
     const nm = [w.name, w.commune && w.commune!==w.name ? w.commune : ""].filter(Boolean).join(" · ");
     return `<tr class="main" data-i="${i}" data-row="${w.row}" tabindex="0" aria-level="1" aria-expanded="false">
-      <td><span class="prod">${esc(w.producer)}</span>${badge}<br><span class="wname">${fmtChip(w)}${esc(nm)}${classChip(w)}${w.rating?` · <span class="myscore">${w.rating}/10</span>`:""}${w.drunkDate?`<span class="ponly"> · ${esc(fmtDate(w.drunkDate))}</span>`:""}</span></td>
+      <td><span class="prod">${esc(w.producer)}</span>${badge}<br><span class="wname">${fmtChip(w)}${esc(nm)}${classChip(w, !!nm)}${w.rating?` · <span class="myscore">${w.rating}/10</span>`:""}${w.drunkDate?`<span class="ponly"> · ${esc(fmtDate(w.drunkDate))}</span>`:""}</span></td>
       <td class="num">${esc(w.vintage||"—")}</td>
       <td>${esc(w.region)}</td>
       <td><span class="sdot" style="background:var(${STYLE_VAR[w.style]||"--muted"})"></span>${tr(STYLE_EN[w.style])||esc(w.style)}</td>
@@ -4566,7 +4567,7 @@ $("adminBtn").addEventListener("click", ()=>{
 });
 // test users and test wines (test-data.js, loaded the first time one of these is used)
 const testTools = () => window.TESTDATA && TESTDATA.ui ? Promise.resolve(TESTDATA) : new Promise((ok, no)=>{ const el = document.createElement("script");
-  el.src = "test-data.js?v=4"; el.onload = ()=>ok(window.TESTDATA); el.onerror = ()=>no(new Error("load test-data.js")); document.head.appendChild(el); });
+  el.src = "test-data.js?v=5"; el.onload = ()=>ok(window.TESTDATA); el.onerror = ()=>no(new Error("load test-data.js")); document.head.appendChild(el); });
 $("acctTest").addEventListener("click", e=>{ const b = e.target.closest("button[data-testwines]"); if(!b) return;
   testTools().then(T=>T.ui.addWines(Number(b.dataset.testwines))).catch(err=>{ $("acctTestMsg").textContent = errText(err); }); });
 async function loadFeedSilently(){

@@ -687,20 +687,20 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 .mapfold summary h2{margin:0}
 .mapfold[open] summary .ph{display:none}
 .mapfold[open] summary{margin-bottom:6px}
-/* one line per wine: the name gives way (…) before anything wraps; the whole wine shows when it's opened */
+/* the lists: a wine wraps rather than being cut off; its details show when it's opened */
 #tbl td,#eTbl td{padding:7px 10px}
 #tbl td.c-vint,#tbl td.c-qty,#tbl td.c-price,#eTbl td:nth-child(3),#eTbl td:nth-child(4),#eTbl td:nth-child(6){white-space:nowrap}
 #tbl .ponly,#eTbl .ponly{display:none}
 #tbl .ctry{color:var(--muted)}
 @media (min-width:701px){
-  /* the cellar: producer, wine, commune, vintage, region · country, bottles, price — one line each, the same widths
-     in every browser; producer and wine share what's left, and anything too long ends in … */
+  /* the cellar as a wine list: producer, wine (name and classification, on two lines if it needs them), vintage,
+     where it's from (commune · region · country), price. The bottles, the commune's own column and the rest are in
+     the wine's details (the columns stay, given no width: the details row spans seven, and Safari keeps a hidden one) */
   #tbl{table-layout:fixed}
-  #tbl thead th{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:10px 10px;letter-spacing:.08em}
-  /* widths from what the cells hold: "Morey-Saint-Denis", "Bourgogne · Frankrig", 13.136 kr., and headers like
-     ÅRGANG / FLASCHEN in full; the producer (with its badges) gets a bit more than the wine's share */
-  #tbl th.c-prod{width:25%} #tbl th.c-comm{width:166px} #tbl th.c-vint{width:76px} #tbl th.c-reg{width:170px} #tbl th.c-qty{width:78px} #tbl th.c-price{width:104px}
-  #tbl tr.main td{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #tbl thead th{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:10px 10px;letter-spacing:.05em}
+  #tbl th.c-prod{width:26%} #tbl th.c-vint{width:90px} #tbl th.c-reg{width:24%} #tbl th.c-price{width:112px}
+  #tbl th.c-comm,#tbl tr.main td.c-comm,#tbl th.c-qty,#tbl tr.main td.c-qty{width:0;padding:0;font-size:0;border:0;overflow:hidden;visibility:hidden}
+  #tbl tr.main td{overflow:hidden;overflow-wrap:anywhere}
   #eTbl tr.main td:first-child{max-width:0;width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   /* Enjoyed: fixed widths, so the same in every browser; the wine has the rest */
   #eTbl{table-layout:fixed}
@@ -709,20 +709,14 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
   #eTbl thead th:nth-child(5){width:54px} #eTbl thead th:nth-child(6){width:124px} #eTbl thead th:nth-child(7){width:126px}
   #eTbl tr.main td:nth-child(3),#eTbl tr.main td:nth-child(4){overflow:hidden;text-overflow:ellipsis}
   #eTbl td:first-child br{display:none}
-  #tbl td.c-wine .wloc,#eTbl td:first-child .wname{margin-left:8px}
+  #tbl td.c-wine .wloc{display:none} #eTbl td:first-child .wname{margin-left:8px}
 }
 /* with the overview in its column beside the list there's less room: the region (it's in the overview) gives way */
 @media (min-width:1181px) and (max-width:1599px){
   /* a column given no width rather than display:none: the details row under a wine spans all seven columns, and
      Safari keeps a hidden one's place as an empty column at the end */
   #eTbl thead th:nth-child(3),#eTbl tr.main td:nth-child(3){width:0;padding:0;font-size:0;border:0;overflow:hidden;visibility:hidden}
-  /* the cellar keeps its region, without the country (there's a country filter), to give the wine more room */
-  #tbl .ctry{display:none}
-  #tbl th.c-reg{width:108px} #tbl th.c-comm{width:150px} #tbl th.c-vint{width:72px} #tbl th.c-qty{width:76px} #tbl th.c-price{width:98px}
 }
-@media (min-width:1181px) and (max-width:1399px){ #tbl th.c-comm{width:124px} #tbl th.c-price{width:94px} }
-/* a small laptop beside the overview: the commune gives way too (it shows when the wine is opened, and search finds it) */
-@media (min-width:1181px) and (max-width:1299px){ #tbl th.c-comm,#tbl tr.main td.c-comm{width:0;padding:0;font-size:0;border:0;overflow:hidden;visibility:hidden} } /* no width, not display:none (Safari, as above) */
 /* the header: Account and Log out at the top right with the languages; under it the page tabs, and a quiet line
    with when the cellar was fetched, Refresh and the atlas */
 .helpq,.acct .btn.helpq{display:inline-flex;align-items:center;justify-content:center;min-width:30px;min-height:30px;padding:0 !important;border:1.5px solid currentColor;border-radius:50%;font-weight:700;text-decoration:none;line-height:1}

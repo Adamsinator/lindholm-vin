@@ -1,5 +1,5 @@
 // Browser test of the cellar page's layout with 120 wines (real Code.gs through gas-harness.js): the list starts in
-// the first screen with the overview in a column beside it, one line per wine, the List / Timeline switch, the
+// the first screen with the overview in a column beside it, a wine on a line or two, the List / Timeline switch, the
 // overview folding above the list on narrower screens, two-line cards and no sideways scroll on a phone, and the
 // Journal as a grid of cards.
 //   (cd .. && python3 -m http.server 8765) & node tools/layout-ui-test.js
@@ -39,7 +39,7 @@ const wines = Array.from({ length: 120 }, (_, i) => { const p = P[i % P.length];
   check("…with the overview in a column to its right", side.x > list.x + list.w - 1 && Math.abs(side.y - list.y) < 200, JSON.stringify({ list, side }));
   check("…which stays in view while the list scrolls", await p.$eval("#overview", e => getComputedStyle(e).position) === "sticky");
   const rowH = await p.$$eval("#tbl tr.main", rs => rs.slice(0, 20).map(r => r.getBoundingClientRect().height));
-  check("one line per wine", Math.max(...rowH) < 50, JSON.stringify(rowH));
+  check("a wine takes a line, two at most (a long name or place wraps rather than being cut off)", Math.max(...rowH) < 75, JSON.stringify(rowH));
   const cut = await p.$$eval("#tbl thead th", ths => ths.filter(t => t.scrollWidth > t.clientWidth + 1).map(t => t.textContent.trim()));
   check("every column heading shows in full", !cut.length, cut.join(" | "));
   const cw = await p.$$eval("#tbl th", ths => ths.map(t => Math.round(t.getBoundingClientRect().width)));
@@ -51,14 +51,13 @@ const wines = Array.from({ length: 120 }, (_, i) => { const p = P[i % P.length];
   check("the map shows, open, without a click", await p.isVisible("#map") && (await p.$$("#map *")).length > 3);
   check("the drink-window chips sit above the list", await p.isVisible("#prioPanel") && (await box("#prioPanel")).y < list.y);
 
-  // ── the columns: producer, wine, commune, vintage, region, bottles, price ──
+  // ── the columns, as a wine list: producer, wine (with its classification), vintage, where it's from, price ──
   const heads = await p.$$eval("#tbl thead th", ts => ts.filter(t => t.offsetWidth > 0).map(t => t.dataset.k));
-  check("the list has its own columns for producer, wine, commune, vintage and region", JSON.stringify(heads) === JSON.stringify(["producer", "name", "commune", "vintage", "region", "left", "price"]), JSON.stringify(heads));
-  const first = await p.$eval("#tbl tr.main", r => ({ prod: r.querySelector(".c-prod").innerText.trim(), wine: r.querySelector(".c-wine").innerText.trim(), comm: r.querySelector(".c-comm").innerText.trim(), reg: r.querySelector(".c-reg").innerText.trim() }));
-  check("…each in its own cell", first.prod && !first.prod.includes(first.wine.split(" ")[0] + " " + (first.wine.split(" ")[1] || "")) && first.comm && /Frankrig|Bourgogne|Champagne|Piemonte/.test(first.reg), JSON.stringify(first));
-  await p.click('#tbl th[data-k="commune"]'); await p.waitForTimeout(200);
-  const comms = await p.$$eval("#tbl tr.main .c-comm", cs => cs.slice(0, 40).map(c => c.textContent.trim()));
-  check("sorting by commune puts the communes in order", comms.every((c, i) => !i || comms[i - 1].localeCompare(c) <= 0), comms.slice(0, 8).join(" | "));
+  check("the list's columns: producer, wine, vintage, where it's from and price (the bottles are in the details)", JSON.stringify(heads) === JSON.stringify(["producer", "name", "vintage", "region", "price"]), JSON.stringify(heads));
+  const first = await p.$eval("#tbl tr.main", r => ({ prod: r.querySelector(".c-prod").innerText.trim(), wine: r.querySelector(".c-wine").innerText.trim(), reg: r.querySelector(".c-reg").innerText.trim(), vint: r.querySelector(".c-vint").innerText.trim() }));
+  check("…each in its own cell, the commune with the region and country", first.prod && !first.prod.includes(first.wine.split(" ")[0] + " " + (first.wine.split(" ")[1] || "")) && / · /.test(first.reg) && /^(\d{4}|NV|—)$/.test(first.vint), JSON.stringify(first));
+  const clipped = await p.$$eval("#tbl tr.main", rs => rs.slice(0, 30).flatMap(r => [...r.querySelectorAll(".c-wine,.c-reg,.c-vint")].filter(c => c.scrollWidth > c.clientWidth + 1).map(c => c.textContent.trim())));
+  check("nothing in the wine, vintage or place is cut off", !clipped.length, JSON.stringify(clipped.slice(0, 4)));
   await p.click('#tbl th[data-k="price"]'); await p.click('#tbl th[data-k="price"]'); await p.waitForTimeout(150);
   await p.evaluate(async () => { await api({ action: "add", wine: { producer: "Skærsøgaard", name: "Solaris", country: "Danmark", region: "", type: "Hvid", qty: 1 } }).catch(() => {}); await loadData(); });
   await p.waitForTimeout(400);

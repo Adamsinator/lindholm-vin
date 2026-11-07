@@ -211,3 +211,36 @@ $("selDrink").addEventListener("click", async ()=>{
   });
   window.CELLAR_ICS = make; // for the tests
 })();
+
+/* Waiting: when something asked for by a click or a key takes a moment, a bottle drains into a glass at the foot of
+   the screen until it's done. Only for what the person did (a call that starts within a second and a half of a click,
+   a tap or Enter), not the quiet refreshes behind; and only after a third of a second, so a quick answer shows none. */
+(()=>{
+  const W = { da: "Et øjeblik…", fr: "Un instant…", de: "Einen Moment…" }, say = () => W[I18N && I18N.lang] || "One moment…";
+  document.head.insertAdjacentHTML("beforeend", `<style>
+#busy{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:300;display:flex;align-items:center;gap:10px;
+  padding:8px 16px 8px 10px;background:var(--card);border:1px solid var(--line);border-radius:999px;box-shadow:0 6px 24px rgba(20,12,16,.16);font-size:13.5px;color:var(--muted)}
+#busy[hidden]{display:none} #busy svg{width:52px;height:34px;display:block}
+@media(min-width:821px){#busy{bottom:28px}}</style>`);
+  const el = document.createElement("div"); el.id = "busy"; el.setAttribute("role", "status"); el.setAttribute("aria-live", "polite"); el.hidden = true;
+  // the bottle (left) empties as the glass (right) fills, in 1.6 s, again and again; a thin stream between them
+  el.innerHTML = `<svg viewBox="0 0 64 40" aria-hidden="true"><defs>
+    <clipPath id="bzB"><path d="M11 3h6v8c0 2 4 3 4 7v19a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V18c0-4 4-5 4-7z"/></clipPath>
+    <clipPath id="bzG"><path d="M39 9h18c0 9-4 14-9 14s-9-5-9-14z"/></clipPath></defs>
+    <rect x="6" y="14" width="16" height="25" fill="var(--accent)" clip-path="url(#bzB)"><animate attributeName="y" values="14;38;14" keyTimes="0;.9;1" dur="1.6s" repeatCount="indefinite"/></rect>
+    <path d="M11 3h6v8c0 2 4 3 4 7v19a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V18c0-4 4-5 4-7z" fill="none" stroke="var(--ink)" stroke-width="1.4"/>
+    <path d="M22 16q8-6 21 0" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-dasharray="3 3"><animate attributeName="stroke-dashoffset" values="12;0" dur=".6s" repeatCount="indefinite"/></path>
+    <rect x="38" y="23" width="20" height="16" fill="var(--accent)" clip-path="url(#bzG)"><animate attributeName="y" values="23;11;23" keyTimes="0;.9;1" dur="1.6s" repeatCount="indefinite"/></rect>
+    <path d="M39 9h18c0 9-4 14-9 14s-9-5-9-14zM48 23v11M42 34h12" fill="none" stroke="var(--ink)" stroke-width="1.4" stroke-linecap="round"/></svg><span></span>`;
+  document.body.appendChild(el);
+  let act = 0, pending = 0, timer = 0;
+  ["pointerdown", "keydown", "submit"].forEach(t => document.addEventListener(t, e => { if(t !== "keydown" || e.key === "Enter") act = Date.now(); }, true));
+  const show = () => { el.querySelector("span").textContent = say(); el.hidden = false; };
+  const orig = window.api;
+  window.api = async function(...a){
+    const mine = Date.now() - act < 1500;
+    if(mine && !pending++) timer = setTimeout(show, 350);
+    try{ return await orig.apply(this, a); }
+    finally{ if(mine && !--pending){ clearTimeout(timer); el.hidden = true; } }
+  };
+})();

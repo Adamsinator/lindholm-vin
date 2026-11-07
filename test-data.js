@@ -77,7 +77,7 @@
     }
     return out;
   }
-  root.TESTDATA = { wines };
+  root.TESTDATA = { wines, REAL: W }; // REAL: the producers and their wines, for testkit.js too
   if (typeof module !== "undefined") module.exports = root.TESTDATA;
 })(typeof window !== "undefined" ? window : globalThis);
 
