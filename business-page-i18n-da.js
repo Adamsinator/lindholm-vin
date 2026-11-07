@@ -47,7 +47,7 @@ Object.assign(window.I18N_DICT.da, {
   "The cellar": "Kælderen",
   "The racks drawn, a map of where your wines come from, and when each is ready to drink.": "Reolerne tegnet, et kort over hvor vinene kommer fra, og hvornår hver enkelt er klar til at drikke.",
   "Each wine": "Hver vin",
-  "Its style at a glance, how to serve it, the wines like it, and a serving card to print for the staff.": "Stilen i korte træk, hvordan den serveres, lignende vine, og et serveringskort at udskrive til personalet.",
+  "Sell price, glass price, stock, minimum and supplier in its details, with the margin worked out; when it's ready to drink, where it lies, and its vineyard in the atlas.": "Salgspris, glaspris, lager, minimum og leverandør i detaljerne, med avancen regnet ud; hvornår den er klar til at drikke, hvor den ligger, og dens mark i atlasset.",
   "The sommelier": "Sommelieren",
   "Ask what goes with a dish, how long a wine keeps, whether to decant: it answers from your stock, offline, in four languages.": "Spørg hvad der passer til en ret, hvor længe en vin holder, om den skal dekanteres: den svarer ud fra jeres lager, uden netforbindelse, på fire sprog.",
   "The wine atlas": "Vinatlasset",

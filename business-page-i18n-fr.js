@@ -47,7 +47,7 @@ Object.assign(window.I18N_DICT.fr, {
   "The cellar": "La cave",
   "The racks drawn, a map of where your wines come from, and when each is ready to drink.": "Les casiers dessinés, une carte d'où viennent vos vins, et quand chacun est prêt à boire.",
   "Each wine": "Chaque vin",
-  "Its style at a glance, how to serve it, the wines like it, and a serving card to print for the staff.": "Son style en bref, comment le servir, les vins qui lui ressemblent, et une fiche de service à imprimer pour l'équipe.",
+  "Sell price, glass price, stock, minimum and supplier in its details, with the margin worked out; when it's ready to drink, where it lies, and its vineyard in the atlas.": "Prix de vente, prix au verre, stock, minimum et fournisseur dans sa fiche, avec la marge calculée ; quand il est prêt à boire, où il se trouve, et sa parcelle dans l'atlas.",
   "The sommelier": "Le sommelier",
   "Ask what goes with a dish, how long a wine keeps, whether to decant: it answers from your stock, offline, in four languages.": "Demandez ce qui va avec un plat, combien de temps un vin se garde, s'il faut le carafer : il répond à partir de votre stock, hors ligne, en quatre langues.",
   "The wine atlas": "L'atlas du vin",

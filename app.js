@@ -1566,6 +1566,7 @@ async function loadData(quiet){
     $("spin").hidden = true; $("content").hidden = false;
     if(!VINT_W && VINT_CELLAR.length) drawVintages(VINT_CELLAR); // drawn while hidden (no width yet): again, for the width it has now
     if(!window.CELLAR_QOL) loadJS("cellar-qol.js?v=3").catch(()=>{}); // the conveniences: swipes, keys, several wines at once
+    if(/^test/i.test(cfg.user||"") && !window.TESTKIT) loadJS("testkit.js?v=1").then(()=>TESTKIT.mount()).catch(()=>{}); // test data
     loadJournalSilently(); refreshDeleted(); checkOwner(); takePrefill(); // checkOwner asks "me", which says if the feed is on
   }catch(err){
     if(AUTH_ERRORS.has(err.message)){ forgetAuth(); setGateMode("login"); showGate(tr("Your session expired: log in again.")); }
@@ -2717,7 +2718,7 @@ let SELECTING = false; const SEL = new Set();
 $("pMore").addEventListener("click", ()=>{
   sheetMenu("moreMenu", [isBiz() ? ["card", BIZ.cardLabel(), "bizCardBtn"] : null, ["upload", tr("Import a list"), "impBtn"], ["download", tr("Export"), "expBtn"], ["link", tr("Share a list"), "lsBtn"], ["tidy", tr("Tidy up"), "tidyBtn"],
     ["dice", tr("Pick tonight's bottle"), "tonightBtn"], ["eye", $("priceBtn").textContent, "priceBtn"],
-    $("delBtn").hidden ? null : ["trash", $("delBtn").textContent.trim(), "delBtn"], ["↻", tr("Refresh"), "refreshBtn", $("stamp").textContent]]);
+    $("delBtn").hidden ? null : ["trash", $("delBtn").textContent.trim(), "delBtn"], $("testBtn") ? ["🧪", TESTKIT.label(), "testBtn"] : null, ["↻", tr("Refresh"), "refreshBtn", $("stamp").textContent]]);
   $("moreSheet").classList.add("open");
 });
 $("pMe").addEventListener("click", ()=>{

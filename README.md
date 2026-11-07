@@ -640,6 +640,23 @@ built only when it's opened.
 
 Tested in `tools/customise-ui-test.js` (and the layout in `tools/vault-test.js`).
 
+### Test accounts: made-up cellars and a messy sheet
+
+A member whose username starts with `test` (any case: `test1`, `TestKim`) gets a **🧪 Test data** button by the
+others (in the phone's ⋯ menu too); `testkit.js` is loaded only for them. It does two things:
+
+- **Fill the cellar** with the number of bottles you type (1–20,000): invented producers across the main regions,
+  vintages 1990–2023, prices, places, seven in ten with a drink window. They go in through `addmany` in parts, like an
+  import, so a big number takes a while.
+- **Download a messy sheet** (.xlsx or .csv, the rows you choose) to try **Import** with: headings in three languages
+  and odd words (`Vinproducent`, `Ant.`, `Jahrgang`, `Pris pr. fl.`, `Hvor?`), prices as text (`1.234,00 kr.`,
+  `DKK 450`, `450,-`), `6 fl.` for bottles, regions misspelt and in capitals, the vintage inside the name, a heading
+  repeated where two lists were glued, blank rows, `#N/A` and a totals line.
+
+There's no "empty the cellar" button: make a new test account instead. `tools/make-test-cellar.py` writes the same kind
+of cellar as an .xlsx, for an account that isn't a test one. Tested in `tools/testkit-ui-test.js` and
+`tools/messy-test.js`.
+
 ## Sommelier (offline questions)
 
 The 🍷 button at the bottom right of the cellar opens a small chat that answers wine questions **without a server
