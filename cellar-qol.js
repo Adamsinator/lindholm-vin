@@ -218,7 +218,7 @@ $("selDrink").addEventListener("click", async ()=>{
    third of a second, so a quick answer shows none. No words on screen; "One moment…" for screen readers. */
 (()=>{
   const W = { da: "Et øjeblik…", fr: "Un instant…", de: "Einen Moment…" }, say = () => W[window.I18N && I18N.lang] || "One moment…";
-  document.head.insertAdjacentHTML("beforeend", `<style>#busy{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:300;padding:10px 12px;background:var(--bg)}
+  document.head.insertAdjacentHTML("beforeend", `<style>#busy{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:300;pointer-events:none;padding:10px 12px;background:var(--bg)}
 #busy[hidden]{display:none} #busy svg{width:72px;height:46px;display:block}</style>`);
   // ten steps, one each half second: the glass's wine rises a tenth, the bottle's falls as much; then it starts over
   const G0 = 23, G1 = 9, B0 = 14, B1 = 39;
