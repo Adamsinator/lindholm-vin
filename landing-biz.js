@@ -10,15 +10,16 @@
   };
   const land = document.querySelector("#gate .landing"); if (!land || document.getElementById("bizband")) return;
   document.head.insertAdjacentHTML("beforeend", `<style>
-.bizband{display:grid;grid-template-columns:minmax(0,260px) minmax(0,1fr);gap:28px;align-items:center;margin:28px 0 0;padding:26px;background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);color:var(--ink);text-decoration:none}
-.gate a.bizband{color:var(--ink)} .bizband:hover{border-color:var(--accent)} .bizband img{width:100%;height:auto;border-radius:14px;border:1px solid var(--line)}
+.bizband{display:grid;grid-template-columns:minmax(0,220px) minmax(0,1fr);gap:32px;align-items:center;margin:40px 0 0;padding:24px 0 0;border-top:2px solid var(--ink);color:var(--ink);text-decoration:none}
+.gate a.bizband{color:var(--ink)} .bizband img{width:100%;height:auto;border:1px solid var(--line);display:block}
 .bizband .kick{font-size:12.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--accent)}
-.bizband h2{font-family:var(--serif);font-size:clamp(22px,2.4vw,30px);margin:6px 0 8px} .bizband p{margin:0 0 12px;color:var(--muted)} .bizband .open{color:var(--accent);font-weight:600}
-@media (max-width:640px){ .bizband{grid-template-columns:1fr;padding:20px} .bizband img{max-width:240px} }</style>`);
+.bizband h2{font-family:var(--serif);font-size:clamp(22px,2.4vw,30px);margin:6px 0 8px} .bizband p{margin:0 0 12px;color:var(--muted);max-width:640px} .bizband .open{color:var(--accent);font-weight:600}
+.bizband:hover .open{text-decoration:underline}
+@media (max-width:640px){ .bizband{grid-template-columns:1fr;gap:18px} .bizband img{max-width:220px} }</style>`);
   const a = document.createElement("a"); a.className = "bizband"; a.id = "bizband"; a.href = "business.html";
   const draw = () => { const w = W[(window.I18N && I18N.lang) || "en"] || W.en, l = (window.I18N && I18N.lang) === "da" ? "da/" : "";
     a.innerHTML = `<img src="img/business/${l}quicksell.webp" alt="" width="1146" height="1248" loading="lazy" decoding="async">
       <div><span class="kick">${w.kick}</span><h2>${w.h}</h2><p>${w.p}</p><span class="open">${w.go}</span></div>`; };
-  draw(); land.appendChild(a);
+  draw(); const foot = land.querySelector("[data-sitefoot]"); foot ? land.insertBefore(a, foot) : land.appendChild(a); // above the footer
   if (window.I18N && I18N.onChange) I18N.onChange(draw);
 })();

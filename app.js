@@ -1756,7 +1756,7 @@ function showGate(msg){
   $("who").hidden = true; $("who").textContent = "";
   $("gateApiWrap").hidden = !!cfg.api;
   $("gateErr").textContent = msg||"";
-  if(!document.getElementById("bizband")) loadJS("landing-biz.js?v=1").catch(()=>{});
+  if(!document.getElementById("bizband")) loadJS("landing-biz.js?v=3").catch(()=>{});
   // On phones the atlas sits above the login; focusing would pop the keyboard and scroll past it.
   if(matchMedia("(min-width: 821px)").matches) setTimeout(()=>$("gateUser").focus(), 50);
 }
