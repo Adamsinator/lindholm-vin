@@ -69,6 +69,13 @@ const wines = Array.from({ length: 120 }, (_, i) => { const p = P[i % P.length];
   // (these test wines have no place in the cellar: one is given a location cell as the list draws it)
   const locs = await p.evaluate(() => { const c = document.querySelector("#tbl tr.main .c-wine"); c.insertAdjacentHTML("beforeend", '<span class="wloc">Reol 1</span>'); return c.querySelector(".wloc").offsetWidth > 0 ? 1 : 0; });
   check("…the commune isn't said twice, and the location shows under the wine", dup === 0 && locs > 0, `${dup} twice, ${locs} locations`);
+  // every column on, Price too: the wine keeps a real share of the width and nothing wraps a letter at a time
+  await tick("price", true); await p.waitForTimeout(100);
+  const all = await p.evaluate(() => { const t = document.getElementById("tbl").getBoundingClientRect().width, w = document.querySelector("#tbl th.c-wine").getBoundingClientRect().width;
+    return { share: w / t, tall: Math.max(...[...document.querySelectorAll("#tbl tr.main")].slice(0, 30).map(r => r.getBoundingClientRect().height)),
+      thin: [...document.querySelectorAll("#tbl thead th")].filter(th => th.offsetWidth > 0 && th.offsetWidth < 60).map(th => th.dataset.k) }; });
+  check("…with every column on, the wine has a fifth of the width or more and no row is tall", all.share >= .2 && all.tall < 110 && !all.thin.length, JSON.stringify(all));
+  await tick("price", false);
   check("…remembered on this device", await p.evaluate(() => JSON.parse(Object.entries(localStorage).find(([k]) => /^cols:/.test(k))[1]).sort().join() === "comm,loc,qty,reg,vint"));
   await p.keyboard.press("Escape");
   check("…Esc closes the list of columns", await p.$eval("#colPop", e => e.hidden));

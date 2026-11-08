@@ -260,8 +260,18 @@ $("selDrink").addEventListener("click", async ()=>{
 #tbl.o-comm th.c-comm{width:16%} #tbl.o-qty th.c-qty{width:84px} #tbl.o-comm .ocm{display:none} #tbl.o-loc td.c-wine .wloc{display:block}}</style>`);
   let on; try{ on = JSON.parse(localStorage.getItem(key()) || "null"); }catch(e){}
   if(!Array.isArray(on)) on = C.filter(c => c[2]).map(c => c[0]);
+  // the usual columns keep their tuned widths; any other choice shares the width out, the wine with the biggest share,
+  // so no column is left a sliver (fixed widths plus two more columns once left the wine a letter wide)
+  const SHARE = { "c-prod": 2.6, "c-wine": 3, "c-comm": 1.5, "c-vint": .9, "c-reg": 2.2, "c-qty": .8, "c-price": 1.1 };
+  const wide = matchMedia("(min-width:701px)"), usual = () => C.every(([c, , d]) => on.includes(c) === !!d);
   const apply = () => { const tb = $("tbl"); if(!tb) return;
-    C.forEach(([c, , d]) => { const s = on.includes(c); tb.classList.toggle("o-" + c, s && !d); tb.classList.toggle("x-" + c, !s && !!d); }); };
+    C.forEach(([c, , d]) => { const s = on.includes(c); tb.classList.toggle("o-" + c, s && !d); tb.classList.toggle("x-" + c, !s && !!d); });
+    const ths = [...tb.querySelectorAll("thead th")], col = th => [...th.classList].find(k => SHARE[k]);
+    const seen = th => { const o = C.find(x => "c-" + x[0] === col(th)); return !o || on.includes(o[0]); };
+    if(!wide.matches || usual()) return ths.forEach(th => th.style.width = "");
+    const sum = ths.filter(seen).reduce((t, th) => t + SHARE[col(th)], 0);
+    ths.forEach(th => th.style.width = seen(th) ? (100 * SHARE[col(th)] / sum).toFixed(2) + "%" : "0"); };
+  wide.addEventListener("change", apply);
   apply();
   const sel = $("selBtn"); if(!sel) return;
   sel.insertAdjacentHTML("beforebegin", `<button type="button" class="clearbtn show" id="colBtn" aria-haspopup="true" aria-expanded="false"></button>`);
