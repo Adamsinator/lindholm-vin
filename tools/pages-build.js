@@ -24,8 +24,9 @@ for (const id of PACKS) { const f = path.join(R, `atlas-${id}-dem.js`); if (fs.e
 // geology (BRGM 1:50 000): the Côte d'Or's (tools/geol-import.js) and the French packs' (tools/region-geol.js)
 require(path.join(R, "burgundy-geol.js"));
 for (const id of PACKS) { const f = path.join(R, `atlas-${id}-geol.js`); if (fs.existsSync(f)) require(f); }
-// the two main formations under a vineyard: [notation, BRGM's description, share %]
-const geolOf = (G, id) => G && G.under[id] ? G.under[id].slice(0, 2).map(([k, p]) => [G.legend[k][0], G.legend[k][1], p]) : null;
+// the two main formations under a vineyard: [notation, the source's description, share %, its labels or null]; a German
+// pack's (LGB, tools/region-geol.js --de) carries short labels in English, Danish and French, and its credit
+const geolOf = (G, id) => G && G.under[id] ? Object.assign(G.under[id].slice(0, 2).map(([k, p]) => [G.legend[k][0], G.legend[k][1], p, G.legend[k][3] || null]), { credit: G.meta.credit || "" }) : null;
 require(path.join(R, "piemonte-mga.js")); // Barolo and Barbaresco: names and rules, no outlines (tools/mga-build.js)
 const MGA = window.PIEMONTE_MGA;
 
@@ -401,8 +402,9 @@ function page(v, L) {
     // a big appellation's samples are hundreds of metres apart (its 8th field, over 120 m): there the slope says little about a vineyard
     if (!(v.dem[7] > 120)) { facts.push([t.slope, `${Math.round(sl)} %`]); if (cons >= 40 && sl >= 2) facts.push([t.faces, dir8(asp, L)]); }
   }
-  // geology: BRGM's own words, which are French (said so in the other languages)
-  if (v.geol) facts.push([t.geology, v.geol.map(([n, d, p]) => `${n ? n + " " : ""}${d} (${p} %)`).join("; ") + (L === "fr" ? "" : " " + t.inFrench)]);
+  // geology: BRGM's own words, which are French (said so in the other languages); LGB's in German, or its short label
+  if (v.geol && v.geol.credit) facts.push([t.geology, v.geol.map(([n, d, p, lb]) => `${n ? n + " " : ""}${L !== "de" && lb && lb[L] ? lb[L] : d} (${p} %)`).join("; ")]);
+  else if (v.geol) facts.push([t.geology, v.geol.map(([n, d, p]) => `${n ? n + " " : ""}${d} (${p} %)`).join("; ") + (L === "fr" ? "" : " " + t.inFrench)]);
   const note = L === "en" ? v.note.en : v.note[L], soil = L === "en" ? v.soil : v.soilT[L];
   const owners = [...v.owners].filter(([k]) => PROD[k]).sort((a, b) => (a[2] === "s") - (b[2] === "s") || (b[1] ?? -1) - (a[1] ?? -1));
   const nb = nearest(v), peers = SET[v.set].filter(o => o.group === v.group && o.c === v.c);
@@ -419,7 +421,7 @@ ${note ? `<p>${esc(note)}</p>\n` : ""}${oneOf ? `<p>${esc(oneOf)}</p>\n` : ""}${
 <h2>${v.nogeo ? fmt(t.otherMga, v.docg.name) : t.nearby}</h2>
 <ul class="links">${nb.map(o => `<li><a href="${o.slug}.html">${esc(o.n)}</a>${o.nogeo ? "" : ` <small>${esc([o.label || clsOf(o, t), o.commune].filter(Boolean).join(" · "))}</small>`}</li>`).join("")}</ul>
 ` + foot(L, (v.nogeo ? t.sourceMga : v.set === "burgundy" ? t.source : v.rolle ? t.sourceRolle : v.vines ? t.sourceVines : v.point ? t.sourcePt : t.sourcePack)
-  + (v.dem && v.set !== "burgundy" ? " " + (v.rolle ? t.sourceDemDe : t.sourceDem) : "") + (v.geol ? " " + t.sourceGeol : ""));
+  + (v.dem && v.set !== "burgundy" ? " " + (v.rolle ? t.sourceDemDe : t.sourceDem) : "") + (v.geol ? " " + (v.geol.credit ? t.geology + ": " + v.geol.credit + "." : t.sourceGeol) : ""));
 }
 
 function hub(L) {

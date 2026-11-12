@@ -362,6 +362,18 @@ engine is generic, so a new region is a data file, not new code; a region's own 
   (`tageswerte_KL_<id>_*_hist.zip` and `_akt.zip` from opendata.dwd.de, CC BY 4.0). The stations are listed at the
   top of the tool. Re-run it, and `tools/vintage-weather.js` for the Côte d'Or, once each October to add the new
   season. `tools/atlas-wx-ui-test.js` checks the figures hold together.
+- **Geology in the German regions** (`atlas-<id>-geol.js` for Mosel, Nahe, Pfalz, Rheinhessen, Mittelrhein, Ahr; all in
+  Rhineland-Palatinate): the Landesamt für Geologie und Bergbau's Geologische Übersichtskarte 1:300 000 (GÜK300), from its
+  WFS (mapserver.lgb-rlp.de/cgi-bin/mc_guek300), Datenlizenz Deutschland – Namensnennung 2.0. The credit
+  "©Landesamt für Geologie und Bergbau Rheinland-Pfalz (year), dl-de/by-2-0, www.lgb-rlp.de [Daten bearbeitet]" is in each
+  pack and shown with the geology, in the region's sources, on exported images and on every German vineyard page.
+  `node tools/region-geol.js --de all` writes them (the GML is cached in `tools/.geol-cache`). LGB's descriptions
+  (stratigraphy: petrography) are German; the build adds a short label in English, Danish and French from their own
+  words (rock types, then the age: "Slate, claystone and siltstone · Lower Devonian"); a unit whose name says Schiefer
+  (Hunsrückschiefer) is slate. No colours come with the data, so each unit has its period's colour from the ICS chart,
+  shaded apart from its neighbours. Water is drawn but not counted under a site. At 1:300 000 a unit is a few hundred
+  metres across at the least, as each site's note says. Two sites have none: the Mittelrhein's Insel Heylesen Werth (an
+  island) and the Mosel's Liebfrauenberg, where the map has river.
 - **Lieux-dits** (every French region; `atlas-ld.js`, as on the Côte d'Or): the cadastre's named places on the crus
   and village appellations, drawn and named once zoomed in, listed in a climat's panel, opened with a tap, and found
   by the search. `node tools/region-ld.js [region …]` writes `atlas-<id>-ld.js`. It takes the communes from

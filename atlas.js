@@ -24,12 +24,12 @@ const REGIONS = [
   { id: "alsace", name: "Alsace", file: "atlas-alsace.js?v=1", wx: "atlas-alsace-wx.js?v=1", topo: "atlas-alsace-topo.js?v=1", dem: "atlas-alsace-dem.js?v=1", geol: "atlas-alsace-geol.js?v=1", ld: "atlas-alsace-ld.js?v=1", own: "atlas-alsace-own.js?v=1", ll: [48.174, 7.329], country: "fr", kind: "Grand cru", kw: ["alsace", "elsass"], village: "Alsace (the rest of the AOC)" },
   { id: "bordeaux", name: "Bordeaux", file: "atlas-bordeaux.js?v=1", wx: "atlas-bordeaux-wx.js?v=1", topo: "atlas-bordeaux-topo.js?v=1", dem: "atlas-bordeaux-dem.js?v=1", geol: "atlas-bordeaux-geol.js?v=1", ld: "atlas-bordeaux-ld.js?v=1", ll: [44.953, -0.587], country: "fr", kind: "Appellations · the 1855 châteaux", kw: ["bordeaux", "pauillac", "margaux", "medoc", "saint julien", "st julien", "saint estephe", "st estephe",
     "pessac", "graves", "sauternes", "barsac", "saint emilion", "st emilion", "pomerol", "fronsac", "listrac", "moulis"], village: "Haut-Médoc, Médoc, Graves" },
-  { id: "mosel", name: "Mosel", file: "atlas-mosel.js?v=1", wx: "atlas-mosel-wx.js?v=1", topo: "atlas-mosel-topo.js?v=1", dem: "atlas-mosel-dem.js?v=1", ll: [49.925, 6.968], country: "de", kind: "Einzellagen", kw: ["mosel", "saar", "ruwer"] },
-  { id: "nahe", name: "Nahe", file: "atlas-nahe.js?v=1", wx: "atlas-nahe-wx.js?v=1", topo: "atlas-nahe-topo.js?v=1", dem: "atlas-nahe-dem.js?v=1", ll: [49.84, 7.786], country: "de", kind: "Einzellagen", kw: ["nahe"] },
-  { id: "pfalz", name: "Pfalz", file: "atlas-pfalz.js?v=1", wx: "atlas-pfalz-wx.js?v=1", topo: "atlas-pfalz-topo.js?v=1", dem: "atlas-pfalz-dem.js?v=1", ll: [49.383, 8.158], country: "de", kind: "Einzellagen", kw: ["pfalz", "palatinate"] },
-  { id: "rheinhessen", name: "Rheinhessen", file: "atlas-rheinhessen.js?v=1", wx: "atlas-rheinhessen-wx.js?v=1", topo: "atlas-rheinhessen-topo.js?v=1", dem: "atlas-rheinhessen-dem.js?v=1", ll: [49.826, 8.16], country: "de", kind: "Einzellagen", kw: ["rheinhessen"] },
-  { id: "mittelrhein", name: "Mittelrhein", file: "atlas-mittelrhein.js?v=1", wx: "atlas-mittelrhein-wx.js?v=1", topo: "atlas-mittelrhein-topo.js?v=1", dem: "atlas-mittelrhein-dem.js?v=1", ll: [50.183, 7.671], country: "de", kind: "Einzellagen", kw: ["mittelrhein"] },
-  { id: "ahr", name: "Ahr", file: "atlas-ahr.js?v=1", wx: "atlas-ahr-wx.js?v=1", topo: "atlas-ahr-topo.js?v=1", dem: "atlas-ahr-dem.js?v=1", ll: [50.536, 7.079], country: "de", kind: "Einzellagen", kw: ["ahr"] },
+  { id: "mosel", name: "Mosel", file: "atlas-mosel.js?v=1", wx: "atlas-mosel-wx.js?v=1", topo: "atlas-mosel-topo.js?v=1", dem: "atlas-mosel-dem.js?v=1", geol: "atlas-mosel-geol.js?v=1", ll: [49.925, 6.968], country: "de", kind: "Einzellagen", kw: ["mosel", "saar", "ruwer"] },
+  { id: "nahe", name: "Nahe", file: "atlas-nahe.js?v=1", wx: "atlas-nahe-wx.js?v=1", topo: "atlas-nahe-topo.js?v=1", dem: "atlas-nahe-dem.js?v=1", geol: "atlas-nahe-geol.js?v=1", ll: [49.84, 7.786], country: "de", kind: "Einzellagen", kw: ["nahe"] },
+  { id: "pfalz", name: "Pfalz", file: "atlas-pfalz.js?v=1", wx: "atlas-pfalz-wx.js?v=1", topo: "atlas-pfalz-topo.js?v=1", dem: "atlas-pfalz-dem.js?v=1", geol: "atlas-pfalz-geol.js?v=1", ll: [49.383, 8.158], country: "de", kind: "Einzellagen", kw: ["pfalz", "palatinate"] },
+  { id: "rheinhessen", name: "Rheinhessen", file: "atlas-rheinhessen.js?v=1", wx: "atlas-rheinhessen-wx.js?v=1", topo: "atlas-rheinhessen-topo.js?v=1", dem: "atlas-rheinhessen-dem.js?v=1", geol: "atlas-rheinhessen-geol.js?v=1", ll: [49.826, 8.16], country: "de", kind: "Einzellagen", kw: ["rheinhessen"] },
+  { id: "mittelrhein", name: "Mittelrhein", file: "atlas-mittelrhein.js?v=1", wx: "atlas-mittelrhein-wx.js?v=1", topo: "atlas-mittelrhein-topo.js?v=1", dem: "atlas-mittelrhein-dem.js?v=1", geol: "atlas-mittelrhein-geol.js?v=1", ll: [50.183, 7.671], country: "de", kind: "Einzellagen", kw: ["mittelrhein"] },
+  { id: "ahr", name: "Ahr", file: "atlas-ahr.js?v=1", wx: "atlas-ahr-wx.js?v=1", topo: "atlas-ahr-topo.js?v=1", dem: "atlas-ahr-dem.js?v=1", geol: "atlas-ahr-geol.js?v=1", ll: [50.536, 7.079], country: "de", kind: "Einzellagen", kw: ["ahr"] },
   { id: "rhone", name: "Rhône (north)", file: "atlas-rhone.js?v=1", wx: "atlas-rhone-wx.js?v=1", topo: "atlas-rhone-topo.js?v=1", dem: "atlas-rhone-dem.js?v=1", geol: "atlas-rhone-geol.js?v=1", ld: "atlas-rhone-ld.js?v=1", ll: [45.201, 4.809], country: "fr", kind: "Cru appellations", kw: ["cote rotie", "condrieu", "chateau grillet", "hermitage", "ermitage", "crozes", "saint joseph", "st joseph", "cornas", "saint peray", "st peray"],
     regional: "Regional (Côtes du Rhône)" },
   { id: "beaujolais", name: "Beaujolais", file: "atlas-beaujolais.js?v=1", wx: "atlas-beaujolais-wx.js?v=1", topo: "atlas-beaujolais-topo.js?v=1", dem: "atlas-beaujolais-dem.js?v=1", geol: "atlas-beaujolais-geol.js?v=1", ld: "atlas-beaujolais-ld.js?v=1", ll: [46.17, 4.68], country: "fr", kind: "The ten crus",
@@ -311,13 +311,17 @@ function drawGeol() {
 }
 // BRGM's notation (γ for granite, j8 for the Kimmeridgian…) and its own description, which is in French
 // BRGM's description is French: a short translated label (geol-gloss.js), the French original on hover
-const geolText = d => window.GEOL_TR ? GEOL_TR(d, window.I18N ? I18N.lang : "en") : d;
-const geolLabel = (G, k) => { const [n, d] = G.legend[k], g = geolText(d); return (n ? `<b>${esc(n)}</b> ` : "") + (g !== d ? `<span title="${esc(d)}">${esc(g)}</span>` : esc(d)); };
+// a pack's own labels (LGB's), its German on hover
+const geolLang = () => window.I18N ? I18N.lang : "en";
+const geolText = (d, lb) => lb ? (geolLang() !== "de" && lb[geolLang()] || d) : window.GEOL_TR ? GEOL_TR(d, geolLang()) : d;
+const geolLabel = (G, k) => { const [n, d, , lb] = G.legend[k], g = geolText(d, lb); return (n ? `<b>${esc(n)}</b> ` : "") + (g !== d ? `<span title="${esc(d)}">${esc(g)}</span>` : esc(d)); };
+const geolWords = (G, k, dflt) => { const x = G.meta.text && G.meta.text[k]; return x ? x[geolLang()] || x.en : t(dflt); };
 const geolSw = (G, k) => `<span class="cls" style="background:${G.legend[k][2]}"></span>`;
 function geolHtml(c) {
   const G = geolOf(), u = G && G.under[c.id]; if (!u) return "";
   return `<h3>${esc(t("Geology"))}</h3><table class="own geolt">${u.map(([k, p]) => `<tr><td>${geolSw(G, k)}${geolLabel(G, k)}</td><td class="n">${p}%</td></tr>`).join("")}</table>
-    <p class="note">${esc(t("Share of the vineyard's area on each formation of BRGM's 1:50 000 geological map; scree, colluvium and river terraces are mapped over the bedrock where they are thick."))}${window.I18N && I18N.lang !== "fr" ? " " + esc(t("BRGM's descriptions are in French: shown here shortened and translated; point at one for the original.")) : ""}</p>`;
+    <p class="note">${esc(geolWords(G, "note", "Share of the vineyard's area on each formation of BRGM's 1:50 000 geological map; scree, colluvium and river terraces are mapped over the bedrock where they are thick."))}${G.meta.credit ? ` <span class="src">${esc(G.meta.credit)}</span>` : ""}${G.meta.text ? (G.meta.text.orig && G.meta.text.orig[geolLang()] ? " " + esc(G.meta.text.orig[geolLang()]) : "")
+      : window.I18N && I18N.lang !== "fr" ? " " + esc(t("BRGM's descriptions are in French: shown here shortened and translated; point at one for the original.")) : ""}</p>`;
 }
 // zoom limits: no closer than 150 m across, no further out than three times the region
 const MIN_W = 150, maxW = () => st.pack ? (st.pack.meta.bb[2] - st.pack.meta.bb[0]) * 3 : Infinity;
@@ -537,7 +541,7 @@ async function exportPNG() {
 // the sources of what's in the image, short
 function exportCredit() {
   const y = new Date().getFullYear(), M = st.pack.meta, topo = st.topo && topoOf();
-  if (M.proj === "eq") return t("Einzellagen © Landwirtschaftskammer RLP") + (topo ? ` · © GeoBasis-DE / LVermGeoRP ${y}, dl-de/by-2-0` : "");
+  if (M.proj === "eq") return t("Einzellagen © Landwirtschaftskammer RLP") + (topo ? ` · © GeoBasis-DE / LVermGeoRP ${y}, dl-de/by-2-0` : "") + (geolShown() ? " · " + t("Geology") + " " + geolOf().meta.credit : "");
   return (villagesPack() ? t("Vines and boundaries © IGN, Licence Ouverte") : t(topo ? "Boundaries © INAO · map data © IGN, Licence Ouverte" : "Boundaries © INAO, Licence Ouverte")) + (geolShown() ? " · " + t("geology © BRGM") : "");
 }
 
@@ -656,7 +660,8 @@ function renderSide() {
       ${Object.keys(PTCLASS).filter(k => pts().some(q => q.cls === k)).map(k => `<h3>${esc(t(PTCLASS[k]))}</h3><ul class="list">${pts().filter(q => q.cls === k).map(q => ptRow(q)).join("")}</ul>`).join("")}
       ${pts().some(q => !q.p) ? `<p class="note">° ${esc(t("Not on IGN's map under its own name, so not drawn."))}</p>` : ""}
       ${pc.some(x => x.inferred) ? `<p class="note">* ${esc(t("INAO's map doesn't name this land; the name comes from IGN's place names inside or next to it."))}</p>` : ""}
-      <p class="src">${esc(P.meta.source)}. ${esc(t("Built {0}.", P.meta.built))}${P.meta.l93 ? " " + esc(t("Relief shading and roads, rivers, woods and villages: IGN (Géoplateforme, Licence Ouverte).")) : ""}${R.geol ? " " + esc(t("Geology: BRGM, the harmonised 1:50 000 map (BD Charm-50, Licence Ouverte).")) : ""}${st.style === "photo" && P.meta.l93 ? " " + esc(t("Aerial photos: IGN (Géoplateforme, Licence Ouverte).")) : ""}${P.meta.proj === "eq" ? deCredit() : ""}</p>`;
+      <p class="src">${esc(P.meta.source)}. ${esc(t("Built {0}.", P.meta.built))}${P.meta.l93 ? " " + esc(t("Relief shading and roads, rivers, woods and villages: IGN (Géoplateforme, Licence Ouverte).")) : ""}${R.geol ? " " + esc(P.meta.proj === "eq" ? t("Geology") + ": " + ((geolOf() || { meta: {} }).meta.credit || "©Landesamt für Geologie und Bergbau Rheinland-Pfalz, dl-de/by-2-0, www.lgb-rlp.de [Daten bearbeitet]") + "."
+        : t("Geology: BRGM, the harmonised 1:50 000 map (BD Charm-50, Licence Ouverte).")) : ""}${st.style === "photo" && P.meta.l93 ? " " + esc(t("Aerial photos: IGN (Géoplateforme, Licence Ouverte).")) : ""}${P.meta.proj === "eq" ? deCredit() : ""}</p>`;
   } else if (!c.g) { // a classified château
     const bottles = CELLAR.by[c.id];
     side.innerHTML = `<p><button class="btn" id="back">← ${esc(P.meta.name)}</button></p>
@@ -1012,7 +1017,7 @@ function renderLegend() {
   const P = st.pack; if (!P) { $("legend").innerHTML = ""; return; }
   if (geolShown()) { const G = geolOf(), tot = {};
     P.climats.filter(c => st.show[c.c] && G.under[c.id]).forEach(c => G.under[c.id].forEach(([k, p]) => tot[k] = (tot[k] || 0) + p * c.ha));
-    $("legend").innerHTML = `<b>${esc(t("Geology (BRGM 1:50 000)"))}</b>` + Object.entries(tot).sort((a, b) => b[1] - a[1]).slice(0, 8)
+    $("legend").innerHTML = `<b>${esc(geolWords(G, "title", "Geology (BRGM 1:50 000)"))}</b>` + Object.entries(tot).sort((a, b) => b[1] - a[1]).slice(0, 8)
       .map(([k]) => `<span class="gl"><i style="background:${G.legend[k][2]}"></i><em>${geolLabel(G, k)}</em></span>`).join(""); return; }
   const cl = window.ATLAS_COLOR && st.color !== "class" && ATLAS_COLOR.legend(); if (cl) { $("legend").innerHTML = cl; return; }
   const extra = window.ATLAS_CD && st.region && st.region.ui ? ATLAS_CD.legendExtra() : "";
