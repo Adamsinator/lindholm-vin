@@ -114,7 +114,7 @@ $("selDrink").addEventListener("click", async ()=>{
     if(e.target.closest("input, textarea, select, [contenteditable]")) return; // a field gets the touch
     const t = e.touches[0], top = t.clientY - card.getBoundingClientRect().top;
     if(top > 56 && card.scrollTop > 0) return; // scrolled down inside: the touch scrolls
-    drag = {card, modal:card.parentNode, y0:t.clientY, x0:t.clientX, t0:Date.now(), dy:0, on:false, handle: top <= 56};
+    drag = {card, modal:card.parentNode, y0:t.clientY, x0:t.clientX, dy:0, on:false, handle: top <= 56, pts:[[Date.now(), 0]]};
   }, {passive:true});
   document.addEventListener("touchmove", e=>{
     if(!drag) return; const t = e.touches[0], dy = t.clientY - drag.y0, dx = t.clientX - drag.x0;
@@ -125,16 +125,23 @@ $("selDrink").addEventListener("click", async ()=>{
       drag.on = true; drag.card.style.transition = "none"; drag.card.style.animation = "none";
     }
     drag.dy = Math.max(0, dy); drag.card.style.transform = `translateY(${drag.dy}px)`;
+    drag.pts.push([Date.now(), drag.dy]); if(drag.pts.length > 8) drag.pts.shift();
     if(e.cancelable) e.preventDefault(); // the page under it doesn't scroll meanwhile
   }, {passive:false});
   const end = ()=>{
     if(!drag) return; const d = drag; drag = null; if(!d.on) return;
-    const fast = d.dy / Math.max(1, Date.now() - d.t0) > .6, far = d.dy > Math.min(140, d.card.offsetHeight * .3);
+    // a flick by the finger's speed over its last moments (not the whole touch, which a pause first made slow)
+    const now = Date.now(), p0 = d.pts.find(q => now - q[0] <= 120) || d.pts[d.pts.length - 1];
+    const fast = (d.dy - p0[1]) / Math.max(16, now - p0[0]) > .5, far = d.dy > Math.min(120, d.card.offsetHeight * .25);
     d.card.style.transition = "transform .22s cubic-bezier(.2,.8,.2,1)";
     const reset = ()=>{ d.card.style.transform = d.card.style.transition = d.card.style.animation = ""; };
     if(far || (fast && d.dy > 40)){ // slide the rest of the way, then close as a tap beside it does
       d.card.style.transform = "translateY(100%)";
       setTimeout(()=>{ d.modal.dispatchEvent(new MouseEvent("click", {bubbles:true}));
+        // a sheet a tap beside doesn't close (Account, Admin, quick sell and the business's other sheets) closes with
+        // its own Close, Cancel or Later; one without (the recovery code, which must be acknowledged) springs back
+        const own = d.modal.classList.contains("open") && d.card.querySelector('[data-bz$="close"], [id$="Cancel"], [id$="Close"], #helpLater');
+        if(own) own.click();
         if(!d.modal.classList.contains("open")) return reset();
         d.card.style.transform = "translateY(0)"; setTimeout(reset, 240); }, 180);
       return;
