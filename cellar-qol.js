@@ -271,13 +271,24 @@ $("selDrink").addEventListener("click", async ()=>{
   // so no column is left a sliver (fixed widths plus two more columns once left the wine a letter wide)
   const SHARE = { "c-prod": 2.6, "c-wine": 3, "c-comm": 1.5, "c-vint": .9, "c-reg": 2.2, "c-qty": .8, "c-price": 1.1 };
   const wide = matchMedia("(min-width:701px)"), usual = () => C.every(([c, , d]) => on.includes(c) === !!d);
+  // the narrow columns (vintage, bottles, price) are never narrower than their heading in this language, its sort
+  // arrow and its filter ▾ (VINTAGE, JAHRGANG …): on a small screen the wider ones give way, not the heading
+  const NARROW = ["c-vint", "c-qty", "c-price"];
+  const need = th => { const l = th.querySelector("[data-i18n]"); return l ? Math.ceil(l.getBoundingClientRect().width) + 48 : 0; };
   const apply = () => { const tb = $("tbl"); if(!tb) return;
     C.forEach(([c, , d]) => { const s = on.includes(c); tb.classList.toggle("o-" + c, s && !d); tb.classList.toggle("x-" + c, !s && !!d); });
     const ths = [...tb.querySelectorAll("thead th")], col = th => [...th.classList].find(k => SHARE[k]);
     const seen = th => { const o = C.find(x => "c-" + x[0] === col(th)); return !o || on.includes(o[0]); };
-    if(!wide.matches || usual()) return ths.forEach(th => th.style.width = "");
-    const sum = ths.filter(seen).reduce((t, th) => t + SHARE[col(th)], 0);
-    ths.forEach(th => th.style.width = seen(th) ? (100 * SHARE[col(th)] / sum).toFixed(2) + "%" : "0"); };
+    ths.forEach(th => th.style.width = "");
+    if(!wide.matches) return;
+    const vis = ths.filter(seen), tw = tb.clientWidth;
+    if(usual()) return vis.forEach(th => { if(NARROW.includes(col(th)) && th.offsetWidth < need(th)) th.style.width = need(th) + "px"; });
+    const sum = vis.reduce((t, th) => t + SHARE[col(th)], 0), w = new Map(vis.map(th => [th, SHARE[col(th)] / sum * tw]));
+    let fixed = 0; vis.forEach(th => { if(NARROW.includes(col(th))){ w.set(th, Math.max(w.get(th), need(th))); fixed += w.get(th); } });
+    const flex = vis.filter(th => !NARROW.includes(col(th))), fsum = flex.reduce((t, th) => t + w.get(th), 0), k = fsum ? Math.max(0, tw - fixed) / fsum : 1;
+    flex.forEach(th => w.set(th, w.get(th) * k));
+    ths.forEach(th => th.style.width = seen(th) ? (100 * w.get(th) / tw).toFixed(2) + "%" : "0"); };
+  let raf = 0; addEventListener("resize", () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(apply); });
   wide.addEventListener("change", apply);
   apply();
   const sel = $("selBtn"); if(!sel) return;
@@ -298,7 +309,7 @@ $("selDrink").addEventListener("click", async ()=>{
   document.addEventListener("click", e => { if(!pop.hidden && !pop.contains(e.target) && e.target !== btn) close(); });
   document.addEventListener("keydown", e => { if(e.key === "Escape" && !pop.hidden){ close(); btn.focus(); } });
   addEventListener("scroll", () => pop.hidden || close(), { passive: true });
-  new MutationObserver(label).observe(document.documentElement, { attributes: true, attributeFilter: ["lang"] }); // a new language
+  new MutationObserver(() => { label(); requestAnimationFrame(apply); }).observe(document.documentElement, { attributes: true, attributeFilter: ["lang"] }); // a new language
 })();
 /* Filters in the headings, on a computer, as in a spreadsheet: ▾ beside a heading lists that column's values with a
    tick each (and how many wines have it); untick what you don't want to see, or search the list first. The price takes
