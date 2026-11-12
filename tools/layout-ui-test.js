@@ -75,6 +75,16 @@ const wines = Array.from({ length: 120 }, (_, i) => { const p = P[i % P.length];
     return { share: w / t, tall: Math.max(...[...document.querySelectorAll("#tbl tr.main")].slice(0, 30).map(r => r.getBoundingClientRect().height)),
       thin: [...document.querySelectorAll("#tbl thead th")].filter(th => th.offsetWidth > 0 && th.offsetWidth < 60).map(th => th.dataset.k) }; });
   check("…with every column on, the wine has a fifth of the width or more and no row is tall", all.share >= .2 && all.tall < 110 && !all.thin.length, JSON.stringify(all));
+  // …and on a small laptop, in English and in German (JAHRGANG, FLASCHEN), every heading reads in full beside its ▾
+  await p.keyboard.press("Escape");
+  const cutAt = () => p.evaluate(() => [...document.querySelectorAll("#tbl thead th")].filter(th => th.offsetWidth > 0)
+    .filter(th => th.querySelector("[data-i18n]").getBoundingClientRect().right > th.querySelector(".cf").getBoundingClientRect().left - 2).map(th => th.dataset.k));
+  await p.setViewportSize({ width: 1000, height: 900 }); await p.waitForTimeout(300);
+  const cutEn = await cutAt(), hs = await p.evaluate(() => { const w = document.querySelector(".tablewrap"); return w.scrollWidth > w.clientWidth + 1; });
+  await p.evaluate(() => I18N.setLang("de")); await p.waitForTimeout(600); const cutDe = await cutAt();
+  await p.evaluate(() => I18N.setLang("en")); await p.waitForTimeout(400);
+  check("…on a 1000 px screen too: every heading in full (English and German), and no sideways scrolling", !cutEn.length && !cutDe.length && !hs, JSON.stringify({ cutEn, cutDe, hs }));
+  await p.setViewportSize({ width: 1650, height: 1000 }); await p.waitForTimeout(300); await p.click("#colBtn");
   await tick("price", false);
   check("…remembered on this device", await p.evaluate(() => JSON.parse(Object.entries(localStorage).find(([k]) => /^cols:/.test(k))[1]).sort().join() === "comm,loc,qty,reg,vint"));
   await p.keyboard.press("Escape");
