@@ -39,7 +39,7 @@ check("a hit with nothing in it is fine", gas.call({ action: "hits" }).ok && gas
 // the owner's view: 30 days, oldest first, today last
 gas.run(`setUser(findUser('anna'), 'OldSheet', SpreadsheetApp.getActiveSpreadsheet().getId())`);
 const ad = gas.call({ action: "admin", user: "anna", token: l.token });
-check("the admin page gets the last 30 days", ad.ok && ad.stats.length === 30 && ad.stats[29].day === "2026-10-16" && ad.stats[29].cellar === 53 && ad.stats[0].cellar === 0, JSON.stringify(ad.stats && ad.stats.slice(-2)));
+check("the admin page gets the kept year: 371 days, today last (it shows 7 days to a year of them)", ad.ok && ad.stats.length === 371 && ad.stats[370].day === "2026-10-16" && ad.stats[370].cellar === 53 && ad.stats[0].cellar === 0 && ad.stats[0].day === "2025-10-11", JSON.stringify(ad.stats && [ad.stats[0].day, ad.stats.length]));
 check("…and a member doesn't", gas.call({ action: "admin", user: "bodil", token: gas.run("findUser('bodil').token").split("@")[0] }).error === "not-owner");
 
 // across the end of summer time (25 October 2026 in Copenhagen) every calendar day appears once
