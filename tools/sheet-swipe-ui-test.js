@@ -43,6 +43,24 @@ const HEAD = ["Producent", "Land", "Område", "Kommune", "Mark/Navn", "Klassifik
   await swipe(x, y + 60, 120, 80);
   check("…and so does a quick flick from inside it", !(await isOpen("meSheet")));
 
+  // a finger that rests first, then flicks: a flick, by its speed at the end
+  await p.tap("#pMe"); await p.waitForTimeout(400); [x, y] = await cardTop("meSheet");
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y: y + 60 }] }); await p.waitForTimeout(600);
+  for (let k = 1; k <= 6; k++) { await p.waitForTimeout(12); await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x, y: y + 60 + k * 15 }] }); }
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] }); await p.waitForTimeout(500);
+  check("…and a flick after the finger rested a moment", !(await isOpen("meSheet")));
+
+  // sheets a tap beside doesn't close: Account (its Close), and a business sheet (quick sell and the like)
+  await p.evaluate(() => document.getElementById("acctBtn").click()); await p.waitForSelector("#acctModal.open"); await p.waitForTimeout(400);
+  await p.evaluate(() => document.activeElement && document.activeElement.blur());
+  [x, y] = await cardTop("acctModal"); await swipe(x, y + 12, 260);
+  check("Account, which a tap beside doesn't close, closes with a drag (its own Close)", !(await isOpen("acctModal")));
+  await p.evaluate(() => { const m = document.createElement("div"); m.id = "bzT"; m.className = "modal bz-till open";
+    m.innerHTML = '<div class="card"><div class="bz-h"><h2>Quick sell</h2><button type="button" class="btn" data-bz="tclose">Close</button></div><p style="height:300px">…</p></div>';
+    document.body.appendChild(m); m.querySelector("[data-bz=tclose]").onclick = () => m.classList.remove("open"); });
+  await p.waitForTimeout(400); [x, y] = await cardTop("bzT"); await swipe(x, y + 12, 260);
+  check("…and a business sheet the same way", !(await isOpen("bzT")));
+
   // a long sheet (Add a wine): scrolled down, the finger scrolls; at its top, it closes
   await p.evaluate(() => document.querySelector(".pfab").click()); await p.waitForSelector("#addModal.open"); await p.waitForTimeout(400);
   await p.evaluate(() => { document.querySelector("#addModal > .card").scrollTop = 300; });
