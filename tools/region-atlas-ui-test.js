@@ -239,6 +239,18 @@ const gas = H({ Ark1: [HEAD,
   await p.evaluate(() => select("fleurie", false)); await p.waitForTimeout(1500);
   const fl = (await p.textContent("#side")).replace(/\s+/g, " ");
   check("…Fleurie: on granite, with BRGM's symbol for it (γ)", /Geology[^%]*γ[^%]*Granite[^%]*\d{2}%/.test(fl), fl.slice(fl.indexOf("Geology"), fl.indexOf("Geology") + 200));
+  // the German regions: LGB's GÜK300 (1:300 000), its German with a short English label, its own legend title, note and
+  // credit (dl-de/by-2-0 asks for it); the Bernkasteler Doctor on the Mosel's Lower Devonian slate
+  await p.goto(BASE + "atlas.html#r=mosel"); await p.reload(); await p.waitForTimeout(1800);
+  await p.check("#fGeol"); await p.waitForTimeout(1500);
+  await p.evaluate(() => select("doctor_bernkastel", false)); await p.waitForTimeout(400);
+  const de = await p.evaluate(() => ({ paths: document.querySelectorAll("#map .geol path").length, legend: document.getElementById("legend").textContent,
+    side: document.getElementById("side").textContent.replace(/\s+/g, " "), hover: (document.querySelector("#side .geolt span[title]") || {}).title || "" }));
+  check("the Mosel's geology: LGB's 1:300 000 units, its own title, the Doctor on Lower Devonian slate, its German a hover away, and the credit",
+    de.paths > 20 && /^Geology \(LGB 1:300 000\)/.test(de.legend) && /Geology ?dzH Slate, claystone and siltstone · Lower Devonian ?100%/.test(de.side)
+    && /Hunsrückschiefer/.test(de.hover) && /1:300 000 map/.test(de.side) && /©Landesamt für Geologie und Bergbau Rheinland-Pfalz \(\d{4}\), dl-de\/by-2-0/.test(de.side) && !/BRGM/.test(de.side + de.legend),
+    JSON.stringify({ hover: de.hover.slice(0, 80), side: de.side.slice(de.side.indexOf("Geology"), de.side.indexOf("Geology") + 200) }));
+  await p.uncheck("#fGeol");
   await p.goto(BASE + "atlas.html#r=rhonesud"); await p.waitForTimeout(2500);
   const rs = await p.evaluate(() => ({ n: st.pack.climats.length, side: document.getElementById("side").textContent }));
   check("the Southern Rhône: eight cru appellations, the Beaucastel on Châteauneuf-du-Pape, and Vacqueyras said to be missing", rs.n === 8 && /Châteauneuf-du-Pape[^\n]*in your cellar: 2/.test(rs.side) && /Not drawn: Vacqueyras/.test(rs.side),
