@@ -1360,6 +1360,7 @@ function renderTable(){
     if(state.closes && !closesIn(w, state.closes)) return false;
     if(state.style && w.style!==state.style) return false;
     if(state.tasteRows && !state.tasteRows.has(w.row)) return false;
+    if(window.COLF && !COLF(w)) return false;
     if(state.loc && (state.loc==="-" ? w.location : locPlace(w.location)!==state.loc)) return false;
     if(state.ready){
       const rd = readiness(w);
@@ -1570,7 +1571,7 @@ async function loadData(quiet){
     LOADED_AT = new Date(); stampText();
     $("spin").hidden = true; $("content").hidden = false;
     if(!VINT_W && VINT_CELLAR.length) drawVintages(VINT_CELLAR); // drawn while hidden (no width yet): again, for the width it has now
-    if(!window.CELLAR_QOL) loadJS("cellar-qol.js?v=8").catch(()=>{}); // the conveniences: swipes, keys, several wines at once
+    if(!window.CELLAR_QOL) loadJS("cellar-qol.js?v=9").catch(()=>{}); // the conveniences: swipes, keys, several wines at once
     if(/^test/i.test(cfg.user||"") && !window.TESTKIT) loadJS("testkit.js?v=2").then(()=>TESTKIT.mount()).catch(()=>{}); // test data
     loadJournalSilently(); refreshDeleted(); checkOwner(); takePrefill(); // checkOwner asks "me", which says if the feed is on
   }catch(err){

@@ -25,6 +25,9 @@ const gas = H({ Ark1: [HEAD,
 (async () => {
   const b = await chromium.launch(); const ctx = await b.newContext({ viewport: { width: 1280, height: 900 } });
   await require("./turnstile-fake")(ctx);
+  // the relief comes from IGN's and basemap.de's live tile servers: not what's checked here, and a tile they don't
+  // have (a 404 now and then) is no fault of the site's. Each gets a blank tile, as in the other atlas tests.
+  await ctx.route(/^https:\/\/(data\.geopf\.fr|sgx\.geodatenzentrum\.de)\//, r => r.fulfill({ status: 200, contentType: "image/png", body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==", "base64") }));
   await ctx.route(require("./api-route"), async route => {
     const p = JSON.parse(route.request().postData() || "{}");
     let r;
