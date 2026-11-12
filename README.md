@@ -370,7 +370,8 @@ engine is generic, so a new region is a data file, not new code; a region's own 
   letter-spacing, takes accents from the region's own names, and drops parcel codes. A download that fails stops it;
   run it again and the rest comes from the cache. Unlike the Côte d'Or's, these have no measured terrain.
   `tools/region-ld-ui-test.js` checks them.
-- **Owners outside the Côte d'Or** (Chablis's grands crus so far; `atlas-owners.js`): a climat's owners with their
+- **Owners outside the Côte d'Or** (Chablis's grands crus, and 14 of Alsace's 51 from Zind-Humbrecht, Weinbach and
+  Trimbach so far; `atlas-owners.js`): a climat's owners with their
   areas and shares, each with a ↗ link to the page it comes from. The list is `data/owners/<id>.json`, and it holds
   **only what a domaine's own website says it owns**: `[domaine, hectares or null, page, what the page says]`. null
   means the page lists the wine as its own vineyard but gives no area. Figures from merchants or the press aren't
