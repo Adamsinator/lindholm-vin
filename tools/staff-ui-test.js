@@ -80,7 +80,10 @@ const login = async (p, user, pass) => { await p.goto(BASE); await p.waitForTime
   // as the app does it (a check now and then, a failed one simply tried again later): a check can land while the
   // staff device's save is still being written, and read it half-done
   await s.waitForFunction(() => WINES.find(w => w.producer === "Bollinger").left === 5, null, { timeout: 15000 });
-  for (let i = 0; i < 4; i++) { const ok = await o.evaluate(() => VAULT.checkFresh().then(() => true, () => false)); await o.waitForTimeout(800);
+  // (raced against a timer in the page: a check that never finishes fails here, plainly, rather than being collected
+  // by the browser, which Playwright reports as a navigation)
+  const fresh = () => o.evaluate(() => Promise.race([VAULT.checkFresh().then(() => true, () => false), new Promise(r => setTimeout(() => r("hung"), 10000))]));
+  for (let i = 0; i < 4; i++) { const ok = await fresh(); if (ok === "hung") throw new Error("the owner's VAULT.checkFresh() never finished (10 s)"); await o.waitForTimeout(800);
     if (ok && await o.evaluate(() => WINES.find(w => w.producer === "Bollinger").left === 5)) break; }
   check("…and the owner's device picks it up when it checks (the vault's versions changed)", await o.evaluate(() => WINES.find(w => w.producer === "Bollinger").left === 5));
   check("…while an unchanged vault isn't fetched again", (await o.evaluate(() => VAULT.checkFresh())) === false);
