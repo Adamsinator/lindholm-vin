@@ -300,3 +300,92 @@ $("selDrink").addEventListener("click", async ()=>{
   addEventListener("scroll", () => pop.hidden || close(), { passive: true });
   new MutationObserver(label).observe(document.documentElement, { attributes: true, attributeFilter: ["lang"] }); // a new language
 })();
+/* Filters in the headings, on a computer, as in a spreadsheet: ▾ beside a heading lists that column's values with a
+   tick each (and how many wines have it); untick what you don't want to see, or search the list first. The price takes
+   a from–to instead. A heading with a filter on is marked; Clear filters clears them too. Kept until cleared or the
+   page is left. app.js asks COLF(wine) for each wine as it filters the list. */
+(()=>{
+  const W = { da: { "Filter {0}": "Filtrér {0}", "Search the list": "Søg i listen", "Select all": "Vælg alle", "(Blank)": "(Tom)", "From": "Fra", "To": "Til", "Clear this filter": "Ryd dette filter" },
+    fr: { "Filter {0}": "Filtrer {0}", "Search the list": "Chercher dans la liste", "Select all": "Tout sélectionner", "(Blank)": "(Vide)", "From": "De", "To": "À", "Clear this filter": "Effacer ce filtre" },
+    de: { "Filter {0}": "{0} filtern", "Search the list": "Liste durchsuchen", "Select all": "Alle auswählen", "(Blank)": "(Leer)", "From": "Von", "To": "Bis", "Clear this filter": "Diesen Filter löschen" } };
+  const word = (s, a) => ((W[window.I18N && I18N.lang] || {})[s] || s).replace("{0}", a == null ? "" : a);
+  const tb = $("tbl"); if(!tb) return;
+  // the value a wine shows in each column ("" for none); the price is a range, the rest lists of values
+  const VAL = { producer: w => w.producer || "", name: w => w.name || "", commune: w => w.commune || "", vintage: w => String(w.vintage || ""),
+    region: w => w.region || "", left: w => String(state.status === "drunk" ? w.drunk : w.left) };
+  const F = {}; // key → Set of values hidden; price → [from, to]
+  const on = k => k === "price" ? !!(F.price && (F.price[0] !== "" || F.price[1] !== "")) : !!(F[k] && F[k].size);
+  window.COLF = w => {
+    for(const k in VAL) if(F[k] && F[k].size && F[k].has(VAL[k](w))) return false;
+    if(on("price")){ const p = Number(w.price) || 0, [a, b] = F.price; if((a !== "" && p < a) || (b !== "" && p > b)) return false; }
+    return true;
+  };
+  const any = () => Object.keys(F).some(on);
+  document.head.insertAdjacentHTML("beforeend", `<style>#tbl .cf{display:none}
+@media(min-width:701px){#tbl thead th{padding-right:24px} /* at each heading's right edge, as in a spreadsheet: a click on the heading itself still sorts */
+#tbl .cf{display:block;position:absolute;right:3px;top:50%;transform:translateY(-50%);border:0;background:none;color:var(--muted);cursor:pointer;font-size:.85em;padding:.2em .35em;line-height:1;letter-spacing:0}
+#tbl .cf:hover,#tbl .cf:focus-visible{color:var(--ink)} #tbl .cf.on{color:#fff;background:var(--accent)}
+#cfPop:not([hidden]){display:block;position:fixed;z-index:60;background:var(--bg);border:1px solid var(--ink);padding:10px 12px;width:250px;max-height:min(420px,70vh);overflow:auto;font-size:14px}
+#cfPop input[type=search],#cfPop input[type=number]{width:100%;box-sizing:border-box;margin:0 0 6px}
+#cfPop label{display:flex;gap:8px;align-items:baseline;padding:3px 0;cursor:pointer} #cfPop label small{margin-left:auto;color:var(--muted)}
+#cfPop .cfall{border-bottom:1px solid var(--line);margin-bottom:4px;padding-bottom:6px} #cfPop .cfr{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#cfPop .cfclr{margin-top:8px;border:0;background:none;color:var(--accent);cursor:pointer;padding:0;text-decoration:underline}}
+@media(min-width:701px) and (max-width:820px){#tbl thead th{position:relative}} /* (wider, they're sticky: that places it too) */
+#cfPop{display:none}</style>`);
+  const heads = () => [...tb.querySelectorAll("thead th[data-k]")].filter(th => th.dataset.k in VAL || th.dataset.k === "price");
+  heads().forEach(th => th.insertAdjacentHTML("beforeend", `<button type="button" class="cf" data-cf="${th.dataset.k}" aria-haspopup="true" aria-expanded="false">▾</button>`));
+  document.body.insertAdjacentHTML("beforeend", `<div id="cfPop" role="dialog" hidden></div>`);
+  const pop = $("cfPop"); let cur = null;
+  const mark = () => { tb.querySelectorAll(".cf").forEach(b => { const k = b.dataset.cf, th = b.closest("th"), n = th.querySelector("[data-i18n]").textContent.trim();
+    b.classList.toggle("on", on(k)); b.setAttribute("aria-label", word("Filter {0}", n)); b.title = word("Filter {0}", n); });
+    if(any()) $("clear").classList.add("show"); };
+  // every redraw of the list (a search, a sort, another filter) keeps Clear filters showing while one of these is on
+  const rt = window.renderTable; window.renderTable = function(){ const r = rt.apply(this, arguments); mark(); return r; };
+  const redraw = () => renderTable();
+  const close = () => { if(!cur) return; const b = tb.querySelector(`.cf[data-cf="${cur}"]`); b && b.setAttribute("aria-expanded", "false"); pop.hidden = true; cur = null; };
+  // the values to offer: of the wines the In cellar / All / Enjoyed choice shows, with how many have each
+  const values = k => { const n = new Map();
+    WINES.forEach(w => { if((state.status === "cellar" && w.left === 0) || (state.status === "drunk" && w.drunk === 0)) return; const v = VAL[k](w); n.set(v, (n.get(v) || 0) + 1); });
+    (F[k] || new Set()).forEach(v => n.has(v) || n.set(v, 0)); // a hidden value stays listed, to tick back
+    const num = k === "vintage" || k === "left";
+    return [...n].sort((a, b) => (a[0] === "") - (b[0] === "") || (num ? (Number(a[0]) || 0) - (Number(b[0]) || 0) : a[0].localeCompare(b[0]))); };
+  function open(k, btn){
+    cur = k; btn.setAttribute("aria-expanded", "true"); pop.setAttribute("aria-label", btn.getAttribute("aria-label"));
+    if(k === "price"){ const [a, b] = F.price || ["", ""];
+      pop.innerHTML = `<div class="cfr"><label style="display:block">${esc(word("From"))}<input type="number" min="0" step="any" data-pr="0" value="${a}"></label>
+        <label style="display:block">${esc(word("To"))}<input type="number" min="0" step="any" data-pr="1" value="${b}"></label></div>
+        <button type="button" class="cfclr">${esc(word("Clear this filter"))}</button>`;
+    } else {
+      const hid = F[k] || new Set(), list = values(k);
+      pop.innerHTML = `<input type="search" data-cfq placeholder="${esc(word("Search the list"))}" aria-label="${esc(word("Search the list"))}">
+        <label class="cfall"><input type="checkbox" data-cfall${hid.size ? "" : " checked"}> ${esc(word("Select all"))}</label>
+        <div data-cfl>${list.map(([v, n]) => `<label><input type="checkbox" data-v="${esc(v)}"${hid.has(v) ? "" : " checked"}> <span>${esc(v || word("(Blank)"))}</span><small>${n}</small></label>`).join("")}</div>
+        <button type="button" class="cfclr">${esc(word("Clear this filter"))}</button>`;
+    }
+    const r = btn.getBoundingClientRect(); pop.style.top = (r.bottom + 4) + "px"; pop.style.left = Math.max(8, Math.min(r.right - 250, innerWidth - 266)) + "px";
+    pop.hidden = false; (pop.querySelector("input") || pop).focus();
+  }
+  tb.querySelector("thead").addEventListener("click", e => { const b = e.target.closest(".cf"); if(!b) return;
+    e.stopPropagation(); e.preventDefault(); // not the heading's sort
+    const k = b.dataset.cf; if(cur === k) return close(); close(); open(k, b); }, true);
+  pop.addEventListener("input", e => {
+    const t = e.target;
+    if(t.dataset.pr != null){ F.price = F.price || ["", ""]; F.price[+t.dataset.pr] = t.value === "" ? "" : Number(t.value); return redraw(); }
+    if(t.hasAttribute("data-cfq")){ const q = t.value.trim().toLowerCase(); pop.querySelectorAll("[data-cfl] label").forEach(l => l.hidden = !!q && !l.textContent.toLowerCase().includes(q)); }
+  });
+  pop.addEventListener("change", e => {
+    const t = e.target, k = cur; if(!k || k === "price" || t.type !== "checkbox") return;
+    const hid = F[k] = F[k] || new Set();
+    if(t.hasAttribute("data-cfall")){ // the ones the search shows, or all
+      pop.querySelectorAll("[data-cfl] label:not([hidden]) input").forEach(i => { i.checked = t.checked; t.checked ? hid.delete(i.dataset.v) : hid.add(i.dataset.v); });
+    } else { t.checked ? hid.delete(t.dataset.v) : hid.add(t.dataset.v); pop.querySelector("[data-cfall]").checked = !hid.size; }
+    redraw();
+  });
+  pop.addEventListener("click", e => { if(!e.target.classList.contains("cfclr")) return; delete F[cur]; const b = tb.querySelector(`.cf[data-cf="${cur}"]`); close(); redraw(); b && b.focus(); });
+  document.addEventListener("click", e => { if(cur && !pop.contains(e.target) && !e.target.closest(".cf")) close(); });
+  document.addEventListener("keydown", e => { if(e.key === "Escape" && cur){ const b = tb.querySelector(`.cf[data-cf="${cur}"]`); close(); b && b.focus(); } });
+  addEventListener("scroll", () => cur && close(), { passive: true });
+  $("clear").addEventListener("click", () => { for(const k in F) delete F[k]; close(); redraw(); });
+  new MutationObserver(mark).observe(document.documentElement, { attributes: true, attributeFilter: ["lang"] });
+  mark();
+})();
