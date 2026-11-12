@@ -4565,7 +4565,7 @@ $("helpForm").addEventListener("submit", async e=>{
 // opened, so a member's page never carries it
 let ADMIN_LOAD = null;
 $("adminBtn").addEventListener("click", ()=>{
-  (ADMIN_LOAD = ADMIN_LOAD || loadJS("admin.js?v=2").catch(e=>{ ADMIN_LOAD = null; throw e; }))
+  (ADMIN_LOAD = ADMIN_LOAD || loadJS("admin.js?v=3").catch(e=>{ ADMIN_LOAD = null; throw e; }))
     .then(()=>openAdmin()).catch(err=>toast(tr("Could not reach the cellar API ({0}).", errText(err))));
 });
 // test users and test wines (test-data.js, loaded the first time one of these is used)

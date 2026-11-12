@@ -67,7 +67,30 @@ const HEAD = ["Producent", "Land", "Område", "Kommune", "Mark/Navn", "Klassifik
     const d = [...document.querySelectorAll("#adminUsage dl div")].find(x => /Active members/.test(x.textContent)), n = d.querySelector("dd").textContent;
     renderUsage(ADMIN.stats, ADMIN.users); return n; }); // and the real numbers back
   check("'Active members' counts people over the 30 days, not member-days", people === "2", people);
-  check("…with a bar a day for 30 days", (await p.$$("#adminUsage svg rect")).length === 30);
+  const bars = () => p.$$eval("#adminUsage .ususp", u => ({ n: u[0].querySelectorAll("rect").length, cap: u[0].querySelector(".ph").textContent }));
+  check("…with a bar a day for 30 days", (await bars()).n === 30, JSON.stringify(await bars()));
+  // a year (the server sends about 400 days): a bar a week, active members as the average a day that week
+  await p.click('#adminUsage [data-usp="365"]'); await p.waitForTimeout(100);
+  const yr = await bars();
+  check("a year: a bar a week (53), the active members an average a day", yr.n === 53 && /average a day each week, last 365 days/.test(yr.cap), JSON.stringify(yr));
+  await p.click('#adminUsage [data-usk="signup"]'); await p.waitForTimeout(100);
+  const su = await bars();
+  check("…any count as the chart: Sign-ups a week, its tile marked", /^Sign-ups a week, last 365 days/.test(su.cap) && await p.$eval('#adminUsage [data-usk="signup"]', b => b.getAttribute("aria-pressed") === "true" && b.closest("div").classList.contains("on")), JSON.stringify(su));
+  // the change on the period before: 15 logins against 10 in the 30 days before is +50 %
+  const ch = await p.evaluate(() => { const d = (i, n) => ({ day: new Date(Date.UTC(2026, 8, 1 + i)).toISOString().slice(0, 10), login: n, active: 0 });
+    const days = [...Array(60)].map((_, i) => d(i, i < 30 ? (i < 10 ? 1 : 0) : (i < 45 ? 1 : 0)));
+    US_P = 30; renderUsage(days, []); const t = [...document.querySelectorAll("#adminUsage .usgrid div")].find(x => /Logins/.test(x.textContent)).textContent;
+    renderUsage(ADMIN.stats, ADMIN.users); return t; });
+  check("each count says its change on the period before (15 logins against 10: +50 %)", /\+50 % on the 30 days before/.test(ch), ch);
+  // the members at a glance, and new members a month
+  const mem = await p.$$eval("#adminUsage .usmem div", ds => Object.fromEntries(ds.map(d => [d.querySelector("dt").textContent, Number(d.querySelector("dd").textContent.replace(/\D/g, ""))])));
+  const months = await p.$$eval("#adminUsage .ususp", u => { const r = [...u[u.length - 1].querySelectorAll("rect")]; return { n: r.length, last: r[r.length - 1].querySelector("title").textContent }; });
+  const ms = await p.evaluate(() => ADMIN.users.filter(u => !u.owner).map(u => [u.user, u.created, u.lastSeen]));
+  const today = await p.evaluate(() => ADMIN.stats[ADMIN.stats.length - 1].day), mo = today.slice(0, 7);
+  check("the members at a glance, counted from the server's today: every member, those seen this week",
+    mem["In all"] === ms.length && ms.length >= 1 && mem["Seen in the last 7 days"] === ms.filter(m => m[2] && m[2] >= "2026-10-09").length && today === "2026-10-16", JSON.stringify({ mem, ms, today }));
+  check("…and new members a month for 12 months, this month's in the last bar",
+    months.n === 12 && /: (\d+)$/.test(months.last) && +months.last.match(/(\d+)$/)[1] === ms.filter(m => String(m[1]).slice(0, 7) === mo).length && /okt|oct/i.test(months.last) && ms.some(m => String(m[1]).slice(0, 7) === mo), JSON.stringify(months));
   check("the Stats tab holds counts only", !/pia|ole|example\.dk/.test(JSON.stringify(gas.rows("Stats"))), JSON.stringify(gas.rows("Stats")));
 
   await p.selectOption("#adminN", "2"); await p.fill("#adminNote", "Peter and Anne"); await p.click('#adminNew button[type="submit"]');
