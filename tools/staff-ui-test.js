@@ -15,12 +15,13 @@ const gas = H({ Ark1: [HEAD,
   row({ Producent: "Marcel Lapierre", Land: "Frankrig", Område: "Beaujolais", "Mark/Navn": "Morgon", Type: "Rød", Årgang: 2022, Antal: 12, "Pris kr (WS)": 150 })],
   Journal: [["Dato", "Producent", "Vin", "Årgang", "Land", "Område", "Drue", "Sted", "Rating", "Pris", "Note", "Foto"]] }, { settings: { OWNER_USER: "adam", OWNER_PASSWORD: "owner-pass-1" } });
 gas.run("makeOwner()");
+const NAVS = []; // where each page went, said if the test stops: a page that navigates or crashes mid-check is the usual reason
 const results = []; const check = (name, ok, extra = "") => { results.push(ok); console.log((ok ? "PASS " : "FAIL ") + name + (ok ? "" : "  " + extra)); };
 async function browser(b, errs, tag) {
   const ctx = await b.newContext({ viewport: { width: 1300, height: 900 } });
   await require("./turnstile-fake")(ctx); await require("./ask-auto")(ctx);
   await ctx.route(require("./api-route"), async route => route.fulfill({ contentType: "application/json", body: JSON.stringify(gas.call(JSON.parse(route.request().postData() || "{}"))) }));
-  const p = await ctx.newPage(); p.on("pageerror", e => errs.push(tag + ": " + e.message)); p.on("console", m => m.type() === "error" && errs.push(tag + ": " + m.text()));
+  const p = await ctx.newPage(); p.on("framenavigated", f => f === p.mainFrame() && NAVS.push(tag + " " + f.url())); p.on("crash", () => NAVS.push(tag + " CRASHED")); p.on("pageerror", e => errs.push(tag + ": " + e.message)); p.on("console", m => m.type() === "error" && errs.push(tag + ": " + m.text()));
   return p;
 }
 const login = async (p, user, pass) => { await p.goto(BASE); await p.waitForTimeout(400); await p.fill("#gateUser", user); await p.fill("#gatePass", pass); await p.click("#gateSubmit"); };
@@ -81,4 +82,4 @@ const login = async (p, user, pass) => { await p.goto(BASE); await p.waitForTime
   check("no page errors", !errs.length, errs.join(" | "));
   await b.close();
   const n = results.filter(Boolean).length; console.log(`\n${n}/${results.length} passed`); process.exit(n === results.length ? 0 : 1);
-})().catch(e => { console.error(e); process.exit(1); });
+})().catch(e => { console.error(e); console.error("pages went: " + NAVS.join(" | ")); process.exit(1); });
