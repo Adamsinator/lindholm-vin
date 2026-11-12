@@ -21,7 +21,12 @@ async function browser(b, errs, tag) {
   const ctx = await b.newContext({ viewport: { width: 1300, height: 900 } });
   await require("./turnstile-fake")(ctx); await require("./ask-auto")(ctx);
   await ctx.route(require("./api-route"), async route => route.fulfill({ contentType: "application/json", body: JSON.stringify(gas.call(JSON.parse(route.request().postData() || "{}"))) }));
-  const p = await ctx.newPage(); p.on("framenavigated", f => f === p.mainFrame() && NAVS.push(tag + " " + f.url())); p.on("crash", () => NAVS.push(tag + " CRASHED")); p.on("pageerror", e => errs.push(tag + ": " + e.message)); p.on("console", m => m.type() === "error" && errs.push(tag + ": " + m.text()));
+  const p = await ctx.newPage(); p.on("framenavigated", f => f === p.mainFrame() && NAVS.push(tag + " " + f.url())); p.on("crash", () => NAVS.push(tag + " CRASHED")); p.on("request", r => r.isNavigationRequest() && r.frame() === p.mainFrame() && NAVS.push(tag + " asks " + r.method() + " " + r.url()));
+  p.on("console", m => /^DBG /.test(m.text()) && NAVS.push(tag + " " + m.text().slice(4)));
+  // what a page did just before it left: a form sent the browser's own way (nobody stopped it), a link followed
+  await p.addInitScript(() => { addEventListener("submit", e => console.log("DBG form " + (e.target.id || e.target.className) + (e.defaultPrevented ? " handled" : " SENT BY THE BROWSER") + ", by " + (e.submitter ? e.submitter.outerHTML.slice(0, 80) : "no button")));
+    addEventListener("click", e => { const a = e.target.closest && e.target.closest("a[href]"); if (a && !e.defaultPrevented && !/^#/.test(a.getAttribute("href"))) console.log("DBG link " + a.getAttribute("href")); });
+    addEventListener("pagehide", () => console.log("DBG leaving " + location.href + ", focus on " + (document.activeElement ? document.activeElement.id || document.activeElement.tagName : "nothing"))); }); p.on("pageerror", e => errs.push(tag + ": " + e.message)); p.on("console", m => m.type() === "error" && errs.push(tag + ": " + m.text()));
   return p;
 }
 const login = async (p, user, pass) => { await p.goto(BASE); await p.waitForTimeout(400); await p.fill("#gateUser", user); await p.fill("#gatePass", pass); await p.click("#gateSubmit"); };
@@ -82,4 +87,4 @@ const login = async (p, user, pass) => { await p.goto(BASE); await p.waitForTime
   check("no page errors", !errs.length, errs.join(" | "));
   await b.close();
   const n = results.filter(Boolean).length; console.log(`\n${n}/${results.length} passed`); process.exit(n === results.length ? 0 : 1);
-})().catch(e => { console.error(e); console.error("pages went: " + NAVS.join(" | ")); process.exit(1); });
+})().catch(e => { console.error(e); console.error("FAIL stopped; the pages went: " + NAVS.join(" | ")); process.exit(1); });
