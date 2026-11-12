@@ -15,7 +15,7 @@ const gas = H({ Ark1: [HEAD,
   row({ Producent: "Marcel Lapierre", Land: "Frankrig", Område: "Beaujolais", "Mark/Navn": "Morgon", Type: "Rød", Årgang: 2022, Antal: 12, "Pris kr (WS)": 150 })],
   Journal: [["Dato", "Producent", "Vin", "Årgang", "Land", "Område", "Drue", "Sted", "Rating", "Pris", "Note", "Foto"]] }, { settings: { OWNER_USER: "adam", OWNER_PASSWORD: "owner-pass-1" } });
 gas.run("makeOwner()");
-const NAVS = []; // where each page went, said if the test stops: a page that navigates or crashes mid-check is the usual reason
+const PAGES = {}; const NAVS = []; // where each page went, said if the test stops: a page that navigates or crashes mid-check is the usual reason
 const results = []; const check = (name, ok, extra = "") => { results.push(ok); console.log((ok ? "PASS " : "FAIL ") + name + (ok ? "" : "  " + extra)); };
 async function browser(b, errs, tag) {
   const ctx = await b.newContext({ viewport: { width: 1300, height: 900 } });
@@ -27,6 +27,18 @@ async function browser(b, errs, tag) {
   await p.addInitScript(() => { addEventListener("submit", e => console.log("DBG form " + (e.target.id || e.target.className) + (e.defaultPrevented ? " handled" : " SENT BY THE BROWSER") + ", by " + (e.submitter ? e.submitter.outerHTML.slice(0, 80) : "no button")));
     addEventListener("click", e => { const a = e.target.closest && e.target.closest("a[href]"); if (a && !e.defaultPrevented && !/^#/.test(a.getAttribute("href"))) console.log("DBG link " + a.getAttribute("href")); });
     addEventListener("pagehide", () => console.log("DBG leaving " + location.href + ", focus on " + (document.activeElement ? document.activeElement.id || document.activeElement.tagName : "nothing"))); }); p.on("pageerror", e => errs.push(tag + ": " + e.message)); p.on("console", m => m.type() === "error" && errs.push(tag + ": " + m.text()));
+  // what the browser itself says of the page: navigations asked for (and why), documents swapped, script contexts ended
+  const cdp = await ctx.newCDPSession(p); await cdp.send("Page.enable"); await cdp.send("Runtime.enable"); const t0 = Date.now(), at = () => ((Date.now() - t0) / 1000).toFixed(1) + "s";
+  cdp.on("Page.frameRequestedNavigation", e => NAVS.push(`${tag} ${at()} browser: navigation asked (${e.reason}, ${e.disposition}) to ${e.url}`));
+  cdp.on("Page.frameStartedLoading", () => NAVS.push(`${tag} ${at()} browser: started loading`));
+  cdp.on("Page.frameNavigated", e => NAVS.push(`${tag} ${at()} browser: navigated (${e.type}) ${e.frame.url}${e.frame.parentId ? " [a frame inside]" : ""}`));
+  cdp.on("Page.frameDetached", e => NAVS.push(`${tag} ${at()} browser: frame detached (${e.reason})`));
+  cdp.on("Page.frameAttached", () => NAVS.push(`${tag} ${at()} browser: frame attached`));
+  cdp.on("Runtime.executionContextsCleared", () => NAVS.push(`${tag} ${at()} browser: all script contexts cleared`));
+  cdp.on("Runtime.executionContextDestroyed", e => NAVS.push(`${tag} ${at()} browser: script context ${e.executionContextId} ended`));
+  cdp.on("Runtime.executionContextCreated", e => NAVS.push(`${tag} ${at()} browser: script context ${e.context.id} made (${e.context.name || "main"}${e.context.auxData && e.context.auxData.isDefault ? ", the page's own" : ""})`));
+  cdp.on("Inspector.targetCrashed", () => NAVS.push(`${tag} ${at()} browser: the page's process crashed`));
+  PAGES[tag] = p;
   return p;
 }
 const login = async (p, user, pass) => { await p.goto(BASE); await p.waitForTimeout(400); await p.fill("#gateUser", user); await p.fill("#gatePass", pass); await p.click("#gateSubmit"); };
@@ -87,4 +99,6 @@ const login = async (p, user, pass) => { await p.goto(BASE); await p.waitForTime
   check("no page errors", !errs.length, errs.join(" | "));
   await b.close();
   const n = results.filter(Boolean).length; console.log(`\n${n}/${results.length} passed`); process.exit(n === results.length ? 0 : 1);
-})().catch(e => { console.error(e); console.error("FAIL stopped; the pages went: " + NAVS.join(" | ")); process.exit(1); });
+})().catch(async e => { console.error(e); const n = NAVS.length; await new Promise(r => setTimeout(r, 1500)); // late events too
+  const now = []; for (const [tag, p] of Object.entries(PAGES)) now.push(tag + " is at " + p.url() + ": " + await p.evaluate(() => `${document.readyState}, gate ${document.getElementById("gate") && !document.getElementById("gate").hidden ? "shown" : "hidden"}, ${typeof WINES === "undefined" ? "no" : WINES.length} wines, vault ${window.VAULT && VAULT.active() ? "open" : "closed"}`).catch(x => "can't be asked (" + x.message.split("\n")[0] + ")"));
+  console.error("FAIL stopped; the pages went: " + NAVS.slice(0, n).slice(-60).join(" | ")); console.error("FAIL …then, within 1.5 s: " + (NAVS.slice(n).join(" | ") || "nothing")); console.error("FAIL …and now: " + now.join(" | ")); process.exit(1); });
