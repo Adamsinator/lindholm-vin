@@ -1,0 +1,60 @@
+{
+  "region": "alsace",
+  "checked": "2026-11-12",
+  "rule": "Only what a domaine's own website says it owns or farms as its own vines. ha is the figure the page gives, or null when it lists the grand cru among its own vineyards without an area. Bought-in grapes and figures from merchants or the press are left out.",
+  "producers": {
+    "zind_humbrecht": { "n": "Domaine Zind-Humbrecht", "site": "https://www.zindhumbrecht.fr/fr/terroirs" },
+    "weinbach": { "n": "Domaine Weinbach", "site": "https://www.domaineweinbach.com/fr/les-terroirs" },
+    "trimbach": { "n": "Maison Trimbach", "site": "https://www.trimbach.fr/vins-alsace" }
+  },
+  "holdings": {
+    "rangen": [
+      ["zind_humbrecht", null, "https://www.zindhumbrecht.fr/fr/terroirs/1-clos-saint-urbain-rangen-thann", "« 10000 pieds/ha au Rangen pour le Domaine Zind-Humbrecht » (the Clos Saint Urbain, among its own terroirs)"]
+    ],
+    "goldert": [
+      ["zind_humbrecht", null, "https://www.zindhumbrecht.fr/fr/terroirs/10-goldert-gueberschwihr-grand-cru", "« Le domaine Zind-Humbrecht possède deux petites parcelles de muscat dans le Goldert »"]
+    ],
+    "sommerberg": [
+      ["zind_humbrecht", 1.2, "https://www.zindhumbrecht.fr/fr/terroirs/11-sommerberg-niedermorschwihr-grand-cru", "« En 2023, le domaine se porte acquéreur de parcelles … sur ce Grand Cru, portant la superficie totale exploitée à 1.2ha »"]
+    ],
+    "wineck_schlossberg": [
+      ["zind_humbrecht", 1, "https://www.zindhumbrecht.fr/fr/terroirs/12-wineck-schlossberg-katzenthal", "« En 2021, 1 hectare de Grand Cru Wineck-Schlossberg est venu compléter le portfolio de grands terroirs du domaine Zind Humbrecht »"]
+    ],
+    "brand": [
+      ["zind_humbrecht", 2.4, "https://www.zindhumbrecht.fr/fr/terroirs/6-band-turckheim", "« Seul le Riesling est planté dans nos vignes sur le Brand (soit 2.4ha) »"],
+      ["trimbach", 1.8, "https://www.trimbach.fr/vins-alsace", "« En 2016 et 2017, notre famille a fait l'acquisition de 1,8 ha de Grand Cru Brand à Turckheim »"]
+    ],
+    "hengst": [
+      ["zind_humbrecht", null, "https://www.zindhumbrecht.fr/fr/terroirs/9-hengst-wintzenheim-grand-cru", "« Les vins du Grand Cru Hengst de Wintzenheim du Domaine Zind-Humbrecht » (among its own terroirs)"]
+    ],
+    "schlossberg": [
+      ["trimbach", 1.6, "https://www.trimbach.fr/vins-alsace", "« Riesling Grand Cru Schlossberg — En 2012, notre famille a fait l'acquisition de 1,6 ha dans ce Grand Cru »"],
+      ["weinbach", null, "https://www.domaineweinbach.com/fr/les-terroirs/grand-cru-schlossberg", "Domaine Weinbach › Les terroirs › Grand Cru Schlossberg (no area given)"]
+    ],
+    "furstentum": [
+      ["weinbach", null, "https://www.domaineweinbach.com/fr/les-terroirs/grand-cru-furstentum", "Domaine Weinbach › Les terroirs › Grand Cru Furstentum (no area given)"]
+    ],
+    "mambourg": [
+      ["weinbach", null, "https://www.domaineweinbach.com/fr/les-terroirs/grand-cru-mambourg", "Domaine Weinbach › Les terroirs › Grand Cru Mambourg (no area given)"]
+    ],
+    "marckrain": [
+      ["weinbach", null, "https://www.domaineweinbach.com/fr/les-terroirs/grand-cru-marckrain", "Domaine Weinbach › Les terroirs › Grand Cru Marckrain (no area given)"]
+    ],
+    "mandelberg": [
+      ["trimbach", 1, "https://www.trimbach.fr/vins-alsace", "« Il a toujours été issu du Grand Cru Mandelberg à Mittelwihr, sur notre hectare de vieilles vignes de plus de 60 ans »"]
+    ],
+    "geisberg": [
+      ["trimbach", 2.66, "https://www.trimbach.fr/vins-alsace", "« En 2009, nous avons produit notre premier Grand Cru Geisberg issu des 2,66 ha du Vignoble du Couvent » (the convent's vines, farmed by Trimbach)"]
+    ],
+    "rosacker": [
+      ["trimbach", 1.67, "https://www.trimbach.fr/clos-sainte-hune", "« Clos Sainte Hune — Terroir d'exception sur le Grand Cru Rosacker à Hunawihr, ce Clos qui appartient à la famille Trimbach depuis plus de deux cents ans s'étend sur 1,67 hectare »"]
+    ],
+    "osterberg": [
+      ["trimbach", null, "https://www.trimbach.fr/vins-alsace", "« une sélection de nos meilleures parcelles (dont le Grand Cru Osterberg) »"]
+    ]
+  },
+  "to_verify": [
+    "Domaine Hugel, Domaine Albert Boxler, Domaine Marcel Deiss — their sites couldn't be read from here (connection refused or reset)",
+    "Domaine Ostertag, Albert Mann, Domaine Schoffit, Kientzler, Josmeyer, Paul Blanck, Bott-Geyl, Barmès-Buecher, Domaine Schlumberger, Léon Beyer, Domaine Marcel Deiss — not yet looked at"
+  ]
+}

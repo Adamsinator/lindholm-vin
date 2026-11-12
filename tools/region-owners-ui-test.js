@@ -18,6 +18,13 @@ const rows = Object.values(D.holdings).flat();
 check("every holding has its domaine's own page (no merchants, no press)", rows.every(r => /^https:\/\//.test(r[2])) && rows.every(r => !/decanter|winewithseth|bbr\.com|idealwine|vinous|wine-searcher|jancisrobinson|burghound/i.test(r[2])), rows.filter(r => !/^https:/.test(r[2])).map(r => r[0]).join());
 check("all seven grands crus have owners on file", ["blanchot", "bougros", "grenouilles", "les_clos", "preuses", "valmur", "vaudesir"].every(k => (D.holdings[k] || []).length));
 check("the figures read from the pages: Laroche 4.34 ha of Blanchot, La Chablisienne 7.2 ha of Grenouilles", D.holdings.blanchot.some(r => r[0] === "laroche" && r[1] === 4.34) && D.holdings.grenouilles.some(r => r[0] === "chablisienne" && r[1] === 7.2));
+// Alsace: the same rule, from Zind-Humbrecht's, Weinbach's and Trimbach's own pages
+const DA = JSON.parse(fs.readFileSync(R("data/owners/alsace.json"), "utf8")), wa = {};
+new Function("window", fs.readFileSync(R("atlas-alsace-own.js"), "utf8"))(wa); const BA = wa.ATLAS_OWN_DATA.alsace;
+check("Alsace: the built file is its sourced list as it stands", JSON.stringify(Object.fromEntries(Object.entries(DA.holdings).map(([k, v]) => [k, v.map(r => [r[0], r[1], r[2], r[3] || ""])]))) === JSON.stringify(BA.own) && BA.checked === DA.checked);
+const rowsA = Object.values(DA.holdings).flat();
+check("…every holding on a domaine's own site, the figures as its pages give them (Trimbach 1.67 ha of Rosacker, Zind-Humbrecht 2.4 ha of Brand)",
+  rowsA.every(r => /^https:\/\/www\.(zindhumbrecht\.fr|domaineweinbach\.com|trimbach\.fr)\//.test(r[2])) && DA.holdings.rosacker.some(r => r[0] === "trimbach" && r[1] === 1.67) && DA.holdings.brand.some(r => r[0] === "zind_humbrecht" && r[1] === 2.4));
 
 (async () => {
   const b = await chromium.launch(), errs = [];
