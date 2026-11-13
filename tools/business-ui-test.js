@@ -160,6 +160,12 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
     && /960 kr\./.test(mm.rows[0]) && mm.rows[0].includes(mm.fig), JSON.stringify(mm));
   const [dl2] = await Promise.all([p.waitForEvent("download", { timeout: 5000 }), p.click(`#bizPanel [data-mcsv="${mon}"]`)]);
   check("…and the month's CSV from its line", dl2.suggestedFilename() === `allwine-sales-${mon}.csv`);
+  // the cost price goes up after the sales: their profit is what they cost when sold (API 58), not today's cost
+  const fig = () => p.evaluate(() => [...document.querySelectorAll("#bizPanel .bz-k")].find(k => /Gross profit/.test(k.textContent)).querySelector("b").textContent);
+  const pf0 = await fig(), rr = await p.evaluate(() => WINES.find(w => w.producer === "Armand Rousseau"));
+  await p.evaluate(async r => { WINES = normalize((await api({ action: "setprice", row: r.row, value: r.price * 3 })).wines); renderOverview(); }, rr); await p.waitForTimeout(300);
+  check("a new cost price leaves the profit of the sales before it as it was", (await fig()) === pf0 && await p.evaluate(() => WINES.find(w => w.producer === "Armand Rousseau").price) === rr.price * 3, pf0 + " / " + (await fig()));
+  await p.evaluate(async r => { WINES = normalize((await api({ action: "setprice", row: r.row, value: r.price })).wines); renderOverview(); }, rr); await p.waitForTimeout(300);
 
   // the inventory: count, price and sell from its lines, and its filter for what's under the minimum
   await p.click('.tab[data-page="inventory"]'); await p.waitForTimeout(300);
@@ -252,6 +258,20 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   check("…set: Bollinger 1,050 kr., the others untouched", JSON.stringify(pr1.find(x => x[0] === "Bollinger")) === '["Bollinger",1050]' && pr1.find(x => x[0] === "Domaine Leflaive")[1] === 1000 && !(await p.isVisible("#bzPricing")), JSON.stringify(pr1));
   await p.click("#actBtns button"); await p.waitForTimeout(1500);
   check("…and Undo takes it back", !(await p.evaluate(async () => normalize((await api({ action: "data" })).wines).find(w => w.producer === "Bollinger").menuPrice > 0)) && /no menu price/.test(await p.textContent("#bizPanel")));
+  // glass prices from the menu price: Leflaive's 1,000 kr. over the glasses in a bottle, ×1.25, rounded up to 5 kr.
+  await p.click('[data-bz="price"] >> visible=true'); await p.waitForSelector("#bzPricing.open", { timeout: 3000 });
+  await p.selectOption("#bzPwhat", "glass"); await p.waitForTimeout(200);
+  const gl = await p.evaluate(() => ({ lab: document.querySelector("#bzPx").closest("label").textContent, x: document.getElementById("bzPx").value,
+    rows: [...document.querySelectorAll("#bzPbody tr")].map(r => r.textContent.replace(/\s+/g, " ").trim()), lf: WINES.find(w => w.producer === "Domaine Leflaive") }));
+  const per = Number((gl.lab.match(/÷ (\d+)/) || [])[1]), want = Math.ceil(gl.lf.menuPrice / per * 1.25 / 5) * 5;
+  const lfRow = gl.rows.find(r => /Leflaive/.test(r)) || "";
+  check(`Glass prices from the menu price: Leflaive ${gl.lf.menuPrice} ÷ ${per} × 1.25, up to 5 kr. = ${want} kr.`, gl.x === "1.25" && per >= 2 && !gl.lf.glassPrice && lfRow.includes(String(want)) && !gl.rows.some(r => /Rousseau/.test(r)), JSON.stringify(gl));
+  await p.click("#bzPgo"); await p.waitForTimeout(1500);
+  const gp = await p.evaluate(async () => normalize((await api({ action: "data" })).wines).map(w => [w.producer, w.glassPrice, w.menuPrice]));
+  check("…set as the glass price; the menu prices and Rousseau's glass price as they were", gp.find(x => x[0] === "Domaine Leflaive")[1] === want && gp.find(x => x[0] === "Domaine Leflaive")[2] === 1000
+    && gp.find(x => x[0] === "Armand Rousseau")[1] === 150, JSON.stringify(gp));
+  await p.click("#actBtns button"); await p.waitForTimeout(1500);
+  check("…and Undo clears it again", !(await p.evaluate(async () => normalize((await api({ action: "data" })).wines).find(w => w.producer === "Domaine Leflaive").glassPrice > 0)));
   await p.click('.tab[data-page="cellar"]'); await p.waitForTimeout(300);
 
   // the card online, behind a QR code: it follows the prices by itself, under the same link
