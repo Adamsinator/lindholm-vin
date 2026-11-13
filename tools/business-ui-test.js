@@ -230,6 +230,21 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   check("…downloaded as a CSV", /Bollinger;.*;8;7;-1;420/.test(ccsv), ccsv.slice(0, 300));
   await p.click('[data-bz="csave"]'); await p.waitForTimeout(1500);
   check("…and saved: Bollinger 7 in stock", (await p.evaluate(async () => normalize((await api({ action: "data" })).wines).find(w => w.producer === "Bollinger").left)) === 7 && !(await p.isVisible("#bzCount")));
+  // menu prices from the cost: Bollinger (cost 420, 7 in stock) has none; ×3 rounded up to 10 kr. is 1,260 kr.
+  await p.evaluate(() => { try { localStorage.removeItem("vinPricing:" + String(cfg.user || "").toLowerCase()); } catch (e) {} });
+  await p.click('[data-bz="price"] >> visible=true'); await p.waitForSelector("#bzPricing.open", { timeout: 3000 });
+  const prw = await p.evaluate(() => [...document.querySelectorAll("#bzPbody tr")].map(r => r.textContent.replace(/\s+/g, " ").trim()));
+  check("Price from cost: only the wine without a menu price, cost × 3 rounded up: Bollinger 1,260 kr.", prw.length === 1 && /Bollinger/.test(prw[0]) && /1[.,\u00a0 ]?260/.test(prw[0]), JSON.stringify(prw));
+  check("…with the sum and the button", /1 wine, 7 bottles/.test(await p.textContent("#bzPsum")) && (await p.textContent("#bzPgo")) === "Set 1 price", await p.textContent("#bzPsum"));
+  await p.fill("#bzPx", "2.5"); await p.selectOption("#bzPstep", "50"); await p.waitForTimeout(100);
+  check("…×2.5, up to 50 kr.: 1,050 kr.", /1[.,\u00a0 ]?050/.test(await p.textContent("#bzPbody")), await p.textContent("#bzPbody"));
+  await p.selectOption("#bzPwhich", "all"); await p.waitForTimeout(100);
+  check("…all in stock: the priced ones too, with what they were", (await p.$$("#bzPbody tr")).length === 3 && /was/.test(await p.textContent("#bzPbody")));
+  await p.selectOption("#bzPwhich", "missing"); await p.click("#bzPgo"); await p.waitForTimeout(1500);
+  const pr1 = await p.evaluate(async () => normalize((await api({ action: "data" })).wines).map(w => [w.producer, w.menuPrice]));
+  check("…set: Bollinger 1,050 kr., the others untouched", JSON.stringify(pr1.find(x => x[0] === "Bollinger")) === '["Bollinger",1050]' && pr1.find(x => x[0] === "Domaine Leflaive")[1] === 1000 && !(await p.isVisible("#bzPricing")), JSON.stringify(pr1));
+  await p.click("#actBtns button"); await p.waitForTimeout(1500);
+  check("…and Undo takes it back", !(await p.evaluate(async () => normalize((await api({ action: "data" })).wines).find(w => w.producer === "Bollinger").menuPrice > 0)) && /no menu price/.test(await p.textContent("#bizPanel")));
   await p.click('.tab[data-page="cellar"]'); await p.waitForTimeout(300);
 
   // the card online, behind a QR code: it follows the prices by itself, under the same link

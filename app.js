@@ -1072,7 +1072,7 @@ function loadKind(){
 function setKindLocal(k, keepStored){
   KIND = k; document.documentElement.dataset.kind = k; $("acctKind").value = k;
   if(!keepStored) try{ localStorage.setItem(kindKey(), k); }catch(e){}
-  if(k!=="private" && !window.BIZ){ const s = document.createElement("script"); s.src = "business.js?v=14";
+  if(k!=="private" && !window.BIZ){ const s = document.createElement("script"); s.src = "business.js?v=15";
     s.onload = ()=>{ if(WINES.length){ renderOverview(); renderTable(); } }; document.head.appendChild(s); }
   else if(window.BIZ) BIZ.apply();
 }

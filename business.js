@@ -307,7 +307,7 @@ window.BIZ = (() => {
         ${fig(both.length ? pct(gross / net) : "—", tr("Average margin, VAT excluded"))}
         ${W.glass ? fig(fmt(glass.length), tr("Wines by the glass")) : ""}
       </div>
-      ${noPrice.length ? `<p class="note">${esc(tr(noPrice.length === 1 ? "1 wine in stock has no {1} yet: it's left off the {2}." : "{0} wines in stock have no {1} yet: they're left off the {2}.", fmt(noPrice.length), low(tr(W.sell)), low(tr(W.card))))}</p>` : ""}
+      ${noPrice.length ? `<p class="note">${esc(tr(noPrice.length === 1 ? "1 wine in stock has no {1} yet: it's left off the {2}." : "{0} wines in stock have no {1} yet: they're left off the {2}.", fmt(noPrice.length), low(tr(W.sell)), low(tr(W.card))))}${window.ROLE !== "staff" ? ` <button type="button" class="linkish" data-bz="price">${esc(tr("Price from cost…"))}</button>` : ""}</p>` : ""}
       ${styles.length ? `<div class="bz-scroll"><table class="bz-tab2"><thead><tr><th>${esc(tr("Style"))}</th><th>${esc(tr("Wines"))}</th><th>${esc(tr("Bottles"))}</th><th>${esc(tr("At cost"))}</th><th>${esc(tr("At {0}", low(tr(W.sell))))}</th></tr></thead>
         <tbody>${styles.map(([s, n, b, c, v]) => `<tr><td>${esc(tr(STYLE_NAME[s] || s || "—"))}</td><td>${esc(fmt(n))}</td><td>${esc(fmt(b))}</td><td>${money(c)}</td><td>${money(v)}</td></tr>`).join("")}</tbody></table></div>` : ""}
       ${locHTML(cellar, money)}
@@ -317,6 +317,7 @@ window.BIZ = (() => {
       ${window.ROLE ? "" : `<h3>${esc(tr("Staff logins"))}</h3><div id="bzStaff"><p class="note">${esc(tr("Loading…"))}</p></div>`}
       <p class="bz-foot"><button type="button" class="btn" data-bz="card">${esc(tr(W.card))}</button> <span class="note">${esc(tr("Prices include VAT (moms 25 %); the margin is worked out without it."))}</span></p>`;
     p.querySelector('[data-bz="card"]').onclick = openCard;
+    const pb = p.querySelector('[data-bz="price"]'); if (pb) pb.onclick = openPricing;
     const rc = $("bzReorderCopy"); if (rc) rc.onclick = async () => {
       try { await navigator.clipboard.writeText(reorderText(reorder())); toast(tr("Copied")); } catch (e) { toast(tr("Could not copy")); } };
     const op = $("bzOrderPrint"); if (op) op.onclick = printOrders;
@@ -360,7 +361,7 @@ window.BIZ = (() => {
     if (box.dataset.kind !== key) {
       box.dataset.kind = key;
       box.innerHTML = `<section class="panel bz-inv"><div class="bz-h"><h2>${esc(tr("Inventory"))}</h2>
-          <span class="bz-btns"><button type="button" class="btn primary" data-bz="till">${esc(tr("Quick sell"))}</button><button type="button" class="btn" data-bz="goods">${esc(tr("Goods in"))}</button><button type="button" class="btn" data-bz="count">${esc(tr("Count stock"))}</button><button type="button" class="btn" data-bz="add">${esc(tr("＋ Add wine"))}</button><button type="button" class="btn" data-bz="card2">${esc(tr(W.card))}</button></span></div>
+          <span class="bz-btns"><button type="button" class="btn primary" data-bz="till">${esc(tr("Quick sell"))}</button><button type="button" class="btn" data-bz="goods">${esc(tr("Goods in"))}</button><button type="button" class="btn" data-bz="count">${esc(tr("Count stock"))}</button>${window.ROLE !== "staff" ? `<button type="button" class="btn" data-bz="price">${esc(tr("Price from cost…"))}</button>` : ""}<button type="button" class="btn" data-bz="add">${esc(tr("＋ Add wine"))}</button><button type="button" class="btn" data-bz="card2">${esc(tr(W.card))}</button></span></div>
         <div class="bz-ks" id="bzInvKs"></div>
         <div class="bz-tools"><input type="search" id="bzInvQ" placeholder="${esc(tr("Search the stock"))}" aria-label="${esc(tr("Search the stock"))}">
           <select id="bzInvShow" aria-label="${esc(tr("Show"))}">${SHOWS.map(([k, l]) => `<option value="${k}">${esc(tr(l))}</option>`).join("")}</select>
@@ -378,6 +379,7 @@ window.BIZ = (() => {
       box.querySelector('[data-bz="till"]').onclick = openTill;
       box.querySelector('[data-bz="goods"]').onclick = openGoods;
       box.querySelector('[data-bz="count"]').onclick = openCount;
+      const pz = box.querySelector('[data-bz="price"]'); if (pz) pz.onclick = openPricing;
       box.querySelector('[data-bz="card2"]').onclick = openCard;
       if (!box.dataset.bound) box.dataset.bound = "1", box.addEventListener("click", e => { const o = e.target.closest("[data-open]"); if (!o) return;
         KEEP_OPEN = Number(o.dataset.open); location.hash = "cellar"; renderTable();
@@ -470,6 +472,56 @@ window.BIZ = (() => {
       b.disabled = true;
       const failed = await setStocks([{ row, left: Math.max(0, w.left) + n, price: c === "" ? null : Number(c) }]);
       toast(failed.length ? failText(failed) : (n === 1 ? tr("1 bottle of {0} added to the stock", w.producer) : tr("{0} bottles of {1} added to the stock", fmt(n), w.producer))); draw(); };
+  }
+  // menu prices from the cost, many at once: the cost price times a factor (VAT included, as a menu price is), rounded
+  // up to the nearest 5, 10, 25 or 50 kr.; the wines without one, or all in stock. A preview first (each wine, its new
+  // price and the margin it gives, VAT excluded), then one save, with Undo.
+  const PRICING_KEY = () => "vinPricing:" + String(cfg.user || "").toLowerCase();
+  function openPricing() {
+    const W = words(); let o = { x: 3, step: 10, which: "missing" };
+    try { o = Object.assign(o, JSON.parse(localStorage.getItem(PRICING_KEY()) || "{}")); } catch (e) {}
+    const m = sheet("bzPricing", "Price from cost…", `<p class="note">${esc(tr("A {0} for each wine in stock from its cost price: the cost times a factor, VAT included, rounded up. Check the list, then Set prices; Undo takes them back.", low(tr(W.sell))))}</p>
+      <div class="bz-pform"><label class="bz-f">${esc(tr("Cost price ×"))}<input id="bzPx" type="number" min="1" max="20" step="0.1" inputmode="decimal" value="${o.x}"></label>
+        <label class="bz-f">${esc(tr("Round up to"))}<select id="bzPstep">${[1, 5, 10, 25, 50, 100].map(n => `<option value="${n}"${n === o.step ? " selected" : ""}>${esc(n === 1 ? tr("whole kroner") : kr(n))}</option>`).join("")}</select></label>
+        <label class="bz-f">${esc(tr("Which wines"))}<select id="bzPwhich"><option value="missing"${o.which === "missing" ? " selected" : ""}>${esc(tr("Those without a {0}", low(tr(W.sell))))}</option><option value="all"${o.which === "all" ? " selected" : ""}>${esc(tr("All in stock (prices already set are replaced)"))}</option></select></label></div>
+      <p id="bzPsum" class="bz-psum"></p>
+      <div class="bz-scroll"><table class="bz-tab2"><thead><tr><th>${esc(tr("Wine"))}</th><th>${esc(tr("Cost price"))}</th><th>${esc(tr(W.sell))}</th><th>${esc(tr("Margin"))}</th></tr></thead><tbody id="bzPbody"></tbody></table></div>
+      <p class="bz-pgo"><button type="button" class="btn primary" id="bzPgo"></button></p>`);
+    const plan = () => {
+      const x = Number($("bzPx").value), step = Number($("bzPstep").value) || 10, which = $("bzPwhich").value;
+      const list = WINES.filter(w => w.left > 0 && w.price > 0 && (which === "all" || !(w.menuPrice > 0)))
+        .sort((a, b) => a.producer.localeCompare(b.producer) || String(a.vintage).localeCompare(String(b.vintage)));
+      return { x, step, which, ok: x >= 1 && x <= 20, rows: list.map(w => { const v = Math.ceil(w.price * x / step) * step; return { w, v, mg: margin(Object.assign({}, w, { menuPrice: v })) }; }) };
+    };
+    const draw = () => {
+      const P = plan(), noCost = WINES.filter(w => w.left > 0 && !(w.price > 0) && (P.which === "all" || !(w.menuPrice > 0))).length;
+      $("bzPbody").innerHTML = P.ok ? P.rows.slice(0, 60).map(({ w, v, mg }) => `<tr><td><b>${esc(w.producer)}</b> ${esc([w.name, w.vintage || "NV"].filter(Boolean).join(" "))}</td>
+        <td>${esc(kr(w.price))}</td><td><b>${esc(kr(v))}</b>${w.menuPrice > 0 && w.menuPrice !== v ? ` <small>${esc(tr("was {0}", kr(w.menuPrice)))}</small>` : ""}</td><td>${mg ? esc(pct(mg.pct)) : "—"}</td></tr>`).join("") +
+        (P.rows.length > 60 ? `<tr><td colspan="4" class="note">${esc(tr("…and {0} more", fmt(P.rows.length - 60)))}</td></tr>` : "") : "";
+      const stock = P.rows.reduce((t, r) => t + r.v * r.w.left, 0), net = P.rows.reduce((t, r) => t + (r.v / (1 + VAT) - r.w.price) * r.w.left, 0);
+      $("bzPsum").textContent = !P.ok ? tr("The factor is a number from 1 to 20.") : !P.rows.length ? tr("No wines to price: each in stock already has one, or no cost price.")
+        : tr(P.rows.length === 1 ? "1 wine, {1} bottles: {2} at the new prices, {3} over the cost, VAT excluded." : "{0} wines, {1} bottles: {2} at the new prices, {3} over the cost, VAT excluded.", fmt(P.rows.length), fmt(P.rows.reduce((t, r) => t + r.w.left, 0)), kr(Math.round(stock)), kr(Math.round(net)))
+          + (noCost ? " " + tr(noCost === 1 ? "1 wine has no cost price and is left as it is." : "{0} wines have no cost price and are left as they are.", fmt(noCost)) : "");
+      const go = $("bzPgo"); go.textContent = P.rows.length === 1 ? tr("Set 1 price") : tr("Set {0} prices", fmt(P.rows.length)); go.disabled = !P.ok || !P.rows.length;
+      try { localStorage.setItem(PRICING_KEY(), JSON.stringify({ x: P.x, step: P.step, which: P.which })); } catch (e) {}
+    };
+    ["bzPx", "bzPstep", "bzPwhich"].forEach(id => { $(id).oninput = draw; $(id).onchange = draw; }); draw();
+    $("bzPgo").onclick = async () => {
+      const P = plan(); if (!P.ok || !P.rows.length) return;
+      const before = P.rows.map(({ w }) => ({ row: w.row, fields: { menuPrice: w.menuPrice > 0 ? w.menuPrice : "" } }));
+      $("bzPgo").disabled = true;
+      try {
+        let res; for (let i = 0; i < P.rows.length; i += 2000) // in parts: the server takes up to 5,000 at a time
+          res = await api({ action: "setinfomany", edits: P.rows.slice(i, i + 2000).map(({ w, v }) => ({ row: w.row, fields: { menuPrice: v } })) });
+        if (!res || !res.wines) res = await api({ action: "data" });
+        WINES = normalize(res.wines); renderOverview(); renderTable(); renderEnjoyed(); m.classList.remove("open");
+        notify(P.rows.length === 1 ? tr("1 price set") : tr("{0} prices set", fmt(P.rows.length)), [{ label: tr("Undo"), fn: async () => {
+          let r; for (let i = 0; i < before.length; i += 2000) r = await api({ action: "setinfomany", edits: before.slice(i, i + 2000) });
+          if (!r || !r.wines) r = await api({ action: "data" });
+          WINES = normalize(r.wines); renderOverview(); renderTable(); renderEnjoyed(); toast(tr("Prices put back")); } }]);
+      } catch (err) { toast(tr("Could not save: {0}", errText(err))); $("bzPgo").disabled = false; }
+    };
+    setTimeout(() => $("bzPx").focus(), 30);
   }
   // the count: what's on the shelf, beside what the stock says; the differences in bottles and at cost; saved in one go.
   // What's typed is kept if the sheet closes before Save (Escape, Close, a tap beside it), until it's saved or cleared.
@@ -734,6 +786,11 @@ window.BIZ = (() => {
 .bz-select,.bz-tools select,.bz-f select{font:inherit;font-size:14px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
 .bz-tools{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 10px} .bz-tools input{flex:1;min-width:180px;font:inherit;font-size:14px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
 .bz-scroll{overflow-x:auto} .bz-inv-t{width:100%;border-collapse:collapse;font-size:13.5px} .bz-tab2,.bz-inv-t{min-width:0}
+.bz-pform{display:flex;flex-wrap:wrap;gap:10px 14px;margin:8px 0} .bz-psum{font-size:13.5px;margin:6px 0} #bzPricing .bz-scroll{max-height:46vh;overflow:auto} #bzPricing .bz-f{display:grid;align-content:start} #bzPricing .bz-f input{width:90px;margin:0} .bz-pgo{text-align:right;margin:8px 0 0}
+.note .linkish{background:none;border:0;padding:0;font:inherit;color:inherit;text-decoration:underline;cursor:pointer}
+@media (max-width:700px){ /* phones: the tab bar has the wine card, the toolbar adds wines, so neither twice; the figures in a compact strip */
+  .bz-inv [data-bz="card2"]{display:none} body:has(#pageInventory:not([hidden])) .pfab{display:none}
+  .bz-inv .bz-ks{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px} .bz-inv .bz-k{padding:6px 8px} .bz-inv .bz-k b{font-size:16px} .bz-inv .bz-k span{display:block;font-size:11px;line-height:1.25} }
 @media (min-width:641px){ .bz-inv-t{min-width:880px} }
 .bz-inv-t th{text-align:left;font-size:12px;font-weight:600;color:var(--muted);padding:6px;border-bottom:1px solid var(--line);white-space:nowrap}
 .bz-inv-t td{padding:5px 6px;border-bottom:1px solid var(--line);vertical-align:middle}
@@ -789,6 +846,6 @@ window.BIZ = (() => {
 </style>`);
   setTimeout(apply, 0);
   // its words: only a business needs them, so they come now, not with every page (i18n.js redraws the page in them)
-  if (window.I18N) { I18N.onChange(apply); if (I18N.more) I18N.more("business-i18n", "?v=8"); }
+  if (window.I18N) { I18N.onChange(apply); if (I18N.more) I18N.more("business-i18n", "?v=9"); }
   return { refreshSales: () => loadSales(true), apply, detail, priceCell, overview, page, inventory, cardLabel, margin, openCard, salesRows, reorder, reorderText, cardData, publishCard, cardShare };
 })();
