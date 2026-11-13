@@ -495,8 +495,8 @@ window.BIZ = (() => {
       const list = WINES.filter(w => !w.elsewhere).filter(w => !q || qMatch(q, [w.producer, w.name, w.vintage, w.source]))
         .sort((a, b) => a.producer.localeCompare(b.producer)).slice(0, 40);
       $("bzGoodsB").innerHTML = list.map(w => `<tr><td><b>${esc(w.producer)}</b> ${esc([w.name, w.vintage || "NV"].filter(Boolean).join(" "))}<small>${esc(w.source || "")}</small></td>
-        <td>${esc(fmt(Math.max(0, w.left)))}</td><td><input class="bz-n" type="number" min="1" step="1" inputmode="numeric" data-gin="${w.row}" aria-label="${esc(tr("Came"))}"></td>
-        <td><input class="bz-n" type="number" min="0" step="1" inputmode="decimal" data-gcost="${w.row}" placeholder="${esc(w.price ? fmt(w.price) : "—")}" aria-label="${esc(tr("Cost price"))}"></td>
+        <td data-l="${esc(tr("In stock"))}">${esc(fmt(Math.max(0, w.left)))}</td><td data-l="${esc(tr("Came"))}"><input class="bz-n" type="number" min="1" step="1" inputmode="numeric" data-gin="${w.row}" aria-label="${esc(tr("Came"))}"></td>
+        <td data-l="${esc(tr("Cost price"))}"><input class="bz-n" type="number" min="0" step="1" inputmode="decimal" data-gcost="${w.row}" placeholder="${esc(w.price ? fmt(w.price) : "—")}" aria-label="${esc(tr("Cost price"))}"></td>
         <td><button type="button" class="btn primary" data-gadd="${w.row}">${esc(tr("Add"))}</button></td></tr>`).join("") || `<tr><td colspan="5" class="note">${esc(tr("No wines match."))}</td></tr>`; };
     $("bzGoodsQ").oninput = draw; draw(); setTimeout(() => $("bzGoodsQ").focus(), 30);
     m.onclick = async e => { const b = e.target.closest("[data-gadd]"); if (!b) return;
@@ -576,8 +576,8 @@ window.BIZ = (() => {
     const list = WINES.filter(w => !w.elsewhere && (w.left > 0 || w.par > 0)).sort((a, b) => placeOf(a).localeCompare(placeOf(b)) || a.producer.localeCompare(b.producer));
     const m = sheet("bzCount", "Count stock", `<p class="note">${esc(tr("Type what's on the shelf; a line left empty isn't counted. Nothing is saved until Save the count."))}</p>
       <div class="bz-scroll" style="max-height:52vh"><table class="bz-tab2 bz-cnt"><thead><tr><th>${esc(tr("Location"))}</th><th>${esc(tr("Wine"))}</th><th>${esc(tr("In stock"))}</th><th>${esc(tr("Counted"))}</th><th>${esc(tr("Difference"))}</th></tr></thead>
-      <tbody>${list.map(w => `<tr><td>${esc(placeOf(w) || "—")}</td><td><b>${esc(w.producer)}</b> ${esc([w.name, w.vintage || "NV"].filter(Boolean).join(" "))}</td><td>${esc(fmt(Math.max(0, w.left)))}</td>
-        <td><input class="bz-n" type="number" min="0" step="1" inputmode="numeric" data-cnt="${w.row}" aria-label="${esc(tr("Counted"))}"></td><td class="bz-dif" data-dif="${w.row}"></td></tr>`).join("")}</tbody></table></div>
+      <tbody>${list.map(w => `<tr><td${placeOf(w) ? "" : ' class="nol"'}>${esc(placeOf(w) || "—")}</td><td><b>${esc(w.producer)}</b> ${esc([w.name, w.vintage || "NV"].filter(Boolean).join(" "))}</td><td data-l="${esc(tr("In stock"))}">${esc(fmt(Math.max(0, w.left)))}</td>
+        <td data-l="${esc(tr("Counted"))}"><input class="bz-n" type="number" min="0" step="1" inputmode="numeric" data-cnt="${w.row}" aria-label="${esc(tr("Counted"))}"></td><td class="bz-dif" data-dif="${w.row}" data-l="${esc(tr("Difference"))}"></td></tr>`).join("")}</tbody></table></div>
       <p id="bzCountSum" class="bz-csum"></p>
       <p class="bz-btns"><button type="button" class="btn primary" data-bz="csave">${esc(tr("Save the count"))}</button><button type="button" class="btn" data-bz="ccsv">${esc(tr("Download the count as CSV"))}</button></p>`);
     const sum = () => { const rows = Object.entries(COUNT).map(([r, n]) => { const w = WINES.find(x => x.row === Number(r)); return { w, d: n - Math.max(0, w.left) }; });
@@ -841,6 +841,14 @@ window.BIZ = (() => {
 .bz-mmk .ly{height:0;border-top:2px dashed var(--ink);background:none;border-radius:0} .bz-mmt th[scope=row]{text-align:left;font-weight:500;color:var(--ink);font-size:13.5px;white-space:nowrap;text-transform:none;letter-spacing:0} .bz-mmt td{text-align:right}
 @media (max-width:640px){ .bz-mmt{font-size:12.5px} .bz-mmt td,.bz-mmt th{padding:4px 3px;white-space:nowrap} .bz-mmt th[scope=row]{white-space:normal;font-size:12.5px} .bz-mmt thead th{white-space:normal} .bz-mmt .mb,.bz-mmt .my,.bz-mmt .mc{display:none} }
 .bz-mmt tfoot td,.bz-mmt tfoot th{font-weight:600;border-top:2px solid var(--line)} .bz-mmt .linkish{background:none;border:0;padding:0;font:inherit;font-size:12px;color:var(--muted);text-decoration:underline;cursor:pointer}
+@media (max-width:640px){ /* phones: goods in and the count as a card a wine, not a table wider than the screen */
+  .bz-gin thead,.bz-cnt thead{display:none} .bz-gin,.bz-gin tbody,.bz-cnt,.bz-cnt tbody{display:block}
+  .bz-gin tr,.bz-cnt tr{display:grid;gap:3px 10px;align-items:end;padding:9px 0;border-bottom:1px solid var(--line)}
+  .bz-gin tr{grid-template-columns:auto minmax(0,1fr) minmax(0,1fr) auto} .bz-cnt tr{grid-template-columns:auto minmax(0,1fr) auto}
+  .bz-tab2.bz-gin td,.bz-tab2.bz-cnt td{border:0;padding:0;text-align:left} .bz-gin td:first-child,.bz-cnt td:nth-child(2){grid-column:1/-1}
+  .bz-gin td small{display:inline;margin-left:6px} .bz-gin .bz-n,.bz-cnt .bz-n{width:100%;max-width:none;box-sizing:border-box}
+  .bz-cnt td:first-child{grid-column:1/-1;grid-row:2;font-size:12px;color:var(--muted)} .bz-cnt td.nol{display:none} .bz-cnt td:nth-child(2){grid-row:1}
+  .bz-gin td[data-l]::before,.bz-cnt td[data-l]::before{content:attr(data-l);display:block;font-size:11px;color:var(--muted);margin-bottom:2px} }
 .note .linkish{background:none;border:0;padding:0;font:inherit;color:inherit;text-decoration:underline;cursor:pointer}
 @media (max-width:700px){ /* phones: the tab bar has the wine card, the toolbar adds wines, so neither twice; the figures in a compact strip */
   .bz-inv [data-bz="card2"]{display:none} body:has(#pageInventory:not([hidden])) .pfab{display:none}
