@@ -42,7 +42,7 @@ function setting(key) {
 // The legacy code only works once you've set a real one: the placeholder from the template is public.
 function accessCode() { const c = setting('ACCESS_CODE'); return c === 'CHANGE-ME' ? '' : c; }
 
-const API_VERSION = 57; // returned in every response; used to verify deployments
+const API_VERSION = 58; // returned in every response; used to verify deployments
 
 // Per-request spreadsheet for the authenticated user. Set in handle(); every
 // sheet helper reads it via ss(). Falls back to the bound (owner's) spreadsheet.
@@ -127,7 +127,10 @@ function bizValue(f, v) {
 // counts the glasses still in it, so the stock goes down by the bottle, never by the glass. In an encrypted cellar the
 // tab is one more encrypted tab of the vault.
 const SALES_SHEET = 'Salg', OPEN_HEADER = 'Åbne glas', SALES_DAYS = 400;
-const SALES_HEAD = ['Dato', 'Id', 'Række', 'Producent', 'Vin', 'Årgang', 'Enhed', 'Pris', 'Åbnede flaske'];
+// 'Kostpris' (API 58): what the bottle, or the glass's share of it, cost when it was sold, so a later cost price
+// doesn't change the profit of sales before it; sales from before it have none, and business.js uses today's cost
+const SALES_HEAD = ['Dato', 'Id', 'Række', 'Producent', 'Vin', 'Årgang', 'Enhed', 'Pris', 'Åbnede flaske', 'Kostpris'];
+const salesWidth = sh => Math.max(9, Math.min(SALES_HEAD.length, sh.getLastColumn()));
 function salesSheet(create) {
   const book = ss(); let sh = book.getSheetByName(SALES_SHEET);
   if (!sh && create) { sh = book.insertSheet(SALES_SHEET); sh.appendRow(SALES_HEAD); }
@@ -148,15 +151,19 @@ function sellOne(rowNum, unit, perBottle) {
     markDrunk(rowNum, 1); opened = 1;
     if (glass) sh.getRange(rowNum, idx.openGlasses + 1).setValue(Math.max(2, Math.min(12, Math.round(perBottle) || 5)) - 1);
   }
+  const bc = idx.price >= 0 ? Number(r[idx.price]) : NaN, per = Math.max(2, Math.min(12, Math.round(perBottle) || 5));
+  const cost = r[idx.price] === '' || !isFinite(bc) || bc <= 0 ? '' : Math.round((glass ? bc / per : bc) * 100) / 100;
   const price = glass ? (idx.glassPrice >= 0 ? r[idx.glassPrice] : '') : (idx.menuPrice >= 0 ? r[idx.menuPrice] : '');
   const id = Utilities.getUuid();
-  salesSheet(true).appendRow([today(), id, rowNum, r[idx.producer], r[idx.name], r[idx.vintage], glass ? 'glas' : 'flaske', price === '' || price == null ? '' : Number(price) || '', opened]);
+  const ssh = salesSheet(true);
+  if (ssh.getLastColumn() < SALES_HEAD.length) ssh.getRange(1, SALES_HEAD.length).setValue(SALES_HEAD[SALES_HEAD.length - 1]);
+  ssh.appendRow([today(), id, rowNum, r[idx.producer], r[idx.name], r[idx.vintage], glass ? 'glas' : 'flaske', price === '' || price == null ? '' : Number(price) || '', opened, cost]);
   return id;
 }
 // Undo a sale (straight after it, from the bar that says it was sold): the bottle or the glass goes back
 function unsell(id) {
   const ssh = salesSheet(false); if (!ssh || ssh.getLastRow() < 2 || !id) throw new Error('Sale not found');
-  const rows = ssh.getRange(2, 1, ssh.getLastRow() - 1, SALES_HEAD.length).getValues(), i = rows.findIndex(r => String(r[1]) === id);
+  const rows = ssh.getRange(2, 1, ssh.getLastRow() - 1, salesWidth(ssh)).getValues(), i = rows.findIndex(r => String(r[1]) === id);
   if (i < 0) throw new Error('Sale not found');
   const [, , rowNum, producer, , , unit, , opened] = rows[i], sh = sheet(), idx = colIndexes(sh);
   if (rowNum >= 2 && rowNum <= sh.getLastRow() && String(sh.getRange(rowNum, idx.producer + 1).getValue()) === String(producer)) {
@@ -170,8 +177,9 @@ function unsell(id) {
 function readSales() {
   const sh = salesSheet(false); if (!sh || sh.getLastRow() < 2) return [];
   const from = ymd(new Date(Date.now() - SALES_DAYS * 864e5));
-  return sh.getRange(2, 1, sh.getLastRow() - 1, SALES_HEAD.length).getValues().map(r => ({ date: ymd(r[0]) || String(r[0]).slice(0, 10), id: String(r[1]), row: Number(r[2]) || 0,
-    producer: String(r[3]), name: String(r[4]), vintage: r[5] instanceof Date ? r[5].getFullYear() : r[5], unit: r[6] === 'glas' ? 'glass' : 'bottle', price: r[7] === '' ? null : Number(r[7]) }))
+  return sh.getRange(2, 1, sh.getLastRow() - 1, salesWidth(sh)).getValues().map(r => ({ date: ymd(r[0]) || String(r[0]).slice(0, 10), id: String(r[1]), row: Number(r[2]) || 0,
+    producer: String(r[3]), name: String(r[4]), vintage: r[5] instanceof Date ? r[5].getFullYear() : r[5], unit: r[6] === 'glas' ? 'glass' : 'bottle', price: r[7] === '' ? null : Number(r[7]),
+    cost: r[9] === '' || r[9] == null || !isFinite(Number(r[9])) ? null : Number(r[9]) }))
     .filter(s => s.date >= from);
 }
 function ensureBiz(sh, fields) { Object.keys(BIZ_HEADERS).forEach(f => { if (fields.some(x => x && f in x && String(x[f] == null ? '' : x[f]).trim() !== '')) ensureCol(sh, BIZ_HEADERS[f]); }); }
