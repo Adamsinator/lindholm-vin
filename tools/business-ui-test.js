@@ -153,6 +153,13 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   const [dl] = await Promise.all([p.waitForEvent("download", { timeout: 5000 }), p.click("#bzSalesCsv")]);
   const csv = require("fs").readFileSync(await dl.path(), "utf8");
   check("…downloaded as a CSV a Danish Excel opens (semicolons, decimal commas)", dl.suggestedFilename() === `allwine-sales-${mon}.csv` && /^\uFEFFDate;Producer;Wine/.test(csv) && /Total;;;;3;1200;960;240/.test(csv), csv.slice(0, 200));
+  // month by month: this month so far, 960 kr. without VAT; its gross profit as the period's figures say; its own CSV
+  const mm = await p.evaluate(() => ({ rows: [...document.querySelectorAll("#bizPanel .bz-mmt tbody tr")].map(r => r.textContent.replace(/\s+/g, " ").trim()),
+    bars: document.querySelectorAll("#bizPanel .bz-mm > span").length, fig: [...document.querySelectorAll("#bizPanel .bz-k")].find(k => /Gross profit/.test(k.textContent)).querySelector("b").textContent }));
+  check("Month by month: this month so far, its sales without VAT and the same gross profit as the figures above", mm.rows.length === 1 && mm.bars === 1 && /\(so far\)/.test(mm.rows[0])
+    && /960 kr\./.test(mm.rows[0]) && mm.rows[0].includes(mm.fig), JSON.stringify(mm));
+  const [dl2] = await Promise.all([p.waitForEvent("download", { timeout: 5000 }), p.click(`#bizPanel [data-mcsv="${mon}"]`)]);
+  check("…and the month's CSV from its line", dl2.suggestedFilename() === `allwine-sales-${mon}.csv`);
 
   // the inventory: count, price and sell from its lines, and its filter for what's under the minimum
   await p.click('.tab[data-page="inventory"]'); await p.waitForTimeout(300);

@@ -205,9 +205,40 @@ window.BIZ = (() => {
         <div>${best.length ? `<h4>${esc(tr("Best sellers"))}</h4><ul class="bz-sup">${best.map(x => `<li><span>${nm(x.s)}</span><b>${esc(x.n === 1 ? tr("1 bottle") : tr("{0} bottles", n1(x.n)))}${SHOW_PRICES ? ` <small>${esc(kr(Math.round(x.kr)))}</small>` : ""}</b></li>`).join("")}</ul>` : `<p class="note">${esc(tr("No sales in this period."))}</p>`}</div>
         <div>${SALES.length && slow.length ? `<h4>${esc(tr("Slow movers: in stock, nothing sold in 90 days"))}</h4><ul class="bz-sup">${slow.map(w => `<li><span>${nm(w)}</span><b>${esc(btl(fmt(w.left)))}</b></li>`).join("")}</ul>` : ""}</div>
       </div>
+      ${SALES.length && SHOW_PRICES ? monthByMonth(eq, costOf, n1) : ""}
       ${SALES.length ? `<p class="bz-exp"><label class="bz-f">${esc(tr("Sales of the month"))}<select id="bzMonth">${months().map(m => `<option value="${m}">${esc(monthName(m))}</option>`).join("")}</select></label>
         <button type="button" class="btn" id="bzSalesCsv">${esc(tr("Download as CSV"))}</button></p>` : ""}
       ${words().glass ? `<label class="bz-f bz-gl">${esc(tr("Glasses in a bottle"))}<input id="bzGlasses" type="number" min="2" max="12" step="1" value="${per}"></label>` : ""}`;
+  }
+  // month by month, the last 12: what was sold (bottles, glasses as their share), the sales without VAT, the cost of
+  // what was sold (today's cost price, as the profit above) and the gross profit, and the same month a year before.
+  // A bar a month: the cost below, the profit above, sales of wines with no cost price as a pale top; the line across
+  // a bar is the same month a year before. The table under it says it in figures, with each month's CSV.
+  function monthByMonth(eq, costOf, n1) {
+    const lang = window.I18N ? (I18N.lang === "en" ? "en-GB" : I18N.lang) : "en-GB", now = new Date();
+    const key = (y, m) => { const d = new Date(y, m, 15); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0"); };
+    const agg = k => { const l = SALES.filter(x => x.date.slice(0, 7) === k), pr = l.filter(x => x.price > 0 && costOf(x) != null);
+      const net = l.reduce((t, x) => t + (x.price || 0), 0) / (1 + VAT), pnet = pr.reduce((t, x) => t + x.price / (1 + VAT), 0), cost = pr.reduce((t, x) => t + costOf(x), 0);
+      return { k, n: l.reduce((t, x) => t + eq(x), 0), net, pnet, cost, profit: pnet - cost }; };
+    const M = Array.from({ length: 12 }, (_, i) => { const y = now.getFullYear(), m = now.getMonth() - 11 + i, a = agg(key(y, m)); a.prev = agg(key(y - 1, m)); return a; });
+    const first = M.findIndex(x => x.n > 0 || x.prev.n > 0), rows = first < 0 ? [] : M.slice(first);
+    if (!rows.length) return "";
+    const short = k => new Date(k + "-15T12:00:00").toLocaleDateString(lang, { month: "short" }), long = k => monthName(k);
+    const K = v => kr(Math.round(v)), chg = (a, b) => b > 0 ? (a >= b ? "+" : "−") + pct(Math.abs(a / b - 1)) : "—";
+    const anyPrev = rows.some(x => x.prev.net > 0), top = Math.max(1, ...rows.map(x => Math.max(x.net, x.prev.net))), h = v => (v / top * 100).toFixed(1) + "%";
+    const bars = rows.map(x => { const c = Math.min(x.cost, x.pnet), pf = Math.max(0, x.pnet - c), un = x.net - x.pnet;
+      const tip = `${long(x.k)}: ${K(x.net)} ${tr("without VAT")} · ${tr("profit {0}", K(x.profit))}${x.prev.net > 0 ? " · " + tr("a year before {0}", K(x.prev.net)) : ""}`;
+      return `<span title="${esc(tip)}"><i class="c" style="height:${h(c)}"></i><i class="p" style="height:${h(pf)}"></i>${un > 0.5 ? `<i class="u" style="height:${h(un)}"></i>` : ""}
+        ${x.prev.net > 0 ? `<b class="ly" style="bottom:${h(x.prev.net)}"></b>` : ""}<em>${esc(short(x.k))}</em></span>`; }).join("");
+    const T = rows.reduce((t, x) => ({ n: t.n + x.n, net: t.net + x.net, pnet: t.pnet + x.pnet, profit: t.profit + x.profit, pn: t.pn + x.prev.net }), { n: 0, net: 0, pnet: 0, profit: 0, pn: 0 });
+    const tr1 = (lab, x, prevNet, csv) => `<tr><th scope="row">${esc(lab)}</th><td class="mb">${esc(n1(x.n))}</td><td>${esc(K(x.net))}</td><td>${x.pnet > 0 ? esc(K(x.profit)) : "—"}</td>
+      <td>${x.pnet > 0 ? esc(pct(x.profit / x.pnet)) : "—"}</td>${anyPrev ? `<td class="my">${esc(chg(x.net, prevNet))}</td>` : ""}<td class="mc">${csv && x.n > 0 ? `<button type="button" class="linkish" data-mcsv="${csv}" aria-label="${esc(tr("Download {0} as CSV", long(csv)))}">CSV</button>` : ""}</td></tr>`;
+    return `<h4 class="bz-mmh">${esc(tr("Month by month"))}</h4>
+      <div class="bz-mm" style="grid-template-columns:repeat(${rows.length},minmax(0,1fr))" role="img" aria-label="${esc(tr("Sales without VAT by month, the last {0} months: cost of what was sold and the gross profit", rows.length))}">${bars}</div>
+      <p class="bz-mmk"><span class="c"></span>${esc(tr("Cost of what was sold"))} <span class="p"></span>${esc(tr("Gross profit"))}${rows.some(x => x.net > x.pnet + 0.5) ? ` <span class="u"></span>${esc(tr("No cost price"))}` : ""}${anyPrev ? ` <span class="ly"></span>${esc(tr("A year before"))}` : ""}</p>
+      <div class="bz-scroll"><table class="bz-tab2 bz-mmt"><thead><tr><th>${esc(tr("Month"))}</th><th class="mb">${esc(tr("Bottles"))}</th><th>${esc(tr("Sales, VAT excluded"))}</th><th>${esc(tr("Gross profit"))}</th><th>${esc(tr("Margin"))}</th>${anyPrev ? `<th class="my">${esc(tr("On a year before"))}</th>` : ""}<th class="mc"><span class="sr">CSV</span></th></tr></thead>
+      <tbody>${rows.slice().reverse().map((x, i) => tr1(i ? long(x.k) : tr("{0} (so far)", long(x.k)), x, x.prev.net, x.k)).join("")}</tbody>
+      ${rows.length > 1 ? `<tfoot>${tr1(tr("{0} months", rows.length), T, rows.every(x => x.prev.net > 0) ? T.pn : 0, "")}</tfoot>` : ""}</table></div>`;
   }
   // the months that have sales, newest first ("2026-10"), and a month's sales as rows for EXPORT.csv: one line a
   // sale, its price with and without VAT and the VAT itself, and a total; a spreadsheet for the bookkeeping
@@ -323,6 +354,7 @@ window.BIZ = (() => {
     const op = $("bzOrderPrint"); if (op) op.onclick = printOrders;
     p.querySelectorAll("[data-recv]").forEach(b => b.onclick = () => receiveOrder(b.dataset.recv, b));
     const sc = $("bzSalesCsv"); if (sc) sc.onclick = () => salesCsv($("bzMonth").value);
+    p.querySelectorAll("[data-mcsv]").forEach(b => b.onclick = () => salesCsv(b.dataset.mcsv));
     syncCard();
     if (!window.ROLE) staffDraw();
     const pe = $("bzPeriod"); if (pe) pe.onchange = () => { PERIOD = Number(pe.value) || 30; overview(WINES.filter(w => w.left > 0)); };
@@ -787,6 +819,14 @@ window.BIZ = (() => {
 .bz-tools{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 10px} .bz-tools input{flex:1;min-width:180px;font:inherit;font-size:14px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
 .bz-scroll{overflow-x:auto} .bz-inv-t{width:100%;border-collapse:collapse;font-size:13.5px} .bz-tab2,.bz-inv-t{min-width:0}
 .bz-pform{display:flex;flex-wrap:wrap;gap:10px 14px;margin:8px 0} .bz-psum{font-size:13.5px;margin:6px 0} #bzPricing .bz-scroll{max-height:46vh;overflow:auto} #bzPricing .bz-f{display:grid;align-content:start} #bzPricing .bz-f input{width:90px;margin:0} .bz-pgo{text-align:right;margin:8px 0 0}
+.bz-mm{display:grid;gap:4px;height:140px;align-items:end;margin:6px 0 22px} .bz-mm span{position:relative;height:100%;display:flex;flex-direction:column-reverse}
+.bz-mm i{display:block;width:100%;flex:none} .bz-mm i:last-of-type{border-radius:3px 3px 0 0} .bz-mm em{position:absolute;bottom:-17px;left:0;right:0;text-align:center;font-size:10.5px;font-style:normal;color:var(--muted);white-space:nowrap;overflow:hidden}
+.bz-mm .c,.bz-mmk .c{background:var(--muted);opacity:.35} .bz-mm .p,.bz-mmk .p{background:var(--accent,#7C2D3E)} .bz-mm .u,.bz-mmk .u{background:var(--gold,#A87E2F);opacity:.45}
+.bz-mm .ly{position:absolute;left:-2px;right:-2px;height:0;border-top:2px dashed var(--ink)}
+.bz-mmk{font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center;margin:2px 0 6px} .bz-mmk span{display:inline-block;width:12px;height:10px;border-radius:2px;margin-right:-6px}
+.bz-mmk .ly{height:0;border-top:2px dashed var(--ink);background:none;border-radius:0} .bz-mmt th[scope=row]{text-align:left;font-weight:500;color:var(--ink);font-size:13.5px;white-space:nowrap;text-transform:none;letter-spacing:0} .bz-mmt td{text-align:right}
+@media (max-width:640px){ .bz-mmt{font-size:12.5px} .bz-mmt td,.bz-mmt th{padding:4px 3px;white-space:nowrap} .bz-mmt th[scope=row]{white-space:normal;font-size:12.5px} .bz-mmt thead th{white-space:normal} .bz-mmt .mb,.bz-mmt .my,.bz-mmt .mc{display:none} }
+.bz-mmt tfoot td,.bz-mmt tfoot th{font-weight:600;border-top:2px solid var(--line)} .bz-mmt .linkish{background:none;border:0;padding:0;font:inherit;font-size:12px;color:var(--muted);text-decoration:underline;cursor:pointer}
 .note .linkish{background:none;border:0;padding:0;font:inherit;color:inherit;text-decoration:underline;cursor:pointer}
 @media (max-width:700px){ /* phones: the tab bar has the wine card, the toolbar adds wines, so neither twice; the figures in a compact strip */
   .bz-inv [data-bz="card2"]{display:none} body:has(#pageInventory:not([hidden])) .pfab{display:none}
@@ -846,6 +886,6 @@ window.BIZ = (() => {
 </style>`);
   setTimeout(apply, 0);
   // its words: only a business needs them, so they come now, not with every page (i18n.js redraws the page in them)
-  if (window.I18N) { I18N.onChange(apply); if (I18N.more) I18N.more("business-i18n", "?v=9"); }
+  if (window.I18N) { I18N.onChange(apply); if (I18N.more) I18N.more("business-i18n", "?v=10"); }
   return { refreshSales: () => loadSales(true), apply, detail, priceCell, overview, page, inventory, cardLabel, margin, openCard, salesRows, reorder, reorderText, cardData, publishCard, cardShare };
 })();
