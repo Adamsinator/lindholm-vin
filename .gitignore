@@ -8,3 +8,4 @@ tools/fixtures/big.xlsx
 tools/.region-cache/
 tools/.geoapi-cache/
 tools/.geol-cache/
+/node_modules/

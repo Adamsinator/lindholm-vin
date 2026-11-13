@@ -47,9 +47,37 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   await p.evaluate(() => document.querySelector('#map .land.has[data-country="Greece"]').dispatchEvent(new MouseEvent("click", { bubbles: true }))); await p.waitForTimeout(400);
   check("…Greece's: Santorini", (await p.$$eval("#map .dot[data-region]", ds => ds.map(d => d.dataset.region).join(","))) === "Santorini");
   await p.click("#mapBack"); await p.waitForTimeout(300);
+  // colour by: bottles (as before), value (what they cost), or ready to drink now
+  await p.waitForSelector("#mapFold .mapctl [data-by]", { timeout: 8000 });
+  const fr = () => p.evaluate(() => { const t = [...document.querySelectorAll("#map .dlabel")].find(x => /France|Frankrig/.test(x.textContent)); return t ? t.nextElementSibling.textContent : ""; });
+  check("the map can be coloured by bottles, value or what's ready now; bottles first: France 3 btl.", (await fr()) === "3 btl." && (await p.$$("#mapFold .mapctl [data-by]")).length === 3, await fr());
+  await p.click('#mapFold [data-by="value"]'); await p.waitForTimeout(300);
+  check("…by value: France's three bottles at 200 kr. are 600 kr.", (await fr()) === "600 kr." && await p.evaluate(() => localStorage.getItem("mapBy") === "value"), await fr());
+  await p.click('#mapFold [data-by="ready"]'); await p.waitForTimeout(300);
+  const rd = await fr(), want = await p.evaluate(() => WINES.filter(w => /Frank/.test(w.country) && w.left > 0 && (readiness(w) || {}).k === "now").reduce((t, w) => t + w.left, 0));
+  check("…by what's ready to drink now (as the Drink now filter counts it)", rd === `${want} ready now`, rd + " / " + want);
+  await p.click('#mapFold [data-by="bottles"]'); await p.waitForTimeout(300);
+  // the larger map: a sheet of its own, the drawing in it, back when it closes
+  const w0 = await p.$eval("#map", m => m.getBoundingClientRect().width);
+  await p.click("#mapFold .mapctl .big"); await p.waitForSelector("#mapSheet.open");
+  const big = await p.evaluate(() => ({ inside: !!document.querySelector("#mapSheet #map"), w: document.getElementById("map").getBoundingClientRect().width }));
+  check("⤢ opens the map larger, in a sheet of its own", big.inside && big.w > w0 * 1.4 && big.w > 800, JSON.stringify({ w0, ...big }));
+  check("…without a second ⤢ inside it", await p.$eval("#mapSheet .mapctl .big", b => getComputedStyle(b).display === "none"));
+  await p.keyboard.press("Escape"); await p.waitForTimeout(300);
+  check("…Esc puts it back in its place", !(await p.$("#mapSheet.open")) && !!(await p.$("#mapFold #map")) && !!(await p.$("#mapFold .mapctl")));
+  // a region with an atlas of its own offers it: a Mosel Riesling, Germany, then the Mosel dot
+  await p.evaluate(async () => { await api({ action: "add", wine: { producer: "Dr. Loosen", name: "Wehlener Sonnenuhr", country: "Tyskland", region: "Mosel", type: "Hvid", vintage: 2019, qty: 2, price: 250 } }); await loadData(true); });
+  await p.waitForTimeout(600);
+  await p.evaluate(() => document.querySelector('#map .land.has[data-country="Germany"]').dispatchEvent(new MouseEvent("click", { bubbles: true }))); await p.waitForTimeout(400);
+  check("…no atlas link before a region is chosen", !(await p.$("#mapbar .maplink")));
+  await p.evaluate(() => document.querySelector('#map .dot[data-region="Mosel"]').dispatchEvent(new MouseEvent("click", { bubbles: true }))); await p.waitForTimeout(500);
+  const ml = await p.evaluate(() => { const a = document.querySelector("#mapbar .maplink"); return a ? [a.getAttribute("href"), a.textContent] : null; });
+  check("a region with an atlas of its own offers it: Open Mosel in the atlas ↗", ml && ml[0] === "atlas.html#r=mosel" && ml[1] === "Open Mosel in the atlas ↗", JSON.stringify(ml));
+  await p.evaluate(() => { MAP_VIEW = "europe"; state.region = ""; renderMap(); }); await p.waitForTimeout(300);
   if (process.argv[2]) await (await p.$("#map")).screenshot({ path: process.argv[2] });
   await p.evaluate(() => I18N.setLang("da")); await p.waitForTimeout(500);
   check("in Danish: Uden for kortet, Intet land", /Uden for kortet/.test(await p.textContent("#map")) && /Intet land · 1/.test(await p.textContent("#map")));
+  check("…and the map's controls in Danish", (await p.textContent("#mapFold .mapctl")).includes("Farve efter") && (await p.textContent("#mapFold .mapctl")).includes("Større kort"));
   await p.evaluate(() => I18N.setLang("en"));
   await p.setViewportSize({ width: 390, height: 844 }); await p.waitForTimeout(400);
   check("on a phone the map fits", await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));

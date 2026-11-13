@@ -770,7 +770,7 @@ function placeWall(){
   else if(wall.nextElementSibling !== $("kpis")) $("kpis").parentNode.insertBefore(wall, $("kpis"));
 }
 matchMedia("(min-width:1181px)").addEventListener("change", ()=>{ placeWall(); renderRack(WINES.filter(w=>w.left>0)); });
-// the rack shows what the list shows: with a filter on (a region, a style, a search…) only those bottles, and it says so
+// the rack shows what the list shows (a filter on: only those bottles, and it says so)
 let RACK_SRC = null;
 function renderRack(cellar){
   const wall = $("wall"); if(!wall) return; placeWall(); closeRackCard();
@@ -1115,7 +1115,7 @@ document.addEventListener("click", e=>{ const a = e.target.closest && e.target.c
 document.addEventListener("keydown", e=>{ if(e.key==="Escape") qhide(); });
 addEventListener("scroll", qhide, {passive:true});
 
-// the name top left: back to the cellar's first page from anywhere in the app (a tab, a sheet, a dialog, scrolled down)
+// the name top left: back to the cellar's first page from anywhere
 $("brandHome").addEventListener("click", e=>{ if(e.metaKey || e.ctrlKey || e.shiftKey || e.button) return; e.preventDefault();
   document.querySelectorAll(".modal.open").forEach(m=>m.classList.remove("open")); closeSheets();
   if(location.hash) location.hash = ""; scrollTo({top:0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"}); });
@@ -1463,7 +1463,7 @@ function bindWineRows(scope){
   const LIST_BOX = el => { const w = el.closest(".tablewrap"); return w && getComputedStyle(w).maxHeight !== "none" ? w : null; };
   const more = (tbl, all) => { PAGE_SIZE[tbl].n = all ? Infinity : PAGE_SIZE[tbl].n + PAGE_STEP; tbl==="cellar" ? renderTable() : renderEnjoyed(); };
   document.querySelectorAll(`${scope} tr.morerow button`).forEach(b=>b.addEventListener("click",()=>more(b.dataset.tbl, b.dataset.all)));
-  // the next rows come by themselves as the end of the list scrolls near (the buttons stay, for keyboards and old browsers)
+  // the next rows come as the list's end nears (the buttons stay, for keyboards and old browsers)
   const mr = document.querySelector(`${scope} tr.morerow`), tbl = mr && mr.querySelector("button").dataset.tbl;
   if(tbl && window.IntersectionObserver){
     if(PAGE_OBS[tbl]) PAGE_OBS[tbl].disconnect();
@@ -1571,7 +1571,7 @@ async function loadData(quiet){
     LOADED_AT = new Date(); stampText();
     $("spin").hidden = true; $("content").hidden = false;
     if(!VINT_W && VINT_CELLAR.length) drawVintages(VINT_CELLAR); // drawn while hidden (no width yet): again, for the width it has now
-    if(!window.CELLAR_QOL) loadJS("cellar-qol.js?v=10").catch(()=>{}); // the conveniences: swipes, keys, several wines at once
+    if(!window.CELLAR_QOL) loadJS("cellar-qol.js?v=11").catch(()=>{}); // the conveniences: swipes, keys, several wines at once
     if(/^test/i.test(cfg.user||"") && !window.TESTKIT) loadJS("testkit.js?v=2").then(()=>TESTKIT.mount()).catch(()=>{}); // test data
     loadJournalSilently(); refreshDeleted(); checkOwner(); takePrefill(); // checkOwner asks "me", which says if the feed is on
   }catch(err){
@@ -1866,7 +1866,7 @@ function forgetAuth(){
 }
 // the site's service worker (atlas-sw.js): the cellar app opens at once on a second visit, installs on a phone's home
 // screen, and opens offline from the device's encrypted copy; the API itself is never cached
-// (not on localhost, where the tests run against files that change under them; tools/offline-ui-test.js uses 127.0.0.1)
+// (not on localhost, where the tests run; tools/offline-ui-test.js uses 127.0.0.1)
 if("serviceWorker" in navigator && window.isSecureContext && location.hostname !== "localhost") navigator.serviceWorker.register("atlas-sw.js").catch(() => {});
 function enterApp(){ $("gate").hidden = true; $("app").hidden = false; markActive(); loadData(); route(); recReminder(); }
 // every four months or so (not on the first visit: sign-up showed the code), ask whether the recovery code is still at
@@ -2399,7 +2399,7 @@ $("gridGo").addEventListener("click", ()=>{
   const rows = [...$("wGrid").tBodies[0].rows].map(r=>GRID_COLS.map((_,i)=>r.querySelector(`input[data-c="${i}"]`).value.trim())).filter(v=>v[0])
     .map(v=>{ v[iT] = gridWord(GRID_TYPES, v[iT]); v[iS] = gridWord(GRID_SIZES, v[iS]); return v; });
   if(!rows.length){ $("impErr").textContent = tr("Type at least one producer."); return; }
-  // the headings are only there so the import sees a header row; which column is which is known, so it's set, not guessed
+  // headings only so the import sees a header row; the columns are set, not guessed
   IMP.book = {sheets:[{name:tr("Table"), rows:[GRID_COLS.map(c=>c[0]), ...rows]}]}; IMP.name = tr("Typed in the table"); IMP.sheet = 0;
   $("impSheet").innerHTML = ""; $("impSheet").hidden = true; $("impName").textContent = IMP.name;
   impSheet();
@@ -2794,7 +2794,7 @@ const REGION_GEO = {  // [lat, lng]
   "Jylland":[56.20,9.50], "Fyn":[55.30,10.40], "Sjælland":[55.50,11.80], "Bornholm":[55.15,15.00],
 };
 // Country outlines from Natural Earth (50m), simplified — [lng,lat].
-// europe-lands.js, fetched once the cellar is showing (it isn't needed to open it); the map is drawn again when it's here
+// europe-lands.js, fetched once the cellar shows; the map is drawn again when it's here
 let LANDS = window.EUROPE_LANDS || {};
 let LANDS_LOAD = null;
 function needLands(){
@@ -3019,6 +3019,7 @@ function bindDot(c, tipHtml, onClick){
 }
 
 const DRILLABLE = ["Bourgogne","Champagne","Mosel","Piemonte"];
+const MM = () => window.MAPM || {v:w=>w.left, f:btl, p:n=>n, t:nBottles}; // what a wine counts on the map (cellar-qol.js: value, ready)
 const baseCountry = k => String(k).replace(/~\d+$/,"");     // "Italy~1" → "Italy"
 const countryLabel = k => tr(COUNTRY_EN[k] || k);            // any country, in the interface language
 
@@ -3030,7 +3031,7 @@ function renderEuropeMap(svg){
   const far={};
   LAST_CELLAR.forEach(w=>{ const k=countryOf(w);
     if(!k){ const c=String(w.country||"").trim(), f=far[c] ??= {b:0,n:0}; f.b+=w.left; f.n++; return; }
-    const a=agg[k.key] ??= {b:0,n:0}; a.b+=w.left; a.n++; });
+    const a=agg[k.key] ??= {b:0,n:0}; a.b+=MM().v(w); a.n++; });
   let html = Object.entries(LANDS).map(([k,poly])=>`<path class="land clickable" data-country="${esc(baseCountry(k))}" d="${landPath(poly,proj)}"/>`).join("");
   // faint English names for the backdrop countries
   html += NEIGHBOR_LABELS.filter(([name])=>!agg[name]).map(([name,g])=>{
@@ -3044,7 +3045,7 @@ function renderEuropeMap(svg){
     return a ? `<path class="land clickable has" data-country="${k}" style="fill-opacity:${(.18 + .72 * Math.sqrt(a.b / maxB)).toFixed(2)}"` : m; });
   const boxes = [];
   html += present.map(c=>{
-    const [x,y]=proj([c.geo[1],c.geo[0]]), a=agg[c.key], name=countryLabel(c.key), sub=btl(a.b);
+    const [x,y]=proj([c.geo[1],c.geo[0]]), a=agg[c.key], name=countryLabel(c.key), sub=MM().f(a.b);
     // centred on the country, nudged off any label already there
     let ly = y, w = Math.max(name.length*6.6, sub.length*5.4)+6;
     const clash = yy => boxes.some(o => !(x+w/2 < o[0] || x-w/2 > o[2] || yy+12 < o[1] || yy-11 > o[3]));
@@ -3074,7 +3075,7 @@ function renderEuropeMap(svg){
   const openCountry = key => { MAP_VIEW="country:"+key; state.q=""; $("q").value=""; renderMap(); };
   svg.querySelectorAll(".land.clickable").forEach(p=>{
     const key=p.dataset.country, a=agg[key];
-    bindDot(p, `<b>${esc(countryLabel(key))}</b>${a?`<br>${esc(nBottles(a.b))} · ${esc(nWines(a.n))}`:""}<br><i>${esc(tr("click to explore"))}</i>`,
+    bindDot(p, `<b>${esc(countryLabel(key))}</b>${a?`<br>${esc(MM().t(a.b))} · ${esc(nWines(a.n))}`:""}<br><i>${esc(tr("click to explore"))}</i>`,
       ()=>openCountry(key));
   });
 }
@@ -3085,7 +3086,7 @@ function renderCountryMap(svg, key){
   $("mapTitle").textContent = countryLabel(key) + " — " + tr("regions");
   const agg={};
   LAST_CELLAR.forEach(w=>{ if((countryOf(w)||{}).key!==key) return;
-    const a=agg[w.region] ??= {b:0,n:0}; a.b+=w.left; a.n++; });
+    const a=agg[w.region] ??= {b:0,n:0}; a.b+=MM().v(w); a.n++; });
   const names = Object.keys(agg);
   const present = names.filter(n=>REGION_GEO[n]).sort((a,b)=>agg[b].b-agg[a].b);
   const buckets = names.filter(n=>!REGION_GEO[n] && n).sort((a,b)=>agg[b].b-agg[a].b);
@@ -3106,7 +3107,7 @@ function renderCountryMap(svg, key){
   const boxes = dots.map(d=>[d.x-d.rad, d.y-d.rad, d.x+d.rad, d.y+d.rad]);
   dots.forEach(({n,x,y,rad})=>{ const drill = DRILLABLE.includes(n);
     parts += `<circle class="dot${drill?" drill":""}" data-region="${esc(n)}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${rad.toFixed(1)}"/>`; });
-  dots.forEach(({n,x,y,rad})=>{ const t = `${n} · ${agg[n].b}`, L = placeLabel(boxes, x, y, rad, t, W, H);
+  dots.forEach(({n,x,y,rad})=>{ const t = `${n} · ${MM().p(agg[n].b)}`, L = placeLabel(boxes, x, y, rad, t, W, H);
     parts += `<text class="dlabel" text-anchor="${L.anchor}" x="${L.x.toFixed(1)}" y="${L.y.toFixed(1)}">${esc(t)}</text>`; });
   // regions we can't place on the map get a row along the bottom
   if(buckets.length){
@@ -3114,7 +3115,7 @@ function renderCountryMap(svg, key){
     parts += `<text class="dsub" x="30" y="${(by-20).toFixed(1)}">${esc(tr("Not placed:"))}</text>`;
     buckets.forEach(n=>{ const a=agg[n], rad=dotR(a.b, maxB, 14);
       parts += `<circle class="dot" data-region="${esc(n)}" cx="${bx.toFixed(1)}" cy="${by.toFixed(1)}" r="${rad.toFixed(1)}"/>
-        <text class="dlabel" x="${(bx+rad+6).toFixed(1)}" y="${(by+4).toFixed(1)}">${esc(n)} · ${a.b}</text>`;
+        <text class="dlabel" x="${(bx+rad+6).toFixed(1)}" y="${(by+4).toFixed(1)}">${esc(n)} · ${MM().p(a.b)}</text>`;
       bx += rad+6 + (n.length+String(a.b).length+3)*7 + 30;
     });
   }
@@ -3122,7 +3123,7 @@ function renderCountryMap(svg, key){
   svg.innerHTML = parts;
   svg.querySelectorAll(".dot").forEach(c=>{
     const name=c.dataset.region, a=agg[name], drill=DRILLABLE.includes(name);
-    bindDot(c, `<b>${esc(name)}</b><br>${esc(nBottles(a.b))} · ${esc(nWines(a.n))}${drill?"<br><i>"+esc(tr("click to explore"))+"</i>":"<br><i>"+esc(tr("click to filter the list"))+"</i>"}`,
+    bindDot(c, `<b>${esc(name)}</b><br>${esc(MM().t(a.b))} · ${esc(nWines(a.n))}${drill?"<br><i>"+esc(tr("click to explore"))+"</i>":"<br><i>"+esc(tr("click to filter the list"))+"</i>"}`,
       ()=>{
         if(drill){ MAP_VIEW=name; state.region=name; $("fRegion").value=name; state.q=""; $("q").value=""; renderTable(); renderMap(); return; }
         state.region = state.region===name ? "" : name;
@@ -4755,7 +4756,7 @@ window.addEventListener("hashchange", route);
 
 /* ---------- another device's saves (API 54): a business checks now and then, and when the page comes back ---------- */
 // Only the vault's version numbers are asked for; the cellar is fetched only when they differ (VAULT.checkFresh), and
-// the page redraws as after opening (VAULT_HOOKS.onRefresh). Not while typing in a field, so nothing is swapped under it.
+// the page redraws as after opening; not while typing in a field
 const FRESH_MS = 3 * 60e3;
 let freshAt = 0;
 function freshCheck(){

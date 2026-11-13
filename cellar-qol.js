@@ -400,3 +400,81 @@ $("selDrink").addEventListener("click", async ()=>{
   new MutationObserver(mark).observe(document.documentElement, { attributes: true, attributeFilter: ["lang"] });
   mark();
 })();
+/* The cellar's map, more of it: colour it by bottles, by what they cost or by what's ready to drink now (app.js asks
+   window.MAPM what a wine counts); open it larger, in a sheet of its own; and a region with an atlas of its own offers
+   it ("Open Mosel in the atlas ↗"), as Burgundy always did. */
+(()=>{
+  const fold = $("mapFold"); if(!fold) return;
+  const W = { da: { "Bottles": "Flasker", "Value": "Værdi", "Ready now": "Klar nu", "Colour by": "Farve efter", "Larger map": "Større kort", "Close": "Luk",
+      "Open {0} in the atlas ↗": "Åbn {0} i atlasset ↗", "{0} ready now": "{0} klar nu", "1 bottle ready now": "1 flaske klar nu", "{0} bottles ready now": "{0} flasker klar nu", "Map": "Kort" },
+    fr: { "Bottles": "Bouteilles", "Value": "Valeur", "Ready now": "Prêtes", "Colour by": "Couleur selon", "Larger map": "Carte plus grande", "Close": "Fermer",
+      "Open {0} in the atlas ↗": "Ouvrir {0} dans l'atlas ↗", "{0} ready now": "{0} prêtes", "1 bottle ready now": "1 bouteille prête", "{0} bottles ready now": "{0} bouteilles prêtes", "Map": "Carte" },
+    de: { "Bottles": "Flaschen", "Value": "Wert", "Ready now": "Jetzt trinkreif", "Colour by": "Farbe nach", "Larger map": "Größere Karte", "Close": "Schließen",
+      "Open {0} in the atlas ↗": "{0} im Atlas öffnen ↗", "{0} ready now": "{0} trinkreif", "1 bottle ready now": "1 Flasche trinkreif", "{0} bottles ready now": "{0} Flaschen trinkreif", "Map": "Karte" } };
+  const word = (s, ...a) => ((W[window.I18N && I18N.lang] || {})[s] || s).replace(/\{(\d)\}/g, (m, i) => a[i] ?? "");
+  // the measures: a wine's share, the short label on the map, the longer one in a tip
+  const MEAS = {
+    bottles: null, // app.js's own: bottles
+    value: { v: w => (Number(w.price) || 0) * w.left, f: n => kr(Math.round(n)), p: n => kr(Math.round(n)), t: n => kr(Math.round(n)) },
+    ready: { v: w => { const r = w.left > 0 && readiness(w); return r && r.k === "now" ? w.left : 0; },
+      f: n => word("{0} ready now", n), p: n => String(n), t: n => n === 1 ? word("1 bottle ready now") : word("{0} bottles ready now", n) },
+  };
+  let mode = "bottles"; try{ mode = localStorage.getItem("mapBy") || "bottles"; }catch(e){} if(!(mode in MEAS)) mode = "bottles";
+  const setMode = m => { mode = m; window.MAPM = MEAS[m]; try{ localStorage.setItem("mapBy", m); }catch(e){} paint(); renderMap(); };
+  window.MAPM = MEAS[mode];
+
+  document.head.insertAdjacentHTML("beforeend", `<style>
+.mapctl{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin:6px 0 8px}
+.mapctl .seg{display:inline-flex;border:1px solid var(--line)} .mapctl .seg button{border:0;background:none;padding:4px 10px;font:inherit;font-size:13px;cursor:pointer;color:var(--ink)}
+.mapctl .seg button[aria-pressed=true]{background:var(--ink);color:var(--bg)} .mapctl .lbl{font-size:12px;color:var(--muted)}
+.mapctl .big{margin-left:auto;border:1px solid var(--line);background:none;padding:4px 10px;font:inherit;font-size:13px;cursor:pointer;color:var(--ink)}
+#mapbar .maplink{margin-left:auto}
+#mapSheet .card{max-width:min(1100px,96vw);width:96vw} #mapSheet #map{max-width:none;max-height:78vh;width:100%}
+#mapSheet .mshead{display:flex;align-items:center;gap:10px;margin:0 0 8px} #mapSheet .mshead h2{margin:0;flex:1} #mapSheet .mapctl .big{display:none}
+</style>`);
+  const ph = fold.querySelector(".ph");
+  ph.insertAdjacentHTML("afterend", `<div class="mapctl"><span class="lbl"></span><span class="seg" role="group"></span><button type="button" class="big"></button></div>`);
+  const ctl = fold.querySelector(".mapctl");
+  function paint(){
+    ctl.querySelector(".lbl").textContent = word("Colour by");
+    ctl.querySelector(".seg").setAttribute("aria-label", word("Colour by"));
+    ctl.querySelector(".seg").innerHTML = [["bottles", "Bottles"], ["value", "Value"], ["ready", "Ready now"]]
+      .map(([k, l]) => `<button type="button" data-by="${k}" aria-pressed="${k === mode}">${esc(word(l))}</button>`).join("");
+    ctl.querySelector(".big").textContent = "⤢ " + word("Larger map");
+    const sh = $("mapSheet"); if(sh){ sh.querySelector("h2").textContent = word("Map"); sh.querySelector(".msclose").textContent = word("Close"); }
+  }
+  paint();
+  ctl.addEventListener("click", e => { const b = e.target.closest("[data-by]"); if(b && b.dataset.by !== mode) setMode(b.dataset.by); else if(e.target.closest(".big")) openBig(); });
+
+  // larger: the map (its bar, controls and drawing) moves into a sheet of its own, and back when it closes
+  const parts = () => [ctl, $("mapbar"), $("map")];
+  function openBig(){
+    let sh = $("mapSheet");
+    if(!sh){ document.body.insertAdjacentHTML("beforeend", `<div class="modal" id="mapSheet" role="dialog" aria-modal="true"><div class="card"><div class="mshead"><h2></h2><button type="button" class="btn msclose"></button></div><div class="msbody"></div></div></div>`);
+      sh = $("mapSheet"); sh.querySelector(".msclose").onclick = closeBig; sh.addEventListener("click", e => { if(e.target === sh) closeBig(); });
+      sh.addEventListener("keydown", e => { if(e.key === "Escape") closeBig(); }); }
+    const body = sh.querySelector(".msbody"); parts().forEach(x => body.appendChild(x));
+    paint(); sh.classList.add("open"); renderMap(); sh.querySelector(".msclose").focus();
+  }
+  function closeBig(){
+    const sh = $("mapSheet"); if(!sh || !sh.classList.contains("open")) return;
+    let at = fold.querySelector(".ph"); parts().forEach(x => { at.after(x); at = x; });
+    sh.classList.remove("open"); renderMap(); ctl.querySelector(".big").focus();
+  }
+  // a new language: the controls' words again
+  new MutationObserver(paint).observe(document.documentElement, { attributes: true, attributeFilter: ["lang"] });
+
+  // after each drawing: a region chosen on the map (or drilled into) that has an atlas of its own offers it
+  const draw = window.renderMap;
+  window.renderMap = function(){ const r = draw.apply(this, arguments); atlasLink(); return r; };
+  const sync = window.syncMapActive; window.syncMapActive = function(){ const r = sync.apply(this, arguments); atlasLink(); return r; }; // a region picked in a country
+  function atlasLink(){
+    const bar = $("mapbar"); if(!bar) return; let a = bar.querySelector(".maplink");
+    const reg = MAP_VIEW !== "europe" && MAP_VIEW !== "Bourgogne" ? (MAP_VIEW.startsWith("country:") ? state.region : MAP_VIEW) : "";
+    const rg = reg && ATLAS_REGIONS.find(r => r.re.test(reg));
+    if(!rg){ if(a) a.remove(); return; }
+    if(!a){ bar.insertAdjacentHTML("beforeend", `<a class="btn quiet maplink"></a>`); a = bar.querySelector(".maplink"); }
+    a.href = `atlas.html#r=${rg.id}`; a.textContent = word("Open {0} in the atlas ↗", reg);
+  }
+  renderMap();
+})();
