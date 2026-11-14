@@ -69,6 +69,21 @@ const HEAD = ["Producent", "Land", "Område", "Kommune", "Mark/Navn", "Klassifik
   await p2.click("#gateSubmit"); await p2.waitForFunction(() => /taken/.test(document.getElementById("gateErr").textContent), null, { timeout: 15000 }).catch(() => {});
   check("a taken username (in any case) says so, and to choose another", /taken: choose another/.test(await p2.textContent("#gateErr")), await p2.textContent("#gateErr"));
 
+  // a click on Create account before the "are you human" check is done (a slow connection, or a test's quick click)
+  // waits for it and carries on, instead of being lost: here the check takes 2.5 s to arrive
+  const ctx3 = await b.newContext({ viewport: { width: 420, height: 900 } });
+  await ctx3.route(/challenges\.cloudflare\.com\/turnstile/, async route => { await new Promise(r => setTimeout(r, 2500));
+    await route.fulfill({ contentType: "text/javascript", body: `window.turnstile = { render(s) { document.querySelector(s).textContent = "[human check]"; return "w1"; }, getResponse() { return "XXXX.DUMMY.TOKEN.XXXX"; }, reset() {} };` }); });
+  await ctx3.route(require("./api-route"), async route => route.fulfill({ contentType: "application/json", body: JSON.stringify(gas.call(JSON.parse(route.request().postData() || "{}"))) }));
+  const p3 = await ctx3.newPage(); p3.on("pageerror", e => errs.push(e.message));
+  await p3.goto(BASE); await p3.click("#gateToggle");
+  await p3.fill("#gateUser", "early"); await p3.fill("#gatePass", "early-pass-1"); await p3.fill("#gateInvite", "invite"); await p3.fill("#gatePass2", "early-pass-1"); await p3.fill("#gateEmail", "early@example.com");
+  await p3.click("#gateSubmit"); await p3.waitForTimeout(400);
+  const waiting = await p3.textContent("#gateErr");
+  const done = await p3.waitForSelector("#recModal.open", { timeout: 15000 }).then(() => true, () => false);
+  check("Create account clicked before the human check is done: it says to wait, then signs up by itself", /are you human/.test(waiting) && done, JSON.stringify({ waiting, done, now: await p3.textContent("#gateErr") }));
+  await ctx3.close();
+
   check("no console errors", !errs.length, errs.join(" | "));
   await b.close();
   const n = results.filter(Boolean).length; console.log(`\n${n}/${results.length} passed`); process.exit(n === results.length ? 0 : 1);

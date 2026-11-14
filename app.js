@@ -2010,7 +2010,9 @@ $("gateForm").addEventListener("submit", async e=>{
     const bad = passProblem(pass, user); if(bad){ $("gateErr").textContent = bad; $("gatePass").focus(); return; }
     if($("gatePass2").value !== pass){ $("gateErr").textContent = tr("The two passwords aren't the same."); $("gatePass2").focus(); return; }
   }
-  if(GATE_MODE!=="login" && HUMAN.key && !humanToken()){ $("gateErr").textContent = tr("Wait for the \"are you human\" check to finish."); return; }
+  // a click before the "are you human" check is done waits for it (15 s at most) rather than being lost
+  if(GATE_MODE!=="login" && HUMAN.key && !humanToken()){ $("gateErr").textContent = tr("Wait for the \"are you human\" check to finish.");
+    for(let i=0; i<75 && !humanToken(); i++) await new Promise(r=>setTimeout(r,200)); if(!humanToken()) return; $("gateErr").textContent = ""; }
   const signup = GATE_MODE==="signup";
   // sign-up proves the email address (API 54): first a code is mailed to it, then the sign-up carries it
   if(signup && !(await emailStep())) return;
