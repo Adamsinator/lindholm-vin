@@ -1535,7 +1535,7 @@ function bindDetail(root){
   root.querySelectorAll("button.jlog").forEach(b=>
     b.addEventListener("click",()=>{
       const w = WINES.find(x=>x.row===Number(b.dataset.row));
-      openJournalModal(w ? {producer:w.producer, wine:w.name, vintage:w.vintage,
+      openJournalModal(w ? {row:w.row, producer:w.producer, wine:w.name, vintage:w.vintage,
         country:w.country, region:w.region, grape:w.grape, commune:w.commune, classification:w.classification} : null);
     }));
   root.querySelectorAll("button.wlike").forEach(b=>
@@ -1710,7 +1710,7 @@ function afterDrink(row, w, wasLast){
       catch(err){ toast(tr("Could not save rating: {0}", errText(err))); } });
     stars.appendChild(b); }
   const acts = [{label:tr("Undo"), fn:()=>{ const b = document.querySelector(`#tbl button[data-act="undrink"][data-row="${row}"]`) || document.createElement("button"); rowAction("undrink", row, b); }}];
-  if(wasLast) acts.push({label:tr("Write a tasting note"), fn:()=>openJournalModal({producer:nw.producer, wine:nw.name, vintage:nw.vintage,
+  if(wasLast) acts.push({label:tr("Write a tasting note"), fn:()=>openJournalModal({row, producer:nw.producer, wine:nw.name, vintage:nw.vintage,
     country:nw.country, region:nw.region, grape:nw.grape, commune:nw.commune, classification:nw.classification})});
   notify(wasLast ? tr("That was your last {0}", nm) : tr("Skål! Bottle marked as drunk"), acts, {extra:stars, ms:10000});
 }
@@ -3509,6 +3509,8 @@ function renderJournal(){
    enjoyAdd() created are recognisable (qty 1, drunk 1, drunk date = the entry's
    date), so re-saving an entry can't add it twice. */
 const jKey = s => String(s==null?"":s).trim().toLowerCase().replace(/\s+/g," ");
+// focus a form's first field, unless one of its fields has it
+const focusSoon = id => setTimeout(()=>{ if(!$(id).closest(".modal").contains(document.activeElement)) $(id).focus(); }, 40);
 function enjoyTarget(entry){
   const date = String(entry.date||"").slice(0,10);
   const same = w => jKey(w.producer)===jKey(entry.producer)
@@ -3516,9 +3518,11 @@ function enjoyTarget(entry){
                  && jKey(w.vintage)===jKey(entry.vintage);
   // Already in Enjoyed: a row drunk on the entry's date — a bottle marked drunk from the cellar (any number of
   // bottles in the row), or the row an earlier save created. Saving again must not drink a second bottle.
-  const logged = WINES.find(w=>same(w) && w.drunk>0 && w.drunkDate===date);
+  // the row it was opened from first
+  const pick = f => (J_ROW && WINES.find(w=>w.row===J_ROW && f(w))) || WINES.find(f);
+  const logged = pick(w=>same(w) && w.drunk>0 && w.drunkDate===date);
   if(logged) return {kind:"logged", wine:logged, elsewhere:isElsewhere(logged)};
-  const owned = WINES.find(w=>same(w) && w.left>0);
+  const owned = pick(w=>same(w) && w.left>0);
   if(owned) return {kind:"cellar", wine:owned};
   return {kind:"new"};
 }
@@ -3860,8 +3864,9 @@ function prepJournalModal(){
 }
 
 let J_ORIG = null; // the entry as it was before an edit, to find the Enjoyed row it made
+let J_ROW = null;
 function openJournalModal(prefill){
-  J_EDIT = null; J_ORIG = null;
+  J_EDIT = null; J_ORIG = null; J_ROW = prefill && prefill.row || null;
   prepJournalModal();
   trSet("New journal entry", $("jTitle"));
   $("jSave").textContent = tr("Save entry");
@@ -3884,7 +3889,7 @@ function openJournalModal(prefill){
 }
 
 function openJournalEdit(e){
-  J_EDIT = e.row; J_ORIG = {...e};
+  J_EDIT = e.row; J_ORIG = {...e}; J_ROW = null;
   prepJournalModal();
   trSet("Edit journal entry", $("jTitle"));
   $("jSave").textContent = tr("Save changes");
@@ -3912,7 +3917,7 @@ function openJournalEdit(e){
   }
   classHint(J_IDS);
   syncEnjoyOption();
-  setTimeout(()=>$("jNote").focus(), 40);
+  focusSoon("jNote");
 }
 
 $("jAddBtn").addEventListener("click", ()=>openJournalModal(null));
@@ -4270,7 +4275,7 @@ function openEnjoyedAdd(prefill){
   }
   EA_SUGGEST.reset(); if(prefill) EA_SUGGEST.run(); else classHint(EA_IDS);
   $("eaModal").classList.add("open");
-  setTimeout(()=>$("eaProducer").focus(),40);
+  focusSoon("eaProducer");
 }
 $("eAddBtn").addEventListener("click",()=>openEnjoyedAdd(null));
 $("eaCancel").addEventListener("click",()=>$("eaModal").classList.remove("open"));
@@ -4319,7 +4324,7 @@ function openInfo(w){
   $("iJWrap").hidden = !js.length;
   $("iJLabel").innerHTML = js.length ? esc(js.length===1 ? tr("Also rename its journal entry if the name changes") : tr("Also rename its {0} journal entries if the name changes", js.length)) : "";
   $("iModal").classList.add("open");
-  setTimeout(()=>$("iName").focus(), 40);
+  focusSoon("iName");
 }
 ["iName","iCommune","iRegion"].forEach(id=>$(id).addEventListener("input", ()=>classHint(I_IDS)));
 $("iClass").addEventListener("change", ()=>{ $("iClass").dataset.auto = ""; });
@@ -4461,14 +4466,14 @@ function openWishModal(prefill){
   W_EDIT=null; prepWishModal(); trSet("Add to wishlist", $("wTitle")); trSet("Save", $("wSave"));
   if(prefill){ $("wProducer").value=prefill.producer||""; $("wWine").value=prefill.wine||"";
     $("wVintage").value=prefill.vintage||""; $("wRegion").value=prefill.region||""; }
-  setTimeout(()=>$("wProducer").focus(),40);
+  focusSoon("wProducer");
 }
 function openWishEdit(e){
   W_EDIT=e.row; prepWishModal(); trSet("Edit wish", $("wTitle")); trSet("Save changes", $("wSave"));
   $("wProducer").value=e.producer||""; $("wWine").value=e.wine||"";
   $("wVintage").value=e.vintage!==""&&e.vintage!=null?e.vintage:"";
   $("wRegion").value=e.region||""; $("wPrice").value=e.price!==""&&e.price!=null?e.price:""; $("wNote").value=e.note||"";
-  setTimeout(()=>$("wProducer").focus(),40);
+  focusSoon("wProducer");
 }
 $("wAddBtn").addEventListener("click",()=>openWishModal(null));
 $("wCancel").addEventListener("click",()=>$("wModal").classList.remove("open"));
@@ -4521,8 +4526,7 @@ function feedRecall(){
     if(c && Array.isArray(c.feed)){ FEED=c.feed; FEED_ME=c.me||""; FEED_USERS=c.users||[]; FEED_FOLLOWS=c.follows||[]; } }catch(e){}
 }
 function feedForgetAll(){ try{ Object.keys(localStorage).filter(k => k.startsWith("vinFeed:")).forEach(k => localStorage.removeItem(k)); }catch(e){} }
-// The feed is there only when the server says so (its SOCIAL setting): off, the tab, the Share buttons and the list of
-// other members never show, and nothing is kept on the device.
+// the feed only when the server's SOCIAL setting is on; off, nothing of it shows or is kept
 function setSocial(on){
   document.body.classList.toggle("social", !!on);
   const t = document.querySelector('.tab[data-page="feed"]'); if(t) t.hidden = !on;
@@ -4756,8 +4760,7 @@ document.querySelector(".gbar .tabs").addEventListener("click", e=>{ const t = e
 window.addEventListener("hashchange", route);
 
 /* ---------- another device's saves (API 54): a business checks now and then, and when the page comes back ---------- */
-// Only the vault's version numbers are asked for; the cellar is fetched only when they differ (VAULT.checkFresh), and
-// the page redraws as after opening; not while typing in a field
+// only the vault's versions are asked for; the cellar is fetched when they differ (VAULT.checkFresh); not while typing
 const FRESH_MS = 3 * 60e3;
 let freshAt = 0;
 function freshCheck(){
