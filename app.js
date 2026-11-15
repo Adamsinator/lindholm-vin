@@ -660,8 +660,7 @@ function renderOverview(){
   fillSuggestLists();
   renderQuickPicks();
 }
-// what the add and edit forms suggest: your own countries, regions and grapes first, then wine-kb.js's (the countries,
-// the regions of the country being typed, and the main grapes), so a new cellar has suggestions too
+// the forms' suggestions: your own countries, regions and grapes, then wine-kb.js's
 function fillSuggestLists(country){
   const K = window.WINE_KB, own = f => [...new Set(WINES.map(w=>w[f]).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
   const opts = list => [...new Set(list)].map(r=>`<option>${esc(r)}</option>`).join("");
@@ -763,8 +762,7 @@ let RACK_ALL = false, RACK_CASES = [];
 const rackKey = w => { const r = readiness(w); return !r ? "none" : r.k==="now" ? (r.soon?"soon":"now") : r.k; };
 function placeWall(){
   const wall = $("wall"), side = document.querySelector("#overview .side-body"); if(!wall || !side) return;
-  // one of the overview's panels, where the customizer puts it; on a narrow screen, while it's first, it sits above the
-  // figures as it always has, and once moved (or taken away) it goes where the customizer says, as on a computer
+  // an overview panel, where the customizer puts it (first on a narrow screen, above the figures)
   const top = !matchMedia("(min-width:1181px)").matches && layoutOf("overview")[0] === "rack";
   if(!top){ if(wall.parentNode !== side){ side.appendChild(wall); applyLayout("overview"); } }
   else if(wall.nextElementSibling !== $("kpis")) $("kpis").parentNode.insertBefore(wall, $("kpis"));
@@ -782,8 +780,7 @@ function renderRack(cellar){
   const order = {past:0, soon:1, now:2, none:3, young:4};
   const flat = cellar.slice().sort((a,b)=>order[rackKey(a)]-order[rackKey(b)] || (a.drinkTo??drinkWindow(a)?.to??9999)-(b.drinkTo??drinkWindow(b)?.to??9999))
     .flatMap(w=>Array.from({length:w.left}, ()=>w));
-  // a big cellar: one drawn bottle per WINE, with how many bottles of it on the bottle ("×6"), so a tap is always that
-  // one wine; a small cellar keeps a drawn bottle per bottle. (Mixing several wines in one drawn bottle read as random.)
+  // a big cellar: a drawn bottle per wine ("×6"); a small one, per bottle
   const perWine = bottles > 150;
   RACK_CASES = perWine ? [...new Map(flat.map(w=>[w.row, w])).values()].map(w=>Array.from({length:w.left}, ()=>w)) : flat.map(w=>[w]);
   const all = RACK_CASES.map(c=>c[0]);
@@ -1237,22 +1234,30 @@ function journalHTML(w){
 }
 
 function detailHTML(w){
-  const pn = PRODUCER_NOTES[w.producer];
+  // facts, notes, actions, your settings, links
+  const pn = PRODUCER_NOTES[w.producer], sc = suggestClass(w);
   const cells = [
-    ["Commune", w.commune],["Classification", w.classification || (suggestClass(w) ? "≈ "+suggestClass(w).cls+" ("+tr("suggested")+")" : "")],["Grape", w.grape],
-    ["Format", isStdBottle(w) ? "" : tr(formatOf(w).key)+" · "+formatOf(w).note],
-    ["Bought", btl(w.qty)],["Enjoyed", w.drunk?btl(w.drunk):""],["Source", w.source],
-    [KIND==="private" ? "Price" : "Cost price", SHOW_PRICES && w.price ? kr(w.price) : w.gift ? tr("A gift") : ""],
-    ["Farming", w.farm ? tr(FARM_LABEL[w.farm] || w.farm) : ""],["Style", tasteText(w.taste)],["Location", w.location],
+    ["Wine", w.name],["Vintage", w.vintage||"NV"],["Region", [w.region, w.country && countryLabel(w.country)].filter(Boolean).join(", ")],["Commune", w.commune],
+    ["Classification", w.classification || (sc ? "≈ "+sc.cls+" ("+tr("suggested")+")" : "")],["Colour", w.style ? tr(STYLE_EN[w.style]||w.style) : ""],["Grape", w.grape],
+    ["In cellar", isElsewhere(w) ? "" : btl(Math.max(0,w.left))],["Bought", btl(w.qty)],["Enjoyed", w.drunk?btl(w.drunk):""],
+    [KIND==="private" ? "Price" : "Cost price", SHOW_PRICES && w.price ? kr(w.price) : w.gift ? tr("A gift") : ""],["Source", w.source],
+    ["Farming", w.farm ? tr(FARM_LABEL[w.farm] || w.farm) : ""],["Style", tasteText(w.taste)],
   ].filter(c=>c[1]).map(([k,v])=>`<div><div class="k">${esc(tr(k))}</div>${esc(v)}</div>`).join("");
+  const est=defaultWindow(w), r=readiness(w), ph=(x,d)=>x!=null?"≈"+x:d;
   return `<div class="dgrid">${cells}</div>
     ${w.note?`<div class="unote">“${esc(w.note)}” — ${esc(tr("cellar note"))}</div>`:""}
     ${pn?`<div class="pnote"><b>${esc(w.producer)}</b> · ${esc(tr(TIER_LABEL[pn[0]]))} — ${esc(noteText(pn[1]))}</div>`:""}
     ${isBiz() ? "" : journalHTML(w)}
     ${isBiz() ? BIZ.detail(w) : ""}
-    <div class="links">
-      ${w.left>0?`<button class="drink" data-act="drink" data-row="${w.row}">${svgi("glass")} ${esc(tr("Mark 1 bottle as drunk"))}</button>`:""}
+    <div class="links dact">
+      ${w.left>0?`<button class="drink go" data-act="drink" data-row="${w.row}">${svgi("glass")} ${esc(tr("Mark 1 bottle as drunk"))}</button>`:""}
       ${w.drunk>0 && !w.elsewhere?`<button class="drink" data-act="undrink" data-row="${w.row}" title="${isElsewhere(w)?esc(tr("Puts the bottle in your cellar")):""}">↩︎ ${esc(tr("Undo drink"))}</button>`:""}
+      ${isBiz() ? "" : `<button class="jlog" data-row="${w.row}">${svgi("book")} ${esc(tr("Log in journal"))}</button>`}
+      <button class="winfo" data-row="${w.row}">${svgi("edit")} ${esc(tr("Edit details"))}</button>
+      <button class="wlike" data-row="${w.row}">＋ ${esc(tr("Another like this"))}</button>
+      <button class="fshare" data-row="${w.row}">${svgi("send")} ${esc(tr("Share"))}</button>
+    </div>
+    <div class="dset">
       <label class="ratewrap">${esc(tr("My score"))}
         <select class="rate" data-row="${w.row}">
           <option value="">—</option>
@@ -1265,27 +1270,23 @@ function detailHTML(w){
         <select class="setsize" data-row="${w.row}">
           ${FORMATS.map(f=>`<option value="${f.key==="Bottle"?"":esc(f.key)}"${formatOf(w).key===f.key?" selected":""}>${esc(tr(f.key))} · ${esc(f.note)}</option>`).join("")}
         </select></label>
-      ${isElsewhere(w)?"":`<label class="locwrap">${svgi("pin")} ${esc(tr("Location"))}
+      ${isElsewhere(w)?"":`<label class="locwrap">${esc(tr("Location"))}
         <input class="setloc" list="locList" data-row="${w.row}" value="${esc(w.location)}" placeholder="${esc(tr("e.g. Cellar, shelf 2"))}"></label>`}
       <label class="datewrap">${esc(tr("Acquired"))}
         <input class="setdate" type="date" data-field="acquired" data-row="${w.row}" value="${esc(w.acquired||"")}"></label>
       ${w.drunk>0?`<label class="datewrap">${esc(tr("Last drunk"))}
         <input class="setdate" type="date" data-field="drunkDate" data-row="${w.row}" value="${esc(w.drunkDate||"")}"></label>`:""}
-      ${(()=>{const est=defaultWindow(w), r=readiness(w);
-        const ph=(x,d)=>x!=null?"≈"+x:d;
-        return `<span class="winwrap">${esc(tr("Drink window"))}
+      <span class="winwrap"><span class="wl">${esc(tr("Drink window"))}</span>
         <input class="setwin" type="number" inputmode="numeric" placeholder="${ph(est&&est.from,esc(tr("from")))}" data-end="from" data-row="${w.row}" value="${w.drinkFrom??""}">
         <span class="wsep">–</span>
         <input class="setwin" type="number" inputmode="numeric" placeholder="${ph(est&&est.to,esc(tr("to")))}" data-end="to" data-row="${w.row}" value="${w.drinkTo??""}"><a class="qhint" href="help.html#windows" target="_blank" rel="noopener" title="${esc(tr("How this works"))}" aria-label="${esc(tr("How this works"))}">?</a>
         ${r?`<span class="rbadge ${r.k}${r.est?" est":""}">${r.label}</span>`:""}
         ${r&&r.est&&est&&est.from!=null&&est.to!=null?`<button type="button" class="usewin" data-row="${w.row}" data-from="${est.from}" data-to="${est.to}">✓ ${esc(tr("Use {0}–{1}", est.from, est.to))}</button>`:""}
-        ${r&&r.est?`<span class="est-note">${esc(tr("estimated · type to set your own"))}</span>`:""}</span>`;})()}
-      ${isBiz() ? "" : `<button class="jlog" data-row="${w.row}">${svgi("book")} ${esc(tr("Log in journal"))}</button>`}
-      <button class="fshare" data-row="${w.row}">${svgi("send")} ${esc(tr("Share"))}</button>
+        ${r&&r.est?`<span class="est-note">${esc(tr("estimated · type to set your own"))}</span>`:""}</span>
+    </div>
+    <div class="links dlinks">
       ${atlasLink(w)}
       ${searchLinks(w)}
-      <button class="winfo" data-row="${w.row}">${svgi("edit")} ${esc(tr("Edit details"))}</button>
-      <button class="wlike" data-row="${w.row}">＋ ${esc(tr("Another like this"))}</button>
       <button class="drink del" data-act="delete" data-row="${w.row}">${svgi("trash")} ${isElsewhere(w) ? esc(tr("Remove from Enjoyed")) : esc(tr("Delete wine"))}</button>
     </div>`;
 }
@@ -1534,7 +1535,7 @@ function bindDetail(root){
   root.querySelectorAll("button.jlog").forEach(b=>
     b.addEventListener("click",()=>{
       const w = WINES.find(x=>x.row===Number(b.dataset.row));
-      openJournalModal(w ? {producer:w.producer, wine:w.name, vintage:w.vintage,
+      openJournalModal(w ? {row:w.row, producer:w.producer, wine:w.name, vintage:w.vintage,
         country:w.country, region:w.region, grape:w.grape, commune:w.commune, classification:w.classification} : null);
     }));
   root.querySelectorAll("button.wlike").forEach(b=>
@@ -1709,7 +1710,7 @@ function afterDrink(row, w, wasLast){
       catch(err){ toast(tr("Could not save rating: {0}", errText(err))); } });
     stars.appendChild(b); }
   const acts = [{label:tr("Undo"), fn:()=>{ const b = document.querySelector(`#tbl button[data-act="undrink"][data-row="${row}"]`) || document.createElement("button"); rowAction("undrink", row, b); }}];
-  if(wasLast) acts.push({label:tr("Write a tasting note"), fn:()=>openJournalModal({producer:nw.producer, wine:nw.name, vintage:nw.vintage,
+  if(wasLast) acts.push({label:tr("Write a tasting note"), fn:()=>openJournalModal({row, producer:nw.producer, wine:nw.name, vintage:nw.vintage,
     country:nw.country, region:nw.region, grape:nw.grape, commune:nw.commune, classification:nw.classification})});
   notify(wasLast ? tr("That was your last {0}", nm) : tr("Skål! Bottle marked as drunk"), acts, {extra:stars, ms:10000});
 }
@@ -1869,8 +1870,7 @@ function forgetAuth(){
 // (not on localhost, where the tests run; tools/offline-ui-test.js uses 127.0.0.1)
 if("serviceWorker" in navigator && window.isSecureContext && location.hostname !== "localhost") navigator.serviceWorker.register("atlas-sw.js").catch(() => {});
 function enterApp(){ $("gate").hidden = true; $("app").hidden = false; markActive(); loadData(); route(); recReminder(); }
-// every four months or so (not on the first visit: sign-up showed the code), ask whether the recovery code is still at
-// hand; "Make a new one" opens Account, where the password makes a fresh code
+// every four months or so, ask whether the recovery code is still at hand
 const REC_EVERY = 120 * 864e5;
 function recReminder(){
   if(localStorage.getItem("vinVault")!=="1" || !cfg.user) return;
@@ -3509,6 +3509,8 @@ function renderJournal(){
    enjoyAdd() created are recognisable (qty 1, drunk 1, drunk date = the entry's
    date), so re-saving an entry can't add it twice. */
 const jKey = s => String(s==null?"":s).trim().toLowerCase().replace(/\s+/g," ");
+// focus a form's first field, unless one of its fields has it
+const focusSoon = id => setTimeout(()=>{ if(!$(id).closest(".modal").contains(document.activeElement)) $(id).focus(); }, 40);
 function enjoyTarget(entry){
   const date = String(entry.date||"").slice(0,10);
   const same = w => jKey(w.producer)===jKey(entry.producer)
@@ -3516,9 +3518,11 @@ function enjoyTarget(entry){
                  && jKey(w.vintage)===jKey(entry.vintage);
   // Already in Enjoyed: a row drunk on the entry's date — a bottle marked drunk from the cellar (any number of
   // bottles in the row), or the row an earlier save created. Saving again must not drink a second bottle.
-  const logged = WINES.find(w=>same(w) && w.drunk>0 && w.drunkDate===date);
+  // the row it was opened from first
+  const pick = f => (J_ROW && WINES.find(w=>w.row===J_ROW && f(w))) || WINES.find(f);
+  const logged = pick(w=>same(w) && w.drunk>0 && w.drunkDate===date);
   if(logged) return {kind:"logged", wine:logged, elsewhere:isElsewhere(logged)};
-  const owned = WINES.find(w=>same(w) && w.left>0);
+  const owned = pick(w=>same(w) && w.left>0);
   if(owned) return {kind:"cellar", wine:owned};
   return {kind:"new"};
 }
@@ -3860,8 +3864,9 @@ function prepJournalModal(){
 }
 
 let J_ORIG = null; // the entry as it was before an edit, to find the Enjoyed row it made
+let J_ROW = null;
 function openJournalModal(prefill){
-  J_EDIT = null; J_ORIG = null;
+  J_EDIT = null; J_ORIG = null; J_ROW = prefill && prefill.row || null;
   prepJournalModal();
   trSet("New journal entry", $("jTitle"));
   $("jSave").textContent = tr("Save entry");
@@ -3884,7 +3889,7 @@ function openJournalModal(prefill){
 }
 
 function openJournalEdit(e){
-  J_EDIT = e.row; J_ORIG = {...e};
+  J_EDIT = e.row; J_ORIG = {...e}; J_ROW = null;
   prepJournalModal();
   trSet("Edit journal entry", $("jTitle"));
   $("jSave").textContent = tr("Save changes");
@@ -3912,7 +3917,7 @@ function openJournalEdit(e){
   }
   classHint(J_IDS);
   syncEnjoyOption();
-  setTimeout(()=>$("jNote").focus(), 40);
+  focusSoon("jNote");
 }
 
 $("jAddBtn").addEventListener("click", ()=>openJournalModal(null));
@@ -4270,7 +4275,7 @@ function openEnjoyedAdd(prefill){
   }
   EA_SUGGEST.reset(); if(prefill) EA_SUGGEST.run(); else classHint(EA_IDS);
   $("eaModal").classList.add("open");
-  setTimeout(()=>$("eaProducer").focus(),40);
+  focusSoon("eaProducer");
 }
 $("eAddBtn").addEventListener("click",()=>openEnjoyedAdd(null));
 $("eaCancel").addEventListener("click",()=>$("eaModal").classList.remove("open"));
@@ -4319,7 +4324,7 @@ function openInfo(w){
   $("iJWrap").hidden = !js.length;
   $("iJLabel").innerHTML = js.length ? esc(js.length===1 ? tr("Also rename its journal entry if the name changes") : tr("Also rename its {0} journal entries if the name changes", js.length)) : "";
   $("iModal").classList.add("open");
-  setTimeout(()=>$("iName").focus(), 40);
+  focusSoon("iName");
 }
 ["iName","iCommune","iRegion"].forEach(id=>$(id).addEventListener("input", ()=>classHint(I_IDS)));
 $("iClass").addEventListener("change", ()=>{ $("iClass").dataset.auto = ""; });
@@ -4461,14 +4466,14 @@ function openWishModal(prefill){
   W_EDIT=null; prepWishModal(); trSet("Add to wishlist", $("wTitle")); trSet("Save", $("wSave"));
   if(prefill){ $("wProducer").value=prefill.producer||""; $("wWine").value=prefill.wine||"";
     $("wVintage").value=prefill.vintage||""; $("wRegion").value=prefill.region||""; }
-  setTimeout(()=>$("wProducer").focus(),40);
+  focusSoon("wProducer");
 }
 function openWishEdit(e){
   W_EDIT=e.row; prepWishModal(); trSet("Edit wish", $("wTitle")); trSet("Save changes", $("wSave"));
   $("wProducer").value=e.producer||""; $("wWine").value=e.wine||"";
   $("wVintage").value=e.vintage!==""&&e.vintage!=null?e.vintage:"";
   $("wRegion").value=e.region||""; $("wPrice").value=e.price!==""&&e.price!=null?e.price:""; $("wNote").value=e.note||"";
-  setTimeout(()=>$("wProducer").focus(),40);
+  focusSoon("wProducer");
 }
 $("wAddBtn").addEventListener("click",()=>openWishModal(null));
 $("wCancel").addEventListener("click",()=>$("wModal").classList.remove("open"));
@@ -4521,8 +4526,7 @@ function feedRecall(){
     if(c && Array.isArray(c.feed)){ FEED=c.feed; FEED_ME=c.me||""; FEED_USERS=c.users||[]; FEED_FOLLOWS=c.follows||[]; } }catch(e){}
 }
 function feedForgetAll(){ try{ Object.keys(localStorage).filter(k => k.startsWith("vinFeed:")).forEach(k => localStorage.removeItem(k)); }catch(e){} }
-// The feed is there only when the server says so (its SOCIAL setting): off, the tab, the Share buttons and the list of
-// other members never show, and nothing is kept on the device.
+// the feed only when the server's SOCIAL setting is on; off, nothing of it shows or is kept
 function setSocial(on){
   document.body.classList.toggle("social", !!on);
   const t = document.querySelector('.tab[data-page="feed"]'); if(t) t.hidden = !on;
@@ -4725,8 +4729,7 @@ async function toggleFollow(user, follow){
   catch(err){ toast(tr("Could not update follow: {0}", errText(err))); }
 }
 
-// a business has pages of its own (business.js): Inventory first, then the cellar, Sales & accounts and the wine card;
-// Enjoyed, Wishlist and Journal are a private cellar's
+// a business's pages (business.js); Enjoyed, Wishlist and Journal are a private cellar's
 const BIZ_PAGES = ["inventory","accounts","winecard"];
 const homePage = () => isBiz() ? "inventory" : "cellar";
 function route(){
@@ -4757,8 +4760,7 @@ document.querySelector(".gbar .tabs").addEventListener("click", e=>{ const t = e
 window.addEventListener("hashchange", route);
 
 /* ---------- another device's saves (API 54): a business checks now and then, and when the page comes back ---------- */
-// Only the vault's version numbers are asked for; the cellar is fetched only when they differ (VAULT.checkFresh), and
-// the page redraws as after opening; not while typing in a field
+// only the vault's versions are asked for; the cellar is fetched when they differ (VAULT.checkFresh); not while typing
 const FRESH_MS = 3 * 60e3;
 let freshAt = 0;
 function freshCheck(){

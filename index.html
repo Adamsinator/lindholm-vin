@@ -226,13 +226,6 @@ tr.main td.num{text-align:right;font-family:var(--serif);font-size:15.5px;font-v
 .dwleg.young{color:var(--c-spark)}.dwleg.now{color:#3E9E68}.dwleg.soon{color:var(--gold)}.dwleg.past{color:var(--muted)}
 @media(max-width:640px){.dwrow{grid-template-columns:110px 1fr}}
 .wloc{font-size:12px;color:var(--muted)}
-.locwrap{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:600;color:var(--accent)}
-.locwrap .setloc{width:170px;background:var(--card);border:1px solid var(--line);color:var(--ink);border-radius:var(--r);padding:4px 7px;font:inherit;font-weight:400}
-.winwrap{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:600;color:var(--accent)}
-.winwrap .setwin{width:64px;appearance:textfield;-moz-appearance:textfield;background:var(--card);border:1px solid var(--line);color:var(--ink);
-  border-radius:var(--r);padding:4px 6px;font-size:12.5px;font-family:inherit}
-.winwrap .setwin::-webkit-inner-spin-button,.winwrap .setwin::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
-.winwrap .wsep{color:var(--muted);font-weight:400}
 .gone{opacity:.5}
 .gone .prod::after{content:" · enjoyed";font-weight:400;font-size:11px;color:var(--muted);font-style:italic}
 
@@ -248,20 +241,29 @@ td.emptyrow{text-align:center;color:var(--muted);padding:34px 16px;font-size:14p
 .wj-h{color:var(--muted)}
 .wj-n{display:block;color:var(--ink);white-space:pre-wrap}
 .wj-more{border:0;background:none;color:var(--accent);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;padding:4px 0 0}
-.links{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center}
+.links{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center}
 .links a,.links button{font-size:12.5px;font-weight:600;color:var(--accent);text-decoration:none;
-  border:1px solid var(--line);background:var(--card);border-radius:999px;padding:5px 10px;cursor:pointer;font-family:inherit}
+  border:1px solid var(--line);background:var(--card);border-radius:999px;padding:6px 12px;cursor:pointer;font-family:inherit}
 .links a:hover,.links button:hover{border-color:var(--accent)}
 .links button.drink{color:var(--ink)}
-.ratewrap,.valwrap,.datewrap,.sizewrap{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--accent)}
-.ratewrap select,.valwrap input,.datewrap input,.sizewrap select{background:var(--card);border:1px solid var(--line);color:var(--ink);border-radius:var(--r);
-  padding:4px 6px;font-size:12.5px;font-family:inherit}
-.valwrap input{width:84px}
+.links button.go{background:var(--accent);border-color:var(--accent);color:#fff}
+.dset{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px 14px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.dset>*{display:flex;flex-direction:column;gap:4px;font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);min-width:0}
+.dset input,.dset select{background:var(--card);border:1px solid var(--line);color:var(--ink);border-radius:var(--r);padding:6px 8px;
+  font:inherit;font-size:13px;text-transform:none;letter-spacing:0;width:100%;box-sizing:border-box;min-width:0}
+.dset .winwrap{grid-column:1/-1;flex-flow:row wrap;align-items:center;gap:6px}
+.winwrap>:not(.wl){text-transform:none;letter-spacing:0} .winwrap .wl{flex-basis:100%}
+.winwrap .setwin{width:84px;appearance:textfield;-moz-appearance:textfield}
+.winwrap .setwin::-webkit-inner-spin-button,.winwrap .setwin::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.winwrap .wsep{color:var(--muted);font-size:13px}
+.dlinks{padding-top:10px;border-top:1px solid var(--line)}
+@media(max-width:640px){.dgrid{grid-template-columns:1fr 1fr;gap:10px 14px}.dact{display:grid;grid-template-columns:1fr 1fr}.dact .go{grid-column:1/-1}}
+.dlinks a{border:0;background:none;padding:4px 0;margin-right:8px}
+.links button.del{color:var(--muted);margin-left:auto}
+.links button.del:hover{color:var(--accent);border-color:var(--accent)}
 .myscore{color:var(--gold);font-weight:650}
 .fmt{display:inline-block;font-size:10px;font-weight:650;letter-spacing:.04em;text-transform:uppercase;
   background:var(--chip);color:var(--accent);border-radius:6px;padding:1px 5px;margin-right:6px;vertical-align:1px}
-.links button.del{color:var(--muted);margin-left:auto}
-.links button.del:hover{color:var(--accent);border-color:var(--accent)}
 
 footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch} footer a{color:var(--accent)}
 
@@ -417,7 +419,7 @@ body.selecting #rows tr.main.sel > td:first-child::before{background:var(--accen
 /* iOS zooms into any focused field with font-size < 16px — keep inputs at 16px on small screens */
 @media(max-width:640px){
   .filters input[type=search],.filters select,.modal input,.modal select,.modal textarea,.gate input,
-  .valwrap input,.ratewrap select,.datewrap input,.sizewrap select,.winwrap .setwin,.locwrap .setloc{font-size:16px}
+  .dset input,.dset select{font-size:16px}
 }
 /* tabs */
 .tabs{display:flex;flex-wrap:wrap;gap:4px;margin:-6px 0 18px}
@@ -1866,6 +1868,6 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 <script src="import.js?v=8"></script>
 <script src="export.js?v=3"></script>
 <script src="share-crypto.js?v=2"></script>
-<script src="app.js?v=116"></script>
+<script src="app.js?v=118"></script>
 </body>
 </html>
