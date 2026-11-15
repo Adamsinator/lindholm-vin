@@ -110,12 +110,16 @@ const bad = (m) => { fails++; log.push("FAIL " + m); console.log("FAIL " + m); }
           const jr = int(5, 10); await p.fill("#jNote", "Monkey note " + step); await p.selectOption("#jRating", String(jr));
           // already drunk today: the form says so ("Already in Enjoyed") and doesn't drink another; else the box is ticked
           const done = await p.isHidden("#jEnjoyWrap"), def = await p.isChecked("#jEnjoy");
+          // "already drunk today" is the bottle of this wine drunk today: the opened row if it was, else its twin's
+          const tgt = done ? await p.evaluate(r => { const t = WINES.find(w => w.row === r), today = todayStr(), same = w => w.producer === t.producer && w.name === t.name && String(w.vintage) === String(t.vintage);
+            const d = w => w.drunk > 0 && w.drunkDate === today; return (d(t) ? t : WINES.find(w => same(w) && d(w)) || {}).row; }, w.row) : w.row;
+          if (done && !tgt) bad(`${tag} ${label}: "Already in Enjoyed", but no bottle of it was drunk today`);
           if (!done && !def) bad(`${tag} ${label}: "Also mark a bottle as drunk" isn't ticked for a wine in the cellar`);
           if (done && !(await p.isVisible("#jEnjoyDone"))) bad(`${tag} ${label}: neither the box nor "Already in Enjoyed"`);
           let tick = !done && rnd() < 0.6; if (!done && !tick) await p.uncheck("#jEnjoy");
           await p.click("#jSave"); await p.waitForTimeout(900);
           // the note's score becomes the wine's when it had none: a bottle drunk now, or one drunk earlier today
-          if (tick) { m.left--; m.drunk++; } if ((tick || done) && !m.rating) m.rating = jr;
+          if (tick) { m.left--; m.drunk++; } const mt = byRow(tgt) || m; if ((tick || done) && !mt.rating) mt.rating = jr;
           const j1 = await jCount(); if (j1 !== j0 + 1) bad(`${tag} ${label}: journal ${j0} → ${j1}`); else passes++; await verify(label); }
         else if (act === "like") { await det.locator("button.wlike").click(); await p.waitForSelector("#addModal.open");
           if ((await p.inputValue("#aProducer")) !== w.producer) bad(`${tag} ${label}: the form has "${await p.inputValue("#aProducer")}"`);
