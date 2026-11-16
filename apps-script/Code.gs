@@ -42,7 +42,7 @@ function setting(key) {
 // The legacy code only works once you've set a real one: the placeholder from the template is public.
 function accessCode() { const c = setting('ACCESS_CODE'); return c === 'CHANGE-ME' ? '' : c; }
 
-const API_VERSION = 58; // returned in every response; used to verify deployments
+const API_VERSION = 59; // returned in every response; used to verify deployments
 
 // Per-request spreadsheet for the authenticated user. Set in handle(); every
 // sheet helper reads it via ss(). Falls back to the bound (owner's) spreadsheet.
@@ -2380,7 +2380,7 @@ function backupNow() {
   const stamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd'T'HH:mm");
   const dir = backupsFolder().createFolder(stamp), lines = ['AllWine backup ' + stamp, ''];
   const copy = (id, name) => { const f = DriveApp.getFileById(id).makeCopy(name, dir); lines.push(name + '\t' + f.getId()); };
-  copy(masterId, 'master');
+  lines.push('master data\t' + copyTabs(master, 'master data', dir).getId());
   let n = 0, failed = 0;
   readUsers().forEach(u => {
     if (u.parent) return; // a staff login's vault is its business's, copied with it
@@ -2398,6 +2398,24 @@ function backupNow() {
   while (it.hasNext()) all.push(it.next());
   all.sort((a, b) => b.getName() < a.getName() ? -1 : 1).slice(7).filter(f => !(Date.parse(f.getName()) >= cutoff)).forEach(f => f.setTrashed(true));
   return told('Backup ' + stamp + ': the master sheet and ' + n + ' account spreadsheet(s)' + (failed ? ', ' + failed + ' could not be copied (see manifest.txt)' : '') + '.');
+}
+// The master spreadsheet's tabs (values, formulas, formatting) in a new spreadsheet, without the Apps Script project that
+// is bound to it: a copy of the whole file (makeCopy) takes its script along, so each night's backup used to add a
+// project to the Apps Script list under the same name as the real one (API 59).
+function copyTabs(src, name, dir) {
+  const book = SpreadsheetApp.create(name), blank = book.getSheets()[0].setName('_');
+  src.getSheets().forEach(sh => sh.copyTo(book).setName(sh.getName()));
+  book.deleteSheet(blank);
+  const f = DriveApp.getFileById(book.getId()); f.moveTo(dir); return f;
+}
+// Run once from the editor, after API 59: the backups made before it hold a "master" copy with the script in it (one
+// project each in the Apps Script list). Each gets a script-free "master data" copy of its tabs, and the old copy goes
+// to the bin (emptied after 30 days, or empty it in Drive). Running it again changes nothing.
+function tidyBackupScripts() {
+  const olds = [], dirs = backupsFolder().getFolders();
+  while (dirs.hasNext()) { const dir = dirs.next(), fs = dir.getFilesByName('master'); while (fs.hasNext()) olds.push([fs.next(), dir]); }
+  olds.forEach(([f, dir]) => { copyTabs(SpreadsheetApp.openById(f.getId()), 'master data', dir); f.setTrashed(true); });
+  return told(olds.length ? 'Replaced ' + olds.length + ' backup cop' + (olds.length === 1 ? 'y' : 'ies') + ' of the master sheet with copies of its tabs (no script); the old ones are in the bin.' : 'Nothing to tidy: no backup holds a copy with the script.');
 }
 // Run once from the editor: back up every night at about 04:00 (running it again doesn't add a second schedule).
 function installDailyBackup() {

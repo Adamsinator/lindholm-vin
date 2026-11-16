@@ -1,7 +1,5 @@
-// A small stand-in for the bits of the Google Apps Script runtime that apps-script/Code.gs uses: spreadsheets held
-// in memory, and a Drive of folders and files. Two users: tools/gas-harness.js runs the real Code.gs in Node against
-// it for the tests (the server side, vault and all), and vault-engine.js runs the same Code.gs in the browser against a
-// user's decrypted cellar, so the cellar logic exists once.
+// A stand-in for the bits of the Apps Script runtime Code.gs uses (spreadsheets in memory, a Drive of folders and
+// files): tools/gas-harness.js runs Code.gs on it in Node for the tests, vault-engine.js in the browser on a cellar.
 //
 //   const rt = GAS_FAKE.runtime({ Ark1: [[headers…], [row…]], Journal: […] }, { today: "2026-10-16" })
 //   rt.globals → { SpreadsheetApp, Utilities, Session, DriveApp, ContentService } to run Code.gs with
@@ -21,6 +19,7 @@ function makeSheet(name, rows, onRename, sheetsText) {
   const sh = {
     getName: () => name,
     setName(n) { const old = name; name = n; if (onRename) onRename(old, n); return sh; },
+    copyTo: book => book._copyIn("Copy of " + name, cells),
     getLastRow: lastRow,
     getLastColumn: lastCol,
     getMaxRows: () => Math.max(cells.length, 1),
@@ -98,7 +97,7 @@ function runtime(tabs, opts) {
       // a copy in a folder: a spreadsheet becomes a new spreadsheet with the same tabs and cells
       makeCopy(name, folder) {
         if (f.book) { const b = f.book, c = makeBook(Object.fromEntries(b.order.filter(nm => b.sheets[nm]).map(nm => [nm, b.sheets[nm]._cells.map(r => [...r])])), name);
-          files[c.id].folder = folder ? folder.getId() : f.folder; return fileApi(c.id); }
+          files[c.id].folder = folder ? folder.getId() : f.folder; files[c.id].script = f.script; return fileApi(c.id); }
         const fid = nid("file"); files[fid] = { ...f, id: fid, name, folder: folder ? folder.getId() : f.folder, bytes: [...f.bytes] }; return fileApi(fid);
       },
       getBlob: () => ({ getBytes: () => f.bytes, getContentType: () => f.mime, getDataAsString: () => unutf8(f.bytes) }),
@@ -121,13 +120,14 @@ function runtime(tabs, opts) {
       getSheetByName: nm => book.sheets[nm] || null,
       getSheets: () => book.order.map(nm => book.sheets[nm]).filter(Boolean),
       insertSheet: nm => add(nm, []),
+      _copyIn: (nm, rows) => add(nm, rows.map(r => [...r])),
       deleteSheet: sh => { const nm = sh.getName(); delete book.sheets[nm]; book.order = book.order.filter(x => x !== nm); },
     };
     books[id] = book;
     files[id] = { id, name, bytes: [], mime: "application/vnd.google-apps.spreadsheet", folder: masterFolder.getId(), trashed: false, book };
     return book;
   }
-  const bound = makeBook(tabs, "AllWine");
+  const bound = makeBook(tabs, "AllWine"); files[bound.id].script = true; // the Apps Script project is bound to it
   const SpreadsheetApp = {
     getActiveSpreadsheet: () => bound.api,
     openById: id => { const b = books[id]; if (!b || b.trashed) throw new Error("not found"); return b.api; },

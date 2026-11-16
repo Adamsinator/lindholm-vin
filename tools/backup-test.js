@@ -39,9 +39,19 @@ const HEAD = ["Producent", "Land", "Område", "Kommune", "Mark/Navn", "Klassifik
   const dirs = backupDirs();
   check("…into a dated folder under Backups", dirs.length === 1 && /^\d{4}-\d\d-\d\dT\d\d:\d\d$/.test(dirs[0]), JSON.stringify(dirs));
   const names = gas.run(`(() => { const out = []; const it = backupsFolder().getFoldersByName(${JSON.stringify(dirs[0])}).next().getFiles(); while (it.hasNext()) out.push(it.next().getName()); return out.sort(); })()`);
-  check("…with a manifest", JSON.stringify(names) === JSON.stringify(["anna — vault", "bodil — vault", "manifest.txt", "master"]), JSON.stringify(names));
+  check("…with a manifest", JSON.stringify(names) === JSON.stringify(["anna — vault", "bodil — vault", "manifest.txt", "master data"]), JSON.stringify(names));
   const copyOf = name => { const f = Object.values(gas.rt.files).find(x => x.name === name && x.book); return f && f.book; };
-  check("the master copy holds the accounts and the owner's wines", (() => { const b = copyOf("master"); return b && b.sheets.Users && b.sheets.Ark1._cells.some(r => r[0] === "Armand Rousseau"); })());
+  check("the master copy holds the accounts and the owner's wines", (() => { const b = copyOf("master data"); return b && b.sheets.Users && b.sheets.Ark1._cells.some(r => r[0] === "Armand Rousseau"); })());
+  // the master's script isn't copied with it (a copy of the whole file took it along: a new project every night)
+  check("…without the Apps Script project bound to the master sheet", !Object.values(gas.rt.files).some(f => f.script && f.folder !== Object.values(gas.rt.files).find(x => x.name === "AllWine").folder), JSON.stringify(Object.values(gas.rt.files).filter(f => f.script).map(f => f.name)));
+  // backups from before: "master", a copy of the file with the script; tidyBackupScripts() puts copies of the tabs in
+  // their place and bins the old ones, once
+  gas.run(`(() => { const d = backupsFolder().createFolder("2026-01-01T04:00"); DriveApp.getFileById(SpreadsheetApp.getActiveSpreadsheet().getId()).makeCopy("master", d); })()`);
+  check("(an old backup holds a copy with the script)", Object.values(gas.rt.files).some(f => f.name === "master" && f.script && !f.trashed));
+  const td = gas.run("tidyBackupScripts()");
+  check("tidyBackupScripts() replaces it with a copy of its tabs, and bins the old one", /Replaced 1 backup copy/.test(td) && !Object.values(gas.rt.files).some(f => f.script && !f.trashed && f.name !== "AllWine")
+    && (() => { const f = Object.values(gas.rt.files).find(x => x.name === "master data" && x.book && x.book.sheets.Users && !x.trashed && x.folder === Object.values(gas.rt.files).find(y => y.name === "master").folder); return !!f; })(), td);
+  check("…and run again, changes nothing", /Nothing to tidy/.test(gas.run("tidyBackupScripts()")));
   const all = JSON.stringify(Object.values(gas.rt.books).map(b => Object.values(b.sheets).map(s => s._cells)));
   check("the copies hold nothing in the clear", !/Leflaive|Pucelles|Conterno|anna-pass/.test(all));
 
