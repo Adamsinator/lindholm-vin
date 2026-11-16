@@ -28,7 +28,7 @@ const BLANK = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQ
   await p.goto(BASE + "atlas.html#r=cotedor&c=laromanee");
   await p.waitForFunction(() => document.body.classList.contains("side-open"), null, { timeout: 30000 }); await p.waitForTimeout(800);
   await p.waitForFunction(() => /smallest/.test(document.getElementById("side").textContent), null, { timeout: 15000 }).catch(() => {});
-  check("La Romanée: France's smallest appellation, and why that's no slip (each grand cru is one)", /smallest appellation \(each grand cru is an appellation of its own\)/.test(await p.textContent("#side")), (await p.textContent("#side")).slice(0, 300));
+  check("La Romanée: France's smallest appellation, and why: a grand cru is an appellation, a premier cru or lieu-dit is not", /smallest appellation \(this grand cru is an appellation in its own right; premiers crus and lieux-dits are named parts of a village appellation\)/.test(await p.textContent("#side")), (await p.textContent("#side")).slice(0, 300));
 
   let [x, y, h0] = await top("#sideWrap");
   await swipe(x, y, 40);

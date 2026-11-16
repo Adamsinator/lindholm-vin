@@ -271,7 +271,7 @@ const climats = [
   {id:"reignots", n:"Aux Reignots", v:"vosne", c:"1er", ha:1.62, col:"R", s:R(8.3,5.5,10.5,7.8),
     p:[["lb_comte",0.73],["cathiard",0.24],["arnoux",0.2],["grivot",0.08]], d:"Directly above La Romanée, so steep it's terraced in places."},
   {id:"laromanee", n:"La Romanée", v:"vosne", c:"GC", ha:0.85, col:"R", mono:"lb_comte", s:R(10.5,6.5,12,7.8),
-    p:[["lb_comte",0.85]], d:"France's smallest appellation (each grand cru is an appellation of its own), directly above Romanée-Conti. Comte Liger-Belair's monopole, vinified by the domaine itself since 2002."},
+    p:[["lb_comte",0.85]], d:"France's smallest appellation (this grand cru is an appellation in its own right; premiers crus and lieux-dits are named parts of a village appellation), directly above Romanée-Conti. Comte Liger-Belair's monopole, vinified by the domaine itself since 2002."},
   {id:"romaneeconti", n:"Romanée-Conti", v:"vosne", c:"GC", ha:1.81, col:"R", mono:"drc", s:R(12,6.5,15.5,7.8),
     p:[["drc",1.81]], d:"1.81 ha, ~450 cases a year. Bought by the Prince de Conti in 1760: the most famous vineyard on earth, monopole of the DRC."},
   {id:"granderue", n:"La Grande Rue", v:"vosne", c:"GC", ha:1.65, col:"R", mono:"lamarche", s:R(10.5,7.8,20.5,8.3), lab:[13,8.05], lbox:[5,1],

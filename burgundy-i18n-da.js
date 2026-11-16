@@ -93,7 +93,7 @@ window.BURG_I18N.da = {
     crosparantoux: "Henri Jayer genplantede denne forladte, klippefyldte mark efter krigen: kultstatus; nu delt mellem hans nevø Emmanuel Rouget og Méo-Camuzet.",
     petitsmonts: "Stejl og stenet oven for Richebourg: kølig, løftet og stram i ungdommen.",
     reignots: "Lige oven for La Romanée, så stejl at den nogle steder er terrasseret.",
-    laromanee: "Frankrigs mindste appellation (hver grand cru er sin egen appellation), lige oven for Romanée-Conti. Comte Liger-Belairs monopole, vinificeret af domainet selv siden 2002.",
+    laromanee: "Frankrigs mindste appellation (denne grand cru er en selvstændig appellation; premier cru og lieux-dits er navngivne dele af en landsbyappellation), lige oven for Romanée-Conti. Comte Liger-Belairs monopole, vinificeret af domainet selv siden 2002.",
     romaneeconti: "1.81 ha, ~450 kasser om året. Købt af Prince de Conti i 1760: verdens mest berømte vinmark, DRC's monopole.",
     granderue: "En lang, smal strimmel mellem Romanée-Conti og La Tâche, først forfremmet til grand cru i 1992. Lamarches monopole.",
     latache: "DRC-monopole, udvidet i 1933 med det meste af Les Gaudichots. Mørkere, mere krydret og mere eksotisk end Romanée-Conti.",
