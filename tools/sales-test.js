@@ -34,6 +34,6 @@ const n1 = sell(2, "bottle"); s = sales();
 check("…the next sale adds the cost column's heading and its cost", gas.rows("Salg")[0][9] === "Kostpris" && s.find(x => x.id === n1).cost === 420 && s.find(x => x.id === "old-1").cost === null, JSON.stringify(gas.rows("Salg")));
 gas.run(`unsell("old-1")`);
 check("…and an old sale can still be undone", !sales().some(x => x.id === "old-1") && sales().length === 1);
-check("the API says 58", gas.call({ action: "ping" }).v === 58 || gas.call({ action: "nothing" }).v === 58);
+check("the API is 58 or later (the one that keeps a sale's cost)", gas.call({ action: "ping" }).v >= 58);
 
 const n = results.filter(Boolean).length; console.log(`\n${n}/${results.length} passed`); process.exit(n === results.length ? 0 : 1);
