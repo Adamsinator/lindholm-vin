@@ -53,7 +53,7 @@ const ELSEWHERE = [{ id: "barolo", name: "Barolo", ll: [44.61, 7.94], country: "
   { id: "barbaresco", name: "Barbaresco", ll: [44.725, 8.08], country: "it", kind: "MGA · no map", href: "v/{L}/index.html#barbaresco" }];
 const COUNTRY = { fr: "France", de: "Germany", it: "Italy" };
 const TYPE = { W: "Hvid", R: "Rød", RW: "Rød", S: "Bobler" };
-const CLASS = { GC: "Grand cru", "1er": "Premier cru", AOC: "Cru appellation", EL: "Einzellage" };
+const CLASS = { GC: "Grand cru", "1er": "Premier cru", AOC: "Cru appellation", EL: "Einzellage", V: "Village" };
 const st = { region: null, pack: null, sel: null, view: null, show: { GC: true, "1er": true, AOC: true, EL: true, V: true, PT: true }, mine: false };
 // classified châteaux (Bordeaux's 1855): points on the map, by rank; the classification as it's written on a label
 const PTCLASS = { "1855-1": "First growth (1855)", "1855-2": "Second growth (1855)", "1855-3": "Third growth (1855)", "1855-4": "Fourth growth (1855)", "1855-5": "Fifth growth (1855)",

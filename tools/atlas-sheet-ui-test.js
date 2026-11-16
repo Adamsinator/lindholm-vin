@@ -56,6 +56,11 @@ const BLANK = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQ
   await swipe(mid[0], mid[1], 150);
   check("inside a sheet scrolled down the same movement scrolls, and it stays open", st0 > 0 && await open(), `scrollTop ${st0}`);
 
+  // a village climat (Clos du Château, Vosne-Romanée) says so on its label, in the village colour (it was a blank pill)
+  await p.evaluate(() => { location.hash = "#r=cotedor&c=chateau"; }); await p.waitForFunction(() => /Clos du Château/.test(document.getElementById("side").textContent), null, { timeout: 15000 });
+  const pill = await p.evaluate(() => { const e = document.querySelector("#side .pill"); return e && [e.textContent.trim(), e.className, getComputedStyle(e).backgroundColor]; });
+  check("a village climat's label says Village, in the village colour", pill && pill[0] === "Village" && /pv/.test(pill[1]) && pill[2] !== "rgba(0, 0, 0, 0)", JSON.stringify(pill));
+  [x, y] = await top("#sideWrap"); await swipe(x, y, 220);
   // the menu: a sheet with a handle too
   await p.evaluate(() => document.getElementById("menuBtn").click()); await p.waitForTimeout(500);
   const menuOpen = () => p.evaluate(() => !document.getElementById("menuPanel").hidden);
