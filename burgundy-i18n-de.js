@@ -93,7 +93,7 @@ window.BURG_I18N.de = {
     crosparantoux: "Henri Jayer pflanzte diese verlassene, felsige Lage nach dem Krieg neu – Kultstatus; heute geteilt zwischen seinem Neffen Emmanuel Rouget und Méo-Camuzet.",
     petitsmonts: "Steil und steinig über Richebourg – kühl, luftig und in der Jugend verschlossen.",
     reignots: "Direkt über La Romanée, so steil, dass er stellenweise terrassiert ist.",
-    laromanee: "Frankreichs kleinste Appellation, direkt über Romanée-Conti. Monopol des Comte Liger-Belair, seit 2002 von der Domaine selbst ausgebaut.",
+    laromanee: "Frankreichs kleinste Appellation (dieser Grand Cru ist eine eigene Appellation; Premiers Crus und Lieux-dits sind benannte Teile einer Gemeindeappellation), direkt über Romanée-Conti. Monopol des Comte Liger-Belair, seit 2002 von der Domaine selbst ausgebaut.",
     romaneeconti: "1,81 ha, rund 450 Kisten im Jahr. 1760 vom Prince de Conti gekauft – der berühmteste Weinberg der Welt, Monopol der DRC.",
     granderue: "Ein langer, schmaler Streifen zwischen Romanée-Conti und La Tâche, erst 1992 zum Grand Cru erhoben. Monopol von Lamarche.",
     latache: "Monopol der DRC, 1933 um den Großteil von Les Gaudichots erweitert. Dunkler, würziger und exotischer als Romanée-Conti.",

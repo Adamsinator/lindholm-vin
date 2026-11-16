@@ -1572,7 +1572,7 @@ async function loadData(quiet){
     LOADED_AT = new Date(); stampText();
     $("spin").hidden = true; $("content").hidden = false;
     if(!VINT_W && VINT_CELLAR.length) drawVintages(VINT_CELLAR); // drawn while hidden (no width yet): again, for the width it has now
-    if(!window.CELLAR_QOL) loadJS("cellar-qol.js?v=11").catch(()=>{}); // the conveniences: swipes, keys, several wines at once
+    if(!window.CELLAR_QOL) loadJS("cellar-qol.js?v=12").catch(()=>{}); // the conveniences: swipes, keys, several wines at once
     if(/^test/i.test(cfg.user||"") && !window.TESTKIT) loadJS("testkit.js?v=2").then(()=>TESTKIT.mount()).catch(()=>{}); // test data
     loadJournalSilently(); refreshDeleted(); checkOwner(); takePrefill(); // checkOwner asks "me", which says if the feed is on
   }catch(err){
@@ -2451,7 +2451,7 @@ function sommLoad(){
   if(!window.SOMM_WORLD) need.push("sommelier-world.js?v=2");
   if(!window.SOMMELIER) need.push("sommelier.js?v=11");
   if(!window.BURG_VINTAGES) need.push("burgundy-vintages.js?v=6");
-  if(["da","fr","de"].includes(lang) && !(window.BURG_I18N && BURG_I18N[lang])) need.push(`burgundy-i18n-${lang}.js?v=${lang==="de"?1:5}`);
+  if(["da","fr","de"].includes(lang) && !(window.BURG_I18N && BURG_I18N[lang])) need.push(`burgundy-i18n-${lang}.js?v=${lang==="de"?2:7}`);
   SOMM.lang = lang;
   return SOMM.ready = need.reduce((pr, src) => pr.then(() => loadJS(src)), Promise.resolve()).catch(e => { SOMM.ready = null; throw e; });
 }

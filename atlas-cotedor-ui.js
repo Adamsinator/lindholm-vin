@@ -316,7 +316,7 @@ function ownersHtml(c) {
     .seg.cdonly{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden} .seg.cdonly button{border:0;background:var(--card);color:var(--ink);padding:5px 10px;font:inherit;font-size:13px;cursor:pointer} .seg.cdonly button.on{background:var(--ink);color:var(--card)}
     .vtab td,.vtab th{padding:3px 0} .vtab .vs{min-width:30px;text-align:center}</style>`);
   /* ---------- the texts in the page's language: burgundy-i18n-<lang>.js (Danish, French, German) ---------- */
-  const I18F = { da: "burgundy-i18n-da.js?v=6", fr: "burgundy-i18n-fr.js?v=6", de: "burgundy-i18n-de.js?v=1" }, i18nP = {};
+  const I18F = { da: "burgundy-i18n-da.js?v=7", fr: "burgundy-i18n-fr.js?v=7", de: "burgundy-i18n-de.js?v=2" }, i18nP = {};
   const lang = () => (window.I18N && I18N.lang) || "en";
   const tx = () => { const l = lang(); if (l === "en") return null; const T = window.BURG_I18N && BURG_I18N[l]; if (T) return T;
     if (I18F[l] && !i18nP[l]) i18nP[l] = loadScript(I18F[l]).then(() => renderSide()).catch(() => { i18nP[l] = null; }); return null; };
