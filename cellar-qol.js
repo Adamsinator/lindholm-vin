@@ -478,3 +478,16 @@ $("selDrink").addEventListener("click", async ()=>{
   }
   renderMap();
 })();
+
+// Source / bought at, in the add and edit forms: the places this account's own wines came from, the most used first.
+// Built from the open cellar each time one of the fields gets the focus, so it is always the account's own (another
+// account on the same device sees only its own), never kept on the device, and emptied when someone logs out.
+(()=>{
+  document.body.insertAdjacentHTML("beforeend", '<datalist id="srcList"></datalist>');
+  const list = $("srcList");
+  ["aSource", "iSource"].forEach(id => { const el = $(id); if(el) el.setAttribute("list", "srcList"); });
+  const fill = () => { const m = new Map(); WINES.forEach(w => { const s = String(w.source || "").trim(); if(s) m.set(s, (m.get(s) || 0) + 1); });
+    list.innerHTML = [...m.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([s]) => `<option>${esc(s)}</option>`).join(""); };
+  document.addEventListener("focusin", e => { if(e.target.id === "aSource" || e.target.id === "iSource") fill(); });
+  $("lockBtn").addEventListener("click", () => { list.innerHTML = ""; });
+})();
