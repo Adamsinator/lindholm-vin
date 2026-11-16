@@ -52,6 +52,18 @@ const HEAD = ["Producent", "Land", "Område", "Kommune", "Mark/Navn", "Klassifik
   check("tidyBackupScripts() replaces it with a copy of its tabs, and bins the old one", /Replaced 1 backup copy/.test(td) && !Object.values(gas.rt.files).some(f => f.script && !f.trashed && f.name !== "AllWine")
     && (() => { const f = Object.values(gas.rt.files).find(x => x.name === "master data" && x.book && x.book.sheets.Users && !x.trashed && x.folder === Object.values(gas.rt.files).find(y => y.name === "master").folder); return !!f; })(), td);
   check("…and run again, changes nothing", /Nothing to tidy/.test(gas.run("tidyBackupScripts()")));
+  // many old backups: Apps Script stops a run at 6 minutes, so a run stops in time and says how many are left (newest
+  // first); a run stopped halfway left a half-made "master data": it's made again, one per backup
+  gas.run(`(() => { const m = DriveApp.getFileById(SpreadsheetApp.getActiveSpreadsheet().getId());
+    ["2026-02-01T04:00", "2026-02-02T04:00", "2026-02-03T04:00"].forEach(n => m.makeCopy("master", backupsFolder().createFolder(n)));
+    SpreadsheetApp.create("master data").getSheets()[0]; })()`);
+  gas.run(`(() => { const d = backupsFolder().getFoldersByName("2026-02-03T04:00").next(); const b = SpreadsheetApp.create("master data"); DriveApp.getFileById(b.getId()).moveTo(d); })()`);
+  const t0 = gas.run("tidyBackupScripts(-1)"); // out of time from the start
+  check("a run out of time stops and says how many are left", /Replaced 0 backup copies.*3 left: run tidyBackupScripts again/.test(t0), t0);
+  const t1 = gas.run("tidyBackupScripts()");
+  const per = gas.run(`["2026-02-01T04:00", "2026-02-02T04:00", "2026-02-03T04:00"].map(n => { const it = backupsFolder().getFoldersByName(n).next().getFiles(), k = []; while (it.hasNext()) { const f = it.next(); if (!f.isTrashed()) k.push(f.getName()); } return k.join(","); })`);
+  check("…run again, the rest: one script-free copy in each backup, the half-made one replaced", /Replaced 3 backup copies.*All done/.test(t1) && per.every(x => x === "master data")
+    && !Object.values(gas.rt.files).some(f => f.script && !f.trashed && f.name !== "AllWine"), t1 + " " + JSON.stringify(per));
   const all = JSON.stringify(Object.values(gas.rt.books).map(b => Object.values(b.sheets).map(s => s._cells)));
   check("the copies hold nothing in the clear", !/Leflaive|Pucelles|Conterno|anna-pass/.test(all));
 

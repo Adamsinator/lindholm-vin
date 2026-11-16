@@ -42,7 +42,7 @@ function setting(key) {
 // The legacy code only works once you've set a real one: the placeholder from the template is public.
 function accessCode() { const c = setting('ACCESS_CODE'); return c === 'CHANGE-ME' ? '' : c; }
 
-const API_VERSION = 59; // returned in every response; used to verify deployments
+const API_VERSION = 60; // returned in every response; used to verify deployments
 
 // Per-request spreadsheet for the authenticated user. Set in handle(); every
 // sheet helper reads it via ss(). Falls back to the bound (owner's) spreadsheet.
@@ -2408,14 +2408,26 @@ function copyTabs(src, name, dir) {
   book.deleteSheet(blank);
   const f = DriveApp.getFileById(book.getId()); f.moveTo(dir); return f;
 }
-// Run once from the editor, after API 59: the backups made before it hold a "master" copy with the script in it (one
-// project each in the Apps Script list). Each gets a script-free "master data" copy of its tabs, and the old copy goes
-// to the bin (emptied after 30 days, or empty it in Drive). Running it again changes nothing.
-function tidyBackupScripts() {
-  const olds = [], dirs = backupsFolder().getFolders();
-  while (dirs.hasNext()) { const dir = dirs.next(), fs = dir.getFilesByName('master'); while (fs.hasNext()) olds.push([fs.next(), dir]); }
-  olds.forEach(([f, dir]) => { copyTabs(SpreadsheetApp.openById(f.getId()), 'master data', dir); f.setTrashed(true); });
-  return told(olds.length ? 'Replaced ' + olds.length + ' backup cop' + (olds.length === 1 ? 'y' : 'ies') + ' of the master sheet with copies of its tabs (no script); the old ones are in the bin.' : 'Nothing to tidy: no backup holds a copy with the script.');
+// Run from the editor after API 59, until it says it's done: the backups made before it hold a "master" copy with the
+// script in it (one project each in the Apps Script list). Each gets a script-free "master data" copy of its tabs, and
+// the old copy goes to the bin (emptied after 30 days, or empty it in Drive). A copy takes some 20-40 s and Apps Script
+// stops a run at 6 minutes, so a run stops after about 4.5 (newest backups first) and says how many are left; a copy a
+// stopped run left half-made is made again. When none are left, running it changes nothing.
+function tidyBackupScripts(budgetMs) {
+  const t0 = Date.now(), budget = budgetMs == null ? 4.5 * 60e3 : budgetMs, olds = [], dirs = backupsFolder().getFolders();
+  while (dirs.hasNext()) { const dir = dirs.next(), fs = dir.getFilesByName('master');
+    while (fs.hasNext()) { const f = fs.next(); if (!f.isTrashed()) olds.push([f, dir]); } }
+  olds.sort((a, b) => a[1].getName() < b[1].getName() ? 1 : -1);
+  let n = 0;
+  for (const [f, dir] of olds) {
+    if (Date.now() - t0 > budget) break;
+    const half = dir.getFilesByName('master data'); while (half.hasNext()) half.next().setTrashed(true);
+    copyTabs(SpreadsheetApp.openById(f.getId()), 'master data', dir); f.setTrashed(true); n++;
+  }
+  const left = olds.length - n;
+  return told(!olds.length ? 'Nothing to tidy: no backup holds a copy with the script.'
+    : 'Replaced ' + n + ' backup cop' + (n === 1 ? 'y' : 'ies') + ' of the master sheet with copies of its tabs (no script); the old ones are in the bin.'
+      + (left ? ' ' + left + ' left: run tidyBackupScripts again.' : ' All done.'));
 }
 // Run once from the editor: back up every night at about 04:00 (running it again doesn't add a second schedule).
 function installDailyBackup() {
