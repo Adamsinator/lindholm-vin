@@ -15,7 +15,7 @@ const norm = s => " " + String(s || "").toLowerCase().normalize("NFD").replace(/
 // the regions there are packs for; the Côte d'Or links to its own atlas
 // kw: words on a label that put a bottle in the region; regional: what the pack's "regional" land is
 const REGIONS = [
-  { id: "cotedor", name: "Côte d'Or", file: "atlas-cotedor.js?v=4", topo: "atlas-cotedor-topo.js?v=1", dem: "atlas-cotedor-dem.js?v=1", geol: "atlas-cotedor-geol.js?v=1", ui: "atlas-cotedor-ui.js?v=6", ld: "atlas-cotedor-ld.js?v=2", match: "burgundy-match.js?v=3",
+  { id: "cotedor", name: "Côte d'Or", file: "atlas-cotedor.js?v=5", topo: "atlas-cotedor-topo.js?v=1", dem: "atlas-cotedor-dem.js?v=1", geol: "atlas-cotedor-geol.js?v=1", ui: "atlas-cotedor-ui.js?v=7", ld: "atlas-cotedor-ld.js?v=2", match: "burgundy-match.js?v=3",
   ll: [47.15, 4.86], country: "fr", kind: "Grands crus, premiers crus and village climats, with their owners", kw: [], regional: "" },
   { id: "chablis", name: "Chablis", file: "atlas-chablis.js?v=1", wx: "atlas-chablis-wx.js?v=1", topo: "atlas-chablis-topo.js?v=1", dem: "atlas-chablis-dem.js?v=1", geol: "atlas-chablis-geol.js?v=1", ld: "atlas-chablis-ld.js?v=1", own: "atlas-chablis-own.js?v=1", ll: [47.811, 3.796], country: "fr", kind: "Grand cru · premier cru", kw: ["chablis"], regional: "Regional (Petit Chablis…)" },
   { id: "chalonnaise", name: "Côte Chalonnaise", file: "atlas-chalonnaise.js?v=1", wx: "atlas-chalonnaise-wx.js?v=1", topo: "atlas-chalonnaise-topo.js?v=1", dem: "atlas-chalonnaise-dem.js?v=1", geol: "atlas-chalonnaise-geol.js?v=1", ld: "atlas-chalonnaise-ld.js?v=1", ll: [46.782, 4.711], country: "fr", kind: "Premier cru", kw: ["mercurey", "givry", "rully", "montagny", "bouzeron", "chalonnaise"], regional: "Regional (Bourgogne Côte Chalonnaise)" },
@@ -1168,6 +1168,8 @@ $("gRes").addEventListener("pointerdown", () => { if (PHONE.matches) setTimeout(
 // the open sheet's height, for the controls to sit above it
 const sheetH = () => document.body.style.setProperty("--sheet", (document.body.classList.contains("side-open") && PHONE.matches ? $("sideWrap").offsetHeight : 0) + "px");
 new ResizeObserver(sheetH).observe($("sideWrap")); new MutationObserver(sheetH).observe(document.body, { attributes: true, attributeFilter: ["class"] });
+// a phone's sheets drag as their handle shows (atlas-sheet.js, fetched once the atlas is up: only a phone needs it)
+if (PHONE.matches) loadScript("atlas-sheet.js?v=1").catch(() => {});
 if (window.I18N) I18N.onChange(() => renderCrumb());
 applyStyle(); renderCrumb();
 /* ---------- the view in 3D (terrain3d.js): the pack's Lambert-93 metres back to longitude and latitude, as a plane

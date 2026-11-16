@@ -93,7 +93,7 @@ window.BURG_I18N.fr = {
     crosparantoux: "Henri Jayer a replanté ce site rocheux abandonné après la guerre : statut culte ; aujourd'hui partagé entre son neveu Emmanuel Rouget et Méo-Camuzet.",
     petitsmonts: "Pentu et caillouteux au-dessus de Richebourg : frais, aérien et serré dans sa jeunesse.",
     reignots: "Juste au-dessus de La Romanée, si pentu qu'il est par endroits en terrasses.",
-    laromanee: "La plus petite appellation de France, juste au-dessus de la Romanée-Conti. Monopole du Comte Liger-Belair, vinifié par le domaine lui-même depuis 2002.",
+    laromanee: "La plus petite appellation de France (chaque grand cru est une appellation à part entière), juste au-dessus de la Romanée-Conti. Monopole du Comte Liger-Belair, vinifié par le domaine lui-même depuis 2002.",
     romaneeconti: "1.81 ha, ~450 caisses par an. Acquis par le prince de Conti en 1760 : le vignoble le plus célèbre au monde, monopole de la DRC.",
     granderue: "Une longue bande étroite entre la Romanée-Conti et La Tâche, promue grand cru en 1992 seulement. Monopole de Lamarche.",
     latache: "Monopole de la DRC, agrandi en 1933 de l'essentiel des Gaudichots. Plus sombre, plus épicé et plus exotique que la Romanée-Conti.",

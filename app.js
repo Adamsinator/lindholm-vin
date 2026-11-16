@@ -2451,7 +2451,7 @@ function sommLoad(){
   if(!window.SOMM_WORLD) need.push("sommelier-world.js?v=2");
   if(!window.SOMMELIER) need.push("sommelier.js?v=11");
   if(!window.BURG_VINTAGES) need.push("burgundy-vintages.js?v=6");
-  if(["da","fr","de"].includes(lang) && !(window.BURG_I18N && BURG_I18N[lang])) need.push(`burgundy-i18n-${lang}.js?v=${lang==="de"?1:5}`);
+  if(["da","fr","de"].includes(lang) && !(window.BURG_I18N && BURG_I18N[lang])) need.push(`burgundy-i18n-${lang}.js?v=${lang==="de"?2:7}`);
   SOMM.lang = lang;
   return SOMM.ready = need.reduce((pr, src) => pr.then(() => loadJS(src)), Promise.resolve()).catch(e => { SOMM.ready = null; throw e; });
 }

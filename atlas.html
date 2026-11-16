@@ -247,7 +247,7 @@ html[data-map="dark"] #map .shade{mix-blend-mode:screen;opacity:.16} html[data-m
   .panel::before,.sidewrap::before{content:"";display:block;width:40px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 10px}
   .sidewrap{position:fixed;left:0;right:0;bottom:0;z-index:20;max-height:46dvh;overflow:auto;background:var(--card);border-radius:22px 22px 0 0;border-top:1px solid var(--line);
     box-shadow:0 -12px 40px rgba(0,0,0,.18);padding:10px 0 env(safe-area-inset-bottom);transform:translateY(105%);transition:transform .28s cubic-bezier(.2,.8,.2,1)}
-  body.side-open .sidewrap{transform:none}
+  body.side-open .sidewrap{transform:none} .sidewrap.tall{max-height:88dvh} .sidewrap{transition:transform .28s cubic-bezier(.2,.8,.2,1),max-height .28s}
   /* the round controls stay above an open sheet, and in reach */
   body.side-open .mapbox .zoom{bottom:calc(var(--sheet,0px) + 12px);transition:bottom .28s cubic-bezier(.2,.8,.2,1)}
   .sidewrap #side{border:0;box-shadow:none;margin:0}
@@ -343,6 +343,6 @@ html[data-map="dark"] #map .shade{mix-blend-mode:screen;opacity:.16} html[data-m
 </div>
 <script src="i18n.js?v=95"></script>
 <script src="europe-lands.js?v=2"></script>
-<script src="atlas.js?v=52"></script>
+<script src="atlas.js?v=54"></script>
 </body>
 </html>
