@@ -491,3 +491,73 @@ $("selDrink").addEventListener("click", async ()=>{
   document.addEventListener("focusin", e => { if(e.target.id === "aSource" || e.target.id === "iSource") fill(); });
   $("lockBtn").addEventListener("click", () => { list.innerHTML = ""; });
 })();
+
+// The Undo bar sits above everything, so a dialog opened while it shows (Export, Import, Tidy…) had it over its own
+// buttons for a few seconds. Opening a dialog after the bar came up means the person has moved on: the bar closes.
+// A bar raised by something done inside an open dialog stays (it came after the dialog).
+(()=>{
+  const bar = $("actbar"); if(!bar) return; let shown = 0;
+  const n = window.notify; window.notify = function(){ const r = n.apply(this, arguments); shown = Date.now(); return r; };
+  new MutationObserver(ms => {
+    if(bar.hidden || !shown || Date.now() - shown < 400) return;
+    if(ms.some(m => m.target.classList && m.target.classList.contains("modal") && m.target.classList.contains("open") && !/\bopen\b/.test(m.oldValue || ""))) closeNotify();
+  }).observe(document.body, { subtree: true, attributes: true, attributeFilter: ["class"], attributeOldValue: true });
+})();
+
+// The cellar's value over time, in the value panel (shown by default; with no values set, the curve alone): at the end of each month, the bottles then in the
+// cellar at what they cost (and, where you've given them a value, at that too). Rebuilt from the purchase and drink
+// dates the cellar keeps: a wine's bottles count from its acquired date, and the drunk ones go at its last drink
+// date (earlier drink dates aren't kept), so it's a close estimate, said under it. Wines with no purchase date or no
+// price are left out, and counted. Monthly up to three years, then a point a quarter, at most ten years back.
+(()=>{
+  const W = { da: { "Value over time": "Værdi over tid", "at cost": "til kostpris", "at your values": "til dine værdier", "now": "nu",
+      "{0} on 12 months": "{0} på 12 måneder", "From purchase and drink dates: a wine's drunk bottles leave at its last drink date.": "Ud fra købs- og drikkedatoer: en vins drukne flasker regnes fra dens seneste drikkedato.",
+      "{0} wines without a purchase date or price aren't in it.": "{0} vine uden købsdato eller pris er ikke med.", "1 wine without a purchase date or price isn't in it.": "1 vin uden købsdato eller pris er ikke med." },
+    fr: { "Value over time": "Valeur dans le temps", "at cost": "au prix d'achat", "at your values": "à vos valeurs", "now": "aujourd'hui",
+      "{0} on 12 months": "{0} sur 12 mois", "From purchase and drink dates: a wine's drunk bottles leave at its last drink date.": "D'après les dates d'achat et de dégustation : les bouteilles bues d'un vin sortent à sa dernière date.",
+      "{0} wines without a purchase date or price aren't in it.": "{0} vins sans date d'achat ou sans prix n'y sont pas.", "1 wine without a purchase date or price isn't in it.": "1 vin sans date d'achat ou sans prix n'y est pas." },
+    de: { "Value over time": "Wert im Zeitverlauf", "at cost": "zum Einkaufspreis", "at your values": "zu Ihren Werten", "now": "jetzt",
+      "{0} on 12 months": "{0} gegenüber 12 Monaten", "From purchase and drink dates: a wine's drunk bottles leave at its last drink date.": "Aus Kauf- und Trinkdaten: die getrunkenen Flaschen eines Weins gehen zu seinem letzten Trinkdatum ab.",
+      "{0} wines without a purchase date or price aren't in it.": "{0} Weine ohne Kaufdatum oder Preis sind nicht dabei.", "1 wine without a purchase date or price isn't in it.": "1 Wein ohne Kaufdatum oder Preis ist nicht dabei." } };
+  const word = (s, ...a) => ((W[window.I18N && I18N.lang] || {})[s] || s).replace(/\{(\d)\}/g, (m, i) => a[i] ?? "");
+  document.head.insertAdjacentHTML("beforeend", `<style>#valTime{margin-top:14px} #valTime h3{font-size:12px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin:0 0 4px;font-weight:600}
+#valTime svg{display:block;width:100%;height:auto} #valTime .vt-c{fill:none;stroke:var(--accent);stroke-width:2} #valTime .vt-v{fill:none;stroke:var(--gold,#A87E2F);stroke-width:2;stroke-dasharray:5 4}
+#valTime .vt-a{fill:var(--accent);opacity:.08} #valTime text{font-size:10.5px;fill:var(--muted)} #valTime .vt-k{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12.5px;margin:4px 0}
+#valTime .vt-k b{font-family:var(--serif);font-size:17px} #valTime .vt-k i{display:inline-block;width:14px;height:0;border-top:2px solid var(--accent);margin-right:5px;vertical-align:middle}
+#valTime .vt-k i.v{border-top:2px dashed var(--gold,#A87E2F)} #worthPanel.vt-only > .ph, #worthPanel.vt-only #worth{display:none}</style>`);
+  const ym = d => d.getFullYear() * 12 + d.getMonth();
+  function draw(){
+    const panel = $("worthPanel"); if(!panel) return; let box = $("valTime");
+    if(!SHOW_PRICES){ if(box) box.hidden = true; return; }
+    const own = WINES.filter(w => !isElsewhere(w) && (w.qty || 0) > 0);
+    const ok = own.filter(w => w.price > 0 && /^\d{4}-\d\d/.test(String(w.acquired || ""))), skipped = own.length - ok.length;
+    if(!ok.length){ if(box) box.hidden = true; return; }
+    // no values set: app.js hid the panel; it shows for the curve alone, without the value-against-price words
+    const alone = panel.hidden; panel.hidden = false; panel.classList.toggle("vt-only", alone);
+    const at = s => { const [y, m] = String(s).split("-").map(Number); return y * 12 + m - 1; }, now = ym(new Date());
+    const first = Math.max(now - 120, Math.min(...ok.map(w => at(w.acquired)))), span = now - first, step = span > 36 ? 3 : 1;
+    const pts = []; for(let t = now; t >= first; t -= step) pts.unshift(t); if(pts[0] !== first && span <= 120) pts.unshift(first);
+    const hasVal = ok.some(w => w.value != null);
+    const val = (t, f) => ok.reduce((s, w) => { if(at(w.acquired) > t) return s;
+      const gone = w.drunk > 0 && w.drunkDate && at(w.drunkDate) <= t ? w.drunk : 0; return s + f(w) * Math.max(0, (w.qty || 0) - gone); }, 0);
+    const C = pts.map(t => val(t, w => w.price)), V = hasVal ? pts.map(t => val(t, w => w.value != null ? w.value : w.price)) : null;
+    const top = Math.max(1, ...C, ...(V || [])), Wd = 600, H = 150, L = 4, R = 4, T = 8, B = 18;
+    const x = i => L + (pts.length < 2 ? 0 : i / (pts.length - 1)) * (Wd - L - R), y = v => T + (1 - v / top) * (H - T - B);
+    const line = a => a.map((v, i) => (i ? "L" : "M") + x(i).toFixed(1) + " " + y(v).toFixed(1)).join(" ");
+    const lab = t => new Date(Math.floor(t / 12), t % 12, 15).toLocaleDateString(window.I18N ? (I18N.lang === "en" ? "en-GB" : I18N.lang) : "en-GB", { month: "short", year: "numeric" });
+    const ago = pts.findIndex(t => t >= now - 12), d12 = ago >= 0 && C[ago] > 0 ? (C[C.length - 1] - C[ago]) / C[ago] : null;
+    if(!box){ panel.insertAdjacentHTML("beforeend", '<div id="valTime"></div>'); box = $("valTime"); }
+    box.hidden = false;
+    box.innerHTML = `<h3>${esc(word("Value over time"))}</h3>
+      <div class="vt-k"><span><i></i>${esc(word("at cost"))} ${esc(word("now"))} <b>${esc(kr(Math.round(C[C.length - 1])))}</b>${d12 != null ? ` · ${esc(word("{0} on 12 months", (d12 >= 0 ? "+" : "−") + Math.abs(Math.round(d12 * 100)) + " %"))}` : ""}</span>
+        ${V ? `<span><i class="v"></i>${esc(word("at your values"))} <b>${esc(kr(Math.round(V[V.length - 1])))}</b></span>` : ""}</div>
+      <svg viewBox="0 0 ${Wd} ${H}" role="img" aria-label="${esc(word("Value over time"))}: ${esc(lab(pts[0]))} ${esc(kr(Math.round(C[0])))} → ${esc(lab(now))} ${esc(kr(Math.round(C[C.length - 1])))}">
+        <path class="vt-a" d="${line(C)} L${x(pts.length - 1).toFixed(1)} ${H - B} L${x(0).toFixed(1)} ${H - B}Z"/><path class="vt-c" d="${line(C)}"/>${V ? `<path class="vt-v" d="${line(V)}"/>` : ""}
+        ${pts.map((t, i) => `<circle cx="${x(i).toFixed(1)}" cy="${y(C[i]).toFixed(1)}" r="6" fill="transparent"><title>${esc(lab(t))}: ${esc(kr(Math.round(C[i])))}${V ? " · " + esc(kr(Math.round(V[i]))) : ""}</title></circle>`).join("")}
+        <text x="${L}" y="${H - 4}">${esc(lab(pts[0]))}</text><text x="${Wd - R}" y="${H - 4}" text-anchor="end">${esc(lab(now))}</text></svg>
+      <p class="ph">${esc(word("From purchase and drink dates: a wine's drunk bottles leave at its last drink date."))}${skipped ? " " + esc(skipped === 1 ? word("1 wine without a purchase date or price isn't in it.") : word("{0} wines without a purchase date or price aren't in it.", fmt(skipped))) : ""}</p>`;
+  }
+  const ro = window.renderOverview; window.renderOverview = function(){ const r = ro.apply(this, arguments); draw(); return r; };
+  draw();
+  new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ["lang"] });
+})();

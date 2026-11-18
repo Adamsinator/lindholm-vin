@@ -1271,7 +1271,7 @@ function detailHTML(w){
           ${FORMATS.map(f=>`<option value="${f.key==="Bottle"?"":esc(f.key)}"${formatOf(w).key===f.key?" selected":""}>${esc(tr(f.key))} · ${esc(f.note)}</option>`).join("")}
         </select></label>
       ${isElsewhere(w)?"":`<label class="locwrap">${esc(tr("Location"))}
-        <input class="setloc" list="locList" data-row="${w.row}" value="${esc(w.location)}" placeholder="${esc(tr("e.g. Cellar, shelf 2"))}"></label>`}
+        <input class="setloc" list="locList" data-row="${w.row}" value="${esc(w.location)}" placeholder="${esc(tr("e.g. Rack 2"))}"></label>`}
       <label class="datewrap">${esc(tr("Acquired"))}
         <input class="setdate" type="date" data-field="acquired" data-row="${w.row}" value="${esc(w.acquired||"")}"></label>
       ${w.drunk>0?`<label class="datewrap">${esc(tr("Last drunk"))}
@@ -1572,7 +1572,7 @@ async function loadData(quiet){
     LOADED_AT = new Date(); stampText();
     $("spin").hidden = true; $("content").hidden = false;
     if(!VINT_W && VINT_CELLAR.length) drawVintages(VINT_CELLAR); // drawn while hidden (no width yet): again, for the width it has now
-    if(!window.CELLAR_QOL) loadJS("cellar-qol.js?v=12").catch(()=>{}); // the conveniences: swipes, keys, several wines at once
+    if(!window.CELLAR_QOL) loadJS("cellar-qol.js?v=13").catch(()=>{}); // the conveniences: swipes, keys, several wines at once
     if(/^test/i.test(cfg.user||"") && !window.TESTKIT) loadJS("testkit.js?v=2").then(()=>TESTKIT.mount()).catch(()=>{}); // test data
     loadJournalSilently(); refreshDeleted(); checkOwner(); takePrefill(); // checkOwner asks "me", which says if the feed is on
   }catch(err){
@@ -4572,7 +4572,7 @@ $("helpForm").addEventListener("submit", async e=>{
 // opened, so a member's page never carries it
 let ADMIN_LOAD = null;
 $("adminBtn").addEventListener("click", ()=>{
-  (ADMIN_LOAD = ADMIN_LOAD || loadJS("admin.js?v=3").catch(e=>{ ADMIN_LOAD = null; throw e; }))
+  (ADMIN_LOAD = ADMIN_LOAD || loadJS("admin.js?v=4").catch(e=>{ ADMIN_LOAD = null; throw e; }))
     .then(()=>openAdmin()).catch(err=>toast(tr("Could not reach the cellar API ({0}).", errText(err))));
 });
 // test users and test wines (test-data.js, loaded the first time one of these is used)

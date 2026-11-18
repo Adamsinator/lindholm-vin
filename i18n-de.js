@@ -770,6 +770,7 @@ window.I18N_DICT.de = {
   // cellar location
   "Location": "Lagerort",
   "e.g. Cellar, shelf 2": "z. B. Keller, Regal 2",
+  "e.g. Rack 2": "z. B. Regal 2",
   "All locations": "Alle Lagerorte",
   "No location yet": "Ohne Lagerort",
   "Showing {0} of {1} wines": "{0} von {1} Weinen", "Show {0} more": "{0} weitere zeigen", "Show all": "Alle zeigen",

@@ -770,6 +770,7 @@ window.I18N_DICT.da = {
   // cellar location
   "Location": "Placering",
   "e.g. Cellar, shelf 2": "f.eks. Kælder, hylde 2",
+  "e.g. Rack 2": "f.eks. Reol 2",
   "All locations": "Alle placeringer",
   "No location yet": "Uden placering",
   "Showing {0} of {1} wines": "Viser {0} af {1} vine", "Show {0} more": "Vis {0} mere", "Show all": "Vis alle",
