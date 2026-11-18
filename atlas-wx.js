@@ -1,5 +1,5 @@
 // The Wine atlas: each region's growing seasons, from its weather file (atlas-<id>-wx.js, made by
-// tools/region-weather.js from Météo-France's and DWD's open daily station records). Shown in the region's panel:
+// tools/region-weather.js from Météo-France's, DWD's and GeoSphere Austria's open daily station records). Shown in the region's panel:
 // the warming chart, one season at a time (◀ ▶) and the last 20 in a table. The Côte d'Or has its own (with ratings).
 // A classic script on atlas.js's shared scope (st, t, esc, renderSide).
 "use strict";
@@ -58,7 +58,7 @@ window.ATLAS_WXUI = (() => {
   }
   function credit(w) {
     const by = s => w.st.filter(x => x.src === s).map(x => `${x.n} (${x.alt} m)`).join(", ");
-    return `<p class="src">${w.st.some(x => x.src === "mf") ? esc(t("Weather: Météo-France, daily station records (Licence Ouverte): {0}.", by("mf"))) + " " : ""}${w.st.some(x => x.src === "dwd") ? esc(t("Weather: Datenbasis: Deutscher Wetterdienst (CC BY 4.0): {0}.", by("dwd"))) + " " : ""}${esc(t("Built {0}.", w.meta.built))}</p>`;
+    return `<p class="src">${w.st.some(x => x.src === "mf") ? esc(t("Weather: Météo-France, daily station records (Licence Ouverte): {0}.", by("mf"))) + " " : ""}${w.st.some(x => x.src === "dwd") ? esc(t("Weather: Datenbasis: Deutscher Wetterdienst (CC BY 4.0): {0}.", by("dwd"))) + " " : ""}${w.st.some(x => x.src === "geo") ? esc(t("Weather: GeoSphere Austria, daily station records (CC BY 4.0): {0}.", by("geo"))) + " " : ""}${esc(t("Built {0}.", w.meta.built))}</p>`;
   }
   const merge = () => window.atlasTexts && atlasTexts(); // the panel's own texts (atlas-wx-i18n.js), added by atlas.js
   function html() {

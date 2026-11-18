@@ -7,6 +7,8 @@
 // Q_<dd>_*_autres-parametres.csv.gz for hail; meteo.data.gouv.fr, Licence Ouverte 2.0).
 // DWD: the daily climate records (opendata.dwd.de/climate_environment/CDC/observations_germany/climate/daily/kl,
 // tageswerte_KL_<id>_*_hist.zip and _akt.zip; CC BY 4.0, "Datenbasis: Deutscher Wetterdienst").
+// GeoSphere Austria: the daily climate records (klima-v2-1d, through its Data Hub API; CC BY 4.0), fetched once into
+// tools/.region-cache.
 // The Côte d'Or keeps its own file (tools/vintage-weather.js → burgundy-vintages.js), with the same figures.
 //
 // Per year and station, April–September: mean temperature and its difference from the station's own 1991–2020
@@ -42,8 +44,11 @@ const REG = {
   rheinhessen: [["dwd", "00150", "Alzey", 215, 49.73], ["dwd", "05692", "Worms", 88, 49.61]],
   mittelrhein: [["dwd", "01580", "Geisenheim (Rheingau, by Bingen)", 111, 49.99]],
   ahr: [["dwd", "03490", "Bad Neuenahr-Ahrweiler", 111, 50.53]],
+  // GeoSphere's merged series (the station's moves joined into one record)
+  noe: [["geo", "46", "Krems (Kremstal, by the Wachau)", 202, 48.42], ["geo", "81", "Retz (Weinviertel)", 320, 48.76]],
+  burgenland: [["geo", "22", "Eisenstadt (Leithaberg)", 184, 47.85], ["geo", "65", "Neusiedl am See", 117, 47.95]],
 };
-const SRC = { mf: "Météo-France, données climatologiques de base quotidiennes (Licence Ouverte 2.0)", dwd: "Deutscher Wetterdienst, Climate Data Center (CC BY 4.0)" };
+const SRC = { mf: "Météo-France, données climatologiques de base quotidiennes (Licence Ouverte 2.0)", dwd: "Deutscher Wetterdienst, Climate Data Center (CC BY 4.0)", geo: "GeoSphere Austria, Klimadaten Tageswerte (CC BY 4.0)" };
 // Huglin's latitude factor: 1.02 at 40–42° to 1.06 at 48–50°
 const kOf = lat => lat < 42 ? 1.02 : lat < 44 ? 1.03 : lat < 46 ? 1.04 : lat < 48 ? 1.05 : 1.06;
 
@@ -69,7 +74,19 @@ function dwdDays(id) {
       const tn = num(r[ix.TNK]), tx = num(r[ix.TXK]); D[d] = { rr: num(r[ix.RSK]), tn, tx, tm: num(r[ix.TMK]) ?? (tn != null && tx != null ? (tn + tx) / 2 : null) }; } });
   return D;
 }
-const days = (src, id) => cache[src + ":" + id] ||= (src === "mf" ? mfDays(id) : dwdDays(id));
+function geoDays(id) {
+  const dir = path.join(__dirname, ".region-cache"), file = path.join(dir, `geo-${id}.csv`);
+  if (!fs.existsSync(file)) { fs.mkdirSync(dir, { recursive: true });
+    const url = `https://dataset.api.hub.geosphere.at/v1/station/historical/klima-v2-1d?parameters=rr,tlmin,tlmax,tl_mittel&station_ids=${id}&start=1950-01-01&end=${new Date().toISOString().slice(0, 10)}&output_format=csv`;
+    execFileSync("curl", ["-sS", "--fail", "--max-time", "300", "-o", file, url]); }
+  const txt = fs.readFileSync(file, "utf8").trim().split("\n"), ix = Object.fromEntries(txt[0].split(",").map((h, i) => [h.trim(), i])), D = {};
+  if (!("tlmax" in ix)) throw new Error(`GeoSphere station ${id}: unexpected file ${txt[0]}`);
+  for (let i = 1; i < txt.length; i++) { const r = txt[i].split(","), d = r[ix.time].slice(0, 10).replace(/-/g, ""), tn = num(r[ix.tlmin]), tx = num(r[ix.tlmax]);
+    const rr = num(r[ix.rr]); // -1 is GeoSphere's "no rain"
+    D[d] = { rr: rr != null && rr < 0 ? 0 : rr, tn, tx, tm: num(r[ix.tl_mittel]) ?? (tn != null && tx != null ? (tn + tx) / 2 : null) }; }
+  return D;
+}
+const days = (src, id) => cache[src + ":" + id] ||= (src === "mf" ? mfDays(id) : src === "geo" ? geoDays(id) : dwdDays(id));
 
 const r1 = x => Math.round(x * 10) / 10;
 function season(D, y, k) {

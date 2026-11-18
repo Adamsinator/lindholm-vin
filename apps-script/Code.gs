@@ -42,7 +42,7 @@ function setting(key) {
 // The legacy code only works once you've set a real one: the placeholder from the template is public.
 function accessCode() { const c = setting('ACCESS_CODE'); return c === 'CHANGE-ME' ? '' : c; }
 
-const API_VERSION = 60; // returned in every response; used to verify deployments
+const API_VERSION = 61; // returned in every response; used to verify deployments
 
 // Per-request spreadsheet for the authenticated user. Set in handle(); every
 // sheet helper reads it via ss(). Falls back to the bound (owner's) spreadsheet.
@@ -179,7 +179,7 @@ function readSales() {
   const from = ymd(new Date(Date.now() - SALES_DAYS * 864e5));
   return sh.getRange(2, 1, sh.getLastRow() - 1, salesWidth(sh)).getValues().map(r => ({ date: ymd(r[0]) || String(r[0]).slice(0, 10), id: String(r[1]), row: Number(r[2]) || 0,
     producer: String(r[3]), name: String(r[4]), vintage: r[5] instanceof Date ? r[5].getFullYear() : r[5], unit: r[6] === 'glas' ? 'glass' : 'bottle', price: r[7] === '' ? null : Number(r[7]),
-    cost: r[9] === '' || r[9] == null || !isFinite(Number(r[9])) ? null : Number(r[9]) }))
+    cost: r[9] === '' || r[9] == null || !isFinite(Number(r[9])) ? null : Number(r[9]), opened: Number(r[8]) ? 1 : 0 }))
     .filter(s => s.date >= from);
 }
 function ensureBiz(sh, fields) { Object.keys(BIZ_HEADERS).forEach(f => { if (fields.some(x => x && f in x && String(x[f] == null ? '' : x[f]).trim() !== '')) ensureCol(sh, BIZ_HEADERS[f]); }); }

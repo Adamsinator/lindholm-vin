@@ -3,7 +3,7 @@
 
 // The interface language (i18n.js): tr(englishText, a, b) gives it in the chosen language, {0} {1} filled in.
 const tr = (window.I18N && window.I18N.t) || ((s, ...a) => a.length ? s.replace(/\{(\d)\}/g, (m, i) => a[i] ?? "") : s);
-// Text set from code that should follow the language picker: marked for I18N.apply, which re-translates it on a change
+// Text set from code that follows the language picker (I18N.apply re-translates it)
 function trSet(key, el){ if(!el) return; el.setAttribute("data-i18n", key); el.dataset.i18n = key; el.textContent = tr(key); }
 const I18N_LOCALE = () => ({en:"en-GB", fr:"fr-FR", de:"de-DE"})[window.I18N && I18N.lang] || "da-DK";
 
@@ -121,8 +121,7 @@ function baseWindow(w){
     return (grand||cls.includes("classe"))?span(6,32):span(4,18);
   if(has(reg,["rhone","rhône","cornas","hermitage","cote rotie","côte rôtie","gigondas","chateauneuf","châteauneuf"]) || grape.includes("syrah"))
     return has(reg,["hermitage","cornas","cote rotie","côte rôtie"]) ? span(5,28) : span(4,20);
-  // the German and Austrian ripeness levels say much about how long a wine keeps, whatever its grape or region (a
-  // Franken Silvaner Spätlese too): a Kabinett is lighter, a TBA nearly immortal; the Wachau's three levels likewise
+  // German and Austrian ripeness levels (and the Wachau's three), whatever the grape
   if(has(cls,["trockenbeerenauslese","beerenauslese","eiswein","tba"]) || /\bba\b/.test(cls)) return span(8,50);
   if(cls.includes("auslese")) return span(5,30);
   if(cls.includes("spatlese")) return span(3,25);
@@ -132,7 +131,6 @@ function baseWindow(w){
   if(cls.includes("steinfeder")) return span(0,4);
   // Riesling — Mosel/Saar & German/Alsace whites age superbly, often 20–40 yrs
   if(grape.includes("riesling") || has(reg,["mosel","saar","ruwer","rheingau","nahe","pfalz","rheinhessen","alsace"])){
-    // the German ripeness level says much about how long it keeps: a Kabinett is lighter, a TBA nearly immortal
     if(has(cls,["beerenauslese","eiswein","tba"]) || /\bba\b/.test(cls)) return span(8,50);
     if(cls.includes("auslese")) return span(5,30);
     if(cls.includes("spatlese")) return span(3,25);
@@ -1069,7 +1067,7 @@ function loadKind(){
 function setKindLocal(k, keepStored){
   KIND = k; document.documentElement.dataset.kind = k; $("acctKind").value = k;
   if(!keepStored) try{ localStorage.setItem(kindKey(), k); }catch(e){}
-  if(k!=="private" && !window.BIZ){ const s = document.createElement("script"); s.src = "business.js?v=18";
+  if(k!=="private" && !window.BIZ){ const s = document.createElement("script"); s.src = "business.js?v=19";
     s.onload = ()=>{ if(WINES.length){ renderOverview(); renderTable(); } }; document.head.appendChild(s); }
   else if(window.BIZ) BIZ.apply();
 }
