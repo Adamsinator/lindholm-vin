@@ -166,6 +166,19 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   await p.evaluate(async r => { WINES = normalize((await api({ action: "setprice", row: r.row, value: r.price * 3 })).wines); renderOverview(); }, rr); await p.waitForTimeout(300);
   check("a new cost price leaves the profit of the sales before it as it was", (await fig()) === pf0 && await p.evaluate(() => WINES.find(w => w.producer === "Armand Rousseau").price) === rr.price * 3, pf0 + " / " + (await fig()));
   await p.evaluate(async r => { WINES = normalize((await api({ action: "setprice", row: r.row, value: r.price })).wines); renderOverview(); }, rr); await p.waitForTimeout(300);
+  // by the glass: two glasses, the first opened Rousseau's bottle, three still in it: 5 a bottle of the 5 set, none lost
+  const glt = await p.evaluate(() => (document.querySelector("#bizPanel .bz-gl2") || {}).textContent || "");
+  check("by the glass: glasses against the bottles opened for them", /2 glasses from 1 bottles opened, 3 still in open bottles: 5 glasses a bottle of the 5 set, 0 % poured and not sold/.test(glt), glt);
+  // the stock report: the stock now at cost and at the menu price, and the sales since 1 January
+  await p.click("#bzReport"); await p.waitForSelector("#bzReportSheet.open");
+  const rep = await p.evaluate(() => ({ t: document.getElementById("bzRepBody").textContent.replace(/\s+/g, " "),
+    cost: WINES.filter(w => w.left > 0 && !w.elsewhere).reduce((t, w) => t + (w.price > 0 ? w.price * w.left : 0), 0) }));
+  const kr0 = n => n.toLocaleString("da-DK");
+  check("the stock report: the stock at cost, and the year's sales (1,200 with VAT: 960 without, 240 VAT)", rep.t.includes(kr0(rep.cost) + " kr.") && /960 kr\. ?Sales, VAT excluded ?VAT 240 kr\./.test(rep.t), rep.t.slice(0, 400));
+  const [rdl] = await Promise.all([p.waitForEvent("download", { timeout: 5000 }), p.click("#bzRepCsv")]);
+  const rcsv = require("fs").readFileSync(await rdl.path(), "utf8");
+  check("…downloaded as a CSV with the stock lines and the sales", /Armand Rousseau/.test(rcsv) && /Total;/.test(rcsv) && /Sales, VAT excluded;960/.test(rcsv), rcsv.slice(0, 300));
+  await p.keyboard.press("Escape");
 
   // the inventory: count, price and sell from its lines, and its filter for what's under the minimum
   await p.click('.tab[data-page="inventory"]'); await p.waitForTimeout(300);

@@ -35,7 +35,8 @@ for (const [id, w] of Object.entries(W)) w.st.forEach((S, i) => {
 check("each station's seasons hold together (normal, differences, Huglin, heat days, frost dates)", !bad.length, bad.slice(0, 6).join(" | "));
 check("the south is warmer than the north: Orange's normal above Trier's by more than 3 °C", W.rhonesud.st[0].norm - W.mosel.st[0].norm > 3, `${W.rhonesud.st[0].norm} vs ${W.mosel.st[0].norm}`);
 check("2003 stands out as hot in Bordeaux and the Mosel, 2021 as cool in Champagne", W.bordeaux.y[0][2003][ix("anom")] > 1 && W.mosel.y[0][2003][ix("anom")] > 1 && W.champagne.y[0][2021][ix("anom")] < 0);
-check("every source is credited: Météo-France (Licence Ouverte) or DWD (CC BY 4.0)", Object.values(W).every(w => w.meta.src.every(s => /Licence Ouverte|CC BY 4\.0/.test(s)) && w.st.every(S => /^(mf|dwd)$/.test(S.src))));
+check("every source is credited: Météo-France (Licence Ouverte), DWD or GeoSphere Austria (CC BY 4.0)", Object.values(W).every(w => w.meta.src.every(s => /Licence Ouverte|CC BY 4\.0/.test(s)) && w.st.every(S => /^(mf|dwd|geo)$/.test(S.src))));
+check("…and Austria's weather is GeoSphere's, September 2024 (Storm Boris) the wettest in the Kremstal since 1950", W.noe.st.every(S => S.src === "geo") && Math.max(...Object.values(W.noe.y[0]).map(r => r[ix("sep")] ?? 0)) === W.noe.y[0][2024][ix("sep")]);
 
 (async () => {
   const b = await chromium.launch(), errs = [];

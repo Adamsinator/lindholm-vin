@@ -18,6 +18,9 @@ check("a new Sales tab has the cost column", gas.rows("Salg")[0].join() === "Dat
 check("a bottle sold keeps its cost price: 420", s.find(x => x.id === b1).cost === 420, JSON.stringify(s));
 check("…a glass its share of it: 420 / 6 = 70", s.find(x => x.id === g1).cost === 70, JSON.stringify(s));
 check("…a wine with no cost price, none", s.find(x => x.id === k1).cost === null, JSON.stringify(s));
+check("each sale says whether it opened a bottle (API 61): the bottle and the first glass did, the wine's own bottle did", s.find(x => x.id === b1).opened === 1 && s.find(x => x.id === g1).opened === 1 && s.find(x => x.id === k1).opened === 1, JSON.stringify(s.map(x => x.opened)));
+const g2 = sell(2, "glass", 6); check("…a second glass from the same open bottle didn't", sales().find(x => x.id === g2).opened === 0);
+gas.run(`unsell(${JSON.stringify(g2)})`);
 // the cost price goes up: the sales before keep what they cost then
 gas.run(`sheet().getRange(2, 11).setValue(500)`);
 const b2 = sell(2, "bottle"); s = sales();

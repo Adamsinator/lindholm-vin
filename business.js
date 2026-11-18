@@ -200,6 +200,7 @@ window.BIZ = (() => {
         ${fig(eqN > 0 ? hide(rev / eqN) : "—", tr("Average a bottle sold"))}
       </div>
       ${priced.length < inP.length ? `<p class="note">${esc(tr("{0} of the sales are of wines with no cost price: they're left out of the profit.", fmt(inP.length - priced.length)))}</p>` : ""}
+      ${words().glass ? glassHTML(inP, per) : ""}
       <div class="bz-wk" style="grid-template-columns:repeat(${buckets.length},minmax(0,1fr))" role="img" aria-label="${esc(tr("Bottles sold over the period"))}">${buckets.map(b => { const n = b.l.reduce((t, s) => t + eq(s), 0);
         return `<span title="${esc((n === 1 ? tr("1 bottle") : tr("{0} bottles", n1(n))) + (SHOW_PRICES ? " · " + kr(Math.round(money(b.l))) : ""))}"><i style="height:${(n / bmax * 100).toFixed(0)}%"></i><em>${esc(b.t)}</em></span>`; }).join("")}</div>
       <div class="bz-cols">
@@ -209,6 +210,7 @@ window.BIZ = (() => {
       ${SALES.length && SHOW_PRICES ? monthByMonth(eq, costOf, n1) : ""}
       ${SALES.length ? `<p class="bz-exp"><label class="bz-f">${esc(tr("Sales of the month"))}<select id="bzMonth">${months().map(m => `<option value="${m}">${esc(monthName(m))}</option>`).join("")}</select></label>
         <button type="button" class="btn" id="bzSalesCsv">${esc(tr("Download as CSV"))}</button></p>` : ""}
+      ${window.ROLE !== "staff" ? `<p class="bz-exp"><button type="button" class="btn" id="bzReport">${esc(tr("Stock report…"))}</button></p>` : ""}
       ${words().glass ? `<label class="bz-f bz-gl">${esc(tr("Glasses in a bottle"))}<input id="bzGlasses" type="number" min="2" max="12" step="1" value="${per}"></label>` : ""}`;
   }
   // month by month, the last 12: what was sold (bottles, glasses as their share), the sales without VAT, the cost of
@@ -240,6 +242,71 @@ window.BIZ = (() => {
       <div class="bz-scroll"><table class="bz-tab2 bz-mmt"><thead><tr><th>${esc(tr("Month"))}</th><th class="mb">${esc(tr("Bottles"))}</th><th>${esc(tr("Sales, VAT excluded"))}</th><th>${esc(tr("Gross profit"))}</th><th>${esc(tr("Margin"))}</th>${anyPrev ? `<th class="my">${esc(tr("On a year before"))}</th>` : ""}<th class="mc"><span class="sr">CSV</span></th></tr></thead>
       <tbody>${rows.slice().reverse().map((x, i) => tr1(i ? long(x.k) : tr("{0} (so far)", long(x.k)), x, x.prev.net, x.k)).join("")}</tbody>
       ${rows.length > 1 ? `<tfoot>${tr1(tr("{0} months", rows.length), T, rows.every(x => x.prev.net > 0) ? T.pn : 0, "")}</tfoot>` : ""}</table></div>`;
+  }
+  // by the glass, over the period: the glasses sold against the bottles opened for them (API 61 says which sale opened
+  // one), less what's still in open bottles (not lost yet): the glasses a bottle gives in practice against the glasses
+  // set, what's poured and not sold, and the factor a glass price needs to bring in what the bottle does sold whole
+  function glassHTML(inP, per) {
+    const gl = inP.filter(s => s.unit === "glass"); if (!gl.length) return "";
+    if (!gl.some(s => "opened" in s)) return `<p class="note">${esc(tr("Glasses against bottles opened needs the updated Apps Script (version 61): redeploy Code.gs."))}</p>`;
+    const opened = gl.filter(s => s.opened).length; if (!opened) return "";
+    const openNow = WINES.reduce((t, w) => t + (w.openGlasses > 0 ? w.openGlasses : 0), 0);
+    const could = Math.max(gl.length, opened * per - openNow), got = gl.length / could, each = per * got;
+    const n1 = x => x.toLocaleString(window.I18N ? I18N.lang : "en", { maximumFractionDigits: 1 });
+    return `<h4>${esc(tr("By the glass"))}</h4>
+      <p class="bz-gl2">${esc(tr("{0} glasses from {1} bottles opened, {2} still in open bottles: {3} glasses a bottle of the {4} set, {5} poured and not sold.",
+        fmt(gl.length), fmt(opened), fmt(openNow), n1(each), fmt(per), pct(1 - got)))}</p>
+      ${got < 1 ? `<p class="note">${esc(tr("To bring in what a bottle does sold whole, a glass needs at least {0} × the {1} ÷ {2} (Price from cost… sets the factor).", n1(Math.ceil(100 / got) / 100), low(tr(words().sell)), fmt(per)))}</p>` : ""}`;
+  }
+  // the stock report, for the books at a year's end or a count: the stock as it is now, at cost and at the menu price,
+  // and the sales since a date with what they cost (as the profit above: the cost kept with each sale, else today's);
+  // as a CSV and as a printout
+  function openReport() {
+    const W = words(), per = perBottle(), y0 = new Date().getFullYear() + "-01-01";
+    const m = sheet("bzReportSheet", "Stock report", `<p class="note">${esc(tr("The stock as it is now, at cost and at the {0}, and the sales since a date with what they cost.", low(tr(W.sell))))}</p>
+      <label class="bz-f">${esc(tr("Sales since"))}<input id="bzRepSince" type="date" value="${y0}"></label>
+      <div id="bzRepBody"></div>
+      <p class="bz-pgo"><button type="button" class="btn" id="bzRepCsv">${esc(tr("Download as CSV"))}</button> <button type="button" class="btn" id="bzRepPrint">${esc(tr("Print"))}</button></p>`);
+    const calc = () => {
+      const since = $("bzRepSince").value || y0, stock = WINES.filter(w => w.left > 0 && !w.elsewhere)
+        .sort((a, b) => a.producer.localeCompare(b.producer) || String(a.vintage).localeCompare(String(b.vintage)));
+      const atCost = stock.reduce((t, w) => t + (w.price > 0 ? w.price * w.left : 0), 0), atMenu = stock.reduce((t, w) => t + (w.menuPrice > 0 ? w.menuPrice * w.left : 0), 0);
+      const sales = (SALES || []).filter(x => x.date >= since), eq = x => x.unit === "glass" ? 1 / per : 1;
+      const costOf = x => { if (x.cost > 0) return x.cost; const w = WINES.find(y => y.row === x.row); return w && w.price > 0 ? w.price * eq(x) : null; };
+      const rev = sales.reduce((t, x) => t + (x.price || 0), 0), ex = rev / (1 + VAT), cogs = sales.reduce((t, x) => t + (costOf(x) || 0), 0);
+      const noCost = sales.filter(x => costOf(x) == null).length, pricedNet = sales.filter(x => costOf(x) != null).reduce((t, x) => t + (x.price || 0) / (1 + VAT), 0);
+      return { since, stock, atCost, atMenu, sales, rev, ex, cogs, noCost, gp: pricedNet - cogs, pricedNet,
+        bottles: stock.reduce((t, w) => t + w.left, 0), sold: sales.reduce((t, x) => t + eq(x), 0), noCostStock: stock.filter(w => !(w.price > 0)).length };
+    };
+    const n1 = x => x.toLocaleString(window.I18N ? I18N.lang : "en", { maximumFractionDigits: 1 }), K = v => kr(Math.round(v));
+    const draw = () => { const R = calc();
+      $("bzRepBody").innerHTML = `<h4>${esc(tr("The stock now"))}</h4>
+        <div class="bz-ks"><div class="bz-k"><b>${esc(fmt(R.bottles))}</b><span>${esc(tr("Bottles in stock"))}</span><em>${esc(tr("{0} wines", fmt(R.stock.length)))}</em></div>
+          <div class="bz-k"><b>${esc(K(R.atCost))}</b><span>${esc(tr("At cost"))}</span></div><div class="bz-k"><b>${esc(K(R.atMenu))}</b><span>${esc(tr("At the {0}", low(tr(W.sell))))}</span></div></div>
+        ${R.noCostStock ? `<p class="note">${esc(tr("{0} wines in stock have no cost price: they're left out of the value at cost.", fmt(R.noCostStock)))}</p>` : ""}
+        <h4>${esc(tr("Sales since {0}", R.since))}</h4>
+        <div class="bz-ks"><div class="bz-k"><b>${esc(n1(R.sold))}</b><span>${esc(tr("Bottles sold (glasses as their share)"))}</span></div>
+          <div class="bz-k"><b>${esc(K(R.ex))}</b><span>${esc(tr("Sales, VAT excluded"))}</span><em>${esc(tr("VAT {0}", K(R.rev - R.ex)))}</em></div>
+          <div class="bz-k"><b>${esc(K(R.cogs))}</b><span>${esc(tr("Cost of what was sold"))}</span></div>
+          <div class="bz-k"><b>${esc(K(R.gp))}</b><span>${esc(tr("Gross profit"))}</span>${R.pricedNet > 0 ? `<em>${esc(tr("margin {0}", pct(R.gp / R.pricedNet)))}</em>` : ""}</div></div>
+        ${R.noCost ? `<p class="note">${esc(tr("{0} of the sales are of wines with no cost price: they're left out of the profit.", fmt(R.noCost)))}</p>` : ""}`; return R; };
+    const rowsOf = R => [[tr("Stock report"), cardTitle(), new Date().toISOString().slice(0, 10)], [],
+      [tr("Producer"), tr("Wine"), tr("Vintage"), tr("In stock"), tr("Cost price"), tr("At cost"), tr(W.sell), tr("At the {0}", low(tr(W.sell)))],
+      ...R.stock.map(w => [w.producer, w.name || "", w.vintage || "", w.left, w.price > 0 ? w.price : "", w.price > 0 ? w.price * w.left : "", w.menuPrice > 0 ? w.menuPrice : "", w.menuPrice > 0 ? w.menuPrice * w.left : ""]),
+      [tr("Total"), "", "", R.bottles, "", Math.round(R.atCost), "", Math.round(R.atMenu)], [],
+      [tr("Sales since {0}", R.since)], [tr("Bottles sold (glasses as their share)"), Math.round(R.sold * 10) / 10], [tr("Sales, VAT included"), Math.round(R.rev)],
+      [tr("Sales, VAT excluded"), Math.round(R.ex)], [tr("VAT"), Math.round(R.rev - R.ex)], [tr("Cost of what was sold"), Math.round(R.cogs)], [tr("Gross profit"), Math.round(R.gp)]];
+    $("bzRepSince").onchange = draw; draw();
+    $("bzRepCsv").onclick = () => { const R = calc(), a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([EXPORT.csv(rowsOf(R))], { type: "text/csv;charset=utf-8" })); a.download = `allwine-${tr("stock report").replace(/\s+/g, "-")}-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000); toast(tr("Saved {0}", a.download)); };
+    $("bzRepPrint").onclick = () => { const R = calc(); let c = $("bzOrders"); if (!c) { c = document.createElement("div"); c.id = "bzOrders"; document.body.appendChild(c); }
+      const rows = rowsOf(R), head = rows[2], body = rows.slice(3, 3 + R.stock.length + 1), tail = rows.slice(5 + R.stock.length + 1);
+      c.innerHTML = `<article class="bz-po"><h2>${esc(tr("Stock report"))}</h2><p>${esc(cardTitle())} · ${esc(rows[0][2])}</p>
+        <table><thead><tr>${head.map(h => `<th>${esc(h)}</th>`).join("")}</tr></thead><tbody>${body.map(r => `<tr>${r.map(v => `<td>${esc(typeof v === "number" ? fmt(v) : v)}</td>`).join("")}</tr>`).join("")}</tbody></table>
+        <table>${tail.map(r => `<tr>${r.map(v => `<td>${esc(typeof v === "number" ? fmt(v) : v)}</td>`).join("")}</tr>`).join("")}</table></article>`;
+      document.body.classList.add("bz-orderprint"); window.print(); setTimeout(() => document.body.classList.remove("bz-orderprint"), 500); };
+    return m;
   }
   // the months that have sales, newest first ("2026-10"), and a month's sales as rows for EXPORT.csv: one line a
   // sale, its price with and without VAT and the VAT itself, and a total; a spreadsheet for the bookkeeping
@@ -355,6 +422,7 @@ window.BIZ = (() => {
     const op = $("bzOrderPrint"); if (op) op.onclick = printOrders;
     p.querySelectorAll("[data-recv]").forEach(b => b.onclick = () => receiveOrder(b.dataset.recv, b));
     const sc = $("bzSalesCsv"); if (sc) sc.onclick = () => salesCsv($("bzMonth").value);
+    const rp = $("bzReport"); if (rp) rp.onclick = openReport;
     p.querySelectorAll("[data-mcsv]").forEach(b => b.onclick = () => salesCsv(b.dataset.mcsv));
     syncCard();
     if (!window.ROLE) staffDraw();
@@ -849,7 +917,7 @@ window.BIZ = (() => {
   .bz-gin td small{display:inline;margin-left:6px} .bz-gin .bz-n,.bz-cnt .bz-n{width:100%;max-width:none;box-sizing:border-box}
   .bz-cnt td:first-child{grid-column:1/-1;grid-row:2;font-size:12px;color:var(--muted)} .bz-cnt td.nol{display:none} .bz-cnt td:nth-child(2){grid-row:1}
   .bz-gin td[data-l]::before,.bz-cnt td[data-l]::before{content:attr(data-l);display:block;font-size:11px;color:var(--muted);margin-bottom:2px} }
-.note .linkish{background:none;border:0;padding:0;font:inherit;color:inherit;text-decoration:underline;cursor:pointer}
+.bz-gl2{font-size:13.5px;margin:4px 0} .note .linkish{background:none;border:0;padding:0;font:inherit;color:inherit;text-decoration:underline;cursor:pointer}
 @media (max-width:700px){ /* phones: the tab bar has the wine card, the toolbar adds wines, so neither twice; the figures in a compact strip */
   .bz-inv [data-bz="card2"]{display:none} body:has(#pageInventory:not([hidden])) .pfab{display:none}
   .bz-inv .bz-ks{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px} .bz-inv .bz-k{padding:6px 8px} .bz-inv .bz-k b{font-size:16px} .bz-inv .bz-k span{display:block;font-size:11px;line-height:1.25} }
@@ -908,6 +976,6 @@ window.BIZ = (() => {
 </style>`);
   setTimeout(apply, 0);
   // its words: only a business needs them, so they come now, not with every page (i18n.js redraws the page in them)
-  if (window.I18N) { I18N.onChange(apply); if (I18N.more) I18N.more("business-i18n", "?v=11"); }
+  if (window.I18N) { I18N.onChange(apply); if (I18N.more) I18N.more("business-i18n", "?v=12"); }
   return { refreshSales: () => loadSales(true), apply, detail, priceCell, overview, page, inventory, cardLabel, margin, openCard, salesRows, reorder, reorderText, cardData, publishCard, cardShare };
 })();

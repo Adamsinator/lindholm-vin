@@ -1,6 +1,6 @@
 // Service worker for the whole site (the name is from when it served the atlas alone; a registered worker keeps its
-// address): keeps the pages' scripts and data, the atlas's region packs and the relief tiles (IGN's, and basemap.de's
-// for Germany) in the browser, so a second visit opens at once, the cellar app can be installed on a phone's home
+// address): keeps the pages' scripts and data, the atlas's region packs and the relief tiles (IGN's, basemap.de's
+// for Germany and basemap.at's for Austria) in the browser, so a second visit opens at once, the cellar app can be installed on a phone's home
 // screen, and both work on a patchy connection or none. The API is never kept: it goes straight to the network.
 "use strict";
 const DATA = "atlas-data-v1", TILES = "atlas-tiles-v1", MAX_TILES = 800;
@@ -10,7 +10,8 @@ const isVersioned = u => u.origin === location.origin && /\.(js|gs)$/.test(u.pat
 const isAsset = u => u.origin === location.origin && /\/(manifest\.json|apple-touch-icon\.png|icon-512\.png|logo\.svg|icons\.svg|art\/[a-z-]+\.svg)$/.test(u.pathname);
 const isPage = u => u.origin === location.origin && /^\/((index|privacy|burgundy|domaine|atlas|share|help|legal)\.html)?$/.test(u.pathname);
 const isTile = u => (u.hostname === "data.geopf.fr" && u.pathname === "/wmts" && /ELEVATION\.ELEVATIONGRIDCOVERAGE\.SHADOW/.test(u.search))
-  || (u.hostname === "sgx.geodatenzentrum.de" && /^\/wmts_basemapde_schummerung\/tile\//.test(u.pathname));
+  || (u.hostname === "sgx.geodatenzentrum.de" && /^\/wmts_basemapde_schummerung\/tile\//.test(u.pathname))
+  || (u.hostname === "mapsneu.wien.gv.at" && /^\/basemap\/bmapgelaende\/grau\//.test(u.pathname));
 
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", ev => ev.waitUntil((async () => {

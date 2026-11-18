@@ -139,6 +139,11 @@ const REGIONS = {
   rheinhessen: { name: "Rheinhessen", country: "Tyskland", region: "Rheinhessen", kind: "lagen", gebiet: "Rheinhessen" },
   mittelrhein: { name: "Mittelrhein", country: "Tyskland", region: "Mittelrhein", kind: "lagen", gebiet: "Mittelrhein" },
   ahr: { name: "Ahr", country: "Tyskland", region: "Ahr", kind: "lagen", gebiet: "Ahr" },
+  // Austria: every Ried the Länder have decreed, from their own open data (CC BY 4.0), one pack per Land. Lower
+  // Austria's are still being captured ("noch nicht flächendeckend"); neither says which wine region (Wachau,
+  // Kamptal…) a Ried is in, so the packs don't either: a Ried is named with its municipality, as the data has it
+  noe: { name: "Niederösterreich", country: "Østrig", region: "Niederösterreich", kind: "rieden", src: "noe" },
+  burgenland: { name: "Burgenland", country: "Østrig", region: "Burgenland", kind: "rieden", src: "bgld" },
   // INAO's map has no Champagne: its delimitation was never published as data. Its grands and premiers crus are whole
   // villages (the échelle des crus), so a cru here is the vines (IGN BD TOPO, nature "Vigne") inside that village's
   // boundary (IGN ADMIN EXPRESS; the old commune where it has since merged: Aÿ, Oger, Vertus, Coligny…); the other
@@ -226,7 +231,7 @@ const label = mp => { // a point inside the biggest piece: its ring's centroid i
   for (let i = 0, j = r.length - 1; i < r.length; j = i++) { const [xi, yi] = r[i], [xj, yj] = r[j]; if ((yi > y) !== (yj > y)) xs.push(xi + (y - yi) * (xj - xi) / (yj - yi)); }
   xs.sort((a, b) => a - b); return [Math.round((xs[0] + xs[1]) / 2), Math.round(y)];
 };
-const RANK = { GC: 0, "1er": 1, AOC: 2, EL: 3 };
+const RANK = { GC: 0, "1er": 1, AOC: 2, EL: 3, RD: 3 };
 const slug = s => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
 const proper = s => s.replace(/^(les?|la|l')\s/i, m => m.charAt(0).toUpperCase() + m.slice(1).toLowerCase()).replace(/^./, c => c.toUpperCase());
 
@@ -297,7 +302,72 @@ async function lagenBuild() {
     source: `Einzellagen: ©Landwirtschaftskammer RLP (${year}), dl-de/by-2-0, weinlagen.lwk-rlp.de [Daten bearbeitet]` } };
 }
 
+// ── Austria: the Rieden (Lower Austria's WFS in WGS84; Burgenland's shapefile in MGI / GK M34) ─────────────────
+const NOE_URL = "https://sdi.noe.gv.at/at.gv.noe.geoserver/OGD/wfs?service=WFS&version=2.0.0&request=GetFeature&typeNames=OGD:RLF_WEINBAU_RIEDEN&outputFormat=application/json&srsName=EPSG:4326";
+const BGLD_URL = "https://geodaten.bgld.gv.at/de/downloads/geodaten.html?dhash=K0DsgQrMCk43JlWaIVi9jBwzfN6YUxoXpyenmt8O75ZPdq1RAHGvTSLbcFuEh2";
+// MGI / Austria GK M34 → WGS84: an inverse transverse Mercator on the Bessel ellipsoid, then EPSG:1618 (MGI to WGS 84,
+// Austria; position vector rotation). Checked against Lower Austria's own server, which gives the same Rieden in both:
+// 4,945 points, within 1.2 m.
+function mgiToWgs(E, N) {
+  const a = 6377397.155, f = 1 / 299.1528128, e2 = f * (2 - f), ep2 = e2 / (1 - e2), d2r = Math.PI / 180, s2r = d2r / 3600;
+  const x = E - 750000, M = N + 5000000, mu = M / (a * (1 - e2 / 4 - 3 * e2 * e2 / 64 - 5 * e2 ** 3 / 256)), e1 = (1 - Math.sqrt(1 - e2)) / (1 + Math.sqrt(1 - e2));
+  const p1 = mu + (3 * e1 / 2 - 27 * e1 ** 3 / 32) * Math.sin(2 * mu) + (21 * e1 * e1 / 16 - 55 * e1 ** 4 / 32) * Math.sin(4 * mu) + (151 * e1 ** 3 / 96) * Math.sin(6 * mu) + (1097 * e1 ** 4 / 512) * Math.sin(8 * mu);
+  const C1 = ep2 * Math.cos(p1) ** 2, T1 = Math.tan(p1) ** 2, N1 = a / Math.sqrt(1 - e2 * Math.sin(p1) ** 2), R1 = a * (1 - e2) / (1 - e2 * Math.sin(p1) ** 2) ** 1.5, D = x / N1;
+  const lat = p1 - (N1 * Math.tan(p1) / R1) * (D * D / 2 - (5 + 3 * T1 + 10 * C1 - 4 * C1 * C1 - 9 * ep2) * D ** 4 / 24 + (61 + 90 * T1 + 298 * C1 + 45 * T1 * T1 - 252 * ep2 - 3 * C1 * C1) * D ** 6 / 720);
+  const lon = (16 + 1 / 3) * d2r + (D - (1 + 2 * T1 + C1) * D ** 3 / 6 + (5 - 2 * C1 + 28 * T1 - 3 * C1 * C1 + 8 * ep2 + 24 * T1 * T1) * D ** 5 / 120) / Math.cos(p1);
+  const n = a / Math.sqrt(1 - e2 * Math.sin(lat) ** 2), X = n * Math.cos(lat) * Math.cos(lon), Y = n * Math.cos(lat) * Math.sin(lon), Z = n * (1 - e2) * Math.sin(lat);
+  const rx = 5.137 * s2r, ry = 1.474 * s2r, rz = 5.297 * s2r, k = 1 + 2.4232e-6;
+  const X2 = 577.326 + k * (X - rz * Y + ry * Z), Y2 = 90.129 + k * (rz * X + Y - rx * Z), Z2 = 463.919 + k * (-ry * X + rx * Y + Z);
+  const W = 6378137, Wf = 1 / 298.257223563, We2 = Wf * (2 - Wf), lo = Math.atan2(Y2, X2), pp = Math.hypot(X2, Y2); let la = Math.atan2(Z2, pp * (1 - We2));
+  for (let i = 0; i < 8; i++) { const nn = W / Math.sqrt(1 - We2 * Math.sin(la) ** 2); la = Math.atan2(Z2 + We2 * nn * Math.sin(la), pp); }
+  return [lo / d2r, la / d2r];
+}
+async function riedenBuild() {
+  let feats;
+  if (R.src === "noe") {
+    const file = path.join(CACHE, "at-noe-rieden.json");
+    if (!fs.existsSync(file)) fs.writeFileSync(file, await curl(NOE_URL));
+    // one Ried can be several pieces (and its Subrieden): one site per municipality and Ried
+    feats = JSON.parse(fs.readFileSync(file, "utf8")).features.map(f => ({ g: f.geometry, ried: String(f.properties.WEINBAURIEDE1 || "").trim(),
+      sub: /^keine/i.test(String(f.properties.WEINBAURIEDE2 || "")) ? "" : String(f.properties.WEINBAURIEDE2 || "").trim(), gem: String(f.properties.PGNAME || ""),
+      kg: String(f.properties.KGNAME || ""), flur: String(f.properties.WEINBAUFLUR || ""), bez: String(f.properties.PBNAME || ""), key: f.properties.PGNAME + "|" + f.properties.WEINBAURIEDE1 }));
+  } else {
+    const dir = path.join(CACHE, "at-bgld"), shpF = path.join(dir, "BGLD_WEINBAURIEDE.shp");
+    if (!fs.existsSync(shpF)) { fs.mkdirSync(dir, { recursive: true }); const zip = path.join(CACHE, "at-bgld.zip");
+      await new Promise((ok, fail) => execFile("curl", ["-sS", "--max-time", "240", "-L", "-o", zip, BGLD_URL], e => e ? fail(e) : ok()));
+      await new Promise((ok, fail) => execFile("unzip", ["-o", "-q", zip, "-d", dir], e => e ? fail(e) : ok())); }
+    const shp = require("./node_modules/shapefile"), src = await shp.open(shpF, shpF.replace(/\.shp$/, ".dbf"), { encoding: "utf-8" }); feats = [];
+    const conv = g => ({ type: g.type, coordinates: g.type === "Polygon" ? g.coordinates.map(r => r.map(([e, n]) => mgiToWgs(e, n))) : g.coordinates.map(p => p.map(r => r.map(([e, n]) => mgiToWgs(e, n)))) });
+    for (;;) { const r = await src.read(); if (r.done) break; const q = r.value.properties;
+      feats.push({ g: conv(r.value.geometry), ried: String(q.Riedname || "").trim(), sub: String(q.SubRname || "").trim(), gem: String(q.GEMNAME || ""), kg: String(q.KGNAME || ""),
+        flur: "", bez: String(q.BEZNAME || ""), key: String(q.RIED_ID) }); }
+  }
+  // Lower Austria also maps its vineyard land outside any Ried, as "Weinbauflur ohne Riednamen": not a Ried, so not here
+  feats = feats.filter(f => f.ried && f.g && !/^Weinbauflur ohne Riednamen$/i.test(f.ried));
+  let lo0 = Infinity, lo1 = -Infinity, la0 = Infinity, la1 = -Infinity;
+  feats.forEach(f => polysOf(f.g).forEach(p => p[0].forEach(([x, y]) => { lo0 = Math.min(lo0, x); lo1 = Math.max(lo1, x); la0 = Math.min(la0, y); la1 = Math.max(la1, y); })));
+  const O = [+((lo0 + lo1) / 2).toFixed(4), +((la0 + la1) / 2).toFixed(4)], d2r = Math.PI / 180, RE = 6371000, kx = d2r * RE * Math.cos(O[1] * d2r), ky = d2r * RE;
+  const m = ([x, y]) => [(x - O[0]) * kx, (O[1] - y) * ky];
+  const by = new Map(); feats.forEach(f => { if (!by.has(f.key)) by.set(f.key, []); by.get(f.key).push(f); });
+  const climats = [...by.values()].map(fs_ => {
+    const f = fs_[0], mp = union(fs_.flatMap(x => polysOf(x.g).map(q => q.map(r => r.map(m))))), g = tidy(mp, 4);
+    const subs = [...new Set(fs_.map(x => x.sub).filter(Boolean))].sort((a, b) => a.localeCompare(b, "de"));
+    // ß as ss: slug() drops it, which the German packs' ids keep
+    return g.length && { id: slug((f.gem + " " + f.ried).replace(/ß/g, "ss")), n: f.ried, c: "RD", ap: "Ried " + f.ried, app: f.gem, area: f.bez, kg: [...new Set(fs_.map(x => x.kg).filter(Boolean))],
+      flur: f.flur || "", subs, col: "W", ha: +polyHa(mp).toFixed(2), lp: label(g), g, aka: [f.ried, "Ried " + f.ried, f.gem + " " + f.ried] };
+  }).filter(Boolean);
+  climats.forEach(c => { let i = 2; const base = c.id; while (climats.filter(x => x.id === c.id).length > 1) c.id = base + "_" + i++; });
+  const year = new Date().getFullYear();
+  return { climats, villages: [], regionalLand: [], meta: { proj: "eq", origin: O, l93: null, shade: "at", // basemap.at's relief
+    source: R.src === "noe" ? `Rieden: Land Niederösterreich, Weinbau Rieden (aktueller Projektstand) Niederösterreich (${year}), CC BY 4.0 [Daten bearbeitet]; still being captured, not yet the whole Land`
+      : `Rieden: Land Burgenland, Weinbauriede Burgenland (${year}), CC BY 4.0 [Daten bearbeitet]` } };
+}
+
 (async () => {
+  if (R.kind === "rieden") {
+    console.error(`${R.name}: the Rieden the Land has decreed`);
+    return finish(await riedenBuild());
+  }
   if (R.kind === "lagen") {
     console.error(`${R.name}: the Einzellagen of the Weinbergsrolle`);
     return finish(await lagenBuild());
@@ -419,11 +489,20 @@ function finish({ climats, villages, regionalLand, points, meta }) {
     climats: climats.sort((a, b) => RANK[a.c] - RANK[b.c] || a.n.localeCompare(b.n, "fr")),
     villages, regional: { ha: +polyHa(union(regionalLand)).toFixed(1), g: regional }, ...(points ? { points } : {}) };
   const out = path.join(ROOT, `atlas-${id}.js`);
-  fs.writeFileSync(out, `// Generated by tools/region-build.js ${id} — do not edit by hand.\nwindow.ATLAS_PACKS = window.ATLAS_PACKS || {};\nwindow.ATLAS_PACKS[${JSON.stringify(id)}] = ${JSON.stringify(pack)};\n`);
+  // Rieden are many and small: their rings go as flat steps from the point before ([x0, y0, dx1, dy1…], about half the
+  // size gzipped), and the names that follow from the Ried's own are left out; the pack puts both back as it loads, so
+  // whatever reads it (the atlas, the build tools) gets the same shape as any other pack
+  const rd = R.kind === "rieden" && !process.env.RAW_PACK;
+  if (rd) pack.climats = pack.climats.map(c => { const { ap, aka, ...k } = c; return { ...k, g: c.g.map(p => p.map(r => r.flatMap(([x, y], i) => i ? [x - r[i - 1][0], y - r[i - 1][1]] : [x, y]))) }; });
+  const body = rd ? `(P => { P.climats.forEach(c => { c.ap = "Ried " + c.n; c.aka = [c.n, c.ap, c.app + " " + c.n];
+  c.g = c.g.map(p => p.map(r => { const o = []; for (let i = 0, x = 0, y = 0; i < r.length; i += 2) o.push([x += r[i], y += r[i + 1]]); return o; })); }); return P; })(${JSON.stringify(pack)})` : JSON.stringify(pack);
+  fs.writeFileSync(out, `// Generated by tools/region-build.js ${id} — do not edit by hand.\nwindow.ATLAS_PACKS = window.ATLAS_PACKS || {};\nwindow.ATLAS_PACKS[${JSON.stringify(id)}] = ${body};\n`);
   const aocN = climats.filter(c => c.c === "AOC").length, gcN = climats.filter(c => c.c === "GC").length, pcN = climats.filter(c => c.c === "1er" && !c.unnamed && !c.inferred).length,
     infN = climats.filter(c => c.inferred).length, unN = climats.filter(c => c.unnamed).length;
   const elN = climats.filter(c => c.c === "EL").length;
   if (elN) { console.error(`${path.basename(out)}: ${elN} Einzellagen · ${(fs.statSync(out).size / 1024).toFixed(0)} KB`); return; }
+  const rdN = climats.filter(c => c.c === "RD").length;
+  if (rdN) { console.error(`${path.basename(out)}: ${rdN} Rieden · ${(fs.statSync(out).size / 1024).toFixed(0)} KB`); return; }
   console.error(`${path.basename(out)}: ${aocN ? aocN + " cru appellations, " : ""}${gcN} grands crus, ${pcN} premiers crus named by INAO, ${infN} named from IGN place names, ${unN} unnamed, `
     + `villages ${villages.map(v => v.ap + " " + v.ha).join(", ")} ha, regional ${pack.regional.ha} ha · ${(fs.statSync(out).size / 1024).toFixed(0)} KB`);
 }

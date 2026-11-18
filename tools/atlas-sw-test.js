@@ -15,7 +15,8 @@ check("keeps the atlas's scripts and every region's pack, map detail and terrain
 check("…the cellar app's versioned scripts, the vault's Code.gs and the home-screen icon", app.every(s => kept(u(s))), app.filter(s => !kept(u(s))).join());
 check("…but not the API, the service worker itself, an unversioned script or another site's", no.every(s => !kept(u(s))), no.filter(s => kept(u(s))).join());
 check("the pages, the cellar's included, fresh from the network first", ["", "index.html", "privacy.html", "atlas.html", "burgundy.html", "domaine.html", "share.html", "help.html"].every(s => isPage(u(s))) && !isPage(u("v/en/index.html")));
-check("relief tiles from IGN and from basemap.de", isTile(u("https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&LAYER=ELEVATION.ELEVATIONGRIDCOVERAGE.SHADOW&TILEMATRIX=14"))
+check("relief tiles from IGN, basemap.de and basemap.at", isTile(u("https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&LAYER=ELEVATION.ELEVATIONGRIDCOVERAGE.SHADOW&TILEMATRIX=14"))
   && isTile(u("https://sgx.geodatenzentrum.de/wmts_basemapde_schummerung/tile/1.0.0/de_basemapde_web_raster_hillshade/default/DE_EPSG_3857_ADV/10/11120/17025.png"))
+  && isTile(u("https://mapsneu.wien.gv.at/basemap/bmapgelaende/grau/google3857/13/2836/4451.jpeg")) && !isTile(u("https://mapsneu.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/13/2836/4451.jpeg"))
   && !isTile(u("https://data.geopf.fr/altimetrie/1.0/calcul/alti/rest/elevationLine.json?lon=4")) && !isTile(u("https://data.geopf.fr/wfs/ows?SERVICE=WFS")));
 const n = results.filter(Boolean).length; console.log(`\n${n}/${results.length} passed`); process.exit(n === results.length ? 0 : 1);
