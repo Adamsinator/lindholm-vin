@@ -9,9 +9,17 @@ Object.assign(window.I18N_DICT.fr, {
   "Some of its parcels have been renumbered in SIGPAC since; it is drawn without them.": "Certaines de ses parcelles ont été renumérotées dans le SIGPAC depuis ; il est dessiné sans elles.",
   "Viñedos singulares © MAPA (BOE) · parcels © FEGA (SIGPAC), CC BY 4.0": "Viñedos singulares © MAPA (BOE) · parcelles © FEGA (SIGPAC), CC BY 4.0",
   "relief © IGN": "relief © IGN",
-  "Every region here is drawn from its official map: INAO's for France, the Weinbergsrolle for Germany, the Länder's Rieden for Austria, the Ministry's viñedos singulares for Spain. Pick one.": "Chaque région est dessinée d'après sa carte officielle : celle de l'INAO pour la France, la Weinbergsrolle pour l'Allemagne, les Rieden des Länder pour l'Autriche, les viñedos singulares du ministère pour l'Espagne. Choisissez-en une.",
+  "Every region here is drawn from its official map: INAO's for France, the Weinbergsrolle for Germany, the Länder's Rieden for Austria, the Ministry's viñedos singulares and the DOs' municipalities for Spain. Pick one.": "Chaque région est dessinée d'après sa carte officielle : celle de l'INAO pour la France, la Weinbergsrolle pour l'Allemagne, les Rieden des Länder pour l'Autriche, les viñedos singulares du ministère et les communes des DO pour l'Espagne. Choisissez-en une.",
   "{0} region": "{0} région",
   "One region, drawn from its official map.": "Une région, dessinée d'après sa carte officielle.",
   "The DOCa's zones": "Les zones de la DOCa",
-  "The zones are drawn as the whole municipalities the DOCa's rules list, not only their vineyards.": "Les zones sont dessinées comme les communes entières que cite le règlement de la DOCa, pas seulement leurs vignes."
+  "The zones are drawn as the whole municipalities the DOCa's rules list, not only their vineyards.": "Les zones sont dessinées comme les communes entières que cite le règlement de la DOCa, pas seulement leurs vignes.",
+  "Municipality": "Commune",
+  "Municipalities": "Communes",
+  "{0} municipalities of the DO, each drawn whole: its vineyards are a part of it. Click one.": "{0} communes de la DO, chacune dessinée entière : ses vignes en sont une partie. Cliquez sur l'une d'elles.",
+  "Only part of it is in the DO: {0}.": "Seule une partie est dans la DO : {0}.",
+  "All of it is in the DO; the vineyards are a part of it.": "Elle est entièrement dans la DO ; les vignes en sont une partie.",
+  "Municipalities © IGN, CC BY 4.0": "Communes © IGN, CC BY 4.0",
+  "{0} municipalities": "{0} communes",
+  "Partly in the DO": "En partie dans la DO"
 });

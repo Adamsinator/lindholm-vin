@@ -23,6 +23,13 @@ check("…and the sources credited (BOE, FEGA, IGN; CC BY 4.0)", /BOE/.test(P.me
 const ch = C.find(c => c.n === "Las Cabezadas de Matadula");
 check("Las Cabezadas de Matadula (the first order's VS 1) is in Labastida, Rioja Alavesa", ch && ch.app === "Labastida" && ch.area === "Rioja Alavesa" && ch.exp === "VS 1/2019", JSON.stringify(ch && { app: ch.app, area: ch.area, exp: ch.exp }));
 
+// Ribera del Duero and Priorat: their municipalities, as their rules list them
+global.window = {}; require("../atlas-ribera.js"); require("../atlas-priorat.js");
+const RB = window.ATLAS_PACKS.ribera, PR = window.ATLAS_PACKS.priorat;
+check("Ribera del Duero: its pliego's 82 municipalities in four provinces, those only partly in naming their villages", RB.climats.length === 82 && RB.climats.every(c => c.c === "MU" && /^(Burgos|Segovia|Soria|Valladolid)$/.test(c.area))
+  && RB.climats.find(c => c.n === "Peñafiel" && !c.villages) && (RB.climats.find(c => /Burgo de Osma/.test(c.n)) || {}).villages?.join() === "Alcubilla del Marqués", RB.climats.length);
+check("Priorat: nine municipalities whole, Falset and El Molar in part; the nine about 14 800 ha (the DOQ is 17 629 with its parts)", PR.climats.length === 11 && PR.climats.filter(c => c.villages).map(c => c.n).sort().join() === "El Molar,Falset"
+  && (t => t > 14000 && t < 15500)(PR.climats.filter(c => !c.villages).reduce((s, c) => s + c.ha, 0)), PR.climats.map(c => c.n + " " + c.ha).join());
 (async () => {
   const b = await chromium.launch(), errs = [], tiles = [];
   const page = async opt => { const p = await (await b.newContext(opt)).newPage(); p.on("pageerror", e => errs.push(e.message));
@@ -45,10 +52,16 @@ check("Las Cabezadas de Matadula (the first order's VS 1) is in Labastida, Rioja
   const q = await page({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   await q.goto(BASE + "atlas.html"); await q.waitForTimeout(1500);
   const es = await q.evaluate(() => (document.querySelector('#map .cn.on[data-c="es"]') || {}).textContent || "");
-  check("the start page names Spain among the mapped countries, with its one region", /Spain\s*1 region(?!s)/.test(es), es);
+  check("the start page names Spain among the mapped countries, with its three regions", /Spain\s*3 regions/.test(es), es);
   await q.tap('#map .cn.on[data-c="es"]'); await q.waitForTimeout(1200);
   const home = await q.evaluate(() => ({ hash: location.hash, on: [...document.querySelectorAll("#map .hd.on")].map(x => x.dataset.id).join(), wide: document.documentElement.scrollWidth - innerWidth }));
-  check("…a tap on it shows Rioja, nothing wider than the screen", home.hash === "#c=es" && home.on === "rioja" && home.wide <= 0, JSON.stringify(home));
+  check("…a tap on it shows Rioja, Ribera del Duero and Priorat, nothing wider than the screen", home.hash === "#c=es" && home.on.split(",").sort().join() === "priorat,ribera,rioja" && home.wide <= 0, JSON.stringify(home));
+  await q.goto(BASE + "atlas.html#r=priorat"); await q.waitForFunction(() => /Priorat/.test(document.getElementById("regionName").textContent), null, { timeout: 30000 }); await q.waitForTimeout(600);
+  const pr = await q.evaluate(() => document.getElementById("side").textContent);
+  check("Priorat opens with its 11 municipalities", /11 municipalities of the DO/.test(pr) && /Gratallops/.test(pr), pr.slice(0, 200));
+  await q.goto(BASE + "atlas.html#r=priorat&c=falset"); await q.reload(); await q.waitForTimeout(1500);
+  const fs_ = await q.evaluate(() => document.getElementById("side").textContent);
+  check("…Falset says only part of it is in: Masos de Falset", /Only part of it is in the DO: Masos de Falset/.test(fs_), fs_.slice(0, 300));
   check("no console errors", !errs.length, errs.join(" | "));
   await b.close();
   const n = results.filter(Boolean).length; console.log(`\n${n}/${results.length} passed`); process.exit(n === results.length ? 0 : 1);

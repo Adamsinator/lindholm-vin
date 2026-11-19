@@ -94,12 +94,12 @@ async function orders(CACHE, curl, log) {
 }
 
 // ── IGN's municipalities (INSPIRE administrative units, GML, lat lon) for the DOCa's box ─────────────────────────────
-async function municipalities(CACHE, curl) {
-  const file = path.join(CACHE, "es-rioja-municipios.json");
+async function municipalities(CACHE, curl, key = "rioja", bbox = "41.9,-3.3,42.85,-1.5") {
+  const file = path.join(CACHE, `es-${key}-municipios.json`);
   if (fs.existsSync(file)) return JSON.parse(fs.readFileSync(file, "utf8"));
   const out = [];
   for (let start = 0; ; start += 200) {
-    const gml = String(await curl(`https://www.ign.es/wfs-inspire/unidades-administrativas?service=WFS&version=2.0.0&request=GetFeature&typeNames=au:AdministrativeUnit&count=200&startIndex=${start}&bbox=41.9,-3.3,42.85,-1.5,urn:ogc:def:crs:EPSG::4326`));
+    const gml = String(await curl(`https://www.ign.es/wfs-inspire/unidades-administrativas?service=WFS&version=2.0.0&request=GetFeature&typeNames=au:AdministrativeUnit&count=200&startIndex=${start}&bbox=${bbox},urn:ogc:def:crs:EPSG::4326`));
     const units = gml.split(/<au:AdministrativeUnit\b/).slice(1);
     for (const u of units) { const code = (u.match(/<au:nationalCode>(\d+)</) || [])[1] || ""; if (code.length !== 11 || /00000$/.test(code)) continue; // municipalities only (the country, regions and provinces end 00000)
       const name = text((u.match(/<gn:text>([^<]*)</) || [])[1] || ""), polys = [];
@@ -163,4 +163,31 @@ async function riojaBuild(H) {
   return { climats, villages, regionalLand: [], meta: { proj: "eq", origin: O, l93: null, shade: "es", unmapped: unmapped.sort((a, b) => a.localeCompare(b, "es")),
     source: `Viñedos singulares: Ministerio de Agricultura, Pesca y Alimentación, Órdenes APA 2019–2025 (BOE); parcels: SIGPAC, Fondo Español de Garantía Agraria (FEGA), CC BY 4.0; zones: the DOCa Rioja's pliego de condiciones, municipalities © Instituto Geográfico Nacional, CC BY 4.0 [data edited]` } };
 }
-module.exports = { riojaBuild, utm30, num, parcels, enclosures, tables };
+
+// ── regions drawn by municipality: Ribera del Duero (its pliego lists the INE codes of its municipalities and their
+// villages, 2020) and Priorat (nine municipalities whole, and the north of Falset and the east of El Molar) ─────────
+// "INE|name|villages": a municipality with villages named is only partly in the DO (those villages); it's drawn whole
+const RIBERA = "09003|Adrada de Haza|\n09017|Anguix|\n09018|Aranda de Duero|\n09035|Baños de Valdearados|\n09051|Berlangas de Roa|\n09064|Caleruega|Caleruega\n09065|Campillo de Aranda|\n09085|Castrillo de la Vega|\n09117|Cueva de Roa (La)|\n09131|Fresnillo de las Dueñas|\n09136|Fuentecén|\n09137|Fuentelcésped|\n09138|Fuentelisendo|Fuentelisendo\n09139|Fuentemolinos|\n09140|Fuentenebro|Fuentenebro\n09141|Fuentespina|\n09151|Gumiel de Izán|\n09152|Gumiel de Mercado|\n09155|Haza|Haza\n09160|Hontangas|\n09164|Hontoria de Valdearados|\n09168|Horra (La)|\n09170|Hoyales de Roa|Hoyales de Roa\n09199|Mambrilla de Castrejón|\n09218|Milagros|Milagros\n09228|Moradillo de Roa|\n09229|Nava de Roa|Nava de Roa\n09235|Olmedillo de Roa|\n09253|Pardilla|\n09256|Pedrosa de Duero|\n09261|Peñaranda de Duero|\n09279|Quemada|\n09281|Quintana del Pidio|Quintana del Pidio\n09321|Roa|Roa\n09337|San Juan del Monte|\n09339|San Martín de Rubiales|San Martín de Rubiales\n09345|Santa Cruz de la Salceda|Santa Cruz de la Salceda\n09365|Sequera de Haza (La)|\n09369|Sotillo de la Ribera|\n09380|Terradillos de Esgueva|\n09387|Torregalindo|\n09391|Tórtoles de Esgueva|Tórtoles de Esgueva+Villovela de Esgueva\n09396|Tubilla del Lago|\n09400|Vadocondes|\n09403|Valdeande|\n09405|Valdezate|\n09421|Vid y Barrios (La)|\n09428|Villaescusa de Roa|\n09438|Villalba de Duero|Villalba de Duero\n09440|Villalbilla de Gumiel|Villalbilla de Gumiel\n09451|Villanueva de Gumiel|\n09464|Villatuelda|\n09483|Zazuar|\n40014|Aldehorno|\n40099|Honrubia de la Cuesta|\n40130|Montejo de la Vega de la|\n40229|Villaverde de Montejo|\n42007|Alcubilla de Avellaneda|\n42043|Burgo de Osma-Ciudad de Osma|Alcubilla del Marqués\n42058|Castillejo de Robledo|Castillejo de Robledo\n42103|Langa de Duero|\n42116|Miño de San Esteban|Miño de San Esteban\n42162|San Esteban de Gormaz|\n47022|Bocos de Duero|\n47033|Canalejas de Peñafiel|\n47038|Castrillo de Duero|\n47059|Curiel de Duero|\n47063|Fompedraza|\n47080|Manzanillo|\n47103|Olivares de Duero|\n47106|Olmos de Peñafiel|\n47114|Peñafiel|\n47116|Pesquera de Duero|\n47118|Piñel de Abajo|\n47119|Piñel de Arriba|\n47127|Quintanilla de Arriba|\n47129|Quintanilla de Onésimo|\n47131|Rábano|\n47137|Roturas|\n47170|Torre de Peñafiel|\n47179|Valbuena de Duero|\n47180|Valdearcos de la Vega|";
+const MUNI_REGIONS = {
+  ribera: { bbox: "41.2,-4.8,42.0,-2.7", source: "Municipalities: the DOP Ribera del Duero's pliego de condiciones (2020, its section 4); boundaries © Instituto Geográfico Nacional, CC BY 4.0 [data edited]",
+    list: () => RIBERA.split("\n").map(l => { const [ine, name, v] = l.split("|"); return { ine, name, villages: v ? v.split("+") : null }; }),
+    area: { "09": "Burgos", "40": "Segovia", "42": "Soria", "47": "Valladolid" } },
+  priorat: { bbox: "41.05,0.65,41.32,0.95", source: "Municipalities: the DOQ Priorat (nine whole, and the north of Falset and the east of El Molar, as the Consell Regulador describes it); boundaries © Instituto Geográfico Nacional, CC BY 4.0 [data edited]",
+    list: () => ["Bellmunt del Priorat", "Gratallops", "el Lloar", "la Morera de Montsant", "Poboleda", "Porrera", "Torroja del Priorat", "la Vilella Alta", "la Vilella Baixa"].map(name => ({ prov: "43", name, villages: null }))
+      .concat([{ prov: "43", name: "Falset", villages: ["Masos de Falset"] }, { prov: "43", name: "el Molar", villages: ["Les Solanes del Molar"] }]),
+    area: {} },
+};
+async function muniBuild(H, key) {
+  const { CACHE, curl, union, tidy, polyHa, label, slug } = H, R = MUNI_REGIONS[key], log = [];
+  const munis = await municipalities(CACHE, curl, key, R.bbox), find = finder(munis), sel = [];
+  for (const x of R.list()) { const m = x.ine ? munis.find(u => u.ine === x.ine) : find(x.name, x.prov); if (!m) { log.push(`no municipality ${x.ine || ""} ${x.name}`); continue; } sel.push({ x, m }); }
+  const all = sel.flatMap(({ m }) => m.polys.flatMap(p => p[0])), lo = all.map(p => p[0]), la = all.map(p => p[1]);
+  const O = [+((Math.min(...lo) + Math.max(...lo)) / 2).toFixed(4), +((Math.min(...la) + Math.max(...la)) / 2).toFixed(4)];
+  const d2r = Math.PI / 180, kx = d2r * 6371000 * Math.cos(O[1] * d2r), ky = d2r * 6371000, m_ = ([x, y]) => [(x - O[0]) * kx, (O[1] - y) * ky];
+  const climats = sel.map(({ x, m }) => { const mp = union(m.polys.map(p => p.map(r => r.map(m_)))), g = tidy(mp, 15), n = m.name.split(/\s*\/\s*/)[0];
+    return { id: slug(n), n, c: "MU", ap: "Municipio", app: n, area: R.area[m.ine.slice(0, 2)] || "", ine: m.ine, ha: +polyHa(mp).toFixed(0), lp: label(g), g, aka: [n],
+      ...(x.villages ? { villages: x.villages } : {}) }; });
+  log.forEach(l => console.error("  · " + l));
+  return { climats, villages: [], regionalLand: [], meta: { proj: "eq", origin: O, l93: null, shade: "es", source: R.source } };
+}
+module.exports = { riojaBuild, muniBuild, utm30, num, parcels, enclosures, tables };
