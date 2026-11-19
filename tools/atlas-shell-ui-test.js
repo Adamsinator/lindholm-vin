@@ -29,7 +29,7 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   check("…the map is the whole screen, the header gone", box[0] === box[2] && box[1] === box[3] && await q.isHidden("header.top"), JSON.stringify(box));
   const home = await q.evaluate(() => ({ names: [...document.querySelectorAll("#map .cn.on")].map(x => x.dataset.c).sort().join(), grey: !!document.querySelector('#map .cn:not(.on)'),
     relief: !!document.querySelector("#map image"), credit: /Natural Earth/.test(document.getElementById("side").textContent), dots: document.querySelectorAll("#map .hd.on").length }));
-  check("…Europe with its countries named; France, Germany and Austria (mapped) stand out, Italy (no map yet) is grey; no relief", home.names === "at,de,fr" && home.grey && !home.relief && home.credit && !home.dots, JSON.stringify(home));
+  check("…Europe with its countries named; France, Germany, Austria and Spain (mapped) stand out, Italy (no map yet) is grey; no relief", home.names === "at,de,es,fr" && home.grey && !home.relief && home.credit && !home.dots, JSON.stringify(home));
   const fr = await q.evaluate(() => { const r = document.querySelector('#map .land.on[data-c="fr"]').getBoundingClientRect(); return [r.left + r.width * .45, r.top + r.height * .55]; });
   await q.tap('#map .cn.on[data-c="fr"]'); await q.waitForTimeout(1200);
   const inFr = await q.evaluate(() => { const m = document.getElementById("map").getBoundingClientRect(), ts = [...document.querySelectorAll("#map .hd.on text")].map(t => t.getBoundingClientRect());

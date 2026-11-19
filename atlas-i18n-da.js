@@ -1,0 +1,17 @@
+// The wine atlas's own texts in Danish (atlas.html; English is the source). Loaded after i18n-da.js, which i18n.js
+// makes sure of, and added to its dictionary: words only the atlas uses, so the cellar page doesn't load them.
+Object.assign(window.I18N_DICT.da, {
+  "Viñedo singular": "Viñedo singular",
+  "Viñedos singulares": "Viñedos singulares",
+  "{0} viñedos singulares the Ministry has recognised. Click one.": "{0} viñedos singulares, som landbrugsministeriet har anerkendt. Klik på en.",
+  "Not drawn: {0}. Their parcels have been renumbered in SIGPAC since they were recognised.": "Ikke tegnet: {0}. Deres parceller er blevet omnummereret i SIGPAC, siden de blev anerkendt.",
+  "Recognised by {0} (BOE), {1}.": "Anerkendt ved {0} (BOE), {1}.",
+  "Some of its parcels have been renumbered in SIGPAC since; it is drawn without them.": "Nogle af dens parceller er siden blevet omnummereret i SIGPAC; den er tegnet uden dem.",
+  "Viñedos singulares © MAPA (BOE) · parcels © FEGA (SIGPAC), CC BY 4.0": "Viñedos singulares © MAPA (BOE) · parceller © FEGA (SIGPAC), CC BY 4.0",
+  "relief © IGN": "relief © IGN",
+  "Every region here is drawn from its official map: INAO's for France, the Weinbergsrolle for Germany, the Länder's Rieden for Austria, the Ministry's viñedos singulares for Spain. Pick one.": "Hver region her er tegnet efter sit officielle kort: INAO's for Frankrig, Weinbergsrolle for Tyskland, delstaternes rieder for Østrig, ministeriets viñedos singulares for Spanien. Vælg en.",
+  "{0} region": "{0} region",
+  "One region, drawn from its official map.": "Én region, tegnet efter sit officielle kort.",
+  "The DOCa's zones": "DOCa'ens zoner",
+  "The zones are drawn as the whole municipalities the DOCa's rules list, not only their vineyards.": "Zonerne er tegnet som hele de kommuner, DOCa'ens regler nævner, ikke kun deres vinmarker."
+});

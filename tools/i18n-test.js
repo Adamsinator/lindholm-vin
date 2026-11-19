@@ -10,9 +10,10 @@ const ph = s => (String(s).match(/\{\d\}/g) || []).sort().join();
 
 // UI: one dictionary file per language (i18n-da.js…), loaded by i18n.js
 const src = fs.readFileSync(R("i18n.js"), "utf8");
-// the shared dictionary, plus the privacy page's own (privacy-i18n-*.js, loaded only there)
+// the shared dictionary, plus the privacy page's and the atlas's own (privacy-i18n-*.js, atlas-i18n-*.js, loaded only there)
 const dict = l => { const w = {}; new Function("window", fs.readFileSync(R(`i18n-${l}.js`), "utf8"))(w);
   new Function("window", fs.readFileSync(R(`privacy-i18n-${l}.js`), "utf8"))(w);
+  new Function("window", fs.readFileSync(R(`atlas-i18n-${l}.js`), "utf8"))(w); // the atlas's own (atlas-i18n-*.js, loaded only there)
   new Function("window", fs.readFileSync(R("atlas-wx-i18n.js"), "utf8"))(w); Object.entries(w.ATLAS_WX_I18N[l]).forEach(([k, v]) => { if (!(k in w.I18N_DICT[l])) w.I18N_DICT[l][k] = v; }); // the weather panel's own
   return w.I18N_DICT[l]; };
 const D = { da: dict("da"), de: dict("de"), fr: dict("fr") };
