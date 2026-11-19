@@ -235,8 +235,7 @@ async function post(params){
   return res.json();
 }
 
-// Usage numbers for the owner's admin page: which pages were shown, imports, sommelier questions, exports — counts
-// only, sent in a batch now and then (and when the page is left), never with a name or anything from the cellar
+// Usage counts for the admin page, sent in batches; never a name or anything from the cellar
 const HITS = {};
 function hit(k){ if(!cfg.token) return; HITS[k] = (HITS[k]||0) + 1; if(Object.values(HITS).reduce((a,b)=>a+b, 0) >= 20) flushHits(); }
 function flushHits(leaving){
@@ -301,9 +300,8 @@ function normalize(rows){
 }
 
 /* ---------- classification: what the sheet says, or a suggestion from the wine's name (burgundy-match.js) ---------- */
-// The suggestion reads the label against the Burgundy atlas's climats: "Clos St-Jacques" + Gevrey → 1. cru,
-// "Chambertin" → Grand cru, "Gevrey-Chambertin" → village (AOC). Elsewhere only an explicit "Grand cru"/"1er cru"
-// on the label counts. Nothing is written to the sheet until you save a form or press "Fill them in".
+// The suggestion reads the label against the Burgundy atlas's climats; elsewhere only an explicit "Grand cru"/"1er cru"
+// counts. Nothing is written until you save or press "Fill them in".
 const clsKey = c => window.BURG_MATCH ? BURG_MATCH.classKey(c) : String(c||"").trim().toLowerCase();
 const CLASS_MEMO = new Map(); // the same name, commune and region always give the same guess
 function suggestClass(w){
@@ -338,8 +336,7 @@ let toastT;
 // the server's limits, said in words wherever an error message shows their code
 const LIMIT_MSG = {"too-many":"You've done that a lot in a short time: wait a while and try again.", "too-big":"That's too large to save."};
 const limitText = m => String(m).replace(/\b(too-many|too-big)\b/, c => tr(LIMIT_MSG[c]));
-// An error as a person should read it: the API's codes and Google's usual exception texts (quotas, timeouts, locks,
-// permissions) in plain words, in the chosen language; anything else as it came, without "Error:"/"Exception:".
+// An error in plain words: the API's codes and Google's usual exceptions; anything else as it came
 const ERR_TEXT = [
   [/^(too-many|too-big)$/, m => tr(LIMIT_MSG[m])],
   [/^stale$/, () => tr("Changed on another device meanwhile. Reload and try again.")],

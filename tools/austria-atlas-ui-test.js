@@ -4,7 +4,7 @@
 //   • Lower Austria opens with its Rieden counted and the note that it is still mapping them; Burgenland without it
 //   • a Ried from a link: Achleiten in Weißenkirchen, its pill "Ried", its municipality, area and cadastral municipality
 //   • the same name in several villages (the Kellerbergs) stays apart; the search finds a Ried by name
-//   • the start page draws Austria in a box of its own, so the map keeps its frame; no console errors, no sideways scroll
+//   • the start page names Austria; a tap on it shows its two regions; no console errors, no sideways scroll
 //   (cd .. && python3 -m http.server 8765) & node tools/austria-atlas-ui-test.js
 "use strict";
 const { chromium } = require("./pw");
@@ -47,16 +47,16 @@ check("…and both credit their Land's open data (CC BY 4.0)", /Land Niederöste
   const bs = await p.textContent("#side");
   check("Burgenland opens with its Rieden and no note of missing ones", /\d{3} Rieden/.test(bs) && !/still mapping/.test(bs), bs.slice(0, 200));
 
-  // the start page, on a phone: Austria in its box, the labels still readable
+  // the start page, on a phone: Austria named among the mapped countries; a tap on it, its two regions
   const q = await page({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   await q.goto(BASE + "atlas.html"); await q.waitForTimeout(1500);
-  const home = await q.evaluate(() => { const box = document.querySelector("#map rect.inset"), r = box && box.getBoundingClientRect(), dot = n => document.querySelector(`#map .hd[data-id="${n}"] circle`).getBoundingClientRect();
-    const inside = n => { const d = dot(n); return r && d.left >= r.left - 2 && d.right <= r.right + 2 && d.top >= r.top - 2 && d.bottom <= r.bottom + 2; };
-    return { box: !!box, inside: inside("noe") && inside("burgenland"), scale: document.getElementById("map").getScreenCTM().a, font: parseFloat(getComputedStyle(document.querySelector("#map .hd text")).fontSize), wide: document.documentElement.scrollWidth - innerWidth,
-      list: [...document.querySelectorAll("#side h3")].map(h => h.textContent) }; });
-  check("the start page draws Austria in a box of its own, both dots in it", home.box && home.inside, JSON.stringify(home));
-  check("…and a phone's labels stay readable (≥ 10 px), with no sideways scroll", home.font * home.scale >= 10 && home.wide <= 0, JSON.stringify(home));
-  check("…and the list has Austria", home.list.some(x => /Austria/.test(x)), JSON.stringify(home.list));
+  const eu = await q.evaluate(() => (document.querySelector('#map .cn.on[data-c="at"]') || {}).textContent || "");
+  check("the start page names Austria with its two regions", /Austria\s*2 regions/.test(eu), eu);
+  await q.tap('#map .cn.on[data-c="at"]'); await q.waitForTimeout(1200);
+  const home = await q.evaluate(() => ({ hash: location.hash, on: [...document.querySelectorAll("#map .hd.on")].map(x => x.dataset.id).sort().join(), scale: document.getElementById("map").getScreenCTM().a,
+    font: document.querySelector('#map .hd.on text').getBoundingClientRect().height, wide: document.documentElement.scrollWidth - innerWidth, list: [...document.querySelectorAll("#side li button")].map(b => b.textContent) }));
+  check("…a tap on it: Lower Austria and Burgenland, readable, nothing wider than the screen", home.hash === "#c=at" && home.on === "burgenland,noe" && home.font >= 10 && home.wide <= 0, JSON.stringify(home));
+  check("…and the list has just those two", home.list.length === 2 && home.list.some(x => /Niederösterreich/.test(x)), JSON.stringify(home.list));
   check("no console errors", !errs.length, errs.join(" | "));
   await b.close();
   const n = results.filter(Boolean).length; console.log(`\n${n}/${results.length} passed`); process.exit(n === results.length ? 0 : 1);

@@ -291,7 +291,7 @@ window.I18N_DICT.fr = {
   "+ {0} other wines": "+ {0} autres vins",
   "This bottle stands for {0}:": "Cette bouteille représente {0} :",
   "Bottles by region": "Bouteilles par région",
-  "The outlines are where each region's vineyards are, from its own map. Relief: Natural Earth (public domain).": "Les contours montrent où sont les vignes de chaque région, d'après sa propre carte. Relief : Natural Earth (domaine public).",
+  "Borders: Natural Earth (public domain). The outlines are where each region's vineyards are, from its own map.": "Frontières : Natural Earth (domaine public). Les contours montrent où sont les vignes de chaque région, d'après sa propre carte.",
   "See it in 3D": "Voir en 3D", "The map in 3D": "La carte en 3D", "Height ×": "Hauteur ×", "Tilt / from above": "Incliner / vue de dessus", "Heights: IGN, RGE ALTI® (Licence Ouverte).": "Altitudes : IGN, RGE ALTI® (Licence Ouverte).", "Fetching the ground…": "Chargement du relief…", "Fetching the ground… {0} %": "Chargement du relief… {0} %", "Couldn't fetch the ground just now. Check the connection and try again.": "Impossible de charger le relief pour le moment. Vérifiez la connexion et réessayez.", "IGN has no heights here: the 3D view is for France.": "L'IGN n'a pas d'altitudes ici : la vue 3D est pour la France.", "Côte d'Or": "Côte d'Or",
   "Drink a bottle": "Boire une bouteille", "Show in the list": "Voir dans la liste", "The wine": "Le vin",
   "{0} regions": "{0} régions", "{0} vineyards": "{0} vignobles", "Automatic": "Automatique", "Light": "Clair", "Dark": "Sombre", "Aerial photo": "Photo aérienne", "Aerial photos: IGN, France only.": "Photos aériennes : IGN, France uniquement.", "Map style and layers": "Style de la carte et calques", "Map style": "Style de la carte", "Where you are": "Où vous êtes", "Menu": "Menu", "Aerial photos: IGN (Géoplateforme, Licence Ouverte).": "Photos aériennes : IGN (Géoplateforme, Licence Ouverte).",
@@ -1037,4 +1037,6 @@ window.I18N_DICT.fr = {
   "Subrieden: {0}": "Sous-Rieden : {0}",
   "Rieden © Land {0}, CC BY 4.0": "Rieden © Land {0}, CC BY 4.0",
   "relief © basemap.at": "relief © basemap.at",
+  "{0} regions, each drawn from its official map. Pick one.": "{0} régions, chacune dessinée d'après sa carte officielle. Choisissez-en une.",
+  "Maps to come: the MGA as lists for now.": "Cartes à venir : les MGA en listes pour l'instant.",
 };

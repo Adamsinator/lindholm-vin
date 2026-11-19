@@ -412,6 +412,7 @@ const up = e => { const had = ptrs.size; ptrs.delete(e.pointerId);
     pan = null; } };
 svg.addEventListener("pointerup", e => { const tgt = document.elementFromPoint(e.clientX, e.clientY), touch = e.pointerType === "touch"; up(e);
   const hd = !st.pack && tgt && tgt.closest && tgt.closest(".hd, .ol"); if (hd) { goTo(hd.dataset.id); return; }
+  const cn = !st.pack && moved < 6 && tgt && tgt.closest && tgt.closest(".on[data-c]"); if (cn && cn.dataset.c !== EU.c) { location.hash = "#c=" + cn.dataset.c; return; }
   if (moved >= 6 || !st.pack) return;
   // a second tap close by, soon after: zoom in there (the first tap's selection stands)
   if (touch) { const now = performance.now();
@@ -924,70 +925,118 @@ function place() {
 }
 
 /* ---------- region, hash, filters ---------- */
-/* ---------- the start page: Europe, a dot for every region ---------- */
+/* ---------- the start page: Europe with its borders and names; a country the atlas maps, its regions; then a region's
+   own map (#c=fr is a country, #r=chablis a region). One drawing, eased from frame to frame ---------- */
 const allPlaces = () => REGIONS.concat(ELSEWHERE);
 function goTo(id) {
   const x = allPlaces().find(r => r.id === id); if (!x) return;
   if (x.href) location.href = x.href.replace("{L}", window.I18N ? I18N.lang : "en"); else location.hash = "#r=" + id;
 }
-function showHome() {
+// EUROPE_LANDS' names as ISO codes, for the browser's own country names in the page's language; where a name goes
+const ISO = { France: "FR", Spain: "ES", Portugal: "PT", Italy: "IT", Germany: "DE", Austria: "AT", Switzerland: "CH", Denmark: "DK", "United Kingdom": "GB", Ireland: "IE",
+  Netherlands: "NL", Belgium: "BE", Luxembourg: "LU", Norway: "NO", Sweden: "SE", Poland: "PL", Czechia: "CZ", Slovakia: "SK", Hungary: "HU", Slovenia: "SI", Croatia: "HR",
+  Greece: "GR", Romania: "RO", Bulgaria: "BG", Serbia: "RS", Bosnia: "BA" };
+const NAME_LL = { FR: [2.6, 46.9], DE: [10.3, 51.2], AT: [14.3, 47.55], IT: [12.6, 42.6], ES: [-3.6, 40.2], PT: [-8, 39.7], GB: [-1.6, 52.6], NO: [9, 61], SE: [15, 61.5], PL: [19.3, 52.1],
+  CZ: [15.4, 49.8], HU: [19.4, 47.2], CH: [8.2, 46.85], NL: [5.6, 52.3], BE: [4.6, 50.6], DK: [9.2, 56.1], HR: [16, 45.3], SI: [14.8, 46.1], IE: [-8, 53.2], SK: [19.6, 48.7],
+  RO: [24.8, 45.9], RS: [20.8, 44.1], GR: [22, 39.4], BG: [25.2, 42.7], LU: [6.1, 49.75] };
+// small countries whose names go when the map is small (a phone)
+const MINOR = new Set(["LU", "BE", "NL", "SI", "HR", "BA", "SK", "RS", "CZ", "HU", "DK", "IE", "RO", "BG", "GR", "NO", "SE"]);
+const cname = cc => { try { return new Intl.DisplayNames([window.I18N ? I18N.lang : "en"], { type: "region" }).of(cc.toUpperCase()); } catch (e) { return t(COUNTRY[cc] || cc); } };
+const mapped = () => [...new Set(REGIONS.map(r => r.country))]; // Italy's two are lists of MGA for now: grey until it has a map
+// the regions a reader looks for first, drawn larger
+const MAJOR = new Set(["bordeaux", "cotedor", "champagne", "rhone", "rhonesud", "touraine", "alsace", "mosel", "noe"]);
+const HK = 100, HC = Math.cos(47 * Math.PI / 180), hxy = ([lo, la]) => [lo * HC * HK, -la * HK];
+const EU = { c: null, vb: null, raf: 0, regs: [] };
+function homeFit([x0, y0, x1, y1], pad) {
+  const b = svg.getBoundingClientRect(), ar = b.width / b.height || 4 / 3; let w = (x1 - x0) * (1 + pad), h = (y1 - y0) * (1 + pad);
+  if (w / h < ar) w = h * ar; else h = w / ar; return [(x0 + x1 - w) / 2, (y0 + y1 - h) / 2, w, h];
+}
+const hbox = pts => [Math.min(...pts.map(p => p[0])), Math.min(...pts.map(p => p[1])), Math.max(...pts.map(p => p[0])), Math.max(...pts.map(p => p[1]))];
+// Europe from Ireland to Romania; a country framed on its regions (Germany's are all in the west), never under 4° across
+const homeFrame = c => { if (!c) return homeFit(hbox((svg.getBoundingClientRect().width < 600 ? [[-6, 40], [17.5, 54]] : [[-10, 36.5], [21, 57]]).map(hxy)), 0);
+  const pts = EU.regs.filter(r => r.r.country === c).flatMap(r => r.pts), [x0, y0, x1, y1] = hbox(pts), m = 4 * HC * HK;
+  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, w = Math.max(x1 - x0, m), h = Math.max(y1 - y0, m * .6); return homeFit([cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2], .3); };
+function showHome(c) {
+  c = mapped().includes(c) ? c : null;
   st.region = null; st.pack = null; st.sel = null; st.view = null; $("scalebar").hidden = true; ROT.g = null; compassSync(); locatorDraw(); // the start page isn't turned
-  document.title = "AllWine — " + t("Wine atlas"); $("regionName").textContent = ""; $("fRegion").value = "";
-  document.body.classList.add("home");
-  // France, Germany and the north of Italy, on a plain grid (longitude shrunk by the cosine of 47°)
-  const W = 1000, lo0 = -2.6, lo1 = 13.6, la0 = 43.3, la1 = 51.7, k = W / ((lo1 - lo0) * Math.cos(47 * Math.PI / 180)), H = Math.round((la1 - la0) * k);
-  const xy = ([lo, la]) => [((lo - lo0) * Math.cos(47 * Math.PI / 180) * k).toFixed(1), ((la1 - la) * k).toFixed(1)];
-  // Austria lies far east of the rest: drawn at a third of the scale in a box north of the Rhine, so the map keeps its
-  // frame (twice as wide, a phone's labels would be too small to read)
-  const AT = ([lo, la]) => [6.6 + (lo - 9.4) * 0.3, 50.95 + (la - 46.3) * 0.3], ll = r => r.country === "at" ? AT([r.ll[1], r.ll[0]]) : [r.ll[1], r.ll[0]];
-  clearTimeout(relayT); mapview.style.transform = ""; vbC = null; // no region's gesture left over
-  svg.innerHTML = "";
-  // framed on the regions, not the whole sheet: on a phone they'd be specks. Room for the labels, which run east, and
-  // for the breadcrumb above; the land and relief go on beyond the frame where the screen is wider than it
-  // (a phone draws the labels bigger, see atlas.html, so it needs more room at the sides)
-  const phone = matchMedia("(max-width: 760px)").matches, pad = phone ? [100, 70, 175, 50] : [70, 70, 130, 50];
-  const P = allPlaces().map(r => xy(ll(r)).map(Number)), bx = [Math.min(...P.map(p => p[0])) - pad[0], Math.min(...P.map(p => p[1])) - pad[1]];
-  svg.setAttribute("viewBox", `${bx[0].toFixed(0)} ${bx[1].toFixed(0)} ${(Math.max(...P.map(p => p[0])) + pad[2] - bx[0]).toFixed(0)} ${(Math.max(...P.map(p => p[1])) + pad[3] - bx[1]).toFixed(0)}`);
-  svg.setAttribute("role", "group"); svg.setAttribute("aria-label", t("Map of the wine regions")); // its dots are links: a group, not an image
-  const g = el("g", {}, svg), clip = el("clipPath", { id: "landClip" }, el("defs", {}, g));
-  for (const [n, ring] of Object.entries(window.EUROPE_LANDS || {})) {
-    const d = "M" + ring.map(xy).map(q => q.join(" ")).join("L") + "Z";
-    el("path", { class: "land" + (/^(France|Germany|Italy)/.test(n) ? " on" : ""), d }, g); el("path", { d }, clip); }
-  const au = (window.EUROPE_LANDS || {}).Austria;
-  if (au) { const [x0, y0] = xy(AT([9.3, 49.15])).map(Number), [x1, y1] = xy(AT([17.3, 46.2])).map(Number);
-    el("rect", { class: "inset", x: x0, y: y0, width: x1 - x0, height: y1 - y0 }, g);
-    el("path", { class: "land on", d: "M" + au.map(p => xy(AT(p)).join(" ")).join("L") + "Z" }, g); }
-  // the lie of the land: Natural Earth's shaded relief (public domain), cut to the same frame, over the land only
-  const [rx0, ry0] = xy([-6, 53]).map(Number), [rx1, ry1] = xy([16, 41.5]).map(Number); // the image's corners
-  el("image", { href: "atlas-relief-eu.webp", x: rx0, y: ry0, width: rx1 - rx0, height: ry1 - ry0, preserveAspectRatio: "none", class: "relief", "clip-path": "url(#landClip)", "aria-hidden": "true" }, g);
-  // where each region's vineyards are (atlas-outlines.js, built from the regions' own maps), loaded with the page's first view
-  const ols = el("g", { class: "ols", "aria-hidden": "true" }, g);
-  const outline = () => { for (const r of allPlaces()) { const O = window.ATLAS_OUTLINES || {}, rings = O[r.id] || (r.id === "cotedor" && O.burgundy); /* the Côte d'Or's outline: filed under its old name */ if (!rings) continue;
-    el("path", { class: "ol" + (r.href ? " out" : ""), "data-id": r.id, "fill-rule": "evenodd", d: rings.map(q => "M" + q.map(r.country === "at" ? p => xy(AT(p)) : xy).map(p => p.join(" ")).join("L") + "Z").join("") }, ols); } };
-  if (window.ATLAS_OUTLINES) outline(); else loadScript("atlas-outlines.js?v=3").then(() => { if (!st.pack && ols.isConnected) outline(); }).catch(() => {});
-  // a region's outline and its dot light up together
-  const hot = (e, on) => { const x = e.target.closest && e.target.closest("[data-id]"); if (x) svg.querySelectorAll(`[data-id="${x.dataset.id}"]`).forEach(n => n.classList.toggle("hot", on)); };
-  g.addEventListener("pointerover", e => hot(e, true)); g.addEventListener("pointerout", e => hot(e, false));
-  for (const r of allPlaces()) {
-    const [x, y] = xy(ll(r)), a = el("g", { class: "hd" + (r.href ? " out" : ""), "data-id": r.id, tabindex: 0, role: "link", "aria-label": r.name }, g);
-    el("circle", { cx: x, cy: y, r: r.id === "burgundy" ? 6.5 : 5 }, a); // small: the outline shows the region
-    // labels west of the dot where the Rhine regions crowd, east elsewhere
-    // (and under it for Touraine, between Anjou and the Centre-Loire)
-    // (on a phone's bigger labels Nahe goes under its dot, clear of the Mosel's)
-    const below = r.id === "touraine" || phone && r.id === "nahe", west = !below && ["nahe", "mosel", "ahr", "maconnais", "chalonnaise", "barolo", "anjou", "noe"].includes(r.id);
-    const lb = el("text", { x: below ? x : +x + (west ? -12 : 12), y: +y + (below ? (phone ? 30 : 22) : phone ? 7 : 4), "text-anchor": below ? "middle" : west ? "end" : "start" }, a); lb.textContent = r.name;
-    a.onkeydown = e => { if (e.key === "Enter") goTo(r.id); };
-  }
+  document.title = "AllWine — " + (c ? cname(c) + " · " : "") + t("Wine atlas"); $("regionName").textContent = c ? " · " + cname(c) : ""; $("fRegion").value = "";
+  const fresh = !document.body.classList.contains("home") || !svg.querySelector(".hl");
+  document.body.classList.add("home"); EU.c = c;
+  if (fresh) drawHome();
+  svg.querySelectorAll(".land").forEach(p => p.classList.toggle("cur", !!c && p.dataset.c === c));
+  svg.querySelectorAll(".hd, .ol").forEach(n => { const on = !!c && n.dataset.cc === c; n.classList.toggle("on", on); if (n.matches(".hd")) n.tabIndex = on ? 0 : -1; });
+  svg.classList.toggle("in", !!c);
+  homeView(homeFrame(c), !fresh);
   renderLegend(); renderHomeSide(); document.body.classList.remove("side-open"); renderCrumb();
 }
+function drawHome() {
+  clearTimeout(relayT); mapview.style.transform = ""; vbC = null; // no region's gesture left over
+  svg.innerHTML = ""; EU.vb = null;
+  svg.setAttribute("role", "group"); svg.setAttribute("aria-label", t("Map of the wine regions")); // its dots are links: a group, not an image
+  const g = el("g", { class: "hl" }, svg), M = mapped(), d = ring => "M" + ring.map(hxy).map(q => q[0].toFixed(0) + " " + q[1].toFixed(0)).join("L") + "Z";
+  for (const [n, ring] of Object.entries(window.EUROPE_LANDS || {})) { const cc = (ISO[n.replace(/~\d+$/, "")] || "").toLowerCase();
+    el("path", { class: "land" + (M.includes(cc) ? " on" : ""), "data-c": M.includes(cc) ? cc : "", d: d(ring) }, g); }
+  // the countries' names: those the atlas maps larger, with how many regions; the rest small, grey
+  for (const [cc, ll] of Object.entries(NAME_LL)) { const c = cc.toLowerCase(), on = M.includes(c), [x, y] = hxy(ll);
+    const tx = el("text", { class: "cn" + (on ? " on" : MINOR.has(cc) ? " mi" : ""), x, y, "data-c": on ? c : "" }, g); tx.textContent = cname(c);
+    if (on) { const n = REGIONS.filter(r => r.country === c).length, s = el("tspan", { class: "n", x, dy: "1.2em" }, tx); s.textContent = t("{0} regions", n); } }
+  // where each region's vineyards are (atlas-outlines.js, built from the regions' own maps), loaded with the page's first view
+  const ols = el("g", { class: "ols", "aria-hidden": "true" }, g);
+  EU.regs = REGIONS.map(r => ({ r, xy: hxy([r.ll[1], r.ll[0]]), pts: [hxy([r.ll[1], r.ll[0]])] }));
+  const outline = () => { const O = window.ATLAS_OUTLINES || {};
+    for (const h of EU.regs) { const rings = O[h.r.id] || (h.r.id === "cotedor" && O.burgundy); /* the Côte d'Or's outline: filed under its old name */ if (!rings) continue;
+      h.pts.push(...rings.flat().map(hxy));
+      el("path", { class: "ol" + (EU.c === h.r.country ? " on" : ""), "data-id": h.r.id, "data-cc": h.r.country, "fill-rule": "evenodd", d: rings.map(d).join("") }, ols); } };
+  if (window.ATLAS_OUTLINES) outline(); else loadScript("atlas-outlines.js?v=3").then(() => { if (!st.pack && ols.isConnected) { outline(); if (EU.c) homeView(homeFrame(EU.c), true); } }).catch(() => {});
+  // a region's outline and its dot light up together; so do a country's land and name
+  const hot = (e, on) => { const x = e.target.closest && e.target.closest("[data-id], .on[data-c]"); if (!x) return;
+    svg.querySelectorAll(x.dataset.id ? `[data-id="${x.dataset.id}"]` : `.on[data-c="${x.dataset.c}"]`).forEach(n => n.classList.toggle("hot", on)); };
+  g.addEventListener("pointerover", e => hot(e, true)); g.addEventListener("pointerout", e => hot(e, false));
+  for (const h of EU.regs) { const r = h.r, a = el("g", { class: "hd" + (MAJOR.has(r.id) ? " big" : ""), "data-id": r.id, "data-cc": r.country, tabindex: -1, role: "link", "aria-label": r.name }, g);
+    h.dot = el("circle", { cx: h.xy[0], cy: h.xy[1] }, a); h.t = el("text", {}, a); h.t.textContent = r.name; h.at = null;
+    a.onkeydown = e => { if (e.key === "Enter") goTo(r.id); }; }
+}
+// the frame eased to the next; text, dots and their halos keep their size on screen (--u: map units to a pixel)
+function homeView(to, ease) {
+  cancelAnimationFrame(EU.raf); const from = EU.vb || to, t0 = performance.now(), ms = ease && !matchMedia("(prefers-reduced-motion: reduce)").matches ? 600 : 0;
+  const step = now => { const k = ms ? Math.min(1, (now - t0) / ms) : 1, e = 1 - Math.pow(1 - k, 3);
+    EU.vb = from.map((v, i) => v + (to[i] - v) * e); svg.setAttribute("viewBox", EU.vb.map(v => v.toFixed(1)).join(" ")); homeSize(k === 1);
+    if (k < 1) EU.raf = requestAnimationFrame(step); };
+  step(t0);
+}
+function homeSize(done) {
+  const w = svg.getBoundingClientRect().width || 800, u = EU.vb[2] / w * (PHONE.matches ? 1.15 : 1); svg.style.setProperty("--u", u); svg.classList.toggle("sm", w < 600);
+  if (done && EU.c) homeLabels(u);
+  for (const h of EU.regs) { if (!h.dot) continue; h.dot.setAttribute("r", (MAJOR.has(h.r.id) ? 6 : 4.5) * u);
+    const p = h.at || [9, 4, "start"]; h.t.setAttribute("x", h.xy[0] + p[0] * u); h.t.setAttribute("y", h.xy[1] + p[1] * u); h.t.setAttribute("text-anchor", p[2]); }
+}
+// the country's names placed so none covers another or a dot: the larger regions first, each at the first free place
+// round its dot (east, west, under, over, then the corners), else where it covers least
+function homeLabels(u) {
+  const hs = EU.regs.filter(h => h.r.country === EU.c && h.dot).sort((a, b) => MAJOR.has(b.r.id) - MAJOR.has(a.r.id)), placed = [];
+  const px = h => [h.xy[0] / u, h.xy[1] / u];
+  const dots = hs.map(h => { const [x, y] = px(h), r = MAJOR.has(h.r.id) ? 7 : 5.5; return [x - r, y - r, x + r, y + r]; });
+  const over = (a, b) => Math.max(0, Math.min(a[2], b[2]) - Math.max(a[0], b[0])) * Math.max(0, Math.min(a[3], b[3]) - Math.max(a[1], b[1]));
+  for (const h of hs) { const big = MAJOR.has(h.r.id), fs = (big ? 15 : 12.5) * (PHONE.matches ? 1.15 : 1), w = h.t.getComputedTextLength() / u + 2, r = big ? 9 : 7, [x, y] = px(h);
+    const C = [[r, fs * .35, "start"], [-r, fs * .35, "end"], [0, r + fs * .85, "middle"], [0, -r - 2, "middle"], [r * .7, -r * .7, "start"], [r * .7, r + fs * .6, "start"], [-r * .7, -r * .7, "end"], [-r * .7, r + fs * .6, "end"]];
+    let best = null, bestA = Infinity;
+    const vx = EU.vb[0] / u, vy = EU.vb[1] / u, vw = EU.vb[2] / u, vh = EU.vb[3] / u, out = b => (Math.max(0, vx + 6 - b[0]) + Math.max(0, b[2] - vx - vw + 6) + Math.max(0, vy + 52 - b[1]) + Math.max(0, b[3] - vy - vh + 6)) * fs * 4;
+    for (const [dx, dy, an] of C) { const x0 = an === "start" ? x + dx : an === "end" ? x + dx - w : x + dx - w / 2, b = [x0, y + dy - fs * .8, x0 + w, y + dy + fs * .2];
+      const a = placed.concat(dots.filter((_, i) => hs[i] !== h)).reduce((s, q) => s + over(b, q), 0) + out(b); if (a < bestA) { bestA = a; best = [dx, dy, an, b]; } if (!a) break; }
+    h.at = best.slice(0, 3); placed.push(best[3]); }
+}
+addEventListener("resize", () => { if (!st.pack && EU.vb && document.body.classList.contains("home")) homeView(homeFrame(EU.c), false); });
 function renderHomeSide() {
-  const by = c => allPlaces().filter(r => r.country === c);
-  $("side").innerHTML = `<h2>${esc(t("Wine atlas"))}</h2>
+  const c = EU.c, row = r => `<li><button data-go="${r.id}">${esc(r.name)}${r.href ? " ↗" : ""}</button><span>${esc(t(r.kind))}</span></li>`;
+  const list = cc => `<ul class="list">${allPlaces().filter(r => r.country === cc).map(row).join("")}</ul>`;
+  $("side").innerHTML = c ? `<h2>${esc(cname(c))}</h2><p class="meta">${esc(t("{0} regions, each drawn from its official map. Pick one.", REGIONS.filter(r => r.country === c).length))}</p>${list(c)}`
+    : `<h2>${esc(t("Wine atlas"))}</h2>
     <p class="meta">${esc(t("Every region here is drawn from its official map: INAO's for France, the Weinbergsrolle for Germany, the Länder's Rieden for Austria. Pick one."))}</p>
-    ${Object.entries(COUNTRY).map(([c, n]) => `<h3>${esc(t(n))}</h3><ul class="list">${by(c).map(r => `<li><button data-go="${r.id}">${esc(r.name)}${r.href ? " ↗" : ""}</button><span>${esc(t(r.kind))}</span></li>`).join("")}</ul>`).join("")}
-    ${cellarSummaryHome()}
-    <p class="src">${esc(t("The outlines are where each region's vineyards are, from its own map. Relief: Natural Earth (public domain)."))}</p>`;
+    ${mapped().map(cc => `<h3><button class="linkish" data-c="${cc}">${esc(cname(cc))}</button></h3>${list(cc)}`).join("")}
+    ${[...new Set(ELSEWHERE.map(r => r.country))].filter(cc => !mapped().includes(cc)).map(cc => `<h3>${esc(cname(cc))}</h3><p class="note">${esc(t("Maps to come: the MGA as lists for now."))}</p>${list(cc)}`).join("")}`;
+  $("side").innerHTML += `${c ? "" : cellarSummaryHome()}<p class="src">${esc(t("Borders: Natural Earth (public domain). The outlines are where each region's vineyards are, from its own map."))}</p>`;
   $("side").querySelectorAll("button[data-go]").forEach(b => b.onclick = () => goTo(b.dataset.go));
+  $("side").querySelectorAll("button[data-c]").forEach(b => b.onclick = () => { location.hash = "#c=" + b.dataset.c; });
 }
 const cellarSummaryHome = () => CELLAR.loaded ? "" : `<p class="note">${esc(t(CELLAR.msg))}</p>`;
 
@@ -1116,7 +1165,7 @@ if (window.I18N) { I18N.picker && document.querySelectorAll("[data-langpick]").f
 // #r=chablis&c=les_clos, or &w=<a wine's name> from the cellar's "On the map": its vineyard if the atlas knows it
 async function fromHash() {
   const q = new URLSearchParams(location.hash.slice(1)), r = q.get("r");
-  if (!r || !REGIONS.concat(PREVIEW).some(x => x.id === r)) { if (st.region || !svg.childNodes.length) showHome(); return; } // no region: the start page
+  if (!r || !REGIONS.concat(PREVIEW).some(x => x.id === r)) { showHome(q.get("c")); return; } // no region: the start page, Europe or a country
   if (!st.region || st.region.id !== r) await openRegion(r, q.get("c"));
   else if ((q.get("c") || null) !== st.sel) select(q.get("c"), true);
   if (st.region && st.region.ui && window.ATLAS_CD) await ATLAS_CD.fromHash(q); // the Côte d'Or: #v=, #p=, #l=, #color= (burgundy.html's old links come here)
@@ -1129,10 +1178,13 @@ const PHONE = matchMedia("(max-width:760px)");
 const REGION_DOT = { fr: "var(--gc)", de: "var(--gold)", it: "var(--ac)" };
 function renderCrumb() {
   const c = $("crumb"); if (!c) return;
-  if (!st.pack) { c.innerHTML = `<span>${esc(t("Europe"))}</span><span class="n">· ${esc(t("{0} regions", allPlaces().length))}</span>`; }
+  const cc = st.pack ? st.region.country : EU.c, ctry = cc && mapped().includes(cc) ? `<button type="button" data-ctry>${esc(cname(cc))}</button><span class="sep">›</span>` : "";
+  if (!st.pack && !cc) { c.innerHTML = `<span>${esc(t("Europe"))}</span><span class="n">· ${esc(t("{0} regions", REGIONS.length))}</span>`; }
+  else if (!st.pack) c.innerHTML = `<button type="button" data-home>${esc(t("Europe"))}</button><span class="sep">›</span><span>${esc(cname(cc))}</span><span class="n">· ${esc(t("{0} regions", REGIONS.filter(r => r.country === cc).length))}</span>`;
   else { const n = st.pack.climats.filter(x => !x.unnamed).length;
-    c.innerHTML = `<button type="button" data-home>${esc(t("Europe"))}</button><span class="sep">›</span><button type="button" data-info>${esc(st.pack.meta.name)}</button><span class="n">· ${esc(t("{0} vineyards", n))}</span>`; }
+    c.innerHTML = `<button type="button" data-home>${esc(t("Europe"))}</button><span class="sep">›</span>${ctry}<button type="button" data-info>${esc(st.pack.meta.name)}</button><span class="n">· ${esc(t("{0} vineyards", n))}</span>`; }
   const h = c.querySelector("[data-home]"); if (h) h.onclick = () => { location.hash = ""; };
+  const k = c.querySelector("[data-ctry]"); if (k) k.onclick = () => { location.hash = "#c=" + cc; };
   const i = c.querySelector("[data-info]"); if (i) i.onclick = () => { if (st.sel) select(null); renderSide(); document.body.classList.add("side-open"); };
   renderChips();
 }
