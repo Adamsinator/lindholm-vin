@@ -9,9 +9,17 @@ Object.assign(window.I18N_DICT.da, {
   "Some of its parcels have been renumbered in SIGPAC since; it is drawn without them.": "Nogle af dens parceller er siden blevet omnummereret i SIGPAC; den er tegnet uden dem.",
   "Viñedos singulares © MAPA (BOE) · parcels © FEGA (SIGPAC), CC BY 4.0": "Viñedos singulares © MAPA (BOE) · parceller © FEGA (SIGPAC), CC BY 4.0",
   "relief © IGN": "relief © IGN",
-  "Every region here is drawn from its official map: INAO's for France, the Weinbergsrolle for Germany, the Länder's Rieden for Austria, the Ministry's viñedos singulares for Spain. Pick one.": "Hver region her er tegnet efter sit officielle kort: INAO's for Frankrig, Weinbergsrolle for Tyskland, delstaternes rieder for Østrig, ministeriets viñedos singulares for Spanien. Vælg en.",
+  "Every region here is drawn from its official map: INAO's for France, the Weinbergsrolle for Germany, the Länder's Rieden for Austria, the Ministry's viñedos singulares and the DOs' municipalities for Spain. Pick one.": "Hver region her er tegnet efter sit officielle kort: INAO's for Frankrig, Weinbergsrolle for Tyskland, delstaternes rieder for Østrig, ministeriets viñedos singulares og DO'ernes kommuner for Spanien. Vælg en.",
   "{0} region": "{0} region",
   "One region, drawn from its official map.": "Én region, tegnet efter sit officielle kort.",
   "The DOCa's zones": "DOCa'ens zoner",
-  "The zones are drawn as the whole municipalities the DOCa's rules list, not only their vineyards.": "Zonerne er tegnet som hele de kommuner, DOCa'ens regler nævner, ikke kun deres vinmarker."
+  "The zones are drawn as the whole municipalities the DOCa's rules list, not only their vineyards.": "Zonerne er tegnet som hele de kommuner, DOCa'ens regler nævner, ikke kun deres vinmarker.",
+  "Municipality": "Kommune",
+  "Municipalities": "Kommuner",
+  "{0} municipalities of the DO, each drawn whole: its vineyards are a part of it. Click one.": "{0} kommuner i DO'en, hver tegnet hel: vinmarkerne er en del af den. Klik på en.",
+  "Only part of it is in the DO: {0}.": "Kun en del af den er med i DO'en: {0}.",
+  "All of it is in the DO; the vineyards are a part of it.": "Hele kommunen er med i DO'en; vinmarkerne er en del af den.",
+  "Municipalities © IGN, CC BY 4.0": "Kommuner © IGN, CC BY 4.0",
+  "{0} municipalities": "{0} kommuner",
+  "Partly in the DO": "Delvist i DO'en"
 });
