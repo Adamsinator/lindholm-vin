@@ -33,6 +33,8 @@ const REGIONS = [
     kw: ["niederösterreich", "niederosterreich", "wachau", "kamptal", "kremstal", "traisental", "wagram", "weinviertel", "carnuntum", "thermenregion"] },
   { id: "burgenland", name: "Burgenland", file: "atlas-burgenland.js?v=1", wx: "atlas-burgenland-wx.js?v=1", ll: [47.72, 16.62], country: "at", kind: "Rieden",
     kw: ["burgenland", "leithaberg", "neusiedlersee", "mittelburgenland", "eisenberg", "rosalia", "ruster ausbruch"] },
+  { id: "rioja", name: "Rioja", file: "atlas-rioja.js?v=1", ll: [42.47, -2.45], country: "es", kind: "Viñedos singulares", village: "The DOCa's zones",
+    kw: ["rioja", "rioja alta", "rioja alavesa", "rioja oriental", "rioja baja", "haro", "laguardia", "logroño", "logrono", "cenicero", "elciego", "briones", "labastida", "san vicente de la sonsierra", "fuenmayor"] },
   { id: "ahr", name: "Ahr", file: "atlas-ahr.js?v=1", wx: "atlas-ahr-wx.js?v=1", topo: "atlas-ahr-topo.js?v=1", dem: "atlas-ahr-dem.js?v=1", geol: "atlas-ahr-geol.js?v=1", ll: [50.536, 7.079], country: "de", kind: "Einzellagen", kw: ["ahr"] },
   { id: "rhone", name: "Rhône (north)", file: "atlas-rhone.js?v=1", wx: "atlas-rhone-wx.js?v=1", topo: "atlas-rhone-topo.js?v=1", dem: "atlas-rhone-dem.js?v=1", geol: "atlas-rhone-geol.js?v=1", ld: "atlas-rhone-ld.js?v=1", ll: [45.201, 4.809], country: "fr", kind: "Cru appellations", kw: ["cote rotie", "condrieu", "chateau grillet", "hermitage", "ermitage", "crozes", "saint joseph", "st joseph", "cornas", "saint peray", "st peray"],
     regional: "Regional (Côtes du Rhône)" },
@@ -55,10 +57,10 @@ const PREVIEW = []; // a region being checked before it goes on the start page (
 // the start page's other places: the Côte d'Or's own, richer atlas, and Piedmont, whose MGA have pages but no map
 const ELSEWHERE = [{ id: "barolo", name: "Barolo", ll: [44.61, 7.94], country: "it", kind: "MGA · no map", href: "v/{L}/index.html#barolo" },
   { id: "barbaresco", name: "Barbaresco", ll: [44.725, 8.08], country: "it", kind: "MGA · no map", href: "v/{L}/index.html#barbaresco" }];
-const COUNTRY = { fr: "France", de: "Germany", it: "Italy", at: "Austria" };
+const COUNTRY = { fr: "France", de: "Germany", it: "Italy", at: "Austria", es: "Spain" };
 const TYPE = { W: "Hvid", R: "Rød", RW: "Rød", S: "Bobler" };
-const CLASS = { GC: "Grand cru", "1er": "Premier cru", AOC: "Cru appellation", EL: "Einzellage", V: "Village", RD: "Ried" };
-const st = { region: null, pack: null, sel: null, view: null, show: { GC: true, "1er": true, AOC: true, EL: true, RD: true, V: true, PT: true }, mine: false };
+const CLASS = { GC: "Grand cru", "1er": "Premier cru", AOC: "Cru appellation", EL: "Einzellage", V: "Village", RD: "Ried", VS: "Viñedo singular" };
+const st = { region: null, pack: null, sel: null, view: null, show: { GC: true, "1er": true, AOC: true, EL: true, RD: true, VS: true, V: true, PT: true }, mine: false };
 // classified châteaux (Bordeaux's 1855): points on the map, by rank; the classification as it's written on a label
 const PTCLASS = { "1855-1": "First growth (1855)", "1855-2": "Second growth (1855)", "1855-3": "Third growth (1855)", "1855-4": "Fourth growth (1855)", "1855-5": "Fifth growth (1855)",
   "sau-0": "Superior first growth (1855)", "sau-1": "First growth, Sauternes (1855)", "sau-2": "Second growth, Sauternes (1855)" };
@@ -67,7 +69,7 @@ const PTLABEL = { "1855-1": "Premier grand cru classé", "1855-2": "Deuxième gr
 const PTSIZE = { "1855-1": 6.5, "1855-2": 5.5, "1855-3": 5, "1855-4": 4.5, "1855-5": 4, "sau-0": 6.5, "sau-1": 5.5, "sau-2": 4.5 };
 const pts = () => (st.pack && st.pack.points) || [];
 const short = n => n.replace(/^Château /, "");
-const cls = c => c.c === "GC" ? "GC" : c.c === "AOC" ? "AOC" : c.c === "V" ? "pv" : c.unnamed ? "px" : "p1";
+const cls = c => c.c === "GC" || c.c === "VS" ? "GC" : c.c === "AOC" ? "AOC" : c.c === "V" ? "pv" : c.unnamed ? "px" : "p1";
 const isTop = c => c.c === "GC" || c.c === "AOC"; // drawn and labelled first
 const noteOf = c => c.d && (c.d[window.I18N ? I18N.lang : "en"] || c.d.en);
 const shown = c => c.c === "EL" ? c.ap : c.n; // a German site is known by its village too: Wehlener Sonnenuhr
@@ -102,7 +104,7 @@ function draw() {
   const g = el("g", {}, svg);
   el("path", { class: "rg", d: pathOf(P.regional.g) }, g);
   P.villages.forEach(v => el("path", { class: "vl", d: pathOf(v.g) }, g));
-  P.climats.forEach(c => { c.el = el("path", { class: "cl " + cls(c), d: pathOf(c.g), "data-id": c.id }, g);
+  P.climats.forEach(c => { c.el = el("path", { class: "cl " + cls(c) + (c.c === "VS" ? " vs" : ""), d: pathOf(c.g), "data-id": c.id }, g); // a viñedo singular is a hectare or so: never smaller than a dot
     el("title", {}, c.el).textContent = c.n; });
   gShade = el("g", { class: "shade", "pointer-events": "none" }, svg);
   TG.over = el("g", { class: "topo", "pointer-events": "none" }, svg); TG.names = el("g", { class: "topo", "pointer-events": "none" }, svg);
@@ -212,6 +214,7 @@ const L93 = (() => { const a = 6378137, e = 0.0818191910428158, d = Math.PI / 18
 // Germany: basemap.de's hillshade (BKG, on the ATKIS DGM5), whose Web Mercator levels are numbered from standard zoom 5
 const SHADE_DE = (z, x, y) => `https://sgx.geodatenzentrum.de/wmts_basemapde_schummerung/tile/1.0.0/de_basemapde_web_raster_hillshade/default/DE_EPSG_3857_ADV/${String(z - 5).padStart(2, "0")}/${y}/${x}.png`;
 const SHADE_AT = (z, x, y) => `https://mapsneu.wien.gv.at/basemap/bmapgelaende/grau/google3857/${z}/${y}/${x}.jpeg`; // basemap.at's terrain, grey
+const SHADE_ES = (z, x, y) => `https://servicios.idee.es/wmts/mdt?layer=Relieve&style=default&tilematrixset=GoogleMapsCompatible&Service=WMTS&Request=GetTile&Version=1.0.0&Format=image/jpeg&TileMatrix=${z}&TileCol=${x}&TileRow=${y}`; // IGN's relief
 const SHADE_URL = (z, x, y) => `https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ELEVATION.ELEVATIONGRIDCOVERAGE.SHADOW&STYLE=estompage_grayscale&TILEMATRIXSET=PM&TILEMATRIX=${z}&TILEROW=${y}&TILECOL=${x}&FORMAT=image/png`;
 let shadeT = 0; const shadeSoon = () => { clearTimeout(shadeT); shadeT = setTimeout(shadeUpdate, 250); };
 function shadeUpdate() {
@@ -221,7 +224,7 @@ function shadeUpdate() {
   if (photo) tileLayer(gPhoto, photoTiles, PHOTO_URL, 18);
   // the relief's shading over a photo would only darken it
   const on = st.relief && !photo && (!!M.l93 || de); gShade.style.display = on ? "" : "none";
-  if (on) tileLayer(gShade, shadeTiles, M.shade === "at" ? SHADE_AT : de ? SHADE_DE : SHADE_URL, 15); // IGN serves the relief to level 15
+  if (on) tileLayer(gShade, shadeTiles, M.shade === "at" ? SHADE_AT : M.shade === "es" ? SHADE_ES : de ? SHADE_DE : SHADE_URL, 15); // IGN serves the relief to level 15
 }
 // a layer of web map tiles (256 px, Web Mercator) laid over the pack's own metres, for the view and a margin round it
 function tileLayer(g, tiles, url, zmax) {
@@ -548,6 +551,7 @@ async function exportPNG() {
 function exportCredit() {
   const y = new Date().getFullYear(), M = st.pack.meta, topo = st.topo && topoOf();
   if (M.shade === "at") return t("Rieden © Land {0}, CC BY 4.0", M.name) + " · " + t("relief © basemap.at");
+  if (M.shade === "es") return t("Viñedos singulares © MAPA (BOE) · parcels © FEGA (SIGPAC), CC BY 4.0") + " · " + t("relief © IGN");
   if (M.proj === "eq") return t("Einzellagen © Landwirtschaftskammer RLP") + (topo ? ` · © GeoBasis-DE / LVermGeoRP ${y}, dl-de/by-2-0` : "") + (geolShown() ? " · " + t("Geology") + " " + geolOf().meta.credit : "");
   return (villagesPack() ? t("Vines and boundaries © IGN, Licence Ouverte") : t(topo ? "Boundaries © INAO · map data © IGN, Licence Ouverte" : "Boundaries © INAO, Licence Ouverte")) + (geolShown() ? " · " + t("geology © BRGM") : "");
 }
@@ -639,8 +643,9 @@ function renderSide() {
   if (!c) {
     const gc = P.climats.filter(x => x.c === "GC"), pc = P.climats.filter(x => x.c === "1er" && !x.unnamed), aoc = P.climats.filter(x => x.c === "AOC"), many = P.villages.length > 1;
     const sum = list => fmtHa(list.reduce((s, x) => s + x.ha, 0)) + " ha", fact = (l, v) => `<div class="fact"><div class="l">${esc(l)}</div><div class="v">${v}</div></div>`;
-    const el = P.climats.filter(x => x.c === "EL"), rd = P.climats.filter(x => x.c === "RD");
-    const lead = rd.length ? t("{0} Rieden the Land has decreed. Click one.", rd.length) + (st.region.partial ? " " + t("Lower Austria is still mapping its Rieden: not every one is here yet.") : "")
+    const el = P.climats.filter(x => x.c === "EL"), rd = P.climats.filter(x => x.c === "RD"), vs = P.climats.filter(x => x.c === "VS");
+    const lead = vs.length ? t("{0} viñedos singulares the Ministry has recognised. Click one.", vs.length)
+      : rd.length ? t("{0} Rieden the Land has decreed. Click one.", rd.length) + (st.region.partial ? " " + t("Lower Austria is still mapping its Rieden: not every one is here yet.") : "")
       : el.length ? t("{0} Einzellagen from the Weinbergsrolle. Click one.", el.length) : villagesPack() ? t("{0} grand cru and {1} premier cru villages, drawn as the vines inside each village (IGN). Click a village.", gc.length, pc.length)
       : aoc.length ? t("{0} cru appellations on INAO's own map. Click one.", aoc.length)
       : gc.length && pc.length ? t("{0} grands crus and {1} premiers crus on INAO's own map. Click a vineyard.", gc.length, pc.length)
@@ -655,6 +660,8 @@ function renderSide() {
         ${P.villages.map(v => fact(P.villages.length > 1 || !R.village ? v.ap : t(R.village), fmtHa(v.ha) + " ha")).join("")}
         ${P.regional.ha ? fact(t(R.regional), fmtHa(P.regional.ha) + " ha") : ""}</div>
       ${many && pc.length ? `<p class="note">${esc(t("Village figures are the land outside the premiers crus."))}</p>` : ""}
+      ${vs.length ? `<p class="note">${esc(t("The zones are drawn as the whole municipalities the DOCa's rules list, not only their vineyards."))}</p>` : ""}
+      ${(P.meta.unmapped || []).length ? `<p class="note">${esc(t("Not drawn: {0}. Their parcels have been renumbered in SIGPAC since they were recognised.", P.meta.unmapped.join(", ")))}</p>` : ""}
       ${(P.meta.absent || []).length ? `<p class="note">${esc(t("Not drawn: {0}. INAO's parcel map doesn't have it yet.", P.meta.absent.join(", ")))}</p>` : ""}
       ${terrNote()}
       ${cellarSummary()}
@@ -664,12 +671,13 @@ function renderSide() {
       <div id="rWines" class="rwines"></div>
       ${gc.length ? groups(gc, "Grand cru") : ""}${pc.length ? groups(pc, "Premier cru") : ""}
       ${aoc.length ? `<h3>${esc(t("Cru appellation"))}</h3><ul class="list">${aoc.map(x => row(x)).join("")}</ul>` : ""}
+      ${["Rioja Alta", "Rioja Alavesa", "Rioja Oriental"].map(z => [z, vs.filter(x => x.area === z)]).filter(([, l]) => l.length).map(([z, l]) => `<h3>${esc(z)}</h3><ul class="list">${l.sort((a, b) => a.n.localeCompare(b.n, "es")).map(x => row(x)).join("")}</ul>`).join("")}
       ${Object.entries(el.reduce((o, x) => ((o[x.area] ??= []).push(x), o), {})).map(([k, l]) => `<h3>${esc(t("Bereich {0}", k))}</h3><ul class="list">${l.sort((a, b) => shown(a).localeCompare(shown(b), "de")).map(x => row(x)).join("")}</ul>`).join("")}
       ${Object.keys(PTCLASS).filter(k => pts().some(q => q.cls === k)).map(k => `<h3>${esc(t(PTCLASS[k]))}</h3><ul class="list">${pts().filter(q => q.cls === k).map(q => ptRow(q)).join("")}</ul>`).join("")}
       ${pts().some(q => !q.p) ? `<p class="note">° ${esc(t("Not on IGN's map under its own name, so not drawn."))}</p>` : ""}
       ${pc.some(x => x.inferred) ? `<p class="note">* ${esc(t("INAO's map doesn't name this land; the name comes from IGN's place names inside or next to it."))}</p>` : ""}
       <p class="src">${esc(P.meta.source)}. ${esc(t("Built {0}.", P.meta.built))}${P.meta.l93 ? " " + esc(t("Relief shading and roads, rivers, woods and villages: IGN (Géoplateforme, Licence Ouverte).")) : ""}${R.geol ? " " + esc(P.meta.proj === "eq" ? t("Geology") + ": " + ((geolOf() || { meta: {} }).meta.credit || "©Landesamt für Geologie und Bergbau Rheinland-Pfalz, dl-de/by-2-0, www.lgb-rlp.de [Daten bearbeitet]") + "."
-        : t("Geology: BRGM, the harmonised 1:50 000 map (BD Charm-50, Licence Ouverte).")) : ""}${st.style === "photo" && P.meta.l93 ? " " + esc(t("Aerial photos: IGN (Géoplateforme, Licence Ouverte).")) : ""}${P.meta.shade === "at" ? " " + esc(t("Relief")) + ": basemap.at (CC BY 4.0)." : P.meta.proj === "eq" ? deCredit() : ""}</p>`;
+        : t("Geology: BRGM, the harmonised 1:50 000 map (BD Charm-50, Licence Ouverte).")) : ""}${st.style === "photo" && P.meta.l93 ? " " + esc(t("Aerial photos: IGN (Géoplateforme, Licence Ouverte).")) : ""}${P.meta.shade === "at" ? " " + esc(t("Relief")) + ": basemap.at (CC BY 4.0)." : P.meta.shade === "es" ? " " + esc(t("Relief")) + ": © Instituto Geográfico Nacional (CC BY 4.0)." : P.meta.proj === "eq" ? deCredit() : ""}</p>`;
   } else if (!c.g) { // a classified château
     const bottles = CELLAR.by[c.id];
     side.innerHTML = `<p><button class="btn" id="back">← ${esc(P.meta.name)}</button></p>
@@ -687,8 +695,10 @@ function renderSide() {
     side.innerHTML = `<p><button class="btn" id="back">← ${esc(P.meta.name)}</button></p>
       <span class="pill ${cls(c)}">${esc(t(CLASS[c.c]))}</span>
       <h2>${esc(shown(c))}</h2>
-      <div class="meta">${esc(c.c === "EL" ? c.n : c.c === "RD" ? c.app + (c.flur && c.flur !== c.app ? " · " + c.flur : "") : c.ap)}${parent ? " · " + esc(t("within {0}", parent.n)) : ""}${c.gl ? " · " + esc(t("Großlage {0}", c.gl)) : ""}</div>
-      ${c.c === "RD" ? `<div class="facts"><div class="fact"><div class="l">${esc(t("Area"))}</div><div class="v">${fmtHa(c.ha)} ha</div></div></div>
+      <div class="meta">${esc(c.c === "EL" ? c.n : c.c === "VS" ? c.app + (c.area ? " · " + c.area : "") : c.c === "RD" ? c.app + (c.flur && c.flur !== c.app ? " · " + c.flur : "") : c.ap)}${parent ? " · " + esc(t("within {0}", parent.n)) : ""}${c.gl ? " · " + esc(t("Großlage {0}", c.gl)) : ""}</div>
+      ${c.c === "VS" ? `<div class="facts"><div class="fact"><div class="l">${esc(t("Area"))}</div><div class="v">${fmtHa(c.ha)} ha</div></div></div>
+        <p class="note">${esc(t("Recognised by {0} (BOE), {1}.", c.order, c.exp))}${c.partial ? " " + esc(t("Some of its parcels have been renumbered in SIGPAC since; it is drawn without them.")) : ""}</p>`
+      : c.c === "RD" ? `<div class="facts"><div class="fact"><div class="l">${esc(t("Area"))}</div><div class="v">${fmtHa(c.ha)} ha</div></div></div>
         <p class="note">${esc(t("Cadastral municipality: {0}", (c.kg || []).join(", ")))}${c.subs && c.subs.length ? " · " + esc(t("Subrieden: {0}", c.subs.join(", "))) : ""}</p>`
       : c.c === "EL" ? `<div class="facts"><div class="fact"><div class="l">${esc(t("Vines (Weinbergsrolle)"))}</div><div class="v">${c.reg ? fmtHa(c.ha) + " ha" : "—"}</div></div>
         <div class="fact"><div class="l">${esc(t("Outline on the map"))}</div><div class="v">${fmtHa(c.haMap)} ha</div></div></div>
@@ -831,7 +841,7 @@ const terrNote = () => { if (!terrActive()) return ""; const n = st.pack.climats
 /* ---------- compare two vineyards ---------- */
 function compareHtml(a, b) {
   const D = demOf(st.region.id) || { c: {} }, dem = c => D.c[c.id], bot = c => CELLAR.by[c.id] ? CELLAR.by[c.id].left : 0;
-  const rows = [[t("Class"), c => esc(t(CLASS[c.c]))], [t("Appellation"), c => esc(c.c === "EL" ? (c.gl ? t("Großlage {0}", c.gl) : "—") : c.c === "RD" ? c.app : c.ap)],
+  const rows = [[t("Class"), c => esc(t(CLASS[c.c]))], [t("Appellation"), c => esc(c.c === "EL" ? (c.gl ? t("Großlage {0}", c.gl) : "—") : c.c === "RD" ? c.app : c.c === "VS" ? c.area : c.ap)],
     [t("Area"), c => c.c === "EL" && !c.reg ? "—" : fmtHa(c.ha) + " ha"]]
     .concat(dem(a) || dem(b) ? [[t("Altitude"), c => dem(c) ? `${dem(c)[0]}–${dem(c)[1]} m` : "—"],
       [t("Faces"), c => dem(c) ? (dem(c)[3] < 1.5 ? t("flat") : (dem(c)[5] < 55 ? t("varied") + " · " : "") + wind(dem(c)[4])) : "—"],
@@ -979,7 +989,7 @@ function drawHome() {
   // the countries' names: those the atlas maps larger, with how many regions; the rest small, grey
   for (const [cc, ll] of Object.entries(NAME_LL)) { const c = cc.toLowerCase(), on = M.includes(c), [x, y] = hxy(ll);
     const tx = el("text", { class: "cn" + (on ? " on" : MINOR.has(cc) ? " mi" : ""), x, y, "data-c": on ? c : "" }, g); tx.textContent = cname(c);
-    if (on) { const n = REGIONS.filter(r => r.country === c).length, s = el("tspan", { class: "n", x, dy: "1.2em" }, tx); s.textContent = t("{0} regions", n); } }
+    if (on) { const n = REGIONS.filter(r => r.country === c).length, s = el("tspan", { class: "n", x, dy: "1.2em" }, tx); s.textContent = n === 1 ? t("{0} region", n) : t("{0} regions", n); } }
   // where each region's vineyards are (atlas-outlines.js, built from the regions' own maps), loaded with the page's first view
   const ols = el("g", { class: "ols", "aria-hidden": "true" }, g);
   EU.regs = REGIONS.map(r => ({ r, xy: hxy([r.ll[1], r.ll[0]]), pts: [hxy([r.ll[1], r.ll[0]])] }));
@@ -987,7 +997,7 @@ function drawHome() {
     for (const h of EU.regs) { const rings = O[h.r.id] || (h.r.id === "cotedor" && O.burgundy); /* the Côte d'Or's outline: filed under its old name */ if (!rings) continue;
       h.pts.push(...rings.flat().map(hxy));
       el("path", { class: "ol" + (EU.c === h.r.country ? " on" : ""), "data-id": h.r.id, "data-cc": h.r.country, "fill-rule": "evenodd", d: rings.map(d).join("") }, ols); } };
-  if (window.ATLAS_OUTLINES) outline(); else loadScript("atlas-outlines.js?v=3").then(() => { if (!st.pack && ols.isConnected) { outline(); if (EU.c) homeView(homeFrame(EU.c), true); } }).catch(() => {});
+  if (window.ATLAS_OUTLINES) outline(); else loadScript("atlas-outlines.js?v=4").then(() => { if (!st.pack && ols.isConnected) { outline(); if (EU.c) homeView(homeFrame(EU.c), true); } }).catch(() => {});
   // a region's outline and its dot light up together; so do a country's land and name
   const hot = (e, on) => { const x = e.target.closest && e.target.closest("[data-id], .on[data-c]"); if (!x) return;
     svg.querySelectorAll(x.dataset.id ? `[data-id="${x.dataset.id}"]` : `.on[data-c="${x.dataset.c}"]`).forEach(n => n.classList.toggle("hot", on)); };
@@ -1029,9 +1039,9 @@ addEventListener("resize", () => { if (!st.pack && EU.vb && document.body.classL
 function renderHomeSide() {
   const c = EU.c, row = r => `<li><button data-go="${r.id}">${esc(r.name)}${r.href ? " ↗" : ""}</button><span>${esc(t(r.kind))}</span></li>`;
   const list = cc => `<ul class="list">${allPlaces().filter(r => r.country === cc).map(row).join("")}</ul>`;
-  $("side").innerHTML = c ? `<h2>${esc(cname(c))}</h2><p class="meta">${esc(t("{0} regions, each drawn from its official map. Pick one.", REGIONS.filter(r => r.country === c).length))}</p>${list(c)}`
+  $("side").innerHTML = c ? `<h2>${esc(cname(c))}</h2><p class="meta">${esc((n => n === 1 ? t("One region, drawn from its official map.") : t("{0} regions, each drawn from its official map. Pick one.", n))(REGIONS.filter(r => r.country === c).length))}</p>${list(c)}`
     : `<h2>${esc(t("Wine atlas"))}</h2>
-    <p class="meta">${esc(t("Every region here is drawn from its official map: INAO's for France, the Weinbergsrolle for Germany, the Länder's Rieden for Austria. Pick one."))}</p>
+    <p class="meta">${esc(t("Every region here is drawn from its official map: INAO's for France, the Weinbergsrolle for Germany, the Länder's Rieden for Austria, the Ministry's viñedos singulares for Spain. Pick one."))}</p>
     ${mapped().map(cc => `<h3><button class="linkish" data-c="${cc}">${esc(cname(cc))}</button></h3>${list(cc)}`).join("")}
     ${[...new Set(ELSEWHERE.map(r => r.country))].filter(cc => !mapped().includes(cc)).map(cc => `<h3>${esc(cname(cc))}</h3><p class="note">${esc(t("Maps to come: the MGA as lists for now."))}</p>${list(cc)}`).join("")}`;
   $("side").innerHTML += `${c ? "" : cellarSummaryHome()}<p class="src">${esc(t("Borders: Natural Earth (public domain). The outlines are where each region's vineyards are, from its own map."))}</p>`;
@@ -1065,7 +1075,7 @@ async function openRegion(id, sel) {
   document.title = "AllWine — " + st.pack.meta.name + " · " + t("Wine atlas");
   // start on the crus (the regional land around them can be far bigger, and long and thin)
   st.home = bbOf(st.pack.climats.flatMap(c => c.g));
-  for (const [f, k] of [["fGC", "GC"], ["f1er", "1er"], ["fAOC", "AOC"], ["fEL", "EL"], ["fRD", "RD"], ["fV", "V"]]) $(f).parentNode.hidden = !st.pack.climats.some(c => c.c === k);
+  for (const [f, k] of [["fGC", "GC"], ["f1er", "1er"], ["fAOC", "AOC"], ["fEL", "EL"], ["fRD", "RD"], ["fVS", "VS"], ["fV", "V"]]) $(f).parentNode.hidden = !st.pack.climats.some(c => c.c === k);
   $("fPts").parentNode.hidden = !pts().length;
   place(); draw(); fit(st.home); renderLegend();
   $("fRelief").parentNode.hidden = !st.pack.meta.l93 && st.pack.meta.proj !== "eq";
@@ -1088,7 +1098,7 @@ function renderLegend() {
   const cl = window.ATLAS_COLOR && st.color !== "class" && ATLAS_COLOR.legend(); if (cl) { $("legend").innerHTML = cl; return; }
   const extra = window.ATLAS_CD && st.region && st.region.ui ? ATLAS_CD.legendExtra() : "";
   const has = k => P.climats.some(c => c.c === k);
-  $("legend").innerHTML = [has("GC") && ["var(--gc)", "Grand cru"], has("1er") && ["var(--pc)", "Premier cru"], has("AOC") && ["var(--ac)", "Cru appellation"], has("EL") && ["var(--pc)", "Einzellage"], has("RD") && ["var(--pc)", "Ried"], has("V") && ["var(--vc)", "Village climat"],
+  $("legend").innerHTML = [has("GC") && ["var(--gc)", "Grand cru"], has("1er") && ["var(--pc)", "Premier cru"], has("AOC") && ["var(--ac)", "Cru appellation"], has("EL") && ["var(--pc)", "Einzellage"], has("RD") && ["var(--pc)", "Ried"], has("VS") && ["var(--gc)", "Viñedo singular"], has("V") && ["var(--vc)", "Village climat"],
     P.climats.some(c => c.unnamed) && ["var(--pcx)", "Premier cru, unnamed by INAO"],
     P.villages.length && ["var(--vc)", st.region.village || (P.villages.length > 1 ? "Village appellations" : P.villages[0].ap)], P.regional.ha && ["var(--rg)", st.region.regional],
     pts().length && ["var(--ink)", "Classified château (1855)"]].filter(Boolean)
@@ -1102,6 +1112,7 @@ $("f1er").onchange = e => { st.show["1er"] = e.target.checked; paint(); };
 $("fAOC").onchange = e => { st.show.AOC = e.target.checked; paint(); };
 $("fEL").onchange = e => { st.show.EL = e.target.checked; paint(); };
 $("fRD").onchange = e => { st.show.RD = e.target.checked; paint(); };
+$("fVS").onchange = e => { st.show.VS = e.target.checked; paint(); };
 $("fV").onchange = e => { st.show.V = e.target.checked; paint(); };
 $("fPts").onchange = e => { st.show.PT = e.target.checked; paint(); };
 $("fMine").onchange = e => { st.mine = e.target.checked; paint(); };
@@ -1180,7 +1191,7 @@ function renderCrumb() {
   const c = $("crumb"); if (!c) return;
   const cc = st.pack ? st.region.country : EU.c, ctry = cc && mapped().includes(cc) ? `<button type="button" data-ctry>${esc(cname(cc))}</button><span class="sep">›</span>` : "";
   if (!st.pack && !cc) { c.innerHTML = `<span>${esc(t("Europe"))}</span><span class="n">· ${esc(t("{0} regions", REGIONS.length))}</span>`; }
-  else if (!st.pack) c.innerHTML = `<button type="button" data-home>${esc(t("Europe"))}</button><span class="sep">›</span><span>${esc(cname(cc))}</span><span class="n">· ${esc(t("{0} regions", REGIONS.filter(r => r.country === cc).length))}</span>`;
+  else if (!st.pack) c.innerHTML = `<button type="button" data-home>${esc(t("Europe"))}</button><span class="sep">›</span><span>${esc(cname(cc))}</span><span class="n">· ${esc((n => n === 1 ? t("{0} region", n) : t("{0} regions", n))(REGIONS.filter(r => r.country === cc).length))}</span>`;
   else { const n = st.pack.climats.filter(x => !x.unnamed).length;
     c.innerHTML = `<button type="button" data-home>${esc(t("Europe"))}</button><span class="sep">›</span>${ctry}<button type="button" data-info>${esc(st.pack.meta.name)}</button><span class="n">· ${esc(t("{0} vineyards", n))}</span>`; }
   const h = c.querySelector("[data-home]"); if (h) h.onclick = () => { location.hash = ""; };

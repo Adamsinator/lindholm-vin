@@ -14,7 +14,9 @@ const R = f => path.join(__dirname, "..", f);
 // ── the files ──
 const src = fs.readFileSync(R("atlas.js"), "utf8");
 const regs = [...src.matchAll(/\{ id: "([a-z]+)", name: "[^"]+", file: "[^"]+", (wx: "([^"]+)", )?/g)].map(m => ({ id: m[1], wx: m[3] }));
-check("every region but the Côte d'Or has a weather file", regs.length >= 20 && regs.every(r => r.id === "cotedor" ? !r.wx : r.wx === `atlas-${r.id}-wx.js?v=1` || /^atlas-[a-z]+-wx\.js\?v=\d+$/.test(r.wx)), regs.filter(r => !r.wx).map(r => r.id).join());
+// Rioja's long record is AEMET's, which needs an API key: until there is one, Rioja has no weather file
+const NOWX = ["cotedor", "rioja"];
+check("every region but the Côte d'Or and Rioja has a weather file", regs.length >= 20 && regs.every(r => NOWX.includes(r.id) ? !r.wx : r.wx === `atlas-${r.id}-wx.js?v=1` || /^atlas-[a-z]+-wx\.js\?v=\d+$/.test(r.wx)), regs.filter(r => !r.wx && !NOWX.includes(r.id)).map(r => r.id).join());
 const W = {}; regs.filter(r => r.wx).forEach(r => { const w = {}; new Function("window", fs.readFileSync(R(r.wx.split("?")[0]), "utf8"))(w); W[r.id] = w.ATLAS_WX[r.id]; });
 const bad = [], F = W.chablis.f, ix = k => F.indexOf(k);
 for (const [id, w] of Object.entries(W)) w.st.forEach((S, i) => {

@@ -144,6 +144,8 @@ const REGIONS = {
   // Kamptal…) a Ried is in, so the packs don't either: a Ried is named with its municipality, as the data has it
   noe: { name: "Niederösterreich", country: "Østrig", region: "Niederösterreich", kind: "rieden", src: "noe" },
   burgenland: { name: "Burgenland", country: "Østrig", region: "Burgenland", kind: "rieden", src: "bgld" },
+  // Spain: Rioja's viñedos singulares (tools/region-es.js)
+  rioja: { name: "Rioja", country: "Spanien", region: "Rioja", kind: "vs" },
   // INAO's map has no Champagne: its delimitation was never published as data. Its grands and premiers crus are whole
   // villages (the échelle des crus), so a cru here is the vines (IGN BD TOPO, nature "Vigne") inside that village's
   // boundary (IGN ADMIN EXPRESS; the old commune where it has since merged: Aÿ, Oger, Vertus, Coligny…); the other
@@ -231,7 +233,7 @@ const label = mp => { // a point inside the biggest piece: its ring's centroid i
   for (let i = 0, j = r.length - 1; i < r.length; j = i++) { const [xi, yi] = r[i], [xj, yj] = r[j]; if ((yi > y) !== (yj > y)) xs.push(xi + (y - yi) * (xj - xi) / (yj - yi)); }
   xs.sort((a, b) => a - b); return [Math.round((xs[0] + xs[1]) / 2), Math.round(y)];
 };
-const RANK = { GC: 0, "1er": 1, AOC: 2, EL: 3, RD: 3 };
+const RANK = { GC: 0, "1er": 1, AOC: 2, EL: 3, RD: 3, VS: 3 };
 const slug = s => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
 const proper = s => s.replace(/^(les?|la|l')\s/i, m => m.charAt(0).toUpperCase() + m.slice(1).toLowerCase()).replace(/^./, c => c.toUpperCase());
 
@@ -364,6 +366,10 @@ async function riedenBuild() {
 }
 
 (async () => {
+  if (R.kind === "vs") {
+    console.error(`${R.name}: the viñedos singulares the Ministry has recognised`);
+    return finish(await require("./region-es").riojaBuild({ CACHE, curl, polysOf, union, tidy, polyHa, label, slug }));
+  }
   if (R.kind === "rieden") {
     console.error(`${R.name}: the Rieden the Land has decreed`);
     return finish(await riedenBuild());
@@ -501,6 +507,8 @@ function finish({ climats, villages, regionalLand, points, meta }) {
     infN = climats.filter(c => c.inferred).length, unN = climats.filter(c => c.unnamed).length;
   const elN = climats.filter(c => c.c === "EL").length;
   if (elN) { console.error(`${path.basename(out)}: ${elN} Einzellagen · ${(fs.statSync(out).size / 1024).toFixed(0)} KB`); return; }
+  const vsN = climats.filter(c => c.c === "VS").length;
+  if (vsN) { console.error(`${path.basename(out)}: ${vsN} viñedos singulares · ${(fs.statSync(out).size / 1024).toFixed(0)} KB`); return; }
   const rdN = climats.filter(c => c.c === "RD").length;
   if (rdN) { console.error(`${path.basename(out)}: ${rdN} Rieden · ${(fs.statSync(out).size / 1024).toFixed(0)} KB`); return; }
   console.error(`${path.basename(out)}: ${aocN ? aocN + " cru appellations, " : ""}${gcN} grands crus, ${pcN} premiers crus named by INAO, ${infN} named from IGN place names, ${unN} unnamed, `
