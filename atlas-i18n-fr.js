@@ -9,7 +9,7 @@ Object.assign(window.I18N_DICT.fr, {
   "Some of its parcels have been renumbered in SIGPAC since; it is drawn without them.": "Certaines de ses parcelles ont été renumérotées dans le SIGPAC depuis ; il est dessiné sans elles.",
   "Viñedos singulares © MAPA (BOE) · parcels © FEGA (SIGPAC), CC BY 4.0": "Viñedos singulares © MAPA (BOE) · parcelles © FEGA (SIGPAC), CC BY 4.0",
   "relief © IGN": "relief © IGN",
-  "Every region here is drawn from its official map: INAO's for France, the Weinbergsrolle for Germany, the Länder's Rieden for Austria, the Ministry's viñedos singulares and the DOs' municipalities for Spain. Pick one.": "Chaque région est dessinée d'après sa carte officielle : celle de l'INAO pour la France, la Weinbergsrolle pour l'Allemagne, les Rieden des Länder pour l'Autriche, les viñedos singulares du ministère et les communes des DO pour l'Espagne. Choisissez-en une.",
+  "Every region here is drawn from its official map: INAO's for France, the Weinbergsrolle for Germany, the Länder's Rieden for Austria, the Ministry's viñedos singulares and the DOs' municipalities for Spain, Piedmont's vineyard register for Italy. Pick one.": "Chaque région est dessinée d'après sa carte officielle : celle de l'INAO pour la France, la Weinbergsrolle pour l'Allemagne, les Rieden des Länder pour l'Autriche, les viñedos singulares du ministère et les communes des DO pour l'Espagne, le registre viticole du Piémont pour l'Italie. Choisissez-en une.",
   "{0} region": "{0} région",
   "One region, drawn from its official map.": "Une région, dessinée d'après sa carte officielle.",
   "The DOCa's zones": "Les zones de la DOCa",
@@ -21,5 +21,15 @@ Object.assign(window.I18N_DICT.fr, {
   "All of it is in the DO; the vineyards are a part of it.": "Elle est entièrement dans la DO ; les vignes en sont une partie.",
   "Municipalities © IGN, CC BY 4.0": "Communes © IGN, CC BY 4.0",
   "{0} municipalities": "{0} communes",
-  "Partly in the DO": "En partie dans la DO"
+  "Partly in the DO": "En partie dans la DO",
+  "Commune": "Commune",
+  "Communes": "Communes",
+  "{0} communes: the parcels Piedmont's vineyard register has as fit for {1}. Click one.": "{0} communes : les parcelles que le registre viticole du Piémont déclare aptes au {1}. Cliquez sur l'une d'elles.",
+  "Whole cadastral parcels, of which the vines are a part; the register doesn't say which MGA a parcel is in.": "Des parcelles cadastrales entières, dont les vignes sont une partie ; le registre ne dit pas dans quelle MGA est une parcelle.",
+  "The MGA, as a list": "Les MGA, en liste",
+  "Parcels fit for {0}": "Parcelles aptes au {0}",
+  "Parcels": "Parcelles",
+  "Whole cadastral parcels from Piedmont's vineyard register ({0}); the vines are a part of each.": "Des parcelles cadastrales entières du registre viticole du Piémont ({0}) ; les vignes en sont une partie.",
+  "Parcels © Regione Piemonte, CC BY 4.0": "Parcelles © Regione Piemonte, CC BY 4.0",
+  "{0} communes": "{0} communes"
 });
