@@ -23,6 +23,8 @@ check("…the named estates listed, the sources credited (DGT, CC BY 4.0)", P.me
   const side = await p.textContent("#side"), h3 = await p.$$eval("#side h3", x => x.map(h => h.textContent));
   check("the region: its sub-regions' lists, the note on COS's vineyard land, the estates not drawn", ["Baixo Corgo", "Cima Corgo", "Douro Superior"].every(z => h3.includes(z)) && /44 000 ha of vines/.test(side) && /Not drawn: the estates/.test(side), JSON.stringify(h3));
   check("…Europe › Portugal › Douro", /Europe\s*›\s*Portugal\s*›\s*Douro/.test(await p.textContent("#crumb")));
+  const rl = await p.evaluate(() => { const i = document.querySelector("#map g.shade image.pre"); return i && i.getAttribute("href"); });
+  check("…its relief shaded from the Copernicus DEM, served with the site and credited as its licence asks", rl === "atlas-douro-relief.webp?v=1" && /Copernicus DEM GLO-30: © DLR e\.V\. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018/.test(side), rl);
   await p.goto(BASE + "atlas.html#r=douro&c=alijo"); await p.reload(); await p.waitForTimeout(1500);
   const a = await p.evaluate(() => ({ h: (document.querySelector("#side h2") || {}).textContent, t: document.getElementById("side").textContent }));
   check("a municipality: Alijó, Cima Corgo, its vineyard land and parishes; its merged parishes are all the statute's, so none drawn beyond it", a.h === "Alijó" && /Cima Corgo/.test(a.t) && /Vineyard land \(COS 2023\)/.test(a.t) && /Parishes: .*Favaios/.test(a.t) && !/Merged since 2013 and drawn whole/.test(a.t), a.t.slice(0, 400));

@@ -5,8 +5,11 @@ ICE 2009-2011, CC BY 4.0: one row a strip), shades it (light from the north-west
 regular longitude/latitude grid, which the atlas lays under a pack drawn on its equirectangular grid.
 
   python3 tools/hillshade.py <dtm.tif> <lon0> <lat0> <lon1> <lat1> <out.webp> [metres a pixel, default 10]
+  python3 tools/hillshade.py --cop <folder of Copernicus GLO-30 tiles> <lon0> <lat0> <lon1> <lat1> <out.webp> [m]
 
-Only numpy and Pillow; the TIFF is mapped from disk, not read whole."""
+The second form reads the Copernicus DEM GLO-30 (Copernicus_DSM_COG_10_N41_00_W008_00_DEM.tif …: float32 on a
+longitude/latitude grid, in 1024-pixel tiles, DEFLATE with the floating-point predictor), decoding the tiles it needs
+with zlib. RELIEF_QUALITY sets the WebP quality (default 72). Only numpy and Pillow; the TIFF is mapped from disk, not read whole."""
 import sys, math
 import numpy as np
 from PIL import Image
@@ -35,7 +38,54 @@ def utm32(lon, lat):  # WGS84 → UTM 32N, arrays
     Nn = k0 * (M + N * np.tan(phi) * (A ** 2 / 2 + (5 - T + 9 * C + 4 * C ** 2) * A ** 4 / 24 + (61 - 58 * T + T ** 2 + 600 * C - 330 * ep2) * A ** 6 / 720))
     return E, Nn
 
+def cop_tile(path):  # one Copernicus GLO-30 file: (array, lon of its west edge, lat of its north edge, degrees a pixel)
+    import zlib, struct
+    im = Image.open(path); t = im.tag_v2; W, H = im.size
+    assert t.get(259) == 8 and t.get(317) == 3, "needs DEFLATE with the floating-point predictor"
+    tw, th = t.get(322), t.get(323); offs, cnts = t.get(324), t.get(325)
+    raw = open(path, "rb").read(); out = np.zeros((H, W), np.float32); per = (W + tw - 1) // tw
+    for k, (o, c) in enumerate(zip(offs, cnts)):
+        b = np.frombuffer(zlib.decompress(raw[o:o + c]), np.uint8).reshape(th, tw * 4).copy()
+        np.cumsum(b, axis=1, dtype=np.uint8, out=b)  # the predictor's horizontal differencing, undone (mod 256)
+        v = b.reshape(th, 4, tw).transpose(0, 2, 1).copy().view(">f4").reshape(th, tw)  # byte planes, most significant first
+        r, cc = (k // per) * th, (k % per) * tw; out[r:r + th, cc:cc + tw] = v[:min(th, H - r), :min(tw, W - cc)]
+    sx, sy = t.get(33550)[:2]; tie = t.get(33922)
+    return out, tie[3], tie[4], sx, sy
+
+def main_cop(folder, lon0, lat0, lon1, lat1, out, res):
+    import glob, os
+    files = {}
+    for f in glob.glob(os.path.join(folder, "*.tif")):
+        import re
+        m = re.search(r"([NS])(\d+)_00_([EW])(\d+)_00", f)
+        if m: files[(int(m.group(2)) * (1 if m.group(1) == "N" else -1), int(m.group(4)) * (1 if m.group(3) == "E" else -1))] = f
+    # the mosaic of whole-degree tiles the box needs (each named by its south-west corner)
+    las = range(math.floor(lat0), math.floor(lat1) + 1); los = range(math.floor(lon0), math.floor(lon1) + 1)
+    rows = []
+    for la in reversed(las):
+        row = []
+        for lo in los:
+            assert (la, lo) in files, f"missing the tile for {la},{lo}"
+            a, w, n, sx, sy = cop_tile(files[(la, lo)]); row.append(a)
+        rows.append(np.hstack(row))
+    z = np.vstack(rows).astype(np.float64); W0, N0 = min(los), max(las) + 1
+    lat_mid = math.radians((lat0 + lat1) / 2); dx = sx * 111320 * math.cos(lat_mid); dy = sy * 110574
+    gy, gx = np.gradient(z * 1.6, dy, dx)
+    az, alt = math.radians(315), math.radians(45); L = (math.sin(az) * math.cos(alt), math.cos(az) * math.cos(alt), math.sin(alt))
+    hs = np.clip((-gx * L[0] + gy * L[1] + L[2]) / np.sqrt(gx ** 2 + gy ** 2 + 1), 0, 1)  # rows grow southwards: north slope is -gy
+    w = int(round((lon1 - lon0) * 111320 * math.cos(lat_mid) / res)); h = int(round((lat1 - lat0) * 110574 / res))
+    LON, LAT = np.meshgrid(np.linspace(lon0, lon1, w), np.linspace(lat1, lat0, h))
+    fc = (LON - W0) / sx - 0.5; fr = (N0 - LAT) / sy - 0.5
+    i0 = np.clip(np.floor(fr).astype(int), 0, hs.shape[0] - 2); j0 = np.clip(np.floor(fc).astype(int), 0, hs.shape[1] - 2)
+    dr = np.clip(fr - i0, 0, 1); dc = np.clip(fc - j0, 0, 1)
+    v = hs[i0, j0] * (1 - dr) * (1 - dc) + hs[i0 + 1, j0] * dr * (1 - dc) + hs[i0, j0 + 1] * (1 - dr) * dc + hs[i0 + 1, j0 + 1] * dr * dc
+    img = np.clip(255 * v / math.sin(alt), 0, 255).astype(np.uint8)
+    Image.fromarray(img, "L").save(out, "WEBP", quality=int(__import__("os").environ.get("RELIEF_QUALITY", "72")), method=6)
+    print(f"{out}: {w}×{h} px, {res:g} m a pixel, from {len(las) * len(los)} Copernicus tiles")
+
 def main():
+    if sys.argv[1] == "--cop":
+        return main_cop(sys.argv[2], *map(float, sys.argv[3:7]), sys.argv[7], float(sys.argv[8]) if len(sys.argv) > 8 else 30.0)
     tif, lon0, lat0, lon1, lat1, out = sys.argv[1], *map(float, sys.argv[2:6]), sys.argv[6]
     res = float(sys.argv[7]) if len(sys.argv) > 7 else 10.0
     dem, x0, y0, sx, sy, nodata = geotiff(tif)
@@ -62,7 +112,7 @@ def main():
     # flat ground light, the shaded sides dark: the atlas multiplies it over its colours
     flat = math.sin(alt)
     img = np.clip(255 * v / flat, 0, 255).astype(np.uint8)
-    Image.fromarray(img, "L").save(out, "WEBP", quality=72, method=6)
+    Image.fromarray(img, "L").save(out, "WEBP", quality=int(__import__("os").environ.get("RELIEF_QUALITY", "72")), method=6)
     print(f"{out}: {w}×{h} px, {res:g} m a pixel, model window {c1 - c0}×{r1 - r0} cells")
 
 if __name__ == "__main__":

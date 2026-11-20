@@ -44,5 +44,6 @@ Object.assign(window.I18N_DICT.da, {
   "Parishes: {0}.": "Sogne: {0}.",
   "Merged since 2013 and drawn whole: {0}.": "Slået sammen siden 2013 og tegnet hele: {0}.",
   "The statute takes only part of {0}.": "Statutten tager kun en del af {0}.",
-  "Parishes and vines © DGT (CAOP 2025, COS 2023), CC BY 4.0": "Sogne og vinmarker © DGT (CAOP 2025, COS 2023), CC BY 4.0"
+  "Parishes and vines © DGT (CAOP 2025, COS 2023), CC BY 4.0": "Sogne og vinmarker © DGT (CAOP 2025, COS 2023), CC BY 4.0",
+  "relief: Copernicus DEM © DLR, Airbus DS": "relief: Copernicus DEM © DLR, Airbus DS"
 });

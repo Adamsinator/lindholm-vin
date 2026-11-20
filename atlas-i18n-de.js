@@ -44,5 +44,6 @@ Object.assign(window.I18N_DICT.de, {
   "Parishes: {0}.": "Pfarreien: {0}.",
   "Merged since 2013 and drawn whole: {0}.": "Seit 2013 zusammengelegt und ganz gezeichnet: {0}.",
   "The statute takes only part of {0}.": "Das Statut nimmt nur einen Teil von {0}.",
-  "Parishes and vines © DGT (CAOP 2025, COS 2023), CC BY 4.0": "Pfarreien und Reben © DGT (CAOP 2025, COS 2023), CC BY 4.0"
+  "Parishes and vines © DGT (CAOP 2025, COS 2023), CC BY 4.0": "Pfarreien und Reben © DGT (CAOP 2025, COS 2023), CC BY 4.0",
+  "relief: Copernicus DEM © DLR, Airbus DS": "Relief: Copernicus DEM © DLR, Airbus DS"
 });

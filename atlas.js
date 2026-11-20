@@ -37,7 +37,8 @@ const REGIONS = [
   { id: "dogliani", name: "Dogliani", file: "atlas-dogliani.js?v=1", ll: [44.47, 7.92], country: "it", kind: "Communes", relief: { src: "atlas-dogliani-relief.webp?v=1", ll: [7.8072,  44.3519,  8.0375,  44.5938] } },
   { id: "gavi", name: "Gavi", file: "atlas-gavi.js?v=1", ll: [44.65, 8.8], country: "it", kind: "Communes", relief: { src: "atlas-gavi-relief.webp?v=1", ll: [8.6802,  44.5304,  8.8896,  44.7621] } },
   { id: "altopiemonte", name: "Gattinara & Ghemme", file: "atlas-altopiemonte.js?v=1", ll: [45.61, 8.39], country: "it", kind: "Communes", relief: { src: "atlas-altopiemonte-relief.webp?v=1", ll: [8.3157,  45.5746,  8.4689,  45.6537] } },
-  { id: "douro", name: "Douro", file: "atlas-douro.js?v=1", ll: [41.16, -7.55], country: "pt", kind: "Vineyards by sub-region", village: "The Douro's sub-regions" },
+  { id: "douro", name: "Douro", file: "atlas-douro.js?v=1", ll: [41.16, -7.55], country: "pt", kind: "Vineyards by sub-region", village: "The Douro's sub-regions",
+    relief: { src: "atlas-douro-relief.webp?v=1", ll: [-8.0504, 40.8218, -6.6266, 41.5434], credit: "Copernicus DEM GLO-30: © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018, provided under COPERNICUS by the European Union and ESA; all rights reserved" } },
   { id: "ahr", name: "Ahr", file: "atlas-ahr.js?v=1", wx: "atlas-ahr-wx.js?v=1", topo: "atlas-ahr-topo.js?v=1", dem: "atlas-ahr-dem.js?v=1", geol: "atlas-ahr-geol.js?v=1", ll: [50.536, 7.079], country: "de", kind: "Einzellagen" },
   { id: "rhone", name: "Rhône (north)", file: "atlas-rhone.js?v=1", wx: "atlas-rhone-wx.js?v=1", topo: "atlas-rhone-topo.js?v=1", dem: "atlas-rhone-dem.js?v=1", geol: "atlas-rhone-geol.js?v=1", ld: "atlas-rhone-ld.js?v=1", ll: [45.201, 4.809], country: "fr", kind: "Cru appellations",
     regional: "Regional (Côtes du Rhône)" },
@@ -216,7 +217,7 @@ function shadeUpdate() {
   svg.classList.toggle("photo", photo); gPhoto.style.display = photo ? "" : "none";
   if (photo) tileLayer(gPhoto, photoTiles, PHOTO_URL, 18);
   // the relief's shading over a photo would only darken it
-  const pre = st.region && st.region.relief; // Piedmont: rendered once from Regione Piemonte's terrain (tools/region-relief.js), served with the site
+  const pre = st.region && st.region.relief; svg.classList.toggle("pre", !!pre && st.relief && !photo); // Piedmont, the Douro: rendered once from Regione Piemonte's terrain (tools/region-relief.js), served with the site
   if (pre) { gShade.style.display = st.relief && !photo ? "" : "none"; if (!gShade.querySelector("image.pre")) { const [a, b, c, e] = pre.ll, d2r = Math.PI / 180, O = M.origin, kx = d2r * 6371000 * Math.cos(O[1] * d2r), ky = d2r * 6371000;
     el("image", { class: "pre", href: pre.src, x: (a - O[0]) * kx, y: (O[1] - e) * ky, width: (c - a) * kx, height: (e - b) * ky, preserveAspectRatio: "none" }, gShade); } return; }
   const on = st.relief && !photo && M.shade !== "none" && (!!M.l93 || de); gShade.style.display = on ? "" : "none"; // "none": no open relief to draw yet
@@ -545,7 +546,7 @@ async function exportPNG() {
 function exportCredit() {
   const y = new Date().getFullYear(), M = st.pack.meta, topo = st.topo && topoOf();
   if (M.shade === "at") return t("Rieden © Land {0}, CC BY 4.0", M.name) + " · " + t("relief © basemap.at");
-  if (st.pack.climats.some(c => c.c === "DV")) return t("Parishes and vines © DGT (CAOP 2025, COS 2023), CC BY 4.0");
+  if (st.pack.climats.some(c => c.c === "DV")) return t("Parishes and vines © DGT (CAOP 2025, COS 2023), CC BY 4.0") + " · " + t("relief: Copernicus DEM © DLR, Airbus DS");
   if (st.pack.climats.some(c => c.c === "CM")) return t("Parcels and relief © Regione Piemonte, CC BY 4.0");
   if (M.shade === "es") return (st.pack.climats.some(c => c.c === "VS") ? t("Viñedos singulares © MAPA (BOE) · parcels © FEGA (SIGPAC), CC BY 4.0") : t("Municipalities © IGN, CC BY 4.0")) + " · " + t("relief © IGN");
   if (M.proj === "eq") return t("Einzellagen © Landwirtschaftskammer RLP") + (topo ? ` · © GeoBasis-DE / LVermGeoRP ${y}, dl-de/by-2-0` : "") + (geolShown() ? " · " + t("Geology") + " " + geolOf().meta.credit : "");
@@ -682,7 +683,7 @@ function renderSide() {
       ${pts().some(q => !q.p) ? `<p class="note">° ${esc(t("Not on IGN's map under its own name, so not drawn."))}</p>` : ""}
       ${pc.some(x => x.inferred) ? `<p class="note">* ${esc(t("INAO's map doesn't name this land; the name comes from IGN's place names inside or next to it."))}</p>` : ""}
       <p class="src">${esc(P.meta.source)}. ${esc(t("Built {0}.", P.meta.built))}${P.meta.l93 ? " " + esc(t("Relief shading and roads, rivers, woods and villages: IGN (Géoplateforme, Licence Ouverte).")) : ""}${R.geol ? " " + esc(P.meta.proj === "eq" ? t("Geology") + ": " + ((geolOf() || { meta: {} }).meta.credit || "©Landesamt für Geologie und Bergbau Rheinland-Pfalz, dl-de/by-2-0, www.lgb-rlp.de [Daten bearbeitet]") + "."
-        : t("Geology: BRGM, the harmonised 1:50 000 map (BD Charm-50, Licence Ouverte).")) : ""}${st.style === "photo" && P.meta.l93 ? " " + esc(t("Aerial photos: IGN (Géoplateforme, Licence Ouverte).")) : ""}${R.relief ? " " + esc(t("Relief")) + ": Regione Piemonte, DTM 25 (ICE 2009–2011), CC BY 4.0." : P.meta.shade === "at" ? " " + esc(t("Relief")) + ": basemap.at (CC BY 4.0)." : P.meta.shade === "es" ? " " + esc(t("Relief")) + ": © Instituto Geográfico Nacional (CC BY 4.0)." : P.meta.proj === "eq" ? deCredit() : ""}</p>`;
+        : t("Geology: BRGM, the harmonised 1:50 000 map (BD Charm-50, Licence Ouverte).")) : ""}${st.style === "photo" && P.meta.l93 ? " " + esc(t("Aerial photos: IGN (Géoplateforme, Licence Ouverte).")) : ""}${R.relief ? " " + esc(t("Relief")) + ": " + esc(R.relief.credit || "Regione Piemonte, DTM 25 (ICE 2009–2011), CC BY 4.0") + "." : P.meta.shade === "at" ? " " + esc(t("Relief")) + ": basemap.at (CC BY 4.0)." : P.meta.shade === "es" ? " " + esc(t("Relief")) + ": © Instituto Geográfico Nacional (CC BY 4.0)." : P.meta.proj === "eq" ? deCredit() : ""}</p>`;
   } else if (!c.g) { // a classified château
     const bottles = CELLAR.by[c.id];
     side.innerHTML = `<p><button class="btn" id="back">← ${esc(P.meta.name)}</button></p>
