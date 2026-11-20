@@ -1,5 +1,6 @@
 // The wine atlas: each region's names as a wine's region or label has them, for putting the cellar's bottles on its map
-// (atlas.js, kwOf). Loaded when a region opens, not with the page.
+// (atlas.js, kwOf); and the relief rendered for a region no tile service shades (tools/region-relief.js; reliefOf).
+// Loaded when a region opens, not with the page.
 window.ATLAS_KW = {
   cotedor: [],
   chablis: ["chablis"],
@@ -35,5 +36,19 @@ window.ATLAS_KW = {
   dogliani: ["dogliani", "dolcetto di dogliani", "farigliano", "clavesana", "monchiero", "belvedere langhe"],
   gavi: ["gavi", "cortese di gavi", "gavi di gavi", "novi ligure", "tassarolo", "serravalle scrivia", "francavilla bisio", "capriata d'orba"],
   altopiemonte: ["gattinara", "ghemme", "romagnano sesia", "alto piemonte", "spanna"],
-  douro: ["douro", "porto", "port", "pinhão", "pinhao", "régua", "regua", "peso da régua", "alijó", "alijo", "sabrosa", "são joão da pesqueira", "tabuaço", "foz côa", "cima corgo", "baixo corgo", "douro superior"]
+  douro: ["douro", "porto", "port", "pinhão", "pinhao", "régua", "regua", "peso da régua", "alijó", "alijo", "sabrosa", "são joão da pesqueira", "tabuaço", "foz côa", "cima corgo", "baixo corgo", "douro superior"],
+  barbera: ["barbera d'asti", "barbera d asti", "costigliole d'asti", "agliano terme", "castagnole delle lanze", "vinchio", "montegrosso d'asti", "mombaruzzo", "rocchetta tanaro"],
+  moscato: ["moscato d'asti", "moscato d asti", "asti spumante", "asti docg", "canelli", "santo stefano belbo", "mango", "cossano belbo", "castiglione tinella", "neviglie", "loazzolo", "calosso"]
+};
+window.ATLAS_RELIEF = {
+  barolo: { src: "atlas-barolo-relief.webp?v=1", ll: [7.8811,  44.5586,  8.05,  44.6901] },
+  barbaresco: { src: "atlas-barbaresco-relief.webp?v=1", ll: [8.0395,  44.6444,  8.1696,  44.7619] },
+  roero: { src: "atlas-roero-relief.webp?v=1", ll: [7.8493,  44.676,  8.1214,  44.8726] },
+  nizza: { src: "atlas-nizza-relief.webp?v=1", ll: [8.1869,  44.6734,  8.5277,  44.8758] },
+  dogliani: { src: "atlas-dogliani-relief.webp?v=1", ll: [7.8072,  44.3519,  8.0375,  44.5938] },
+  gavi: { src: "atlas-gavi-relief.webp?v=1", ll: [8.6802,  44.5304,  8.8896,  44.7621] },
+  altopiemonte: { src: "atlas-altopiemonte-relief.webp?v=1", ll: [8.3157,  45.5746,  8.4689,  45.6537] },
+  barbera: { src: "atlas-barbera-relief.webp?v=1", ll: [7.826,  44.5243,  8.6198,  45.2186] },
+  moscato: { src: "atlas-moscato-relief.webp?v=1", ll: [7.8292,  44.5253,  8.6126,  44.882] },
+  douro: { src: "atlas-douro-relief.webp?v=1", ll: [-8.0504, 40.8218, -6.6266, 41.5434], credit: "Copernicus DEM GLO-30: © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018, provided under COPERNICUS by the European Union and ESA; all rights reserved" }
 };

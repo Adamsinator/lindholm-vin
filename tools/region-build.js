@@ -156,6 +156,8 @@ const REGIONS = {
   dogliani: { name: "Dogliani", country: "Italien", region: "Piemonte", kind: "parcels" },
   nizza: { name: "Nizza", country: "Italien", region: "Piemonte", kind: "parcels" },
   altopiemonte: { name: "Gattinara & Ghemme", country: "Italien", region: "Piemonte", kind: "parcels" },
+  barbera: { name: "Barbera d'Asti", country: "Italien", region: "Piemonte", kind: "parcels" },
+  moscato: { name: "Asti & Moscato d'Asti", country: "Italien", region: "Piemonte", kind: "parcels" },
   // Portugal: the Douro's vines by municipality and sub-region (tools/region-pt.js)
   douro: { name: "Douro", country: "Portugal", region: "Douro", kind: "douro" },
   // INAO's map has no Champagne: its delimitation was never published as data. Its grands and premiers crus are whole

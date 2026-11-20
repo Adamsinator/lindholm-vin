@@ -39,7 +39,7 @@ check("…both credited to Regione Piemonte's register, CC BY 4.0", [B, BB].ever
   const q = await page({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   await q.goto(BASE + "atlas.html"); await q.waitForTimeout(1500);
   const it = await q.evaluate(() => (document.querySelector('#map .cn.on[data-c="it"]') || {}).textContent || "");
-  check("the start page has Italy among the mapped countries, with its seven regions", /Italy\s*7 regions/.test(it), it);
+  check("the start page has Italy among the mapped countries, with its nine regions", /Italy\s*9 regions/.test(it), it);
   await q.goto(BASE + "atlas.html#r=altopiemonte"); await q.waitForFunction(() => /Gattinara/.test(document.getElementById("regionName").textContent), null, { timeout: 30000 }); await q.waitForTimeout(600);
   const ap = await q.evaluate(() => [...document.querySelectorAll("#side h3")].map(h => h.textContent));
   check("Gattinara & Ghemme lists its communes under each wine", ap.includes("Gattinara DOCG") && ap.includes("Ghemme DOCG"), JSON.stringify(ap));
