@@ -151,6 +151,15 @@ const REGIONS = {
   // Italy: Piedmont's DOCG vineyards by commune, from the region's vineyard register (tools/region-it.js)
   barolo: { name: "Barolo", country: "Italien", region: "Piemonte", kind: "parcels" },
   barbaresco: { name: "Barbaresco", country: "Italien", region: "Piemonte", kind: "parcels" },
+  roero: { name: "Roero", country: "Italien", region: "Piemonte", kind: "parcels" },
+  gavi: { name: "Gavi", country: "Italien", region: "Piemonte", kind: "parcels" },
+  dogliani: { name: "Dogliani", country: "Italien", region: "Piemonte", kind: "parcels" },
+  nizza: { name: "Nizza", country: "Italien", region: "Piemonte", kind: "parcels" },
+  altopiemonte: { name: "Gattinara & Ghemme", country: "Italien", region: "Piemonte", kind: "parcels" },
+  barbera: { name: "Barbera d'Asti", country: "Italien", region: "Piemonte", kind: "parcels" },
+  moscato: { name: "Asti & Moscato d'Asti", country: "Italien", region: "Piemonte", kind: "parcels" },
+  // Portugal: the Douro's vines by municipality and sub-region (tools/region-pt.js)
+  douro: { name: "Douro", country: "Portugal", region: "Douro", kind: "douro" },
   // INAO's map has no Champagne: its delimitation was never published as data. Its grands and premiers crus are whole
   // villages (the échelle des crus), so a cru here is the vines (IGN BD TOPO, nature "Vigne") inside that village's
   // boundary (IGN ADMIN EXPRESS; the old commune where it has since merged: Aÿ, Oger, Vertus, Coligny…); the other
@@ -238,7 +247,7 @@ const label = mp => { // a point inside the biggest piece: its ring's centroid i
   for (let i = 0, j = r.length - 1; i < r.length; j = i++) { const [xi, yi] = r[i], [xj, yj] = r[j]; if ((yi > y) !== (yj > y)) xs.push(xi + (y - yi) * (xj - xi) / (yj - yi)); }
   xs.sort((a, b) => a - b); return [Math.round((xs[0] + xs[1]) / 2), Math.round(y)];
 };
-const RANK = { GC: 0, "1er": 1, AOC: 2, EL: 3, RD: 3, VS: 3, MU: 3, CM: 3 };
+const RANK = { GC: 0, "1er": 1, AOC: 2, EL: 3, RD: 3, VS: 3, MU: 3, CM: 3, DV: 3 };
 const slug = s => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
 const proper = s => s.replace(/^(les?|la|l')\s/i, m => m.charAt(0).toUpperCase() + m.slice(1).toLowerCase()).replace(/^./, c => c.toUpperCase());
 
@@ -371,6 +380,10 @@ async function riedenBuild() {
 }
 
 (async () => {
+  if (R.kind === "douro") {
+    console.error(`${R.name}: the statute's parishes and COS 2023's vines`);
+    return finish(await require("./region-pt").douroBuild({ CACHE, curl, polysOf, union, tidy, polyHa, label, slug }));
+  }
   if (R.kind === "parcels") {
     console.error(`${R.name}: the vineyard register's parcels`);
     return finish(await require("./region-it").parcelsBuild({ CACHE, union, tidy, polyHa, label, slug }, id));
@@ -511,7 +524,7 @@ function finish({ climats, villages, regionalLand, points, meta }) {
   // Rieden are many and small: their rings go as flat steps from the point before ([x0, y0, dx1, dy1…], about half the
   // size gzipped), and the names that follow from the Ried's own are left out; the pack puts both back as it loads, so
   // whatever reads it (the atlas, the build tools) gets the same shape as any other pack
-  const rd = (R.kind === "rieden" || R.kind === "parcels") && !process.env.RAW_PACK, ried = R.kind === "rieden";
+  const rd = (R.kind === "rieden" || R.kind === "parcels" || R.kind === "douro") && !process.env.RAW_PACK, ried = R.kind === "rieden";
   if (rd) pack.climats = pack.climats.map(c => { const { ap, aka, ...k } = c; return { ...(ried ? k : c), g: c.g.map(p => p.map(r => r.flatMap(([x, y], i) => i ? [x - r[i - 1][0], y - r[i - 1][1]] : [x, y]))) }; });
   const body = rd ? `(P => { P.climats.forEach(c => { ${ried ? 'c.ap = "Ried " + c.n; c.aka = [c.n, c.ap, c.app + " " + c.n];' : ""}
   c.g = c.g.map(p => p.map(r => { const o = []; for (let i = 0, x = 0, y = 0; i < r.length; i += 2) o.push([x += r[i], y += r[i + 1]]); return o; })); }); return P; })(${JSON.stringify(pack)})` : JSON.stringify(pack);
@@ -520,6 +533,8 @@ function finish({ climats, villages, regionalLand, points, meta }) {
     infN = climats.filter(c => c.inferred).length, unN = climats.filter(c => c.unnamed).length;
   const elN = climats.filter(c => c.c === "EL").length;
   if (elN) { console.error(`${path.basename(out)}: ${elN} Einzellagen · ${(fs.statSync(out).size / 1024).toFixed(0)} KB`); return; }
+  const dvN = climats.filter(c => c.c === "DV").length;
+  if (dvN) { console.error(`${path.basename(out)}: ${dvN} municipalities' vines · ${(fs.statSync(out).size / 1024).toFixed(0)} KB`); return; }
   const cmN = climats.filter(c => c.c === "CM").length;
   if (cmN) { console.error(`${path.basename(out)}: ${cmN} communes · ${(fs.statSync(out).size / 1024).toFixed(0)} KB`); return; }
   const muN = climats.filter(c => c.c === "MU").length;

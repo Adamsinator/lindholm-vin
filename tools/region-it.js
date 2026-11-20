@@ -6,8 +6,20 @@
 "use strict";
 const fs = require("fs"), path = require("path"), { execFileSync } = require("child_process");
 const YEAR = 2025;
+const TOL_ = { barbera: 6, moscato: 6 }; // metres: the big regions' outlines a little coarser, to keep their packs small
 const URL_ = `https://www.datigeo-piem-download.it/direct/Geoportale/RegionePiemonte/AGRICOLTURA/ViniVitigni/IDONEITA_PRODUZIONE_VINO_DO_${YEAR}-EPSG32632-GPKG.zip`;
-const WINES = { barolo: { vino: "BAROLO", table: "VINI ROSSI" }, barbaresco: { vino: "BARBARESCO", table: "VINI ROSSI" } };
+// each region: its wines, each the register's rows that name it (a wine in red and white is in both tables)
+const WINES = {
+  barolo: [["Barolo DOCG", [["VINI ROSSI", "BAROLO"]]]],
+  barbaresco: [["Barbaresco DOCG", [["VINI ROSSI", "BARBARESCO"]]]],
+  roero: [["Roero DOCG", [["VINI ROSSI", "ROERO"], ["VINI BIANCHI", "ROERO"]]]],
+  gavi: [["Gavi DOCG", [["VINI BIANCHI", "GAVI O CORTESE DI GAVI"]]]],
+  dogliani: [["Dogliani DOCG", [["VINI ROSSI", "DOGLIANI DOCG"]]]],
+  nizza: [["Nizza DOCG", [["VINI ROSSI", "NIZZA DOCG"]]]],
+  altopiemonte: [["Gattinara DOCG", [["VINI ROSSI", "GATTINARA"]]], ["Ghemme DOCG", [["VINI ROSSI", "GHEMME"]]]],
+  barbera: [["Barbera d'Asti DOCG", [["VINI ROSSI", "BARBERA D'ASTI DOCG"]]]],
+  moscato: [["Asti DOCG", [["VINI BIANCHI", "ASTI O ASTI SPUMANTE E MOSCATO D'ASTI"]]]],
+};
 
 // WGS84 / UTM 32N → longitude, latitude
 function utm32(E, N) {
@@ -35,17 +47,23 @@ async function parcelsBuild(H, key) {
   if (!fs.existsSync(gpkg)) { fs.mkdirSync(dir, { recursive: true }); const zip = path.join(dir, "vini.zip");
     execFileSync("curl", ["-sS", "--fail", "--max-time", "900", "-o", zip, URL_]); execFileSync("unzip", ["-o", "-q", zip, "-d", dir]); }
   const { DatabaseSync } = require("node:sqlite"), db = new DatabaseSync(gpkg, { readOnly: true });
-  const rows = db.prepare(`select geom, nome_comune from "${W.table} ${YEAR}" where vino = ?`).all(W.vino);
-  if (!rows.length) throw new Error(`no parcels for ${W.vino}`);
-  const by = new Map(); rows.forEach(r => { const ps = gpkgPolys(Buffer.from(r.geom)).map(p => p.map(rg => rg.map(([E, N]) => utm32(E, N)))); if (!by.has(r.nome_comune)) by.set(r.nome_comune, []); by.get(r.nome_comune).push(...ps); });
+  // one site a commune and wine; a parcel listed in both tables (Roero, red and white) counts once
+  const by = new Map(), n = new Map();
+  for (const [ap, sources] of W) { const seen = new Set();
+    for (const [table, vino] of sources) for (const r of db.prepare(`select geom, nome_comune, foglio, particella, sezione from "${table} ${YEAR}" where vino = ?`).all(vino)) {
+      const k = [r.nome_comune, r.sezione, r.foglio, r.particella].join("|"); if (seen.has(k)) continue; seen.add(k);
+      const key = r.nome_comune + "|" + ap, ps = gpkgPolys(Buffer.from(r.geom)).map(p => p.map(rg => rg.map(([E, N]) => utm32(E, N))));
+      if (!by.has(key)) by.set(key, []); by.get(key).push(...ps); n.set(key, (n.get(key) || 0) + 1); }
+    if (!seen.size) throw new Error(`no parcels for ${ap}`); }
+  const rows = [...n.values()].reduce((a, b) => a + b, 0);
   let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity; // a loop: too many points to spread into Math.min
   for (const ps of by.values()) for (const p of ps) for (const [x, y] of p[0]) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
   const O = [+((x0 + x1) / 2).toFixed(4), +((y0 + y1) / 2).toFixed(4)];
   const d2r = Math.PI / 180, kx = d2r * 6371000 * Math.cos(O[1] * d2r), ky = d2r * 6371000, m = ([x, y]) => [(x - O[0]) * kx, (O[1] - y) * ky];
-  const climats = [...by.entries()].map(([n, ps]) => { const mp = union(ps.map(p => p.map(r => r.map(m)))), g = tidy(mp, 3), name = n.replace(/'$/, "");
-    return g.length && { id: slug(name), n: name, c: "CM", ap: key === "barolo" ? "Barolo DOCG" : "Barbaresco DOCG", app: name, parcels: rows.filter(r => r.nome_comune === n).length,
+  const climats = [...by.entries()].map(([k, ps]) => { const [com, ap] = k.split("|"), mp = union(ps.map(p => p.map(r => r.map(m)))), g = tidy(mp, TOL_[key] || 3), name = com.replace(/'$/, "");
+    return g.length && { id: slug(name), n: name, c: "CM", ap, app: name, parcels: n.get(k),
       ha: +polyHa(mp).toFixed(1), lp: label(g), g, aka: [name] }; }).filter(Boolean);
-  console.error(`  ${rows.length} parcels in ${climats.length} communes`);
+  console.error(`  ${rows} parcels in ${climats.length} communes`);
   return { climats, villages: [], regionalLand: [], meta: { proj: "eq", origin: O, l93: null, shade: "none", register: YEAR, // no open relief tiles for Piedmont the atlas can use yet
     source: `Parcels: Regione Piemonte, Vini – indicazione dell'idoneità alla D.O. su mosaicatura catastale di riferimento regionale ${YEAR}, CC BY 4.0 [data edited]` } };
 }
