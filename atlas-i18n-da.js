@@ -9,7 +9,7 @@ Object.assign(window.I18N_DICT.da, {
   "Some of its parcels have been renumbered in SIGPAC since; it is drawn without them.": "Nogle af dens parceller er siden blevet omnummereret i SIGPAC; den er tegnet uden dem.",
   "Viñedos singulares © MAPA (BOE) · parcels © FEGA (SIGPAC), CC BY 4.0": "Viñedos singulares © MAPA (BOE) · parceller © FEGA (SIGPAC), CC BY 4.0",
   "relief © IGN": "relief © IGN",
-  "Every region here is drawn from its official map: INAO's for France, the Weinbergsrolle for Germany, the Länder's Rieden for Austria, the Ministry's viñedos singulares and the DOs' municipalities for Spain. Pick one.": "Hver region her er tegnet efter sit officielle kort: INAO's for Frankrig, Weinbergsrolle for Tyskland, delstaternes rieder for Østrig, ministeriets viñedos singulares og DO'ernes kommuner for Spanien. Vælg en.",
+  "Every region here is drawn from its official map: INAO's for France, the Weinbergsrolle for Germany, the Länder's Rieden for Austria, the Ministry's viñedos singulares and the DOs' municipalities for Spain, Piedmont's vineyard register for Italy. Pick one.": "Hver region her er tegnet efter sit officielle kort: INAO's for Frankrig, Weinbergsrolle for Tyskland, delstaternes rieder for Østrig, ministeriets viñedos singulares og DO'ernes kommuner for Spanien, Piemontes vinregister for Italien. Vælg en.",
   "{0} region": "{0} region",
   "One region, drawn from its official map.": "Én region, tegnet efter sit officielle kort.",
   "The DOCa's zones": "DOCa'ens zoner",
@@ -21,5 +21,15 @@ Object.assign(window.I18N_DICT.da, {
   "All of it is in the DO; the vineyards are a part of it.": "Hele kommunen er med i DO'en; vinmarkerne er en del af den.",
   "Municipalities © IGN, CC BY 4.0": "Kommuner © IGN, CC BY 4.0",
   "{0} municipalities": "{0} kommuner",
-  "Partly in the DO": "Delvist i DO'en"
+  "Partly in the DO": "Delvist i DO'en",
+  "Commune": "Kommune",
+  "Communes": "Kommuner",
+  "{0} communes: the parcels Piedmont's vineyard register has as fit for {1}. Click one.": "{0} kommuner: de parceller, Piemontes vinregister har som egnede til {1}. Klik på en.",
+  "Whole cadastral parcels, of which the vines are a part; the register doesn't say which MGA a parcel is in.": "Hele matrikelparceller, som vinstokkene er en del af; registret siger ikke, hvilken MGA en parcel ligger i.",
+  "The MGA, as a list": "MGA'erne som liste",
+  "Parcels fit for {0}": "Parceller egnede til {0}",
+  "Parcels": "Parceller",
+  "Whole cadastral parcels from Piedmont's vineyard register ({0}); the vines are a part of each.": "Hele matrikelparceller fra Piemontes vinregister ({0}); vinstokkene er en del af hver.",
+  "Parcels © Regione Piemonte, CC BY 4.0": "Parceller © Regione Piemonte, CC BY 4.0",
+  "{0} communes": "{0} kommuner"
 });
