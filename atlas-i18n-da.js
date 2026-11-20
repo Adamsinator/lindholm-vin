@@ -31,5 +31,6 @@ Object.assign(window.I18N_DICT.da, {
   "Parcels": "Parceller",
   "Whole cadastral parcels from Piedmont's vineyard register ({0}); the vines are a part of each.": "Hele matrikelparceller fra Piemontes vinregister ({0}); vinstokkene er en del af hver.",
   "Parcels © Regione Piemonte, CC BY 4.0": "Parceller © Regione Piemonte, CC BY 4.0",
-  "{0} communes": "{0} kommuner"
+  "{0} communes": "{0} kommuner",
+  "Parcels and relief © Regione Piemonte, CC BY 4.0": "Parceller og relief © Regione Piemonte, CC BY 4.0"
 });

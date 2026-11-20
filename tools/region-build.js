@@ -151,6 +151,11 @@ const REGIONS = {
   // Italy: Piedmont's DOCG vineyards by commune, from the region's vineyard register (tools/region-it.js)
   barolo: { name: "Barolo", country: "Italien", region: "Piemonte", kind: "parcels" },
   barbaresco: { name: "Barbaresco", country: "Italien", region: "Piemonte", kind: "parcels" },
+  roero: { name: "Roero", country: "Italien", region: "Piemonte", kind: "parcels" },
+  gavi: { name: "Gavi", country: "Italien", region: "Piemonte", kind: "parcels" },
+  dogliani: { name: "Dogliani", country: "Italien", region: "Piemonte", kind: "parcels" },
+  nizza: { name: "Nizza", country: "Italien", region: "Piemonte", kind: "parcels" },
+  altopiemonte: { name: "Gattinara & Ghemme", country: "Italien", region: "Piemonte", kind: "parcels" },
   // INAO's map has no Champagne: its delimitation was never published as data. Its grands and premiers crus are whole
   // villages (the échelle des crus), so a cru here is the vines (IGN BD TOPO, nature "Vigne") inside that village's
   // boundary (IGN ADMIN EXPRESS; the old commune where it has since merged: Aÿ, Oger, Vertus, Coligny…); the other

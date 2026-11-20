@@ -25,7 +25,11 @@ check("…both credited to Regione Piemonte's register, CC BY 4.0", [B, BB].ever
   const side = await p.textContent("#side");
   check("Barolo opens with its communes, the note that they are whole parcels, and the MGA as a list", /11 communes/.test(side) && /La Morra/.test(side) && /whole cadastral parcels/i.test(side)
     && await p.evaluate(() => /v\/en\/index\.html#barolo$/.test((document.querySelector('#side a[href*="index.html#barolo"]') || {}).href || "")), side.slice(0, 300));
-  check("…the breadcrumb Europe › Italy › Barolo · 11 communes; no relief (none open the atlas can use yet), its toggle hidden, no other country's tiles", /Europe\s*›\s*Italy\s*›\s*Barolo\s*·\s*11 communes/.test(await p.textContent("#crumb")) && !tiles.length && await p.isHidden("#fRelief"), [...new Set(tiles)].join() + " " + await p.textContent("#crumb"));
+  const rl = await p.evaluate(() => { const i = document.querySelector("#map g.shade image.pre"); return i && { href: i.getAttribute("href"), w: +i.getAttribute("width"), shown: getComputedStyle(document.querySelector("#map g.shade")).display !== "none" }; });
+  check("…the breadcrumb Europe › Italy › Barolo · 11 communes; its relief rendered from Piedmont's terrain, served with the site, no tiles fetched", /Europe\s*›\s*Italy\s*›\s*Barolo\s*·\s*11 communes/.test(await p.textContent("#crumb")) && !tiles.length
+    && rl && rl.href === "atlas-barolo-relief.webp?v=1" && rl.w > 10000 && rl.shown && await p.isVisible("#fRelief") && /DTM 25/.test(side), JSON.stringify(rl) + " " + [...new Set(tiles)].join());
+  const img = await p.evaluate(() => fetch("atlas-barolo-relief.webp?v=1").then(r => r.ok ? r.arrayBuffer() : null).then(b => b && String.fromCharCode(...new Uint8Array(b.slice(8, 12)))));
+  check("…the relief image is there, a WebP", img === "WEBP", img); // by its bytes: a test server may not know the type
   await p.goto(BASE + "atlas.html#r=barolo&c=la_morra"); await p.reload(); await p.waitForTimeout(1500);
   const lm = await p.evaluate(() => ({ h: (document.querySelector("#side h2") || {}).textContent, t: document.getElementById("side").textContent }));
   check("a commune: La Morra, its parcels fit for Barolo DOCG and their count", lm.h === "La Morra" && /Parcels fit for Barolo DOCG/.test(lm.t) && /\b2\d{3}\b/.test(lm.t), JSON.stringify(lm).slice(0, 300));
@@ -35,7 +39,10 @@ check("…both credited to Regione Piemonte's register, CC BY 4.0", [B, BB].ever
   const q = await page({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   await q.goto(BASE + "atlas.html"); await q.waitForTimeout(1500);
   const it = await q.evaluate(() => (document.querySelector('#map .cn.on[data-c="it"]') || {}).textContent || "");
-  check("the start page has Italy among the mapped countries, with its two regions", /Italy\s*2 regions/.test(it), it);
+  check("the start page has Italy among the mapped countries, with its seven regions", /Italy\s*7 regions/.test(it), it);
+  await q.goto(BASE + "atlas.html#r=altopiemonte"); await q.waitForFunction(() => /Gattinara/.test(document.getElementById("regionName").textContent), null, { timeout: 30000 }); await q.waitForTimeout(600);
+  const ap = await q.evaluate(() => [...document.querySelectorAll("#side h3")].map(h => h.textContent));
+  check("Gattinara & Ghemme lists its communes under each wine", ap.includes("Gattinara DOCG") && ap.includes("Ghemme DOCG"), JSON.stringify(ap));
   check("no console errors", !errs.length, errs.join(" | "));
   await b.close();
   const n = results.filter(Boolean).length; console.log(`\n${n}/${results.length} passed`); process.exit(n === results.length ? 0 : 1);
