@@ -34,5 +34,6 @@ window.ATLAS_KW = {
   nizza: ["nizza", "nizza monferrato", "barbera nizza", "agliano terme", "castel boglione", "vinchio", "mombercelli", "incisa scapaccino"],
   dogliani: ["dogliani", "dolcetto di dogliani", "farigliano", "clavesana", "monchiero", "belvedere langhe"],
   gavi: ["gavi", "cortese di gavi", "gavi di gavi", "novi ligure", "tassarolo", "serravalle scrivia", "francavilla bisio", "capriata d'orba"],
-  altopiemonte: ["gattinara", "ghemme", "romagnano sesia", "alto piemonte", "spanna"]
+  altopiemonte: ["gattinara", "ghemme", "romagnano sesia", "alto piemonte", "spanna"],
+  douro: ["douro", "porto", "port", "pinhão", "pinhao", "régua", "regua", "peso da régua", "alijó", "alijo", "sabrosa", "são joão da pesqueira", "tabuaço", "foz côa", "cima corgo", "baixo corgo", "douro superior"]
 };

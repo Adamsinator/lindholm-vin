@@ -9,7 +9,7 @@ Object.assign(window.I18N_DICT.de, {
   "Some of its parcels have been renumbered in SIGPAC since; it is drawn without them.": "Einige seiner Parzellen wurden im SIGPAC seither neu nummeriert; er ist ohne sie gezeichnet.",
   "Viñedos singulares © MAPA (BOE) · parcels © FEGA (SIGPAC), CC BY 4.0": "Viñedos singulares © MAPA (BOE) · Parzellen © FEGA (SIGPAC), CC BY 4.0",
   "relief © IGN": "Relief © IGN",
-  "Every region here is drawn from its official map: INAO's for France, the Weinbergsrolle for Germany, the Länder's Rieden for Austria, the Ministry's viñedos singulares and the DOs' municipalities for Spain, Piedmont's vineyard register for Italy. Pick one.": "Jede Region ist nach ihrer amtlichen Karte gezeichnet: der des INAO für Frankreich, der Weinbergsrolle für Deutschland, den Rieden der Länder für Österreich, den Viñedos singulares des Ministeriums und den Gemeinden der DOs für Spanien, Piemonts Weinbaukataster für Italien. Wählen Sie eine.",
+  "Every region here is drawn from its official map: INAO's for France, the Weinbergsrolle for Germany, the Länder's Rieden for Austria, the Ministry's viñedos singulares and the DOs' municipalities for Spain, Piedmont's vineyard register for Italy, DGT's land-use map for Portugal. Pick one.": "Jede Region ist nach ihrer amtlichen Karte gezeichnet: der des INAO für Frankreich, der Weinbergsrolle für Deutschland, den Rieden der Länder für Österreich, den Viñedos singulares des Ministeriums und den Gemeinden der DOs für Spanien, Piemonts Weinbaukataster für Italien, die Landnutzungskarte der DGT für Portugal. Wählen Sie eine.",
   "{0} region": "{0} Region",
   "One region, drawn from its official map.": "Eine Region, nach ihrer amtlichen Karte gezeichnet.",
   "The DOCa's zones": "Die Zonen der DOCa",
@@ -32,5 +32,17 @@ Object.assign(window.I18N_DICT.de, {
   "Whole cadastral parcels from Piedmont's vineyard register ({0}); the vines are a part of each.": "Ganze Katasterparzellen aus Piemonts Weinbaukataster ({0}); die Reben sind ein Teil davon.",
   "Parcels © Regione Piemonte, CC BY 4.0": "Parzellen © Regione Piemonte, CC BY 4.0",
   "{0} communes": "{0} Gemeinden",
-  "Parcels and relief © Regione Piemonte, CC BY 4.0": "Parzellen und Relief © Regione Piemonte, CC BY 4.0"
+  "Parcels and relief © Regione Piemonte, CC BY 4.0": "Parzellen und Relief © Regione Piemonte, CC BY 4.0",
+  "Vineyards": "Weinberge",
+  "Vineyards by sub-region": "Weinberge nach Unterregion",
+  "The Douro's sub-regions": "Die Unterregionen des Douro",
+  "The vines of {0} municipalities, by sub-region: the land COS 2023 maps as vineyard inside the parishes the Douro's statute lists. Click one.": "Die Reben von {0} Gemeinden, nach Unterregion: das Land, das COS 2023 als Weinberg kartiert, in den Pfarreien, die das Statut des Douro nennt. Eine anklicken.",
+  "COS maps vineyard land in patches of at least a hectare, with the terraces' walls and paths: about {0} ha here, where some 44 000 ha of vines are planted.": "COS kartiert Rebland in Flächen von mindestens einem Hektar, mit den Mauern und Wegen der Terrassen: hier etwa {0} ha, bei rund 44 000 ha bepflanzter Reben.",
+  "Not drawn: the estates the statute names one by one: {0}.": "Nicht gezeichnet: die Güter, die das Statut einzeln nennt: {0}.",
+  "Vineyard land (COS 2023)": "Rebland (COS 2023)",
+  "Its parishes in the region": "Ihre Pfarreien in der Region",
+  "Parishes: {0}.": "Pfarreien: {0}.",
+  "Merged since 2013 and drawn whole: {0}.": "Seit 2013 zusammengelegt und ganz gezeichnet: {0}.",
+  "The statute takes only part of {0}.": "Das Statut nimmt nur einen Teil von {0}.",
+  "Parishes and vines © DGT (CAOP 2025, COS 2023), CC BY 4.0": "Pfarreien und Reben © DGT (CAOP 2025, COS 2023), CC BY 4.0"
 });
