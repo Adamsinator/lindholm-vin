@@ -286,7 +286,7 @@ function drawTopo() {
 function topoLod() {
   if (!TG.names || !st.view) return;
   const on = st.topo && !!topoOf(), wk = st.view[2] / 1000; // view width, km
-  [TG.under, TG.over].forEach(g => g.style.display = on ? "" : "none"); TG.names.style.display = topoOf() ? "" : "none"; // a winery's name stays with the layer off
+  [TG.under, TG.over].forEach(g => g.style.display = on ? "" : "none"); TG.names.style.display = on || (topoOf() && topoOf().names.some(n => n[0] === "v")) ? "" : "none"; // a winery's name stays with the layer off
   svg.classList.toggle("lod-mid", wk < 14); svg.classList.toggle("lod-near", wk < 6);
   const k = st.view[2] / (svg.clientWidth || 800), taken = [];
   LABEL_BOXES.forEach(b => taken.push(b));
