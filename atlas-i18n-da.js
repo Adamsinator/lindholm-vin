@@ -67,5 +67,8 @@ Object.assign(window.I18N_DICT.da, {
   "Vines © Landbrugsstyrelsen (Marker {0}) · boundaries © SDFI (DAGI)": "Vinmarker © Landbrugsstyrelsen (Marker {0}) · grænser © SDFI (DAGI)",
   "Njord: Sune Albertsen's vineyard about 10 km south of Holbæk, founded in 2010, known for its Pinot Noir Précoce (Frühburgunder).": "Njord: Sune Albertsens vingård omkring 10 km syd for Holbæk, grundlagt i 2010 og kendt for sin Pinot Noir Précoce (Frühburgunder).",
   "Tuse Næs, north of the town, is inside the parishes of the proposed Odsherred PDO.": "Tuse Næs nord for byen ligger inden for sognene i den foreslåede BOB Odsherred.",
-  "Borders: Natural Earth (public domain); Denmark's: SDFI (DAGI). The outlines are where each region's vineyards are, from its own map.": "Grænser: Natural Earth (public domain); Danmarks: SDFI (DAGI). Omridsene viser, hvor hver regions vinmarker ligger, efter dens eget kort."
+  "Borders: Natural Earth (public domain); Denmark's: SDFI (DAGI). The outlines are where each region's vineyards are, from its own map.": "Grænser: Natural Earth (public domain); Danmarks: SDFI (DAGI). Omridsene viser, hvor hver regions vinmarker ligger, efter dens eget kort.",
+  "Vineyards by parish": "Vinmarker efter sogn",
+  "The vines of {0} parishes: the fields farmers declared as vines to Landbrugsstyrelsen in {1}. Click one.": "Vinmarkerne i {0} sogne: de marker, landmænd har anmeldt som vindruer til Landbrugsstyrelsen i {1}. Klik på et.",
+  "{0} parishes": "{0} sogne"
 });

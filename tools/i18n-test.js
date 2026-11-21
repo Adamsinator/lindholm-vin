@@ -13,6 +13,7 @@ const src = fs.readFileSync(R("i18n.js"), "utf8");
 // the shared dictionary, plus the privacy page's and the atlas's own (privacy-i18n-*.js, atlas-i18n-*.js, loaded only there)
 const dict = l => { const w = {}; new Function("window", fs.readFileSync(R(`i18n-${l}.js`), "utf8"))(w);
   new Function("window", fs.readFileSync(R(`privacy-i18n-${l}.js`), "utf8"))(w);
+  new Function("window", fs.readFileSync(R(`i18n-cellar-${l}.js`), "utf8"))(w); // the cellar's own words (tools/i18n-split.js)
   new Function("window", fs.readFileSync(R(`atlas-i18n-${l}.js`), "utf8"))(w); // the atlas's own (atlas-i18n-*.js, loaded only there)
   new Function("window", fs.readFileSync(R("atlas-wx-i18n.js"), "utf8"))(w); Object.entries(w.ATLAS_WX_I18N[l]).forEach(([k, v]) => { if (!(k in w.I18N_DICT[l])) w.I18N_DICT[l][k] = v; }); // the weather panel's own
   return w.I18N_DICT[l]; };
@@ -27,6 +28,8 @@ for (const [l, d] of Object.entries(D)) {
   const empty = Object.entries(d).filter(([, v]) => !String(v).trim()).map(([k]) => k);
   check(`UI ${l}: no empty strings`, !empty.length, empty.join(" | "));
 }
+{ const r = require("child_process").spawnSync(process.execPath, [R("tools/i18n-split.js"), "--check"], { encoding: "utf8" });
+  check("each word in the right file: the cellar's own in i18n-cellar-*.js, the rest shared (tools/i18n-split.js)", r.status === 0, (r.stderr || "").trim().split("\n").pop()); }
 check("the picker offers German", /\{id:"de", n:"Deutsch"\}/.test(src) && /\n  de: `<svg/.test(src));
 // every t("…")/tr("…") literal in the front-end has a translation
 const used = new Set();

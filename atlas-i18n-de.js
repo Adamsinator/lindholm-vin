@@ -67,5 +67,8 @@ Object.assign(window.I18N_DICT.de, {
   "Vines © Landbrugsstyrelsen (Marker {0}) · boundaries © SDFI (DAGI)": "Reben © Landbrugsstyrelsen (Marker {0}) · Grenzen © SDFI (DAGI)",
   "Njord: Sune Albertsen's vineyard about 10 km south of Holbæk, founded in 2010, known for its Pinot Noir Précoce (Frühburgunder).": "Njord: Sune Albertsens Weingut etwa 10 km südlich von Holbæk, 2010 gegründet und bekannt für seinen Pinot Noir Précoce (Frühburgunder).",
   "Tuse Næs, north of the town, is inside the parishes of the proposed Odsherred PDO.": "Tuse Næs nördlich der Stadt liegt in den Kirchspielen der vorgeschlagenen g.U. Odsherred.",
-  "Borders: Natural Earth (public domain); Denmark's: SDFI (DAGI). The outlines are where each region's vineyards are, from its own map.": "Grenzen: Natural Earth (gemeinfrei); die Dänemarks: SDFI (DAGI). Die Umrisse zeigen, wo die Weinberge jeder Region liegen, nach ihrer eigenen Karte."
+  "Borders: Natural Earth (public domain); Denmark's: SDFI (DAGI). The outlines are where each region's vineyards are, from its own map.": "Grenzen: Natural Earth (gemeinfrei); die Dänemarks: SDFI (DAGI). Die Umrisse zeigen, wo die Weinberge jeder Region liegen, nach ihrer eigenen Karte.",
+  "Vineyards by parish": "Weinberge nach Kirchspiel",
+  "The vines of {0} parishes: the fields farmers declared as vines to Landbrugsstyrelsen in {1}. Click one.": "Die Reben von {0} Kirchspielen: die Felder, die Landwirte {1} bei der Landbrugsstyrelsen als Reben gemeldet haben. Klicken Sie auf eines.",
+  "{0} parishes": "{0} Kirchspiele"
 });

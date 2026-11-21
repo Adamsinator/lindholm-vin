@@ -13,7 +13,11 @@ const KB = n => Math.round(n / 1024);
 // KB gzipped (2026-11: index 245, atlas 76, burgundy 468, domaine 329, privacy 37, 404 1)
 // index.html 280 KB (270 → 275 → 280, November 2026): the cellar app keeps growing; business-only words load on their own.
 // Done: the owner's admin code moved out of app.js into admin.js (5 November 2026)
-const PAGES = { "index.html": 280, "atlas.html": 108, "burgundy.html": 5, "domaine.html": 360, "privacy.html": 52, "help.html": 60, "share.html": 50, "404.html": 5 };
+// 21 November 2026: the shared dictionaries split (tools/i18n-split.js): the words only the cellar uses moved to
+// i18n-cellar-*.js, which only index.html loads. i18n-da.js went from 37 to 11 KB, so atlas 108 → 82 (budget 88),
+// domaine 338 → 312 (320), privacy 52 → 25 (30), help 53 → 26 (30), share 50 → 23 (28); index 280 → 281 (282), as two
+// files compress a little worse than one
+const PAGES = { "index.html": 282, "atlas.html": 88, "burgundy.html": 5, "domaine.html": 320, "privacy.html": 30, "help.html": 30, "share.html": 28, "404.html": 5 };
 // atlas.html raised 90 → 95 KB (5 November 2026): the shared dictionaries grew with the style card, the cellar map and the business words; the atlas itself did not
 // atlas.html 95 → 97 and privacy.html 50 → 52 KB (6 November 2026): again the shared dictionary (i18n-da.js, 36 KB of the
 // 96), now with the map tools' words; the atlas's own new code loads with the region that uses it. The lasting fix is
