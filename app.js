@@ -4893,4 +4893,6 @@ if(cfg.api && cfg.user && cfg.token && sessionFresh && localStorage.getItem("vin
   else showGate(staleDrop ? tr("Your session expired after inactivity: log in again.") : "");
 }
 // the tools load once the page is idle, so they're there before anyone asks for them
-(window.requestIdleCallback || (f => setTimeout(f, 1500)))(() => needTools().catch(() => {}));
+// (after the page's load: a script added before it holds the load event open)
+const idleTools = () => (window.requestIdleCallback || (f => setTimeout(f, 1500)))(() => needTools().catch(() => {}));
+if(document.readyState === "complete") idleTools(); else addEventListener("load", idleTools, {once:true});
