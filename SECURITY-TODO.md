@@ -7,10 +7,11 @@ are done (see "Limits against abuse" in the README). Tick a box when an item shi
 
 - [ ] **Google Search Console:** add the domain `allwine.dk` (it asks for a DNS TXT record at the registrar), then
       Sitemaps → submit `https://allwine.dk/sitemap.xml`. The vineyard pages show up over the following weeks.
-- [ ] **Deploy `Code.gs` API 63** (21 November): session tokens are kept hashed in the Users tab, so a copy of it (a
+- [x] **Deploy `Code.gs` API 63** (21 November): session tokens are kept hashed in the Users tab, so a copy of it (a
       backup, a leak) no longer signs anyone in. Paste it, Manage deployments → ✏️ → New version (the Worker then
       reports v:63), then pick `hashTokens` in the editor's function list and Run once: the tokens still kept in the
       clear are hashed at once. Nobody is signed out.
+      Done 21 November 2026: the Worker reports v:63, and `hashTokens` has run.
 - [x] **Deploy `Code.gs` API 62** (found in the 21 November review). Text from visitors and members that goes into
       the master book (atlas corrections, the Log, the feed and its comments, invite notes, the email at sign-up) is
       now kept as text. Before, a signed-in member could save an atlas correction whose producer was `=Users!E2`, and
@@ -20,7 +21,7 @@ are done (see "Limits against abuse" in the README). Tick a box when an item shi
       master sheet, Edit → Find and replace, search for `=` with "Also search within formulas" ticked, in AtlasEdits,
       Log, Feed, FeedComments, Invites and the Email column of Users. Delete any formula a member wrote, and if one
       was there, sign everyone out (blank the Token column).
-      Done 21 November 2026: the Worker reports v:62. The one-time check of the master sheet for formulas is still to do.
+      Done 21 November 2026: the Worker reports v:62. The master sheet was checked the same day: no formula had been planted.
 - [ ] **Deploy `Code.gs` API 44**: shared lists (a `Shares` tab is made on the first share; it holds ciphertext,
       dates and a count only) and error reports from visitors' browsers (`client-error` in the Log; the daily report
       warns at 10 a day). Paste it, Manage deployments → ✏️ → New version; the Worker then reports v:44. Until then
