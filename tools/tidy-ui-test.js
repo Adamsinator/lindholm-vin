@@ -70,6 +70,30 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   await p.click("#tidyBtn"); await p.waitForTimeout(300);
   check("tidy again: only the group left alone remains", /Château Margaux/.test(await p.textContent("#tidyDups")) && (await p.$$("#tidyFixes label")).length === 0);
   await p.click("#tidyCancel");
+  // what's missing that the appellation says, what's worth a look, and how complete the cellar is
+  await p.click("#addBtn"); await p.fill("#aProducer", "Domaine Leflaive"); await p.fill("#aName", "Puligny-Montrachet Les Pucelles");
+  await p.evaluate(() => { for (const id of ["aRegion", "aCountry", "aGrape"]) { const e = document.getElementById(id); if (e) { e.value = ""; e.dataset.sg = ""; } } });
+  await p.click('#addForm button[type="submit"]'); await p.waitForTimeout(900);
+  const lef = (await W()).find(w => w.producer === "Domaine Leflaive");
+  await p.click("#tidyBtn"); await p.waitForTimeout(400);
+  const gp = await p.textContent("#tidyGaps"), lk = await p.textContent("#tidyLook"), hl = await p.textContent("#tidyHealth");
+  check("tidy offers what's missing from the appellation (Puligny-Montrachet: Bourgogne, Chardonnay)", lef && (lef.region ? true : /Region.*Bourgogne/.test(gp)) && (lef.grape ? true : /Grape.*Chardonnay/.test(gp)), gp + " | " + JSON.stringify(lef));
+  check("…lists what's worth a look (no vintage, no price…) and how complete the cellar is", /No vintage/.test(lk) && /No price/.test(lk) && /How complete your cellar is/.test(hl) && /Vintage/.test(hl), lk.slice(0, 200) + " | " + hl.slice(0, 200));
+  await p.click('#tidyLook details:first-child summary'); await p.click("#tidyLook button.tlw");
+  check("…a wine in that list opens it", await p.waitForFunction(() => !document.getElementById("tidyModal").classList.contains("open"), null, { timeout: 5000 }).then(() => true, () => false));
+  await p.keyboard.press("Escape"); await p.waitForTimeout(300);
+  await p.click("#tidyBtn"); await p.waitForTimeout(300); await p.click("#tidyGo"); await closed("tidyModal"); await p.waitForTimeout(600);
+  const lef2 = (await W()).find(w => w.producer === "Domaine Leflaive");
+  check("…and filling in sets them", lef2 && lef2.region === "Bourgogne" && /Chardonnay/.test(lef2.grape) && lef2.country === "Frankrig", JSON.stringify(lef2));
+  // a price that looks off: the same wine's other vintages cost about a tenth
+  for (const [vint, price] of [["2018", "350"], ["2019", "360"], ["2020", "3500"]]) {
+    await p.click("#addBtn"); await p.fill("#aProducer", "Domaine Rapet"); await p.fill("#aName", "Pernand-Vergelesses"); await p.fill("#aVintage", vint); await p.fill("#aPrice", price);
+    await p.click('#addForm button[type="submit"]'); await p.waitForTimeout(900); }
+  await p.click("#tidyBtn"); await p.waitForTimeout(400);
+  const pl = await p.textContent("#tidyLook");
+  check("Tidy up flags a price far from the same wine's other rows, and asks if it's a digit too many", /A price that looks off/.test(pl) && /Domaine Rapet Pernand-Vergelesses 2020/.test(pl) && /a digit too many\?/.test(pl)
+    && !/Pernand-Vergelesses 2018/.test(pl.split("A price that looks off")[1].split(/No vintage|No price|Past its|No drinking|Unusually/)[0]), pl.slice(0, 400));
+  await p.click("#tidyCancel");
   check("no console errors", !errs.length, errs.join(" | "));
   await b.close();
   const n = results.filter(Boolean).length; console.log(`\n${n}/${results.length} passed`); process.exit(n === results.length ? 0 : 1);

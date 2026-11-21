@@ -41,8 +41,8 @@ const REGIONS = [
   { id: "moscato", name: "Asti & Moscato d'Asti", file: "atlas-moscato.js?v=1", ll: [44.72, 8.2], country: "it", kind: "Communes" },
   { id: "toscana", name: "Toscana", file: "atlas-toscana.js?v=1", ll: [43.3, 11.3], country: "it", kind: "Communes" },
   { id: "douro", name: "Douro", file: "atlas-douro.js?v=1", ll: [41.16, -7.55], country: "pt", kind: "Vineyards by sub-region", village: "The Douro's sub-regions" },
-  { id: "danmark", name: "Danmark", file: "atlas-danmark.js?v=2", ll: [56.1, 9.4], country: "dk", kind: "Vineyards by municipality", village: "Wine areas (PGI)" },
-  { id: "holbaek", name: "Holbæk & Odsherred", file: "atlas-holbaek.js?v=2", topo: "atlas-holbaek-topo.js?v=2", ll: [55.72, 11.5], country: "dk", kind: "Vineyards by parish", regional: "Municipalities" },
+  { id: "danmark", name: "Danmark", file: "atlas-danmark.js?v=3", ll: [56.1, 9.4], country: "dk", kind: "Vineyards by municipality", village: "Wine areas (PGI)" },
+  { id: "holbaek", name: "Holbæk & Odsherred", file: "atlas-holbaek.js?v=3", topo: "atlas-holbaek-topo.js?v=2", ll: [55.72, 11.5], country: "dk", kind: "Vineyards by parish", regional: "Municipalities" },
   { id: "ahr", name: "Ahr", file: "atlas-ahr.js?v=1", wx: "atlas-ahr-wx.js?v=1", topo: "atlas-ahr-topo.js?v=1", dem: "atlas-ahr-dem.js?v=1", geol: "atlas-ahr-geol.js?v=1", ll: [50.536, 7.079], country: "de", kind: "Einzellagen" },
   { id: "rhone", name: "Rhône (north)", file: "atlas-rhone.js?v=1", wx: "atlas-rhone-wx.js?v=1", topo: "atlas-rhone-topo.js?v=1", dem: "atlas-rhone-dem.js?v=1", geol: "atlas-rhone-geol.js?v=1", ld: "atlas-rhone-ld.js?v=1", ll: [45.201, 4.809], country: "fr", kind: "Cru appellations",
     regional: "Regional (Côtes du Rhône)" },
@@ -106,6 +106,8 @@ function draw() {
   const g = el("g", {}, svg);
   el("path", { class: "rg", d: pathOf(P.regional.g) }, g);
   P.villages.forEach(v => el("path", { class: v.kind === "pdo" ? "vl pdo" : "vl", d: pathOf(v.g) }, g)); // Denmark's PDOs: outlined over its wine areas
+  // Denmark's municipalities and parishes: the whole area answers a click, as its fields are specks at this scale
+  P.climats.forEach(c => { if (c.hit) c.hel = el("path", { class: "hit", d: pathOf(c.hit), "data-id": c.id }, g); });
   P.climats.forEach(c => { c.el = el("path", { class: "cl " + cls(c) + (c.c === "VS" ? " vs" : "") + (c.villages || c.part ? " part" : ""), d: pathOf(c.g), "data-id": c.id }, g); // a viñedo singular is a hectare or so: never smaller than a dot
     el("title", {}, c.el).textContent = c.n; });
   gShade = el("g", { class: "shade", "pointer-events": "none" }, svg);
@@ -129,7 +131,7 @@ function paint() {
   const P = st.pack; if (!P) return;
   P.climats.forEach(c => {
     const off = !st.show[c.c] || (st.mine && !CELLAR.by[c.id]) || !terrOk(c) || !prodOk(c);
-    c.el.classList.toggle("dim", off); c.el.classList.toggle("sel", st.sel === c.id);
+    c.el.classList.toggle("dim", off); c.el.classList.toggle("sel", st.sel === c.id); if (c.hel) c.hel.classList.toggle("sel", st.sel === c.id);
     const b = CELLAR.by[c.id]?.left || 0; c.dot.setAttribute("r", b ? 0 : 0); c.dot.dataset.b = b;
   });
   svg.classList.toggle("geolon", geolShown());
@@ -422,7 +424,7 @@ svg.addEventListener("pointerup", e => { const tgt = document.elementFromPoint(e
     if (lastTap && now - lastTap[0] < 320 && Math.hypot(e.clientX - lastTap[1], e.clientY - lastTap[2]) < 32) { lastTap = null; const [cx, cy] = toSvg(e); zoomAt(.5, cx, cy, 260); return; }
     lastTap = [now, e.clientX, e.clientY]; }
   if (PROF.on) { profClick(unrotP(toSvg(e))); return; }
-  const q = tgt && tgt.closest && tgt.closest(".pt"), c = tgt && tgt.closest && tgt.closest(".cl");
+  const q = tgt && tgt.closest && tgt.closest(".pt"), c = tgt && tgt.closest && tgt.closest(".cl, .hit");
   if (!q && !c && window.ATLAS_LDUI && st.region && st.region.ld) { const i = ATLAS_LDUI.at(unrotP(toSvg(e))); if (i >= 0) return ATLAS_LDUI.pick(i); } // a lieu-dit outside the climats
   select(q ? q.dataset.pt : c ? c.dataset.id : null); });
 svg.addEventListener("pointercancel", up);
@@ -666,7 +668,7 @@ function renderSide() {
     side.innerHTML = `<h2>${esc(P.meta.name)}</h2>
       <p class="meta">${esc(lead)}</p>
       <div class="facts">${gc.length ? fact(t("Grand cru"), sum(gc)) : ""}${P.climats.some(x => x.c === "1er") ? fact(t("Premier cru"), sum(P.climats.filter(x => x.c === "1er"))) : ""}${aoc.length ? fact(t("Cru appellation"), sum(aoc)) : ""}${el.length ? fact(t("Vines (Weinbergsrolle)"), sum(el.filter(x => x.reg))) : ""}
-        ${P.villages.filter(v => v.kind !== "pdo").map(v => fact(P.villages.length > 1 || !R.village ? v.ap : t(R.village), P.meta.fieldsYear ? sum(dv.filter(x => x.area === v.ap)) : fmtHa(v.ha) + " ha")).join("")}
+        ${P.villages.filter(v => v.kind !== "pdo" && (P.meta.fieldsYear || v.ap && isFinite(v.ha))).map(v => fact(P.villages.length > 1 || !R.village ? v.ap : t(R.village), P.meta.fieldsYear ? sum(dv.filter(x => x.area === v.ap)) : fmtHa(v.ha) + " ha")).join("")}
         ${P.regional.ha && !P.meta.fieldsYear ? fact(t(R.regional), fmtHa(P.regional.ha) + " ha") : ""}</div>
       ${many && pc.length ? `<p class="note">${esc(t("Village figures are the land outside the premiers crus."))}</p>` : ""}
       ${vs.length ? `<p class="note">${esc(t("The zones are drawn as the whole municipalities the DOCa's rules list, not only their vineyards."))}</p>` : ""}
@@ -905,7 +907,7 @@ function addFromAtlas(c, R) {
 /* ---------- your bottles ---------- */
 const apiUrl = () => (window.WINE_CONFIG && window.WINE_CONFIG.API_URL) || localStorage.getItem("vinApi") || "";
 async function vaultData(api, user, token) {
-  for (const f of ["gas-fake.js?v=8", "vault-crypto.js?v=4", "vault-engine.js?v=1", "vault.js?v=40"]) await loadScript(f);
+  for (const f of ["gas-fake.js?v=8", "vault-crypto.js?v=4", "vault-engine.js?v=1", "vault.js?v=42"]) await loadScript(f);
   const dek = await window.VCRYPTO.recall(user); if (!dek) throw new Error("token");
   const post = async p => (await fetch(api, { method: "POST", body: JSON.stringify(p), redirect: "follow" })).json();
   await window.VAULT.start({ post, user, token, dek });
@@ -949,7 +951,7 @@ async function loadCellar() {
     if (!data.ok) throw new Error(data.error || "error");
     CELLAR.wines = data.wines || []; place(); CELLAR.loaded = true;
   } catch (err) { CELLAR.msg = /token|code|cellar/.test(err.message) ? "Your session expired: log in on the Cellar page, then reload." : "Couldn't reach the cellar right now."; }
-  paint(); renderSide();
+  mineBox(); paint(); renderSide();
 }
 function place() {
   CELLAR.by = {}; CELLAR.other = 0; if (!CELLAR.wines || !st.pack) return;
@@ -1086,7 +1088,7 @@ function syncHash() {
 }
 async function openRegion(id, sel) {
   const R = REGIONS.concat(PREVIEW).find(r => r.id === id) || REGIONS[0];
-  if (!window.ATLAS_KW) await loadScript("atlas-kw.js?v=7").catch(() => {});
+  if (!window.ATLAS_KW) await loadScript("atlas-kw.js?v=8").catch(() => {});
   if (R.ui && !window.ATLAS_CD) await loadScript(R.ui).catch(() => {}); // the region's own tools (the Côte d'Or: owners)
   if (R.ld && !window.ATLAS_LDUI) await loadScript("atlas-ld.js?v=2").catch(() => {}); // lieux-dits: their data comes when zoomed in
   if (R.match && !window.BURG_MATCH) await loadScript(R.match).catch(() => {}); // the Côte d'Or: the cellar's matcher (burgundy-match.js)
@@ -1110,7 +1112,7 @@ async function openRegion(id, sel) {
   $("fPts").parentNode.hidden = !pts().length;
   place(); draw(); fit(st.home); renderLegend();
   $("fRelief").parentNode.hidden = !reliefOf(st.region) && (st.pack.meta.shade === "none" || !st.pack.meta.l93 && st.pack.meta.proj !== "eq");
-  $("fTopo").parentNode.hidden = !R.topo; $("fGeol").parentNode.hidden = !R.geol; if (st.geol) ensureGeol();
+  mineBox(); $("fTopo").parentNode.hidden = !R.topo; $("fGeol").parentNode.hidden = !R.geol; if (st.geol) ensureGeol();
   if (window.ATLAS_COLOR && !ATLAS_COLOR.modes()[st.color]) st.color = "class";
   st.cmpWith = null; st.prod = null; st.vsel = null; terrClear(); $("terrbar").hidden = true; $("terrChip").hidden = !R.dem; terrSync();
   $("profBtn").hidden = !st.pack.meta.l93; $("locBtn").hidden = !navigator.geolocation; if (PROF.on) profToggle(false); // the profile needs IGN's elevation service: France only
@@ -1150,6 +1152,9 @@ $("fDV").onchange = e => { st.show.DV = e.target.checked; paint(); };
 $("fV").onchange = e => { st.show.V = e.target.checked; paint(); };
 $("fPts").onchange = e => { st.show.PT = e.target.checked; paint(); };
 $("fMine").onchange = e => { st.mine = e.target.checked; paint(); };
+// "Only my bottles" only once there are bottles to show: logged out (or the cellar not reached) it would empty the map
+function mineBox() { $("fMine").parentNode.hidden = !CELLAR.loaded; if (!CELLAR.loaded && st.mine) { st.mine = false; $("fMine").checked = false; } }
+mineBox();
 const keep = (k, v) => { try { localStorage.setItem(k, v ? "1" : "0"); } catch (e) {} };
 // what the map shows, in one choice (the map panel): each mode sets relief and the roads-and-villages layer, and how the
 // vineyards are drawn; ticking a box below changes only that and leaves no mode chosen

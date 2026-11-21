@@ -21,7 +21,7 @@
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-title" content="AllWine">
 <meta name="theme-color" content="#7C2D3E">
-<meta name="i18n-extra" content="i18n-cellar-da.js?v=2 i18n-cellar-fr.js?v=2 i18n-cellar-de.js?v=2">
+<meta name="i18n-extra" content="i18n-cellar-da.js?v=5 i18n-cellar-fr.js?v=5 i18n-cellar-de.js?v=5">
 <script src="config.js?v=9"></script>
 <style>
 :root{
@@ -357,6 +357,12 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch} foote
 .impsum{font-size:14px;margin:10px 0 0}
 .impsum small{display:block;color:var(--muted);font-size:12.5px;margin-top:3px}
 .impfixes{max-height:30vh;overflow:auto;border:1px solid var(--line);border-radius:var(--r);padding:2px 10px 8px}
+.tidyhealth h3 .aimeta{font-weight:400;margin-left:6px}.thbars{display:grid;gap:6px;margin:6px 0 12px}
+.thbar{display:grid;grid-template-columns:8.5em 1fr 3.2em;align-items:center;gap:8px;font-size:13.5px}.thbar b{text-align:right;font-weight:600}
+.thbar i{display:block;height:8px;border-radius:4px;background:linear-gradient(90deg,var(--accent) var(--p),var(--line) var(--p))}
+.tlook{border-top:1px solid var(--line);padding:8px 0}.tlook summary{cursor:pointer;font-weight:600}.tlook summary .aimeta{font-weight:400}
+.tlist{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.tlw{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:4px 10px;font:inherit;font-size:13px;cursor:pointer;color:var(--ink)}
+.tlw:hover{border-color:var(--accent)}
 .impfixes label.jcheck{margin-top:6px;font-size:13px;align-items:flex-start}
 .impfixes .fixf{display:inline-block;min-width:92px;color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.06em}
 .aimeta{color:var(--muted);font-size:12.5px}
@@ -567,7 +573,8 @@ body:not(.social) .fshare{display:none!important}
 .wgrid input{width:100%;border:0!important;border-radius:0!important;background:transparent!important;padding:7px 8px!important;font:inherit;min-width:70px}
 .wgrid input:focus{outline:2px solid var(--accent);outline-offset:-2px;background:var(--card)!important}
 .wgrid td.n input{text-align:right;min-width:56px} .wgrid td.p input{min-width:150px} .wgrid td.m input{min-width:100px}
-.adlist .adrm{margin-left:auto}
+.adlist .adrm{margin-left:auto} .adlist li.st-blocked,.adlist li.st-deleted{opacity:.8} .stchip{display:inline-block;border-radius:999px;padding:1px 8px;font-size:12px;font-weight:600;background:var(--line)}
+.st-deleted .stchip{background:#f3d6d6;color:#7a1f1f} .st-blocked .stchip{background:#efe2c2;color:#6b4e12} .adlog summary{cursor:pointer} .adlog li{font-size:13px}
 .wgrid .gdel{border:0;background:none;color:var(--muted);cursor:pointer;font-size:15px;padding:4px}
 .gridact{display:flex;align-items:center;gap:10px;flex-wrap:wrap} .gridact #gridGo{margin-left:auto}
 .appfoot{text-align:center;margin:28px 0 0;font-size:12.5px} .appfoot a{color:var(--muted)}
@@ -1387,6 +1394,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
     <p class="ph" data-i18n>Who has an account, and the invite codes. What's in a cellar isn't here: it's encrypted, and only its owner can read it.</p>
     <h3 class="adh"><span data-i18n>Members</span> <span class="ph" id="adminCount"></span></h3>
     <ul class="adlist" id="adminUsers"></ul>
+    <details class="adlog"><summary class="adh" data-i18n>What was done to accounts</summary><ul class="adlist" id="adminLog"></ul></details>
     <h3 class="adh" data-i18n>Account help</h3>
     <div id="adminHelp"></div>
     <h3 class="adh"><span data-i18n>Usage</span> <span class="ph" data-i18n>last 30 days · counts only, never what's in a cellar</span></h3>
@@ -1464,6 +1472,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
   <div class="card imp">
     <h2 id="tidyTitle"><span data-i18n>Tidy up your cellar</span> <a class="qhint" href="help.html#tidy" target="_blank" rel="noopener" title="How this works" aria-label="How this works" data-i18n-title data-i18n-aria>?</a></h2>
     <p id="tidyIntro"></p>
+    <div class="tidyhealth" id="tidyHealth"></div>
     <div id="tidyFixWrap" hidden>
       <h3 data-i18n>Spellings and capitals</h3>
       <div class="impfixes" id="tidyFixes"></div>
@@ -1472,6 +1481,16 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
       <h3 data-i18n>The same wine in several rows</h3>
       <p class="imphint" data-i18n>Ticked groups become one row: bottles add up, price and value are averaged per bottle, notes and locations are kept side by side.</p>
       <div class="impfixes" id="tidyDups"></div>
+    </div>
+    <div id="tidyGapWrap" hidden>
+      <h3 data-i18n>Fill in what's missing</h3>
+      <p class="imphint" data-i18n>From the appellation in the wine's name, commune or region, only where it says so clearly. Untick any you don't want.</p>
+      <div class="impfixes" id="tidyGaps"></div>
+    </div>
+    <div id="tidyLookWrap" hidden>
+      <h3 data-i18n>Worth a look</h3>
+      <p class="imphint" data-i18n>Nothing here is changed for you: open a wine to fill it in.</p>
+      <div id="tidyLook"></div>
     </div>
     <div class="err" id="tidyErr" role="status" aria-live="polite"></div>
     <div class="mact">
@@ -1861,10 +1880,10 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 <script src="gas-fake.js?v=8"></script>
 <script src="vault-crypto.js?v=4"></script>
 <script src="vault-engine.js?v=1"></script>
-<script src="vault.js?v=40"></script>
+<script src="vault.js?v=42"></script>
 <script src="wine-kb.js?v=2"></script>
 <script src="piemonte-mga.js?v=1"></script>
 <script src="share-crypto.js?v=2"></script>
-<script src="app.js?v=126"></script>
+<script src="app.js?v=129"></script>
 </body>
 </html>

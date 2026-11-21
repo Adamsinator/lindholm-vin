@@ -54,6 +54,6 @@ window.ATLAS_RELIEF = {
   barbera: { src: "atlas-barbera-relief.webp?v=1", ll: [7.826,  44.5243,  8.6198,  45.2186] },
   moscato: { src: "atlas-moscato-relief.webp?v=1", ll: [7.8292,  44.5253,  8.6126,  44.882] },
   douro: { src: "atlas-douro-relief.webp?v=1", ll: [-8.0504, 40.8218, -6.6266, 41.5434], credit: "Copernicus DEM GLO-30: © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018, provided under COPERNICUS by the European Union and ESA; all rights reserved" },
-  holbaek: { src: "atlas-holbaek-relief.webp?v=1", ll: [10.797, 55.519, 12.0423, 56.0375], credit: "Copernicus DEM GLO-30: © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018, provided under COPERNICUS by the European Union and ESA; all rights reserved" },
-  danmark: { src: "atlas-danmark-relief.webp?v=1", ll: [7.4893, 54.2423, 15.9032, 57.9643], credit: "Copernicus DEM GLO-90: © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018, provided under COPERNICUS by the European Union and ESA; all rights reserved" }
+  holbaek: { src: "atlas-holbaek-relief.webp?v=2", ll: [10.797, 55.519, 12.0423, 56.0375], credit: "Copernicus DEM GLO-30: © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018, provided under COPERNICUS by the European Union and ESA; all rights reserved" },
+  danmark: { src: "atlas-danmark-relief.webp?v=2", ll: [7.4893, 54.2423, 15.9032, 57.9643], credit: "Copernicus DEM GLO-90: © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018, provided under COPERNICUS by the European Union and ESA; all rights reserved" }
 };

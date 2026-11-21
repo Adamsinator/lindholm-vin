@@ -49,7 +49,7 @@ const HEAD = ["Producent", "Land", "Område", "Kommune", "Mark/Navn", "Klassifik
 
   await p.click("#adminBtn"); await p.waitForFunction(() => document.querySelectorAll("#adminUsers li").length >= 2, null, { timeout: 10000 });
   const rows = await p.$$eval("#adminUsers li", rs => rs.map(r => r.textContent.replace(/\s+/g, " ").trim()));
-  check("it lists the members with email, signed up and last seen", rows.some(r => /^pia · pia@example\.dk Make business Remove Signed up \d{4}-\d{2}-\d{2} · Last seen \d{4}-\d{2}-\d{2}$/.test(r)) && rows.some(r => /^ole · ole@example\.dk/.test(r)), rows.join(" | "));
+  check("it lists the members with email, signed up and last seen", rows.some(r => /^pia · pia@example\.dk Make business Sign out everywhere Block Remove Signed up \d{4}-\d{2}-\d{2} · Last seen \d{4}-\d{2}-\d{2}$/.test(r)) && rows.some(r => /^ole · ole@example\.dk/.test(r)), rows.join(" | "));
   check("…and says how many there are of the most", /2 of at most 50/.test(await p.textContent("#adminCount")), await p.textContent("#adminCount"));
   // usage: pia's page reports which pages she opened (counts only), and the owner sees the 30 days
   await B.p.click('.tab[data-page="journal"]'); await B.p.click('.tab[data-page="enjoyed"]'); await B.p.waitForTimeout(200);
@@ -129,7 +129,12 @@ const HEAD = ["Producent", "Land", "Område", "Kommune", "Mark/Navn", "Klassifik
   ASK = "Pia"; // the name in any case
   await p.click('#adminUsers button[data-remove="pia"]');
   await p.waitForFunction(() => !document.querySelector('#adminUsers button[data-remove="pia"]'), null, { timeout: 10000 });
-  check("typing the name removes the member", !gas.rows("Users").some(r => r[0] === "pia") && (await p.$$("#adminUsers li")).length === 1);
+  const piaRow = await p.$$eval("#adminUsers li", rs => (rs.find(r => /^\s*pia/.test(r.textContent)) || {}).textContent || "");
+  check("typing the name removes the member: kept 30 days, with an undo and the day she's gone for good", /deleted \d{4}-\d{2}-\d{2}, gone for good \d{4}-\d{2}-\d{2}/.test(piaRow) && /Undo delete/.test(piaRow)
+    && gas.run("findUser('pia').status") === "deleted" && gas.run(`DriveApp.getFolderById(${JSON.stringify(piaFolder)}).isTrashed()`) === false, piaRow.replace(/\s+/g, " "));
+  await p.click('#adminUsers button[data-acct="adminpurge"][data-who="pia"]');
+  await p.waitForFunction(() => document.querySelectorAll("#adminUsers li").length === 1, null, { timeout: 10000 });
+  check("…Delete now removes her for good", !gas.rows("Users").some(r => r[0] === "pia") && (await p.$$("#adminUsers li")).length === 1);
   check("…and trashes their files", gas.run(`DriveApp.getFolderById(${JSON.stringify(piaFolder)}).isTrashed()`) === true);
   await B.p.reload(); await B.p.waitForTimeout(1500);
   check("…and pia is logged out", await B.p.isHidden("#app"), await B.p.isVisible("#app"));

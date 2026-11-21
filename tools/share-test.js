@@ -51,5 +51,9 @@ let last; for (let i = 0; i < 25; i++) last = as(bob, { action: "shareput", blob
 check("at most 20 live shared lists a member", /too-many-shares/.test(last.error) && as(bob, { action: "sharelist" }).shares.length === 20, last.error);
 // they go with the account
 as(bob, { action: "deleteaccount", auth: keys("bob", "pw").auth });
-check("deleting an account removes its shared lists", !gas.rows("Shares").some(r => r[1] === "bob"), JSON.stringify(gas.rows("Shares").map(r => r[1])));
+const bobShare = gas.rows("Shares").find(r => r[1] === "bob")[0];
+check("deleting an account stops its shared lists at once (API 64: the account is kept 30 days)", gas.call({ action: "shareget", id: bobShare }).error === "share-gone"
+  && gas.rows("Shares").some(r => r[1] === "bob"));
+gas.run(`(() => { const u = findUser('bob'); usersSheet().getRange(u.row, UCOL.StatusAt).setValue(String(Date.now() - 31 * 864e5)); return purgeDeletedAccounts(); })()`);
+check("…and the purge 30 days on removes them", !gas.rows("Shares").some(r => r[1] === "bob"), JSON.stringify(gas.rows("Shares").map(r => r[1])));
 const n = results.filter(Boolean).length; console.log(`\n${n}/${results.length} passed`); process.exit(n === results.length ? 0 : 1);

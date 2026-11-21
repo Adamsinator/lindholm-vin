@@ -42,7 +42,7 @@ function setting(key) {
 // The legacy code only works once you've set a real one: the placeholder from the template is public.
 function accessCode() { const c = setting('ACCESS_CODE'); return c === 'CHANGE-ME' ? '' : c; }
 
-const API_VERSION = 63; // returned in every response; used to verify deployments
+const API_VERSION = 65; // returned in every response; used to verify deployments
 
 // Per-request spreadsheet for the authenticated user. Set in handle(); every
 // sheet helper reads it via ss(). Falls back to the bound (owner's) spreadsheet.
@@ -349,6 +349,7 @@ function handle(p) {
       // the owner's admin page: the members and the invite codes, never anything from a cellar
       case 'admin': case 'admininvites': case 'adminrevoke': case 'admindelete':
       case 'adminkeyset': case 'adminkeyget': case 'adminescrow': case 'adminrecovery': case 'admintestuser': case 'adminbiz':
+      case 'adminblock': case 'adminrestore': case 'adminsignout': case 'adminpurge':
         if (!isOwnerAccount(CTX_ACCOUNT)) return json({ ok: false, error: 'not-owner' });
         if (p.action === 'admintestuser') return adminTestUser(p);
         if (p.action === 'adminbiz') { // a member's account made a business account, or back to a private cellar
@@ -368,11 +369,17 @@ function handle(p) {
         if (p.action === 'adminrecovery') return adminRecovery(p);
         if (p.action === 'admininvites') addInvites(Number(p.n) || 1, String(p.note || ''));
         if (p.action === 'adminrevoke') revokeInvite(String(p.code || ''));
-        if (p.action === 'admindelete') { // the same clean-up as deleting your own account; never the owner's
+        if (['admindelete', 'adminblock', 'adminrestore', 'adminsignout', 'adminpurge'].indexOf(p.action) >= 0) { // never the owner's
           const t = findUser(String(p.member || ''));
           if (!t) return json({ ok: false, error: 'no-user' });
           if (isOwnerAccount(t)) return json({ ok: false, error: 'owner-account' });
-          removeAccount(t);
+          // deleting: kept DELETE_DAYS, then purged; blocking: kept until unblocked; both sign out everywhere
+          if (p.action === 'admindelete') { setStatus(t, 'deleted', CTX_USER); logEvent('admin', CTX_USER, 'deleted ' + t.username + ' (purged in ' + DELETE_DAYS + ' days)'); }
+          if (p.action === 'adminblock') { if (p.on === false) { if (t.status === 'blocked') setStatus(t, '', ''); logEvent('admin', CTX_USER, 'unblocked ' + t.username); }
+            else { if (t.status !== 'deleted') setStatus(t, 'blocked', CTX_USER); logEvent('admin', CTX_USER, 'blocked ' + t.username); } }
+          if (p.action === 'adminrestore') { if (t.status !== 'deleted') return json({ ok: false, error: 'not-deleted' }); setStatus(t, '', ''); logEvent('admin', CTX_USER, 'restored ' + t.username); }
+          if (p.action === 'adminsignout') { usersSheet().getRange(t.row, UCOL.Token).setValue(''); logEvent('admin', CTX_USER, 'signed out ' + t.username + ' everywhere'); }
+          if (p.action === 'adminpurge') { if (t.status !== 'deleted') return json({ ok: false, error: 'not-deleted' }); logEvent('admin', CTX_USER, 'purged ' + t.username + ' now'); removeAccount(t); }
         }
         return json(adminView());
       // the feed and follows only with SOCIAL: 'on' — off, nobody sees posts, follows or who else has an account
@@ -492,6 +499,7 @@ function lastDay(now) {
   return out;
 }
 function dailyReport() {
+  try { purgeDeletedAccounts(); } catch (err) { logEvent('error', '', 'purge: ' + err); }
   const now = Date.now(), events = lastDay(now), counts = {};
   events.forEach(e => { counts[e.kind] = (counts[e.kind] || 0) + 1; });
   const why = Object.keys(ALERTS).filter(k => (counts[k] || 0) >= ALERTS[k]).map(k => k + ': ' + counts[k] + ' in 24 hours');
@@ -584,6 +592,7 @@ function shareGet(id) {
   if (!/^[0-9a-f]{32}$/.test(id)) return { ok: false, error: 'share-gone' };
   const r = shareRows().find(x => String(x[0]) === id);
   if (!r || !shareLive(r, Date.now())) return { ok: false, error: 'share-gone' };
+  if (barred(findUser(r[1]))) return { ok: false, error: 'share-gone' }; // its owner is blocked or deleted (API 64): the link stops at once
   return { ok: true, blob: r.slice(SHARE_COLS.length).map(String).join(''), created: Number(r[2]), expires: Number(r[3]), wines: Number(r[4]) };
 }
 function reportTo() { return setting('REPORT_EMAIL') || Session.getEffectiveUser().getEmail(); }
@@ -623,7 +632,11 @@ const USERS_SHEET = 'Users';
 // hashed, the vault spreadsheet, and the migration state ('' plain, 'migrating', 'done') with the plain sheet it left.
 const USER_COLS = ['Username', 'Salt', 'Hash', 'SpreadsheetId', 'Token', 'Created',
                    'Kdf', 'KdfSalt', 'WrapKey', 'WrapRec', 'RecSalt', 'RecHash', 'VaultId', 'State', 'OldSheet', 'Email', 'LastSeen',
-                   'WrapAdmin', 'AdminKid', 'AdminPub', 'AdminKey', 'Role', 'Parent', 'Business'];
+                   'WrapAdmin', 'AdminKid', 'AdminPub', 'AdminKey', 'Role', 'Parent', 'Business', 'Status', 'StatusAt', 'StatusBy'];
+// Status (API 64): '' an account in use; 'blocked' (by the owner: no login, nothing deleted); 'deleted' (by the member or
+// the owner: no login, everything kept for DELETE_DAYS, then purged by the daily check, when its files go to the Drive
+// trash). StatusAt is when (ms), StatusBy who ('self' or the owner's name). The keys stay in the row until the purge, so
+// an undo brings the cellar back readable.
 // Business (API 56): 'on' when the owner has made the account a business account (Admin → a member → Business); only
 // then may it choose the business kind (the owner, test users and staff logins may anyway)
 // Role and Parent (API 54): a staff login of a business account. Parent is the business's username; the login opens the
@@ -639,6 +652,30 @@ function usersSheet() {
   const head = sh.getRange(1, 1, 1, Math.max(1, sh.getLastColumn())).getValues()[0].map(String);
   if (head.length < USER_COLS.length) sh.getRange(1, 1, 1, USER_COLS.length).setValues([USER_COLS]);
   return sh;
+}
+const DELETE_DAYS = 30;
+// why an account can't be used now: its own status, or (a staff login) its business's; '' when it can
+function barred(u) {
+  if (!u) return '';
+  if (u.status === 'blocked' || u.status === 'deleted') return u.status;
+  if (u.parent) { const b = findUser(u.parent); if (!b) return 'deleted'; if (b.status === 'blocked' || b.status === 'deleted') return b.status; }
+  return '';
+}
+const purgeOn = u => u.statusAt ? Utilities.formatDate(new Date(u.statusAt + DELETE_DAYS * 864e5), Session.getScriptTimeZone(), 'yyyy-MM-dd') : '';
+function setStatus(u, status, by) {
+  const sh = usersSheet(), row = new Array(3).fill('');
+  if (status) { row[0] = status; row[1] = String(Date.now()); row[2] = String(by || ''); }
+  sh.getRange(u.row, UCOL.Status, 1, 3).setNumberFormat('@').setValues([row]);
+  if (status) sh.getRange(u.row, UCOL.Token).setValue(''); // signed out everywhere
+  u.status = row[0]; u.statusAt = Number(row[1]) || 0; u.statusBy = row[2];
+}
+// the daily check: accounts deleted more than DELETE_DAYS ago go for good (their files to the Drive trash)
+function purgeDeletedAccounts() {
+  const cut = Date.now() - DELETE_DAYS * 864e5, gone = [];
+  readUsers().filter(u => u.status === 'deleted' && u.statusAt && u.statusAt < cut && !u.parent).forEach(u => {
+    const now = findUser(u.username); if (!now || now.status !== 'deleted') return;
+    try { removeAccount(now); gone.push(u.username); logEvent('account', u.username, 'purged ' + DELETE_DAYS + ' days after deletion'); } catch (err) { logEvent('error', u.username, 'purge: ' + err); } });
+  return gone;
 }
 function setUser(u, field, value) { usersSheet().getRange(u.row, UCOL[field]).setValue(value); u[field.charAt(0).toLowerCase() + field.slice(1)] = value; }
 
@@ -661,7 +698,8 @@ function findUser(username) {
                wrapRec: c('WrapRec'), recSalt: c('RecSalt'), recHash: c('RecHash'), vaultId: c('VaultId'),
                state: c('State'), oldSheet: c('OldSheet'), email: c('Email'), lastSeen: c('LastSeen'),
                wrapAdmin: c('WrapAdmin'), adminKid: c('AdminKid'), adminPub: c('AdminPub'), adminKey: c('AdminKey'),
-               role: c('Role'), parent: c('Parent'), business: c('Business') === 'on' };
+               role: c('Role'), parent: c('Parent'), business: c('Business') === 'on',
+               status: c('Status'), statusAt: Number(c('StatusAt')) || 0, statusBy: c('StatusBy') };
     }
   }
   return null;
@@ -913,11 +951,17 @@ function adminView() {
     lastSeen: fmtDay(c(r, 'LastSeen')), encrypted: String(c(r, 'State')) === 'done', invite: used[normUser(r[0])] || '',
     owner: isOwnerAccount({ spreadsheetId: String(c(r, 'SpreadsheetId')), oldSheet: String(c(r, 'OldSheet') || '') }),
     helpReady: !!adminKid && String(c(r, 'AdminKid') || '') === adminKid && !!String(c(r, 'WrapAdmin') || ''), test: String(c(r, 'Email') || '') === TEST_EMAIL,
-    business: String(c(r, 'Business') || '') === 'on', staff: !!String(c(r, 'Parent') || '') }));
+    business: String(c(r, 'Business') || '') === 'on', staff: !!String(c(r, 'Parent') || ''),
+    status: String(c(r, 'Status') || ''), since: Number(c(r, 'StatusAt')) ? fmtDay(new Date(Number(c(r, 'StatusAt')))) : '', by: String(c(r, 'StatusBy') || ''),
+    purge: String(c(r, 'Status')) === 'deleted' && Number(c(r, 'StatusAt')) ? fmtDay(new Date(Number(c(r, 'StatusAt')) + DELETE_DAYS * 864e5)) : '' }));
   const ish = invitesSheet(false), ilast = ish ? ish.getLastRow() : 0;
   const invites = ilast >= 2 ? ish.getRange(2, 1, ilast - 1, INVITE_COLS.length).getValues().filter(r => String(r[0]).trim())
     .map(r => ({ code: String(r[0]), note: String(r[1] || ''), created: fmtDay(r[2]), usedBy: String(r[3] || ''), usedAt: fmtDay(r[4]) })) : [];
-  return { ok: true, users, invites, max: Math.max(1, Number(setting('MAX_USERS')) || 50), stats: readStats(371), adminKid: adminKid };
+  // what was done to accounts, newest first: the owner's actions and members' own deletions and purges
+  const lsh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(LOG_SHEET), ll = lsh ? lsh.getLastRow() : 0;
+  const log = ll >= 2 ? lsh.getRange(Math.max(2, ll - 400), 1, ll - Math.max(2, ll - 400) + 1, 4).getValues().filter(r => r[1] === 'admin' || r[1] === 'account' || r[1] === 'staff')
+    .slice(-40).reverse().map(r => ({ at: r[0] instanceof Date ? Utilities.formatDate(r[0], Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm') : String(r[0]).slice(0, 16), who: String(r[2] || ''), what: String(r[3] || '') })) : [];
+  return { ok: true, users, invites, max: Math.max(1, Number(setting('MAX_USERS')) || 50), stats: readStats(371), adminKid: adminKid, log, days: DELETE_DAYS };
 }
 // ---------- account help from the admin ----------
 // The owner's browser makes a key pair once (Admin → Account help). Its public half and fingerprint sit in the owner's
@@ -1007,6 +1051,7 @@ function doLogin(p) {
     const ok = p.auth && safeEqual(hashPass(salt, p.auth), u.hash);
     if (!ok) return failed(p.user, 'bad-login');
     cleared(p.user);
+    const bar = barred(u); if (bar) return json({ ok: false, error: bar, until: bar === 'deleted' ? purgeOn(u.status ? u : findUser(u.parent) || u) : '' });
     countStats({ login: 1 });
     const out = { ok: true, user: u.username, token: addSession(u), wrapKey: u.wrapKey, state: u.state || 'done', help: helpFor(u), test: !!u.test,
       role: u.parent ? (u.role || 'staff') : '', parent: u.parent || '' };
@@ -1092,8 +1137,8 @@ function doDeleteAccount(p) {
   if (lockedOut(u.username)) return json({ ok: false, error: 'locked' });
   const ok = u.kdf ? p.auth && safeEqual(hashPass(u.salt, p.auth), u.hash) : p.pass !== undefined && safeEqual(hashPass(u.salt, p.pass || ''), u.hash);
   if (!ok) return failed(u.username, 'bad-login');
-  removeAccount(u);
-  return json({ ok: true });
+  setStatus(u, 'deleted', 'self'); logEvent('account', u.username, 'deleted their account (purged in ' + DELETE_DAYS + ' days)');
+  return json({ ok: true, until: purgeOn(u) });
 }
 // An account and everything it left behind: its Drive files (trashed, so 30 days in the bin), its feed posts and
 // follows, and its name on its invite code and in the atlas. The Users row goes last.
@@ -1201,6 +1246,7 @@ function doRecover(p) {
   const ok = u && u.kdf && p.recAuth && safeEqual(hashPass(salt, p.recAuth), u.recHash);
   if (!ok) return failed(p.user, 'bad-recovery');
   cleared(p.user);
+  if (barred(u)) return json({ ok: false, error: barred(u), until: purgeOn(u) });
   if (!/^[A-Za-z0-9+/=]{16,200}$/.test(String(p.auth || '')) || !/^[A-Za-z0-9+/=]{16,200}$/.test(String(p.wrapKey || ''))
       || !/^[A-Za-z0-9+/=]{16,200}$/.test(String(p.kdfSalt || ''))) return json({ ok: false, error: 'bad-keys' });
   setUser(u, 'KdfSalt', String(p.kdfSalt)); setUser(u, 'WrapKey', String(p.wrapKey)); setUser(u, 'Hash', hashPass(u.salt, p.auth));
@@ -1264,7 +1310,7 @@ function readStats(n) {
 // Validate {user, token}; returns the user record or null.
 function authToken(p) {
   const u = findUser(p.user);
-  if (!u || !u.token || !p.token) return null;
+  if (!u || !u.token || !p.token || barred(u)) return null;
   const list = tokenList(u.token), hit = list.find(x => tokenIs(x, p.token));
   if (!hit) return null;
   const now = Date.now(), live = liveTokens(list);

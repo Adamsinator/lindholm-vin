@@ -67,7 +67,7 @@ header.top h1 em{font-style:italic;color:var(--accent)} header.top h1 a{color:in
 #mapview{position:absolute;inset:0;transform-origin:0 0;will-change:transform}
 #map .rg{fill:var(--rg);stroke:none} #map .vl{fill:var(--vc);stroke:none;opacity:.75}
 #map .cl{stroke:var(--card);stroke-width:1;vector-effect:non-scaling-stroke;cursor:pointer}
-#map.pre .vl{fill-opacity:.5} #map .tn.tn-v{fill:var(--accent);font-weight:700} #map .vl.pdo{fill:none;stroke:var(--ac);stroke-width:2;stroke-dasharray:6 4;vector-effect:non-scaling-stroke;opacity:1} #map.tiny .cl{stroke:var(--pc);stroke-width:3;vector-effect:non-scaling-stroke} #map .cl.part{fill-opacity:.4;stroke:var(--ac);stroke-dasharray:5 3} #map .cl.vs{stroke:var(--gc);stroke-width:5;stroke-linejoin:round} #map .cl.vs.sel{stroke:var(--sel)} #map .cl.GC{fill:var(--gc)} #map .cl.AOC{fill:var(--ac)} #map .cl.p1{fill:var(--pc)} #map .cl.px{fill:var(--pcx)} .desc{font-size:14px;line-height:1.5} #map .cl.pv{fill:var(--vc)}
+#map.pre .vl{fill-opacity:.5} #map .hit{fill:var(--accent);fill-opacity:0;stroke:none;cursor:pointer} #map .hit.hot{fill-opacity:.07} #map .hit.sel{fill-opacity:.09;stroke:var(--accent);stroke-width:1.5;stroke-opacity:.7;vector-effect:non-scaling-stroke} #map .tn.tn-v{fill:var(--accent);font-weight:700} #map .vl.pdo{fill:none;stroke:var(--ac);stroke-width:2;stroke-dasharray:6 4;vector-effect:non-scaling-stroke;opacity:1} #map.tiny .cl{stroke:var(--pc);stroke-width:3;vector-effect:non-scaling-stroke} #map .cl.part{fill-opacity:.4;stroke:var(--ac);stroke-dasharray:5 3} #map .cl.vs{stroke:var(--gc);stroke-width:5;stroke-linejoin:round} #map .cl.vs.sel{stroke:var(--sel)} #map .cl.GC{fill:var(--gc)} #map .cl.AOC{fill:var(--ac)} #map .cl.p1{fill:var(--pc)} #map .cl.px{fill:var(--pcx)} .desc{font-size:14px;line-height:1.5} #map .cl.pv{fill:var(--vc)}
 #map .cl:hover{filter:brightness(1.08)} #map .cl.sel{stroke:var(--sel);stroke-width:2.5}
 #map .cl.dim{opacity:.18}
 /* geology on: BRGM's colours under the vineyards, which keep only their outlines */
@@ -366,6 +366,6 @@ html[data-map="dark"] #map .shade{mix-blend-mode:screen;opacity:.16} html[data-m
 </div>
 <script src="i18n.js?v=100"></script>
 <script src="europe-lands.js?v=3"></script>
-<script src="atlas.js?v=70"></script>
+<script src="atlas.js?v=75"></script>
 </body>
 </html>

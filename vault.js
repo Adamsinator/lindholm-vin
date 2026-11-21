@@ -75,7 +75,7 @@ let SRC = null;
 async function codeSource(url) {
   if (SRC) return SRC;
   if (node) SRC = require("fs").readFileSync(require("path").join(__dirname, "apps-script", "Code.gs"), "utf8");
-  else { const res = await fetch(url || "apps-script/Code.gs?v=63"); if (!res.ok) throw new Error("engine-load " + res.status); SRC = await res.text(); }
+  else { const res = await fetch(url || "apps-script/Code.gs?v=65"); if (!res.ok) throw new Error("engine-load " + res.status); SRC = await res.text(); }
   return SRC;
 }
 const keepTabs = (all, sheetName) => Object.fromEntries(Object.entries(all).filter(([n]) => n === sheetName || SHARED_TABS.includes(n)));
@@ -288,9 +288,10 @@ async function deleteAccount(o) {
   const { post, user, token, pass } = o;
   const pre = await srv(post, { action: "prelogin", user });
   const pk = await VC.fromPassword(pass, pre.kdfSalt, pre.kdf);
-  await srv(post, { user, token, action: "deleteaccount", auth: pk.auth });
+  const r = await srv(post, { user, token, action: "deleteaccount", auth: pk.auth });
   await forgetCache(user);
   if (S && S.user === user) S = null;
+  return (r && r.until) || ""; // API 64: kept DELETE_DAYS, till then
 }
 // Forgotten password: unlock with the recovery code, set a new password → {token, dek}
 async function recover(o) {

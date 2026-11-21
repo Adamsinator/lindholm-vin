@@ -1826,7 +1826,8 @@ $("gateUser").addEventListener("blur", ()=>{ if(GATE_MODE!=="signup") return; co
 
 // Friendly text for the error codes the API returns.
 const AUTH_MSG = {
-  "bad-login":"Wrong username or password.", "bad-invite":"That invite code isn't right, or it has already been used.",
+  "bad-login":"Wrong username or password.", "blocked":"This account is blocked. Write to the owner if you think it's a mistake.",
+  "deleted":"This account was deleted. It's kept for 30 days: write to the owner if you want it back.", "bad-invite":"That invite code isn't right, or it has already been used.",
   "locked":"Too many wrong tries: wait 15 minutes and try again.", "signup-full":"There's no room for new accounts right now. Ask the owner.",
   "signup-busy":"Too many sign-ups just now: try again in an hour.",
   "signup-disabled":"Signups are closed right now.", "user-taken":"That username is taken: choose another.", "bad-email":"Enter your email address.",
@@ -2064,13 +2065,13 @@ $("acctRec").addEventListener("click", async ()=>{
 $("acctDelete").addEventListener("click", async ()=>{
   const pass = $("acctPass").value;
   if(!pass){ $("acctErr").textContent = tr("Enter your current password first."); $("acctPass").focus(); return; }
-  if(!(await ask(tr("Delete your account \"{0}\" and everything in it: cellar, journal, wishlist, photos, feed posts and follows? This can't be undone.", cfg.user), {ok:tr("Delete my account"), danger:true, typed:cfg.user}))) return;
+  if(!(await ask(tr("Delete your account \"{0}\"? You're signed out at once and can't log in. Everything is kept for 30 days: write to the owner before then if you change your mind. After that it's deleted for good: cellar, journal, wishlist, photos, feed posts and follows.", cfg.user), {ok:tr("Delete my account"), danger:true, typed:cfg.user}))) return;
   $("acctErr").textContent = tr("Deleting…");
   try{
-    await VAULT.deleteAccount({post, user:cfg.user, token:cfg.token, pass});
+    const until = await VAULT.deleteAccount({post, user:cfg.user, token:cfg.token, pass});
     if(window.VCRYPTO) VCRYPTO.forget(cfg.user);
     feedForgetAll(); $("acctModal").classList.remove("open");
-    forgetAuth(); setGateMode("login"); showGate(tr("Your account has been deleted."));
+    forgetAuth(); setGateMode("login"); showGate(until ? tr("Your account is deleted. It's kept until {0}: write to the owner if you change your mind.", until) : tr("Your account has been deleted."));
   }catch(err){ const m = String(err.message).replace(/^Error: /,"");
     $("acctErr").textContent = m==="owner-account" ? tr("This is the owner's account (its cellar is the master sheet), so it can't be deleted here.")
       : m==="bad-action" ? tr("The site's server needs the latest Apps Script (version 36) for this. Tell the owner.") : authMsg(m); }
@@ -2537,7 +2538,46 @@ function tidyPlan(){
   const by = new Map();
   t.wines.forEach(w => { if (w.elsewhere) return; const k = TIDY.mergeKey(w); (by.get(k) || by.set(k, []).get(k)).push(w.row); });
   const groups = [...by.values()].filter(r => r.length > 1).map(r => r.sort((a,b) => a-b)).map(r => ({keep:r[0], drop:r.slice(1)}));
-  Object.assign(TIDY_STATE, {fixes:t.fixes, edits, groups});
+  // what's missing that the appellation says clearly (WINE_KB.suggest, as the Add form does): region, country, grape
+  const gaps = new Map(), byRowE = new Map(edits.map(e => [e.row, e]));
+  if(window.WINE_KB) t.wines.forEach((w, i) => { if(w.elsewhere) return; const o = WINES[i] || {};
+    const sg = WINE_KB.suggest({name:w.name, commune:w.commune, region:w.region, country:w.country, grape:w.grape, type:o.type, typeSet:!!String(o.type||"").trim()});
+    for(const f of ["region","country","grape"]){ if(String(w[f]||"").trim() || !sg[f]) continue;
+      const k = f + "|" + sg[f]; if(!gaps.has(k)) gaps.set(k, {field:f, to:sg[f], rows:[]}); gaps.get(k).rows.push(w.row);
+      if(TIDY_STATE.gapOff && TIDY_STATE.gapOff.has(k)) continue;
+      const e = byRowE.get(w.row) || (byRowE.set(w.row, {row:w.row, fields:{}}).get(w.row)); e.fields[f] = sg[f]; } });
+  const allEdits = [...byRowE.values()].filter(e => Object.keys(e.fields).length);
+  Object.assign(TIDY_STATE, {fixes:t.fixes, edits:allEdits, groups, gaps:[...gaps.values()].sort((a, b) => b.rows.length - a.rows.length)});
+}
+// what the tidy-up can't decide for you: wines worth a look, and how complete the cellar is
+// prices that look off: far from the same wine's other rows (another vintage, another purchase; the same bottle size),
+// or more than any bottle plausibly costs. A tenfold gap reads as a digit too many or too few.
+function priceChecks(){
+  const key = w => [w.producer, w.name, w.size].map(x => String(x || "").toLowerCase().replace(/\s+/g, " ").trim()).join("|");
+  const priced = WINES.filter(w => !w.elsewhere && Number(w.price) > 0), by = new Map(), out = [];
+  priced.forEach(w => { const k = key(w); (by.get(k) || by.set(k, []).get(k)).push(w); });
+  const med = a => { const s = a.slice().sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+  // three rows or more: each against the group's median, which one odd row can't pull; two: a big gap flags both,
+  // as either could be the slip
+  for(const w of priced){ const p = Number(w.price), g = by.get(key(w)).map(x => Number(x.price));
+    if(g.length >= 2){ const two = g.length === 2, m = two ? g.find((x, i) => by.get(key(w))[i] !== w) : med(g), r = p / m;
+      if(r >= 4 || r <= .25){ const tenfold = (r >= 7 && r <= 14) || (r >= 1 / 14 && r <= 1 / 7);
+        out.push([w, tr(two ? "{0}; its other row {1}" : "{0}; its other rows about {1}", kr(p), kr(m)) + (tenfold ? " · " + tr(r > 1 ? "a digit too many?" : "a digit missing?") : "")]); continue; } }
+    if(p >= 100000) out.push([w, tr("{0} for a bottle", kr(p))]); }
+  return out;
+}
+function tidyLook(){
+  const yr = new Date().getFullYear(), live = WINES.filter(w => !w.elsewhere && w.left > 0), pc = priceChecks(), pnote = new Map(pc);
+  return {live, look:[
+    ["A price that looks off", pc.map(([w]) => w), w => pnote.get(w)],
+    ["No vintage", live.filter(w => !w.vintage && w.style !== "Bobler")],
+    ["No price", live.filter(w => !(Number(w.price) > 0))],
+    ["Past its drinking window", live.filter(w => w.drinkTo && w.drinkTo < yr)],
+    ["No drinking window", live.filter(w => !w.drinkTo && !w.drinkFrom)],
+    ["Unusually many bottles of one wine", live.filter(w => w.left >= 60)],
+  ].filter(([, l]) => l.length),
+  health:[["Vintage", w => !!w.vintage || w.style === "Bobler"], ["Region", w => !!String(w.region||"").trim()], ["Grape", w => !!String(w.grape||"").trim()],
+    ["Price", w => Number(w.price) > 0], ["Drinking window", w => !!(w.drinkTo || w.drinkFrom)]].map(([l, ok]) => [l, live.length ? Math.round(100 * live.filter(ok).length / live.length) : 100])};
 }
 function tidyRender(){
   tidyPlan();
@@ -2551,9 +2591,20 @@ function tidyRender(){
   $("tidyDups").innerHTML = S.groups.map(g => { const ws = [g.keep, ...g.drop].map(r => byRow.get(r)), w = ws[0], key = String(g.keep);
     return `<label class="jcheck"><input type="checkbox" data-grp="${key}"${S.groupsOff.has(key) ? "" : " checked"}>
       <span><b>${esc(w.producer)}</b> ${esc([w.name, w.vintage].filter(Boolean).join(" "))} <span class="aimeta">${esc(tr("{0} rows: {1} bottles", ws.length, ws.map(x => x.qty).join(" + ")))}</span></span></label>`; }).join("");
+  S.gapOff ||= new Set();
+  $("tidyGapWrap").hidden = !S.gaps.length;
+  $("tidyGaps").innerHTML = S.gaps.slice(0, 80).map(g => { const k = g.field + "|" + g.to;
+    return `<label class="jcheck"><input type="checkbox" data-gap="${esc(k)}"${S.gapOff.has(k) ? "" : " checked"}>
+      <span><span class="fixf">${esc(tr(FIX_FIELD[g.field] || g.field))}</span> — → “<b>${esc(g.to)}</b>” <span class="aimeta">${esc(trn(g.rows.length, "{0} wine", "{0} wines"))}</span></span></label>`; }).join("");
+  const L = tidyLook(), byRow2 = new Map(WINES.map(w => [w.row, w]));
+  $("tidyHealth").innerHTML = L.live.length ? `<h3>${esc(tr("How complete your cellar is"))} <span class="aimeta">${esc(tr("{0} % overall", Math.round(L.health.reduce((s, [, p]) => s + p, 0) / L.health.length)))}</span></h3>
+    <div class="thbars">${L.health.map(([l, p]) => `<div class="thbar"><span>${esc(tr(l))}</span><i style="--p:${p}%"></i><b>${p} %</b></div>`).join("")}</div>` : "";
+  $("tidyLookWrap").hidden = !L.look.length;
+  $("tidyLook").innerHTML = L.look.map(([l, ws, note]) => `<details class="tlook"><summary>${esc(tr(l))} <span class="aimeta">${esc(trn(ws.length, "{0} wine", "{0} wines"))}</span></summary>
+    <div class="tlist">${ws.slice(0, 12).map(w => `<button type="button" class="tlw" data-row="${w.row}">${esc(w.producer)} ${esc([w.name, w.vintage].filter(Boolean).join(" "))}${note ? ` <span class="aimeta">${esc(note(w))}</span>` : ""}</button>`).join("")}${ws.length > 12 ? `<span class="aimeta">${esc(tr("and {0} more", ws.length - 12))}</span>` : ""}</div></details>`).join("");
   const nEdit = S.edits.length, nGroup = S.groups.filter(g => !S.groupsOff.has(String(g.keep))).length;
-  $("tidyIntro").textContent = (nEdit || S.groups.length) ? tr("Here's what can be tidied. Untick anything you want left as it is.") : tr("Nothing to tidy: every spelling is consistent and no wine is in two rows.");
-  $("tidyGo").hidden = !(nEdit || S.groups.length);
+  $("tidyIntro").textContent = (nEdit || S.groups.length || S.gaps.length) ? tr("Here's what can be tidied. Untick anything you want left as it is.") : tr("Nothing to tidy: every spelling is consistent and no wine is in two rows.");
+  $("tidyGo").hidden = !(nEdit || S.groups.length || S.gaps.length);
   $("tidyGo").textContent = tr("Tidy {0} wines and join {1} groups", nEdit, nGroup);
   $("tidyGo").disabled = !(nEdit || nGroup);
 }
@@ -2582,10 +2633,12 @@ async function tidyRun(){
     if(AUTH_ERRORS.has(m)) showGate(authMsg(m));
   }
 }
-$("tidyBtn").addEventListener("click", async ()=>{ try{ await needTools(); }catch(e){ toast(tr("Couldn't load the importer. Check your connection and try again.")); return; } TIDIER = null; TIDY_STATE.off = new Set(); TIDY_STATE.groupsOff = new Set(); $("tidyErr").textContent = ""; tidyRender(); $("tidyModal").classList.add("open"); });
+$("tidyBtn").addEventListener("click", async ()=>{ try{ await needTools(); }catch(e){ toast(tr("Couldn't load the importer. Check your connection and try again.")); return; } TIDIER = null; TIDY_STATE.gapOff = new Set(); TIDY_STATE.off = new Set(); TIDY_STATE.groupsOff = new Set(); $("tidyErr").textContent = ""; tidyRender(); $("tidyModal").classList.add("open"); });
 $("tidyCancel").addEventListener("click", ()=>$("tidyModal").classList.remove("open"));
 $("tidyModal").addEventListener("click", e=>{ if(e.target===$("tidyModal")) $("tidyModal").classList.remove("open"); });
 $("tidyFixes").addEventListener("change", e=>{ const c = e.target.closest("input[data-fix]"); if(!c) return; if(c.checked) TIDY_STATE.off.delete(c.dataset.fix); else TIDY_STATE.off.add(c.dataset.fix); tidyRender(); });
+$("tidyGaps").addEventListener("change", e=>{ const c = e.target.closest("input[data-gap]"); if(!c) return; TIDY_STATE.gapOff ||= new Set(); if(c.checked) TIDY_STATE.gapOff.delete(c.dataset.gap); else TIDY_STATE.gapOff.add(c.dataset.gap); tidyRender(); });
+$("tidyLook").addEventListener("click", e=>{ const b = e.target.closest("button[data-row]"); if(!b) return; const w = WINES.find(x => x.row === Number(b.dataset.row)); if(!w) return; $("tidyModal").classList.remove("open"); showWine(w); });
 $("tidyDups").addEventListener("change", e=>{ const c = e.target.closest("input[data-grp]"); if(!c) return; if(c.checked) TIDY_STATE.groupsOff.delete(c.dataset.grp); else TIDY_STATE.groupsOff.add(c.dataset.grp); tidyRender(); });
 $("tidyGo").addEventListener("click", tidyRun);
 
@@ -4576,12 +4629,12 @@ $("helpForm").addEventListener("submit", async e=>{
 // opened, so a member's page never carries it
 let ADMIN_LOAD = null;
 $("adminBtn").addEventListener("click", ()=>{
-  (ADMIN_LOAD = ADMIN_LOAD || loadJS("admin.js?v=4").catch(e=>{ ADMIN_LOAD = null; throw e; }))
+  (ADMIN_LOAD = ADMIN_LOAD || loadJS("admin.js?v=5").catch(e=>{ ADMIN_LOAD = null; throw e; }))
     .then(()=>openAdmin()).catch(err=>toast(tr("Could not reach the cellar API ({0}).", errText(err))));
 });
 // test users and test wines (test-data.js, loaded the first time one of these is used)
 const testTools = () => window.TESTDATA && TESTDATA.ui ? Promise.resolve(TESTDATA) : new Promise((ok, no)=>{ const el = document.createElement("script");
-  el.src = "test-data.js?v=5"; el.onload = ()=>ok(window.TESTDATA); el.onerror = ()=>no(new Error("load test-data.js")); document.head.appendChild(el); });
+  el.src = "test-data.js?v=6"; el.onload = ()=>ok(window.TESTDATA); el.onerror = ()=>no(new Error("load test-data.js")); document.head.appendChild(el); });
 $("acctTest").addEventListener("click", e=>{ const b = e.target.closest("button[data-testwines]"); if(!b) return;
   testTools().then(T=>T.ui.addWines(Number(b.dataset.testwines))).catch(err=>{ $("acctTestMsg").textContent = errText(err); }); });
 async function loadFeedSilently(){
