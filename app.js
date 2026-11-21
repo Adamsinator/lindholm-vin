@@ -2450,8 +2450,8 @@ function sommLoad(){
   const need = [];
   if(!window.WINE_KB) need.push("wine-kb.js?v=2");
   if(!window.SOMM_DATA) need.push("sommelier-data.js?v=6");
-  if(!window.SOMM_WORLD) need.push("sommelier-world.js?v=2");
-  if(!window.SOMMELIER) need.push("sommelier.js?v=11");
+  if(!window.SOMM_WORLD) need.push("sommelier-world.js?v=3");
+  if(!window.SOMMELIER) need.push("sommelier.js?v=12");
   if(!window.BURG_VINTAGES) need.push("burgundy-vintages.js?v=6");
   if(["da","fr","de"].includes(lang) && !(window.BURG_I18N && BURG_I18N[lang])) need.push(`burgundy-i18n-${lang}.js?v=${lang==="de"?2:7}`);
   SOMM.lang = lang;
