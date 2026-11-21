@@ -65,10 +65,15 @@ Object.assign(window.I18N_DICT.fr, {
   "white, sparkling, rosé, fortified": "blanc, effervescent, rosé, muté",
   "PDO area": "Aire d'AOP",
   "Vines © Landbrugsstyrelsen (Marker {0}) · boundaries © SDFI (DAGI)": "Vignes © Landbrugsstyrelsen (Marker {0}) · limites © SDFI (DAGI)",
-  "Njord: Sune Albertsen's vineyard about 10 km south of Holbæk, founded in 2010, known for its Pinot Noir Précoce (Frühburgunder).": "Njord : le vignoble de Sune Albertsen, à une dizaine de kilomètres au sud de Holbæk, fondé en 2010 et connu pour son pinot noir précoce (Frühburgunder).",
   "Tuse Næs, north of the town, is inside the parishes of the proposed Odsherred PDO.": "Tuse Næs, au nord de la ville, fait partie des paroisses de l'AOP Odsherred proposée.",
   "Borders: Natural Earth (public domain); Denmark's: SDFI (DAGI). The outlines are where each region's vineyards are, from its own map.": "Frontières : Natural Earth (domaine public) ; celles du Danemark : SDFI (DAGI). Les contours montrent où sont les vignes de chaque région, d'après sa propre carte.",
   "Vineyards by parish": "Vignes par paroisse",
   "The vines of {0} parishes: the fields farmers declared as vines to Landbrugsstyrelsen in {1}. Click one.": "Les vignes de {0} paroisses : les parcelles que les exploitants ont déclarées en vigne à la Landbrugsstyrelsen en {1}. Cliquez sur l'une d'elles.",
-  "{0} parishes": "{0} paroisses"
+  "{0} parishes": "{0} paroisses",
+  "Njord: Sune Albertsen's vineyard by Tølløse, about 10 km south of Holbæk, founded in 2010: some 5 ha on south-facing hills of sand and gravel, mostly Pinot Noir Précoce (Frühburgunder), farmed on organic and biodynamic principles.": "Njord : le vignoble de Sune Albertsen près de Tølløse, à une dizaine de kilomètres au sud de Holbæk, fondé en 2010 : quelque 5 ha sur des collines de sable et de gravier exposées au sud, surtout en pinot noir précoce (Frühburgunder), conduits selon des principes biologiques et biodynamiques.",
+  "Njord's vines aren't in the field map: none of its fields is declared as vines, so it is marked by its address on Sophienholmvej.": "Les vignes de Njord ne figurent pas sur la carte des parcelles : aucune de ses parcelles n'est déclarée en vigne ; elle est donc placée à son adresse, Sophienholmvej.",
+  "What the map shows": "Ce que montre la carte",
+  "Simple": "Simple",
+  "Terrain": "Terrain",
+  "Vineyards only": "Vignes seules"
 });

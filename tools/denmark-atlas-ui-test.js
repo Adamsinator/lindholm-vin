@@ -45,6 +45,22 @@ check("…relief from Copernicus GLO-30 for the close-up, GLO-90 for Denmark, bo
     towns: [...document.querySelectorAll("#map text.tn-1")].map(t => t.textContent), legend: document.getElementById("legend").textContent }));
   check("the close-up: Europe › Denmark › Holbæk & Odsherred · its parishes, its relief, its towns named, PDOs listed, no village-appellation legend", /Holbæk & Odsherred\s*· \d+ parishes/.test(z.crumb)
     && z.img === "atlas-holbaek-relief.webp?v=1" && z.towns.includes("Holbæk") && /Røsnæs\s*· applied for/.test(z.side) && /Njord/.test(z.side) && !/Village appellations/.test(z.legend), JSON.stringify(z).slice(0, 400));
+  const nj = T.names.find(x => x[0] === "v");
+  check("Njord marked by its address (Sophienholmvej, Tølløse), about 10 km south of Holbæk, its notes from its own site", nj && /Njord/.test(nj[1])
+    && /Tølløse/.test(HB.meta.notes[0]) && /5 ha/.test(HB.meta.notes[0]) && /aren't in the field map/.test(HB.meta.notes[1]) && /OpenStreetMap/.test(T.meta.source), JSON.stringify(nj));
+  // the map's modes: one choice sets relief, the villages layer and how the vineyards are drawn; Njord shows in each
+  const modes = {};
+  for (const m of ["simple", "relief", "terrain", "vines"]) { await p.evaluate(m => document.querySelector(`#modes button[data-mode="${m}"]`).click(), m); await p.waitForTimeout(300);
+    modes[m] = await p.evaluate(() => ({ r: document.getElementById("fRelief").checked, t: document.getElementById("fTopo").checked, o: document.getElementById("map").classList.contains("m-outline"),
+      b: document.getElementById("map").classList.contains("m-bare"), nj: [...document.querySelectorAll("#map text.tn-v")].some(x => x.style.display !== "none" && getComputedStyle(x).display !== "none"),
+      on: document.querySelector("#modes button[aria-checked=true]")?.dataset.mode })); }
+  check("the map's modes: simple, relief, terrain (relief, villages, vineyards outlined), vineyards only; Njord in each", JSON.stringify(modes) === JSON.stringify({
+    simple: { r: false, t: false, o: false, b: false, nj: true, on: "simple" }, relief: { r: true, t: false, o: false, b: false, nj: true, on: "relief" },
+    terrain: { r: true, t: true, o: true, b: false, nj: true, on: "terrain" }, vines: { r: false, t: false, o: false, b: true, nj: true, on: "vines" } }), JSON.stringify(modes));
+  await p.click("#fRelief", { force: true }).catch(() => p.evaluate(() => document.getElementById("fRelief").click()));
+  check("…ticking a box afterwards leaves no mode chosen, and the choice is remembered", await p.evaluate(() => !document.querySelector("#modes button[aria-checked=true]") && localStorage.getItem("atlasMode") === ""));
+  await p.evaluate(() => document.querySelector('#modes button[data-mode="relief"]').click()); await p.reload(); await p.waitForTimeout(1500);
+  check("…a mode chosen stays after a reload", await p.evaluate(() => document.querySelector("#modes button[aria-checked=true]")?.dataset.mode === "relief" && document.getElementById("fRelief").checked));
   const d = await page({ viewport: { width: 1300, height: 900 }, locale: "da-DK" });
   await d.addInitScript(() => { try { localStorage.setItem("lang", "da"); } catch (e) {} });
   await d.goto(BASE + "atlas.html#r=danmark&c=holbaek"); await d.waitForTimeout(2500);

@@ -40,8 +40,8 @@ const REGIONS = [
   { id: "barbera", name: "Barbera d'Asti", file: "atlas-barbera.js?v=1", ll: [44.87, 8.25], country: "it", kind: "Communes" },
   { id: "moscato", name: "Asti & Moscato d'Asti", file: "atlas-moscato.js?v=1", ll: [44.72, 8.2], country: "it", kind: "Communes" },
   { id: "douro", name: "Douro", file: "atlas-douro.js?v=1", ll: [41.16, -7.55], country: "pt", kind: "Vineyards by sub-region", village: "The Douro's sub-regions" },
-  { id: "danmark", name: "Danmark", file: "atlas-danmark.js?v=1", ll: [56.1, 9.4], country: "dk", kind: "Vineyards by municipality", village: "Wine areas (PGI)" },
-  { id: "holbaek", name: "Holbæk & Odsherred", file: "atlas-holbaek.js?v=1", topo: "atlas-holbaek-topo.js?v=1", ll: [55.72, 11.5], country: "dk", kind: "Vineyards by parish", regional: "Municipalities" },
+  { id: "danmark", name: "Danmark", file: "atlas-danmark.js?v=2", ll: [56.1, 9.4], country: "dk", kind: "Vineyards by municipality", village: "Wine areas (PGI)" },
+  { id: "holbaek", name: "Holbæk & Odsherred", file: "atlas-holbaek.js?v=2", topo: "atlas-holbaek-topo.js?v=2", ll: [55.72, 11.5], country: "dk", kind: "Vineyards by parish", regional: "Municipalities" },
   { id: "ahr", name: "Ahr", file: "atlas-ahr.js?v=1", wx: "atlas-ahr-wx.js?v=1", topo: "atlas-ahr-topo.js?v=1", dem: "atlas-ahr-dem.js?v=1", geol: "atlas-ahr-geol.js?v=1", ll: [50.536, 7.079], country: "de", kind: "Einzellagen" },
   { id: "rhone", name: "Rhône (north)", file: "atlas-rhone.js?v=1", wx: "atlas-rhone-wx.js?v=1", topo: "atlas-rhone-topo.js?v=1", dem: "atlas-rhone-dem.js?v=1", geol: "atlas-rhone-geol.js?v=1", ld: "atlas-rhone-ld.js?v=1", ll: [45.201, 4.809], country: "fr", kind: "Cru appellations",
     regional: "Regional (Côtes du Rhône)" },
@@ -276,7 +276,8 @@ function drawTopo() {
   // names: towns (1) and villages (2) always, hamlets (3) and farms (4) closer in, rivers in italic
   // a name already on the map nearby isn't repeated
   const placed = st.pack.climats.filter(c => c.lb).map(c => [norm(c.n), c.lp[0], c.lp[1]]);
-  T.names.slice().sort((a, b) => (a[0] === "w" ? 5 : a[0]) - (b[0] === "w" ? 5 : b[0])).forEach(([k, n, x, y]) => {
+  // a winery ("v") first, so nothing hides it
+  T.names.slice().sort((a, b) => (a[0] === "w" ? 5 : a[0] === "v" ? 0 : a[0]) - (b[0] === "w" ? 5 : b[0] === "v" ? 0 : b[0])).forEach(([k, n, x, y]) => {
     const nn = norm(n); if (placed.some(([m, px, py]) => m === nn && Math.hypot(px - x, py - y) < 6000)) return; placed.push([nn, x, y]);
     const e = el("text", { class: "tn tn-" + k, x, y }, TG.names); e.textContent = n; e._k = k; });
   topoLod();
@@ -285,14 +286,14 @@ function drawTopo() {
 function topoLod() {
   if (!TG.names || !st.view) return;
   const on = st.topo && !!topoOf(), wk = st.view[2] / 1000; // view width, km
-  [TG.under, TG.over, TG.names].forEach(g => g.style.display = on ? "" : "none"); if (!on) return;
+  [TG.under, TG.over].forEach(g => g.style.display = on ? "" : "none"); TG.names.style.display = topoOf() ? "" : "none"; // a winery's name stays with the layer off
   svg.classList.toggle("lod-mid", wk < 14); svg.classList.toggle("lod-near", wk < 6);
   const k = st.view[2] / (svg.clientWidth || 800), taken = [];
   LABEL_BOXES.forEach(b => taken.push(b));
   for (const t of TG.names.children) {
-    const kind = t._k, show = kind === 1 || kind === 2 ? wk < (kind === 1 ? 200 : 40) : kind === 3 ? wk < 14 : kind === 4 ? wk < 6 : wk < 8; // streams: close in (the Rhône's side valleys are full of them)
-    if (!show) { t.style.display = "none"; continue; }
-    const fs = (kind === 1 ? 14 : kind === 2 ? 12.5 : kind === "w" ? 11.5 : 11) * k, x0 = +t.getAttribute("x"), y0 = +t.getAttribute("y"), [x, y] = rotP([x0, y0]), w = t.textContent.length * fs * .55;
+    const kind = t._k, show = kind === "v" ? wk < 120 : kind === 1 || kind === 2 ? wk < (kind === 1 ? 200 : 40) : kind === 3 ? wk < 14 : kind === 4 ? wk < 6 : wk < 8; // streams: close in (the Rhône's side valleys are full of them)
+    if (!show || !on && kind !== "v") { t.style.display = "none"; continue; }
+    const fs = (kind === 1 || kind === "v" ? 14 : kind === 2 ? 12.5 : kind === "w" ? 11.5 : 11) * k, x0 = +t.getAttribute("x"), y0 = +t.getAttribute("y"), [x, y] = rotP([x0, y0]), w = t.textContent.length * fs * .55;
     const box = [x - w / 2, y - fs * .6, x + w / 2, y + fs * .6]; upright(t, x0, y0);
     const hide = taken.some(o => !(box[2] < o[0] || box[0] > o[2] || box[3] < o[1] || box[1] > o[3]));
     t.style.display = hide ? "none" : ""; if (hide) continue;
@@ -1144,10 +1145,23 @@ $("fV").onchange = e => { st.show.V = e.target.checked; paint(); };
 $("fPts").onchange = e => { st.show.PT = e.target.checked; paint(); };
 $("fMine").onchange = e => { st.mine = e.target.checked; paint(); };
 const keep = (k, v) => { try { localStorage.setItem(k, v ? "1" : "0"); } catch (e) {} };
-$("fRelief").checked = st.relief; $("fRelief").onchange = e => { st.relief = e.target.checked; keep("atlasRelief", st.relief); shadeUpdate(); };
+// what the map shows, in one choice (the map panel): each mode sets relief and the roads-and-villages layer, and how the
+// vineyards are drawn; ticking a box below changes only that and leaves no mode chosen
+const MODES = { simple: [false, false], relief: [true, false], terrain: [true, true], vines: [false, false] };
+st.mode = (() => { try { const m = localStorage.getItem("atlasMode"); return MODES[m] ? m : ""; } catch (e) { return ""; } })();
+function applyMode(m) {
+  if (MODES[m]) { [st.relief, st.topo] = MODES[m]; keep("atlasRelief", st.relief); keep("atlasTopo", st.topo); $("fRelief").checked = st.relief; $("fTopo").checked = st.topo; }
+  st.mode = MODES[m] ? m : ""; try { localStorage.setItem("atlasMode", st.mode); } catch (e) {}
+  svg.classList.toggle("m-outline", st.mode === "terrain"); svg.classList.toggle("m-bare", st.mode === "vines");
+  document.querySelectorAll("#modes button").forEach(b => b.setAttribute("aria-checked", b.dataset.mode === st.mode));
+  if (st.pack) { shadeUpdate(); topoLod(); }
+}
+document.querySelectorAll("#modes button").forEach(b => b.onclick = () => applyMode(b.dataset.mode));
+$("fRelief").checked = st.relief; $("fRelief").onchange = e => { st.relief = e.target.checked; keep("atlasRelief", st.relief); applyMode(""); };
 $("fGeol").checked = st.geol; $("fGeol").onchange = e => { st.geol = e.target.checked; keep("atlasGeol", st.geol); if (st.geol) ensureGeol();
   if (TG.geol) TG.geol.style.display = st.geol ? "" : "none"; paint(); renderLegend(); };
-$("fTopo").checked = st.topo; $("fTopo").onchange = e => { st.topo = e.target.checked; keep("atlasTopo", st.topo); topoLod(); };
+$("fTopo").checked = st.topo; $("fTopo").onchange = e => { st.topo = e.target.checked; keep("atlasTopo", st.topo); applyMode(""); };
+applyMode(st.mode);
 /* ---------- search: this region's vineyards first, then every other region's and the Côte d'Or's (atlas-index.js,
    fetched when the box is first used), as a list under the box that works by touch and with ↑ ↓ Enter Esc ---------- */
 const sBox = $("fSearch"), sList = $("gRes"), INDEX_SRC = "atlas-index.js?v=2";

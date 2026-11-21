@@ -6,7 +6,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; script-src 'self' 'unsafe-eval'; frame-src 'none'; img-src 'self' data: blob: https://data.geopf.fr https://sgx.geodatenzentrum.de https://mapsneu.wien.gv.at https://servicios.idee.es; connect-src 'self' https://allwine-api.adamlenzing.workers.dev https://data.geopf.fr">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="i18n-extra" content="atlas-i18n-da.js?v=8 atlas-i18n-fr.js?v=8 atlas-i18n-de.js?v=8">
+<meta name="i18n-extra" content="atlas-i18n-da.js?v=9 atlas-i18n-fr.js?v=9 atlas-i18n-de.js?v=9">
 <title>AllWine — Wine atlas</title>
 <meta name="description" content="Wine-region atlas: the grands and premiers crus of Burgundy, Champagne and Alsace, the crus of the Rhône, the Beaujolais and the Loire, Bordeaux's appellations and 1855 châteaux, and Germany's Einzellagen, with your bottles on them.">
 <link rel="icon" href="logo.svg" type="image/svg+xml">
@@ -67,7 +67,7 @@ header.top h1 em{font-style:italic;color:var(--accent)} header.top h1 a{color:in
 #mapview{position:absolute;inset:0;transform-origin:0 0;will-change:transform}
 #map .rg{fill:var(--rg);stroke:none} #map .vl{fill:var(--vc);stroke:none;opacity:.75}
 #map .cl{stroke:var(--card);stroke-width:1;vector-effect:non-scaling-stroke;cursor:pointer}
-#map.pre .vl{fill-opacity:.5} #map .vl.pdo{fill:none;stroke:var(--ac);stroke-width:2;stroke-dasharray:6 4;vector-effect:non-scaling-stroke;opacity:1} #map.tiny .cl{stroke:var(--pc);stroke-width:3;vector-effect:non-scaling-stroke} #map .cl.part{fill-opacity:.4;stroke:var(--ac);stroke-dasharray:5 3} #map .cl.vs{stroke:var(--gc);stroke-width:5;stroke-linejoin:round} #map .cl.vs.sel{stroke:var(--sel)} #map .cl.GC{fill:var(--gc)} #map .cl.AOC{fill:var(--ac)} #map .cl.p1{fill:var(--pc)} #map .cl.px{fill:var(--pcx)} .desc{font-size:14px;line-height:1.5} #map .cl.pv{fill:var(--vc)}
+#map.pre .vl{fill-opacity:.5} #map .tn.tn-v{fill:var(--accent);font-weight:700} #map .vl.pdo{fill:none;stroke:var(--ac);stroke-width:2;stroke-dasharray:6 4;vector-effect:non-scaling-stroke;opacity:1} #map.tiny .cl{stroke:var(--pc);stroke-width:3;vector-effect:non-scaling-stroke} #map .cl.part{fill-opacity:.4;stroke:var(--ac);stroke-dasharray:5 3} #map .cl.vs{stroke:var(--gc);stroke-width:5;stroke-linejoin:round} #map .cl.vs.sel{stroke:var(--sel)} #map .cl.GC{fill:var(--gc)} #map .cl.AOC{fill:var(--ac)} #map .cl.p1{fill:var(--pc)} #map .cl.px{fill:var(--pcx)} .desc{font-size:14px;line-height:1.5} #map .cl.pv{fill:var(--vc)}
 #map .cl:hover{filter:brightness(1.08)} #map .cl.sel{stroke:var(--sel);stroke-width:2.5}
 #map .cl.dim{opacity:.18}
 /* geology on: BRGM's colours under the vineyards, which keep only their outlines */
@@ -208,7 +208,15 @@ html[data-map="dark"] #map .shade{mix-blend-mode:screen;opacity:.16} html[data-m
 .panel-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
 .panel h2{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;font-size:22px;margin:0} .panel h2 em{color:var(--accent)}
 .px{width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--card2);color:var(--ink);cursor:pointer;font-size:15px}
-.styles{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.styles,.modes{display:grid;grid-template-columns:repeat(4,1fr);gap:8px} .modes{margin-bottom:16px}
+.modes button{border:0;background:none;padding:0;display:grid;gap:5px;justify-items:center;font:inherit;font-size:12.5px;color:var(--muted);cursor:pointer}
+.modes button[aria-checked="true"]{color:var(--ink);font-weight:600} .modes button[aria-checked="true"] .th{box-shadow:0 0 0 2px var(--card),0 0 0 4px var(--accent)}
+.tm-simple{background:radial-gradient(circle at 35% 45%,#8E2C45 0 13%,transparent 14%),radial-gradient(circle at 65% 60%,#D88E7C 0 16%,transparent 17%),#ECE4D2}
+.tm-relief{background:radial-gradient(circle at 35% 45%,#8E2C45 0 13%,transparent 14%),radial-gradient(circle at 65% 60%,#D88E7C 0 16%,transparent 17%),linear-gradient(135deg,#f4efe4 0 30%,#cfc6b4 45%,#efe8da 55%,#bdb3a0 70%,#ece4d2)}
+.tm-terrain{background:radial-gradient(circle at 35% 45%,transparent 0 11%,#8E2C45 12% 14%,transparent 15%),linear-gradient(160deg,transparent 0 46%,#fff 47% 50%,transparent 51%),linear-gradient(60deg,transparent 0 62%,#9cb8cf 63% 66%,transparent 67%),linear-gradient(135deg,#f4efe4 0 30%,#cfc6b4 45%,#efe8da 55%,#bdb3a0 70%,#ece4d2)}
+.tm-vines{background:radial-gradient(circle at 35% 45%,#8E2C45 0 13%,transparent 14%),radial-gradient(circle at 65% 60%,#D88E7C 0 16%,transparent 17%),#fff}
+#map.m-outline .cl{fill-opacity:.15;stroke-width:2;vector-effect:non-scaling-stroke} #map.m-outline.tiny .cl{fill-opacity:.5;stroke-width:3} #map.m-outline .cl.GC{stroke:var(--gc)} #map.m-outline .cl.AOC{stroke:var(--ac)} #map.m-outline .cl.p1,#map.m-outline .cl.px{stroke:var(--pc)} #map.m-outline .cl.pv{stroke:var(--vc)}
+#map.m-bare .rg,#map.m-bare .vl:not(.pdo),#map.m-bare .land{fill:none;stroke:none}
 .styles button{border:0;background:none;padding:0;display:grid;gap:5px;justify-items:center;font:inherit;font-size:12.5px;color:var(--muted);cursor:pointer}
 .styles button[aria-checked="true"]{color:var(--ink);font-weight:600} .styles button[aria-checked="true"] .th{box-shadow:0 0 0 2px var(--card),0 0 0 4px var(--accent)}
 .styles button:disabled{opacity:.4;cursor:default}
@@ -334,6 +342,12 @@ html[data-map="dark"] #map .shade{mix-blend-mode:screen;opacity:.16} html[data-m
 </div>
 <div class="panel" id="stylePanel" role="dialog" aria-labelledby="styleTitle" hidden>
   <div class="panel-h"><h2 id="styleTitle" data-i18n>Map</h2><button type="button" class="px" data-close aria-label="Close" data-i18n-aria>✕</button></div>
+  <div class="modes" id="modes" role="radiogroup" aria-label="What the map shows" data-i18n-aria>
+    <button type="button" role="radio" data-mode="simple"><i class="th tm-simple"></i><span data-i18n>Simple</span></button>
+    <button type="button" role="radio" data-mode="relief"><i class="th tm-relief"></i><span data-i18n>Relief</span></button>
+    <button type="button" role="radio" data-mode="terrain"><i class="th tm-terrain"></i><span data-i18n>Terrain</span></button>
+    <button type="button" role="radio" data-mode="vines"><i class="th tm-vines"></i><span data-i18n>Vineyards only</span></button>
+  </div>
   <div class="styles" id="styles" role="radiogroup" aria-label="Map style" data-i18n-aria>
     <button type="button" role="radio" data-style="auto"><i class="th th-auto"></i><span data-i18n>Automatic</span></button>
     <button type="button" role="radio" data-style="light"><i class="th th-light"></i><span data-i18n>Light</span></button>
@@ -352,6 +366,6 @@ html[data-map="dark"] #map .shade{mix-blend-mode:screen;opacity:.16} html[data-m
 </div>
 <script src="i18n.js?v=100"></script>
 <script src="europe-lands.js?v=3"></script>
-<script src="atlas.js?v=67"></script>
+<script src="atlas.js?v=68"></script>
 </body>
 </html>

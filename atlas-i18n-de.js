@@ -65,10 +65,15 @@ Object.assign(window.I18N_DICT.de, {
   "white, sparkling, rosé, fortified": "Weißwein, Schaumwein, Rosé, Likörwein",
   "PDO area": "g.U.-Gebiet",
   "Vines © Landbrugsstyrelsen (Marker {0}) · boundaries © SDFI (DAGI)": "Reben © Landbrugsstyrelsen (Marker {0}) · Grenzen © SDFI (DAGI)",
-  "Njord: Sune Albertsen's vineyard about 10 km south of Holbæk, founded in 2010, known for its Pinot Noir Précoce (Frühburgunder).": "Njord: Sune Albertsens Weingut etwa 10 km südlich von Holbæk, 2010 gegründet und bekannt für seinen Pinot Noir Précoce (Frühburgunder).",
   "Tuse Næs, north of the town, is inside the parishes of the proposed Odsherred PDO.": "Tuse Næs nördlich der Stadt liegt in den Kirchspielen der vorgeschlagenen g.U. Odsherred.",
   "Borders: Natural Earth (public domain); Denmark's: SDFI (DAGI). The outlines are where each region's vineyards are, from its own map.": "Grenzen: Natural Earth (gemeinfrei); die Dänemarks: SDFI (DAGI). Die Umrisse zeigen, wo die Weinberge jeder Region liegen, nach ihrer eigenen Karte.",
   "Vineyards by parish": "Weinberge nach Kirchspiel",
   "The vines of {0} parishes: the fields farmers declared as vines to Landbrugsstyrelsen in {1}. Click one.": "Die Reben von {0} Kirchspielen: die Felder, die Landwirte {1} bei der Landbrugsstyrelsen als Reben gemeldet haben. Klicken Sie auf eines.",
-  "{0} parishes": "{0} Kirchspiele"
+  "{0} parishes": "{0} Kirchspiele",
+  "Njord: Sune Albertsen's vineyard by Tølløse, about 10 km south of Holbæk, founded in 2010: some 5 ha on south-facing hills of sand and gravel, mostly Pinot Noir Précoce (Frühburgunder), farmed on organic and biodynamic principles.": "Njord: Sune Albertsens Weingut bei Tølløse, etwa 10 km südlich von Holbæk, 2010 gegründet: rund 5 ha an südexponierten Hügeln aus Sand und Kies, vor allem Pinot Noir Précoce (Frühburgunder), nach ökologischen und biodynamischen Grundsätzen bewirtschaftet.",
+  "Njord's vines aren't in the field map: none of its fields is declared as vines, so it is marked by its address on Sophienholmvej.": "Njords Reben sind nicht in der Feldkarte: keines seiner Felder ist als Reben gemeldet, deshalb ist es an seiner Adresse am Sophienholmvej markiert.",
+  "What the map shows": "Was die Karte zeigt",
+  "Simple": "Einfach",
+  "Terrain": "Gelände",
+  "Vineyards only": "Nur Weinberge"
 });
