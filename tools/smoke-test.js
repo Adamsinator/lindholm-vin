@@ -73,8 +73,14 @@ const overflow=async(p,where)=>{ const o=await p.evaluate(()=>document.documentE
   await ctx.route(/data\.geopf\.fr\/wmts/, r => r.fulfill({ contentType: "image/png", body: BLANK_TILE }));
   const p=await ctx.newPage(); const W_=tag; await watch(p,W_);
   // what's still loading, should a navigation time out (it did, now and then, late in CI): the cause, not a guess
-  const pending=new Set(); p.on('request',r=>pending.add(r)); p.on('requestfinished',r=>pending.delete(r)); p.on('requestfailed',r=>pending.delete(r));
-  const go=async url=>{ try{ return await p.goto(url); }catch(e){ console.log('  still loading when '+url+' timed out: '+[...pending].map(r=>r.method()+' '+r.url().replace(BASE,'')).join(', ')); throw e; } };
+  const pending=new Set(); p.on('request',r=>pending.add(r)); p.on('requestfinished',r=>pending.delete(r)); p.on('requestfailed',r=>pending.delete(r)); const answered=new WeakSet(); p.on('response',s=>answered.add(s.request()));
+  const go=async url=>{ try{ return await p.goto(url); }catch(e){
+    // which side stalled: the server (does it answer node?), the old page (does its main thread answer?), or neither
+    const t=Date.now(), late=ms=>new Promise(r=>setTimeout(()=>r('no answer in '+ms/1000+' s'),ms));
+    const server=await Promise.race([new Promise(r=>require('http').get(url,s=>{ s.resume(); s.on('end',()=>r('HTTP '+s.statusCode+' in '+(Date.now()-t)+' ms')); }).on('error',x=>r(x.message))),late(5000)]);
+    const page=await Promise.race([p.evaluate(()=>location.href+' '+document.readyState).catch(x=>x.message.split('\n')[0]),late(5000)]);
+    console.log('  still loading when '+url+' timed out: '+[...pending].map(r=>r.method()+' '+r.url().replace(BASE,'/')+(answered.has(r)?' (answered, body still coming)':' (no answer yet)')).join(', ')+'\n  the server: '+server+'; the page: '+page);
+    throw e; } };
   // front page, logged out
   await p.goto(BASE); await p.waitForTimeout(600); await overflow(p,tag+' front'); await p.screenshot({path:OUT+tag+'_front.png'});
   await p.click('#gateToggle'); await p.waitForTimeout(100); await p.click('#gateToggle');

@@ -5,7 +5,7 @@
 //   node tools/run-tests.js --node     only the Node suites (no browser needed)
 //   node tools/run-tests.js abuse vault-ui …   only the suites named
 "use strict";
-const http = require("http"), fs = require("fs"), path = require("path"), { spawn } = require("child_process");
+const http = require("http"), fs = require("fs"), stream = require("stream"), path = require("path"), { spawn } = require("child_process");
 const ROOT = path.join(__dirname, ".."), PORT = 8765;
 const NODE = ["i18n-test", "import-test", "export-test", "messy-test", "vault-test", "sommelier-test", "big-import-test", "abuse-test", "backup-test", "worker-test", "account-test", "stats-test", "versions-test", "pages-test", "atlas-sw-test", "size-test", "share-test", "sales-test"];
 const BROWSER = ["import-ui-test", "tidy-ui-test", "vault-ui-test", "sommelier-ui-test", "add-suggest-ui-test", "i18n-ui-test",
@@ -24,7 +24,8 @@ function serve() {
       const file = path.join(ROOT, path.normalize(f).replace(/^(\.\.[/\\])+/, ""));
       if (!file.startsWith(ROOT) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) { res.writeHead(404); return res.end("not found"); }
       res.writeHead(200, { "content-type": TYPES[path.extname(file)] || "application/octet-stream", "cache-control": "no-store" });
-      fs.createReadStream(file).pipe(res);
+      // (pipeline: a request the browser drops closes its file too, and a read error ends the response, not hangs it)
+      stream.pipeline(fs.createReadStream(file), res, () => {});
     });
     srv.once("error", () => resolve(null)); // something already serves the port: use it
     srv.listen(PORT, () => resolve(srv));
