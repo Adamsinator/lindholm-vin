@@ -15,13 +15,13 @@ const col = name => { const s = gas.rows("Stats"); if (!s) return null; const i 
 
 check("nothing counted, no Stats tab", gas.rows("Stats") === null);
 const a = gas.call({ action: "signup", email: "a@example.dk", user: "anna", code: "invite", ...keys("anna") });
-gas.call({ action: "signup", email: "bodil@example.dk", user: "bodil", code: "invite", ...keys("bodil") });
+const b = gas.call({ action: "signup", email: "bodil@example.dk", user: "bodil", code: "invite", ...keys("bodil") }); // the sheet keeps only its hash (API 63)
 check("two sign-ups are counted", a.ok && col("Sign-ups") === 2, JSON.stringify(gas.rows("Stats")));
 const l = gas.call({ action: "login", user: "anna", auth: keys("anna").auth });
 gas.call({ action: "login", user: "anna", auth: "wrong-wrong-wrong-wrong=" });
 check("a login is counted, a failed one isn't", l.ok && col("Logins") === 1, col("Logins"));
 for (let i = 0; i < 3; i++) gas.call({ action: "vget", user: "anna", token: l.token });
-gas.call({ action: "vget", user: "bodil", token: a.ok ? gas.run("findUser('bodil').token").split("@")[0] : "" });
+gas.call({ action: "vget", user: "bodil", token: b.token || "" });
 check("members active today: each once, however often they come", col("Active members") === 2, col("Active members"));
 gas.call({ action: "vput", user: "anna", token: l.token, key: "tab:Ark1", ver: 0, data: "v1.c2VjcmV0LWNpcGhlcnRleHQtLS0t" });
 check("a cellar save is counted (and nothing of it is stored in Stats)", col("Cellar saves") === 1 && !JSON.stringify(gas.rows("Stats")).includes("c2VjcmV0"), col("Cellar saves"));
@@ -40,7 +40,7 @@ check("a hit with nothing in it is fine", gas.call({ action: "hits" }).ok && gas
 gas.run(`setUser(findUser('anna'), 'OldSheet', SpreadsheetApp.getActiveSpreadsheet().getId())`);
 const ad = gas.call({ action: "admin", user: "anna", token: l.token });
 check("the admin page gets the kept year: 371 days, today last (it shows 7 days to a year of them)", ad.ok && ad.stats.length === 371 && ad.stats[370].day === "2026-10-16" && ad.stats[370].cellar === 53 && ad.stats[0].cellar === 0 && ad.stats[0].day === "2025-10-11", JSON.stringify(ad.stats && [ad.stats[0].day, ad.stats.length]));
-check("…and a member doesn't", gas.call({ action: "admin", user: "bodil", token: gas.run("findUser('bodil').token").split("@")[0] }).error === "not-owner");
+check("…and a member doesn't", gas.call({ action: "admin", user: "bodil", token: b.token }).error === "not-owner");
 
 // across the end of summer time (25 October 2026 in Copenhagen) every calendar day appears once
 {

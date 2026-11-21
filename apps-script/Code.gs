@@ -42,7 +42,7 @@ function setting(key) {
 // The legacy code only works once you've set a real one: the placeholder from the template is public.
 function accessCode() { const c = setting('ACCESS_CODE'); return c === 'CHANGE-ME' ? '' : c; }
 
-const API_VERSION = 62; // returned in every response; used to verify deployments
+const API_VERSION = 63; // returned in every response; used to verify deployments
 
 // Per-request spreadsheet for the authenticated user. Set in handle(); every
 // sheet helper reads it via ss(). Falls back to the bound (owner's) spreadsheet.
@@ -683,6 +683,11 @@ function tokenList(cell) {
     .map(t => { const i = t.lastIndexOf('@'); return i > 0 ? { t: t.slice(0, i), at: Number(t.slice(i + 1)) || 0 } : { t: t, at: 0 }; });
 }
 const tokenCell = list => list.map(x => x.t + '@' + x.at).join(', ');
+// API 63: the cell keeps a session token's SHA-256 ("~" and base64), not the token: a copy of the Users tab (a backup, a
+// formula that once showed it) no longer signs anyone in. A token kept from before is still accepted once, and is hashed
+// as it is used.
+const tokenKey = t => '~' + Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, 'session|' + String(t)));
+const tokenIs = (x, t) => x.t.charAt(0) === '~' ? safeEqual(tokenKey(t), x.t) : safeEqual(String(t), x.t);
 const liveTokens = list => { const now = Date.now(); return list.filter(x => !x.at || now - x.at <= sessionMs()); };
 
 function hashPass(salt, pass) {
@@ -809,7 +814,7 @@ function createAccount(username, email, p) {
   const row = new Array(USER_COLS.length).fill('');
   const put = (k, v) => { row[UCOL[k] - 1] = v; };
   put('Username', username); put('Salt', salt); put('Hash', hashPass(salt, p.auth)); put('SpreadsheetId', vaultId);
-  put('Token', token + '@' + Date.now()); put('Created', today()); put('Kdf', String(p.kdf)); put('KdfSalt', String(p.kdfSalt));
+  put('Token', tokenKey(token) + '@' + Date.now()); put('Created', today()); put('Kdf', String(p.kdf)); put('KdfSalt', String(p.kdfSalt));
   put('WrapKey', String(p.wrapKey)); put('WrapRec', String(p.wrapRec)); put('RecSalt', String(p.recSalt));
   put('RecHash', hashPass(salt, p.recAuth)); put('VaultId', vaultId); put('State', 'done'); put('Email', cellText(email));
   usersSheet().appendRow(row);
@@ -979,7 +984,7 @@ function fakeSalt(user) {
 function addSession(u) {
   const token = randToken();
   // Add this session rather than replacing the last one, dropping the oldest once we're past MAX_TOKENS.
-  const live = liveTokens(tokenList(u.token)).concat({ t: token, at: Date.now() }).slice(-MAX_TOKENS);
+  const live = liveTokens(tokenList(u.token)).concat({ t: tokenKey(token), at: Date.now() }).slice(-MAX_TOKENS);
   usersSheet().getRange(u.row, UCOL.Token).setValue(tokenCell(live));
   return token;
 }
@@ -1044,7 +1049,7 @@ function doChangePw(p) {
   if (!/^[A-Za-z0-9+/=]{16,200}$/.test(String(p.auth || '')) || !/^[A-Za-z0-9+/=]{16,200}$/.test(String(p.wrapKey || ''))
       || !/^[A-Za-z0-9+/=]{16,200}$/.test(String(p.kdfSalt || ''))) return json({ ok: false, error: 'bad-keys' });
   setUser(u, 'KdfSalt', String(p.kdfSalt)); setUser(u, 'WrapKey', String(p.wrapKey)); setUser(u, 'Hash', hashPass(u.salt, p.auth));
-  usersSheet().getRange(u.row, UCOL.Token).setValue(p.token ? String(p.token) + '@' + Date.now() : ''); // other devices are signed out
+  usersSheet().getRange(u.row, UCOL.Token).setValue(p.token ? tokenKey(p.token) + '@' + Date.now() : ''); // other devices are signed out
   return json({ ok: true });
 }
 
@@ -1260,10 +1265,11 @@ function readStats(n) {
 function authToken(p) {
   const u = findUser(p.user);
   if (!u || !u.token || !p.token) return null;
-  const list = tokenList(u.token), hit = list.find(x => safeEqual(p.token, x.t));
+  const list = tokenList(u.token), hit = list.find(x => tokenIs(x, p.token));
   if (!hit) return null;
   const now = Date.now(), live = liveTokens(list);
   if (live.indexOf(hit) < 0) { usersSheet().getRange(u.row, UCOL.Token).setValue(tokenCell(live)); return null; } // lapsed
+  if (hit.t.charAt(0) !== '~') { hit.t = tokenKey(p.token); hit.at = 0; } // from before API 63: hashed now
   if (!hit.at || now - hit.at > SESSION_REFRESH_MS) { hit.at = now; usersSheet().getRange(u.row, UCOL.Token).setValue(tokenCell(live)); }
   // the day an account was last used, for the owner's admin page: written at most once a day, as text
   const day = today();
@@ -1280,6 +1286,16 @@ function isOwnerAccount(u) {
 // existing wines carry over: put OWNER_USER and OWNER_PASSWORD in Settings.gs, pick makeOwner in the function
 // dropdown, Run — then blank OWNER_PASSWORD again. Accounts are kept in the "Users" tab, so an existing account
 // (yours included) is never touched by this or by updating the script.
+// Run once from the editor after deploying API 63: every session token still kept in the clear is replaced by its hash
+// at once (each is otherwise hashed on its next use). Nobody is signed out.
+function hashTokens() {
+  const sh = usersSheet(), last = sh.getLastRow(); if (last < 2) return told('No accounts.');
+  const cells = sh.getRange(2, UCOL.Token, last - 1, 1).getValues(); let n = 0;
+  const out = cells.map(([c]) => [tokenCell(tokenList(c).map(x => { if (x.t.charAt(0) === '~') return x; n++; return { t: tokenKey(x.t), at: x.at }; }))]);
+  sh.getRange(2, UCOL.Token, last - 1, 1).setValues(out);
+  return told(n + ' session tokens hashed.');
+}
+
 function makeOwner() {
   const username = setting('OWNER_USER'), password = setting('OWNER_PASSWORD');
   if (!username || !password) return told('Set OWNER_USER and OWNER_PASSWORD in Settings.gs first.');
@@ -1287,7 +1303,7 @@ function makeOwner() {
   if (findUser(username)) return told('Account "' + username + '" already exists — nothing changed. Blank OWNER_PASSWORD in Settings.gs.');
   const salt = randToken();
   usersSheet().appendRow([username, salt, hashPass(salt, password),
-                          SpreadsheetApp.getActiveSpreadsheet().getId(), randToken() + '@' + Date.now(), today()]);
+                          SpreadsheetApp.getActiveSpreadsheet().getId(), tokenKey(randToken()) + '@' + Date.now(), today()]);
   return told('Owner account "' + username + '" created, pointing at this spreadsheet. Now blank OWNER_PASSWORD in Settings.gs.');
 }
 

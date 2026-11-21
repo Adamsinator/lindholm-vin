@@ -178,8 +178,9 @@ const X = n => `<img src=x onerror="window.__xss='${n}'"><script>window.__xss='$
   check("an ordinary member is refused at the owner's doors and the social ones", ["admin", "admininvites", "admindelete", "feed", "follow"].every(k => /^refused/.test(probes[k])), JSON.stringify(probes));
   // raw requests, as someone with curl would send them
   const raw = body => gas.call(body);
-  const otto = gas.run(`findUser('otto').token`).split(",").pop() || "";
-  check("someone else's name with your token is refused", raw({ action: "data", user: "maja", token: String(otto).split("@")[0] }).error === "bad-token");
+  const otto = await q.evaluate(() => localStorage.getItem("vinToken") || ""); // the sheet keeps only its hash (API 63)
+  check("someone else's name with your token is refused (and yours works)", otto && raw({ action: "me", user: "otto", token: otto }).ok === true
+    && raw({ action: "data", user: "maja", token: otto }).error === "bad-token");
   check("a made-up token is refused", raw({ action: "data", user: "maja", token: "0".repeat(64) }).error === "bad-token");
   check("no token at all is refused", raw({ action: "data" }).ok === false);
   check("signing up without an invite is refused", raw({ action: "signup", user: "intruder", email: "a@b.dk", invite: "" }).ok === false);
