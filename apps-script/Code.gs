@@ -42,7 +42,7 @@ function setting(key) {
 // The legacy code only works once you've set a real one: the placeholder from the template is public.
 function accessCode() { const c = setting('ACCESS_CODE'); return c === 'CHANGE-ME' ? '' : c; }
 
-const API_VERSION = 61; // returned in every response; used to verify deployments
+const API_VERSION = 62; // returned in every response; used to verify deployments
 
 // Per-request spreadsheet for the authenticated user. Set in handle(); every
 // sheet helper reads it via ss(). Falls back to the bound (owner's) spreadsheet.
@@ -252,7 +252,7 @@ function handle(p) {
     if (u.state === 'migrating' && PRIVATE_ACTIONS[p.action] && p.action !== 'photo') return json({ ok: false, error: 'migrating' });
   } else {
     const code = accessCode();
-    if (!code || String(p.code || '') !== code) return json({ ok: false, error: 'bad-code' });
+    if (!code || !safeEqual(String(p.code || ''), code)) return json({ ok: false, error: 'bad-code' });
     // the legacy code can't unlock an encrypted cellar, so it stops working once the owner's cellar is encrypted
     if (!inEngine() && ownerVaulted()) return json({ ok: false, error: 'vaulted' });
     CTX = SpreadsheetApp.getActiveSpreadsheet();
@@ -477,7 +477,7 @@ function logEvent(kind, user, detail) {
   try {
     if (bumpCount('log:' + kind, 3600) > LOG_PER_HOUR) return;
     const sh = logSheet();
-    sh.appendRow([new Date(), kind, clip(user, 40), clip(detail, 300)]);
+    sh.appendRow([new Date(), kind, cellText(clip(user, 40)), cellText(clip(detail, 300))]);
     const extra = sh.getLastRow() - 1 - LOG_KEEP;
     if (extra > 100) sh.deleteRows(2, extra); // trim now and then, not on every write
   } catch (err) { /* the log never breaks a request */ }
@@ -597,6 +597,10 @@ function installDailyReport() {
   return told('Daily check scheduled (about 07:00); a test email went to ' + reportTo() + '.');
 }
 const clip = (v, n) => String(v == null ? '' : v).trim().slice(0, n);
+// Text a visitor or member wrote, going into the master book (Log, AtlasEdits, Feed, FeedComments, Invites, Users):
+// kept as text (API 62). Sheets would run "=Users!E2" as a formula, and the atlas corrections are read back by
+// anyone, so a formula there could show what other tabs of the master book hold.
+function cellText(v) { v = String(v == null ? '' : v); return !inEngine() && /^\s*[=+\-@]/.test(v) ? "'" + v : v; }
 // A report from a visitor's browser (i18n.js sends at most three a page): the page, the script's file name and line,
 // and the message with any address or long number taken out, into the Log as 'client-error' (the daily report counts them)
 const CLIENT_PAGES = { cellar: 1, atlas: 1, burgundy: 1, domaine: 1, privacy: 1, share: 1 };
@@ -743,7 +747,7 @@ function signupLocked(p) {
   const invite = findInvite(code);
   if (!invite && !shared && !hasInvites()) return json({ ok: false, error: 'signup-disabled' });
   if (peekCount('signups') >= SIGNUPS_PER_HOUR || peekCount('badinvites') >= BAD_INVITES_PER_HOUR) { logEvent('signup-busy', p.user, ''); return json({ ok: false, error: 'signup-busy' }); }
-  if (!invite && !(shared && code === shared)) { bumpCount('badinvites', 3600); return json({ ok: false, error: 'bad-invite' }); }
+  if (!invite && !(shared && safeEqual(code, shared))) { bumpCount('badinvites', 3600); return json({ ok: false, error: 'bad-invite' }); }
   if (p.pass !== undefined || !p.auth) return json({ ok: false, error: 'update-site' }); // a page from before encryption
   const username = String(p.user || '').trim();
   if (!/^[a-zA-Z0-9_.-]{3,24}$/.test(username)) return json({ ok: false, error: 'bad-username' });
@@ -807,7 +811,7 @@ function createAccount(username, email, p) {
   put('Username', username); put('Salt', salt); put('Hash', hashPass(salt, p.auth)); put('SpreadsheetId', vaultId);
   put('Token', token + '@' + Date.now()); put('Created', today()); put('Kdf', String(p.kdf)); put('KdfSalt', String(p.kdfSalt));
   put('WrapKey', String(p.wrapKey)); put('WrapRec', String(p.wrapRec)); put('RecSalt', String(p.recSalt));
-  put('RecHash', hashPass(salt, p.recAuth)); put('VaultId', vaultId); put('State', 'done'); put('Email', email);
+  put('RecHash', hashPass(salt, p.recAuth)); put('VaultId', vaultId); put('State', 'done'); put('Email', cellText(email));
   usersSheet().appendRow(row);
   return token;
 }
@@ -883,7 +887,7 @@ function newInviteCode() {
 // n new single-use codes (1–10 at a time), with a note of who they're for → the codes
 function addInvites(n, note) {
   const sh = invitesSheet(true), codes = [], k = Math.max(1, Math.min(10, Math.floor(n) || 1));
-  for (let i = 0; i < k; i++) { const c = newInviteCode(); codes.push(c); sh.appendRow([c, String(note || '').slice(0, 60), new Date(), '', '']); }
+  for (let i = 0; i < k; i++) { const c = newInviteCode(); codes.push(c); sh.appendRow([c, cellText(String(note || '').slice(0, 60)), new Date(), '', '']); }
   return codes;
 }
 function makeInvites() { return told('New invite codes (each works once): ' + addInvites(5, '').join(', ')); }
@@ -1496,8 +1500,8 @@ function addFeed(e) {
   const set = (c, v) => { if (idx[c] >= 0) row[idx[c]] = v; };
   set('Id', Utilities.getUuid().slice(0, 8));
   set('Time', new Date()); set('From', from); set('Type', String(e.type || 'note'));
-  set('Producer', e.producer || ''); set('Wine', e.wine || ''); set('Vintage', e.vintage || '');
-  set('Region', e.region || ''); set('Rating', e.rating || ''); set('Note', e.note || ''); set('To', e.to || '');
+  set('Producer', cellText(e.producer)); set('Wine', cellText(e.wine)); set('Vintage', cellText(e.vintage));
+  set('Region', cellText(e.region)); set('Rating', e.rating || ''); set('Note', cellText(e.note)); set('To', cellText(e.to));
   if (e.photo) set('Photo', savePhoto(e.photo, photoName({ date: '', producer: e.producer, wine: e.wine })));
   sh.appendRow(row);
 }
@@ -1559,7 +1563,7 @@ function addFeedComment(id, text) {
   id = String(id || '').slice(0, 40); text = clip(text, 500);
   if (!id || !text) throw new Error('Empty comment');
   rateLimit('comment');
-  fcmtSheet().appendRow([id, new Date(), CTX_USER || 'cellar', text]);
+  fcmtSheet().appendRow([cellText(id), new Date(), CTX_USER || 'cellar', cellText(text)]);
 }
 
 // ── Following (who each user follows) — a shared "Follows" tab ────────────────
@@ -2227,6 +2231,7 @@ function savePhoto(dataUrl, name) {
     mime = (b64.slice(5, comma).split(';')[0]) || mime;
     b64 = b64.slice(comma + 1);
   }
+  if (!/^image\/(jpeg|png|webp|gif|heic|heif)$/.test(mime)) mime = 'image/jpeg'; // API 62: the type goes back into a data: URL
   if (!b64) throw new Error('Empty photo');
   if (b64.length > PHOTO_MAX) throw new Error('too-big');
   const blob = Utilities.newBlob(Utilities.base64Decode(b64), mime, name || 'foto.jpg');
@@ -2252,8 +2257,8 @@ function getPhoto(id) {
   // are encrypted files, fetched with vphotoget; its journal isn't readable here)
   const vaulted = CTX_ACCOUNT && CTX_ACCOUNT.state === 'done';
   if (!feedPhotoIds()[id] && (vaulted || !journalPhotoIds()[id])) throw new Error('Unknown photo');
-  const blob = DriveApp.getFileById(id).getBlob();
-  return 'data:' + blob.getContentType() + ';base64,' + Utilities.base64Encode(blob.getBytes());
+  const blob = DriveApp.getFileById(id).getBlob(), type = String(blob.getContentType() || '');
+  return 'data:' + (/^image\/[a-z0-9.+-]{1,20}$/.test(type) ? type : 'image/jpeg') + ';base64,' + Utilities.base64Encode(blob.getBytes());
 }
 
 // ── Wishlist — wines you want to buy; its own tab, auto-created on first use ──
@@ -2361,7 +2366,7 @@ function addAtlasEdit(e) {
   const kind = ['', 'f', 's'].indexOf(String(e.kind || '')) >= 0 ? String(e.kind || '') : '';
   const since = e.since === '' || e.since == null ? '' : Math.round(Number(e.since));
   if (since !== '' && !(since > 1000 && since < 2200)) throw new Error('bad-since');
-  atlasSheet().appendRow([new Date(), who, climat, producer, ha, kind, since, action, String(e.note || '').slice(0, 400)]);
+  atlasSheet().appendRow([new Date(), who, climat, cellText(producer), ha, kind, since, action, cellText(String(e.note || '').slice(0, 400))]);
 }
 
 // ── Backups ──────────────────────────────────────────────────────────────────

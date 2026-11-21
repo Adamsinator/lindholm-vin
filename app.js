@@ -3409,7 +3409,9 @@ async function loadPhoto(id){
   if(PHOTOS[id]) return PHOTOS[id];
   if(PHOTO_PENDING[id]) return PHOTO_PENDING[id];
   PHOTO_PENDING[id] = (async()=>{
-    try{ const res = await api({action:"photo", id}); PHOTOS[id] = res.photo; return res.photo; }
+    try{ const res = await api({action:"photo", id}); // only an image data: URL goes into an <img src="…">
+      if(!/^data:image\/[a-z0-9.+-]{1,20};base64,[A-Za-z0-9+/=]*$/.test(String(res.photo||""))) throw new Error("bad-photo");
+      PHOTOS[id] = res.photo; return res.photo; }
     finally{ delete PHOTO_PENDING[id]; }
   })();
   return PHOTO_PENDING[id];
