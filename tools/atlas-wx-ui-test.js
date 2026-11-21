@@ -16,7 +16,7 @@ const src = fs.readFileSync(R("atlas.js"), "utf8");
 const regs = [...src.matchAll(/\{ id: "([a-z]+)", name: "[^"]+", file: "[^"]+", (wx: "([^"]+)", )?/g)].map(m => ({ id: m[1], wx: m[3] }));
 // Spain's long records are AEMET's, which need an API key: until there is one, its regions have no weather file
 // ...and Piedmont's (ARPA Piemonte's records are still to be read)
-const NOWX = ["cotedor", "rioja", "ribera", "priorat", "barolo", "barbaresco", "roero", "nizza", "dogliani", "gavi", "altopiemonte", "douro", "barbera", "moscato"];
+const NOWX = ["cotedor", "rioja", "ribera", "priorat", "barolo", "barbaresco", "roero", "nizza", "dogliani", "gavi", "altopiemonte", "douro", "barbera", "moscato", "danmark"];
 check("every region but the Côte d'Or, Spain's and Piedmont's has a weather file", regs.length >= 20 && regs.every(r => NOWX.includes(r.id) ? !r.wx : r.wx === `atlas-${r.id}-wx.js?v=1` || /^atlas-[a-z]+-wx\.js\?v=\d+$/.test(r.wx)), regs.filter(r => !r.wx && !NOWX.includes(r.id)).map(r => r.id).join());
 const W = {}; regs.filter(r => r.wx).forEach(r => { const w = {}; new Function("window", fs.readFileSync(R(r.wx.split("?")[0]), "utf8"))(w); W[r.id] = w.ATLAS_WX[r.id]; });
 const bad = [], F = W.chablis.f, ix = k => F.indexOf(k);

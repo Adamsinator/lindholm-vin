@@ -38,7 +38,8 @@ window.ATLAS_KW = {
   altopiemonte: ["gattinara", "ghemme", "romagnano sesia", "alto piemonte", "spanna"],
   douro: ["douro", "porto", "port", "pinhão", "pinhao", "régua", "regua", "peso da régua", "alijó", "alijo", "sabrosa", "são joão da pesqueira", "tabuaço", "foz côa", "cima corgo", "baixo corgo", "douro superior"],
   barbera: ["barbera d'asti", "barbera d asti", "costigliole d'asti", "agliano terme", "castagnole delle lanze", "vinchio", "montegrosso d'asti", "mombaruzzo", "rocchetta tanaro"],
-  moscato: ["moscato d'asti", "moscato d asti", "asti spumante", "asti docg", "canelli", "santo stefano belbo", "mango", "cossano belbo", "castiglione tinella", "neviglie", "loazzolo", "calosso"]
+  moscato: ["moscato d'asti", "moscato d asti", "asti spumante", "asti docg", "canelli", "santo stefano belbo", "mango", "cossano belbo", "castiglione tinella", "neviglie", "loazzolo", "calosso"],
+  danmark: ["danmark", "denmark", "dänemark", "danemark", "dansk", "danish", "sjælland", "zealand", "jylland", "jutland", "fyn", "funen", "bornholm", "holbæk", "holbaek", "njord", "dons", "skærsøgaard", "røsnæs", "rosnaes", "odsherred", "kalundborg", "vordingborg"]
 };
 window.ATLAS_RELIEF = {
   barolo: { src: "atlas-barolo-relief.webp?v=1", ll: [7.8811,  44.5586,  8.05,  44.6901] },
