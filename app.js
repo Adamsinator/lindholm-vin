@@ -2450,8 +2450,8 @@ function sommLoad(){
   const need = [];
   if(!window.WINE_KB) need.push("wine-kb.js?v=2");
   if(!window.SOMM_DATA) need.push("sommelier-data.js?v=6");
-  if(!window.SOMM_WORLD) need.push("sommelier-world.js?v=2");
-  if(!window.SOMMELIER) need.push("sommelier.js?v=11");
+  if(!window.SOMM_WORLD) need.push("sommelier-world.js?v=3");
+  if(!window.SOMMELIER) need.push("sommelier.js?v=12");
   if(!window.BURG_VINTAGES) need.push("burgundy-vintages.js?v=6");
   if(["da","fr","de"].includes(lang) && !(window.BURG_I18N && BURG_I18N[lang])) need.push(`burgundy-i18n-${lang}.js?v=${lang==="de"?2:7}`);
   SOMM.lang = lang;
@@ -2550,8 +2550,7 @@ function tidyPlan(){
   Object.assign(TIDY_STATE, {fixes:t.fixes, edits:allEdits, groups, gaps:[...gaps.values()].sort((a, b) => b.rows.length - a.rows.length)});
 }
 // what the tidy-up can't decide for you: wines worth a look, and how complete the cellar is
-// prices that look off: far from the same wine's other rows (another vintage, another purchase; the same bottle size),
-// or more than any bottle plausibly costs. A tenfold gap reads as a digit too many or too few.
+// prices far from the same wine's other rows (same bottle size), or above any plausible price; tenfold = a digit off
 function priceChecks(){
   const key = w => [w.producer, w.name, w.size].map(x => String(x || "").toLowerCase().replace(/\s+/g, " ").trim()).join("|");
   const priced = WINES.filter(w => !w.elsewhere && Number(w.price) > 0), by = new Map(), out = [];
@@ -3696,9 +3695,7 @@ function autofill(ids){
   if(nt){ nt.hidden = !filled.length; nt.textContent = filled.length ? tr("Filled in {0} from {1}.", filled.join(", "), k.from) : ""; }
   classHint(ids);
 }
-// The classification list for a country: France's AOC / Premier cru / Grand cru (and Bordeaux's crus), Germany's
-// Prädikat and VDP levels, Italy's and Spain's own; "Other…" takes anything else as text. A value a wine already has
-// stays selectable (Special club, Cru classé…).
+// a country's classifications; "Other…" takes any text, and a wine's own value stays selectable
 function classOptions(country, region){
   const c = normName(country||""), r = normName(region||"");
   if(/^(tyskland|germany|allemagne|deutschland)$/.test(c) || /mosel|rheingau|nahe|pfalz|rheinhessen|franken|baden|ahr|mittelrhein|wurttemberg/.test(r))
@@ -4892,5 +4889,6 @@ if(cfg.api && cfg.user && cfg.token && sessionFresh && localStorage.getItem("vin
     showGate(tr("Your account {0} is created. Log in with your password. If you didn't save the recovery code, make a new one under Account.", made)); }
   else showGate(staleDrop ? tr("Your session expired after inactivity: log in again.") : "");
 }
-// the tools load once the page is idle, so they're there before anyone asks for them
-(window.requestIdleCallback || (f => setTimeout(f, 1500)))(() => needTools().catch(() => {}));
+// the tools load once the page is idle and loaded (a script added sooner holds up the load event)
+const idleTools = () => (window.requestIdleCallback || (f => setTimeout(f, 1500)))(() => needTools().catch(() => {}));
+if(document.readyState === "complete") idleTools(); else addEventListener("load", idleTools, {once:true});

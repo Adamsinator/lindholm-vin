@@ -245,8 +245,8 @@ check("…and every producer is found by its own name", !unreached.length, unrea
 const chats = l => Array.from({ length: 30 }, (_, i) => S.chat(["what goes with lamb", "is 2015 good for red cote de nuits", "what should I drink now", "what is a monopole"][i % 4], ctx(l, { turn: i })));
 const en = chats("en"), da = chats("da");
 check("chat tags each answer with its kind", en.map(r => r.kind).slice(0, 4).join() === "food,vintage,cellar,term", en.map(r => r.kind).slice(0, 4).join());
-check("…opens many answers with a line, not all", en.filter(r => /sm-lead/.test(r.html)).length > 8 && en.filter(r => /sm-lead/.test(r.html)).length < 30);
-check("…in the asked language", da.filter(r => /sm-lead/.test(r.html)).every(r => /Lad mig|Jeg har|Her er|Uh|Den er|Ah|Sådan|Med glæde|Godt|Vinord|En lille/.test(r.html.match(/sm-lead">([^<]*)/)[1])), da.map(r => (r.html.match(/sm-lead">([^<]*)/) || [])[1]).filter(Boolean).slice(0, 5).join(" | "));
+check("…opens some answers with a short plain line, not most (every answer read as put-on)", en.filter(r => /sm-lead/.test(r.html)).length >= 3 && en.filter(r => /sm-lead/.test(r.html)).length <= 15, en.filter(r => /sm-lead/.test(r.html)).length);
+check("…in the asked language", da.filter(r => /sm-lead/.test(r.html)).every(r => /Fra din kælder|Her er|Det ville|Gode match|Sådan|Et par|Kort fortalt/.test(r.html.match(/sm-lead">([^<]*)/)[1])), da.map(r => (r.html.match(/sm-lead">([^<]*)/) || [])[1]).filter(Boolean).slice(0, 5).join(" | "));
 check("…never hints 'what to open tonight?' after 'what should I drink now'", en.filter((r, i) => i % 4 === 2).every(r => !/sm-hint/.test(r.html)));
 check("…and the knowledge is the same as answer() gives", text(S.chat("what grape is sancerre", ctx("en", { turn: 3 })).html).includes(text(ask("en", "what grape is sancerre"))));
 check("…while the greeting stays a greeting", !/sm-lead|sm-hint/.test(S.chat("", ctx("en")).html));
@@ -308,6 +308,35 @@ t("organic", "da", "hvad er økologisk vin", /grønne blad/);
 t("Champagne sweetness", "en", "what is extra brut", /Extra Brut up to 6, Brut up to 12/);
 t("German dryness", "de", "was bedeutet feinherb", /halbtrocken/);
 t("Madeira", "fr", "qu'est-ce que le madère", /Sercial, Verdelho/);
+
+// ── everyday chat: thanks, "great", a laugh, a slip, emoji; questions behind a "thanks,"; plain words ──
+{
+  const say = (q, l = "en") => S.chat(q, ctx(l)), txt = r => r.html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  const talkIs = (qs, l, re) => qs.every(q => { const r = say(q, l); return r.kind === "talk" && re.test(txt(r)); });
+  check("thanks, however it's said, is a thank-you", talkIs(["thank you so much, that was really helpful", "ok thanks", "thanks!", "🙏"], "en", /welcome|pleasure|Any time/)
+    && talkIs(["mange tak for hjælpen", "tak"], "da", /tak|Når som helst|Det var så lidt/));
+  check("…\"great\", \"perfect\", \"fedt\" and a thumbs up are an ok, not a question", talkIs(["great", "perfect", "cool", "nice one", "👍"], "en", /Anything else|helps|Ask away/) && talkIs(["fedt", "super"], "da", /Andet|hjalp|Spørg/));
+  check("…a laugh, an apology, a correction and a \"hmm\" get a word each", talkIs(["haha", "lol"], "en", /^Ha/) && talkIs(["sorry"], "en", /worries|problem/)
+    && talkIs(["you're wrong", "that's not right"], "en", /Sorry|right/) && talkIs(["hmm"], "en", /Take your time/));
+  check("…asked what it is, it says plainly: no AI service, nothing leaves the page", talkIs(["are you an AI?", "who made you"], "en", /not an AI service.*nothing you type leaves/));
+  check("…a joke, a favourite, a bad day and a celebration", talkIs(["tell me a joke"], "en", /\?|bottle|juice|whine/) && talkIs(["what's your favourite wine"], "en", /What do you like/)
+    && talkIs(["i'm sad"], "en", /comforting/) && talkIs(["we're celebrating"], "en", /Congratulations/));
+  const r1 = say("thanks, and what about pork?"), r2 = say("ok so what goes with duck");
+  check("a question behind a \"thanks,\" or an \"ok so\" is answered", r1.kind === "food" && /pork|flæskesteg/i.test(txt(r1)) && r2.kind === "food" && /duck/i.test(txt(r2)), txt(r1).slice(0, 80) + " | " + txt(r2).slice(0, 80));
+  const r3 = say("I'm drinking a Barolo tonight");
+  check("\"I'm drinking a Barolo tonight\": how to serve it and what to eat, not the cellar", /Serve Barolo at/.test(txt(r3)) && /Good choice/.test(txt(r3)) && !/cellar is empty/.test(txt(r3)), txt(r3).slice(0, 160));
+  const r4 = say("how much wine for 10 people"), r5 = say("hvor mange flasker til 7 personer", "da");
+  check("\"how much wine for 10 people\" does the sum for that many", /For 10 people.*5–6 bottles.*2 of bubbles/.test(txt(r4)) && /Til 7 personer.*4–5 flasker/.test(txt(r5)), txt(r4) + " | " + txt(r5));
+  const r6 = say("difference between pinot noir and merlot");
+  check("a difference asked: both, side by side", /Side by side/.test(txt(r6)) && /Pinot Noir is/.test(txt(r6)) && /Merlot is/.test(txt(r6)), txt(r6).slice(0, 160));
+  check("…but \"Barolo or Barbaresco?\" is still a choice", !/Side by side/.test(txt(say("Barolo or Barbaresco?"))));
+  check("new basics: red wine in the fridge, a beginner, letting it breathe, Champagne or Prosecco",
+    /14–18 °C/.test(txt(say("can i put red wine in the fridge"))) && /fruity and not too heavy/.test(txt(say("what wine for a beginner")))
+    && /(carafe|decanter)/.test(txt(say("should i let it breathe"))) && /tank/.test(txt(say("champagne or prosecco"))));
+  const leads = Array.from({ length: 30 }, (_, i) => S.chat(["what goes with lamb", "what is a monopole", "is 2015 good for red cote de nuits"][i % 3], ctx("en", { turn: i })))
+    .map(r => (r.html.match(/sm-lead">([^<]*)/) || [])[1]).filter(Boolean);
+  check("no put-on openings any more (\"Ah, vintages: my favourite subject\", \"Wine words, decoded\")", !leads.some(l => /favourite subject|decoded|simpler than it sounds|Ooh|a fun one|Timing is half/.test(l)), leads.join(" | "));
+}
 
 const n = results.filter(Boolean).length;
 console.log(`\n${n}/${results.length} passed`);
