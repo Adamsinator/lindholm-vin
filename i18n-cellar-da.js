@@ -1075,5 +1075,18 @@ Object.assign(window.I18N_DICT.da = window.I18N_DICT.da || {}, {
   "Share of the climat's area on each formation of BRGM's 1:50 000 geological map; superficial deposits (scree, colluvium) are mapped over the bedrock where they are thick.": "Andel af climatets areal på hver formation på BRGM's geologiske kort 1:50 000; løse aflejringer (skred, kolluvium) er kortlagt oven på grundfjeldet, hvor de er tykke.",
   "About the data.": "Om data.",
   "Language": "Sprog",
-  "Couldn't load the importer. Check your connection and try again.": "Importen kunne ikke hentes. Tjek forbindelsen, og prøv igen."
+  "Couldn't load the importer. Check your connection and try again.": "Importen kunne ikke hentes. Tjek forbindelsen, og prøv igen.",
+  "Fill in what's missing": "Udfyld det manglende",
+  "From the appellation in the wine's name, commune or region, only where it says so clearly. Untick any you don't want.": "Ud fra appellationen i vinens navn, kommune eller region – kun hvor den siger det tydeligt. Fjern fluebenet ved dem, du ikke vil have.",
+  "Worth a look": "Værd at kigge på",
+  "Nothing here is changed for you: open a wine to fill it in.": "Her ændres intet for dig: åbn en vin for at udfylde den.",
+  "No vintage": "Ingen årgang",
+  "No price": "Ingen pris",
+  "Past its drinking window": "Forbi sit drikkevindue",
+  "No drinking window": "Intet drikkevindue",
+  "Unusually many bottles of one wine": "Usædvanligt mange flasker af én vin",
+  "and {0} more": "og {0} mere",
+  "How complete your cellar is": "Hvor komplet din kælder er",
+  "{0} % overall": "{0} % samlet",
+  "Drinking window": "Drikkevindue"
 });

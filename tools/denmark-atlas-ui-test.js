@@ -61,6 +61,7 @@ check("…relief from Copernicus GLO-30 for the close-up, GLO-90 for Denmark, bo
   check("…ticking a box afterwards leaves no mode chosen, and the choice is remembered", await p.evaluate(() => !document.querySelector("#modes button[aria-checked=true]") && localStorage.getItem("atlasMode") === ""));
   await p.evaluate(() => document.querySelector('#modes button[data-mode="relief"]').click()); await p.reload(); await p.waitForTimeout(1500);
   check("…a mode chosen stays after a reload", await p.evaluate(() => document.querySelector("#modes button[aria-checked=true]")?.dataset.mode === "relief" && document.getElementById("fRelief").checked));
+  check("logged out, there's no \"Only my bottles\" to empty the map with", await p.evaluate(() => document.getElementById("fMine").parentNode.hidden && !st.mine));
   // a click anywhere in a parish picks it, not only on its fields (they're specks at this scale)
   await p.goto(BASE + "atlas.html#r=holbaek"); await p.reload(); await p.waitForTimeout(2000);
   const pt = await p.evaluate(() => { const r = document.getElementById("map").getBoundingClientRect();

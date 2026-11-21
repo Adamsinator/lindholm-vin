@@ -1075,5 +1075,18 @@ Object.assign(window.I18N_DICT.de = window.I18N_DICT.de || {}, {
   "Share of the climat's area on each formation of BRGM's 1:50 000 geological map; superficial deposits (scree, colluvium) are mapped over the bedrock where they are thick.": "Anteil der Climat-Fläche auf jeder Formation der geologischen Karte 1:50 000 des BRGM; oberflächliche Ablagerungen (Hangschutt, Kolluvium) sind dort über dem Grundgestein kartiert, wo sie mächtig sind.",
   "About the data.": "Über die Daten.",
   "Language": "Sprache",
-  "Couldn't load the importer. Check your connection and try again.": "Der Import konnte nicht geladen werden. Prüfen Sie die Verbindung und versuchen Sie es erneut."
+  "Couldn't load the importer. Check your connection and try again.": "Der Import konnte nicht geladen werden. Prüfen Sie die Verbindung und versuchen Sie es erneut.",
+  "Fill in what's missing": "Fehlendes ergänzen",
+  "From the appellation in the wine's name, commune or region, only where it says so clearly. Untick any you don't want.": "Aus der Appellation in Name, Gemeinde oder Region des Weins, nur wo sie es eindeutig sagt. Entfernen Sie das Häkchen bei allem, was Sie nicht möchten.",
+  "Worth a look": "Einen Blick wert",
+  "Nothing here is changed for you: open a wine to fill it in.": "Hier wird nichts für Sie geändert: öffnen Sie einen Wein, um ihn zu ergänzen.",
+  "No vintage": "Kein Jahrgang",
+  "No price": "Kein Preis",
+  "Past its drinking window": "Über sein Trinkfenster hinaus",
+  "No drinking window": "Kein Trinkfenster",
+  "Unusually many bottles of one wine": "Ungewöhnlich viele Flaschen eines Weins",
+  "and {0} more": "und {0} weitere",
+  "How complete your cellar is": "Wie vollständig Ihr Keller ist",
+  "{0} % overall": "{0} % insgesamt",
+  "Drinking window": "Trinkfenster"
 });

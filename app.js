@@ -2537,7 +2537,29 @@ function tidyPlan(){
   const by = new Map();
   t.wines.forEach(w => { if (w.elsewhere) return; const k = TIDY.mergeKey(w); (by.get(k) || by.set(k, []).get(k)).push(w.row); });
   const groups = [...by.values()].filter(r => r.length > 1).map(r => r.sort((a,b) => a-b)).map(r => ({keep:r[0], drop:r.slice(1)}));
-  Object.assign(TIDY_STATE, {fixes:t.fixes, edits, groups});
+  // what's missing that the appellation says clearly (WINE_KB.suggest, as the Add form does): region, country, grape
+  const gaps = new Map(), byRowE = new Map(edits.map(e => [e.row, e]));
+  if(window.WINE_KB) t.wines.forEach((w, i) => { if(w.elsewhere) return; const o = WINES[i] || {};
+    const sg = WINE_KB.suggest({name:w.name, commune:w.commune, region:w.region, country:w.country, grape:w.grape, type:o.type, typeSet:!!String(o.type||"").trim()});
+    for(const f of ["region","country","grape"]){ if(String(w[f]||"").trim() || !sg[f]) continue;
+      const k = f + "|" + sg[f]; if(!gaps.has(k)) gaps.set(k, {field:f, to:sg[f], rows:[]}); gaps.get(k).rows.push(w.row);
+      if(TIDY_STATE.gapOff && TIDY_STATE.gapOff.has(k)) continue;
+      const e = byRowE.get(w.row) || (byRowE.set(w.row, {row:w.row, fields:{}}).get(w.row)); e.fields[f] = sg[f]; } });
+  const allEdits = [...byRowE.values()].filter(e => Object.keys(e.fields).length);
+  Object.assign(TIDY_STATE, {fixes:t.fixes, edits:allEdits, groups, gaps:[...gaps.values()].sort((a, b) => b.rows.length - a.rows.length)});
+}
+// what the tidy-up can't decide for you: wines worth a look, and how complete the cellar is
+function tidyLook(){
+  const yr = new Date().getFullYear(), live = WINES.filter(w => !w.elsewhere && w.left > 0);
+  return {live, look:[
+    ["No vintage", live.filter(w => !w.vintage && w.style !== "Bobler")],
+    ["No price", live.filter(w => !(Number(w.price) > 0))],
+    ["Past its drinking window", live.filter(w => w.drinkTo && w.drinkTo < yr)],
+    ["No drinking window", live.filter(w => !w.drinkTo && !w.drinkFrom)],
+    ["Unusually many bottles of one wine", live.filter(w => w.left >= 60)],
+  ].filter(([, l]) => l.length),
+  health:[["Vintage", w => !!w.vintage || w.style === "Bobler"], ["Region", w => !!String(w.region||"").trim()], ["Grape", w => !!String(w.grape||"").trim()],
+    ["Price", w => Number(w.price) > 0], ["Drinking window", w => !!(w.drinkTo || w.drinkFrom)]].map(([l, ok]) => [l, live.length ? Math.round(100 * live.filter(ok).length / live.length) : 100])};
 }
 function tidyRender(){
   tidyPlan();
@@ -2551,9 +2573,20 @@ function tidyRender(){
   $("tidyDups").innerHTML = S.groups.map(g => { const ws = [g.keep, ...g.drop].map(r => byRow.get(r)), w = ws[0], key = String(g.keep);
     return `<label class="jcheck"><input type="checkbox" data-grp="${key}"${S.groupsOff.has(key) ? "" : " checked"}>
       <span><b>${esc(w.producer)}</b> ${esc([w.name, w.vintage].filter(Boolean).join(" "))} <span class="aimeta">${esc(tr("{0} rows: {1} bottles", ws.length, ws.map(x => x.qty).join(" + ")))}</span></span></label>`; }).join("");
+  S.gapOff ||= new Set();
+  $("tidyGapWrap").hidden = !S.gaps.length;
+  $("tidyGaps").innerHTML = S.gaps.slice(0, 80).map(g => { const k = g.field + "|" + g.to;
+    return `<label class="jcheck"><input type="checkbox" data-gap="${esc(k)}"${S.gapOff.has(k) ? "" : " checked"}>
+      <span><span class="fixf">${esc(tr(FIX_FIELD[g.field] || g.field))}</span> — → “<b>${esc(g.to)}</b>” <span class="aimeta">${esc(trn(g.rows.length, "{0} wine", "{0} wines"))}</span></span></label>`; }).join("");
+  const L = tidyLook(), byRow2 = new Map(WINES.map(w => [w.row, w]));
+  $("tidyHealth").innerHTML = L.live.length ? `<h3>${esc(tr("How complete your cellar is"))} <span class="aimeta">${esc(tr("{0} % overall", Math.round(L.health.reduce((s, [, p]) => s + p, 0) / L.health.length)))}</span></h3>
+    <div class="thbars">${L.health.map(([l, p]) => `<div class="thbar"><span>${esc(tr(l))}</span><i style="--p:${p}%"></i><b>${p} %</b></div>`).join("")}</div>` : "";
+  $("tidyLookWrap").hidden = !L.look.length;
+  $("tidyLook").innerHTML = L.look.map(([l, ws]) => `<details class="tlook"><summary>${esc(tr(l))} <span class="aimeta">${esc(trn(ws.length, "{0} wine", "{0} wines"))}</span></summary>
+    <div class="tlist">${ws.slice(0, 12).map(w => `<button type="button" class="tlw" data-row="${w.row}">${esc(w.producer)} ${esc([w.name, w.vintage].filter(Boolean).join(" "))}</button>`).join("")}${ws.length > 12 ? `<span class="aimeta">${esc(tr("and {0} more", ws.length - 12))}</span>` : ""}</div></details>`).join("");
   const nEdit = S.edits.length, nGroup = S.groups.filter(g => !S.groupsOff.has(String(g.keep))).length;
-  $("tidyIntro").textContent = (nEdit || S.groups.length) ? tr("Here's what can be tidied. Untick anything you want left as it is.") : tr("Nothing to tidy: every spelling is consistent and no wine is in two rows.");
-  $("tidyGo").hidden = !(nEdit || S.groups.length);
+  $("tidyIntro").textContent = (nEdit || S.groups.length || S.gaps.length) ? tr("Here's what can be tidied. Untick anything you want left as it is.") : tr("Nothing to tidy: every spelling is consistent and no wine is in two rows.");
+  $("tidyGo").hidden = !(nEdit || S.groups.length || S.gaps.length);
   $("tidyGo").textContent = tr("Tidy {0} wines and join {1} groups", nEdit, nGroup);
   $("tidyGo").disabled = !(nEdit || nGroup);
 }
@@ -2582,10 +2615,12 @@ async function tidyRun(){
     if(AUTH_ERRORS.has(m)) showGate(authMsg(m));
   }
 }
-$("tidyBtn").addEventListener("click", async ()=>{ try{ await needTools(); }catch(e){ toast(tr("Couldn't load the importer. Check your connection and try again.")); return; } TIDIER = null; TIDY_STATE.off = new Set(); TIDY_STATE.groupsOff = new Set(); $("tidyErr").textContent = ""; tidyRender(); $("tidyModal").classList.add("open"); });
+$("tidyBtn").addEventListener("click", async ()=>{ try{ await needTools(); }catch(e){ toast(tr("Couldn't load the importer. Check your connection and try again.")); return; } TIDIER = null; TIDY_STATE.gapOff = new Set(); TIDY_STATE.off = new Set(); TIDY_STATE.groupsOff = new Set(); $("tidyErr").textContent = ""; tidyRender(); $("tidyModal").classList.add("open"); });
 $("tidyCancel").addEventListener("click", ()=>$("tidyModal").classList.remove("open"));
 $("tidyModal").addEventListener("click", e=>{ if(e.target===$("tidyModal")) $("tidyModal").classList.remove("open"); });
 $("tidyFixes").addEventListener("change", e=>{ const c = e.target.closest("input[data-fix]"); if(!c) return; if(c.checked) TIDY_STATE.off.delete(c.dataset.fix); else TIDY_STATE.off.add(c.dataset.fix); tidyRender(); });
+$("tidyGaps").addEventListener("change", e=>{ const c = e.target.closest("input[data-gap]"); if(!c) return; TIDY_STATE.gapOff ||= new Set(); if(c.checked) TIDY_STATE.gapOff.delete(c.dataset.gap); else TIDY_STATE.gapOff.add(c.dataset.gap); tidyRender(); });
+$("tidyLook").addEventListener("click", e=>{ const b = e.target.closest("button[data-row]"); if(!b) return; const w = WINES.find(x => x.row === Number(b.dataset.row)); if(!w) return; $("tidyModal").classList.remove("open"); showWine(w); });
 $("tidyDups").addEventListener("change", e=>{ const c = e.target.closest("input[data-grp]"); if(!c) return; if(c.checked) TIDY_STATE.groupsOff.delete(c.dataset.grp); else TIDY_STATE.groupsOff.add(c.dataset.grp); tidyRender(); });
 $("tidyGo").addEventListener("click", tidyRun);
 

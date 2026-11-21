@@ -951,7 +951,7 @@ async function loadCellar() {
     if (!data.ok) throw new Error(data.error || "error");
     CELLAR.wines = data.wines || []; place(); CELLAR.loaded = true;
   } catch (err) { CELLAR.msg = /token|code|cellar/.test(err.message) ? "Your session expired: log in on the Cellar page, then reload." : "Couldn't reach the cellar right now."; }
-  paint(); renderSide();
+  mineBox(); paint(); renderSide();
 }
 function place() {
   CELLAR.by = {}; CELLAR.other = 0; if (!CELLAR.wines || !st.pack) return;
@@ -1112,7 +1112,7 @@ async function openRegion(id, sel) {
   $("fPts").parentNode.hidden = !pts().length;
   place(); draw(); fit(st.home); renderLegend();
   $("fRelief").parentNode.hidden = !reliefOf(st.region) && (st.pack.meta.shade === "none" || !st.pack.meta.l93 && st.pack.meta.proj !== "eq");
-  $("fTopo").parentNode.hidden = !R.topo; $("fGeol").parentNode.hidden = !R.geol; if (st.geol) ensureGeol();
+  mineBox(); $("fTopo").parentNode.hidden = !R.topo; $("fGeol").parentNode.hidden = !R.geol; if (st.geol) ensureGeol();
   if (window.ATLAS_COLOR && !ATLAS_COLOR.modes()[st.color]) st.color = "class";
   st.cmpWith = null; st.prod = null; st.vsel = null; terrClear(); $("terrbar").hidden = true; $("terrChip").hidden = !R.dem; terrSync();
   $("profBtn").hidden = !st.pack.meta.l93; $("locBtn").hidden = !navigator.geolocation; if (PROF.on) profToggle(false); // the profile needs IGN's elevation service: France only
@@ -1152,6 +1152,9 @@ $("fDV").onchange = e => { st.show.DV = e.target.checked; paint(); };
 $("fV").onchange = e => { st.show.V = e.target.checked; paint(); };
 $("fPts").onchange = e => { st.show.PT = e.target.checked; paint(); };
 $("fMine").onchange = e => { st.mine = e.target.checked; paint(); };
+// "Only my bottles" only once there are bottles to show: logged out (or the cellar not reached) it would empty the map
+function mineBox() { $("fMine").parentNode.hidden = !CELLAR.loaded; if (!CELLAR.loaded && st.mine) { st.mine = false; $("fMine").checked = false; } }
+mineBox();
 const keep = (k, v) => { try { localStorage.setItem(k, v ? "1" : "0"); } catch (e) {} };
 // what the map shows, in one choice (the map panel): each mode sets relief and the roads-and-villages layer, and how the
 // vineyards are drawn; ticking a box below changes only that and leaves no mode chosen
