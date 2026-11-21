@@ -2796,7 +2796,7 @@ let LANDS = window.EUROPE_LANDS || {};
 let LANDS_LOAD = null;
 function needLands(){
   if(Object.keys(LANDS).length || LANDS_LOAD) return;
-  LANDS_LOAD = new Promise((ok, no)=>{ const sc = document.createElement("script"); sc.src = "europe-lands.js?v=2"; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); })
+  LANDS_LOAD = new Promise((ok, no)=>{ const sc = document.createElement("script"); sc.src = "europe-lands.js?v=3"; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); })
     .then(()=>{ LANDS = window.EUROPE_LANDS || {}; if(LAST_CELLAR) renderMap(); }).catch(()=>{ LANDS_LOAD = null; });
 }
 // Faint English labels for the backdrop (non-wine) countries. [name, [lat,lng]].
