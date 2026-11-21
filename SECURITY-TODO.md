@@ -7,6 +7,10 @@ are done (see "Limits against abuse" in the README). Tick a box when an item shi
 
 - [ ] **Google Search Console:** add the domain `allwine.dk` (it asks for a DNS TXT record at the registrar), then
       Sitemaps → submit `https://allwine.dk/sitemap.xml`. The vineyard pages show up over the following weeks.
+- [ ] **Deploy `Code.gs` API 64** (21 November): the owner can block, unblock and sign out a member; deleting (by the
+      owner or the member) keeps the account 30 days with an undo, then the daily check purges it; "Delete now" for an
+      erasure request. Paste it, then Manage deployments → ✏️ on the existing deployment → Version: New version →
+      Deploy (not a new deployment: the Worker keeps its address). The Worker then reports v:64.
 - [x] **Deploy `Code.gs` API 63** (21 November): session tokens are kept hashed in the Users tab, so a copy of it (a
       backup, a leak) no longer signs anyone in. Paste it, Manage deployments → ✏️ → New version (the Worker then
       reports v:63), then pick `hashTokens` in the editor's function list and Run once: the tokens still kept in the

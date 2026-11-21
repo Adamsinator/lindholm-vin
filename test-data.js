@@ -102,7 +102,7 @@
     const list = ((ADMIN && ADMIN.users) || []).filter(u => u.test);
     if (!list.length) { toast(tr("No test users")); return; }
     if (!(await ask(tr("Remove all {0} test users and everything in them?", list.length), { ok: tr("Remove") }))) return;
-    for (const u of list) { $("adminErr").textContent = tr("Removing {0}…", u.user); ADMIN = await api({ action: "admindelete", member: u.user }); }
+    for (const u of list) { $("adminErr").textContent = tr("Removing {0}…", u.user); ADMIN = await api({ action: "admindelete", member: u.user }); ADMIN = await api({ action: "adminpurge", member: u.user }).catch(() => ADMIN); } // test users go at once
     $("adminErr").textContent = ""; $("adminTestOut").innerHTML = ""; renderAdmin(); toast(tr("Test users removed"));
   }
   // in parts, as the import does: a plain sheet takes a few hundred rows a call, an encrypted cellar thousands

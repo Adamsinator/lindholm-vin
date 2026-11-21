@@ -1094,5 +1094,10 @@ Object.assign(window.I18N_DICT.da = window.I18N_DICT.da || {}, {
   "a digit too many?": "et ciffer for meget?",
   "a digit missing?": "mangler et ciffer?",
   "{0} for a bottle": "{0} for en flaske",
-  "{0}; its other row {1}": "{0}; dens anden række {1}"
+  "{0}; its other row {1}": "{0}; dens anden række {1}",
+  "This account is blocked. Write to the owner if you think it's a mistake.": "Denne konto er blokeret. Skriv til ejeren, hvis du mener, det er en fejl.",
+  "This account was deleted. It's kept for 30 days: write to the owner if you want it back.": "Denne konto er slettet. Den gemmes i 30 dage: skriv til ejeren, hvis du vil have den tilbage.",
+  "Delete your account \"{0}\"? You're signed out at once and can't log in. Everything is kept for 30 days: write to the owner before then if you change your mind. After that it's deleted for good: cellar, journal, wishlist, photos, feed posts and follows.": "Slet din konto \"{0}\"? Du logges ud med det samme og kan ikke logge ind. Alt gemmes i 30 dage: skriv til ejeren inden da, hvis du fortryder. Derefter slettes det for altid: kælder, journal, ønskeliste, fotos, opslag og følgere.",
+  "Your account is deleted. It's kept until {0}: write to the owner if you change your mind.": "Din konto er slettet. Den gemmes til {0}: skriv til ejeren, hvis du fortryder.",
+  "What was done to accounts": "Hvad der er gjort ved konti"
 });

@@ -1094,5 +1094,10 @@ Object.assign(window.I18N_DICT.fr = window.I18N_DICT.fr || {}, {
   "a digit too many?": "un chiffre de trop ?",
   "a digit missing?": "un chiffre manquant ?",
   "{0} for a bottle": "{0} la bouteille",
-  "{0}; its other row {1}": "{0} ; son autre ligne {1}"
+  "{0}; its other row {1}": "{0} ; son autre ligne {1}",
+  "This account is blocked. Write to the owner if you think it's a mistake.": "Ce compte est bloqué. Écrivez au propriétaire si vous pensez que c'est une erreur.",
+  "This account was deleted. It's kept for 30 days: write to the owner if you want it back.": "Ce compte a été supprimé. Il est conservé 30 jours : écrivez au propriétaire si vous voulez le récupérer.",
+  "Delete your account \"{0}\"? You're signed out at once and can't log in. Everything is kept for 30 days: write to the owner before then if you change your mind. After that it's deleted for good: cellar, journal, wishlist, photos, feed posts and follows.": "Supprimer votre compte « {0} » ? Vous êtes déconnecté tout de suite et ne pouvez plus vous connecter. Tout est conservé 30 jours : écrivez au propriétaire avant si vous changez d'avis. Ensuite tout est supprimé définitivement : cave, journal, liste d'envies, photos, publications et abonnements.",
+  "Your account is deleted. It's kept until {0}: write to the owner if you change your mind.": "Votre compte est supprimé. Il est conservé jusqu'au {0} : écrivez au propriétaire si vous changez d'avis.",
+  "What was done to accounts": "Ce qui a été fait aux comptes"
 });

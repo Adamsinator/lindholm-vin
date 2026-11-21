@@ -1826,7 +1826,8 @@ $("gateUser").addEventListener("blur", ()=>{ if(GATE_MODE!=="signup") return; co
 
 // Friendly text for the error codes the API returns.
 const AUTH_MSG = {
-  "bad-login":"Wrong username or password.", "bad-invite":"That invite code isn't right, or it has already been used.",
+  "bad-login":"Wrong username or password.", "blocked":"This account is blocked. Write to the owner if you think it's a mistake.",
+  "deleted":"This account was deleted. It's kept for 30 days: write to the owner if you want it back.", "bad-invite":"That invite code isn't right, or it has already been used.",
   "locked":"Too many wrong tries: wait 15 minutes and try again.", "signup-full":"There's no room for new accounts right now. Ask the owner.",
   "signup-busy":"Too many sign-ups just now: try again in an hour.",
   "signup-disabled":"Signups are closed right now.", "user-taken":"That username is taken: choose another.", "bad-email":"Enter your email address.",
@@ -2064,13 +2065,13 @@ $("acctRec").addEventListener("click", async ()=>{
 $("acctDelete").addEventListener("click", async ()=>{
   const pass = $("acctPass").value;
   if(!pass){ $("acctErr").textContent = tr("Enter your current password first."); $("acctPass").focus(); return; }
-  if(!(await ask(tr("Delete your account \"{0}\" and everything in it: cellar, journal, wishlist, photos, feed posts and follows? This can't be undone.", cfg.user), {ok:tr("Delete my account"), danger:true, typed:cfg.user}))) return;
+  if(!(await ask(tr("Delete your account \"{0}\"? You're signed out at once and can't log in. Everything is kept for 30 days: write to the owner before then if you change your mind. After that it's deleted for good: cellar, journal, wishlist, photos, feed posts and follows.", cfg.user), {ok:tr("Delete my account"), danger:true, typed:cfg.user}))) return;
   $("acctErr").textContent = tr("Deleting…");
   try{
-    await VAULT.deleteAccount({post, user:cfg.user, token:cfg.token, pass});
+    const until = await VAULT.deleteAccount({post, user:cfg.user, token:cfg.token, pass});
     if(window.VCRYPTO) VCRYPTO.forget(cfg.user);
     feedForgetAll(); $("acctModal").classList.remove("open");
-    forgetAuth(); setGateMode("login"); showGate(tr("Your account has been deleted."));
+    forgetAuth(); setGateMode("login"); showGate(until ? tr("Your account is deleted. It's kept until {0}: write to the owner if you change your mind.", until) : tr("Your account has been deleted."));
   }catch(err){ const m = String(err.message).replace(/^Error: /,"");
     $("acctErr").textContent = m==="owner-account" ? tr("This is the owner's account (its cellar is the master sheet), so it can't be deleted here.")
       : m==="bad-action" ? tr("The site's server needs the latest Apps Script (version 36) for this. Tell the owner.") : authMsg(m); }
@@ -4628,12 +4629,12 @@ $("helpForm").addEventListener("submit", async e=>{
 // opened, so a member's page never carries it
 let ADMIN_LOAD = null;
 $("adminBtn").addEventListener("click", ()=>{
-  (ADMIN_LOAD = ADMIN_LOAD || loadJS("admin.js?v=4").catch(e=>{ ADMIN_LOAD = null; throw e; }))
+  (ADMIN_LOAD = ADMIN_LOAD || loadJS("admin.js?v=5").catch(e=>{ ADMIN_LOAD = null; throw e; }))
     .then(()=>openAdmin()).catch(err=>toast(tr("Could not reach the cellar API ({0}).", errText(err))));
 });
 // test users and test wines (test-data.js, loaded the first time one of these is used)
 const testTools = () => window.TESTDATA && TESTDATA.ui ? Promise.resolve(TESTDATA) : new Promise((ok, no)=>{ const el = document.createElement("script");
-  el.src = "test-data.js?v=5"; el.onload = ()=>ok(window.TESTDATA); el.onerror = ()=>no(new Error("load test-data.js")); document.head.appendChild(el); });
+  el.src = "test-data.js?v=6"; el.onload = ()=>ok(window.TESTDATA); el.onerror = ()=>no(new Error("load test-data.js")); document.head.appendChild(el); });
 $("acctTest").addEventListener("click", e=>{ const b = e.target.closest("button[data-testwines]"); if(!b) return;
   testTools().then(T=>T.ui.addWines(Number(b.dataset.testwines))).catch(err=>{ $("acctTestMsg").textContent = errText(err); }); });
 async function loadFeedSilently(){
