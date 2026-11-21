@@ -371,6 +371,14 @@ const gas = H({ Ark1: [HEAD,
   for (let i = 1; i <= 60; i++) { await fire("pointermove", 1, mx - 10 - 6 * i, my); await fire("pointermove", 2, mx + 10 + 6 * i, my); }
   await q.waitForTimeout(300); const l1 = await at(mx, my); await fire("pointerup", 1, mx, my); await fire("pointerup", 2, mx, my);
   check("…and pinching past the closest zoom (150 m across) leaves the map where it is", Math.round(l1[2]) === 150 && pxOff(l0, l1) < 1.5, `${l1[2].toFixed(0)} m, ${pxOff(l0, l1).toFixed(1)} px`);
+  // every region's overview: no "NaN" or "undefined" in its figures (the Côte d'Or's showed "NaN ha" for its villages)
+  { const r = await b.newPage({ viewport: { width: 1300, height: 900 } }); await r.route(/^https:\/\//, x => x.abort()); r.on("pageerror", e => errs.push(e.message));
+    await r.goto(BASE + "atlas.html"); await r.waitForTimeout(800);
+    const ids = await r.evaluate(() => REGIONS.map(x => x.id)), bad = [];
+    for (const id of ids) { await r.evaluate(id => { location.hash = "#r=" + id; }, id);
+      await r.waitForFunction(id => st.region && st.region.id === id && st.pack && document.querySelector("#side h2"), id, { timeout: 30000 }).catch(() => bad.push(id + ": didn't open"));
+      const tx = await r.textContent("#side"); if (/NaN|undefined/.test(tx)) bad.push(id + ": " + (tx.match(/.{0,30}(NaN|undefined).{0,10}/) || [""])[0]); }
+    check(`every region's overview (${ids.length}) shows its figures, never "NaN" or "undefined"`, !bad.length, bad.join(" | ")); }
   check("no console errors", !errs.length, errs.join(" | "));
   await b.close();
   const k = results.filter(Boolean).length; console.log(`\n${k}/${results.length} passed`); process.exit(k === results.length ? 0 : 1);

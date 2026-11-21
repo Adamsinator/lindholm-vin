@@ -666,7 +666,7 @@ function renderSide() {
     side.innerHTML = `<h2>${esc(P.meta.name)}</h2>
       <p class="meta">${esc(lead)}</p>
       <div class="facts">${gc.length ? fact(t("Grand cru"), sum(gc)) : ""}${P.climats.some(x => x.c === "1er") ? fact(t("Premier cru"), sum(P.climats.filter(x => x.c === "1er"))) : ""}${aoc.length ? fact(t("Cru appellation"), sum(aoc)) : ""}${el.length ? fact(t("Vines (Weinbergsrolle)"), sum(el.filter(x => x.reg))) : ""}
-        ${P.villages.filter(v => v.kind !== "pdo").map(v => fact(P.villages.length > 1 || !R.village ? v.ap : t(R.village), P.meta.fieldsYear ? sum(dv.filter(x => x.area === v.ap)) : fmtHa(v.ha) + " ha")).join("")}
+        ${P.villages.filter(v => v.kind !== "pdo" && (P.meta.fieldsYear || v.ap && isFinite(v.ha))).map(v => fact(P.villages.length > 1 || !R.village ? v.ap : t(R.village), P.meta.fieldsYear ? sum(dv.filter(x => x.area === v.ap)) : fmtHa(v.ha) + " ha")).join("")}
         ${P.regional.ha && !P.meta.fieldsYear ? fact(t(R.regional), fmtHa(P.regional.ha) + " ha") : ""}</div>
       ${many && pc.length ? `<p class="note">${esc(t("Village figures are the land outside the premiers crus."))}</p>` : ""}
       ${vs.length ? `<p class="note">${esc(t("The zones are drawn as the whole municipalities the DOCa's rules list, not only their vineyards."))}</p>` : ""}
