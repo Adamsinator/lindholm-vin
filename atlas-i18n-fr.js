@@ -75,5 +75,16 @@ Object.assign(window.I18N_DICT.fr, {
   "What the map shows": "Ce que montre la carte",
   "Simple": "Simple",
   "Terrain": "Terrain",
-  "Vineyards only": "Vignes seules"
+  "Vineyards only": "Vignes seules",
+  "{0} communes of Tuscany's great reds: the vines Tuscany's vineyard register (ARTEA) holds in each. Click one.": "{0} communes des grands rouges de Toscane : les vignes que le registre viticole toscan (ARTEA) recense dans chacune. Cliquez sur l'une d'elles.",
+  "The register doesn't say which wine a plot is for: a commune only partly in its wine's zone is drawn whole, and marked *.": "Le registre ne dit pas à quel vin est destinée une parcelle : une commune qui n'est qu'en partie dans la zone de son vin est dessinée entière et marquée *.",
+  "Vines (register {0})": "Vignes (registre {0})",
+  "Plots": "Parcelles",
+  "Planted (median)": "Plantées (médiane)",
+  "Only part of the commune is in the zone.": "Seule une partie de la commune est dans la zone.",
+  "Since 2017 the commune also takes in San Giovanni d'Asso, which is outside the Brunello zone.": "Depuis 2017, la commune comprend aussi San Giovanni d'Asso, hors de la zone du Brunello.",
+  "The rules take the commune's land fit for the wine, between 250 and 600 m.": "Le règlement retient les terres de la commune propres au vin, entre 250 et 600 m.",
+  "The rules take the commune east of the old Via Aurelia.": "Le règlement retient la commune à l'est de l'ancienne Via Aurelia.",
+  "Vines © ARTEA, Regione Toscana, CC BY": "Vignes © ARTEA, Regione Toscana, CC BY",
+  "Partly in its wine's zone": "En partie dans la zone de son vin"
 });

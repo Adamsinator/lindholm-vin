@@ -16,6 +16,13 @@ check("…about 2 900 ha of parcels (the vines, about 2 200 ha, are a part of th
 check("Barbaresco: Neive, Barbaresco, Treiso and Alba", top(BB).join() === "Neive,Barbaresco,Treiso,Alba" && BB.climats.every(c => c.ap === "Barbaresco DOCG"), top(BB).join());
 check("…both credited to Regione Piemonte's register, CC BY 4.0", [B, BB].every(P => /Regione Piemonte/.test(P.meta.source) && /CC BY 4\.0/.test(P.meta.source) && P.meta.register === 2025));
 
+require("../atlas-toscana.js"); const TS = window.ATLAS_PACKS.toscana, tc = n => TS.climats.find(c => c.n === n);
+check("Tuscany: Chianti Classico's eight communes, Montalcino, Montepulciano and Castagneto Carducci, from ARTEA's register", TS.climats.length === 11
+  && TS.climats.filter(c => c.ap === "Chianti Classico DOCG").length === 8 && tc("Montalcino").ap === "Brunello di Montalcino DOCG" && tc("Castagneto Carducci").ap === "Bolgheri DOC"
+  && /ARTEA/.test(TS.meta.source) && /CC BY/.test(TS.meta.source) && TS.meta.plots, TS.climats.map(c => c.n).join());
+check("…Radda wholly in Chianti Classico, mostly Sangiovese; Montalcino only partly in Brunello's zone (San Giovanni d'Asso); Bolgheri led by Cabernet",
+  !tc("Radda in Chianti").part && tc("Radda in Chianti").grapes[0][0] === "Sangiovese" && /San Giovanni d'Asso/.test(tc("Montalcino").part) && /^Cabernet/.test(tc("Castagneto Carducci").grapes[0][0]));
+check("…no grower's id kept", !/IdColtivaz|Matricola|NIdentific|Beneficiario/.test(JSON.stringify(TS)));
 (async () => {
   const b = await chromium.launch(), errs = [], tiles = [];
   const page = async opt => { const p = await (await b.newContext(opt)).newPage(); p.on("pageerror", e => errs.push(e.message));
@@ -39,10 +46,13 @@ check("…both credited to Regione Piemonte's register, CC BY 4.0", [B, BB].ever
   const q = await page({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   await q.goto(BASE + "atlas.html"); await q.waitForTimeout(1500);
   const it = await q.evaluate(() => (document.querySelector('#map .cn.on[data-c="it"]') || {}).textContent || "");
-  check("the start page has Italy among the mapped countries, with its nine regions", /Italy\s*9 regions/.test(it), it);
+  check("the start page has Italy among the mapped countries, with its ten regions", /Italy\s*10 regions/.test(it), it);
   await q.goto(BASE + "atlas.html#r=altopiemonte"); await q.waitForFunction(() => /Gattinara/.test(document.getElementById("regionName").textContent), null, { timeout: 30000 }); await q.waitForTimeout(600);
   const ap = await q.evaluate(() => [...document.querySelectorAll("#side h3")].map(h => h.textContent));
   check("Gattinara & Ghemme lists its communes under each wine", ap.includes("Gattinara DOCG") && ap.includes("Ghemme DOCG"), JSON.stringify(ap));
+  { const q = await page({ viewport: { width: 1300, height: 900 } }); await q.goto(BASE + "atlas.html#r=toscana&c=radda_in_chianti"); await q.waitForTimeout(2500);
+    const tx = await q.textContent("#side");
+    check("a Tuscan commune: its vines from the register, plots, organic share, planting year and grapes", /Vines \(register 2025\)/.test(tx) && /Organic/.test(tx) && /Planted \(median\)/.test(tx) && /Grapes: Sangiovese/.test(tx), tx.slice(0, 300)); }
   check("no console errors", !errs.length, errs.join(" | "));
   await b.close();
   const n = results.filter(Boolean).length; console.log(`\n${n}/${results.length} passed`); process.exit(n === results.length ? 0 : 1);
