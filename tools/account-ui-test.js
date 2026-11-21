@@ -73,7 +73,8 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   check("…a wrong one is refused and nothing is deleted", /Wrong username or password/.test(await p.textContent("#acctErr")) && gas.rows("Users").some(r => r[0] === "cleo"), await p.textContent("#acctErr"));
   await p.fill("#acctPass", "cleo-pass-1"); await p.click("#acctDelete");
   await p.waitForSelector("#gate:not([hidden])", { timeout: 15000 }).catch(() => {});
-  check("with the right one the account is deleted and the login shows", await p.isVisible("#gatePass") && /deleted/.test(await p.textContent("#gateErr")) && !gas.rows("Users").some(r => r[0] === "cleo"), await p.textContent("#gateErr"));
+  check("with the right one the account is deleted (kept 30 days) and the login shows when it goes for good", await p.isVisible("#gatePass") && /deleted\. It's kept until \d{4}-\d{2}-\d{2}/.test(await p.textContent("#gateErr"))
+    && gas.run("findUser('cleo').status") === "deleted", await p.textContent("#gateErr"));
   const left = await p.evaluate(() => new Promise(res => {
     const keys = Object.keys(localStorage).filter(k => /^vin(Feed|Kdf|Token|User|Vault)/.test(k));
     const r = indexedDB.open("allwine-cache", 1); r.onsuccess = () => { const g = r.result.transaction("vault").objectStore("vault").get("cleo"); g.onsuccess = () => res({ keys, cache: !!g.result }); };

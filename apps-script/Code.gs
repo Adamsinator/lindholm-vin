@@ -592,6 +592,7 @@ function shareGet(id) {
   if (!/^[0-9a-f]{32}$/.test(id)) return { ok: false, error: 'share-gone' };
   const r = shareRows().find(x => String(x[0]) === id);
   if (!r || !shareLive(r, Date.now())) return { ok: false, error: 'share-gone' };
+  if (barred(findUser(r[1]))) return { ok: false, error: 'share-gone' }; // its owner is blocked or deleted (API 64): the link stops at once
   return { ok: true, blob: r.slice(SHARE_COLS.length).map(String).join(''), created: Number(r[2]), expires: Number(r[3]), wines: Number(r[4]) };
 }
 function reportTo() { return setting('REPORT_EMAIL') || Session.getEffectiveUser().getEmail(); }
