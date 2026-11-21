@@ -19,6 +19,14 @@ check("…the PDOs: Dons registered (its cadastral district, about 850 ha), Røs
   && pd["Røsnæs"].status === "applied" && pd.Odsherred.status === "proposed" && C.find(c => c.n === "Kalundborg").pdo["Røsnæs"] > 0, JSON.stringify(Object.values(pd).map(v => [v.ap, v.status, v.ha])));
 check("…the four PGI areas drawn; the sources credited, and no farm's CVR or journal number kept", ["Jylland", "Fyn", "Sjælland", "Bornholm"].every(z => V.some(v => v.ap === z && v.kind === "pgi" && v.g.length))
   && /Landbrugsstyrelsen/.test(P.meta.source) && /DAGI/.test(P.meta.source) && !/CVR|Journalnr|Marknr/.test(JSON.stringify(P)));
+require("../atlas-holbaek.js"); require("../atlas-holbaek-topo.js"); require("../atlas-kw.js");
+const HB = window.ATLAS_PACKS.holbaek, T = window.ATLAS_TOPO.holbaek, hbc = n => HB.climats.find(c => c.n === n);
+check("Holbæk & Odsherred close up: the vines by parish; Tuse Næs and Røsnæs in their PDOs' parishes", HB.meta.unit === "parishes" && HB.climats.length >= 10 && HB.climats.every(c => c.c === "DV" && c.fields > 0)
+  && hbc("Tuse Næs") && hbc("Tuse Næs").pdo.Odsherred > 0 && hbc("Røsnæs") && hbc("Røsnæs").pdo["Røsnæs"] > 0, HB.climats.map(c => c.n).join());
+check("…its towns and villages named from the cadastre (Holbæk, Kalundborg, Nykøbing Sj. as towns), Njord in its notes", ["Holbæk", "Kalundborg", "Nykøbing Sj."].every(n => T.names.some(x => x[0] === 1 && x[1] === n))
+  && T.names.length > 100 && /Matriklen/.test(T.meta.source) && /Njord/.test(HB.meta.notes.join(" ")));
+check("…relief from Copernicus GLO-30 for the close-up, GLO-90 for Denmark, both credited", /GLO-30/.test(window.ATLAS_RELIEF.holbaek.credit) && /GLO-90/.test(window.ATLAS_RELIEF.danmark.credit)
+  && require("fs").existsSync(require("path").join(__dirname, "..", "atlas-holbaek-relief.webp")) && require("fs").existsSync(require("path").join(__dirname, "..", "atlas-danmark-relief.webp")));
 (async () => {
   const b = await chromium.launch(), errs = [];
   const page = async opt => { const p = await (await b.newContext(opt)).newPage(); p.on("pageerror", e => errs.push(e.message)); await p.route(/^https:\/\//, r => r.abort()); return p; };
@@ -32,13 +40,34 @@ check("…the four PGI areas drawn; the sources credited, and no farm's CVR or j
   await p.goto(BASE + "atlas.html#r=danmark&c=holbaek"); await p.reload(); await p.waitForTimeout(1500);
   const a = await p.evaluate(() => ({ h: (document.querySelector("#side h2") || {}).textContent, t: document.getElementById("side").textContent }));
   check("Holbæk: Sjælland, its vine fields, its share of the Odsherred PDO's parishes, Njord", a.h === "Holbæk" && /Sjælland/.test(a.t) && /Vine fields \(2025\)/.test(a.t) && /in the area of the Odsherred PDO/.test(a.t) && /Njord: Sune Albertsen/.test(a.t), a.t.slice(0, 400));
+  await p.goto(BASE + "atlas.html#r=holbaek"); await p.reload(); await p.waitForTimeout(2000);
+  const z = await p.evaluate(() => ({ crumb: document.getElementById("crumb").textContent, side: document.getElementById("side").textContent, img: (document.querySelector("#map g.shade image.pre") || { getAttribute: () => "" }).getAttribute("href"),
+    towns: [...document.querySelectorAll("#map text.tn-1")].map(t => t.textContent), legend: document.getElementById("legend").textContent }));
+  check("the close-up: Europe › Denmark › Holbæk & Odsherred · its parishes, its relief, its towns named, PDOs listed, no village-appellation legend", /Holbæk & Odsherred\s*· \d+ parishes/.test(z.crumb)
+    && z.img === "atlas-holbaek-relief.webp?v=1" && z.towns.includes("Holbæk") && /Røsnæs\s*· applied for/.test(z.side) && /Njord/.test(z.side) && !/Village appellations/.test(z.legend), JSON.stringify(z).slice(0, 400));
+  const nj = T.names.find(x => x[0] === "v");
+  check("Njord marked by its address (Sophienholmvej, Tølløse), about 10 km south of Holbæk, its notes from its own site", nj && /Njord/.test(nj[1])
+    && /Tølløse/.test(HB.meta.notes[0]) && /5 ha/.test(HB.meta.notes[0]) && /aren't in the field map/.test(HB.meta.notes[1]) && /OpenStreetMap/.test(T.meta.source), JSON.stringify(nj));
+  // the map's modes: one choice sets relief, the villages layer and how the vineyards are drawn; Njord shows in each
+  const modes = {};
+  for (const m of ["simple", "relief", "terrain", "vines"]) { await p.evaluate(m => document.querySelector(`#modes button[data-mode="${m}"]`).click(), m); await p.waitForTimeout(300);
+    modes[m] = await p.evaluate(() => ({ r: document.getElementById("fRelief").checked, t: document.getElementById("fTopo").checked, o: document.getElementById("map").classList.contains("m-outline"),
+      b: document.getElementById("map").classList.contains("m-bare"), nj: [...document.querySelectorAll("#map text.tn-v")].some(x => x.style.display !== "none" && getComputedStyle(x).display !== "none"),
+      on: document.querySelector("#modes button[aria-checked=true]")?.dataset.mode })); }
+  check("the map's modes: simple, relief, terrain (relief, villages, vineyards outlined), vineyards only; Njord in each", JSON.stringify(modes) === JSON.stringify({
+    simple: { r: false, t: false, o: false, b: false, nj: true, on: "simple" }, relief: { r: true, t: false, o: false, b: false, nj: true, on: "relief" },
+    terrain: { r: true, t: true, o: true, b: false, nj: true, on: "terrain" }, vines: { r: false, t: false, o: false, b: true, nj: true, on: "vines" } }), JSON.stringify(modes));
+  await p.click("#fRelief", { force: true }).catch(() => p.evaluate(() => document.getElementById("fRelief").click()));
+  check("…ticking a box afterwards leaves no mode chosen, and the choice is remembered", await p.evaluate(() => !document.querySelector("#modes button[aria-checked=true]") && localStorage.getItem("atlasMode") === ""));
+  await p.evaluate(() => document.querySelector('#modes button[data-mode="relief"]').click()); await p.reload(); await p.waitForTimeout(1500);
+  check("…a mode chosen stays after a reload", await p.evaluate(() => document.querySelector("#modes button[aria-checked=true]")?.dataset.mode === "relief" && document.getElementById("fRelief").checked));
   const d = await page({ viewport: { width: 1300, height: 900 }, locale: "da-DK" });
   await d.addInitScript(() => { try { localStorage.setItem("lang", "da"); } catch (e) {} });
   await d.goto(BASE + "atlas.html#r=danmark&c=holbaek"); await d.waitForTimeout(2500);
   check("…in Danish too", /Vinmarker \(2025\)/.test(await d.textContent("#side")) && /Njord: Sune Albertsens vingård/.test(await d.textContent("#side")));
   const q = await page({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   await q.goto(BASE + "atlas.html"); await q.waitForTimeout(1500);
-  check("the start page has Denmark among the mapped countries", /Denmark\s*1 region(?!s)/.test(await q.evaluate(() => (document.querySelector('#map .cn.on[data-c="dk"]') || {}).textContent || "")));
+  check("the start page has Denmark among the mapped countries", /Denmark\s*2 regions/.test(await q.evaluate(() => (document.querySelector('#map .cn.on[data-c="dk"]') || {}).textContent || "")));
   check("no console errors", !errs.length, errs.join(" | "));
   await b.close();
   const n = results.filter(Boolean).length; console.log(`\n${n}/${results.length} passed`); process.exit(n === results.length ? 0 : 1);

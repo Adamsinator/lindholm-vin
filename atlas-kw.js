@@ -39,7 +39,8 @@ window.ATLAS_KW = {
   douro: ["douro", "porto", "port", "pinhão", "pinhao", "régua", "regua", "peso da régua", "alijó", "alijo", "sabrosa", "são joão da pesqueira", "tabuaço", "foz côa", "cima corgo", "baixo corgo", "douro superior"],
   barbera: ["barbera d'asti", "barbera d asti", "costigliole d'asti", "agliano terme", "castagnole delle lanze", "vinchio", "montegrosso d'asti", "mombaruzzo", "rocchetta tanaro"],
   moscato: ["moscato d'asti", "moscato d asti", "asti spumante", "asti docg", "canelli", "santo stefano belbo", "mango", "cossano belbo", "castiglione tinella", "neviglie", "loazzolo", "calosso"],
-  danmark: ["danmark", "denmark", "dänemark", "danemark", "dansk", "danish", "sjælland", "zealand", "jylland", "jutland", "fyn", "funen", "bornholm", "holbæk", "holbaek", "njord", "dons", "skærsøgaard", "røsnæs", "rosnaes", "odsherred", "kalundborg", "vordingborg"]
+  danmark: ["danmark", "denmark", "dänemark", "danemark", "dansk", "danish", "sjælland", "zealand", "jylland", "jutland", "fyn", "funen", "bornholm", "holbæk", "holbaek", "njord", "dons", "skærsøgaard", "røsnæs", "rosnaes", "odsherred", "kalundborg", "vordingborg"],
+  holbaek: ["holbæk", "holbaek", "njord", "odsherred", "røsnæs", "rosnaes", "tuse næs", "tuse", "kalundborg", "vejrhøj", "asnæs", "fårevejle", "nykøbing sjælland"]
 };
 window.ATLAS_RELIEF = {
   barolo: { src: "atlas-barolo-relief.webp?v=1", ll: [7.8811,  44.5586,  8.05,  44.6901] },
@@ -51,5 +52,7 @@ window.ATLAS_RELIEF = {
   altopiemonte: { src: "atlas-altopiemonte-relief.webp?v=1", ll: [8.3157,  45.5746,  8.4689,  45.6537] },
   barbera: { src: "atlas-barbera-relief.webp?v=1", ll: [7.826,  44.5243,  8.6198,  45.2186] },
   moscato: { src: "atlas-moscato-relief.webp?v=1", ll: [7.8292,  44.5253,  8.6126,  44.882] },
-  douro: { src: "atlas-douro-relief.webp?v=1", ll: [-8.0504, 40.8218, -6.6266, 41.5434], credit: "Copernicus DEM GLO-30: © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018, provided under COPERNICUS by the European Union and ESA; all rights reserved" }
+  douro: { src: "atlas-douro-relief.webp?v=1", ll: [-8.0504, 40.8218, -6.6266, 41.5434], credit: "Copernicus DEM GLO-30: © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018, provided under COPERNICUS by the European Union and ESA; all rights reserved" },
+  holbaek: { src: "atlas-holbaek-relief.webp?v=1", ll: [10.797, 55.519, 12.0423, 56.0375], credit: "Copernicus DEM GLO-30: © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018, provided under COPERNICUS by the European Union and ESA; all rights reserved" },
+  danmark: { src: "atlas-danmark-relief.webp?v=1", ll: [7.4893, 54.2423, 15.9032, 57.9643], credit: "Copernicus DEM GLO-90: © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018, provided under COPERNICUS by the European Union and ESA; all rights reserved" }
 };

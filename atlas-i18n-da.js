@@ -65,7 +65,15 @@ Object.assign(window.I18N_DICT.da, {
   "white, sparkling, rosé, fortified": "hvid, mousserende, rosé, hedvin",
   "PDO area": "BOB-område",
   "Vines © Landbrugsstyrelsen (Marker {0}) · boundaries © SDFI (DAGI)": "Vinmarker © Landbrugsstyrelsen (Marker {0}) · grænser © SDFI (DAGI)",
-  "Njord: Sune Albertsen's vineyard about 10 km south of Holbæk, founded in 2010, known for its Pinot Noir Précoce (Frühburgunder).": "Njord: Sune Albertsens vingård omkring 10 km syd for Holbæk, grundlagt i 2010 og kendt for sin Pinot Noir Précoce (Frühburgunder).",
   "Tuse Næs, north of the town, is inside the parishes of the proposed Odsherred PDO.": "Tuse Næs nord for byen ligger inden for sognene i den foreslåede BOB Odsherred.",
-  "Borders: Natural Earth (public domain); Denmark's: SDFI (DAGI). The outlines are where each region's vineyards are, from its own map.": "Grænser: Natural Earth (public domain); Danmarks: SDFI (DAGI). Omridsene viser, hvor hver regions vinmarker ligger, efter dens eget kort."
+  "Borders: Natural Earth (public domain); Denmark's: SDFI (DAGI). The outlines are where each region's vineyards are, from its own map.": "Grænser: Natural Earth (public domain); Danmarks: SDFI (DAGI). Omridsene viser, hvor hver regions vinmarker ligger, efter dens eget kort.",
+  "Vineyards by parish": "Vinmarker efter sogn",
+  "The vines of {0} parishes: the fields farmers declared as vines to Landbrugsstyrelsen in {1}. Click one.": "Vinmarkerne i {0} sogne: de marker, landmænd har anmeldt som vindruer til Landbrugsstyrelsen i {1}. Klik på et.",
+  "{0} parishes": "{0} sogne",
+  "Njord: Sune Albertsen's vineyard by Tølløse, about 10 km south of Holbæk, founded in 2010: some 5 ha on south-facing hills of sand and gravel, mostly Pinot Noir Précoce (Frühburgunder), farmed on organic and biodynamic principles.": "Njord: Sune Albertsens vingård ved Tølløse, omkring 10 km syd for Holbæk, grundlagt i 2010: omkring 5 ha på sydvendte bakker af sand og grus, mest Pinot Noir Précoce (Frühburgunder), dyrket efter økologiske og biodynamiske principper.",
+  "Njord's vines aren't in the field map: none of its fields is declared as vines, so it is marked by its address on Sophienholmvej.": "Njords vinstokke er ikke i markkortet: ingen af dens marker er anmeldt som vindruer, så den er markeret ved sin adresse på Sophienholmvej.",
+  "What the map shows": "Hvad kortet viser",
+  "Simple": "Enkel",
+  "Terrain": "Terræn",
+  "Vineyards only": "Kun vinmarker"
 });

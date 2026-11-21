@@ -9,7 +9,8 @@ regular longitude/latitude grid, which the atlas lays under a pack drawn on its 
 
 The second form reads the Copernicus DEM GLO-30 (Copernicus_DSM_COG_10_N41_00_W008_00_DEM.tif …: float32 on a
 longitude/latitude grid, in 1024-pixel tiles, DEFLATE with the floating-point predictor), decoding the tiles it needs
-with zlib. RELIEF_QUALITY sets the WebP quality (default 72). Only numpy and Pillow; the TIFF is mapped from disk, not read whole."""
+with zlib; GLO-90 (…COG_30…) the same way. A tile Copernicus doesn't have is open sea, drawn flat. RELIEF_QUALITY sets
+the WebP quality (default 72), RELIEF_Z the vertical exaggeration (default 1.6). Only numpy and Pillow; the TIFF is mapped from disk, not read whole."""
 import sys, math
 import numpy as np
 from PIL import Image
@@ -63,14 +64,19 @@ def main_cop(folder, lon0, lat0, lon1, lat1, out, res):
     las = range(math.floor(lat0), math.floor(lat1) + 1); los = range(math.floor(lon0), math.floor(lon1) + 1)
     rows = []
     for la in reversed(las):
-        row = []
+        row, gaps = [], []
         for lo in los:
-            assert (la, lo) in files, f"missing the tile for {la},{lo}"
+            if (la, lo) not in files:  # no tile: open sea (Copernicus has none there; RELIEF_STRICT=1 to refuse instead)
+                assert not __import__("os").environ.get("RELIEF_STRICT"), f"missing the tile for {la},{lo}"
+                gaps.append(len(row)); row.append(None); continue
             a, w, n, sx, sy = cop_tile(files[(la, lo)]); row.append(a)
+        shape = next((x.shape for x in row if x is not None), None)
+        assert shape, f"no tile at all at latitude {la}"
+        for g in gaps: row[g] = np.zeros(shape, np.float32)
         rows.append(np.hstack(row))
     z = np.vstack(rows).astype(np.float64); W0, N0 = min(los), max(las) + 1
     lat_mid = math.radians((lat0 + lat1) / 2); dx = sx * 111320 * math.cos(lat_mid); dy = sy * 110574
-    gy, gx = np.gradient(z * 1.6, dy, dx)
+    gy, gx = np.gradient(z * float(__import__("os").environ.get("RELIEF_Z", "1.6")), dy, dx)  # RELIEF_Z: more for a flat land
     az, alt = math.radians(315), math.radians(45); L = (math.sin(az) * math.cos(alt), math.cos(az) * math.cos(alt), math.sin(alt))
     hs = np.clip((-gx * L[0] + gy * L[1] + L[2]) / np.sqrt(gx ** 2 + gy ** 2 + 1), 0, 1)  # rows grow southwards: north slope is -gy
     w = int(round((lon1 - lon0) * 111320 * math.cos(lat_mid) / res)); h = int(round((lat1 - lat0) * 110574 / res))
