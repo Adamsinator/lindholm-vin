@@ -32,7 +32,11 @@ async function stretch(secret, saltB64, iter) {
   const kek = await S.importKey("raw", bits.slice(0, 32), "AES-KW", false, ["wrapKey", "unwrapKey"]);
   return { kek, auth: b64(bits.slice(32)) };
 }
-const fromPassword = (pass, saltB64, kdf) => stretch(String(pass), saltB64, kdf && /-(\d+)$/.test(kdf) ? +kdf.match(/-(\d+)$/)[1] : ITER);
+// the iterations come from the server (prelogin): never fewer than MIN_ITER, so a tampered answer can't make the login key
+// cheap to guess the password from
+const MIN_ITER = 100000;
+const fromPassword = (pass, saltB64, kdf) => { const n = kdf && /-(\d+)$/.test(kdf) ? +kdf.match(/-(\d+)$/)[1] : ITER;
+  if (!(n >= MIN_ITER && n <= 10000000)) return Promise.reject(new Error("weak-kdf")); return stretch(String(pass), saltB64, n); };
 
 // Recovery code: 20 random bytes in Crockford base32, grouped in fours (32 characters). Typing it back, case,
 // spaces, dashes and the look-alikes O/I/L don't matter.

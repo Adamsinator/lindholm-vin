@@ -134,6 +134,10 @@ const plainWine = ["Armand Rousseau", "Frankrig", "Bourgogne", "Gevrey-Chamberti
     check("…and not with another", await C.unwrapAsAdmin(w, other.priv).then(() => false, () => true));
   }
 
+  // the iterations come from the server: a tampered prelogin can't make the login key cheap to brute-force
+  const weak = await VC.fromPassword("pw", VC.newSalt(), "pbkdf2-sha256-1").then(() => "derived", e => e.message);
+  check("a key derivation with too few iterations is refused", weak === "weak-kdf", weak);
+
   const n = results.filter(Boolean).length;
   console.log(`\n${n}/${results.length} passed`);
   process.exit(n === results.length ? 0 : 1);

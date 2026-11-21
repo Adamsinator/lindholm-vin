@@ -7,6 +7,15 @@ are done (see "Limits against abuse" in the README). Tick a box when an item shi
 
 - [ ] **Google Search Console:** add the domain `allwine.dk` (it asks for a DNS TXT record at the registrar), then
       Sitemaps → submit `https://allwine.dk/sitemap.xml`. The vineyard pages show up over the following weeks.
+- [ ] **Deploy `Code.gs` API 62** (found in the 21 November review). Text from visitors and members that goes into
+      the master book (atlas corrections, the Log, the feed and its comments, invite notes, the email at sign-up) is
+      now kept as text. Before, a signed-in member could save an atlas correction whose producer was `=Users!E2`, and
+      the public atlas feed then showed that cell: the owner's session tokens. An anonymous visitor could likewise put
+      a formula in the Log by failing to log in five times under a made-up username. Photos now keep only an image
+      type. Paste it, then Manage deployments → ✏️ → New version; the Worker then reports v:62. Then check once: in the
+      master sheet, Edit → Find and replace, search for `=` with "Also search within formulas" ticked, in AtlasEdits,
+      Log, Feed, FeedComments, Invites and the Email column of Users. Delete any formula a member wrote, and if one
+      was there, sign everyone out (blank the Token column).
 - [ ] **Deploy `Code.gs` API 44**: shared lists (a `Shares` tab is made on the first share; it holds ciphertext,
       dates and a count only) and error reports from visitors' browsers (`client-error` in the Log; the daily report
       warns at 10 a day). Paste it, Manage deployments → ✏️ → New version; the Worker then reports v:44. Until then

