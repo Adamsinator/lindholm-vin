@@ -1088,5 +1088,11 @@ Object.assign(window.I18N_DICT.fr = window.I18N_DICT.fr || {}, {
   "and {0} more": "et {0} de plus",
   "How complete your cellar is": "Votre cave est-elle complète ?",
   "{0} % overall": "{0} % au total",
-  "Drinking window": "Fenêtre de dégustation"
+  "Drinking window": "Fenêtre de dégustation",
+  "A price that looks off": "Un prix qui semble faux",
+  "{0}; its other rows about {1}": "{0} ; ses autres lignes environ {1}",
+  "a digit too many?": "un chiffre de trop ?",
+  "a digit missing?": "un chiffre manquant ?",
+  "{0} for a bottle": "{0} la bouteille",
+  "{0}; its other row {1}": "{0} ; son autre ligne {1}"
 });

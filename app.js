@@ -2549,9 +2549,26 @@ function tidyPlan(){
   Object.assign(TIDY_STATE, {fixes:t.fixes, edits:allEdits, groups, gaps:[...gaps.values()].sort((a, b) => b.rows.length - a.rows.length)});
 }
 // what the tidy-up can't decide for you: wines worth a look, and how complete the cellar is
+// prices that look off: far from the same wine's other rows (another vintage, another purchase; the same bottle size),
+// or more than any bottle plausibly costs. A tenfold gap reads as a digit too many or too few.
+function priceChecks(){
+  const key = w => [w.producer, w.name, w.size].map(x => String(x || "").toLowerCase().replace(/\s+/g, " ").trim()).join("|");
+  const priced = WINES.filter(w => !w.elsewhere && Number(w.price) > 0), by = new Map(), out = [];
+  priced.forEach(w => { const k = key(w); (by.get(k) || by.set(k, []).get(k)).push(w); });
+  const med = a => { const s = a.slice().sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+  // three rows or more: each against the group's median, which one odd row can't pull; two: a big gap flags both,
+  // as either could be the slip
+  for(const w of priced){ const p = Number(w.price), g = by.get(key(w)).map(x => Number(x.price));
+    if(g.length >= 2){ const two = g.length === 2, m = two ? g.find((x, i) => by.get(key(w))[i] !== w) : med(g), r = p / m;
+      if(r >= 4 || r <= .25){ const tenfold = (r >= 7 && r <= 14) || (r >= 1 / 14 && r <= 1 / 7);
+        out.push([w, tr(two ? "{0}; its other row {1}" : "{0}; its other rows about {1}", kr(p), kr(m)) + (tenfold ? " · " + tr(r > 1 ? "a digit too many?" : "a digit missing?") : "")]); continue; } }
+    if(p >= 100000) out.push([w, tr("{0} for a bottle", kr(p))]); }
+  return out;
+}
 function tidyLook(){
-  const yr = new Date().getFullYear(), live = WINES.filter(w => !w.elsewhere && w.left > 0);
+  const yr = new Date().getFullYear(), live = WINES.filter(w => !w.elsewhere && w.left > 0), pc = priceChecks(), pnote = new Map(pc);
   return {live, look:[
+    ["A price that looks off", pc.map(([w]) => w), w => pnote.get(w)],
     ["No vintage", live.filter(w => !w.vintage && w.style !== "Bobler")],
     ["No price", live.filter(w => !(Number(w.price) > 0))],
     ["Past its drinking window", live.filter(w => w.drinkTo && w.drinkTo < yr)],
@@ -2582,8 +2599,8 @@ function tidyRender(){
   $("tidyHealth").innerHTML = L.live.length ? `<h3>${esc(tr("How complete your cellar is"))} <span class="aimeta">${esc(tr("{0} % overall", Math.round(L.health.reduce((s, [, p]) => s + p, 0) / L.health.length)))}</span></h3>
     <div class="thbars">${L.health.map(([l, p]) => `<div class="thbar"><span>${esc(tr(l))}</span><i style="--p:${p}%"></i><b>${p} %</b></div>`).join("")}</div>` : "";
   $("tidyLookWrap").hidden = !L.look.length;
-  $("tidyLook").innerHTML = L.look.map(([l, ws]) => `<details class="tlook"><summary>${esc(tr(l))} <span class="aimeta">${esc(trn(ws.length, "{0} wine", "{0} wines"))}</span></summary>
-    <div class="tlist">${ws.slice(0, 12).map(w => `<button type="button" class="tlw" data-row="${w.row}">${esc(w.producer)} ${esc([w.name, w.vintage].filter(Boolean).join(" "))}</button>`).join("")}${ws.length > 12 ? `<span class="aimeta">${esc(tr("and {0} more", ws.length - 12))}</span>` : ""}</div></details>`).join("");
+  $("tidyLook").innerHTML = L.look.map(([l, ws, note]) => `<details class="tlook"><summary>${esc(tr(l))} <span class="aimeta">${esc(trn(ws.length, "{0} wine", "{0} wines"))}</span></summary>
+    <div class="tlist">${ws.slice(0, 12).map(w => `<button type="button" class="tlw" data-row="${w.row}">${esc(w.producer)} ${esc([w.name, w.vintage].filter(Boolean).join(" "))}${note ? ` <span class="aimeta">${esc(note(w))}</span>` : ""}</button>`).join("")}${ws.length > 12 ? `<span class="aimeta">${esc(tr("and {0} more", ws.length - 12))}</span>` : ""}</div></details>`).join("");
   const nEdit = S.edits.length, nGroup = S.groups.filter(g => !S.groupsOff.has(String(g.keep))).length;
   $("tidyIntro").textContent = (nEdit || S.groups.length || S.gaps.length) ? tr("Here's what can be tidied. Untick anything you want left as it is.") : tr("Nothing to tidy: every spelling is consistent and no wine is in two rows.");
   $("tidyGo").hidden = !(nEdit || S.groups.length || S.gaps.length);

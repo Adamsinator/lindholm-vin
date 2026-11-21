@@ -85,6 +85,15 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   await p.click("#tidyBtn"); await p.waitForTimeout(300); await p.click("#tidyGo"); await closed("tidyModal"); await p.waitForTimeout(600);
   const lef2 = (await W()).find(w => w.producer === "Domaine Leflaive");
   check("…and filling in sets them", lef2 && lef2.region === "Bourgogne" && /Chardonnay/.test(lef2.grape) && lef2.country === "Frankrig", JSON.stringify(lef2));
+  // a price that looks off: the same wine's other vintages cost about a tenth
+  for (const [vint, price] of [["2018", "350"], ["2019", "360"], ["2020", "3500"]]) {
+    await p.click("#addBtn"); await p.fill("#aProducer", "Domaine Rapet"); await p.fill("#aName", "Pernand-Vergelesses"); await p.fill("#aVintage", vint); await p.fill("#aPrice", price);
+    await p.click('#addForm button[type="submit"]'); await p.waitForTimeout(900); }
+  await p.click("#tidyBtn"); await p.waitForTimeout(400);
+  const pl = await p.textContent("#tidyLook");
+  check("Tidy up flags a price far from the same wine's other rows, and asks if it's a digit too many", /A price that looks off/.test(pl) && /Domaine Rapet Pernand-Vergelesses 2020/.test(pl) && /a digit too many\?/.test(pl)
+    && !/Pernand-Vergelesses 2018/.test(pl.split("A price that looks off")[1].split(/No vintage|No price|Past its|No drinking|Unusually/)[0]), pl.slice(0, 400));
+  await p.click("#tidyCancel");
   check("no console errors", !errs.length, errs.join(" | "));
   await b.close();
   const n = results.filter(Boolean).length; console.log(`\n${n}/${results.length} passed`); process.exit(n === results.length ? 0 : 1);

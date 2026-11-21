@@ -1088,5 +1088,11 @@ Object.assign(window.I18N_DICT.da = window.I18N_DICT.da || {}, {
   "and {0} more": "og {0} mere",
   "How complete your cellar is": "Hvor komplet din kælder er",
   "{0} % overall": "{0} % samlet",
-  "Drinking window": "Drikkevindue"
+  "Drinking window": "Drikkevindue",
+  "A price that looks off": "En pris, der ser forkert ud",
+  "{0}; its other rows about {1}": "{0}; dens andre rækker ca. {1}",
+  "a digit too many?": "et ciffer for meget?",
+  "a digit missing?": "mangler et ciffer?",
+  "{0} for a bottle": "{0} for en flaske",
+  "{0}; its other row {1}": "{0}; dens anden række {1}"
 });
