@@ -44,7 +44,7 @@ check("…relief from Copernicus GLO-30 for the close-up, GLO-90 for Denmark, bo
   const z = await p.evaluate(() => ({ crumb: document.getElementById("crumb").textContent, side: document.getElementById("side").textContent, img: (document.querySelector("#map g.shade image.pre") || { getAttribute: () => "" }).getAttribute("href"),
     towns: [...document.querySelectorAll("#map text.tn-1")].map(t => t.textContent), legend: document.getElementById("legend").textContent }));
   check("the close-up: Europe › Denmark › Holbæk & Odsherred · its parishes, its relief, its towns named, PDOs listed, no village-appellation legend", /Holbæk & Odsherred\s*· \d+ parishes/.test(z.crumb)
-    && z.img === "atlas-holbaek-relief.webp?v=1" && z.towns.includes("Holbæk") && /Røsnæs\s*· applied for/.test(z.side) && /Njord/.test(z.side) && !/Village appellations/.test(z.legend), JSON.stringify(z).slice(0, 400));
+    && z.img === "atlas-holbaek-relief.webp?v=2" && z.towns.includes("Holbæk") && /Røsnæs\s*· applied for/.test(z.side) && /Njord/.test(z.side) && !/Village appellations/.test(z.legend), JSON.stringify(z).slice(0, 400));
   const nj = T.names.find(x => x[0] === "v");
   check("Njord marked by its address (Sophienholmvej, Tølløse), about 10 km south of Holbæk, its notes from its own site", nj && /Njord/.test(nj[1])
     && /Tølløse/.test(HB.meta.notes[0]) && /5 ha/.test(HB.meta.notes[0]) && /aren't in the field map/.test(HB.meta.notes[1]) && /OpenStreetMap/.test(T.meta.source), JSON.stringify(nj));
@@ -61,6 +61,12 @@ check("…relief from Copernicus GLO-30 for the close-up, GLO-90 for Denmark, bo
   check("…ticking a box afterwards leaves no mode chosen, and the choice is remembered", await p.evaluate(() => !document.querySelector("#modes button[aria-checked=true]") && localStorage.getItem("atlasMode") === ""));
   await p.evaluate(() => document.querySelector('#modes button[data-mode="relief"]').click()); await p.reload(); await p.waitForTimeout(1500);
   check("…a mode chosen stays after a reload", await p.evaluate(() => document.querySelector("#modes button[aria-checked=true]")?.dataset.mode === "relief" && document.getElementById("fRelief").checked));
+  // a click anywhere in a parish picks it, not only on its fields (they're specks at this scale)
+  await p.goto(BASE + "atlas.html#r=holbaek"); await p.reload(); await p.waitForTimeout(2000);
+  const pt = await p.evaluate(() => { const r = document.getElementById("map").getBoundingClientRect();
+    for (let x = r.x + 300; x < r.right - 200; x += 13) for (let y = r.y + 200; y < r.bottom - 100; y += 13) { const e = document.elementFromPoint(x, y); if (e && e.classList.contains("hit")) return [x, y, e.dataset.id]; } });
+  if (pt) { await p.mouse.click(pt[0], pt[1]); await p.waitForTimeout(600); }
+  check("a click anywhere in a parish picks it, and its area is outlined", pt && await p.evaluate(id => st.sel === id && !!document.querySelector(`#map .hit.sel[data-id="${id}"]`), pt[2]), JSON.stringify(pt));
   const d = await page({ viewport: { width: 1300, height: 900 }, locale: "da-DK" });
   await d.addInitScript(() => { try { localStorage.setItem("lang", "da"); } catch (e) {} });
   await d.goto(BASE + "atlas.html#r=danmark&c=holbaek"); await d.waitForTimeout(2500);

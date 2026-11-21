@@ -67,7 +67,7 @@ async function denmarkBuild(H) {
     const mp = union(fs_.flatMap(f => f.g)), gg = tidy(mp, 2), inPdo = {};
     pdo.forEach(P => { const ha = fs_.filter(f => inside(f.mid, P.g)).reduce((s, f) => s + f.ha, 0); if (ha) inPdo[P.ap] = +ha.toFixed(1); });
     climats.push({ id: slug(dk(k.n)), n: k.n, c: "DV", ap: k.area, app: k.n, area: k.area, fields: fs_.length, ha: +fs_.reduce((s, f) => s + f.ha, 0).toFixed(1),
-      munHa: +polyHa(k.g).toFixed(0), ...(Object.keys(inPdo).length ? { pdo: inPdo } : {}), ...(NOTES[k.n] ? { notes: NOTES[k.n] } : {}), lp: label(gg), g: gg, aka: [k.n, dk(k.n)] });
+      munHa: +polyHa(k.g).toFixed(0), hit: tidy(k.g, 250).filter(p => polyHa([p]) > 50), ...(Object.keys(inPdo).length ? { pdo: inPdo } : {}), ...(NOTES[k.n] ? { notes: NOTES[k.n] } : {}), lp: label(gg), g: gg, aka: [k.n, dk(k.n)] });
   }
   Object.keys(NOTES).filter(n => !climats.some(c => c.n === n)).forEach(n => log.push(`no vines found in ${n}`));
   const zones = {}; K.forEach(k => (zones[k.area] ||= []).push(...k.g));
@@ -109,7 +109,7 @@ async function holbaekBuild(H) {
   for (const s of S) { const fs_ = F.filter(f => f.s === s); if (!fs_.length) continue;
     const gg = tidy(union(fs_.flatMap(f => f.g)), 1.5), muns = [...new Set(fs_.map(f => f.k && f.k.n).filter(Boolean))], ha = fs_.reduce((a, f) => a + f.ha, 0), pd = pdoOf(s.n);
     climats.push({ id: slug(dk(s.n)), n: s.n, c: "DV", ap: muns[0] || "", app: s.n, area: muns[0] || "", fields: fs_.length, ha: +ha.toFixed(1),
-      ...(pd.length ? { pdo: Object.fromEntries(pd.map(k => [k, +ha.toFixed(1)])) } : {}), lp: label(gg), g: gg, aka: [s.n, dk(s.n), s.n + " sogn"] });
+      ...(pd.length ? { pdo: Object.fromEntries(pd.map(k => [k, +ha.toFixed(1)])) } : {}), lp: label(gg), g: gg, hit: tidy(s.g, 40).filter(p => polyHa([p]) > 5), aka: [s.n, dk(s.n), s.n + " sogn"] });
   }
   const land = pc.intersection(union(K.flatMap(k => k.g)), frame);
   const villages = PDO.filter(P => P.parishes).map(P => { const g = union(S.filter(s => P.parishes.includes(s.n)).flatMap(s => s.g)), cut = g.length ? pc.intersection(g, frame) : [];

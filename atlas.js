@@ -41,8 +41,8 @@ const REGIONS = [
   { id: "moscato", name: "Asti & Moscato d'Asti", file: "atlas-moscato.js?v=1", ll: [44.72, 8.2], country: "it", kind: "Communes" },
   { id: "toscana", name: "Toscana", file: "atlas-toscana.js?v=1", ll: [43.3, 11.3], country: "it", kind: "Communes" },
   { id: "douro", name: "Douro", file: "atlas-douro.js?v=1", ll: [41.16, -7.55], country: "pt", kind: "Vineyards by sub-region", village: "The Douro's sub-regions" },
-  { id: "danmark", name: "Danmark", file: "atlas-danmark.js?v=2", ll: [56.1, 9.4], country: "dk", kind: "Vineyards by municipality", village: "Wine areas (PGI)" },
-  { id: "holbaek", name: "Holbæk & Odsherred", file: "atlas-holbaek.js?v=2", topo: "atlas-holbaek-topo.js?v=2", ll: [55.72, 11.5], country: "dk", kind: "Vineyards by parish", regional: "Municipalities" },
+  { id: "danmark", name: "Danmark", file: "atlas-danmark.js?v=3", ll: [56.1, 9.4], country: "dk", kind: "Vineyards by municipality", village: "Wine areas (PGI)" },
+  { id: "holbaek", name: "Holbæk & Odsherred", file: "atlas-holbaek.js?v=3", topo: "atlas-holbaek-topo.js?v=2", ll: [55.72, 11.5], country: "dk", kind: "Vineyards by parish", regional: "Municipalities" },
   { id: "ahr", name: "Ahr", file: "atlas-ahr.js?v=1", wx: "atlas-ahr-wx.js?v=1", topo: "atlas-ahr-topo.js?v=1", dem: "atlas-ahr-dem.js?v=1", geol: "atlas-ahr-geol.js?v=1", ll: [50.536, 7.079], country: "de", kind: "Einzellagen" },
   { id: "rhone", name: "Rhône (north)", file: "atlas-rhone.js?v=1", wx: "atlas-rhone-wx.js?v=1", topo: "atlas-rhone-topo.js?v=1", dem: "atlas-rhone-dem.js?v=1", geol: "atlas-rhone-geol.js?v=1", ld: "atlas-rhone-ld.js?v=1", ll: [45.201, 4.809], country: "fr", kind: "Cru appellations",
     regional: "Regional (Côtes du Rhône)" },
@@ -106,6 +106,8 @@ function draw() {
   const g = el("g", {}, svg);
   el("path", { class: "rg", d: pathOf(P.regional.g) }, g);
   P.villages.forEach(v => el("path", { class: v.kind === "pdo" ? "vl pdo" : "vl", d: pathOf(v.g) }, g)); // Denmark's PDOs: outlined over its wine areas
+  // Denmark's municipalities and parishes: the whole area answers a click, as its fields are specks at this scale
+  P.climats.forEach(c => { if (c.hit) c.hel = el("path", { class: "hit", d: pathOf(c.hit), "data-id": c.id }, g); });
   P.climats.forEach(c => { c.el = el("path", { class: "cl " + cls(c) + (c.c === "VS" ? " vs" : "") + (c.villages || c.part ? " part" : ""), d: pathOf(c.g), "data-id": c.id }, g); // a viñedo singular is a hectare or so: never smaller than a dot
     el("title", {}, c.el).textContent = c.n; });
   gShade = el("g", { class: "shade", "pointer-events": "none" }, svg);
@@ -129,7 +131,7 @@ function paint() {
   const P = st.pack; if (!P) return;
   P.climats.forEach(c => {
     const off = !st.show[c.c] || (st.mine && !CELLAR.by[c.id]) || !terrOk(c) || !prodOk(c);
-    c.el.classList.toggle("dim", off); c.el.classList.toggle("sel", st.sel === c.id);
+    c.el.classList.toggle("dim", off); c.el.classList.toggle("sel", st.sel === c.id); if (c.hel) c.hel.classList.toggle("sel", st.sel === c.id);
     const b = CELLAR.by[c.id]?.left || 0; c.dot.setAttribute("r", b ? 0 : 0); c.dot.dataset.b = b;
   });
   svg.classList.toggle("geolon", geolShown());
@@ -422,7 +424,7 @@ svg.addEventListener("pointerup", e => { const tgt = document.elementFromPoint(e
     if (lastTap && now - lastTap[0] < 320 && Math.hypot(e.clientX - lastTap[1], e.clientY - lastTap[2]) < 32) { lastTap = null; const [cx, cy] = toSvg(e); zoomAt(.5, cx, cy, 260); return; }
     lastTap = [now, e.clientX, e.clientY]; }
   if (PROF.on) { profClick(unrotP(toSvg(e))); return; }
-  const q = tgt && tgt.closest && tgt.closest(".pt"), c = tgt && tgt.closest && tgt.closest(".cl");
+  const q = tgt && tgt.closest && tgt.closest(".pt"), c = tgt && tgt.closest && tgt.closest(".cl, .hit");
   if (!q && !c && window.ATLAS_LDUI && st.region && st.region.ld) { const i = ATLAS_LDUI.at(unrotP(toSvg(e))); if (i >= 0) return ATLAS_LDUI.pick(i); } // a lieu-dit outside the climats
   select(q ? q.dataset.pt : c ? c.dataset.id : null); });
 svg.addEventListener("pointercancel", up);
@@ -1086,7 +1088,7 @@ function syncHash() {
 }
 async function openRegion(id, sel) {
   const R = REGIONS.concat(PREVIEW).find(r => r.id === id) || REGIONS[0];
-  if (!window.ATLAS_KW) await loadScript("atlas-kw.js?v=7").catch(() => {});
+  if (!window.ATLAS_KW) await loadScript("atlas-kw.js?v=8").catch(() => {});
   if (R.ui && !window.ATLAS_CD) await loadScript(R.ui).catch(() => {}); // the region's own tools (the Côte d'Or: owners)
   if (R.ld && !window.ATLAS_LDUI) await loadScript("atlas-ld.js?v=2").catch(() => {}); // lieux-dits: their data comes when zoomed in
   if (R.match && !window.BURG_MATCH) await loadScript(R.match).catch(() => {}); // the Côte d'Or: the cellar's matcher (burgundy-match.js)
