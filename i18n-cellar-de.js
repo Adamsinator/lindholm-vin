@@ -1074,5 +1074,6 @@ Object.assign(window.I18N_DICT.de = window.I18N_DICT.de || {}, {
   "By geology": "Nach Geologie",
   "Share of the climat's area on each formation of BRGM's 1:50 000 geological map; superficial deposits (scree, colluvium) are mapped over the bedrock where they are thick.": "Anteil der Climat-Fläche auf jeder Formation der geologischen Karte 1:50 000 des BRGM; oberflächliche Ablagerungen (Hangschutt, Kolluvium) sind dort über dem Grundgestein kartiert, wo sie mächtig sind.",
   "About the data.": "Über die Daten.",
-  "Language": "Sprache"
+  "Language": "Sprache",
+  "Couldn't load the importer. Check your connection and try again.": "Der Import konnte nicht geladen werden. Prüfen Sie die Verbindung und versuchen Sie es erneut."
 });

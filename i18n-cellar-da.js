@@ -1074,5 +1074,6 @@ Object.assign(window.I18N_DICT.da = window.I18N_DICT.da || {}, {
   "By geology": "Efter geologi",
   "Share of the climat's area on each formation of BRGM's 1:50 000 geological map; superficial deposits (scree, colluvium) are mapped over the bedrock where they are thick.": "Andel af climatets areal på hver formation på BRGM's geologiske kort 1:50 000; løse aflejringer (skred, kolluvium) er kortlagt oven på grundfjeldet, hvor de er tykke.",
   "About the data.": "Om data.",
-  "Language": "Sprog"
+  "Language": "Sprog",
+  "Couldn't load the importer. Check your connection and try again.": "Importen kunne ikke hentes. Tjek forbindelsen, og prøv igen."
 });

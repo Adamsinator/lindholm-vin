@@ -75,5 +75,16 @@ Object.assign(window.I18N_DICT.de, {
   "What the map shows": "Was die Karte zeigt",
   "Simple": "Einfach",
   "Terrain": "Gelände",
-  "Vineyards only": "Nur Weinberge"
+  "Vineyards only": "Nur Weinberge",
+  "{0} communes of Tuscany's great reds: the vines Tuscany's vineyard register (ARTEA) holds in each. Click one.": "{0} Gemeinden der großen Rotweine der Toskana: die Reben, die das toskanische Weinbaukataster (ARTEA) in jeder führt. Klicken Sie auf eine.",
+  "The register doesn't say which wine a plot is for: a commune only partly in its wine's zone is drawn whole, and marked *.": "Das Kataster sagt nicht, für welchen Wein eine Parzelle bestimmt ist: eine Gemeinde, die nur teilweise in der Zone ihres Weins liegt, ist ganz gezeichnet und mit * markiert.",
+  "Vines (register {0})": "Reben (Kataster {0})",
+  "Plots": "Parzellen",
+  "Planted (median)": "Gepflanzt (Median)",
+  "Only part of the commune is in the zone.": "Nur ein Teil der Gemeinde liegt in der Zone.",
+  "Since 2017 the commune also takes in San Giovanni d'Asso, which is outside the Brunello zone.": "Seit 2017 gehört auch San Giovanni d'Asso zur Gemeinde, das außerhalb der Brunello-Zone liegt.",
+  "The rules take the commune's land fit for the wine, between 250 and 600 m.": "Die Regeln nehmen das für den Wein geeignete Land der Gemeinde zwischen 250 und 600 m.",
+  "The rules take the commune east of the old Via Aurelia.": "Die Regeln nehmen die Gemeinde östlich der alten Via Aurelia.",
+  "Vines © ARTEA, Regione Toscana, CC BY": "Reben © ARTEA, Regione Toscana, CC BY",
+  "Partly in its wine's zone": "Teilweise in der Zone seines Weins"
 });

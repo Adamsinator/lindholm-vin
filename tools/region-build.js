@@ -163,6 +163,8 @@ const REGIONS = {
   // Denmark: its vines by municipality, in the four PGI wine areas, with the PDOs (tools/region-dk.js)
   danmark: { name: "Danmark", country: "Danmark", region: "Danmark", kind: "dk" },
   holbaek: { name: "Holbæk & Odsherred", country: "Danmark", region: "Sjælland", kind: "dkzoom", regional: true },
+  // Tuscany: its great reds' communes, from the region's vineyard register (tools/region-tos.js)
+  toscana: { name: "Toscana", country: "Italien", region: "Toscana", kind: "tos" },
   // INAO's map has no Champagne: its delimitation was never published as data. Its grands and premiers crus are whole
   // villages (the échelle des crus), so a cru here is the vines (IGN BD TOPO, nature "Vigne") inside that village's
   // boundary (IGN ADMIN EXPRESS; the old commune where it has since merged: Aÿ, Oger, Vertus, Coligny…); the other
@@ -391,6 +393,10 @@ async function riedenBuild() {
     console.error(`${R.name}: the field map's vines, by municipality`);
     return finish(await require("./region-dk").denmarkBuild({ CACHE, curl, polysOf, union, tidy, polyHa, label, slug }));
   }
+  if (R.kind === "tos") {
+    console.error(`${R.name}: the vineyard register's plots, by commune`);
+    return finish(await require("./region-tos").toscanaBuild({ CACHE, union, tidy, polyHa, label, slug }));
+  }
   if (R.kind === "dkzoom") {
     console.error(`${R.name}: the field map's vines, by parish`);
     return finish(await require("./region-dk").holbaekBuild({ CACHE, curl, polysOf, union, tidy, polyHa, label, slug }));
@@ -535,7 +541,7 @@ function finish({ climats, villages, regionalLand, points, meta }) {
   // Rieden are many and small: their rings go as flat steps from the point before ([x0, y0, dx1, dy1…], about half the
   // size gzipped), and the names that follow from the Ried's own are left out; the pack puts both back as it loads, so
   // whatever reads it (the atlas, the build tools) gets the same shape as any other pack
-  const rd = (R.kind === "rieden" || R.kind === "parcels" || R.kind === "douro" || R.kind === "dk" || R.kind === "dkzoom") && !process.env.RAW_PACK, ried = R.kind === "rieden";
+  const rd = (R.kind === "rieden" || R.kind === "parcels" || R.kind === "douro" || R.kind === "dk" || R.kind === "dkzoom" || R.kind === "tos") && !process.env.RAW_PACK, ried = R.kind === "rieden";
   if (rd) pack.climats = pack.climats.map(c => { const { ap, aka, ...k } = c; return { ...(ried ? k : c), g: c.g.map(p => p.map(r => r.flatMap(([x, y], i) => i ? [x - r[i - 1][0], y - r[i - 1][1]] : [x, y]))) }; });
   const body = rd ? `(P => { P.climats.forEach(c => { ${ried ? 'c.ap = "Ried " + c.n; c.aka = [c.n, c.ap, c.app + " " + c.n];' : ""}
   c.g = c.g.map(p => p.map(r => { const o = []; for (let i = 0, x = 0, y = 0; i < r.length; i += 2) o.push([x += r[i], y += r[i + 1]]); return o; })); }); return P; })(${JSON.stringify(pack)})` : JSON.stringify(pack);

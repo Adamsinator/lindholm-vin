@@ -75,5 +75,16 @@ Object.assign(window.I18N_DICT.da, {
   "What the map shows": "Hvad kortet viser",
   "Simple": "Enkel",
   "Terrain": "Terræn",
-  "Vineyards only": "Kun vinmarker"
+  "Vineyards only": "Kun vinmarker",
+  "{0} communes of Tuscany's great reds: the vines Tuscany's vineyard register (ARTEA) holds in each. Click one.": "{0} kommuner med Toscanas store røde vine: de vinmarker, Toscanas vinregister (ARTEA) har i hver. Klik på en.",
+  "The register doesn't say which wine a plot is for: a commune only partly in its wine's zone is drawn whole, and marked *.": "Registret siger ikke, hvilken vin en mark er til: en kommune, der kun delvis ligger i vinens zone, er tegnet hel og mærket *.",
+  "Vines (register {0})": "Vinmarker (register {0})",
+  "Plots": "Marker",
+  "Planted (median)": "Plantet (median)",
+  "Only part of the commune is in the zone.": "Kun en del af kommunen ligger i zonen.",
+  "Since 2017 the commune also takes in San Giovanni d'Asso, which is outside the Brunello zone.": "Siden 2017 omfatter kommunen også San Giovanni d'Asso, som ligger uden for Brunello-zonen.",
+  "The rules take the commune's land fit for the wine, between 250 and 600 m.": "Reglerne tager den del af kommunen, der egner sig til vinen, mellem 250 og 600 m.",
+  "The rules take the commune east of the old Via Aurelia.": "Reglerne tager kommunen øst for den gamle Via Aurelia.",
+  "Vines © ARTEA, Regione Toscana, CC BY": "Vinmarker © ARTEA, Regione Toscana, CC BY",
+  "Partly in its wine's zone": "Delvis i vinens zone"
 });

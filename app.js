@@ -1064,7 +1064,7 @@ function loadKind(){
 function setKindLocal(k, keepStored){
   KIND = k; document.documentElement.dataset.kind = k; $("acctKind").value = k;
   if(!keepStored) try{ localStorage.setItem(kindKey(), k); }catch(e){}
-  if(k!=="private" && !window.BIZ){ const s = document.createElement("script"); s.src = "business.js?v=19";
+  if(k!=="private" && !window.BIZ){ const s = document.createElement("script"); s.src = "business.js?v=20";
     s.onload = ()=>{ if(WINES.length){ renderOverview(); renderTable(); } }; document.head.appendChild(s); }
   else if(window.BIZ) BIZ.apply();
 }
@@ -2202,6 +2202,7 @@ function impReset(){
     : tr("The file is read in this browser and never uploaded; only the wines are saved to your cellar.");
 }
 async function impOpen(file){
+  try{ await needTools(); }catch(e){ $("impErr").textContent = tr("Couldn't load the importer. Check your connection and try again."); return; }
   $("impErr").textContent = "";
   try{
     const book = await IMPORT.read(file);
@@ -2391,7 +2392,8 @@ $("wGrid").addEventListener("paste", e=>{
   });
   gridCount();
 });
-$("gridGo").addEventListener("click", ()=>{
+$("gridGo").addEventListener("click", async ()=>{
+  try{ await needTools(); }catch(e){ $("impErr").textContent = tr("Couldn't load the importer. Check your connection and try again."); return; }
   const iT = GRID_COLS.findIndex(c=>c[0]==="type"), iS = GRID_COLS.findIndex(c=>c[0]==="size");
   const rows = [...$("wGrid").tBodies[0].rows].map(r=>GRID_COLS.map((_,i)=>r.querySelector(`input[data-c="${i}"]`).value.trim())).filter(v=>v[0])
     .map(v=>{ v[iT] = gridWord(GRID_TYPES, v[iT]); v[iS] = gridWord(GRID_SIZES, v[iS]); return v; });
@@ -2435,6 +2437,10 @@ $("impGo").addEventListener("click", impRun);
 
 /* ---------- the sommelier (sommelier.js): answers from the site's own data, loaded the first time it opens ---------- */
 const SOMM = {ready:null};
+// the import, export and tidy-up tools (tidy.js, import.js, export.js): not needed to show the cellar, so fetched once
+// it's on screen; whatever uses them waits for them first
+const TOOLS_JS = ["tidy.js?v=3", "import.js?v=8", "export.js?v=3"]; let TOOLS_LOAD = null;
+function needTools(){ return window.TIDY && window.IMPORT && window.EXPORT ? Promise.resolve() : TOOLS_LOAD || (TOOLS_LOAD = Promise.all(TOOLS_JS.map(loadJS)).catch(e => { TOOLS_LOAD = null; throw e; })); }
 function loadJS(src){ return new Promise((ok, no) => { const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = () => no(new Error("load " + src)); document.head.appendChild(s); }); }
 // only what isn't there yet (the atlas texts follow the language picker)
 function sommLoad(){
@@ -2576,7 +2582,7 @@ async function tidyRun(){
     if(AUTH_ERRORS.has(m)) showGate(authMsg(m));
   }
 }
-$("tidyBtn").addEventListener("click", ()=>{ TIDIER = null; TIDY_STATE.off = new Set(); TIDY_STATE.groupsOff = new Set(); $("tidyErr").textContent = ""; tidyRender(); $("tidyModal").classList.add("open"); });
+$("tidyBtn").addEventListener("click", async ()=>{ try{ await needTools(); }catch(e){ toast(tr("Couldn't load the importer. Check your connection and try again.")); return; } TIDIER = null; TIDY_STATE.off = new Set(); TIDY_STATE.groupsOff = new Set(); $("tidyErr").textContent = ""; tidyRender(); $("tidyModal").classList.add("open"); });
 $("tidyCancel").addEventListener("click", ()=>$("tidyModal").classList.remove("open"));
 $("tidyModal").addEventListener("click", e=>{ if(e.target===$("tidyModal")) $("tidyModal").classList.remove("open"); });
 $("tidyFixes").addEventListener("change", e=>{ const c = e.target.closest("input[data-fix]"); if(!c) return; if(c.checked) TIDY_STATE.off.delete(c.dataset.fix); else TIDY_STATE.off.add(c.dataset.fix); tidyRender(); });
@@ -2585,6 +2591,7 @@ $("tidyGo").addEventListener("click", tidyRun);
 
 /* ---------- export (export.js builds the file here from the decrypted cellar) ---------- */
 async function expRun(kind){
+  await needTools();
   const btn = $(kind==="xlsx" ? "expXlsx" : "expCsv"); btn.disabled = true; $("expErr").textContent = "";
   try{
     const rows = EXPORT.cellar((await api({action:"data"})).wines);
@@ -4832,3 +4839,5 @@ if(cfg.api && cfg.user && cfg.token && sessionFresh && localStorage.getItem("vin
     showGate(tr("Your account {0} is created. Log in with your password. If you didn't save the recovery code, make a new one under Account.", made)); }
   else showGate(staleDrop ? tr("Your session expired after inactivity: log in again.") : "");
 }
+// the tools load once the page is idle, so they're there before anyone asks for them
+(window.requestIdleCallback || (f => setTimeout(f, 1500)))(() => needTools().catch(() => {}));

@@ -40,6 +40,7 @@ window.ATLAS_KW = {
   barbera: ["barbera d'asti", "barbera d asti", "costigliole d'asti", "agliano terme", "castagnole delle lanze", "vinchio", "montegrosso d'asti", "mombaruzzo", "rocchetta tanaro"],
   moscato: ["moscato d'asti", "moscato d asti", "asti spumante", "asti docg", "canelli", "santo stefano belbo", "mango", "cossano belbo", "castiglione tinella", "neviglie", "loazzolo", "calosso"],
   danmark: ["danmark", "denmark", "dänemark", "danemark", "dansk", "danish", "sjælland", "zealand", "jylland", "jutland", "fyn", "funen", "bornholm", "holbæk", "holbaek", "njord", "dons", "skærsøgaard", "røsnæs", "rosnaes", "odsherred", "kalundborg", "vordingborg"],
+  toscana: ["chianti classico", "brunello di montalcino", "brunello", "rosso di montalcino", "montalcino", "vino nobile di montepulciano", "vino nobile", "bolgheri", "bolgheri sassicaia", "sassicaia", "castagneto carducci", "greve in chianti", "panzano", "radda in chianti", "gaiole in chianti", "castellina in chianti", "castelnuovo berardenga", "san casciano in val di pesa", "toscana", "tuscany", "toskana"],
   holbaek: ["holbæk", "holbaek", "njord", "odsherred", "røsnæs", "rosnaes", "tuse næs", "tuse", "kalundborg", "vejrhøj", "asnæs", "fårevejle", "nykøbing sjælland"]
 };
 window.ATLAS_RELIEF = {

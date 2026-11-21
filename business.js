@@ -297,7 +297,7 @@ window.BIZ = (() => {
       [tr("Sales since {0}", R.since)], [tr("Bottles sold (glasses as their share)"), Math.round(R.sold * 10) / 10], [tr("Sales, VAT included"), Math.round(R.rev)],
       [tr("Sales, VAT excluded"), Math.round(R.ex)], [tr("VAT"), Math.round(R.rev - R.ex)], [tr("Cost of what was sold"), Math.round(R.cogs)], [tr("Gross profit"), Math.round(R.gp)]];
     $("bzRepSince").onchange = draw; draw();
-    $("bzRepCsv").onclick = () => { const R = calc(), a = document.createElement("a");
+    $("bzRepCsv").onclick = async () => { await needTools(); const R = calc(), a = document.createElement("a");
       a.href = URL.createObjectURL(new Blob([EXPORT.csv(rowsOf(R))], { type: "text/csv;charset=utf-8" })); a.download = `allwine-${tr("stock report").replace(/\s+/g, "-")}-${new Date().toISOString().slice(0, 10)}.csv`;
       document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000); toast(tr("Saved {0}", a.download)); };
     $("bzRepPrint").onclick = () => { const R = calc(); let c = $("bzOrders"); if (!c) { c = document.createElement("div"); c.id = "bzOrders"; document.body.appendChild(c); }
@@ -321,8 +321,8 @@ window.BIZ = (() => {
     const tot = i => r2(rows.reduce((n, r) => n + r[i], 0));
     return [head, ...rows, [tr("Total"), "", "", "", fmt(list.length), tot(5), tot(6), tot(7)]];
   }
-  function salesCsv(m) {
-    const a = document.createElement("a");
+  async function salesCsv(m) {
+    await needTools(); const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([EXPORT.csv(salesRows(m))], { type: "text/csv;charset=utf-8" }));
     a.download = `allwine-${tr("sales")}-${m}.csv`;
     document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
@@ -664,7 +664,7 @@ window.BIZ = (() => {
       if (!ch.length) { toast(tr("The count matches the stock")); COUNT = {}; m.classList.remove("open"); return; }
       e.target.disabled = true; const failed = await setStocks(ch); e.target.disabled = false;
       toast(failed.length ? failText(failed) : tr("The count is saved: {0} wines changed", fmt(ch.length))); if (!failed.length) { COUNT = {}; m.classList.remove("open"); } };
-    m.querySelector('[data-bz="ccsv"]').onclick = () => { const rows = [[tr("Location"), tr("Producer"), tr("Wine"), tr("Vintage"), tr("In stock"), tr("Counted"), tr("Difference"), tr("Cost price")]]
+    m.querySelector('[data-bz="ccsv"]').onclick = async () => { await needTools(); const rows = [[tr("Location"), tr("Producer"), tr("Wine"), tr("Vintage"), tr("In stock"), tr("Counted"), tr("Difference"), tr("Cost price")]]
       .concat(list.filter(w => COUNT[w.row] != null).map(w => [placeOf(w), w.producer, w.name || "", w.vintage || "", Math.max(0, w.left), COUNT[w.row], COUNT[w.row] - Math.max(0, w.left), w.price || ""]));
       const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([EXPORT.csv(rows)], { type: "text/csv;charset=utf-8" }));
       a.download = `allwine-${tr("count")}-${new Date().toISOString().slice(0, 10)}.csv`; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000); };
