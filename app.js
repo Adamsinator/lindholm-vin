@@ -2261,8 +2261,10 @@ async function sommAsk(q){
 async function sommOpen(){
   $("sommPanel").hidden = false; $("sommBtn").hidden = true;
   if(!$("sommLog").children.length){
-    try{ sommSay(esc(tr("Getting the sommelier's notes…"))); await sommLoad(); $("sommLog").textContent = ""; const r = SOMMELIER.answer("", sommCtx()); sommSay(r.html); sommChips(r.chips); }
-    catch(err){ sommSay(esc(tr("The sommelier couldn't load ({0}). Check your connection and try again.", errText(err)))); }
+    // a status line while its notes come, not an answer: gone before the greeting
+    const w = document.createElement("p"); w.className = "sm-wait"; w.setAttribute("role", "status"); w.textContent = tr("Getting the sommelier's notes…"); $("sommLog").appendChild(w);
+    try{ await sommLoad(); w.remove(); const r = SOMMELIER.answer("", sommCtx()); sommSay(r.html); sommChips(r.chips); }
+    catch(err){ w.remove(); sommSay(esc(tr("The sommelier couldn't load ({0}). Check your connection and try again.", errText(err)))); }
   }
   setTimeout(() => $("sommQ").focus(), 30);
 }

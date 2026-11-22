@@ -29,7 +29,10 @@ const rows = Array.from({ length: 2500 }, (_, i) => ["Domaine " + (i % 300), "Fr
   check("…and the words go once the cellar is there", !(await p.isVisible("#spinSlow")));
   await p.waitForTimeout(500);
   // Show all
-  await p.click("#rows tr.morerow button[data-all]"); const sa = await p.evaluate(() => { const b = document.querySelector("#rows tr.morerow button[data-all]"); return b ? b.textContent : ""; });
+  // what the button said, caught as it changes (the table may be drawn before a look afterwards)
+  await p.evaluate(() => { window.__said = []; new MutationObserver(() => { const b = document.querySelector("#rows tr.morerow button[data-all]"); if (b) window.__said.push(b.textContent); })
+    .observe(document.getElementById("rows"), { subtree: true, childList: true, characterData: true }); });
+  await p.click("#rows tr.morerow button[data-all]"); await p.waitForTimeout(100); const sa = (await p.evaluate(() => window.__said)).join(" | ");
   check("Show all on 2,500 wines: the button says it's drawing them", /Showing all 2[.,]?500/.test(sa), sa);
   await p.waitForFunction(() => document.querySelectorAll("#rows tr.main").length > 2000, null, { timeout: 30000 });
   // Tidy up
