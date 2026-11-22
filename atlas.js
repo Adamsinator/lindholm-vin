@@ -1127,11 +1127,17 @@ function syncHash(push) {
   const h = "#r=" + st.region.id + (st.sel ? "&c=" + st.sel : st.vsel ? "&v=" + st.vsel : "") + (st.prod ? "&p=" + st.prod : "") + (st.color && st.color !== "class" ? "&color=" + st.color + (st.color === "vintage" && st.vy ? "&y=" + st.vy : "") : "");
   if (location.hash !== h) history[push ? "pushState" : "replaceState"](null, "", location.pathname + location.search + h);
 }
+// AllWine's waiting mark, as on the cellar page (app.js pourMark): the bottle empties as the glass fills, in ten steps
+let POUR_N = 0;
+const pourMark = () => { const n = ++POUR_N, B = "M11 3h6v8c0 2 4 3 4 7v19a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V18c0-4 4-5 4-7z", G = "M41 9h18c0 9-4 14-9 14s-9-5-9-14z";
+  return `<svg class="pourmk" viewBox="0 0 64 40" aria-hidden="true"><defs><clipPath id="pmB${n}"><path d="${B}"/></clipPath><clipPath id="pmG${n}"><path d="${G}"/></clipPath></defs>`
+    + `<g clip-path="url(#pmB${n})"><rect class="pm-b" x="6" y="14" width="16" height="25" fill="var(--accent)"/></g><path d="${B}" fill="none" stroke="var(--ink)" stroke-width="1.4"/>`
+    + `<g clip-path="url(#pmG${n})"><rect class="pm-g" x="40" y="23" width="20" height="16" fill="var(--accent)"/></g><path d="${G}M50 23v11M44 34h12" fill="none" stroke="var(--ink)" stroke-width="1.4" stroke-linecap="round"/></svg>`; };
 async function openRegion(id, sel) {
   const R = REGIONS.concat(PREVIEW).find(r => r.id === id) || REGIONS[0];
   // a region's map can take a few seconds to come (a slow line, the Côte d'Or's 600 KB): say so where the eye is
   if (!(window.ATLAS_PACKS && ATLAS_PACKS[R.id])) { const msg = esc(t("Loading the map of {0}…", R.name));
-    if ($("crumb")) $("crumb").innerHTML = `<span class="loading">${msg}</span>`; $("side").innerHTML = `<h2>${esc(R.name)}</h2><p class="note loading">${msg}</p>`; }
+    if ($("crumb")) $("crumb").innerHTML = `<span class="loading">${pourMark()}${msg}</span>`; $("side").innerHTML = `<h2>${esc(R.name)}</h2><p class="note loading">${pourMark()}${msg}</p>`; }
   if (!window.ATLAS_KW) await loadScript("atlas-kw.js?v=8").catch(() => {});
   if (R.ui && !window.ATLAS_CD) await loadScript(R.ui).catch(() => {}); // the region's own tools (the Côte d'Or: owners)
   if (R.ld && !window.ATLAS_LDUI) await loadScript("atlas-ld.js?v=2").catch(() => {}); // lieux-dits: their data comes when zoomed in

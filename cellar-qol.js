@@ -220,31 +220,23 @@ $("selDrink").addEventListener("click", async ()=>{
   window.CELLAR_ICS = make; // for the tests
 })();
 
-/* Waiting: when something asked for by a click or a key takes a moment, the glass (left) fills as the bottle (right)
-   empties, in ten steps over five seconds, then again, until it's done. Only for what the person did (a call that
-   starts within a second and a half of a click, a tap or Enter), not the quiet refreshes behind; and only after a
-   third of a second, so a quick answer shows none. No words on screen; "One moment…" for screen readers. */
+/* Waiting: when something asked for by a click or a key takes a moment, AllWine's waiting mark (app.js pourMark: the
+   bottle, left, empties as the glass, right, fills, in ten steps) shows mid-screen until it's done. Only for what the
+   person did (a call that starts within a second and a half of a click, a tap or Enter), not the quiet refreshes
+   behind; only after a third of a second, so a quick answer shows none; and not while a progress line already says
+   what's happening. No words on screen; "One moment…" for screen readers. */
 (()=>{
   const W = { da: "Et øjeblik…", fr: "Un instant…", de: "Einen Moment…" }, say = () => W[window.I18N && I18N.lang] || "One moment…";
   document.head.insertAdjacentHTML("beforeend", `<style>#busy{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:300;pointer-events:none;padding:10px 12px;background:var(--bg)}
-#busy[hidden]{display:none} #busy svg{width:72px;height:46px;display:block}</style>`);
-  // ten steps, one each half second: the glass's wine rises a tenth, the bottle's falls as much; then it starts over
-  const G0 = 23, G1 = 9, B0 = 14, B1 = 39;
+#busy[hidden]{display:none}</style>`);
   const el = document.createElement("div"); el.id = "busy"; el.setAttribute("role", "status"); el.hidden = true;
-  el.innerHTML = `<svg viewBox="0 0 64 40" aria-hidden="true"><defs>
-    <clipPath id="bzG"><path d="M7 9h18c0 9-4 14-9 14s-9-5-9-14z"/></clipPath>
-    <clipPath id="bzB"><path d="M45 3h6v8c0 2 4 3 4 7v19a1 1 0 0 1-1 1H42a1 1 0 0 1-1-1V18c0-4 4-5 4-7z"/></clipPath></defs>
-    <rect id="bzg" x="6" y="23" width="20" height="16" fill="var(--accent)" clip-path="url(#bzG)"></rect>
-    <path d="M7 9h18c0 9-4 14-9 14s-9-5-9-14zM16 23v11M10 34h12" fill="none" stroke="var(--ink)" stroke-width="1.4" stroke-linecap="round"/>
-    <rect id="bzb" x="40" y="14" width="16" height="25" fill="var(--accent)" clip-path="url(#bzB)"></rect>
-    <path d="M45 3h6v8c0 2 4 3 4 7v19a1 1 0 0 1-1 1H42a1 1 0 0 1-1-1V18c0-4 4-5 4-7z" fill="none" stroke="var(--ink)" stroke-width="1.4"/></svg>`;
   document.body.appendChild(el);
-  const g = el.querySelector("#bzg"), bt = el.querySelector("#bzb");
-  let act = 0, pending = 0, timer = 0, tick = 0, k = 0;
-  const step = () => { g.setAttribute("y", G0 + (G1 - G0) * k / 10); bt.setAttribute("y", B0 + (B1 - B0) * k / 10); k = (k + 1) % 11; };
+  let act = 0, pending = 0, timer = 0;
   ["pointerdown", "keydown", "submit"].forEach(t => document.addEventListener(t, e => { if(t !== "keydown" || e.key === "Enter") act = Date.now(); }, true));
-  const show = () => { el.setAttribute("aria-label", say()); el.hidden = false; k = 0; step(); tick = setInterval(step, 500); };
-  const hide = () => { clearTimeout(timer); clearInterval(tick); el.hidden = true; };
+  // drawn afresh each time, so its ten steps start from an empty glass
+  const show = () => { if(document.querySelector(".prog:not([hidden]), .spin-slow:not([hidden]), .sm-wait")) return;
+    el.innerHTML = pourMark("big"); el.setAttribute("aria-label", say()); el.hidden = false; };
+  const hide = () => { clearTimeout(timer); el.hidden = true; el.innerHTML = ""; };
   const orig = window.api;
   window.api = async function(...a){
     const mine = Date.now() - act < 1500;

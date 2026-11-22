@@ -205,7 +205,9 @@ html[data-map="dark"] #map .shade{mix-blend-mode:screen;opacity:.16} html[data-m
 .crumb button{border:0;background:none;padding:0;font:inherit;color:var(--muted);cursor:pointer}
 .crumb button[data-info],.crumb > span:first-child{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;font-size:16.5px;font-weight:600;color:var(--ink)}
 .crumb button[data-info]{font-style:italic;color:var(--accent)}
-.crumb .loading,#side .loading{color:var(--muted)} .crumb .loading::before,#side .loading::before{content:"";display:inline-block;width:10px;height:10px;margin-right:8px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:atlspin .8s linear infinite;vertical-align:-1px} @keyframes atlspin{to{transform:rotate(360deg)}} @media (prefers-reduced-motion:reduce){.crumb .loading::before,#side .loading::before{animation:none}} .crumb .up{display:none} .crumb .sep{color:var(--muted)} .crumb .n{color:var(--muted);font-size:12.5px}
+.crumb .loading,#side .loading{color:var(--muted);display:inline-flex;align-items:center;gap:8px} .pourmk{width:30px;height:19px;flex:none}
+.pourmk .pm-g{animation:pmG 5.5s steps(11,jump-none) infinite} .pourmk .pm-b{animation:pmB 5.5s steps(11,jump-none) infinite}
+@keyframes pmG{to{transform:translateY(-14px)}} @keyframes pmB{to{transform:translateY(25px)}} @media (prefers-reduced-motion:reduce){.pourmk .pm-g,.pourmk .pm-b{animation:none}} .crumb .up{display:none} .crumb .sep{color:var(--muted)} .crumb .n{color:var(--muted);font-size:12.5px}
 .mmenu,.mbar,.sidex{display:none}
 /* panels: a floating card on a wide screen, a sheet from the bottom on a phone */
 .panel{position:fixed;right:24px;top:120px;z-index:60;width:min(360px,calc(100vw - 32px));max-height:calc(100vh - 150px);overflow:auto;background:var(--card);color:var(--ink);
@@ -373,6 +375,6 @@ html[data-map="dark"] #map .shade{mix-blend-mode:screen;opacity:.16} html[data-m
 </div>
 <script src="i18n.js?v=101"></script>
 <script src="europe-lands.js?v=3"></script>
-<script src="atlas.js?v=79"></script>
+<script src="atlas.js?v=80"></script>
 </body>
 </html>

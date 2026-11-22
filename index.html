@@ -375,11 +375,15 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch} foote
 @media (max-width:600px){.impcols{grid-template-columns:minmax(0,1fr) minmax(0,1.2fr)}.impcols .is{display:none}}
 .spin{text-align:center;color:var(--muted);padding:60px 0;font-size:14px}
 .sm-wait{margin:6px 2px;color:var(--muted);font-size:13.5px} .spin-slow{margin:0 0 14px;color:var(--muted);font-size:14px;text-align:center}
-/* a long job's progress line: what it's doing, how far, about how long is left */
-.prog{display:grid;gap:6px;margin:10px 0 0;font-size:13.5px;color:var(--muted)} .prog[hidden]{display:none}
-.prog span::before{content:"";display:inline-block;width:10px;height:10px;margin-right:8px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:progspin .8s linear infinite;vertical-align:-1px}
-.prog progress{width:100%;height:6px;accent-color:var(--accent)} .prog progress[hidden]{display:none}
-@keyframes progspin{to{transform:rotate(360deg)}} @media (prefers-reduced-motion:reduce){.prog span::before{animation:none}}
+/* a long job's progress line: AllWine's waiting mark, what it's doing, then a bar where there's a count */
+.prog{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:6px 10px;margin:10px 0 0;font-size:13.5px;color:var(--muted)} .prog[hidden]{display:none}
+.prog progress{grid-column:1/-1;width:100%;height:6px;accent-color:var(--accent)} .prog progress[hidden]{display:none}
+.spin-slow:not([hidden]),.sm-wait{display:flex;align-items:center;justify-content:center;gap:10px} .sm-wait{justify-content:flex-start}
+/* the mark: the bottle's wine falls as the glass's rises, ten steps (eleven states) over five and a half seconds, then again */
+.pourmk{width:34px;height:21px;flex:none;display:block} .pourmk.big{width:72px;height:46px}
+.pourmk .pm-g{animation:pmG 5.5s steps(11,jump-none) infinite} .pourmk .pm-b{animation:pmB 5.5s steps(11,jump-none) infinite}
+@keyframes pmG{to{transform:translateY(-14px)}} @keyframes pmB{to{transform:translateY(25px)}}
+@media (prefers-reduced-motion:reduce){.pourmk .pm-g,.pourmk .pm-b{animation:none}}
 .spin.skel{padding:6px 0 0;text-align:left}
 .skel .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 .sk-kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin:0 0 22px} .sk-rows{display:grid;gap:10px}
@@ -1504,7 +1508,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
       <p class="imphint" data-i18n>Nothing here is changed for you: open a wine to fill it in.</p>
       <div id="tidyLook"></div>
     </div>
-<div class="prog" id="tidyProg" role="status" aria-live="polite" hidden><span></span><progress></progress></div>
+<div class="prog" id="tidyProg" role="status" aria-live="polite" hidden><span class="prog-t"></span><progress></progress></div>
     <div class="err" id="tidyErr" role="status" aria-live="polite"></div>
     <div class="mact">
       <button class="btn" type="button" id="tidyCancel" data-i18n>Close</button>
@@ -1607,7 +1611,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
         <label class="jcheck"><input type="radio" name="impDup" value="skip"> <span data-i18n>Skip them</span></label>
       </fieldset>
     </div>
-<div class="prog" id="impProg" role="status" aria-live="polite" hidden><span></span><progress></progress></div>
+<div class="prog" id="impProg" role="status" aria-live="polite" hidden><span class="prog-t"></span><progress></progress></div>
     <div class="err" id="impErr" role="status" aria-live="polite"></div>
     <div class="mact">
       <button class="btn" type="button" id="impCancel" data-i18n>Cancel</button>
@@ -1898,6 +1902,6 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 <script src="wine-kb.js?v=2"></script>
 <script src="piemonte-mga.js?v=1"></script>
 <script src="share-crypto.js?v=2"></script>
-<script src="app.js?v=135"></script>
+<script src="app.js?v=136"></script>
 </body>
 </html>

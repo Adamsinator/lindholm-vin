@@ -69,13 +69,26 @@ const fmtChip = w => isStdBottle(w) ? "" :
   `<span class="fmt" title="${esc(formatOf(w).note)}">${esc(tr(formatOf(w).key))}</span>`;
 
 const fmt = n => new Intl.NumberFormat("da-DK",{maximumFractionDigits:0}).format(n);
+// AllWine's waiting mark: the bottle (left) empties as the glass (right) fills, in ten steps, then again. The centre
+// overlay (cellar-qol.js) and every progress line use it; each copy its own clip ids, on a group: the wine moves
+// inside a still glass (a clip on the moving rect would move with it)
+let POUR_N = 0;
+function pourMark(cls){ const n = ++POUR_N;
+  return `<svg class="pourmk${cls ? " " + cls : ""}" viewBox="0 0 64 40" aria-hidden="true"><defs>
+    <clipPath id="pmB${n}"><path d="M11 3h6v8c0 2 4 3 4 7v19a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V18c0-4 4-5 4-7z"/></clipPath>
+    <clipPath id="pmG${n}"><path d="M41 9h18c0 9-4 14-9 14s-9-5-9-14z"/></clipPath></defs>
+    <g clip-path="url(#pmB${n})"><rect class="pm-b" x="6" y="14" width="16" height="25" fill="var(--accent)"/></g>
+    <path d="M11 3h6v8c0 2 4 3 4 7v19a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V18c0-4 4-5 4-7z" fill="none" stroke="var(--ink)" stroke-width="1.4"/>
+    <g clip-path="url(#pmG${n})"><rect class="pm-g" x="40" y="23" width="20" height="16" fill="var(--accent)"/></g>
+    <path d="M41 9h18c0 9-4 14-9 14s-9-5-9-14zM50 23v11M44 34h12" fill="none" stroke="var(--ink)" stroke-width="1.4" stroke-linecap="round"/></svg>`; }
 // a long job says what it's doing, how far it has got and about how long is left (an import, a tidy-up…), in a
 // .prog line: progressIn(box).set(text, done, total) … .end()
 function progressIn(box){
   let t0 = 0;
+  if(!box.querySelector(".pourmk")) box.insertAdjacentHTML("afterbegin", pourMark());
   return { set(text, done, total){ if(!t0) t0 = performance.now(); box.hidden = false; const bar = box.querySelector("progress");
       const left = done > 0 && total > done ? (performance.now() - t0) / done * (total - done) / 1000 : 0;
-      box.querySelector("span").textContent = text + (left > 4 ? " · " + (left < 90 ? tr("about {0} s left", Math.ceil(left / 5) * 5) : tr("about {0} min left", Math.round(left / 60))) : "");
+      box.querySelector(".prog-t").textContent = text + (left > 4 ? " · " + (left < 90 ? tr("about {0} s left", Math.ceil(left / 5) * 5) : tr("about {0} min left", Math.round(left / 60))) : "");
       bar.hidden = total == null; if(total != null){ bar.max = total; bar.value = done; } },
     end(){ box.hidden = true; t0 = 0; } };
 }
@@ -1569,7 +1582,7 @@ async function loadData(quiet){
     sp.hidden = false; $("content").hidden = true; }
   if(cfg.user){ $("who").textContent = cfg.user; $("who").hidden = false; $("pMe").textContent = cfg.user.trim().charAt(0).toUpperCase() || "·"; }
   // past 2 s: a visible word, not just the grey shapes (a big cellar, or an encrypted one being opened)
-  const slow = !quiet && setTimeout(()=>{ $("spinSlow").textContent = tr("Still fetching your cellar: a big one takes a few seconds."); $("spinSlow").hidden = false; }, 2000);
+  const slow = !quiet && setTimeout(()=>{ $("spinSlow").innerHTML = pourMark() + `<span>${esc(tr("Still fetching your cellar: a big one takes a few seconds."))}</span>`; $("spinSlow").hidden = false; }, 2000);
   try{
     const res = await api({action:"data"});
     clearTimeout(slow); $("spinSlow").hidden = true;
@@ -1582,7 +1595,7 @@ async function loadData(quiet){
     LOADED_AT = new Date(); stampText();
     $("spin").hidden = true; $("content").hidden = false;
     if(!VINT_W && VINT_CELLAR.length) drawVintages(VINT_CELLAR); // drawn while hidden (no width yet): again, for the width it has now
-    if(!window.CELLAR_QOL) loadJS("cellar-qol.js?v=14").catch(()=>{}); // the conveniences: swipes, keys, several wines at once
+    if(!window.CELLAR_QOL) loadJS("cellar-qol.js?v=15").catch(()=>{}); // the conveniences: swipes, keys, several wines at once
     if(/^test/i.test(cfg.user||"") && !window.TESTKIT) loadJS("testkit.js?v=2").then(()=>TESTKIT.mount()).catch(()=>{}); // test data
     loadJournalSilently(); refreshDeleted(); checkOwner(); takePrefill();
     if(location.hash === "#tour"){ history.replaceState(null, "", location.pathname + location.search); startTour(); } // the help page's link // checkOwner asks "me", which says if the feed is on
@@ -2262,7 +2275,7 @@ async function sommOpen(){
   $("sommPanel").hidden = false; $("sommBtn").hidden = true;
   if(!$("sommLog").children.length){
     // a status line while its notes come, not an answer: gone before the greeting
-    const w = document.createElement("p"); w.className = "sm-wait"; w.setAttribute("role", "status"); w.textContent = tr("Getting the sommelier's notes…"); $("sommLog").appendChild(w);
+    const w = document.createElement("p"); w.className = "sm-wait"; w.setAttribute("role", "status"); w.innerHTML = pourMark() + `<span>${esc(tr("Getting the sommelier's notes…"))}</span>`; $("sommLog").appendChild(w);
     try{ await sommLoad(); w.remove(); const r = SOMMELIER.answer("", sommCtx()); sommSay(r.html); sommChips(r.chips); }
     catch(err){ w.remove(); sommSay(esc(tr("The sommelier couldn't load ({0}). Check your connection and try again.", errText(err)))); }
   }
