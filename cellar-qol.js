@@ -504,20 +504,22 @@ $("selDrink").addEventListener("click", async ()=>{
 // price are left out, and counted. Monthly up to three years, then a point a quarter, at most ten years back.
 (()=>{
   const W = { da: { "Value over time": "Værdi over tid", "at cost": "til kostpris", "at your values": "til dine værdier", "now": "nu",
-      "{0} on 12 months": "{0} på 12 måneder", "From purchase and drink dates: a wine's drunk bottles leave at its last drink date.": "Ud fra købs- og drikkedatoer: en vins drukne flasker regnes fra dens seneste drikkedato.",
+      "{0} on 12 months": "{0} mod for et år siden, fra købte og drukne flasker", "What the cellar cost, over time": "Hvad kælderen har kostet, over tid", "From purchase and drink dates: a wine's drunk bottles leave at its last drink date.": "Ud fra købs- og drikkedatoer: en vins drukne flasker regnes fra dens seneste drikkedato.",
       "{0} wines without a purchase date or price aren't in it.": "{0} vine uden købsdato eller pris er ikke med.", "1 wine without a purchase date or price isn't in it.": "1 vin uden købsdato eller pris er ikke med." },
     fr: { "Value over time": "Valeur dans le temps", "at cost": "au prix d'achat", "at your values": "à vos valeurs", "now": "aujourd'hui",
-      "{0} on 12 months": "{0} sur 12 mois", "From purchase and drink dates: a wine's drunk bottles leave at its last drink date.": "D'après les dates d'achat et de dégustation : les bouteilles bues d'un vin sortent à sa dernière date.",
+      "{0} on 12 months": "{0} par rapport à il y a un an, par les bouteilles achetées et bues", "What the cellar cost, over time": "Ce que la cave a coûté, dans le temps", "From purchase and drink dates: a wine's drunk bottles leave at its last drink date.": "D'après les dates d'achat et de dégustation : les bouteilles bues d'un vin sortent à sa dernière date.",
       "{0} wines without a purchase date or price aren't in it.": "{0} vins sans date d'achat ou sans prix n'y sont pas.", "1 wine without a purchase date or price isn't in it.": "1 vin sans date d'achat ou sans prix n'y est pas." },
     de: { "Value over time": "Wert im Zeitverlauf", "at cost": "zum Einkaufspreis", "at your values": "zu Ihren Werten", "now": "jetzt",
-      "{0} on 12 months": "{0} gegenüber 12 Monaten", "From purchase and drink dates: a wine's drunk bottles leave at its last drink date.": "Aus Kauf- und Trinkdaten: die getrunkenen Flaschen eines Weins gehen zu seinem letzten Trinkdatum ab.",
+      "{0} on 12 months": "{0} gegenüber vor einem Jahr, durch gekaufte und getrunkene Flaschen", "What the cellar cost, over time": "Was der Keller gekostet hat, im Zeitverlauf", "From purchase and drink dates: a wine's drunk bottles leave at its last drink date.": "Aus Kauf- und Trinkdaten: die getrunkenen Flaschen eines Weins gehen zu seinem letzten Trinkdatum ab.",
       "{0} wines without a purchase date or price aren't in it.": "{0} Weine ohne Kaufdatum oder Preis sind nicht dabei.", "1 wine without a purchase date or price isn't in it.": "1 Wein ohne Kaufdatum oder Preis ist nicht dabei." } };
-  const word = (s, ...a) => ((W[window.I18N && I18N.lang] || {})[s] || s).replace(/\{(\d)\}/g, (m, i) => a[i] ?? "");
+  // in English too the change says what it is: at cost, it's bottles bought and drunk, never prices rising
+  const EN = { "{0} on 12 months": "{0} on a year ago, from bottles bought and drunk" };
+  const word = (s, ...a) => ((W[window.I18N && I18N.lang] || {})[s] || EN[s] || s).replace(/\{(\d)\}/g, (m, i) => a[i] ?? "");
   document.head.insertAdjacentHTML("beforeend", `<style>#valTime{margin-top:14px} #valTime h3{font-size:12px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin:0 0 4px;font-weight:600}
 #valTime svg{display:block;width:100%;height:auto} #valTime .vt-c{fill:none;stroke:var(--accent);stroke-width:2} #valTime .vt-v{fill:none;stroke:var(--gold,#A87E2F);stroke-width:2;stroke-dasharray:5 4}
 #valTime .vt-a{fill:var(--accent);opacity:.08} #valTime text{font-size:10.5px;fill:var(--muted)} #valTime .vt-k{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12.5px;margin:4px 0}
 #valTime .vt-k b{font-family:var(--serif);font-size:17px} #valTime .vt-k i{display:inline-block;width:14px;height:0;border-top:2px solid var(--accent);margin-right:5px;vertical-align:middle}
-#valTime .vt-k i.v{border-top:2px dashed var(--gold,#A87E2F)} #worthPanel.vt-only > .ph, #worthPanel.vt-only #worth{display:none}</style>`);
+#valTime .vt-k i.v{border-top:2px dashed var(--gold,#A87E2F)} #worthPanel.vt-only > .ph, #worthPanel.vt-only #worth, #worthPanel.vt-only > h2{display:none}</style>`);
   const ym = d => d.getFullYear() * 12 + d.getMonth();
   function draw(){
     const panel = $("worthPanel"); if(!panel) return; let box = $("valTime");
@@ -541,7 +543,7 @@ $("selDrink").addEventListener("click", async ()=>{
     const ago = pts.findIndex(t => t >= now - 12), d12 = ago >= 0 && C[ago] > 0 ? (C[C.length - 1] - C[ago]) / C[ago] : null;
     if(!box){ panel.insertAdjacentHTML("beforeend", '<div id="valTime"></div>'); box = $("valTime"); }
     box.hidden = false;
-    box.innerHTML = `<h3>${esc(word("Value over time"))}</h3>
+    box.innerHTML = `<h3>${esc(word(V ? "Value over time" : "What the cellar cost, over time"))}</h3>
       <div class="vt-k"><span><i></i>${esc(word("at cost"))} ${esc(word("now"))} <b>${esc(kr(Math.round(C[C.length - 1])))}</b>${d12 != null ? ` · ${esc(word("{0} on 12 months", (d12 >= 0 ? "+" : "−") + Math.abs(Math.round(d12 * 100)) + " %"))}` : ""}</span>
         ${V ? `<span><i class="v"></i>${esc(word("at your values"))} <b>${esc(kr(Math.round(V[V.length - 1])))}</b></span>` : ""}</div>
       <svg viewBox="0 0 ${Wd} ${H}" role="img" aria-label="${esc(word("Value over time"))}: ${esc(lab(pts[0]))} ${esc(kr(Math.round(C[0])))} → ${esc(lab(now))} ${esc(kr(Math.round(C[C.length - 1])))}">

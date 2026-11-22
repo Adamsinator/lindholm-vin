@@ -48,6 +48,12 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   check("…July 2025, one of A drunk, B bought: 600 kr.", /^600 kr/.test(tip("Jul 2025")), tip("Jul 2025"));
   check("…now 600 kr. at cost, 900 kr. at your values (B valued 800)", /at cost now 600 kr/.test(vt.k) && /at your values 900 kr/.test(vt.k), vt.k);
   check("…the wine without a purchase date is said to be left out", /1 wine without a purchase date or price isn't in it/.test(vt.note), vt.note);
+  // no wine with a value set: the panel is the curve alone, called what it is, and its change said as bottles, not prices
+  const noVal = await p.evaluate(() => { const keep = WINES.map(w => w.value); WINES.forEach(w => { w.value = null; }); renderOverview();
+    const r = { h3: document.querySelector("#valTime h3").textContent, h2: getComputedStyle(document.querySelector("#worthPanel > h2")).display, k: document.querySelector("#valTime .vt-k").textContent.replace(/\s+/g, " ") };
+    WINES.forEach((w, i) => { w.value = keep[i]; }); renderOverview(); return r; });
+  check("…with no values set: \"What the cellar cost, over time\", the value-against-price heading hidden, the change put down to bottles bought and drunk",
+    noVal.h3 === "What the cellar cost, over time" && noVal.h2 === "none" && /on a year ago, from bottles bought and drunk/.test(noVal.k), JSON.stringify(noVal));
 
   // the Undo bar and dialogs
   await p.evaluate(() => notify("Renamed", [{ label: "Undo", fn() {} }])); await p.waitForTimeout(600);
