@@ -18,6 +18,10 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
     return r.fulfill({ contentType: "application/json", body: JSON.stringify(res) }); });
   const p = await ctx.newPage(); const errs = []; p.on("pageerror", e => errs.push(e.message)); p.on("console", m => m.type() === "error" && errs.push(m.text()));
   await p.goto(BASE); await p.waitForTimeout(400);
+  // the login form puts the cursor in the username a moment after it shows, but not over a field already being typed in
+  // (on a slow machine that moment came late, and the email typed went into the username: "bodilbodil@example.com")
+  const kept = await p.evaluate(async () => { showGate(""); const f = document.getElementById("gatePass"); f.focus(); await new Promise(r => setTimeout(r, 150)); return document.activeElement === f; });
+  check("the login form doesn't take the cursor from a field already in use", kept);
   const signup = async user => {
     await p.click("#gateToggle"); await p.fill("#gateUser", user); await p.fill("#gatePass", user + "-pass-1"); await p.fill("#gateInvite", "invite");
     await p.fill("#gatePass2", user + "-pass-1"); await p.fill("#gateEmail", user + "@example.com"); await p.click("#gateSubmit");

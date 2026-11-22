@@ -1789,7 +1789,9 @@ function showGate(msg){
   $("gateErr").textContent = msg||"";
   if(!document.getElementById("bizband")) loadJS("landing-biz.js?v=3").catch(()=>{});
   // On phones the atlas sits above the login; focusing would pop the keyboard and scroll past it.
-  if(matchMedia("(min-width: 821px)").matches) setTimeout(()=>$("gateUser").focus(), 50);
+  // Only if nothing has the focus yet: on a slow machine the moment came after typing had begun in another field, and
+  // the rest of the typing went into the username (CI's sign-ups: "bodilbodil@example.com")
+  if(matchMedia("(min-width: 821px)").matches) setTimeout(()=>{ const a = document.activeElement; if(!a || a === document.body) $("gateUser").focus(); }, 50);
 }
 function setGateMode(mode){
   GATE_MODE = mode;
