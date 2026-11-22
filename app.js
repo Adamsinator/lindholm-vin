@@ -74,13 +74,13 @@ const fmt = n => new Intl.NumberFormat("da-DK",{maximumFractionDigits:0}).format
 // inside a still glass (a clip on the moving rect would move with it)
 let POUR_N = 0;
 function pourMark(cls){ const n = ++POUR_N;
-  return `<svg class="pourmk${cls ? " " + cls : ""}" viewBox="0 0 64 40" aria-hidden="true"><defs>
+  return `<svg class="pourmk${cls ? " " + cls : ""}" viewBox="0 0 50 40" aria-hidden="true"><defs>
     <clipPath id="pmB${n}"><path d="M11 3h6v8c0 2 4 3 4 7v19a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V18c0-4 4-5 4-7z"/></clipPath>
-    <clipPath id="pmG${n}"><path d="M41 9h18c0 9-4 14-9 14s-9-5-9-14z"/></clipPath></defs>
+    <clipPath id="pmG${n}"><path d="M27 9h18c0 9-4 14-9 14s-9-5-9-14z"/></clipPath></defs>
     <g clip-path="url(#pmB${n})"><rect class="pm-b" x="6" y="14" width="16" height="25" fill="var(--accent)"/></g>
     <path d="M11 3h6v8c0 2 4 3 4 7v19a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V18c0-4 4-5 4-7z" fill="none" stroke="var(--ink)" stroke-width="1.4"/>
-    <g clip-path="url(#pmG${n})"><rect class="pm-g" x="40" y="23" width="20" height="16" fill="var(--accent)"/></g>
-    <path d="M41 9h18c0 9-4 14-9 14s-9-5-9-14zM50 23v11M44 34h12" fill="none" stroke="var(--ink)" stroke-width="1.4" stroke-linecap="round"/></svg>`; }
+    <g clip-path="url(#pmG${n})"><rect class="pm-g" x="26" y="23" width="20" height="16" fill="var(--accent)"/></g>
+    <path d="M27 9h18c0 9-4 14-9 14s-9-5-9-14zM36 23v11M30 34h12" fill="none" stroke="var(--ink)" stroke-width="1.4" stroke-linecap="round"/></svg>`; }
 // a long job says what it's doing, how far it has got and about how long is left (an import, a tidy-up…), in a
 // .prog line: progressIn(box).set(text, done, total) … .end()
 function progressIn(box){
