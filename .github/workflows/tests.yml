@@ -29,6 +29,14 @@ jobs:
         run: |
           pip install openpyxl==3.1.5
           npm install --no-save --no-package-lock playwright@1.56.1 axe-core@4.10.2
-          npx playwright install --with-deps chromium
+          # the browser and its system packages: up to three tries, the package lists fetched again between them (on 22
+          # November 2026 one runner reached only Microsoft's package source, not Ubuntu's, and the run failed before
+          # any test ran: "Unable to locate package fonts-unifont")
+          for i in 1 2 3; do
+            npx playwright install --with-deps chromium && exit 0
+            echo "Installing the browser failed (try $i of 3); fetching the package lists again"
+            sleep 20; sudo apt-get update || true
+          done
+          exit 1
       - name: Run all suites
         run: node tools/run-tests.js
