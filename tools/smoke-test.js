@@ -79,7 +79,12 @@ const overflow=async(p,where)=>{ const o=await p.evaluate(()=>document.documentE
     const t=Date.now(), late=ms=>new Promise(r=>setTimeout(()=>r('no answer in '+ms/1000+' s'),ms));
     const server=await Promise.race([new Promise(r=>require('http').get(url,s=>{ s.resume(); s.on('end',()=>r('HTTP '+s.statusCode+' in '+(Date.now()-t)+' ms')); }).on('error',x=>r(x.message))),late(5000)]);
     const page=await Promise.race([p.evaluate(()=>location.href+' '+document.readyState).catch(x=>x.message.split('\n')[0]),late(5000)]);
-    console.log('  still loading when '+url+' timed out: '+[...pending].map(r=>r.method()+' '+r.url().replace(BASE,'/')+(answered.has(r)?' (answered, body still coming)':' (no answer yet)')).join(', ')+' · the server: '+server+'; the page: '+page);
+    // a page that doesn't answer is busy: pause it in the debugger and say where (the JS it's stuck in, if it's JS)
+    // (the debugger is switched on beforehand, while the page still answers: switching it on needs the page)
+    let where='';
+    if(/no answer/.test(String(page)) && p.__dbg){ const cdp=p.__dbg;
+      where=await Promise.race([new Promise(r=>{ cdp.on('Debugger.paused',ev=>r(ev.callFrames.slice(0,8).map(f=>(f.functionName||'(anon)')+' '+String(f.url).replace(BASE,'')+':'+(f.location.lineNumber+1)).join(' < '))); cdp.send('Debugger.pause').catch(()=>{}); }),late(4000)]); }
+    console.log('  still loading when '+url+' timed out: '+[...pending].map(r=>r.method()+' '+r.url().replace(BASE,'/')+(answered.has(r)?' (answered, body still coming)':' (no answer yet)')).join(', ')+' · the server: '+server+'; the page: '+page+(where?'; it is busy in: '+where:'')+' ('+tag+')');
     throw e; } };
   // front page, logged out
   await p.goto(BASE); await p.waitForTimeout(600); await overflow(p,tag+' front'); await p.screenshot({path:OUT+tag+'_front.png'});
@@ -166,7 +171,8 @@ const overflow=async(p,where)=>{ const o=await p.evaluate(()=>document.documentE
     await cd(()=>{ $('edP').value='Domaine Leroy'; $('edHa').value='0.1'; $('edN').value='smoke'; $('edForm').requestSubmit(); });
     await p.waitForFunction(()=>/Domaine Leroy/.test(document.getElementById('side').textContent) && !document.getElementById('edForm'),null,{timeout:10000}).catch(()=>note(tag,'edit did not apply')); }
   else note(tag,'no edit button while logged in');
-  // logout returns to the front page
+  // logout returns to the front page (the debugger on first, so a page that stops answering can be asked where it is)
+  try{ p.__dbg=p.__dbg||await p.context().newCDPSession(p); await Promise.race([p.__dbg.send('Debugger.enable'),new Promise(r=>setTimeout(r,3000))]); }catch(e){}
   await go(BASE); await p.waitForSelector('#app:not([hidden])',{timeout:20000}).catch(()=>{}); await p.waitForTimeout(300);
   try{ await press(p, '#lockBtn'); await p.waitForTimeout(400); if(!(await p.isVisible('#gate'))) note(tag,'gate not shown after logout'); if(!(await p.isVisible('.atlascard'))) note(tag,'atlas card missing after logout'); }catch(e){note(tag,'logout '+e.message)}
   await ctx.close();
