@@ -817,6 +817,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 @media (prefers-reduced-motion:reduce){ .btl{animation:none;opacity:1;transform:none} .btl.soon .cp{animation:none} }
 /* ---------- phones: an app — a slim top bar, the pages as tabs at the bottom, ＋ for adding, the rest in two menus ---------- */
 .pmore,.pme,.ptabs,.pfab{display:none}
+.psheet .card{-webkit-user-select:none;user-select:none} /* a finger resting before a swipe would start selecting text, which ends the swipe */
 .psheet .pmenu{display:grid;gap:2px;margin-top:4px}
 .psheet .pmenu button,.psheet .pmenu a{display:flex;gap:12px;align-items:center;border:0;background:none;padding:12px 6px;border-radius:12px;text-align:left;font:inherit;font-size:16px;color:var(--ink);text-decoration:none;cursor:pointer}
 .psheet .pmenu button:hover,.psheet .pmenu a:hover{background:var(--card)}

@@ -1567,7 +1567,7 @@ async function loadData(quiet){
     LOADED_AT = new Date(); stampText();
     $("spin").hidden = true; $("content").hidden = false;
     if(!VINT_W && VINT_CELLAR.length) drawVintages(VINT_CELLAR); // drawn while hidden (no width yet): again, for the width it has now
-    if(!window.CELLAR_QOL) loadJS("cellar-qol.js?v=13").catch(()=>{}); // the conveniences: swipes, keys, several wines at once
+    if(!window.CELLAR_QOL) loadJS("cellar-qol.js?v=14").catch(()=>{}); // the conveniences: swipes, keys, several wines at once
     if(/^test/i.test(cfg.user||"") && !window.TESTKIT) loadJS("testkit.js?v=2").then(()=>TESTKIT.mount()).catch(()=>{}); // test data
     loadJournalSilently(); refreshDeleted(); checkOwner(); takePrefill();
     if(location.hash === "#tour"){ history.replaceState(null, "", location.pathname + location.search); startTour(); } // the help page's link // checkOwner asks "me", which says if the feed is on
@@ -2591,7 +2591,7 @@ $("tipsClose").addEventListener("click", ()=>{ try{ localStorage.setItem(TIPS_KE
 const TOUR_KEY = () => "vinTour:" + String(cfg.user||"").toLowerCase();
 const tourSeen = () => { try{ return localStorage.getItem(TOUR_KEY()) === "1"; }catch(e){ return true; } };
 function tourNote(){ $("tourNote").hidden = !cfg.user || tourSeen() || !$("tips").hidden; }
-function startTour(){ $("tourNote").hidden = true; (window.TOUR ? Promise.resolve() : loadJS("tour.js?v=1")).then(()=>TOUR.start()).catch(()=>toast(tr("Couldn't load the tour. Check your connection and try again."))); }
+function startTour(){ $("tourNote").hidden = true; (window.TOUR ? Promise.resolve() : loadJS("tour.js?v=2")).then(()=>TOUR.start()).catch(()=>toast(tr("Couldn't load the tour. Check your connection and try again."))); }
 ["tipsTour","tourGo","tourBtn"].forEach(id=>$(id).addEventListener("click", startTour));
 $("tourNo").addEventListener("click", ()=>{ try{ localStorage.setItem(TOUR_KEY(), "1"); }catch(e){} $("tourNote").hidden = true; });
 

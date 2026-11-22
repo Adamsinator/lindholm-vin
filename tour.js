@@ -25,7 +25,7 @@ const T = {
     pages: ["Enjoyed, Wishlist, Journal", "What you've drunk, what you'd like to buy, and your tasting notes."],
     atlas: ["The wine atlas", "Every vineyard from the official maps, from Burgundy to Holbæk, with your bottles on them."],
     help: ["Help is here", "Answers and tips, and this tour again whenever you want it."],
-    next: "Next", back: "Back", done: "Done", close: "Close the tour", of: "{0} of {1}" },
+    next: "Next", back: "Back", done: "Done", skip: "Skip tour", close: "Close the tour", of: "{0} of {1}" },
   da: { hi: ["Velkommen til AllWine", "Et minuts kig på, hvad din kælder kan. Gå ud når du vil: rundvisningen ligger i hjælpemenuen."],
     add: ["Tilføj en vin", "Skriv et par bogstaver fra etiketten: område, drue og klassifikation udfyldes ud fra, hvad der står."],
     imp: ["Importér en liste", "Fra Excel, CSV, Vivino eller CellarTracker. Rækker med samme vin lægges sammen, og stavemåder rettes. Ryd op, ved siden af, gør det samme for kælderen senere."],
@@ -35,7 +35,7 @@ const T = {
     pages: ["Nydt, Ønskeliste, Journal", "Hvad du har drukket, hvad du gerne vil købe, og dine smagsnoter."],
     atlas: ["Vinatlas", "Hver vinmark fra de officielle kort, fra Bourgogne til Holbæk, med dine flasker på."],
     help: ["Hjælpen er her", "Svar og tips, og denne rundvisning igen, når du vil."],
-    next: "Næste", back: "Tilbage", done: "Færdig", close: "Luk rundvisningen", of: "{0} af {1}" },
+    next: "Næste", back: "Tilbage", done: "Færdig", skip: "Spring over", close: "Luk rundvisningen", of: "{0} af {1}" },
   fr: { hi: ["Bienvenue sur AllWine", "Une minute pour voir ce que fait votre cave. Partez quand vous voulez : la visite est dans le menu d'aide."],
     add: ["Ajouter un vin", "Tapez quelques lettres de l'étiquette : région, cépage et classement se remplissent d'après ce qu'elle dit."],
     imp: ["Importer une liste", "Depuis Excel, CSV, Vivino ou CellarTracker. Les lignes d'un même vin sont réunies et l'orthographe harmonisée. Ranger, à côté, fait de même pour la cave plus tard."],
@@ -45,7 +45,7 @@ const T = {
     pages: ["Dégustés, Liste d'envies, Journal", "Ce que vous avez bu, ce que vous aimeriez acheter, et vos notes de dégustation."],
     atlas: ["L'atlas des vins", "Chaque vignoble d'après les cartes officielles, de la Bourgogne à Holbæk, avec vos bouteilles dessus."],
     help: ["L'aide est ici", "Réponses et astuces, et cette visite quand vous voulez."],
-    next: "Suivant", back: "Retour", done: "Terminé", close: "Fermer la visite", of: "{0} sur {1}" },
+    next: "Suivant", back: "Retour", done: "Terminé", skip: "Passer la visite", close: "Fermer la visite", of: "{0} sur {1}" },
   de: { hi: ["Willkommen bei AllWine", "Eine Minute, um zu sehen, was Ihr Keller kann. Gehen Sie jederzeit: Die Tour ist im Hilfemenü."],
     add: ["Einen Wein hinzufügen", "Ein paar Buchstaben vom Etikett: Region, Rebsorte und Klassifikation füllen sich nach dem, was darauf steht."],
     imp: ["Eine Liste importieren", "Aus Excel, CSV, Vivino oder CellarTracker. Zeilen desselben Weins werden zusammengeführt, Schreibweisen vereinheitlicht. Aufräumen, daneben, macht das später für den Keller."],
@@ -55,7 +55,7 @@ const T = {
     pages: ["Genossen, Wunschliste, Journal", "Was Sie getrunken haben, was Sie kaufen möchten, und Ihre Verkostungsnotizen."],
     atlas: ["Der Weinatlas", "Jeder Weinberg nach den amtlichen Karten, vom Burgund bis Holbæk, mit Ihren Flaschen darauf."],
     help: ["Hier ist die Hilfe", "Antworten und Tipps, und diese Tour, wann immer Sie möchten."],
-    next: "Weiter", back: "Zurück", done: "Fertig", close: "Tour schließen", of: "{0} von {1}" },
+    next: "Weiter", back: "Zurück", done: "Fertig", skip: "Tour überspringen", close: "Tour schließen", of: "{0} von {1}" },
 };
 const L = () => T[(window.I18N && I18N.lang) || "en"] || T.en, esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const shown = e => { if (!e) return false; const r = e.getBoundingClientRect(), cs = getComputedStyle(e); return r.width > 0 && r.height > 0 && cs.visibility !== "hidden" && !e.closest("[hidden]"); };
@@ -66,7 +66,8 @@ const CSS = `.tour-shade{position:fixed;inset:0;z-index:2000}
 .tour-card{position:fixed;z-index:2002;background:var(--card,#fff);color:var(--ink,#222);border-radius:14px;padding:16px 18px 14px;box-shadow:0 12px 40px rgba(0,0,0,.3);transition:top .3s,left .3s}
 .tour-card h3{margin:0 28px 6px 0;font-size:17px} .tour-card p{margin:0 0 12px;line-height:1.45;font-size:14.5px} .tour-card .tour-n{margin:0 0 4px;font-size:12px;color:var(--muted,#777);letter-spacing:.04em}
 .tour-x{position:absolute;right:8px;top:6px;border:0;background:none;font-size:22px;line-height:1;color:var(--muted,#777);cursor:pointer;padding:4px 8px}
-.tour-b{display:flex;gap:8px;justify-content:flex-end}
+.tour-b{display:flex;gap:8px;justify-content:flex-end;align-items:center}
+.tour-skip{margin-right:auto;border:0;background:none;padding:8px 4px;font:inherit;font-size:14px;color:var(--muted,#777);text-decoration:underline;cursor:pointer}
 @media (prefers-reduced-motion:reduce){.tour-hole,.tour-card{transition:none}}`;
 let i = 0, hole = null, card = null, onKey = null, onMove = null, tgt = null;
 function place() {
@@ -86,7 +87,7 @@ function show(n) {
   tgt = target(s);
   card.innerHTML = `<button type="button" class="tour-x" data-t="x" aria-label="${esc(t.close)}">×</button>
     <p class="tour-n">${esc(t.of.replace("{0}", i + 1).replace("{1}", STEPS.length))}</p><h3 id="tourH">${esc(h)}</h3><p>${esc(p)}</p>
-    <div class="tour-b">${i ? `<button type="button" class="btn quiet" data-t="back">${esc(t.back)}</button>` : ""}<button type="button" class="btn primary" data-t="${last ? "x" : "next"}">${esc(last ? t.done : t.next)}</button></div>`;
+    <div class="tour-b">${last ? "" : `<button type="button" class="tour-skip" data-t="x">${esc(t.skip)}</button>`}${i ? `<button type="button" class="btn quiet" data-t="back">${esc(t.back)}</button>` : ""}<button type="button" class="btn primary" data-t="${last ? "x" : "next"}">${esc(last ? t.done : t.next)}</button></div>`;
   if (tgt && getComputedStyle(tgt).position !== "fixed" && !tgt.closest(".ptabs")) { const r = tgt.getBoundingClientRect(); if (r.top < 60 || r.bottom > innerHeight - 160) tgt.scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); }
   place(); setTimeout(place, 350); // after the scroll
   card.querySelector(".tour-b .primary").focus({ preventScroll: true });

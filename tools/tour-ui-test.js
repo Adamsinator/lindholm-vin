@@ -47,6 +47,7 @@ const WINE = ["Krug", "Frankrig", "Champagne", "", "Grande Cuvée", "", "Mousser
       if (!new RegExp(`${k + 1} of 9`).test(s.n) || !(await around(p, s, want[k])) || !onScreen(s)) bad.push(k + 1 + " " + s.h); }
     check("…each next step lights up its control, its card on screen", !bad.length, bad.join(" | "));
     check("…the last says Done", /Done/.test(await p.textContent(".tour-card .primary")));
+    check("…the last step has no Skip, the others do", !(await p.$(".tour-card .tour-skip")));
     await p.click(".tour-card [data-t=back]"); await p.waitForTimeout(300);
     check("…Back goes a step back", /8 of 9/.test((await state(p)).n));
     await p.keyboard.press("ArrowLeft"); await p.waitForTimeout(300); const kb = (await state(p)).n; await p.keyboard.press("Escape"); await p.waitForTimeout(200);
@@ -62,6 +63,10 @@ const WINE = ["Krug", "Frankrig", "Champagne", "", "Grande Cuvée", "", "Mousser
     const { ctx, p } = await session(b, [WINE]);
     await p.click("#tourNo"); await p.waitForTimeout(200); await p.reload(); await p.waitForSelector("#content:not([hidden])"); await p.waitForTimeout(400);
     check("“Not now” puts the note away for good", !(await p.isVisible("#tourNote")));
+    await p.click("#tourBtn", { force: true }).catch(() => p.evaluate(() => document.getElementById("tourBtn").click())); await p.waitForSelector(".tour-card");
+    await p.click(".tour-card .primary"); await p.click(".tour-card .primary"); await p.waitForTimeout(300); // to Import: no list to import, so skip the rest
+    const sk = await p.textContent(".tour-card .tour-skip"); await p.click(".tour-card .tour-skip"); await p.waitForTimeout(200);
+    check("“Skip tour” on any step (here Import) ends it at once", sk === "Skip tour" && !(await p.$(".tour-card")) && !(await p.$(".tour-shade")), sk);
     await ctx.close();
   }
   {
