@@ -86,5 +86,6 @@ Object.assign(window.I18N_DICT.de, {
   "The rules take the commune's land fit for the wine, between 250 and 600 m.": "Die Regeln nehmen das für den Wein geeignete Land der Gemeinde zwischen 250 und 600 m.",
   "The rules take the commune east of the old Via Aurelia.": "Die Regeln nehmen die Gemeinde östlich der alten Via Aurelia.",
   "Vines © ARTEA, Regione Toscana, CC BY": "Reben © ARTEA, Regione Toscana, CC BY",
-  "Partly in its wine's zone": "Teilweise in der Zone seines Weins"
+  "Partly in its wine's zone": "Teilweise in der Zone seines Weins",
+  "Back": "Zurück"
 });
