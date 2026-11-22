@@ -7,8 +7,9 @@ are done (see "Limits against abuse" in the README). Tick a box when an item shi
 
 - [ ] **Google Search Console:** add the domain `allwine.dk` (it asks for a DNS TXT record at the registrar), then
       Sitemaps → submit `https://allwine.dk/sitemap.xml`. The vineyard pages show up over the following weeks.
-- [ ] **Deploy `Code.gs` API 65**: API 64 again, with a blocked or deleted member's shared lists stopping at once. The
-      same steps: ✏️ on the existing deployment → New version. The Worker then reports v:65.
+- [x] **Deploy `Code.gs` API 65**: API 64 again, with a blocked or deleted member's shared lists stopping at once. The
+      same steps: ✏️ on the existing deployment → New version. The Worker then reports v:65. Deployed 21 November 2026;
+      the Worker reports v:65.
 - [x] **Deploy `Code.gs` API 64** (21 November): the owner can block, unblock and sign out a member; deleting (by the
       owner or the member) keeps the account 30 days with an undo, then the daily check purges it; "Delete now" for an
       erasure request. Paste it, then Manage deployments → ✏️ on the existing deployment → Version: New version →

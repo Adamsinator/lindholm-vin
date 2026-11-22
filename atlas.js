@@ -116,7 +116,13 @@ function draw() {
   TG.prof = el("g", { class: "prof", "pointer-events": "none" }, svg); PROF.a = PROF.b = null;
   TG.me = el("g", { class: "me", "pointer-events": "none" }, svg); drawMe();
   P.climats.forEach(c => { if (!c.unnamed) c.lb = el("text", { class: "lb " + c.c, x: c.lp[0], y: c.lp[1] }, gLabels); if (c.lb) c.lb.textContent = c.n;
-    c.dot = el("circle", { class: "dot", cx: c.lp[0], cy: c.lp[1], r: 0 }, gd); });
+    c.dot = el("circle", { class: "dot", cx: c.lp[0], cy: c.lp[1], r: 0 }, gd);
+    // Denmark: a field of a hectare or two is a speck on a country's map; far out, a dot by the vines' area stands for them
+    if (P.meta.fieldsYear && c.ha) { c.vd = el("circle", { class: "vd", cx: c.lp[0], cy: c.lp[1], r: 0, "data-id": c.id }, gd); el("title", {}, c.vd).textContent = c.n; } });
+  // the villages' names (Gevrey-Chambertin, Meursault…): what a reader looks for first at the overview
+  P.villages.forEach(v => { const n = v.kind === "pdo" ? "" : v.n || v.ap; if (!n || !v.g) return; const b = bbOf(v.g); let sx = 0, sy = 0, m = 0;
+    v.g.forEach(p => p[0].forEach(([x, y]) => { sx += x; sy += y; m++; })); v.lp = [sx / m, sy / m]; v.sz = Math.max(b[2] - b[0], b[3] - b[1]);
+    v.lb = el("text", { class: "lb vn", x: v.lp[0], y: v.lp[1] }, gLabels); v.lb.textContent = n; });
   pts().forEach(q => { if (!q.p) return; q.el = el("circle", { class: "pt", cx: q.p[0], cy: q.p[1], r: 0, "data-pt": q.id }, gp); el("title", {}, q.el).textContent = q.n;
     q.lb = el("text", { class: "lb pl", x: q.p[0], y: q.p[1] }, gLabels); q.lb.textContent = short(q.n); });
   }
@@ -144,14 +150,31 @@ function paint() {
 function layoutLabels() {
   const P = st.pack; if (!P || !st.view) return;
   const k = st.view[2] / svg.clientWidth || 1, taken = [];
+  // a name only once its vineyard is big enough on screen to see: at the overview the grands crus (and the land's own
+  // village names, which keep clear of these), the premiers crus as you come closer, the village climats closer still
+  if (!P.szDone) { P.climats.forEach(c => { const b = bbOf(c.hit || c.g); c.sz = Math.max(b[2] - b[0], b[3] - b[1]); }); P.szDone = 1;
+    const z = P.climats.map(c => c.sz).sort((a, b) => a - b); P.szMid = z[z.length >> 1] || 0; }
+  svg.classList.toggle("far", !P.meta.fieldsYear && P.szMid / k < 14); // the vineyards are slivers: drawn bolder
+  const putLb = (lb, p, w, h, show) => { const [ax, ay] = rotP(p), box = [ax - w / 2, ay - h, ax + w / 2, ay], v = st.view; upright(lb, p[0], p[1]);
+    const hide = !show || box[0] < v[0] || box[2] > v[0] + v[2] || taken.some(o => !(box[2] < o[0] || box[0] > o[2] || box[3] < o[1] || box[1] > o[3])); lb.style.display = hide ? "none" : ""; if (!hide) taken.push(box); };
+  // the grands crus first, then the villages (named while a village is between a thumb and a screen across), then the rest
+  const villages = () => P.villages.forEach(v => { if (!v.lb) return; v.lb.style.fontSize = 12.5 * k + "px"; v.lb.style.strokeWidth = 3.5 * k + "px";
+    putLb(v.lb, v.lp, v.lb.textContent.length * 8.2 * k, 14 * k, v.sz / k > 25 && v.sz / k < 700); });
+  if (!P.climats.some(isTop)) villages();
+  let vDone = !P.climats.some(isTop);
   P.climats.slice().sort((a, b) => (isTop(a) ? 0 : 1) - (isTop(b) ? 0 : 1) || b.ha - a.ha).forEach(c => {
     const b = Number(c.dot.dataset.b || 0); c.dot.setAttribute("r", b ? (4 + Math.sqrt(b) * 1.6) * k : 0);
+    if (c.vd) { const far = k > 16; /* a field of a hectare (100 m) under 6 px: a speck */ c.vd.setAttribute("r", far ? (4.5 + Math.sqrt(c.ha) * 1.8) * k : 0);
+      c.vd.classList.toggle("dim", c.el.classList.contains("dim")); c.vd.classList.toggle("sel", st.sel === c.id); }
+    if (!vDone && !isTop(c)) { vDone = true; villages(); }
     if (!c.lb) return;
     c.lb.style.fontSize = (isTop(c) ? 14.5 : 13) * k + "px"; c.lb.style.strokeWidth = 3 * k + "px"; // style: it outranks the stylesheet
     const [ax, ay] = rotP(c.lp), w = c.n.length * 7 * k, h = 15 * k, box = [ax - w / 2, ay - h, ax + w / 2, ay]; upright(c.lb, c.lp[0], c.lp[1]);
-    const hide = !st.show[c.c] || (st.mine && !CELLAR.by[c.id]) || !terrOk(c) || !prodOk(c) || taken.some(o => !(box[2] < o[0] || box[0] > o[2] || box[3] < o[1] || box[1] > o[3]));
+    const small = st.sel !== c.id && c.sz / k < (isTop(c) ? 9 : c.c === "V" ? 60 : 26);
+    const hide = small || !st.show[c.c] || (st.mine && !CELLAR.by[c.id]) || !terrOk(c) || !prodOk(c) || taken.some(o => !(box[2] < o[0] || box[0] > o[2] || box[3] < o[1] || box[1] > o[3]));
     c.lb.style.display = hide ? "none" : ""; if (!hide) taken.push(box);
   });
+  if (!vDone) villages(); // only grands crus
   // the châteaux: a dot a little bigger for a higher rank; names once you're close enough to read them
   pts().filter(q => q.el).sort((a, b) => PTSIZE[b.cls] - PTSIZE[a.cls]).forEach(q => {
     const off = !st.show.PT || (st.mine && !CELLAR.by[q.id]); q.el.setAttribute("r", off ? 0 : PTSIZE[q.cls] * k);
@@ -341,7 +364,7 @@ const svgSize = () => { const r = mapRect(); return [r.width || 800, r.height ||
 const aspect = () => { const [W, H] = svgSize(); return H / W; };
 function fit(bb, pad, ms) {
   bb = rotBB(bb); // the box is in the map's metres; the view is in the turned frame
-  const [W, H] = svgSize(), bw = bb[2] - bb[0], bh = bb[3] - bb[1], m = pad ?? .06;
+  const [W, H] = svgSize(), bw = bb[2] - bb[0], bh = bb[3] - bb[1], m = pad ?? (W < 600 ? .14 : .06); // a phone: room for the names at the edges
   const w = clampW(Math.max(bw / W, bh / H) * (1 + 2 * m) * W), h = w * aspect(); // a tiny vineyard: centred, at the closest zoom
   const v = [(bb[0] + bb[2]) / 2 - w / 2, (bb[1] + bb[3]) / 2 - h / 2, w, h];
   if (ms && st.view) flyTo(v, ms); else setView(v);
@@ -424,7 +447,7 @@ svg.addEventListener("pointerup", e => { const tgt = document.elementFromPoint(e
     if (lastTap && now - lastTap[0] < 320 && Math.hypot(e.clientX - lastTap[1], e.clientY - lastTap[2]) < 32) { lastTap = null; const [cx, cy] = toSvg(e); zoomAt(.5, cx, cy, 260); return; }
     lastTap = [now, e.clientX, e.clientY]; }
   if (PROF.on) { profClick(unrotP(toSvg(e))); return; }
-  const q = tgt && tgt.closest && tgt.closest(".pt"), c = tgt && tgt.closest && tgt.closest(".cl, .hit");
+  const q = tgt && tgt.closest && tgt.closest(".pt"), c = tgt && tgt.closest && tgt.closest(".cl, .hit, .vd");
   if (!q && !c && window.ATLAS_LDUI && st.region && st.region.ld) { const i = ATLAS_LDUI.at(unrotP(toSvg(e))); if (i >= 0) return ATLAS_LDUI.pick(i); } // a lieu-dit outside the climats
   select(q ? q.dataset.pt : c ? c.dataset.id : null); });
 svg.addEventListener("pointercancel", up);
@@ -1035,6 +1058,7 @@ function drawHome() {
   for (const h of EU.regs) { const r = h.r, a = el("g", { class: "hd" + (MAJOR.has(r.id) ? " big" : ""), "data-id": r.id, "data-cc": r.country, tabindex: -1, role: "link", "aria-label": r.name }, g);
     h.dot = el("circle", { cx: h.xy[0], cy: h.xy[1] }, a); h.t = el("text", {}, a); h.t.textContent = r.name; h.at = null;
     a.onkeydown = e => { if (e.key === "Enter") goTo(r.id); }; }
+  g.querySelectorAll(".cn.on").forEach(n => g.appendChild(n)); // the countries' names over the regions' dots
 }
 // the frame eased to the next; text, dots and their halos keep their size on screen (--u: map units to a pixel)
 function homeView(to, ease) {

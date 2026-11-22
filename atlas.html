@@ -70,6 +70,9 @@ header.top h1 em{font-style:italic;color:var(--accent)} header.top h1 a{color:in
 #map.pre .vl{fill-opacity:.5} #map .hit{fill:var(--accent);fill-opacity:0;stroke:none;cursor:pointer} #map .hit.hot{fill-opacity:.07} #map .hit.sel{fill-opacity:.09;stroke:var(--accent);stroke-width:1.5;stroke-opacity:.7;vector-effect:non-scaling-stroke} #map .tn.tn-v{fill:var(--accent);font-weight:700} #map .vl.pdo{fill:none;stroke:var(--ac);stroke-width:2;stroke-dasharray:6 4;vector-effect:non-scaling-stroke;opacity:1} #map.tiny .cl{stroke:var(--pc);stroke-width:3;vector-effect:non-scaling-stroke} #map .cl.part{fill-opacity:.4;stroke:var(--ac);stroke-dasharray:5 3} #map .cl.vs{stroke:var(--gc);stroke-width:5;stroke-linejoin:round} #map .cl.vs.sel{stroke:var(--sel)} #map .cl.GC{fill:var(--gc)} #map .cl.AOC{fill:var(--ac)} #map .cl.p1{fill:var(--pc)} #map .cl.px{fill:var(--pcx)} .desc{font-size:14px;line-height:1.5} #map .cl.pv{fill:var(--vc)}
 #map .cl:hover{filter:brightness(1.08)} #map .cl.sel{stroke:var(--sel);stroke-width:2.5}
 #map .cl.dim{opacity:.18}
+/* far out the vineyards are slivers: each outlined in its own colour, so the overview shows the crus, not the names */
+#map.far:not(.geolon):not(.m-outline):not(.photo) .cl{stroke-width:2.2;stroke-linejoin:round} #map.far:not(.geolon):not(.m-outline):not(.photo) .cl.GC{stroke:var(--gc)} #map.far:not(.geolon):not(.m-outline):not(.photo) .cl.AOC{stroke:var(--ac)} #map.far:not(.geolon):not(.m-outline):not(.photo) .cl.p1{stroke:var(--pc)} #map.far:not(.geolon):not(.m-outline):not(.photo) .cl.pv{stroke:var(--vc)} #map.far .cl.sel{stroke:var(--sel)}
+#map .vd{fill:var(--pc);fill-opacity:.85;stroke:var(--card);stroke-width:1.5;vector-effect:non-scaling-stroke;cursor:pointer} #map .vd:hover{fill:var(--gc)} #map .vd.sel{fill:var(--sel)} #map .vd.dim{opacity:.2}
 /* geology on: BRGM's colours under the vineyards, which keep only their outlines */
 #map .geol{opacity:.85}
 #map.geolon .cl{fill:transparent;stroke:var(--ink);stroke-width:1.1} #map.geolon .cl.sel{stroke:var(--sel);stroke-width:3} #map.geolon .cl:hover{filter:none;stroke-width:2}
@@ -77,19 +80,21 @@ header.top h1 em{font-style:italic;color:var(--accent)} header.top h1 a{color:in
 #map .lb{font-size:13px;fill:var(--ink);paint-order:stroke;stroke:var(--halo);stroke-width:3px;stroke-linejoin:round;pointer-events:none;text-anchor:middle;font-weight:600}
 #map .lb.GC,#map .lb.AOC{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;font-size:14.5px}
 #map .pt{fill:var(--ink);stroke:var(--card);stroke-width:1.5;vector-effect:non-scaling-stroke;cursor:pointer} #map .pt.has{fill:var(--gold)} #map .pt.sel{stroke:var(--accent);stroke-width:3}
-#map .lb.pl{font-size:11.5px;font-weight:600;font-style:italic}
+#map .lb.vn{font-variant:small-caps;letter-spacing:.08em;font-weight:700;fill:var(--muted)} #map .lb.pl{font-size:11.5px;font-weight:600;font-style:italic}
 #map .land{fill:var(--card2);stroke:var(--line);stroke-width:1;vector-effect:non-scaling-stroke;transition:opacity .35s,fill .2s} #map .land.on{fill:var(--rg);cursor:pointer} #map .land.on.hot{fill:var(--rg2,var(--rg));filter:brightness(.96)}
 #map.in .land:not(.cur){opacity:.5} #map.in .land.cur{cursor:default}
 #map .cn{fill:var(--muted);font-size:calc(var(--u)*10.5px);letter-spacing:.08em;text-transform:uppercase;text-anchor:middle;pointer-events:none;paint-order:stroke;stroke:var(--halo);stroke-width:calc(var(--u)*3px);stroke-linejoin:round;transition:opacity .3s}
 #map .cn.on{fill:var(--ink);font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;font-weight:600;font-size:calc(var(--u)*17px);letter-spacing:0;text-transform:none;pointer-events:auto;cursor:pointer} #map .cn .n{font-family:system-ui,sans-serif;font-weight:500;font-size:calc(var(--u)*12.5px);fill:var(--accent)}
 #map.in .cn{opacity:.55} #map.in .cn.on{opacity:0;pointer-events:none} #map.sm .cn.mi{display:none} #side h3 button{all:unset;cursor:pointer;color:var(--accent)} #side h3 button:hover,#side h3 button:focus-visible{text-decoration:underline}
-#map .hd{cursor:pointer} #map .hd:not(.on),#map .ol:not(.on){display:none} #map .hd circle{fill:var(--gc);stroke:var(--card);stroke-width:2;vector-effect:non-scaling-stroke} #map .hd:hover circle,#map .hd:focus circle,#map .hd.hot circle{fill:var(--gold)}
+#map .hd{cursor:pointer} #map .hd:not(.on),#map .ol:not(.on){display:none}
+/* Europe: where each region is, a small dot (its name on hover), each a way straight in */
+#map:not(.in) .hd{display:inline} #map:not(.in) .hd circle{transform-box:fill-box;transform-origin:center;transform:scale(.7)} #map:not(.in) .hd text{display:none} #map:not(.in) .hd:hover text,#map:not(.in) .hd:focus text{display:inline} #map .hd circle{fill:var(--gc);stroke:var(--card);stroke-width:2;vector-effect:non-scaling-stroke} #map .hd:hover circle,#map .hd:focus circle,#map .hd.hot circle{fill:var(--gold)}
 #map .ol{fill:var(--gc);fill-opacity:.2;stroke:var(--gc);stroke-width:1.3;stroke-opacity:.75;stroke-linejoin:round;cursor:pointer;vector-effect:non-scaling-stroke}
 #map .ol.hot{fill:var(--gold);fill-opacity:.38;stroke:var(--gold)}
 #map .hd text{font-size:calc(var(--u)*12.5px);font-weight:600;fill:var(--ink);paint-order:stroke;stroke:var(--halo);stroke-width:calc(var(--u)*4px);stroke-linejoin:round}
 #map .hd.big text{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;font-size:calc(var(--u)*15px)} /* the regions looked for first */
 /* the ground (IGN): relief multiplies over the colours; roads and rivers thin, over the vineyards; names under theirs */
-#map .shade{mix-blend-mode:multiply;opacity:.38}
+#map .shade{mix-blend-mode:multiply;opacity:.32}
 @media (prefers-color-scheme: dark){ #map .shade{mix-blend-mode:screen;opacity:.16} }
 #map .t-wood{fill:var(--forest);fill-opacity:.8} #map .t-town{fill:var(--town)} #map .t-lake{fill:var(--lake)}
 #map .t-water,#map .t-case,#map .t-fill,#map .t-rail,#map .t-rail2{fill:none;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
@@ -189,7 +194,7 @@ html[data-map="dark"]{--bg:#171114;--card:#221A1F;--card2:#281F24;--ink:#EFE7E8;
 html[data-map="light"]{--bg:#F7F4F1;--card:#FFFFFF;--card2:#FBF9F7;--ink:#2A2126;--muted:#756A70;--line:#E7DFDD;--accent:#7C2D3E;--accent-ink:#FFFFFF;--gold:#A87E2F;--chip:#F1EBE8;
   --gc:#8E2C45;--gc-ink:#FFFFFF;--pc:#D88E7C;--pc-ink:#3A1A21;--pcx:#EBC3B6;--ac:#B4683F;--ac-ink:#FFFFFF;--vc:#ECDDB9;--rg:#EFEADF;--mapbg:#F4F1EA;--sel:#1F1418;--halo:#FFFFFF;
   --forest:#DCE5D3;--water:#7FA8C9;--lake:#CFE0EC;--town:#E4DCD7;--rfill:#FFFFFF;--rcase:#C9BDB6;--rmain:#E9C27A;color-scheme:light}
-html[data-map="dark"] #map .shade{mix-blend-mode:screen;opacity:.16} html[data-map="light"] #map .shade{mix-blend-mode:multiply;opacity:.38}
+html[data-map="dark"] #map .shade{mix-blend-mode:screen;opacity:.16} html[data-map="light"] #map .shade{mix-blend-mode:multiply;opacity:.32}
 #map.photo .rg,#map.photo .vl{fill-opacity:0} #map.photo .cl{fill-opacity:.5;stroke:#fff;stroke-width:1.4} #map.photo .cl.sel{fill-opacity:.7}
 #map.photo .t-wood,#map.photo .t-town,#map.photo .t-lake{fill-opacity:0}
 /* the breadcrumb, top left on the map */
@@ -366,6 +371,6 @@ html[data-map="dark"] #map .shade{mix-blend-mode:screen;opacity:.16} html[data-m
 </div>
 <script src="i18n.js?v=100"></script>
 <script src="europe-lands.js?v=3"></script>
-<script src="atlas.js?v=75"></script>
+<script src="atlas.js?v=76"></script>
 </body>
 </html>
