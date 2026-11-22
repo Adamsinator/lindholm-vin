@@ -42,7 +42,7 @@ function setting(key) {
 // The legacy code only works once you've set a real one: the placeholder from the template is public.
 function accessCode() { const c = setting('ACCESS_CODE'); return c === 'CHANGE-ME' ? '' : c; }
 
-const API_VERSION = 65; // returned in every response; used to verify deployments
+const API_VERSION = 66; // returned in every response; used to verify deployments
 
 // Per-request spreadsheet for the authenticated user. Set in handle(); every
 // sheet helper reads it via ss(). Falls back to the bound (owner's) spreadsheet.
@@ -326,13 +326,13 @@ function handle(p) {
         return json({ ok: true, wines: readAll() });
       case 'addmany':
         addMany(p.wines || [], p.bumps || []);
-        return json({ ok: true, wines: readAll() });
+        return json(p.quiet ? { ok: true } : { ok: true, wines: readAll() }); // quiet: a part of a big import, not the last
       case 'setinfomany':
         setInfoMany(p.edits || []);
-        return json({ ok: true, wines: readAll() });
+        return json(p.quiet ? { ok: true } : { ok: true, wines: readAll() });
       case 'mergerows':
         mergeRows(p.groups || []);
-        return json({ ok: true, wines: readAll() });
+        return json(p.quiet ? { ok: true } : { ok: true, wines: readAll() });
       // who you are: the page shows the admin page only to the owner
       case 'me':
         return json({ ok: true, user: CTX_USER, owner: isOwnerAccount(CTX_ACCOUNT), help: helpFor(CTX_ACCOUNT), test: !!(CTX_ACCOUNT && CTX_ACCOUNT.test), biz: !!(CTX_ACCOUNT && CTX_ACCOUNT.business), social: setting('SOCIAL') === 'on',

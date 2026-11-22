@@ -822,6 +822,7 @@ Object.assign(window.I18N_DICT.de = window.I18N_DICT.de || {}, {
   "{0} rows without a producer are left out.": "{0} Zeilen ohne Erzeuger werden ausgelassen.",
   "{0} rows with 0 bottles are left out.": "{0} Zeilen mit 0 Flaschen werden ausgelassen.",
   "Only the first {0} wines are imported at a time.": "Es werden jeweils nur die ersten {0} Weine importiert.",
+  "Only the first {0} rows of the file are read.": "Nur die ersten {0} Zeilen der Datei werden gelesen.",
   "Choose which column holds the producer.": "Wählen Sie die Spalte mit dem Erzeuger.",
   "{0} wines · {1} bottles": "{0} Weine · {1} Flaschen",
   "{0} of these are already in your cellar (same producer, wine, vintage and format):": "{0} davon sind schon in Ihrem Keller (gleicher Erzeuger, Wein, Jahrgang und Format):",
@@ -1099,5 +1100,7 @@ Object.assign(window.I18N_DICT.de = window.I18N_DICT.de || {}, {
   "This account was deleted. It's kept for 30 days: write to the owner if you want it back.": "Dieses Konto wurde gelöscht. Es wird 30 Tage aufbewahrt: schreiben Sie dem Inhaber, wenn Sie es zurückhaben möchten.",
   "Delete your account \"{0}\"? You're signed out at once and can't log in. Everything is kept for 30 days: write to the owner before then if you change your mind. After that it's deleted for good: cellar, journal, wishlist, photos, feed posts and follows.": "Ihr Konto „{0}“ löschen? Sie werden sofort abgemeldet und können sich nicht mehr anmelden. Alles wird 30 Tage aufbewahrt: schreiben Sie dem Inhaber vorher, wenn Sie es sich anders überlegen. Danach wird alles endgültig gelöscht: Keller, Journal, Wunschliste, Fotos, Beiträge und Follows.",
   "Your account is deleted. It's kept until {0}: write to the owner if you change your mind.": "Ihr Konto ist gelöscht. Es wird bis {0} aufbewahrt: schreiben Sie dem Inhaber, wenn Sie es sich anders überlegen.",
-  "What was done to accounts": "Was mit Konten geschah"
+  "What was done to accounts": "Was mit Konten geschah",
+  "New: a one-minute tour of what AllWine can do.": "Neu: eine einminütige Tour durch das, was AllWine kann.",
+  "Couldn't load the tour. Check your connection and try again.": "Die Tour konnte nicht geladen werden. Prüfen Sie die Verbindung und versuchen Sie es erneut."
 });

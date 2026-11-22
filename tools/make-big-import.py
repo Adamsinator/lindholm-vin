@@ -2,7 +2,9 @@
 # together): the same wine on several rows, spelling and case variants, Danish prices as text, blank rows, a heading
 # repeated where the pages were joined, Excel error cells and a totals row. tools/big-import-test.js reads it.
 #   python3 tools/make-big-import.py            (deterministic: the same file every time)
-import os, random, openpyxl
+#   python3 tools/make-big-import.py 50000      (big50000.xlsx: as many rows, the same 7,000 wines)
+import os, sys, random, openpyxl
+N = int(sys.argv[1]) if len(sys.argv) > 1 else 10000
 D = os.path.join(os.path.dirname(__file__), "fixtures")
 os.makedirs(D, exist_ok=True)
 R = random.Random(1855)
@@ -44,7 +46,7 @@ for i in range(7000):
 wb = openpyxl.Workbook(); ws = wb.active; ws.title = "Kælder"
 ws.append(["Kælderliste — eksport"]); ws.append([]); ws.append(HEAD)
 rows = 0
-while rows < 10000:
+while rows < N:
     if rows and rows % 2500 == 0: ws.append(HEAD)                   # pages glued together
     if rows % 997 == 0: ws.append([])                                # a blank row now and then
     p, c, reg, com, name, grape, typ, vint = distinct[R.randrange(len(distinct))]
@@ -57,6 +59,7 @@ while rows < 10000:
     loc = "Kælder, reol %d" % R.randint(1, 40) if R.random() < .6 else ""
     ws.append([p, c, reg, com, name, typ, grape, vint, qty, price, loc])
     rows += 1
-ws.append(["I alt", "", "", "", "", "", "", "", "=SUM(I4:I10010)", "", ""])
-wb.save(os.path.join(D, "big.xlsx"))
-print("wrote", os.path.join(D, "big.xlsx"), rows, "wine rows")
+ws.append(["I alt", "", "", "", "", "", "", "", "=SUM(I4:I%d)" % (N + 10), "", ""])
+out = os.path.join(D, "big.xlsx" if N == 10000 else "big%d.xlsx" % N)
+wb.save(out)
+print("wrote", out, rows, "wine rows")
