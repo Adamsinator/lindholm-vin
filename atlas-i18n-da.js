@@ -87,5 +87,6 @@ Object.assign(window.I18N_DICT.da, {
   "The rules take the commune east of the old Via Aurelia.": "Reglerne tager kommunen øst for den gamle Via Aurelia.",
   "Vines © ARTEA, Regione Toscana, CC BY": "Vinmarker © ARTEA, Regione Toscana, CC BY",
   "Partly in its wine's zone": "Delvis i vinens zone",
-  "Back": "Tilbage"
+  "Back": "Tilbage",
+  "Loading the map of {0}…": "Henter kortet over {0}…"
 });

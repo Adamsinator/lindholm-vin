@@ -12,13 +12,26 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   const gas = H({ Ark1: [HEAD] }, { settings: { SIGNUP_CODE: "invite" } }), b = await chromium.launch();
   const ctx = await b.newContext({ viewport: { width: 1280, height: 900 } });
   await require("./turnstile-fake")(ctx); await require("./ask-auto")(ctx);
-  await ctx.route(require("./api-route"), r => r.fulfill({ contentType: "application/json", body: JSON.stringify(gas.call(JSON.parse(r.request().postData() || "{}"))) }));
+  const calls = []; // the last calls and answers, for the message should a sign-up not finish
+  await ctx.route(require("./api-route"), r => { const q = JSON.parse(r.request().postData() || "{}"), res = gas.call(q);
+    calls.push(q.action + " → " + (res.ok ? "ok" : res.error)); if (calls.length > 6) calls.shift();
+    return r.fulfill({ contentType: "application/json", body: JSON.stringify(res) }); });
   const p = await ctx.newPage(); const errs = []; p.on("pageerror", e => errs.push(e.message)); p.on("console", m => m.type() === "error" && errs.push(m.text()));
   await p.goto(BASE); await p.waitForTimeout(400);
+  // the login form puts the cursor in the username a moment after it shows, but not over a field already being typed in
+  // (on a slow machine that moment came late, and the email typed went into the username: "bodilbodil@example.com")
+  const kept = await p.evaluate(async () => { showGate(""); const f = document.getElementById("gatePass"); f.focus(); await new Promise(r => setTimeout(r, 150)); return document.activeElement === f; });
+  check("the login form doesn't take the cursor from a field already in use", kept);
   const signup = async user => {
     await p.click("#gateToggle"); await p.fill("#gateUser", user); await p.fill("#gatePass", user + "-pass-1"); await p.fill("#gateInvite", "invite");
     await p.fill("#gatePass2", user + "-pass-1"); await p.fill("#gateEmail", user + "@example.com"); await p.click("#gateSubmit");
-    await p.waitForSelector("#recModal.open", { timeout: 20000 }); await p.check("#recOk"); await p.click("#recDone"); await p.waitForSelector("#app:not([hidden])"); await p.waitForTimeout(800);
+    // (it timed out now and then in CI on the second sign-up, never here: should it again, say what the form shows)
+    await p.waitForSelector("#recModal.open", { timeout: 20000 }).catch(async e => {
+      const g = await p.evaluate(() => ({ mode: GATE_MODE, msg: document.getElementById("gateErr").textContent, user: document.getElementById("gateUser").value,
+        filled: ["gatePass", "gatePass2", "gateInvite", "gateEmail"].map(id => document.getElementById(id).value.length), submitDisabled: document.getElementById("gateSubmit").disabled,
+        codeShown: !document.getElementById("gateCodeWrap").hidden, gate: !document.getElementById("gate").hidden }));
+      console.log("  sign-up of " + user + " didn't finish: " + JSON.stringify(g) + " · last calls: " + calls.join(", ")); throw e; });
+    await p.check("#recOk"); await p.click("#recDone"); await p.waitForSelector("#app:not([hidden])"); await p.waitForTimeout(800);
     await p.keyboard.press("Escape"); await p.keyboard.press("Escape");
   };
   const add = (wines) => p.evaluate(async ws => { for (const w of ws) await api({ action: "add", wine: { country: "Frankrig", region: "Bourgogne", qty: 1, ...w } }); await loadData(true); }, wines);

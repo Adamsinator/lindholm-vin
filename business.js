@@ -623,17 +623,18 @@ window.BIZ = (() => {
     $("bzPgo").onclick = async () => {
       const P = plan(); if (!P.ok || !P.rows.length) return;
       const before = P.rows.map(({ w }) => ({ row: w.row, fields: { [field]: w[field] > 0 ? w[field] : "" } }));
-      $("bzPgo").disabled = true;
+      const go = $("bzPgo"), label = go.textContent; go.disabled = true;
       try {
-        let res; for (let i = 0; i < P.rows.length; i += 2000) // in parts: the server takes up to 5,000 at a time
-          res = await api({ action: "setinfomany", edits: P.rows.slice(i, i + 2000).map(({ w, v }) => ({ row: w.row, fields: { [field]: v } })) });
+        // in parts: the server takes up to 5,000 at a time; the button counts them, and only the last asks for the cellar back
+        let res; for (let i = 0; i < P.rows.length; i += 2000) { if (P.rows.length > 2000) go.textContent = tr("Saving… {0} of {1}", fmt(i), fmt(P.rows.length));
+          res = await api({ action: "setinfomany", edits: P.rows.slice(i, i + 2000).map(({ w, v }) => ({ row: w.row, fields: { [field]: v } })), quiet: i + 2000 < P.rows.length }); }
         if (!res || !res.wines) res = await api({ action: "data" });
         WINES = normalize(res.wines); renderOverview(); renderTable(); renderEnjoyed(); m.classList.remove("open");
         notify(P.rows.length === 1 ? tr("1 price set") : tr("{0} prices set", fmt(P.rows.length)), [{ label: tr("Undo"), fn: async () => {
           let r; for (let i = 0; i < before.length; i += 2000) r = await api({ action: "setinfomany", edits: before.slice(i, i + 2000) });
           if (!r || !r.wines) r = await api({ action: "data" });
           WINES = normalize(r.wines); renderOverview(); renderTable(); renderEnjoyed(); toast(tr("Prices put back")); } }]);
-      } catch (err) { toast(tr("Could not save: {0}", errText(err))); $("bzPgo").disabled = false; }
+      } catch (err) { toast(tr("Could not save: {0}", errText(err))); $("bzPgo").disabled = false; $("bzPgo").textContent = label; }
     };
     if (!wh) setTimeout(() => $("bzPx").focus(), 30);
   }
@@ -976,6 +977,6 @@ window.BIZ = (() => {
 </style>`);
   setTimeout(apply, 0);
   // its words: only a business needs them, so they come now, not with every page (i18n.js redraws the page in them)
-  if (window.I18N) { I18N.onChange(apply); if (I18N.more) I18N.more("business-i18n", "?v=12"); }
+  if (window.I18N) { I18N.onChange(apply); if (I18N.more) I18N.more("business-i18n", "?v=13"); }
   return { refreshSales: () => loadSales(true), apply, detail, priceCell, overview, page, inventory, cardLabel, margin, openCard, salesRows, reorder, reorderText, cardData, publishCard, cardShare };
 })();

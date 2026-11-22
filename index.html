@@ -21,7 +21,7 @@
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-title" content="AllWine">
 <meta name="theme-color" content="#7C2D3E">
-<meta name="i18n-extra" content="i18n-cellar-da.js?v=6 i18n-cellar-fr.js?v=6 i18n-cellar-de.js?v=6">
+<meta name="i18n-extra" content="i18n-cellar-da.js?v=7 i18n-cellar-fr.js?v=7 i18n-cellar-de.js?v=7">
 <script src="config.js?v=9"></script>
 <style>
 :root{
@@ -374,6 +374,16 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;max-width:70ch} foote
 @media (max-width:480px){.expopts{grid-template-columns:1fr}}
 @media (max-width:600px){.impcols{grid-template-columns:minmax(0,1fr) minmax(0,1.2fr)}.impcols .is{display:none}}
 .spin{text-align:center;color:var(--muted);padding:60px 0;font-size:14px}
+.sm-wait{margin:6px 2px;color:var(--muted);font-size:13.5px} .spin-slow{margin:0 0 14px;color:var(--muted);font-size:14px;text-align:center}
+/* a long job's progress line: AllWine's waiting mark, what it's doing, then a bar where there's a count */
+.prog{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:6px 10px;margin:10px 0 0;font-size:13.5px;color:var(--muted)} .prog[hidden]{display:none}
+.prog progress{grid-column:1/-1;width:100%;height:6px;accent-color:var(--accent)} .prog progress[hidden]{display:none}
+.spin-slow:not([hidden]),.sm-wait{display:flex;align-items:center;justify-content:center;gap:10px} .sm-wait{justify-content:flex-start}
+/* the mark: the bottle's wine falls as the glass's rises, ten steps (eleven states) over five and a half seconds, then again */
+.pourmk{width:34px;height:21px;flex:none;display:block} .pourmk.big{width:72px;height:46px}
+.pourmk .pm-g{animation:pmG 5.5s steps(11,jump-none) infinite} .pourmk .pm-b{animation:pmB 5.5s steps(11,jump-none) infinite}
+@keyframes pmG{to{transform:translateY(-14px)}} @keyframes pmB{to{transform:translateY(25px)}}
+@media (prefers-reduced-motion:reduce){.pourmk .pm-g,.pourmk .pm-b{animation:none}}
 .spin.skel{padding:6px 0 0;text-align:left}
 .skel .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 .sk-kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin:0 0 22px} .sk-rows{display:grid;gap:10px}
@@ -1130,7 +1140,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
   <button class="btn" id="priceBtn">Show prices</button>
 </div>
 
-<div class="spin skel" id="spin"><span class="sr" data-i18n>Fetching the cellar…</span>
+<div class="spin skel" id="spin"><span class="sr" data-i18n>Fetching the cellar…</span><p class="spin-slow" id="spinSlow" role="status" hidden></p>
   <div class="sk-kpis" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
   <div class="sk-rows" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
 <div id="content" hidden>
@@ -1498,6 +1508,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
       <p class="imphint" data-i18n>Nothing here is changed for you: open a wine to fill it in.</p>
       <div id="tidyLook"></div>
     </div>
+<div class="prog" id="tidyProg" role="status" aria-live="polite" hidden><span class="prog-t"></span><progress></progress></div>
     <div class="err" id="tidyErr" role="status" aria-live="polite"></div>
     <div class="mact">
       <button class="btn" type="button" id="tidyCancel" data-i18n>Close</button>
@@ -1600,6 +1611,7 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
         <label class="jcheck"><input type="radio" name="impDup" value="skip"> <span data-i18n>Skip them</span></label>
       </fieldset>
     </div>
+<div class="prog" id="impProg" role="status" aria-live="polite" hidden><span class="prog-t"></span><progress></progress></div>
     <div class="err" id="impErr" role="status" aria-live="polite"></div>
     <div class="mact">
       <button class="btn" type="button" id="impCancel" data-i18n>Cancel</button>
@@ -1890,6 +1902,6 @@ b.clsest{font-weight:600;border-bottom:1px dashed currentColor;cursor:help} /* (
 <script src="wine-kb.js?v=2"></script>
 <script src="piemonte-mga.js?v=1"></script>
 <script src="share-crypto.js?v=2"></script>
-<script src="app.js?v=133"></script>
+<script src="app.js?v=137"></script>
 </body>
 </html>

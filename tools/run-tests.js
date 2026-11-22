@@ -9,7 +9,7 @@ const http = require("http"), fs = require("fs"), stream = require("stream"), pa
 const ROOT = path.join(__dirname, ".."), PORT = 8765;
 const NODE = ["i18n-test", "import-test", "export-test", "messy-test", "vault-test", "sommelier-test", "big-import-test", "abuse-test", "backup-test", "worker-test", "account-test", "stats-test", "versions-test", "pages-test", "atlas-sw-test", "size-test", "share-test", "sales-test"];
 const BROWSER = ["import-ui-test", "tidy-ui-test", "vault-ui-test", "sommelier-ui-test", "add-suggest-ui-test", "i18n-ui-test",
-  "cellar-flow-test", "cellar-flow-test:vault", "big-import-ui-test", "big50k-ui-test", "fast-login-ui-test", "csp-ui-test", "account-ui-test", "signup-resume-ui-test", "customise-ui-test", "rack-move-ui-test", "sheet-swipe-ui-test", "list-qol-ui-test", "qol3-ui-test", "qol4-ui-test", "big-cellar-ui-test", "testkit-ui-test", "addform-ui-test", "signup-ui-test", "admin-ui-test", "help-ui-test", "atlas-link-ui-test", "region-atlas-ui-test", "pages-ui-test", "grid-ui-test", "explore-test", "layout-ui-test", "a11y-ui-test", "offline-ui-test", "share-ui-test", "guide-ui-test", "tour-ui-test", "smart-ui-test", "shell-ui-test", "rack-big-ui-test", "business-ui-test", "detail-ui-test", "source-ui-test", "atlas-sheet-ui-test", "cellar-extras-ui-test", "cellar-map-ui-test", "style-ui-test", "business-page-ui-test", "email-code-ui-test", "staff-ui-test", "polish-ui-test", "legal-ui-test", "atlas-shell-ui-test", "atlas-turn-ui-test", "atlas-wx-ui-test", "austria-atlas-ui-test", "spain-atlas-ui-test", "italy-atlas-ui-test", "portugal-atlas-ui-test", "denmark-atlas-ui-test", "atlas-overview-ui-test", "atlas-touch-ui-test", "region-ld-ui-test", "region-owners-ui-test", "cotedor-atlas-ui-test", "smoke-test"];
+  "cellar-flow-test", "cellar-flow-test:vault", "big-import-ui-test", "big50k-ui-test", "fast-login-ui-test", "csp-ui-test", "account-ui-test", "signup-resume-ui-test", "customise-ui-test", "rack-move-ui-test", "sheet-swipe-ui-test", "list-qol-ui-test", "qol3-ui-test", "qol4-ui-test", "big-cellar-ui-test", "testkit-ui-test", "addform-ui-test", "signup-ui-test", "admin-ui-test", "help-ui-test", "atlas-link-ui-test", "region-atlas-ui-test", "pages-ui-test", "grid-ui-test", "explore-test", "layout-ui-test", "a11y-ui-test", "offline-ui-test", "share-ui-test", "guide-ui-test", "tour-ui-test", "progress-ui-test", "smart-ui-test", "shell-ui-test", "rack-big-ui-test", "business-ui-test", "detail-ui-test", "source-ui-test", "atlas-sheet-ui-test", "cellar-extras-ui-test", "cellar-map-ui-test", "style-ui-test", "business-page-ui-test", "email-code-ui-test", "staff-ui-test", "polish-ui-test", "legal-ui-test", "atlas-shell-ui-test", "atlas-turn-ui-test", "atlas-wx-ui-test", "austria-atlas-ui-test", "spain-atlas-ui-test", "italy-atlas-ui-test", "portugal-atlas-ui-test", "denmark-atlas-ui-test", "atlas-overview-ui-test", "atlas-touch-ui-test", "region-ld-ui-test", "region-owners-ui-test", "cotedor-atlas-ui-test", "smoke-test"];
 const args = process.argv.slice(2);
 let suites = args.includes("--node") ? NODE : NODE.concat(BROWSER);
 const named = args.filter(a => !a.startsWith("--"));
@@ -17,9 +17,13 @@ if (named.length) suites = suites.filter(s => named.some(n => s === n || s === n
 
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".json": "application/json", ".css": "text/css", ".png": "image/png",
   ".jpg": "image/jpeg", ".svg": "image/svg+xml", ".gs": "text/plain", ".webmanifest": "application/manifest+json" };
+const SLOW = []; let CURRENT = "";
 function serve() {
   return new Promise(resolve => {
     const srv = http.createServer((req, res) => {
+      // a response that takes over 3 s to finish is noted, and listed at the end (pages now and then took 30 s in CI:
+      // this says whether the server was the slow side)
+      const t0 = Date.now(); res.on("close", () => { const ms = Date.now() - t0; if (ms > 3000) SLOW.push(`${req.url} ${ms} ms${res.writableFinished ? "" : " (not finished)"} during ${CURRENT}`); });
       let f = decodeURIComponent(req.url.split("?")[0]); if (f.endsWith("/")) f += "index.html";
       const file = path.join(ROOT, path.normalize(f).replace(/^(\.\.[/\\])+/, ""));
       if (!file.startsWith(ROOT) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) { res.writeHead(404); return res.end("not found"); }
@@ -51,18 +55,19 @@ function run(suite) {
   const srv = needsServer ? await serve() : null;
   const results = [];
   for (const s of suites) {
-    const r = await run(s); results.push(r);
+    CURRENT = s; const r = await run(s); results.push(r);
     console.log(`${r.ok ? "✓" : "✗"} ${s.padEnd(24)} ${r.tally.padEnd(14)} ${r.secs}s`);
     if (!r.ok) {
       // the failures, and for a crash its message and the line of the test it stopped at
       // (a crash's message is the line before its stack: "page.evaluate: Execution context was destroyed" has none
       // of the words looked for, and went unprinted)
       const lines = r.out.split("\n"), st = lines.findIndex(l => /^\s+at /.test(l));
-      const hits = lines.filter((l, i) => i === st - 1 || /FAIL|Error|error|timed out|Timeout \d+ms|at .*tools[\\/][\w-]+-test\.js:\d+/.test(l)).slice(0, 15);
+      const hits = lines.filter((l, i) => i === st - 1 || /FAIL|Error|error|timed out|Timeout \d+ms|still loading|the server:|didn't finish|at .*tools[\\/][\w-]+-test\.js:\d+/.test(l)).slice(0, 15);
       console.log((hits.length ? hits : lines.filter(l => l.trim()).slice(-15)).map(l => "    " + l).join("\n")); // else its last lines
     }
   }
   if (srv) srv.close();
+  if (SLOW.length) console.log("\nThe test server's slow answers (over 3 s):\n" + SLOW.slice(0, 20).map(l => "    " + l).join("\n"));
   const bad = results.filter(r => !r.ok);
   console.log(`\n${results.length - bad.length}/${results.length} suites passed` + (bad.length ? ` — failed: ${bad.map(r => r.suite).join(", ")}` : ""));
   process.exit(bad.length ? 1 : 0);

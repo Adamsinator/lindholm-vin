@@ -1102,5 +1102,17 @@ Object.assign(window.I18N_DICT.da = window.I18N_DICT.da || {}, {
   "Your account is deleted. It's kept until {0}: write to the owner if you change your mind.": "Din konto er slettet. Den gemmes til {0}: skriv til ejeren, hvis du fortryder.",
   "What was done to accounts": "Hvad der er gjort ved konti",
   "New: a one-minute tour of what AllWine can do.": "Nyt: en rundvisning på et minut i, hvad AllWine kan.",
-  "Couldn't load the tour. Check your connection and try again.": "Kunne ikke hente rundvisningen. Tjek forbindelsen og prøv igen."
+  "Couldn't load the tour. Check your connection and try again.": "Kunne ikke hente rundvisningen. Tjek forbindelsen og prøv igen.",
+  "about {0} s left": "ca. {0} s tilbage",
+  "about {0} min left": "ca. {0} min tilbage",
+  "Reading {0}…": "Læser {0}…",
+  "Read {0} rows. Checking spellings and joining rows of the same wine…": "{0} rækker læst. Retter stavemåder og lægger rækker med samme vin sammen…",
+  "Going through {0} rows…": "Gennemgår {0} rækker…",
+  "Done: showing your cellar…": "Færdig: viser din kælder…",
+  "Showing all {0}…": "Viser alle {0}…",
+  "Preparing the file…": "Gør filen klar…",
+  "Still fetching your cellar: a big one takes a few seconds.": "Henter stadig din kælder: en stor tager et par sekunder.",
+  "Getting the sommelier's notes…": "Henter sommelierens noter…",
+  "Tidying… part {0} of {1}": "Rydder op… del {0} af {1}",
+  "Looking through {0} wines…": "Gennemgår {0} vine…"
 });

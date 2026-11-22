@@ -33,7 +33,7 @@ async function session(b, gas, plain) {
 async function importBig(p, merge) {
   await p.click("#impBtn"); await p.setInputFiles("#impFile", FIX);
   await p.waitForSelector("#impMap:not([hidden])", { timeout: 60000 });
-  if (!merge) { await p.uncheck("#impMerge"); await p.waitForTimeout(300); }
+  if (!merge) { await p.uncheck("#impMerge"); await p.waitForFunction(() => document.getElementById("impProg").hidden, null, { timeout: 60000 }); } // a big file's re-check says so, then fills in
   const label = await p.textContent("#impGo");
   const t = Date.now(); await p.click("#impGo");
   await p.waitForFunction(() => !document.getElementById("impModal").classList.contains("open"), null, { timeout: 300000, polling: 250 });
