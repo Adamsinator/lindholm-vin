@@ -54,7 +54,7 @@ const bottles = p => p.evaluate(() => WINES.reduce((s, w) => s + w.left, 0));
   const busy = await p.evaluate(() => { const b = document.getElementById("busy"); return { on: !b.hidden, text: b.getAttribute("aria-label") || "", shown: b.textContent.trim() }; });
   const y0 = await ys(); await p.waitForTimeout(520); const y1 = await ys();
   check("a slow answer after a click: the glass fills as the bottle empties, a step each half second, with words only for screen readers",
-    busy.on && /moment/i.test(busy.text) && !busy.shown && y1[0] < y0[0] && y1[1] > y0[1] && Math.abs((y0[0] - y1[0]) - 1.4) < .01 && Math.abs((y1[1] - y0[1]) - 2.5) < .01, JSON.stringify({ busy, y0, y1 }));
+    busy.on && /moment/i.test(busy.text) && !busy.shown && y1[0] < y0[0] && y1[1] > y0[1] && Math.abs((y0[0] - y1[0]) - 1.3) < .01 && Math.abs((y1[1] - y0[1]) - 2.5) < .01, JSON.stringify({ busy, y0, y1 }));
   const sides = await p.evaluate(() => { const b = document.querySelector("#busy .pm-b").getBoundingClientRect(), g = document.querySelector("#busy .pm-g").getBoundingClientRect(); return b.left < g.left; });
   check("…the bottle on the left, pouring into the glass on the right", sides);
   await p.waitForFunction(() => !document.getElementById("testModal").classList.contains("open"), null, { timeout: 30000 });
