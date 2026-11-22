@@ -17,9 +17,13 @@ if (named.length) suites = suites.filter(s => named.some(n => s === n || s === n
 
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".json": "application/json", ".css": "text/css", ".png": "image/png",
   ".jpg": "image/jpeg", ".svg": "image/svg+xml", ".gs": "text/plain", ".webmanifest": "application/manifest+json" };
+const SLOW = []; let CURRENT = "";
 function serve() {
   return new Promise(resolve => {
     const srv = http.createServer((req, res) => {
+      // a response that takes over 3 s to finish is noted, and listed at the end (pages now and then took 30 s in CI:
+      // this says whether the server was the slow side)
+      const t0 = Date.now(); res.on("close", () => { const ms = Date.now() - t0; if (ms > 3000) SLOW.push(`${req.url} ${ms} ms${res.writableFinished ? "" : " (not finished)"} during ${CURRENT}`); });
       let f = decodeURIComponent(req.url.split("?")[0]); if (f.endsWith("/")) f += "index.html";
       const file = path.join(ROOT, path.normalize(f).replace(/^(\.\.[/\\])+/, ""));
       if (!file.startsWith(ROOT) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) { res.writeHead(404); return res.end("not found"); }
@@ -51,18 +55,19 @@ function run(suite) {
   const srv = needsServer ? await serve() : null;
   const results = [];
   for (const s of suites) {
-    const r = await run(s); results.push(r);
+    CURRENT = s; const r = await run(s); results.push(r);
     console.log(`${r.ok ? "✓" : "✗"} ${s.padEnd(24)} ${r.tally.padEnd(14)} ${r.secs}s`);
     if (!r.ok) {
       // the failures, and for a crash its message and the line of the test it stopped at
       // (a crash's message is the line before its stack: "page.evaluate: Execution context was destroyed" has none
       // of the words looked for, and went unprinted)
       const lines = r.out.split("\n"), st = lines.findIndex(l => /^\s+at /.test(l));
-      const hits = lines.filter((l, i) => i === st - 1 || /FAIL|Error|error|timed out|Timeout \d+ms|at .*tools[\\/][\w-]+-test\.js:\d+/.test(l)).slice(0, 15);
+      const hits = lines.filter((l, i) => i === st - 1 || /FAIL|Error|error|timed out|Timeout \d+ms|still loading|the server:|didn't finish|at .*tools[\\/][\w-]+-test\.js:\d+/.test(l)).slice(0, 15);
       console.log((hits.length ? hits : lines.filter(l => l.trim()).slice(-15)).map(l => "    " + l).join("\n")); // else its last lines
     }
   }
   if (srv) srv.close();
+  if (SLOW.length) console.log("\nThe test server's slow answers (over 3 s):\n" + SLOW.slice(0, 20).map(l => "    " + l).join("\n"));
   const bad = results.filter(r => !r.ok);
   console.log(`\n${results.length - bad.length}/${results.length} suites passed` + (bad.length ? ` — failed: ${bad.map(r => r.suite).join(", ")}` : ""));
   process.exit(bad.length ? 1 : 0);

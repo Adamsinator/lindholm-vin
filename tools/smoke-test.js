@@ -79,7 +79,7 @@ const overflow=async(p,where)=>{ const o=await p.evaluate(()=>document.documentE
     const t=Date.now(), late=ms=>new Promise(r=>setTimeout(()=>r('no answer in '+ms/1000+' s'),ms));
     const server=await Promise.race([new Promise(r=>require('http').get(url,s=>{ s.resume(); s.on('end',()=>r('HTTP '+s.statusCode+' in '+(Date.now()-t)+' ms')); }).on('error',x=>r(x.message))),late(5000)]);
     const page=await Promise.race([p.evaluate(()=>location.href+' '+document.readyState).catch(x=>x.message.split('\n')[0]),late(5000)]);
-    console.log('  still loading when '+url+' timed out: '+[...pending].map(r=>r.method()+' '+r.url().replace(BASE,'/')+(answered.has(r)?' (answered, body still coming)':' (no answer yet)')).join(', ')+'\n  the server: '+server+'; the page: '+page);
+    console.log('  still loading when '+url+' timed out: '+[...pending].map(r=>r.method()+' '+r.url().replace(BASE,'/')+(answered.has(r)?' (answered, body still coming)':' (no answer yet)')).join(', ')+' · the server: '+server+'; the page: '+page);
     throw e; } };
   // front page, logged out
   await p.goto(BASE); await p.waitForTimeout(600); await overflow(p,tag+' front'); await p.screenshot({path:OUT+tag+'_front.png'});

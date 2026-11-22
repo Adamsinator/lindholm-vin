@@ -17,7 +17,12 @@ async function session(b, rows, vp) {
     else { delete p.user; delete p.token; p.code = "test-code"; x = gas.call(p); } await r.fulfill({ contentType: "application/json", body: JSON.stringify(x) }); });
   const p = await ctx.newPage(); p.on("pageerror", e => errs.push(e.message));
   await p.goto(BASE); await p.fill("#gateUser", "adam"); await p.fill("#gatePass", "pw"); await p.click("#gateSubmit");
-  await p.waitForSelector("#content:not([hidden])", { timeout: 20000 }); await p.waitForTimeout(500);
+  // (it timed out once in CI, never here: should it again, say what the page shows)
+  await p.waitForSelector("#content:not([hidden])", { timeout: 20000 }).catch(async e => {
+    const g = await Promise.race([p.evaluate(() => ({ url: location.href, ready: document.readyState, gate: !document.getElementById("gate").hidden, msg: document.getElementById("gateErr").textContent,
+      app: !document.getElementById("app").hidden, spin: document.getElementById("spin").textContent.trim().slice(0, 80) })).catch(x => x.message.split("\n")[0]), new Promise(r => setTimeout(() => r("the page didn't answer in 5 s"), 5000))]);
+    console.log("  the login didn't finish: " + JSON.stringify(g) + " · errors: " + errs.join(" | ")); throw e; });
+  await p.waitForTimeout(500);
   return { ctx, p, errs };
 }
 // the card's step, and whether the lit-up hole is round the control it names
