@@ -49,11 +49,34 @@ const results = []; const check = (name, ok, extra = "") => { results.push(ok); 
   check("…now 600 kr. at cost, 900 kr. at your values (B valued 800)", /at cost now 600 kr/.test(vt.k) && /at your values 900 kr/.test(vt.k), vt.k);
   check("…the wine without a purchase date is said to be left out", /1 wine without a purchase date or price isn't in it/.test(vt.note), vt.note);
   // no wine with a value set: the panel is the curve alone, called what it is, and its change said as bottles, not prices
-  const noVal = await p.evaluate(() => { const keep = WINES.map(w => w.value); WINES.forEach(w => { w.value = null; }); renderOverview();
+  // the 12-month change with purchases and drinking left out (modified Dietz), worked out here: B's value runs from 500 kr.
+  // on its purchase date to 800 on its valuation date at a steady rate; a year ago A (one bottle left) stood at its price
+  const dz = await p.evaluate(() => { const b = WINES.find(w => w.producer === "Domaine B"), e = b.valueLog[b.valueLog.length - 1];
+    const F = s => { const [y, m, d] = s.split("-").map(Number); return y * 12 + m - 1 + (d - 1) / 30.5; }, now = F(todayStr()), t0 = now - 12;
+    const vB0 = 500 * Math.pow(e.v / 500, (t0 - F(b.acquired)) / (F(e.d) - F(b.acquired))), B = vB0 + 100, E = e.v + 100;
+    return { want: Math.round((E - B) / B * 1000) / 10, line: document.querySelector("#valTime .vt-r") && document.querySelector("#valTime .vt-r").textContent }; });
+  check("…the 12-month change, purchases and drinking left out, is the money-weighted one worked out by hand", dz.line && new RegExp("^\\+" + String(dz.want).replace(".", "[.,]") + " %").test(dz.line), JSON.stringify(dz));
+  const noVal = await p.evaluate(() => { const keep = WINES.map(w => [w.value, w.valueLog]); WINES.forEach(w => { w.value = null; w.valueLog = []; }); renderOverview();
     const r = { h3: document.querySelector("#valTime h3").textContent, h2: getComputedStyle(document.querySelector("#worthPanel > h2")).display, k: document.querySelector("#valTime .vt-k").textContent.replace(/\s+/g, " ") };
-    WINES.forEach((w, i) => { w.value = keep[i]; }); renderOverview(); return r; });
+    WINES.forEach((w, i) => { [w.value, w.valueLog] = keep[i]; }); renderOverview(); return r; });
   check("…with no values set: \"What the cellar cost, over time\", the value-against-price heading hidden, the change put down to bottles bought and drunk",
     noVal.h3 === "What the cellar cost, over time" && noVal.h2 === "none" && /on a year ago, from bottles bought and drunk/.test(noVal.k), JSON.stringify(noVal));
+
+  // a wine's valuations, in its details: one added with a date and where it came from, listed, then taken out
+  await p.evaluate(() => { const d = document.getElementById("overview"); if (d && d.tagName === "DETAILS") d.open = false; });
+  await p.click('#rows tr.main:has-text("Domaine A")'); await p.waitForSelector("#rows tr.detail:not([hidden]) details.vlog", { timeout: 8000 });
+  const vl = '#rows tr.detail:not([hidden]) details.vlog';
+  await p.click(vl + " summary"); await p.fill(vl + " .vd", "2025-09-01"); await p.fill(vl + " .vv", "150"); await p.fill(vl + " .vs", "Wine-Searcher");
+  const ws = await p.getAttribute(vl + " .vws", "href");
+  await p.click(vl + " .vgo"); await p.waitForFunction(() => (WINES.find(w => w.producer === "Domaine A").valueLog || []).length === 1, null, { timeout: 10000 }).catch(() => {});
+  const added = await p.evaluate(() => WINES.find(w => w.producer === "Domaine A").valueLog);
+  await p.waitForSelector(vl + " li", { timeout: 8000 }).catch(() => {});
+  const shown = await p.textContent(vl).catch(() => "");
+  check("a wine's details: a valuation added with its date and source, the newest listed, its value the wine's value",
+    JSON.stringify(added) === JSON.stringify([{ d: "2025-09-01", v: 150, s: "Wine-Searcher" }]) && /150 kr/.test(shown) && /Wine-Searcher/.test(shown), JSON.stringify(added) + " | " + shown.slice(0, 160));
+  check("…a link looks the wine up on Wine-Searcher (the person's own search, nothing sent by the site)", /^https:\/\/www\.wine-searcher\.com\/find\/domaine\+a$/.test(ws || ""), ws);
+  if (await p.isVisible(vl + " .vdel")) { await p.click(vl + " .vdel"); await p.waitForFunction(() => !(WINES.find(w => w.producer === "Domaine A").valueLog || []).length, null, { timeout: 10000 }).catch(() => {}); }
+  check("…and taken out again", await p.evaluate(() => !(WINES.find(w => w.producer === "Domaine A").valueLog || []).length && WINES.find(w => w.producer === "Domaine A").value == null));
 
   // the Undo bar and dialogs
   await p.evaluate(() => notify("Renamed", [{ label: "Undo", fn() {} }])); await p.waitForTimeout(600);

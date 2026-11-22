@@ -1114,5 +1114,14 @@ Object.assign(window.I18N_DICT.de = window.I18N_DICT.de || {}, {
   "Still fetching your cellar: a big one takes a few seconds.": "Ihr Keller wird noch geladen: ein großer braucht ein paar Sekunden.",
   "Getting the sommelier's notes…": "Die Notizen des Sommeliers werden geladen…",
   "Tidying… part {0} of {1}": "Aufräumen… Teil {0} von {1}",
-  "Looking through {0} wines…": "{0} Weine werden durchgesehen…"
+  "Looking through {0} wines…": "{0} Weine werden durchgesehen…",
+  "Valuations": "Bewertungen",
+  "Remove this valuation": "Diese Bewertung entfernen",
+  "A value per bottle on a date, from where you looked it up: the value chart follows them over time.": "Ein Wert pro Flasche an einem Datum, von dort, wo Sie ihn nachgeschlagen haben: die Wertkurve folgt ihnen über die Zeit.",
+  "kr. a bottle": "kr. pro Flasche",
+  "Value per bottle": "Wert pro Flasche",
+  "Source, e.g. Wine-Searcher": "Quelle, z. B. Wine-Searcher",
+  "Look it up on Wine-Searcher ↗": "Bei Wine-Searcher nachschlagen ↗",
+  "Valuation added: {0} on {1}": "Bewertung hinzugefügt: {0} am {1}",
+  "Valuation removed": "Bewertung entfernt"
 });

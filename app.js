@@ -303,6 +303,8 @@ function normalize(rows){
       price: (r.price===null||r.price===""||r.price===undefined) ? null : Number(r.price),
       rating: (r.rating===null||r.rating===""||r.rating===undefined) ? null : Number(r.rating),
       value: (r.value===null||r.value===""||r.value===undefined) ? null : Number(r.value),
+      // dated valuations (Code.gs API 67), oldest first: [{d:"2025-03-01", v:2400, s:"Wine-Searcher"}]
+      valueLog: String(r.valueLog||"").split(";").map(x=>{ const m=x.trim().match(/^(\d{4}-\d\d-\d\d)=(\d+(?:\.\d+)?)(?:\s+(.*))?$/); return m?{d:m[1], v:Number(m[2]), s:(m[3]||"").trim()}:null; }).filter(Boolean),
       acquired: String(r.acquired||"").slice(0,10),
       drunkDate: String(r.drunkDate||"").slice(0,10),
       drinkFrom: (r.drinkFrom===null||r.drinkFrom===""||r.drinkFrom===undefined) ? null : Number(r.drinkFrom),
@@ -1302,6 +1304,7 @@ function detailHTML(w){
         ${r?`<span class="rbadge ${r.k}${r.est?" est":""}">${r.label}</span>`:""}
         ${r&&r.est&&est&&est.from!=null&&est.to!=null?`<button type="button" class="usewin" data-row="${w.row}" data-from="${est.from}" data-to="${est.to}">✓ ${esc(tr("Use {0}–{1}", est.from, est.to))}</button>`:""}
         ${r&&r.est?`<span class="est-note">${esc(tr("estimated · type to set your own"))}</span>`:""}</span>
+      ${SHOW_PRICES ? vlogHtml(w) : ""}
     </div>
     <div class="links dlinks">
       ${atlasLink(w)}
@@ -1545,6 +1548,7 @@ function bindDetail(root){
     sel.addEventListener("change",()=>setSizeApi(Number(sel.dataset.row), sel.value, sel)));
   root.querySelectorAll("input.setval").forEach(inp=>
     inp.addEventListener("change",()=>setValueApi(Number(inp.dataset.row), inp.value, inp)));
+  bindVlog(root);
   root.querySelectorAll("input.setdate").forEach(inp=>
     inp.addEventListener("change",()=>setDateApi(Number(inp.dataset.row), inp.dataset.field, inp.value, inp)));
   root.querySelectorAll(".winwrap").forEach(bindWindow);
@@ -1595,7 +1599,7 @@ async function loadData(quiet){
     LOADED_AT = new Date(); stampText();
     $("spin").hidden = true; $("content").hidden = false;
     if(!VINT_W && VINT_CELLAR.length) drawVintages(VINT_CELLAR); // drawn while hidden (no width yet): again, for the width it has now
-    if(!window.CELLAR_QOL) loadJS("cellar-qol.js?v=16").catch(()=>{}); // the conveniences: swipes, keys, several wines at once
+    if(!window.CELLAR_QOL) loadJS("cellar-qol.js?v=17").catch(()=>{}); // the conveniences: swipes, keys, several wines at once
     if(/^test/i.test(cfg.user||"") && !window.TESTKIT) loadJS("testkit.js?v=2").then(()=>TESTKIT.mount()).catch(()=>{}); // test data
     loadJournalSilently(); refreshDeleted(); checkOwner(); takePrefill();
     if(location.hash === "#tour"){ history.replaceState(null, "", location.pathname + location.search); startTour(); } // the help page's link // checkOwner asks "me", which says if the feed is on
@@ -1630,7 +1634,7 @@ async function setValueApi(row, val, inp){
   inp.disabled = true;
   const clean = val===""? "" : Math.max(0, Number(val)||0);
   try{
-    const res = await api({action:"setvalue", row, value: clean});
+    const res = await api({action:"setvalue", row, value: clean, date: clean==="" ? "" : todayStr()});
     WINES = normalize(res.wines);
     renderOverview(); renderTable(); renderEnjoyed();
     toast(clean==="" ? tr("Value cleared") : tr("Value set to {0}", kr(clean)));
@@ -1638,6 +1642,34 @@ async function setValueApi(row, val, inp){
   inp.disabled = false;
 }
 
+// a wine's valuations: each dated, with where it came from, newest first; one added from a price looked up (Wine-Searcher,
+// an auction, a merchant), so the value chart (cellar-qol.js) draws the wine's value over time, not today's backwards
+const VSRC_KEY = "vinValSrc"; let VLOG_OPEN = null; // the wine whose valuations are open, kept open as the details are drawn again
+function vlogHtml(w){
+  const ws = "https://www.wine-searcher.com/find/" + [w.producer, w.name, w.vintage].filter(x=>x && x!=="NV").join(" ").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "+").replace(/^\+|\+$/g, "");
+  let src = ""; try{ src = localStorage.getItem(VSRC_KEY) || ""; }catch(e){}
+  return `<details class="vlog" data-row="${w.row}"${VLOG_OPEN === w.row ? " open" : ""}><summary>${esc(tr("Valuations"))}${w.valueLog.length ? ` (${w.valueLog.length})` : ""}</summary>
+    ${w.valueLog.length ? `<ul>${w.valueLog.slice().reverse().map(e=>`<li><span>${esc(fmtDate(e.d))}</span> <b>${esc(kr(e.v))}</b>${e.s ? ` <i>${esc(e.s)}</i>` : ""}
+      <button type="button" class="vdel" data-d="${e.d}" aria-label="${esc(tr("Remove this valuation"))}" title="${esc(tr("Remove this valuation"))}">✕</button></li>`).join("")}</ul>` : `<p class="ph">${esc(tr("A value per bottle on a date, from where you looked it up: the value chart follows them over time."))}</p>`}
+    <div class="vadd"><input type="date" class="vd" max="${todayStr()}" value="${todayStr()}" aria-label="${esc(tr("Date"))}">
+      <input type="number" class="vv" min="0" step="1" inputmode="numeric" placeholder="${esc(tr("kr. a bottle"))}" aria-label="${esc(tr("Value per bottle"))}">
+      <input type="text" class="vs" maxlength="40" value="${esc(src)}" placeholder="${esc(tr("Source, e.g. Wine-Searcher"))}" aria-label="${esc(tr("Source"))}">
+      <button type="button" class="btn vgo">${esc(tr("Add"))}</button></div>
+    <a class="vws" href="${esc(ws)}" target="_blank" rel="noopener">${esc(tr("Look it up on Wine-Searcher ↗"))}</a></details>`;
+}
+function bindVlog(root){
+  root.querySelectorAll("details.vlog").forEach(dl=>{
+    const row = Number(dl.dataset.row); dl.addEventListener("toggle", ()=>{ VLOG_OPEN = dl.open ? row : (VLOG_OPEN === row ? null : VLOG_OPEN); });
+    const send = async (p, msg, b)=>{ b.disabled = true;
+      try{ const res = await api(Object.assign({action:"setvalue", row}, p)); WINES = normalize(res.wines); KEEP_OPEN = row; renderOverview(); renderTable(); renderEnjoyed(); toast(msg); }
+      catch(err){ toast(tr("Could not save value: {0}", errText(err))); b.disabled = false; } };
+    dl.querySelector(".vgo").addEventListener("click", e=>{ const v = dl.querySelector(".vv").value, d = dl.querySelector(".vd").value, s = dl.querySelector(".vs").value.trim();
+      if(!(Number(v) >= 0) || v === "" || !/^\d{4}-\d\d-\d\d$/.test(d)){ dl.querySelector(v === "" ? ".vv" : ".vd").focus(); return; }
+      try{ localStorage.setItem(VSRC_KEY, s); }catch(x){}
+      send({value:Math.max(0, Number(v)), date:d, source:s}, tr("Valuation added: {0} on {1}", kr(Number(v)), fmtDate(d)), e.currentTarget); });
+    dl.querySelectorAll(".vdel").forEach(b=>b.addEventListener("click", e=>send({value:"", date:b.dataset.d}, tr("Valuation removed"), e.currentTarget)));
+  });
+}
 async function setSizeApi(row, val, sel){
   sel.disabled = true;
   try{
@@ -3099,6 +3131,7 @@ function pickTonight(){
     sel.addEventListener("change",()=>setSizeApi(Number(sel.dataset.row), sel.value, sel)));
   m.querySelectorAll("input.setval").forEach(inp=>
     inp.addEventListener("change",()=>setValueApi(Number(inp.dataset.row), inp.value, inp)));
+  bindVlog(m);
   m.querySelectorAll("input.setdate").forEach(inp=>
     inp.addEventListener("change",()=>setDateApi(Number(inp.dataset.row), inp.dataset.field, inp.value, inp)));
   m.querySelectorAll(".winwrap").forEach(bindWindow);

@@ -1,6 +1,8 @@
 // German for allwine.dk: i18n.js loads the one dictionary the page's language needs (English is the source text).
 window.I18N_DICT = window.I18N_DICT || {};
 window.I18N_DICT.de = {
+  "Date": "Datum",
+  "Source": "Bezugsquelle",
   "Take the tour": "Tour starten",
   "For business": "Für Betriebe",
   "Drink": "Trinken",
@@ -303,7 +305,6 @@ window.I18N_DICT.de = {
   "Bottle": "Flasche",
   "Bought": "Gekauft",
   "Enjoyed": "Genossen",
-  "Source": "Bezugsquelle",
   "Wishlist": "Wunschliste",
   "Journal": "Journal",
   "classification": "Klassifikation",
@@ -332,7 +333,6 @@ window.I18N_DICT.de = {
   "Current value:": "Aktueller Wert:",
   "Add wine": "Wein hinzufügen",
   "What": "Was",
-  "Date": "Datum",
   "Place": "Ort",
   "Pages": "Seiten",
   "Where": "Wo",

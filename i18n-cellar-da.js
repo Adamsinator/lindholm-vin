@@ -1114,5 +1114,14 @@ Object.assign(window.I18N_DICT.da = window.I18N_DICT.da || {}, {
   "Still fetching your cellar: a big one takes a few seconds.": "Henter stadig din kælder: en stor tager et par sekunder.",
   "Getting the sommelier's notes…": "Henter sommelierens noter…",
   "Tidying… part {0} of {1}": "Rydder op… del {0} af {1}",
-  "Looking through {0} wines…": "Gennemgår {0} vine…"
+  "Looking through {0} wines…": "Gennemgår {0} vine…",
+  "Valuations": "Vurderinger",
+  "Remove this valuation": "Fjern denne vurdering",
+  "A value per bottle on a date, from where you looked it up: the value chart follows them over time.": "En værdi pr. flaske på en dato, fra hvor du slog den op: værdigrafen følger dem over tid.",
+  "kr. a bottle": "kr. pr. flaske",
+  "Value per bottle": "Værdi pr. flaske",
+  "Source, e.g. Wine-Searcher": "Kilde, fx Wine-Searcher",
+  "Look it up on Wine-Searcher ↗": "Slå den op på Wine-Searcher ↗",
+  "Valuation added: {0} on {1}": "Vurdering tilføjet: {0} den {1}",
+  "Valuation removed": "Vurdering fjernet"
 });
