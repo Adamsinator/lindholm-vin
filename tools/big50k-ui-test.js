@@ -48,9 +48,14 @@ const go = async p => { const t = Date.now(); await p.click("#impGo"); await p.w
   const b = await chromium.launch();
   {
     const gas = H({ Ark1: [HEAD] }), { ctx, p, calls, errs } = await session(b, gas);
-    await openFile(p);
+    await p.click("#impBtn"); await p.setInputFiles("#impFile", FIX); await p.waitForTimeout(150);
+    const reading = await p.textContent("#impProg"); await p.waitForSelector("#impMap:not([hidden])", { timeout: 120000 }); await p.waitForTimeout(300);
+    check("opening the file: the dialog says it's reading it, then how many rows it's joining", /Reading big50000\.xlsx|Read 50[.,]?0\d\d rows/.test(reading), reading);
     const label = await p.textContent("#impGo"), n = Number(label.replace(/\D/g, ""));
-    const took = await go(p), data = gas.call({ code: "test-code", action: "data" }).wines, bottles = data.reduce((s, w) => s + w.qty, 0);
+    await p.click("#impGo"); await p.waitForTimeout(80); const sending = await p.textContent("#impProg");
+    await p.waitForFunction(() => !document.getElementById("impModal").classList.contains("open"), null, { timeout: 600000, polling: 250 });
+    check("sending: the dialog counts the wines as they go, with a bar", /Importing… [\d.,]+ of [\d.,]+/.test(sending), sending);
+    const took = "–", data = gas.call({ code: "test-code", action: "data" }).wines, bottles = data.reduce((s, w) => s + w.qty, 0);
     const adds = calls.filter(c => c.action === "addmany");
     console.log(`      joined: ${label} in ${took}, ${adds.length} parts → ${data.length} rows, ${bottles} bottles (the file: ${inFile})`);
     check("joined: one row per wine, a few thousand, well under the cap", n > 5000 && n < 7100 && data.length === n, label + " " + data.length);
@@ -62,8 +67,9 @@ const go = async p => { const t = Date.now(); await p.click("#impGo"); await p.w
   }
   {
     const gas = H({ Ark1: [HEAD] }), { ctx, p, errs } = await session(b, gas);
-    await openFile(p); await p.uncheck("#impMerge"); await p.waitForTimeout(500);
+    await openFile(p); await p.uncheck("#impMerge"); await p.waitForTimeout(50); const busy = await p.textContent("#impProg"); await p.waitForFunction(() => document.getElementById("impProg").hidden, null, { timeout: 60000 });
     const label = await p.textContent("#impGo"), sum = await p.textContent("#impSum");
+    check("not joined: while it goes through the 50,000 rows again, the dialog says so", /Going through 50[.,]?0\d\d rows/.test(busy), busy);
     check("not joined: 25,000 rows offered, and the dialog says why", /Import 25[.,]?000 wines/.test(label) && /Only the first 25[.,]?000 wines are imported at a time/.test(sum), label + " | " + sum);
     const took = await go(p);
     console.log(`      not joined: ${label} in ${took}`);

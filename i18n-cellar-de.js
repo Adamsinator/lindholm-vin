@@ -1102,5 +1102,17 @@ Object.assign(window.I18N_DICT.de = window.I18N_DICT.de || {}, {
   "Your account is deleted. It's kept until {0}: write to the owner if you change your mind.": "Ihr Konto ist gelöscht. Es wird bis {0} aufbewahrt: schreiben Sie dem Inhaber, wenn Sie es sich anders überlegen.",
   "What was done to accounts": "Was mit Konten geschah",
   "New: a one-minute tour of what AllWine can do.": "Neu: eine einminütige Tour durch das, was AllWine kann.",
-  "Couldn't load the tour. Check your connection and try again.": "Die Tour konnte nicht geladen werden. Prüfen Sie die Verbindung und versuchen Sie es erneut."
+  "Couldn't load the tour. Check your connection and try again.": "Die Tour konnte nicht geladen werden. Prüfen Sie die Verbindung und versuchen Sie es erneut.",
+  "about {0} s left": "noch etwa {0} s",
+  "about {0} min left": "noch etwa {0} Min.",
+  "Reading {0}…": "{0} wird gelesen…",
+  "Read {0} rows. Checking spellings and joining rows of the same wine…": "{0} Zeilen gelesen. Schreibweisen werden geprüft und Zeilen desselben Weins zusammengeführt…",
+  "Going through {0} rows…": "{0} Zeilen werden durchgesehen…",
+  "Done: showing your cellar…": "Fertig: Ihr Keller wird angezeigt…",
+  "Showing all {0}…": "Alle {0} werden angezeigt…",
+  "Preparing the file…": "Datei wird vorbereitet…",
+  "Still fetching your cellar: a big one takes a few seconds.": "Ihr Keller wird noch geladen: ein großer braucht ein paar Sekunden.",
+  "Getting the sommelier's notes…": "Die Notizen des Sommeliers werden geladen…",
+  "Tidying… part {0} of {1}": "Aufräumen… Teil {0} von {1}",
+  "Looking through {0} wines…": "{0} Weine werden durchgesehen…"
 });

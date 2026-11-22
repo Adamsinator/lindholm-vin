@@ -1129,6 +1129,9 @@ function syncHash(push) {
 }
 async function openRegion(id, sel) {
   const R = REGIONS.concat(PREVIEW).find(r => r.id === id) || REGIONS[0];
+  // a region's map can take a few seconds to come (a slow line, the Côte d'Or's 600 KB): say so where the eye is
+  if (!(window.ATLAS_PACKS && ATLAS_PACKS[R.id])) { const msg = esc(t("Loading the map of {0}…", R.name));
+    if ($("crumb")) $("crumb").innerHTML = `<span class="loading">${msg}</span>`; $("side").innerHTML = `<h2>${esc(R.name)}</h2><p class="note loading">${msg}</p>`; }
   if (!window.ATLAS_KW) await loadScript("atlas-kw.js?v=8").catch(() => {});
   if (R.ui && !window.ATLAS_CD) await loadScript(R.ui).catch(() => {}); // the region's own tools (the Côte d'Or: owners)
   if (R.ld && !window.ATLAS_LDUI) await loadScript("atlas-ld.js?v=2").catch(() => {}); // lieux-dits: their data comes when zoomed in

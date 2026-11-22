@@ -242,4 +242,5 @@ Object.assign(window.I18N_DICT.fr = window.I18N_DICT.fr || {}, {
   "VAT {0}": "TVA {0}",
   "stock report": "rapport de stock",
   "Bottles in stock": "Bouteilles en stock",
+  "Saving… {0} of {1}": "Enregistrement… {0} sur {1}"
 });

@@ -87,27 +87,29 @@ function tidyRender(){
   $("tidyGo").disabled = !(nEdit || nGroup);
 }
 async function tidyRun(){
-  const S = TIDY_STATE, btn = $("tidyGo"); btn.disabled = true; $("tidyErr").textContent = "";
+  const S = TIDY_STATE, btn = $("tidyGo"), pg = progressIn($("tidyProg")); btn.disabled = true; $("tidyErr").textContent = "";
   try{
     // in parts, like the import: each must be written well within Apps Script's time, and at most 5,000 a call
     const vault = window.VAULT && VAULT.active(), ESZ = vault ? 4000 : 800, GSZ = vault ? 4000 : 300;
     let res;
     let groups = S.groups.filter(g => !S.groupsOff.has(String(g.keep))), gone = [];
     const nParts = Math.ceil(S.edits.length / ESZ) + Math.ceil(groups.length / GSZ); let k = 0; // only the last asks for the cellar back
-    for(let i = 0; i < S.edits.length; i += ESZ) res = await api({action:"setinfomany", edits:S.edits.slice(i, i + ESZ), quiet:++k < nParts});
+    const say = () => pg.set(tr("Tidying… part {0} of {1}", k + 1, nParts), k, nParts);
+    for(let i = 0; i < S.edits.length; i += ESZ){ say(); res = await api({action:"setinfomany", edits:S.edits.slice(i, i + ESZ), quiet:++k < nParts}); }
     // merging deletes rows, so the rows of the later parts move up by the rows deleted above them
     const moved = r => { let n = 0; for(const d of gone) if(d < r) n++; return r - n; };
     for(let i = 0; i < groups.length; i += GSZ){
       const part = groups.slice(i, i + GSZ).map(g => ({keep:moved(g.keep), drop:g.drop.map(moved)}));
-      res = await api({action:"mergerows", groups:part, quiet:++k < nParts});
+      say(); res = await api({action:"mergerows", groups:part, quiet:++k < nParts});
       gone = gone.concat(groups.slice(i, i + GSZ).flatMap(g => g.drop)).sort((a,b)=>a-b);
     }
     if(res && !res.wines) res = await api({action:"data"}); // a server older than API 66 always answers with the cellar; this is for safety
-    if(res){ WINES = normalize(res.wines); KEEP_OPEN = null; renderOverview(); renderTable(); renderEnjoyed(); }
+    if(res){ pg.set(tr("Done: showing your cellar…")); await paintNow(); WINES = normalize(res.wines); KEEP_OPEN = null; renderOverview(); renderTable(); renderEnjoyed(); }
+    pg.end();
     $("tidyModal").classList.remove("open");
     toast(tr("Cellar tidied"));
   }catch(err){
-    const m = String(err && err.message || err);
+    pg.end(); const m = String(err && err.message || err);
     $("tidyErr").textContent = m === "bad-action" ? tr("Tidying needs the updated Apps Script (version 32): redeploy Code.gs.") : tr("Could not tidy: {0}", m);
     btn.disabled = false;
     if(AUTH_ERRORS.has(m)) showGate(authMsg(m));

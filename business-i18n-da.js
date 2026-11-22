@@ -242,4 +242,5 @@ Object.assign(window.I18N_DICT.da = window.I18N_DICT.da || {}, {
   "VAT {0}": "Moms {0}",
   "stock report": "lagerrapport",
   "Bottles in stock": "Flasker på lager",
+  "Saving… {0} of {1}": "Gemmer… {0} af {1}"
 });

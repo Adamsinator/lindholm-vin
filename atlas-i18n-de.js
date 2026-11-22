@@ -87,5 +87,6 @@ Object.assign(window.I18N_DICT.de, {
   "The rules take the commune east of the old Via Aurelia.": "Die Regeln nehmen die Gemeinde östlich der alten Via Aurelia.",
   "Vines © ARTEA, Regione Toscana, CC BY": "Reben © ARTEA, Regione Toscana, CC BY",
   "Partly in its wine's zone": "Teilweise in der Zone seines Weins",
-  "Back": "Zurück"
+  "Back": "Zurück",
+  "Loading the map of {0}…": "Die Karte von {0} wird geladen…"
 });
