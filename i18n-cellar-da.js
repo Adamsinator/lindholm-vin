@@ -822,6 +822,7 @@ Object.assign(window.I18N_DICT.da = window.I18N_DICT.da || {}, {
   "{0} rows without a producer are left out.": "{0} rækker uden producent udelades.",
   "{0} rows with 0 bottles are left out.": "{0} rækker med 0 flasker udelades.",
   "Only the first {0} wines are imported at a time.": "Kun de første {0} vine importeres ad gangen.",
+  "Only the first {0} rows of the file are read.": "Kun de første {0} rækker i filen læses.",
   "Choose which column holds the producer.": "Vælg hvilken kolonne der har producenten.",
   "{0} wines · {1} bottles": "{0} vine · {1} flasker",
   "{0} of these are already in your cellar (same producer, wine, vintage and format):": "{0} af dem er allerede i din kælder (samme producent, vin, årgang og format):",
@@ -1099,5 +1100,7 @@ Object.assign(window.I18N_DICT.da = window.I18N_DICT.da || {}, {
   "This account was deleted. It's kept for 30 days: write to the owner if you want it back.": "Denne konto er slettet. Den gemmes i 30 dage: skriv til ejeren, hvis du vil have den tilbage.",
   "Delete your account \"{0}\"? You're signed out at once and can't log in. Everything is kept for 30 days: write to the owner before then if you change your mind. After that it's deleted for good: cellar, journal, wishlist, photos, feed posts and follows.": "Slet din konto \"{0}\"? Du logges ud med det samme og kan ikke logge ind. Alt gemmes i 30 dage: skriv til ejeren inden da, hvis du fortryder. Derefter slettes det for altid: kælder, journal, ønskeliste, fotos, opslag og følgere.",
   "Your account is deleted. It's kept until {0}: write to the owner if you change your mind.": "Din konto er slettet. Den gemmes til {0}: skriv til ejeren, hvis du fortryder.",
-  "What was done to accounts": "Hvad der er gjort ved konti"
+  "What was done to accounts": "Hvad der er gjort ved konti",
+  "New: a one-minute tour of what AllWine can do.": "Nyt: en rundvisning på et minut i, hvad AllWine kan.",
+  "Couldn't load the tour. Check your connection and try again.": "Kunne ikke hente rundvisningen. Tjek forbindelsen og prøv igen."
 });

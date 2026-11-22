@@ -63,5 +63,6 @@ Object.assign(window.I18N_DICT.fr, {
   "Can the owner read my cellar? It's encrypted in your browser, so the server and Google can't. The privacy page explains the one exception, account help, and when it's used.": "Le propriétaire peut-il lire ma cave ? Elle est chiffrée dans votre navigateur, donc ni le serveur ni Google ne le peuvent. La page de confidentialité explique la seule exception, l'aide au compte, et quand elle sert.",
   "Why does a wine say (estimated)? It has no drink window of its own yet; set one in its row and the estimate goes away.": "Pourquoi un vin indique-t-il (estimée) ? Il n'a pas encore sa propre fenêtre ; fixez-en une sur sa ligne et l'estimation disparaît.",
   "Something looks wrong or broken? Reload the page first; the site updates itself. If it stays, tell the owner.": "Quelque chose semble faux ou cassé ? Rechargez d'abord la page ; le site se met à jour tout seul. Si cela persiste, prévenez le propriétaire.",
-  "On this page": "Sur cette page"
+  "On this page": "Sur cette page",
+  "Take the one-minute tour of your cellar →": "Faites la visite d'une minute de votre cave →"
 });

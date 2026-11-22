@@ -45,9 +45,10 @@ const HEAD = ["Producent", "Land", "Område", "Kommune", "Mark/Navn", "Klassifik
 
   // a finger that rests first, then flicks: a flick, by its speed at the end
   await p.tap("#pMe"); await p.waitForTimeout(400); [x, y] = await cardTop("meSheet");
-  await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y: y + 60 }] }); await p.waitForTimeout(600);
-  for (let k = 1; k <= 6; k++) { await p.waitForTimeout(12); await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x, y: y + 60 + k * 15 }] }); }
-  await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] }); await p.waitForTimeout(500);
+  // the touches carry their own times (12 ms apart, as a finger's), so a busy test machine doesn't make the flick slow
+  const t0 = Date.now() / 1000; await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y: y + 60 }], timestamp: t0 }); await p.waitForTimeout(600);
+  for (let k = 1; k <= 6; k++) { await p.waitForTimeout(12); await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x, y: y + 60 + k * 15 }], timestamp: t0 + .6 + k * .012 }); }
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [], timestamp: t0 + .6 + 7 * .012 }); await p.waitForTimeout(500);
   check("…and a flick after the finger rested a moment", !(await isOpen("meSheet")));
 
   // sheets a tap beside doesn't close: Account (its Close), and a business sheet (quick sell and the like)

@@ -9,3 +9,4 @@ tools/.region-cache/
 tools/.geoapi-cache/
 tools/.geol-cache/
 /node_modules/
+tools/fixtures/big*.xlsx

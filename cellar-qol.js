@@ -114,7 +114,7 @@ $("selDrink").addEventListener("click", async ()=>{
     if(e.target.closest("input, textarea, select, [contenteditable]")) return; // a field gets the touch
     const t = e.touches[0], top = t.clientY - card.getBoundingClientRect().top;
     if(top > 56 && card.scrollTop > 0) return; // scrolled down inside: the touch scrolls
-    drag = {card, modal:card.parentNode, y0:t.clientY, x0:t.clientX, dy:0, on:false, handle: top <= 56, pts:[[Date.now(), 0]]};
+    drag = {card, modal:card.parentNode, y0:t.clientY, x0:t.clientX, dy:0, on:false, handle: top <= 56, pts:[[e.timeStamp, 0]]};
   }, {passive:true});
   document.addEventListener("touchmove", e=>{
     if(!drag) return; const t = e.touches[0], dy = t.clientY - drag.y0, dx = t.clientX - drag.x0;
@@ -125,14 +125,15 @@ $("selDrink").addEventListener("click", async ()=>{
       drag.on = true; drag.card.style.transition = "none"; drag.card.style.animation = "none";
     }
     drag.dy = Math.max(0, dy); drag.card.style.transform = `translateY(${drag.dy}px)`;
-    drag.pts.push([Date.now(), drag.dy]); if(drag.pts.length > 8) drag.pts.shift();
+    drag.pts.push([e.timeStamp, drag.dy]); if(drag.pts.length > 8) drag.pts.shift(); // when the finger moved, not when this ran
     if(e.cancelable) e.preventDefault(); // the page under it doesn't scroll meanwhile
   }, {passive:false});
-  const end = ()=>{
+  const end = e=>{
     if(!drag) return; const d = drag; drag = null; if(!d.on) return;
-    // a flick by the finger's speed over its last moments (not the whole touch, which a pause first made slow)
-    const now = Date.now(), p0 = d.pts.find(q => now - q[0] <= 120) || d.pts[d.pts.length - 1];
-    const fast = (d.dy - p0[1]) / Math.max(16, now - p0[0]) > .5, far = d.dy > Math.min(120, d.card.offsetHeight * .25);
+    // a flick by the finger's speed over its last moves (not the whole touch, which a pause first made slow), by the
+    // touches' own times: a busy phone hands them over late and bunched, and a flick read as slow
+    const now = e.timeStamp, last = d.pts[d.pts.length - 1], p0 = d.pts.find(q => last[0] - q[0] <= 120) || last;
+    const fast = now - last[0] < 150 && (last[1] - p0[1]) / Math.max(16, last[0] - p0[0]) > .5, far = d.dy > Math.min(120, d.card.offsetHeight * .25);
     d.card.style.transition = "transform .22s cubic-bezier(.2,.8,.2,1)";
     const reset = ()=>{ d.card.style.transform = d.card.style.transition = d.card.style.animation = ""; };
     if(far || (fast && d.dy > 40)){ // slide the rest of the way, then close as a tap beside it does

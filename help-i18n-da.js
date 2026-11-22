@@ -63,5 +63,6 @@ Object.assign(window.I18N_DICT.da, {
   "Can the owner read my cellar? It's encrypted in your browser, so the server and Google can't. The privacy page explains the one exception, account help, and when it's used.": "Kan ejeren læse min kælder? Den krypteres i din browser, så serveren og Google kan ikke. Privatlivssiden forklarer den ene undtagelse, kontohjælp, og hvornår den bruges.",
   "Why does a wine say (estimated)? It has no drink window of its own yet; set one in its row and the estimate goes away.": "Hvorfor står der (skønnet) ved en vin? Den har endnu ikke sit eget drikkevindue; sæt et i dens række, så forsvinder skønnet.",
   "Something looks wrong or broken? Reload the page first; the site updates itself. If it stays, tell the owner.": "Ser noget forkert eller i stykker ud? Genindlæs siden først; siden opdaterer sig selv. Bliver det ved, så sig det til ejeren.",
-  "On this page": "På denne side"
+  "On this page": "På denne side",
+  "Take the one-minute tour of your cellar →": "Tag rundvisningen af din kælder på et minut →"
 });

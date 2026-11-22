@@ -13,7 +13,8 @@
 
 const MAX_FILE = 20 * 1024 * 1024;   // bytes
 const MAX_PART = 200 * 1024 * 1024;  // uncompressed size of one part of a workbook (a zip bomb guard)
-const MAX_ROWS = 25000;
+const MAX_ROWS = 25000;  // new cellar rows from one import (after rows of the same wine are joined)
+const MAX_READ = 100000; // rows read from one file: a merchant's 50,000-row export joins into far fewer wines
 
 // ── zip (just enough for .xlsx) ─────────────────────────────────────────────────
 async function inflateRaw(bytes) {
@@ -96,7 +97,7 @@ async function readXlsx(buf) {
     let rn = 0;
     xml.replace(/<row\b([^>]*?)(?:\/>|>([\s\S]*?)<\/row>)/g, (m, ra, body) => {
       const r = attrs(ra); rn = r.r ? Number(r.r) - 1 : rn;
-      if (rn >= MAX_ROWS + 50) return;
+      if (rn >= MAX_READ + 50) return;
       const cells = [];
       let cn = 0;
       String(body || "").replace(/<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g, (m2, ca, cb) => {
@@ -142,7 +143,7 @@ function splitDelimited(text, d) {
     else if (ch === "\n" || ch === "\r") {
       if (ch === "\r" && text[i + 1] === "\n") i++;
       row.push(cell); rows.push(row); row = []; cell = "";
-      if (rows.length > MAX_ROWS + 50) return rows;
+      if (rows.length > MAX_READ + 50) return rows;
     } else cell += ch;
   }
   if (cell !== "" || row.length) { row.push(cell); rows.push(row); }
@@ -164,7 +165,7 @@ function sniff(text) {
 function readText(u8, name) {
   const text = decodeText(u8);
   const d = sniff(text);
-  if (!d) return { kind: "lines", sheets: [{ name, rows: text.split(/\r?\n/).filter(l => l.trim()).slice(0, MAX_ROWS + 50).map(l => [l.trim()]) }] };
+  if (!d) return { kind: "lines", sheets: [{ name, rows: text.split(/\r?\n/).filter(l => l.trim()).slice(0, MAX_READ + 50).map(l => [l.trim()]) }] };
   return { kind: d === "\t" ? "tsv" : "csv", delimiter: d, sheets: [{ name, rows: splitDelimited(text, d) }] };
 }
 
@@ -501,7 +502,7 @@ function build(rows, header, fields) {
     w.src = header + 2 + n; // the row number in the file, for the preview
     wines.push(w);
   });
-  return { wines: wines.slice(0, MAX_ROWS), skipped, truncated: wines.length > MAX_ROWS };
+  return { wines, skipped, truncated: rows.length > MAX_READ + header + 1 };
 }
 
 // ── already in the cellar? ─────────────────────────────────────────────────────
@@ -522,7 +523,7 @@ function bumps(dupes) {
 }
 const clean = w => { const o = {}; for (const [k, v] of Object.entries(w)) if (k !== "src" && k !== "rows" && v !== "" && v != null) o[k] = v; return o; };
 
-const api = { read, readText: (u8, name) => readText(u8, name || "file"), readXlsx, table, build, dedupe, bumps, clean, FIELDS, matchHeader, parseLine, num, vintage, isoDate, size, wineType, MAX_ROWS };
+const api = { read, readText: (u8, name) => readText(u8, name || "file"), readXlsx, table, build, dedupe, bumps, clean, FIELDS, matchHeader, parseLine, num, vintage, isoDate, size, wineType, MAX_ROWS, MAX_READ };
 if (typeof module !== "undefined" && module.exports) module.exports = api;
 else root.IMPORT = api;
 })(typeof window !== "undefined" ? window : globalThis);

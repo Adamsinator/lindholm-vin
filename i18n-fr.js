@@ -1,6 +1,7 @@
 // French for allwine.dk: i18n.js loads the one dictionary the page's language needs (English is the source text).
 window.I18N_DICT = window.I18N_DICT || {};
 window.I18N_DICT.fr = {
+  "Take the tour": "Faire la visite",
   "For business": "Pour les pros",
   "Drink": "Boire",
   "Colour": "Couleur",

@@ -1567,9 +1567,10 @@ async function loadData(quiet){
     LOADED_AT = new Date(); stampText();
     $("spin").hidden = true; $("content").hidden = false;
     if(!VINT_W && VINT_CELLAR.length) drawVintages(VINT_CELLAR); // drawn while hidden (no width yet): again, for the width it has now
-    if(!window.CELLAR_QOL) loadJS("cellar-qol.js?v=13").catch(()=>{}); // the conveniences: swipes, keys, several wines at once
+    if(!window.CELLAR_QOL) loadJS("cellar-qol.js?v=14").catch(()=>{}); // the conveniences: swipes, keys, several wines at once
     if(/^test/i.test(cfg.user||"") && !window.TESTKIT) loadJS("testkit.js?v=2").then(()=>TESTKIT.mount()).catch(()=>{}); // test data
-    loadJournalSilently(); refreshDeleted(); checkOwner(); takePrefill(); // checkOwner asks "me", which says if the feed is on
+    loadJournalSilently(); refreshDeleted(); checkOwner(); takePrefill();
+    if(location.hash === "#tour"){ history.replaceState(null, "", location.pathname + location.search); startTour(); } // the help page's link // checkOwner asks "me", which says if the feed is on
   }catch(err){
     if(AUTH_ERRORS.has(err.message)){ forgetAuth(); setGateMode("login"); showGate(tr("Your session expired: log in again.")); }
     else { $("spin").classList.remove("skel"); $("spin").textContent = tr("Could not reach the cellar API ({0}). Check your connection and refresh.", errText(err)); }
@@ -2249,6 +2250,9 @@ function impBuild(){
   const mg = IMP.merge ? TIDY.merge(tidied.wines) : {wines:tidied.wines, merged:0};
   IMP.merged = mg.merged;
   IMP.d = IMPORT.dedupe(mg.wines, WINES, TIDY.mergeKey);
+  // at most 25,000 new rows from one import, counted after rows of the same wine are joined (a 50,000-row export
+  // can be a few thousand wines: before, the file itself was cut at 25,000 rows and half its bottles left out)
+  IMP.cut = IMP.d.fresh.length > IMPORT.MAX_ROWS; if(IMP.cut) IMP.d.fresh = IMP.d.fresh.slice(0, IMPORT.MAX_ROWS);
   const ws = mg.wines, dupRows = new Set(IMP.d.dupes.map(x => x.wine));
   const fmt = n => Number(n).toLocaleString(I18N_LOCALE());
   const head = ["", tr("Producer"), tr("Vineyard / cuvée"), tr("Commune"), tr("Vintage"), tr("Bottles"), tr("Price"), tr("Type"), tr("Format")];
@@ -2266,7 +2270,8 @@ function impBuild(){
   if(IMP.built.skipped.zero) notes.push(trn(IMP.built.skipped.zero, "{0} row with 0 bottles is left out.", "{0} rows with 0 bottles are left out."));
   if(IMP.built.skipped.totals) notes.push(trn(IMP.built.skipped.totals, "{0} total row is left out.", "{0} total rows are left out."));
   if(IMP.built.skipped.headers) notes.push(trn(IMP.built.skipped.headers, "{0} repeated heading row is left out.", "{0} repeated heading rows are left out."));
-  if(IMP.built.truncated) notes.push(tr("Only the first {0} wines are imported at a time.", IMPORT.MAX_ROWS));
+  if(IMP.cut) notes.push(tr("Only the first {0} wines are imported at a time.", fmt(IMPORT.MAX_ROWS)));
+  if(IMP.built.truncated) notes.push(tr("Only the first {0} rows of the file are read.", fmt(IMPORT.MAX_READ)));
   if(!IMP.fields.includes("producer") && !IMP.fields.includes("line")) notes.push(tr("Choose which column holds the producer."));
   $("impSum").innerHTML = esc((ws.length===1 ? tr("1 wine") : tr("{0} wines", fmt(ws.length))) + " · " + (bottles===1 ? tr("1 bottle") : tr("{0} bottles", fmt(bottles)))) + notes.map(n => `<small>${esc(n)}</small>`).join("");
   // rows of the same wine, and the spelling fixes
@@ -2308,18 +2313,19 @@ async function impRun(){
   const btn = $("impGo"); btn.disabled = true; $("impErr").textContent = "";
   let done = 0;
   try{
-    for(const part of parts){
+    // only the last part asks for the cellar back: each answer was the whole cellar, read again on the server
+    for(const [k, part] of parts.entries()){
       btn.textContent = tr("Importing… {0} of {1}", fmt(done), fmt(total));
-      const res = await api({action:"addmany", wines:part.wines, bumps:part.bumps});
+      const res = await api({action:"addmany", wines:part.wines, bumps:part.bumps, quiet:k < parts.length - 1});
       done += part.n;
-      WINES = normalize(res.wines);
+      if(res.wines) WINES = normalize(res.wines);
     }
     renderOverview(); renderTable(); renderEnjoyed();
     $("impModal").classList.remove("open");
     toast(done===1 ? tr("1 wine imported") : tr("{0} wines imported", done)); hit("import");
   }catch(err){
     const m = String(err && err.message || err);
-    if(done){ renderOverview(); renderTable(); renderEnjoyed(); }
+    if(done){ await loadData(true).catch(() => {}); renderOverview(); renderTable(); renderEnjoyed(); } // what went in before the error
     $("impErr").textContent = m === "bad-action" ? tr("Importing needs the updated Apps Script (version 29): redeploy Code.gs.")
       : done ? tr("{0} of {1} wines were imported before an error: {2}", done, total, m)
       : tr("Could not import: {0}", m);
@@ -2440,8 +2446,8 @@ $("impGo").addEventListener("click", impRun);
 const SOMM = {ready:null};
 // the import, export and tidy-up tools (tidy.js, import.js, export.js): not needed to show the cellar, so fetched once
 // it's on screen; whatever uses them waits for them first
-const TOOLS_JS = ["tidy.js?v=3", "import.js?v=8", "export.js?v=3"]; let TOOLS_LOAD = null;
-function needTools(){ return window.TIDY && window.IMPORT && window.EXPORT ? Promise.resolve() : TOOLS_LOAD || (TOOLS_LOAD = Promise.all(TOOLS_JS.map(loadJS)).catch(e => { TOOLS_LOAD = null; throw e; })); }
+const TOOLS_JS = ["tidy.js?v=3", "tidy-ui.js?v=1", "import.js?v=9", "export.js?v=3"]; let TOOLS_LOAD = null;
+function needTools(){ return window.TIDY && window.TIDY_UI && window.IMPORT && window.EXPORT ? Promise.resolve() : TOOLS_LOAD || (TOOLS_LOAD = Promise.all(TOOLS_JS.map(loadJS)).catch(e => { TOOLS_LOAD = null; throw e; })); }
 function loadJS(src){ return new Promise((ok, no) => { const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = () => no(new Error("load " + src)); document.head.appendChild(s); }); }
 // only what isn't there yet (the atlas texts follow the language picker)
 function sommLoad(){
@@ -2523,123 +2529,8 @@ new MutationObserver(() => { const on = !$("app").hidden; $("sommBtn").hidden = 
   .observe($("app"), {attributes:true, attributeFilter:["hidden"]});
 
 /* ---------- tidy up the cellar (tidy.js): one spelling per thing, one row per wine ---------- */
-const TIDY_STATE = {off:new Set(), groupsOff:new Set(), fixes:[], edits:[], groups:[]};
-function tidyPlan(){
-  const base = WINES.map(w => ({row:w.row, producer:w.producer, name:w.name, commune:w.commune, region:w.region, country:w.country,
-    grape:w.grape, source:w.source, location:w.location, vintage:w.vintage, size:w.size, elsewhere:w.elsewhere}));
-  const t = tidier().wines(base, {off:TIDY_STATE.off});
-  const edits = [];
-  t.wines.forEach((w, i) => {
-    const fields = {};
-    for (const f of ["producer","name","commune","region","country","grape","source","location"]) if (String(w[f]||"") !== String(base[i][f]||"")) fields[f] = w[f];
-    if (Object.keys(fields).length) edits.push({row:w.row, fields});
-  });
-  // the same wine in several rows (after the spellings), never mixing in wines drunk elsewhere
-  const by = new Map();
-  t.wines.forEach(w => { if (w.elsewhere) return; const k = TIDY.mergeKey(w); (by.get(k) || by.set(k, []).get(k)).push(w.row); });
-  const groups = [...by.values()].filter(r => r.length > 1).map(r => r.sort((a,b) => a-b)).map(r => ({keep:r[0], drop:r.slice(1)}));
-  // what's missing that the appellation says clearly (WINE_KB.suggest, as the Add form does): region, country, grape
-  const gaps = new Map(), byRowE = new Map(edits.map(e => [e.row, e]));
-  if(window.WINE_KB) t.wines.forEach((w, i) => { if(w.elsewhere) return; const o = WINES[i] || {};
-    const sg = WINE_KB.suggest({name:w.name, commune:w.commune, region:w.region, country:w.country, grape:w.grape, type:o.type, typeSet:!!String(o.type||"").trim()});
-    for(const f of ["region","country","grape"]){ if(String(w[f]||"").trim() || !sg[f]) continue;
-      const k = f + "|" + sg[f]; if(!gaps.has(k)) gaps.set(k, {field:f, to:sg[f], rows:[]}); gaps.get(k).rows.push(w.row);
-      if(TIDY_STATE.gapOff && TIDY_STATE.gapOff.has(k)) continue;
-      const e = byRowE.get(w.row) || (byRowE.set(w.row, {row:w.row, fields:{}}).get(w.row)); e.fields[f] = sg[f]; } });
-  const allEdits = [...byRowE.values()].filter(e => Object.keys(e.fields).length);
-  Object.assign(TIDY_STATE, {fixes:t.fixes, edits:allEdits, groups, gaps:[...gaps.values()].sort((a, b) => b.rows.length - a.rows.length)});
-}
-// what the tidy-up can't decide for you: wines worth a look, and how complete the cellar is
-// prices far from the same wine's other rows (same bottle size), or above any plausible price; tenfold = a digit off
-function priceChecks(){
-  const key = w => [w.producer, w.name, w.size].map(x => String(x || "").toLowerCase().replace(/\s+/g, " ").trim()).join("|");
-  const priced = WINES.filter(w => !w.elsewhere && Number(w.price) > 0), by = new Map(), out = [];
-  priced.forEach(w => { const k = key(w); (by.get(k) || by.set(k, []).get(k)).push(w); });
-  const med = a => { const s = a.slice().sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
-  // three rows or more: each against the group's median, which one odd row can't pull; two: a big gap flags both,
-  // as either could be the slip
-  for(const w of priced){ const p = Number(w.price), g = by.get(key(w)).map(x => Number(x.price));
-    if(g.length >= 2){ const two = g.length === 2, m = two ? g.find((x, i) => by.get(key(w))[i] !== w) : med(g), r = p / m;
-      if(r >= 4 || r <= .25){ const tenfold = (r >= 7 && r <= 14) || (r >= 1 / 14 && r <= 1 / 7);
-        out.push([w, tr(two ? "{0}; its other row {1}" : "{0}; its other rows about {1}", kr(p), kr(m)) + (tenfold ? " · " + tr(r > 1 ? "a digit too many?" : "a digit missing?") : "")]); continue; } }
-    if(p >= 100000) out.push([w, tr("{0} for a bottle", kr(p))]); }
-  return out;
-}
-function tidyLook(){
-  const yr = new Date().getFullYear(), live = WINES.filter(w => !w.elsewhere && w.left > 0), pc = priceChecks(), pnote = new Map(pc);
-  return {live, look:[
-    ["A price that looks off", pc.map(([w]) => w), w => pnote.get(w)],
-    ["No vintage", live.filter(w => !w.vintage && w.style !== "Bobler")],
-    ["No price", live.filter(w => !(Number(w.price) > 0))],
-    ["Past its drinking window", live.filter(w => w.drinkTo && w.drinkTo < yr)],
-    ["No drinking window", live.filter(w => !w.drinkTo && !w.drinkFrom)],
-    ["Unusually many bottles of one wine", live.filter(w => w.left >= 60)],
-  ].filter(([, l]) => l.length),
-  health:[["Vintage", w => !!w.vintage || w.style === "Bobler"], ["Region", w => !!String(w.region||"").trim()], ["Grape", w => !!String(w.grape||"").trim()],
-    ["Price", w => Number(w.price) > 0], ["Drinking window", w => !!(w.drinkTo || w.drinkFrom)]].map(([l, ok]) => [l, live.length ? Math.round(100 * live.filter(ok).length / live.length) : 100])};
-}
-function tidyRender(){
-  tidyPlan();
-  const S = TIDY_STATE, offList = [...S.off].map(k => { const i = k.indexOf("|"); return {field:k.slice(0, i), from:k.slice(i + 1), off:true}; });
-  const fx = S.fixes.concat(offList);
-  $("tidyFixWrap").hidden = !fx.length;
-  $("tidyFixes").innerHTML = fx.slice(0, 150).map(f => `<label class="jcheck"><input type="checkbox" data-fix="${esc(f.field + "|" + f.from)}"${f.off ? "" : " checked"}>
-    <span><span class="fixf">${esc(tr(FIX_FIELD[f.field] || f.field))}</span> “${esc(f.from)}”${f.off ? "" : ` → “<b>${esc(f.to)}</b>”`}${f.n > 1 ? ` <span class="aimeta">${esc(trn(f.n, "{0} wine", "{0} wines"))}</span>` : ""}</span></label>`).join("");
-  const byRow = new Map(WINES.map(w => [w.row, w]));
-  $("tidyDupWrap").hidden = !S.groups.length;
-  $("tidyDups").innerHTML = S.groups.map(g => { const ws = [g.keep, ...g.drop].map(r => byRow.get(r)), w = ws[0], key = String(g.keep);
-    return `<label class="jcheck"><input type="checkbox" data-grp="${key}"${S.groupsOff.has(key) ? "" : " checked"}>
-      <span><b>${esc(w.producer)}</b> ${esc([w.name, w.vintage].filter(Boolean).join(" "))} <span class="aimeta">${esc(tr("{0} rows: {1} bottles", ws.length, ws.map(x => x.qty).join(" + ")))}</span></span></label>`; }).join("");
-  S.gapOff ||= new Set();
-  $("tidyGapWrap").hidden = !S.gaps.length;
-  $("tidyGaps").innerHTML = S.gaps.slice(0, 80).map(g => { const k = g.field + "|" + g.to;
-    return `<label class="jcheck"><input type="checkbox" data-gap="${esc(k)}"${S.gapOff.has(k) ? "" : " checked"}>
-      <span><span class="fixf">${esc(tr(FIX_FIELD[g.field] || g.field))}</span> — → “<b>${esc(g.to)}</b>” <span class="aimeta">${esc(trn(g.rows.length, "{0} wine", "{0} wines"))}</span></span></label>`; }).join("");
-  const L = tidyLook(), byRow2 = new Map(WINES.map(w => [w.row, w]));
-  $("tidyHealth").innerHTML = L.live.length ? `<h3>${esc(tr("How complete your cellar is"))} <span class="aimeta">${esc(tr("{0} % overall", Math.round(L.health.reduce((s, [, p]) => s + p, 0) / L.health.length)))}</span></h3>
-    <div class="thbars">${L.health.map(([l, p]) => `<div class="thbar"><span>${esc(tr(l))}</span><i style="--p:${p}%"></i><b>${p} %</b></div>`).join("")}</div>` : "";
-  $("tidyLookWrap").hidden = !L.look.length;
-  $("tidyLook").innerHTML = L.look.map(([l, ws, note]) => `<details class="tlook"><summary>${esc(tr(l))} <span class="aimeta">${esc(trn(ws.length, "{0} wine", "{0} wines"))}</span></summary>
-    <div class="tlist">${ws.slice(0, 12).map(w => `<button type="button" class="tlw" data-row="${w.row}">${esc(w.producer)} ${esc([w.name, w.vintage].filter(Boolean).join(" "))}${note ? ` <span class="aimeta">${esc(note(w))}</span>` : ""}</button>`).join("")}${ws.length > 12 ? `<span class="aimeta">${esc(tr("and {0} more", ws.length - 12))}</span>` : ""}</div></details>`).join("");
-  const nEdit = S.edits.length, nGroup = S.groups.filter(g => !S.groupsOff.has(String(g.keep))).length;
-  $("tidyIntro").textContent = (nEdit || S.groups.length || S.gaps.length) ? tr("Here's what can be tidied. Untick anything you want left as it is.") : tr("Nothing to tidy: every spelling is consistent and no wine is in two rows.");
-  $("tidyGo").hidden = !(nEdit || S.groups.length || S.gaps.length);
-  $("tidyGo").textContent = tr("Tidy {0} wines and join {1} groups", nEdit, nGroup);
-  $("tidyGo").disabled = !(nEdit || nGroup);
-}
-async function tidyRun(){
-  const S = TIDY_STATE, btn = $("tidyGo"); btn.disabled = true; $("tidyErr").textContent = "";
-  try{
-    // in parts, like the import: each must be written well within Apps Script's time, and at most 5,000 a call
-    const vault = window.VAULT && VAULT.active(), ESZ = vault ? 4000 : 800, GSZ = vault ? 4000 : 300;
-    let res;
-    for(let i = 0; i < S.edits.length; i += ESZ) res = await api({action:"setinfomany", edits:S.edits.slice(i, i + ESZ)});
-    // merging deletes rows, so the rows of the later parts move up by the rows deleted above them
-    let groups = S.groups.filter(g => !S.groupsOff.has(String(g.keep))), gone = [];
-    const moved = r => { let n = 0; for(const d of gone) if(d < r) n++; return r - n; };
-    for(let i = 0; i < groups.length; i += GSZ){
-      const part = groups.slice(i, i + GSZ).map(g => ({keep:moved(g.keep), drop:g.drop.map(moved)}));
-      res = await api({action:"mergerows", groups:part});
-      gone = gone.concat(groups.slice(i, i + GSZ).flatMap(g => g.drop)).sort((a,b)=>a-b);
-    }
-    if(res){ WINES = normalize(res.wines); KEEP_OPEN = null; renderOverview(); renderTable(); renderEnjoyed(); }
-    $("tidyModal").classList.remove("open");
-    toast(tr("Cellar tidied"));
-  }catch(err){
-    const m = String(err && err.message || err);
-    $("tidyErr").textContent = m === "bad-action" ? tr("Tidying needs the updated Apps Script (version 32): redeploy Code.gs.") : tr("Could not tidy: {0}", m);
-    btn.disabled = false;
-    if(AUTH_ERRORS.has(m)) showGate(authMsg(m));
-  }
-}
+// the dialog itself is tidy-ui.js, loaded with the tools
 $("tidyBtn").addEventListener("click", async ()=>{ try{ await needTools(); }catch(e){ toast(tr("Couldn't load the importer. Check your connection and try again.")); return; } TIDIER = null; TIDY_STATE.gapOff = new Set(); TIDY_STATE.off = new Set(); TIDY_STATE.groupsOff = new Set(); $("tidyErr").textContent = ""; tidyRender(); $("tidyModal").classList.add("open"); });
-$("tidyCancel").addEventListener("click", ()=>$("tidyModal").classList.remove("open"));
-$("tidyModal").addEventListener("click", e=>{ if(e.target===$("tidyModal")) $("tidyModal").classList.remove("open"); });
-$("tidyFixes").addEventListener("change", e=>{ const c = e.target.closest("input[data-fix]"); if(!c) return; if(c.checked) TIDY_STATE.off.delete(c.dataset.fix); else TIDY_STATE.off.add(c.dataset.fix); tidyRender(); });
-$("tidyGaps").addEventListener("change", e=>{ const c = e.target.closest("input[data-gap]"); if(!c) return; TIDY_STATE.gapOff ||= new Set(); if(c.checked) TIDY_STATE.gapOff.delete(c.dataset.gap); else TIDY_STATE.gapOff.add(c.dataset.gap); tidyRender(); });
-$("tidyLook").addEventListener("click", e=>{ const b = e.target.closest("button[data-row]"); if(!b) return; const w = WINES.find(x => x.row === Number(b.dataset.row)); if(!w) return; $("tidyModal").classList.remove("open"); showWine(w); });
-$("tidyDups").addEventListener("change", e=>{ const c = e.target.closest("input[data-grp]"); if(!c) return; if(c.checked) TIDY_STATE.groupsOff.delete(c.dataset.grp); else TIDY_STATE.groupsOff.add(c.dataset.grp); tidyRender(); });
-$("tidyGo").addEventListener("click", tidyRun);
 
 /* ---------- export (export.js builds the file here from the decrypted cellar) ---------- */
 async function expRun(kind){
@@ -2692,8 +2583,17 @@ function renderTips(){
   el.querySelector('[data-tip="wines"]').classList.toggle("done", wines);
   el.querySelector('[data-tip="windows"]').classList.toggle("done", windows);
   el.hidden = off || !cfg.user || (wines && windows);
+  tourNote();
 }
-$("tipsClose").addEventListener("click", ()=>{ try{ localStorage.setItem(TIPS_KEY(), "0"); }catch(e){} $("tips").hidden = true; });
+$("tipsClose").addEventListener("click", ()=>{ try{ localStorage.setItem(TIPS_KEY(), "0"); }catch(e){} $("tips").hidden = true; renderTips(); });
+/* ---------- the tour (tour.js, loaded when asked for): from the welcome card, a one-time note for a member who hasn't
+   seen it (the welcome card gone), the account menu, or index.html#tour (the help page links it) ---------- */
+const TOUR_KEY = () => "vinTour:" + String(cfg.user||"").toLowerCase();
+const tourSeen = () => { try{ return localStorage.getItem(TOUR_KEY()) === "1"; }catch(e){ return true; } };
+function tourNote(){ $("tourNote").hidden = !cfg.user || tourSeen() || !$("tips").hidden; }
+function startTour(){ $("tourNote").hidden = true; (window.TOUR ? Promise.resolve() : loadJS("tour.js?v=2")).then(()=>TOUR.start()).catch(()=>toast(tr("Couldn't load the tour. Check your connection and try again."))); }
+["tipsTour","tourGo","tourBtn"].forEach(id=>$(id).addEventListener("click", startTour));
+$("tourNo").addEventListener("click", ()=>{ try{ localStorage.setItem(TOUR_KEY(), "1"); }catch(e){} $("tourNote").hidden = true; });
 
 /* ---------- share a list (share-crypto.js seals it here; share.html opens it with the key in the link) ---------- */
 const LS_KEY = () => "vinShares:" + String(cfg.user||"").toLowerCase();
@@ -2787,7 +2687,7 @@ $("pMore").addEventListener("click", ()=>{
 $("pMe").addEventListener("click", ()=>{
   $("meTitle").textContent = cfg.user || "";
   sheetMenu("meMenu", [["user", tr("Account"), "acctBtn", tr("password, recovery code")], $("adminBtn").hidden ? null : ["shield", tr("Admin"), "adminBtn", tr("members, invites")],
-    ["?", tr("Help and tips"), "help.html"], ["lock", tr("Privacy"), "privacy.html"], ["user", tr("Log out"), "lockBtn"]]);
+    ["?", tr("Help and tips"), "help.html"], ["sparkle", tr("Take the tour"), "tourBtn"], ["lock", tr("Privacy"), "privacy.html"], ["user", tr("Log out"), "lockBtn"]]);
   $("meSheet").classList.add("open");
 });
 /* ---------- filters / sorting (bound once) ---------- */
