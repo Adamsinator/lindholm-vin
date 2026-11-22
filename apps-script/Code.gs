@@ -42,7 +42,7 @@ function setting(key) {
 // The legacy code only works once you've set a real one: the placeholder from the template is public.
 function accessCode() { const c = setting('ACCESS_CODE'); return c === 'CHANGE-ME' ? '' : c; }
 
-const API_VERSION = 66; // returned in every response; used to verify deployments
+const API_VERSION = 67; // returned in every response; used to verify deployments
 
 // Per-request spreadsheet for the authenticated user. Set in handle(); every
 // sheet helper reads it via ss(). Falls back to the bound (owner's) spreadsheet.
@@ -86,6 +86,17 @@ const RATING_HEADER = 'Rating';
 // Optional current-value column (what a bottle is worth now — your own figure);
 // auto-created the first time you set a value in the site.
 const VALUE_HEADER = 'Værdi kr';
+// A wine's valuations, dated (API 67): "2025-03-01=1200 Wine-Searcher; 2026-11-22=1500", oldest first, at most
+// VALUE_LOG_MAX (the oldest go first). The current value (VALUE_HEADER) is the newest. The cellar's value chart draws
+// between them (cellar-qol.js); a value set without a date is today's.
+const VALUE_LOG_HEADER = 'Værdihistorik', VALUE_LOG_MAX = 60;
+function parseValueLog(s) {
+  return String(s == null ? '' : s).replace(/^'/, '').split(';').map(x => { const m = x.trim().match(/^(\d{4}-\d\d-\d\d)=(\d+(?:\.\d+)?)(?:\s+(.*))?$/);
+    return m ? { d: m[1], v: Number(m[2]), s: (m[3] || '').trim() } : null; }).filter(Boolean).sort((a, b) => a.d < b.d ? -1 : a.d > b.d ? 1 : 0);
+}
+// text in the sheet, never a date or a number (the apostrophe Sheets keeps out of the value; the vault has no sheet)
+function valueLogCell(list) { const t = list.slice(-VALUE_LOG_MAX).map(e => e.d + '=' + e.v + (e.s ? ' ' + e.s : '')).join('; '); return t && !inEngine() ? "'" + t : t; }
+const valueSource = s => String(s == null ? '' : s).replace(/[;=\r\n\t]/g, ' ').replace(/\s+/g, ' ').trim().replace(/^[+\-@']+/, '').slice(0, 40);
 
 // Optional date columns, auto-created on demand: when the wine was acquired
 // (set on add), and when it was last drunk (set when a bottle is marked drunk).
@@ -294,7 +305,7 @@ function handle(p) {
         rateWine(Number(p.row), p.rating);
         return json({ ok: true, wines: readAll() });
       case 'setvalue':
-        setValue(Number(p.row), p.value);
+        setValue(Number(p.row), p.value, p.date, p.source);
         return json({ ok: true, wines: readAll() });
       case 'setprice':
         setPrice(Number(p.row), p.value);
@@ -1682,6 +1693,7 @@ function colIndexes(sh) {
   }
   idx.rating    = head.indexOf(RATING_HEADER); // -1 until first rating creates it
   idx.value     = head.indexOf(VALUE_HEADER);  // -1 until first value creates it
+  idx.valueLog  = head.indexOf(VALUE_LOG_HEADER);
   idx.acquired  = head.indexOf(ACQUIRED_HEADER);
   idx.drunkDate = head.indexOf(DRUNK_DATE_HEADER);
   idx.size      = head.indexOf(SIZE_HEADER);
@@ -1711,6 +1723,7 @@ function readAll() {
     }
     w.rating = idx.rating >= 0 ? (r[idx.rating] === null || r[idx.rating] === undefined ? '' : r[idx.rating]) : '';
     w.value  = idx.value  >= 0 ? (r[idx.value] === null || r[idx.value] === undefined ? '' : r[idx.value]) : '';
+    w.valueLog = idx.valueLog >= 0 ? valueLogCell(parseValueLog(r[idx.valueLog])).replace(/^'/, '') : '';
     w.acquired  = idx.acquired  >= 0 ? ymd(r[idx.acquired])  : '';
     w.drunkDate = idx.drunkDate >= 0 ? ymd(r[idx.drunkDate]) : '';
     w.size = idx.size >= 0 ? String(r[idx.size] === null || r[idx.size] === undefined ? '' : r[idx.size]).trim() : '';
@@ -1797,6 +1810,7 @@ function addMany(wines, bumps) {
   const sh = sheet();
   ensureCol(sh, ACQUIRED_HEADER);
   Object.keys(IMPORT_COLS).forEach(f => { if (wines.some(w => !blank(w[f]))) ensureCol(sh, IMPORT_COLS[f]); });
+  if (wines.some(w => !blank(w.value))) ensureCol(sh, VALUE_LOG_HEADER); // a value in the file is today's valuation
   ensureBiz(sh, wines);
   const idx = colIndexes(sh), width = sh.getLastColumn(), last = sh.getLastRow();
   const count = v => Math.min(MAX_BOTTLES, Math.max(0, Math.round(Number(v) || 0)));
@@ -1825,7 +1839,7 @@ function addMany(wines, bumps) {
     if (!blank(w.price)) row[idx.price] = num(w.price);
     if (!blank(w.acquired)) row[idx.acquired] = ymd(w.acquired);
     if (!blank(w.rating)) row[idx.rating] = Math.max(1, Math.min(10, Number(w.rating) || 0));
-    if (!blank(w.value)) row[idx.value] = num(w.value);
+    if (!blank(w.value)) { row[idx.value] = num(w.value); if (idx.valueLog >= 0 && num(w.value) !== '') row[idx.valueLog] = valueLogCell([{ d: today(), v: num(w.value), s: '' }]); }
     if (!blank(w.drunkDate)) row[idx.drunkDate] = ymd(w.drunkDate);
     if (!blank(w.size)) row[idx.size] = String(w.size).trim();
     if (!blank(w.drinkFrom)) row[idx.drinkFrom] = num(w.drinkFrom);
@@ -1882,6 +1896,9 @@ function mergeRows(groups) {
     const set = (i, v) => { if (i >= 0) sh.getRange(rows[0], i + 1).setValue(v); };
     set(idx.qty, sumQ); set(idx.drunk, sumD || '');
     set(idx.price, mean(idx.price)); if (idx.value >= 0) set(idx.value, mean(idx.value));
+    if (idx.valueLog >= 0) { const seenD = {}, log = [];
+      data.forEach(d => parseValueLog(val(d, idx.valueLog)).forEach(e => { if (!seenD[e.d]) { seenD[e.d] = 1; log.push(e); } }));
+      if (log.length) { log.sort((a, b) => a.d < b.d ? -1 : a.d > b.d ? 1 : 0); set(idx.valueLog, valueLogCell(log)); if (idx.value >= 0) set(idx.value, log[log.length - 1].v); } }
     [idx.note, idx.source, idx.location].forEach(i => { if (i >= 0) set(i, plainText(join(i))); });
     if (idx.acquired >= 0) set(idx.acquired, pick(idx.acquired, (a, b) => a < b));
     if (idx.drunkDate >= 0) set(idx.drunkDate, pick(idx.drunkDate, (a, b) => a > b));
@@ -2095,13 +2112,22 @@ function ensureCol(sh, header) {
   return i;
 }
 
-function setValue(rowNum, value) {
+// A value per bottle on a date (today without one), from a source (Wine-Searcher, an auction…): added to the wine's
+// valuations, the one of that date replaced; the current value is the newest. No value with a date takes that date's
+// valuation out; no value and no date clears them all (the wine isn't valued any more).
+function setValue(rowNum, value, date, source) {
   const sh = sheet();
   if (!rowNum || rowNum < 2 || rowNum > sh.getLastRow()) throw new Error('Bad row');
-  const i = ensureCol(sh, VALUE_HEADER);
+  const d = date === '' || date === null || date === undefined ? '' : ymd(date);
+  if (d && (!/^\d{4}-\d\d-\d\d$/.test(d) || d > today())) throw new Error('Bad date');
+  const i = ensureCol(sh, VALUE_HEADER), j = ensureCol(sh, VALUE_LOG_HEADER);
   const empty = value === '' || value === null || value === undefined;
-  const v = empty ? '' : Math.max(0, Number(value) || 0);
-  sh.getRange(rowNum, i + 1).setValue(v);
+  let log = parseValueLog(sh.getRange(rowNum, j + 1).getValue());
+  if (empty) log = d ? log.filter(e => e.d !== d) : [];
+  else { const e = { d: d || today(), v: Math.max(0, Number(value) || 0), s: valueSource(source) };
+    log = log.filter(x => x.d !== e.d).concat([e]).sort((a, b) => a.d < b.d ? -1 : a.d > b.d ? 1 : 0); }
+  sh.getRange(rowNum, i + 1).setValue(log.length ? log[log.length - 1].v : '');
+  sh.getRange(rowNum, j + 1).setValue(valueLogCell(log));
 }
 
 // Set how many bottles are left (a business counting its stock): bought becomes what was drunk or sold plus that.

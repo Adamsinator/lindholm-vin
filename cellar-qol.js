@@ -503,13 +503,16 @@ $("selDrink").addEventListener("click", async ()=>{
 // date (earlier drink dates aren't kept), so it's a close estimate, said under it. Wines with no purchase date or no
 // price are left out, and counted. Monthly up to three years, then a point a quarter, at most ten years back.
 (()=>{
-  const W = { da: { "Value over time": "Værdi over tid", "at cost": "til kostpris", "at your values": "til dine værdier", "now": "nu",
+  const W = { da: { "Value over time": "Værdi over tid", "at cost": "til kostpris", "at your values": "efter dine vurderinger", "{0} on 12 months, purchases and drinking left out": "{0} på 12 måneder, køb og drukne flasker holdt ude (pengevægtet)", "{0} over what you paid": "{0} over det, du betalte",
+      "Between your valuations the value moves at a steady rate, and after the newest it holds; a wine without one counts at its price.": "Mellem dine vurderinger ændrer værdien sig med en jævn rate, og efter den nyeste står den stille; en vin uden vurdering tæller med sin pris.", "now": "nu",
       "{0} on 12 months": "{0} mod for et år siden, fra købte og drukne flasker", "What the cellar cost, over time": "Hvad kælderen har kostet, over tid", "From purchase and drink dates: a wine's drunk bottles leave at its last drink date.": "Ud fra købs- og drikkedatoer: en vins drukne flasker regnes fra dens seneste drikkedato.",
       "{0} wines without a purchase date or price aren't in it.": "{0} vine uden købsdato eller pris er ikke med.", "1 wine without a purchase date or price isn't in it.": "1 vin uden købsdato eller pris er ikke med." },
-    fr: { "Value over time": "Valeur dans le temps", "at cost": "au prix d'achat", "at your values": "à vos valeurs", "now": "aujourd'hui",
+    fr: { "Value over time": "Valeur dans le temps", "at cost": "au prix d'achat", "at your values": "selon vos estimations", "{0} on 12 months, purchases and drinking left out": "{0} sur 12 mois, achats et bouteilles bues mis à part (pondéré par les flux)", "{0} over what you paid": "{0} au-dessus de ce que vous avez payé",
+      "Between your valuations the value moves at a steady rate, and after the newest it holds; a wine without one counts at its price.": "Entre vos estimations, la valeur évolue à un rythme régulier, et après la plus récente elle reste stable ; un vin sans estimation compte à son prix.", "now": "aujourd'hui",
       "{0} on 12 months": "{0} par rapport à il y a un an, par les bouteilles achetées et bues", "What the cellar cost, over time": "Ce que la cave a coûté, dans le temps", "From purchase and drink dates: a wine's drunk bottles leave at its last drink date.": "D'après les dates d'achat et de dégustation : les bouteilles bues d'un vin sortent à sa dernière date.",
       "{0} wines without a purchase date or price aren't in it.": "{0} vins sans date d'achat ou sans prix n'y sont pas.", "1 wine without a purchase date or price isn't in it.": "1 vin sans date d'achat ou sans prix n'y est pas." },
-    de: { "Value over time": "Wert im Zeitverlauf", "at cost": "zum Einkaufspreis", "at your values": "zu Ihren Werten", "now": "jetzt",
+    de: { "Value over time": "Wert im Zeitverlauf", "at cost": "zum Einkaufspreis", "at your values": "nach Ihren Bewertungen", "{0} on 12 months, purchases and drinking left out": "{0} in 12 Monaten, Käufe und getrunkene Flaschen herausgerechnet (geldgewichtet)", "{0} over what you paid": "{0} über dem, was Sie bezahlt haben",
+      "Between your valuations the value moves at a steady rate, and after the newest it holds; a wine without one counts at its price.": "Zwischen Ihren Bewertungen ändert sich der Wert mit gleichmäßiger Rate, nach der neuesten bleibt er stehen; ein Wein ohne Bewertung zählt mit seinem Preis.", "now": "jetzt",
       "{0} on 12 months": "{0} gegenüber vor einem Jahr, durch gekaufte und getrunkene Flaschen", "What the cellar cost, over time": "Was der Keller gekostet hat, im Zeitverlauf", "From purchase and drink dates: a wine's drunk bottles leave at its last drink date.": "Aus Kauf- und Trinkdaten: die getrunkenen Flaschen eines Weins gehen zu seinem letzten Trinkdatum ab.",
       "{0} wines without a purchase date or price aren't in it.": "{0} Weine ohne Kaufdatum oder Preis sind nicht dabei.", "1 wine without a purchase date or price isn't in it.": "1 Wein ohne Kaufdatum oder Preis ist nicht dabei." } };
   // in English too the change says what it is: at cost, it's bottles bought and drunk, never prices rising
@@ -532,10 +535,29 @@ $("selDrink").addEventListener("click", async ()=>{
     const at = s => { const [y, m] = String(s).split("-").map(Number); return y * 12 + m - 1; }, now = ym(new Date());
     const first = Math.max(now - 120, Math.min(...ok.map(w => at(w.acquired)))), span = now - first, step = span > 36 ? 3 : 1;
     const pts = []; for(let t = now; t >= first; t -= step) pts.unshift(t); if(pts[0] !== first && span <= 120) pts.unshift(first);
-    const hasVal = ok.some(w => w.value != null);
+    // a wine's value at time t (months, fractional): from the price paid on its purchase date through each dated valuation
+    // after it, at a steady rate between two (geometric: p·(v/p)^f), held after the newest; an undated value (from
+    // before valuations had dates) counts as today's; a wine with none is worth its price
+    const atF = s => { const [y, m, d] = String(s).split("-").map(Number); return y * 12 + m - 1 + ((d || 1) - 1) / 30.5; };
+    const nowF = atF(todayStr());
+    ok.forEach(w => { const a = atF(w.acquired), log = (w.valueLog || []).filter(e => atF(e.d) >= a).map(e => ({ t: atF(e.d), v: e.v }));
+      if(!log.length && w.value != null) log.push({ t: Math.max(a, nowF), v: w.value });
+      w._anc = log.length ? [{ t: a, v: w.price }].concat(log) : null; });
+    const vAt = (w, t) => { const A = w._anc; if(!A) return w.price; if(t <= A[0].t) return A[0].v; const L = A[A.length - 1]; if(t >= L.t) return L.v;
+      let k = 0; while(A[k + 1].t < t) k++; const a = A[k], b = A[k + 1], f = (t - a.t) / Math.max(1e-9, b.t - a.t);
+      return a.v > 0 && b.v > 0 ? a.v * Math.pow(b.v / a.v, f) : a.v + (b.v - a.v) * f; };
+    const hasVal = ok.some(w => w._anc);
     const val = (t, f) => ok.reduce((s, w) => { if(at(w.acquired) > t) return s;
       const gone = w.drunk > 0 && w.drunkDate && at(w.drunkDate) <= t ? w.drunk : 0; return s + f(w) * Math.max(0, (w.qty || 0) - gone); }, 0);
-    const C = pts.map(t => val(t, w => w.price)), V = hasVal ? pts.map(t => val(t, w => w.value != null ? w.value : w.price)) : null;
+    const C = pts.map(t => val(t, w => w.price)), V = hasVal ? pts.map(t => val(t, w => vAt(w, Math.min(t + 1, nowF)))) : null; // each month at its end
+    // the change in value over 12 months with what came in and went out left out (modified Dietz): purchases in at cost,
+    // drunk bottles out at their value then, each weighted by the part of the year it was there for
+    let dietz = null;
+    if(V){ const t0 = nowF - 12, inWin = t => t > t0 && t <= nowF, held = (w, t) => atF(w.acquired) <= t ? Math.max(0, (w.qty || 0) - (w.drunk > 0 && w.drunkDate && atF(w.drunkDate) <= t ? w.drunk : 0)) : 0;
+      const Vt = t => ok.reduce((s, w) => s + vAt(w, t) * held(w, t), 0), B = Vt(t0), E = Vt(nowF); let F = 0, Fw = 0;
+      ok.forEach(w => { const ta = atF(w.acquired); if(inWin(ta)){ const f = w.price * (w.qty || 0); F += f; Fw += f * (nowF - ta) / 12; }
+        if(w.drunk > 0 && w.drunkDate){ const td = atF(w.drunkDate); if(inWin(td)){ const f = -vAt(w, td) * w.drunk; F += f; Fw += f * (nowF - td) / 12; } } });
+      if(B + Fw > 0) dietz = (E - B - F) / (B + Fw); }
     const top = Math.max(1, ...C, ...(V || [])), Wd = 600, H = 150, L = 4, R = 4, T = 8, B = 18;
     const x = i => L + (pts.length < 2 ? 0 : i / (pts.length - 1)) * (Wd - L - R), y = v => T + (1 - v / top) * (H - T - B);
     const line = a => a.map((v, i) => (i ? "L" : "M") + x(i).toFixed(1) + " " + y(v).toFixed(1)).join(" ");
@@ -545,12 +567,13 @@ $("selDrink").addEventListener("click", async ()=>{
     box.hidden = false;
     box.innerHTML = `<h3>${esc(word(V ? "Value over time" : "What the cellar cost, over time"))}</h3>
       <div class="vt-k"><span><i></i>${esc(word("at cost"))} ${esc(word("now"))} <b>${esc(kr(Math.round(C[C.length - 1])))}</b>${d12 != null ? ` · ${esc(word("{0} on 12 months", (d12 >= 0 ? "+" : "−") + Math.abs(Math.round(d12 * 100)) + " %"))}` : ""}</span>
-        ${V ? `<span><i class="v"></i>${esc(word("at your values"))} <b>${esc(kr(Math.round(V[V.length - 1])))}</b></span>` : ""}</div>
+        ${V ? `<span><i class="v"></i>${esc(word("at your values"))} <b>${esc(kr(Math.round(V[V.length - 1])))}</b> · ${esc(word("{0} over what you paid", (V[V.length - 1] >= C[C.length - 1] ? "+" : "−") + kr(Math.abs(Math.round(V[V.length - 1] - C[C.length - 1])))))}</span>` : ""}
+        ${dietz != null ? `<span class="vt-r">${esc(word("{0} on 12 months, purchases and drinking left out", (dietz >= 0 ? "+" : "−") + Math.abs(Math.round(dietz * 1000) / 10).toLocaleString(window.I18N ? (I18N.lang === "en" ? "en-GB" : I18N.lang) : "en-GB") + " %"))}</span>` : ""}</div>
       <svg viewBox="0 0 ${Wd} ${H}" role="img" aria-label="${esc(word("Value over time"))}: ${esc(lab(pts[0]))} ${esc(kr(Math.round(C[0])))} → ${esc(lab(now))} ${esc(kr(Math.round(C[C.length - 1])))}">
         <path class="vt-a" d="${line(C)} L${x(pts.length - 1).toFixed(1)} ${H - B} L${x(0).toFixed(1)} ${H - B}Z"/><path class="vt-c" d="${line(C)}"/>${V ? `<path class="vt-v" d="${line(V)}"/>` : ""}
         ${pts.map((t, i) => `<circle cx="${x(i).toFixed(1)}" cy="${y(C[i]).toFixed(1)}" r="6" fill="transparent"><title>${esc(lab(t))}: ${esc(kr(Math.round(C[i])))}${V ? " · " + esc(kr(Math.round(V[i]))) : ""}</title></circle>`).join("")}
         <text x="${L}" y="${H - 4}">${esc(lab(pts[0]))}</text><text x="${Wd - R}" y="${H - 4}" text-anchor="end">${esc(lab(now))}</text></svg>
-      <p class="ph">${esc(word("From purchase and drink dates: a wine's drunk bottles leave at its last drink date."))}${skipped ? " " + esc(skipped === 1 ? word("1 wine without a purchase date or price isn't in it.") : word("{0} wines without a purchase date or price aren't in it.", fmt(skipped))) : ""}</p>`;
+      <p class="ph">${esc(word("From purchase and drink dates: a wine's drunk bottles leave at its last drink date."))}${V ? " " + esc(word("Between your valuations the value moves at a steady rate, and after the newest it holds; a wine without one counts at its price.")) : ""}${skipped ? " " + esc(skipped === 1 ? word("1 wine without a purchase date or price isn't in it.") : word("{0} wines without a purchase date or price aren't in it.", fmt(skipped))) : ""}</p>`;
   }
   const ro = window.renderOverview; window.renderOverview = function(){ const r = ro.apply(this, arguments); draw(); return r; };
   draw();

@@ -1,6 +1,8 @@
 // French for allwine.dk: i18n.js loads the one dictionary the page's language needs (English is the source text).
 window.I18N_DICT = window.I18N_DICT || {};
 window.I18N_DICT.fr = {
+  "Date": "Date",
+  "Source": "Provenance",
   "Take the tour": "Faire la visite",
   "For business": "Pour les pros",
   "Drink": "Boire",
@@ -303,7 +305,6 @@ window.I18N_DICT.fr = {
   "Bottle": "Bouteille",
   "Bought": "Achetées",
   "Enjoyed": "Dégustés",
-  "Source": "Provenance",
   "Wishlist": "Liste d'envies",
   "Journal": "Journal",
   "classification": "classement",
@@ -332,7 +333,6 @@ window.I18N_DICT.fr = {
   "Current value:": "Valeur actuelle :",
   "Add wine": "Ajouter un vin",
   "What": "Quoi",
-  "Date": "Date",
   "Place": "Lieu",
   "Pages": "Pages",
   "Where": "Où",
