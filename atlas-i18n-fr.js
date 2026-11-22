@@ -86,5 +86,6 @@ Object.assign(window.I18N_DICT.fr, {
   "The rules take the commune's land fit for the wine, between 250 and 600 m.": "Le règlement retient les terres de la commune propres au vin, entre 250 et 600 m.",
   "The rules take the commune east of the old Via Aurelia.": "Le règlement retient la commune à l'est de l'ancienne Via Aurelia.",
   "Vines © ARTEA, Regione Toscana, CC BY": "Vignes © ARTEA, Regione Toscana, CC BY",
-  "Partly in its wine's zone": "En partie dans la zone de son vin"
+  "Partly in its wine's zone": "En partie dans la zone de son vin",
+  "Back": "Retour"
 });

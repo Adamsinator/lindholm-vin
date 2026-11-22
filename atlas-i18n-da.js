@@ -86,5 +86,6 @@ Object.assign(window.I18N_DICT.da, {
   "The rules take the commune's land fit for the wine, between 250 and 600 m.": "Reglerne tager den del af kommunen, der egner sig til vinen, mellem 250 og 600 m.",
   "The rules take the commune east of the old Via Aurelia.": "Reglerne tager kommunen øst for den gamle Via Aurelia.",
   "Vines © ARTEA, Regione Toscana, CC BY": "Vinmarker © ARTEA, Regione Toscana, CC BY",
-  "Partly in its wine's zone": "Delvis i vinens zone"
+  "Partly in its wine's zone": "Delvis i vinens zone",
+  "Back": "Tilbage"
 });

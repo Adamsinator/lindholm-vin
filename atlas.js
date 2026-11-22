@@ -365,8 +365,10 @@ const aspect = () => { const [W, H] = svgSize(); return H / W; };
 function fit(bb, pad, ms) {
   bb = rotBB(bb); // the box is in the map's metres; the view is in the turned frame
   const [W, H] = svgSize(), bw = bb[2] - bb[0], bh = bb[3] - bb[1], m = pad ?? (W < 600 ? .14 : .06); // a phone: room for the names at the edges
-  const w = clampW(Math.max(bw / W, bh / H) * (1 + 2 * m) * W), h = w * aspect(); // a tiny vineyard: centred, at the closest zoom
-  const v = [(bb[0] + bb[2]) / 2 - w / 2, (bb[1] + bb[3]) / 2 - h / 2, w, h];
+  // a phone with the vineyard's sheet up: fit it in the map left above the sheet
+  const sh = PHONE.matches && document.body.classList.contains("side-open") ? Math.min(H * .7, $("sideWrap").offsetHeight) : 0, H1 = H - sh;
+  const w = clampW(Math.max(bw / W, bh / H1) * (1 + 2 * m) * W), h = w * aspect(); // a tiny vineyard: centred, at the closest zoom
+  const v = [(bb[0] + bb[2]) / 2 - w / 2, (bb[1] + bb[3]) / 2 - h * (H1 / 2 / H), w, h];
   if (ms && st.view) flyTo(v, ms); else setView(v);
 }
 // a short eased glide to a view; none if the system asks for less motion
@@ -399,7 +401,7 @@ svg.addEventListener("wheel", e => { if (!st.view) return; e.preventDefault(); s
 /* touch and mouse, as on a phone map: a drag pans and a flick glides on, slowing; a pinch zooms and pans together,
    keeping the point between the fingers under them; lifting one finger carries on as a pan without a jump; a double-tap
    or double-click zooms in there */
-const ptrs = new Map(); let moved = 0, pinch = null, pan = null, trail = [], glideRaf = 0, lastTap = null;
+const ptrs = new Map(); let moved = 0, pinch = null, pan = null, trail = [], glideRaf = 0, lastTap = null, tz = null, tapT = 0;
 function stopGlide() { cancelAnimationFrame(glideRaf); glideRaf = 0; }
 const startPan = (x, y) => { pan = { x, y, v: st.view.slice() }; trail = [[performance.now(), x, y]]; };
 function startPinch() { const [a, b] = [...ptrs.values()], m = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
@@ -407,16 +409,26 @@ function startPinch() { const [a, b] = [...ptrs.values()], m = [(a[0] + b[0]) / 
 svg.addEventListener("pointerdown", e => { stopGlide(); cancelAnimationFrame(flyRaf); ptrs.set(e.pointerId, [e.clientX, e.clientY]); try { svg.setPointerCapture(e.pointerId); } catch (x) {} svg.classList.add("drag");
   if (ptrs.size === 1) moved = 0;
   if (!st.view) return; // the start page: its dots are links
+  // a second tap held and dragged: zoom with one finger, about the first tap
+  tz = ptrs.size === 1 && e.pointerType === "touch" && lastTap && performance.now() - lastTap[0] < 320 && Math.hypot(e.clientX - lastTap[1], e.clientY - lastTap[2]) < 32
+    ? { y: e.clientY, sx: e.clientX, sy: e.clientY, w: st.view[2], c: toSvg(e), used: false } : null;
+  if (tz || ptrs.size > 1) clearTimeout(tapT); // the first tap was the start of a zoom
   if (ptrs.size === 1) startPan(e.clientX, e.clientY); else if (ptrs.size === 2) startPinch(); });
 svg.addEventListener("pointermove", e => {
   if (!ptrs.has(e.pointerId) || !st.view) return;
   const [px, py] = ptrs.get(e.pointerId); ptrs.set(e.pointerId, [e.clientX, e.clientY]);
   moved += Math.abs(e.clientX - px) + Math.abs(e.clientY - py);
   const r = mapRect();
+  if (tz && ptrs.size === 1) { const dy = e.clientY - tz.y; if (Math.abs(dy) > 8) tz.used = true;
+    if (tz.used) { pan = null; const w = clampW(tz.w * Math.exp(-dy / 150)), h = w * aspect();
+      setView([tz.c[0] - (tz.sx - r.left) / r.width * w, tz.c[1] - (tz.sy - r.top) / r.height * h, w, h], true); }
+    return; }
   if (ptrs.size === 2 && pinch) { const [a, b] = [...ptrs.values()], d = Math.max(20, Math.hypot(a[0] - b[0], a[1] - b[1]));
-    // a twist of more than 12° turns the map; the turn shows at once on the group
+    // a twist of more than 20° turns the map, but only in a pinch that hasn't already zoomed: a hand that spreads its
+    // fingers turns a little as it does, and that turned the map when only a zoom was meant
     let tw = (Math.atan2(b[1] - a[1], b[0] - a[0]) - pinch.ang) * 180 / Math.PI; tw = ((tw + 540) % 360) - 180;
-    if (!pinch.turning && Math.abs(tw) > 12) pinch.turning = true;
+    if (!pinch.turning && Math.abs(Math.log(d / pinch.d)) > .15) pinch.zoomed = true;
+    if (!pinch.turning && !pinch.zoomed && Math.abs(tw) > 20) pinch.turning = true;
     if (pinch.turning) { pinch.turn = tw; applyRot(pinch.a0 + tw); }
     const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2, w = clampW(pinch.w * pinch.d / d), h = w * aspect();
     setView([pinch.c[0] - (mx - r.left) / r.width * w, pinch.c[1] - (my - r.top) / r.height * h, w, h], true); moved += 10; return; }
@@ -439,18 +451,21 @@ const up = e => { const had = ptrs.size; ptrs.delete(e.pointerId);
     else if (st.view && moved >= 6) setView(st.view);
     pan = null; } };
 svg.addEventListener("pointerup", e => { const tgt = document.elementFromPoint(e.clientX, e.clientY), touch = e.pointerType === "touch"; up(e);
+  if (tz) { const used = tz.used; tz = null; if (used) { lastTap = null; return; } } // a one-finger zoom: not a tap
   const hd = !st.pack && tgt && tgt.closest && tgt.closest(".hd, .ol"); if (hd) { goTo(hd.dataset.id); return; }
   const cn = !st.pack && moved < 6 && tgt && tgt.closest && tgt.closest(".on[data-c]"); if (cn && cn.dataset.c !== EU.c) { location.hash = "#c=" + cn.dataset.c; return; }
   if (moved >= 6 || !st.pack) return;
   // a second tap close by, soon after: zoom in there (the first tap's selection stands)
   if (touch) { const now = performance.now();
-    if (lastTap && now - lastTap[0] < 320 && Math.hypot(e.clientX - lastTap[1], e.clientY - lastTap[2]) < 32) { lastTap = null; const [cx, cy] = toSvg(e); zoomAt(.5, cx, cy, 260); return; }
+    if (lastTap && now - lastTap[0] < 320 && Math.hypot(e.clientX - lastTap[1], e.clientY - lastTap[2]) < 32) { lastTap = null; clearTimeout(tapT); const [cx, cy] = toSvg(e); zoomAt(.5, cx, cy, 260); return; }
     lastTap = [now, e.clientX, e.clientY]; }
   if (PROF.on) { profClick(unrotP(toSvg(e))); return; }
-  const q = tgt && tgt.closest && tgt.closest(".pt"), c = tgt && tgt.closest && tgt.closest(".cl, .hit, .vd");
-  if (!q && !c && window.ATLAS_LDUI && st.region && st.region.ld) { const i = ATLAS_LDUI.at(unrotP(toSvg(e))); if (i >= 0) return ATLAS_LDUI.pick(i); } // a lieu-dit outside the climats
-  select(q ? q.dataset.pt : c ? c.dataset.id : null); });
-svg.addEventListener("pointercancel", up);
+  const q = tgt && tgt.closest && tgt.closest(".pt"), c = tgt && tgt.closest && tgt.closest(".cl, .hit, .vd"), at = unrotP(toSvg(e));
+  // a finger's tap waits a moment: a second one makes it a zoom, not a vineyard whose sheet covers half the map
+  const pick = () => { if (!q && !c && window.ATLAS_LDUI && st.region && st.region.ld) { const i = ATLAS_LDUI.at(at); if (i >= 0) return ATLAS_LDUI.pick(i); } // a lieu-dit outside the climats
+    select(q ? q.dataset.pt : c ? c.dataset.id : null); };
+  clearTimeout(tapT); if (touch) tapT = setTimeout(pick, 250); else pick(); });
+svg.addEventListener("pointercancel", e => { tz = null; up(e); });
 svg.addEventListener("dblclick", e => { if (!st.pack || PROF.on) return; e.preventDefault(); const [cx, cy] = toSvg(e); zoomAt(.5, cx, cy, 260); });
 // Safari's own page pinch would fight the map's
 ["gesturestart", "gesturechange"].forEach(t => svg.addEventListener(t, e => e.preventDefault()));
@@ -659,7 +674,9 @@ addEventListener("resize", () => { if (st.view) layoutLabels(); });
 /* ---------- the side panel ---------- */
 const byId = id => st.pack && (st.pack.climats.find(c => c.id === id) || pts().find(q => q.id === id));
 function select(id, fly) {
-  st.ld = null; st.vsel = null; st.sel = byId(id) ? id : null; if (st.sel) ensureGeol(); paint(); renderSide(); syncHash();
+  const was = st.sel; st.ld = null; st.vsel = null; st.sel = byId(id) ? id : null; if (st.sel) ensureGeol(); paint(); renderSide();
+  // a phone: opening a vineyard is a step the back gesture undoes (closing the sheet), not a way off the map
+  const push = PHONE.matches && st.sel && !was; if (push) st.pushedSel = true; else if (!st.sel) st.pushedSel = false; syncHash(push);
   document.body.classList.toggle("side-open", !!st.sel); // a phone: the vineyard's details slide up
   const c = st.sel && byId(st.sel);
   if (c && fly) { if (c.g) fit(bbOf(c.g), .6, 360); else if (c.p) fit([c.p[0] - 900, c.p[1] - 900, c.p[0] + 900, c.p[1] + 900], .1, 360); }
@@ -1106,9 +1123,9 @@ function renderHomeSide() {
 }
 const cellarSummaryHome = () => CELLAR.loaded ? "" : `<p class="note">${esc(t(CELLAR.msg))}</p>`;
 
-function syncHash() {
+function syncHash(push) {
   const h = "#r=" + st.region.id + (st.sel ? "&c=" + st.sel : st.vsel ? "&v=" + st.vsel : "") + (st.prod ? "&p=" + st.prod : "") + (st.color && st.color !== "class" ? "&color=" + st.color + (st.color === "vintage" && st.vy ? "&y=" + st.vy : "") : "");
-  if (location.hash !== h) history.replaceState(null, "", location.pathname + location.search + h);
+  if (location.hash !== h) history[push ? "pushState" : "replaceState"](null, "", location.pathname + location.search + h);
 }
 async function openRegion(id, sel) {
   const R = REGIONS.concat(PREVIEW).find(r => r.id === id) || REGIONS[0];
@@ -1270,6 +1287,7 @@ function renderCrumb() {
   else if (!st.pack) c.innerHTML = `<button type="button" data-home>${esc(t("Europe"))}</button><span class="sep">›</span><span>${esc(cname(cc))}</span><span class="n">· ${esc((n => n === 1 ? t("{0} region", n) : t("{0} regions", n))(REGIONS.filter(r => r.country === cc).length))}</span>`;
   else { const n = st.pack.climats.filter(x => !x.unnamed).length;
     c.innerHTML = `<button type="button" data-home>${esc(t("Europe"))}</button><span class="sep">›</span>${ctry}<button type="button" data-info>${esc(st.pack.meta.name)}</button><span class="n">· ${esc(st.pack.meta.unit === "parishes" ? t("{0} parishes", n) : st.pack.climats.some(x => x.c === "MU" || x.c === "DV") ? t("{0} municipalities", n) : st.pack.climats.some(x => x.c === "CM") ? t("{0} communes", n) : t("{0} vineyards", n))}</span>`; }
+  if (st.pack || EU.c) { c.insertAdjacentHTML("afterbegin", `<button type="button" class="up" data-up aria-label="${esc(t("Back"))}">‹</button>`); c.querySelector("[data-up]").onclick = goUp; }
   const h = c.querySelector("[data-home]"); if (h) h.onclick = () => { location.hash = ""; };
   const k = c.querySelector("[data-ctry]"); if (k) k.onclick = () => { location.hash = "#c=" + cc; };
   const i = c.querySelector("[data-info]"); if (i) i.onclick = () => { if (st.sel) select(null); renderSide(); document.body.classList.add("side-open"); };
@@ -1307,7 +1325,15 @@ function closePanels() { $("stylePanel").hidden = true; $("menuPanel").hidden = 
 $("styleBtn").onclick = () => $("stylePanel").hidden ? openPanel("stylePanel") : closePanels();
 $("menuBtn").onclick = () => $("menuPanel").hidden ? openPanel("menuPanel") : closePanels();
 document.querySelectorAll(".panel [data-close]").forEach(b => b.onclick = closePanels);
-$("sideX").onclick = () => { document.body.classList.remove("side-open"); if (st.sel) select(null); };
+// closing a vineyard on a phone goes back over the step its opening added, so the back gesture doesn't open it again
+const closeSel = () => { document.body.classList.remove("side-open"); if (st.sel && st.pushedSel) { st.pushedSel = false; history.back(); } else if (st.sel) select(null); };
+$("sideX").onclick = closeSel;
+// one level up: the vineyard, the region (to its country, if it has others), the country (to Europe)
+function goUp() {
+  if (st.sel || document.body.classList.contains("side-open")) return closeSel();
+  if (st.pack) { const cc = st.region.country; location.hash = mapped().includes(cc) && REGIONS.filter(r => r.country === cc).length > 1 ? "#c=" + cc : ""; return; }
+  if (EU.c) location.hash = "";
+}
 addEventListener("keydown", e => { if (e.key === "Escape") { closePanels(); document.body.classList.remove("side-open"); } });
 svg.addEventListener("pointerdown", () => { if (PHONE.matches) closePanels(); });
 // a phone: the filters, the terrain bar and the legend move into the Map panel, the search box under its button
